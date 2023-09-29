@@ -12,25 +12,25 @@ class DNA:
         invalid characters.
         """
         sequence = sequence.upper()
-        valid_symbol: Final[Set] = {
-            'A',  # Single bases
-            'C',
-            'G',
-            'T',
-            'U',
-            'R',  # Double bases
-            'Y',
-            'K',
-            'M',
-            'S',
-            'W',
-            'B',  # Triple codes
-            'D',
-            'H',
-            'V',
-            'N',  # Wildcard
+        valid_symbol: Final[Set[str]] = {
+            "A",  # Single bases
+            "C",
+            "G",
+            "T",
+            "U",
+            "R",  # Double bases
+            "Y",
+            "K",
+            "M",
+            "S",
+            "W",
+            "B",  # Triple codes
+            "D",
+            "H",
+            "V",
+            "N",  # Wildcard
         }
         if sequence not in valid_symbol:
-            raise ValueError('Invalid DNA sequence.')
+            raise ValueError("Invalid DNA sequence.")
 
         self.sequence = sequence

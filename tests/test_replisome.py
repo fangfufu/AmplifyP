@@ -2,5 +2,5 @@
 from amplifyp.replisome import DNA
 
 
-def test_DNA_invalid_symbol():
-    DNA('ACGTX')
+def test_DNA_invalid_symbol() -> None:
+    DNA("ACGTX")
