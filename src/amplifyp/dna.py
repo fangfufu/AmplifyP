@@ -6,19 +6,18 @@ from typing import Final, FrozenSet
 class DNA:
     """Contains a DNA sequence."""
 
-    def __init__(self, sequence: str) -> None:
+    def __init__(self, sequence: str, primer: bool = True) -> None:
         """Construct a DNA sequence."""
         # Check if the sequence contains invalid characters.
         # Note that we allow lower case characters.
         test_set: Final[FrozenSet[str]] = frozenset(sequence.upper())
 
         # This is the IUB Nucleotide Codes.
-        valid_char_set: Final[FrozenSet[str]] = frozenset(
-            "ACGTU"
-            + "RYKMSW"  # Single bases
-            + "BDGV"  # Double bases
-            + "N"  # Triple bases  # Wildcard
-        )
+        valid_chars = "ACGT"  # Single bases
+        if primer:
+            #              Double     Triple   Wildcard
+            valid_chars += "RYKMSW" + "BDGV" + "N"
+        valid_char_set: Final[FrozenSet[str]] = frozenset(valid_chars)
         if not test_set <= valid_char_set:
             raise ValueError("DNA sequence contains invalid characters.")
 

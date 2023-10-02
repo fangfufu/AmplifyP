@@ -3,7 +3,7 @@ Python rewrite of  William Engels's Amplify4 by two people who went to Pembroke
 College Cambridge, hence AmplifyP.
 
 ## Todo
-- [ ] Integrate pre-commit framework
+- [ ] Implement the settings table
+- [ ] Implement the basic simulation
 - [ ] Investigate Github workflow
-- [ ] Investigate typechecking
 - [ ] Implement the GUI
