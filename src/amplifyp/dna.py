@@ -11,6 +11,8 @@ class DNA:
         # Check if the sequence contains invalid characters.
         # Note that we allow lower case characters.
         test_set: Final[FrozenSet[str]] = frozenset(sequence.upper())
+
+        # This is the IUB Nucleotide Codes.
         valid_char_set: Final[FrozenSet[str]] = frozenset(
             "ACGTU"
             + "RYKMSW"  # Single bases

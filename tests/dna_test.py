@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for replisome.py."""
-from amplifyp.replisome import DNA
+from amplifyp.dna import DNA
 
 
 def test_dna_invalid_characters() -> None:
