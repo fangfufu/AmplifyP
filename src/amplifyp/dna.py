@@ -6,7 +6,7 @@ from typing import Final, FrozenSet
 class DNA:
     """Contains a DNA sequence."""
 
-    def __init__(self, sequence: str, primer: bool = True) -> None:
+    def __init__(self, sequence: str, primer: bool = False) -> None:
         """Construct a DNA sequence."""
         # Check if the sequence contains invalid characters.
         # Note that we allow lower case characters.

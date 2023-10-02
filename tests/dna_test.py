@@ -6,9 +6,15 @@ from amplifyp.dna import DNA
 def test_dna_invalid_characters() -> None:
     """Test if DNA sequence contains invalid characters."""
     try:
-        DNA("ACGTX")
+        DNA("RYKMSW")
     except ValueError as err:
         assert str(err) == "DNA sequence contains invalid characters."
+
+
+def test_dna_primer_creation() -> None:
+    """Test the creation of a DNA primer."""
+    dna = DNA("RYKMSW", primer=True)
+    assert dna.sequence == "RYKMSW"
 
 
 def test_dna_str_representation() -> None:
