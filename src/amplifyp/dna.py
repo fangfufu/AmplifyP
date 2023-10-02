@@ -16,7 +16,7 @@ class DNA:
         valid_chars = "ACGT"  # Single bases
         if primer:
             #              Double     Triple   Wildcard
-            valid_chars += "RYKMSW" + "BDGV" + "N"
+            valid_chars += "RYKMSW" + "BDHV" + "N"
         valid_char_set: Final[FrozenSet[str]] = frozenset(valid_chars)
         if not test_set <= valid_char_set:
             raise ValueError("DNA sequence contains invalid characters.")
