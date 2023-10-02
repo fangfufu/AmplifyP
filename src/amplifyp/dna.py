@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Amplify P core logics - Replisome and DNA."""
+"""Amplify P - DNA class."""
 from typing import Final, FrozenSet
 
 

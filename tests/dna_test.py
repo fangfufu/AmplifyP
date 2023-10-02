@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for replisome.py."""
+"""Tests for dna.py."""
 from amplifyp.dna import DNA
 
 
