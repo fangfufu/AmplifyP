@@ -30,10 +30,6 @@ repos:
     -   id: mypy
         args: [--strict, --ignore-missing-imports, --explicit-package-bases]
         additional_dependencies: [tokenize-rt==3.2.0]
--   repo: https://github.com/google/yapf
-    rev: 'v0.40.2'
-    hooks:
-    -   id: yapf
 -   repo: https://github.com/pre-commit/pygrep-hooks
     rev: 'v1.10.0'
     hooks:
@@ -59,14 +55,15 @@ repos:
     rev: '1.7.5'
     hooks:
     -   id: bandit
-# -   repo: https://github.com/PyCQA/pydocstyle
-#     rev: '6.3.0'
-#     hooks:
-#     -   id: pydocstyle
-# -   repo: https://github.com/PyCQA/pylint
-#     rev: 'v2.17.6'
-#     hooks:
-#     -   id: pylint
+        exclude: ^tests/
+-   repo: https://github.com/PyCQA/pydocstyle
+    rev: '6.3.0'
+    hooks:
+    -   id: pydocstyle
+-   repo: https://github.com/PyCQA/pylint
+    rev: 'v2.17.6'
+    hooks:
+    -   id: pylint
 -   repo: https://github.com/PyCQA/doc8
     rev: 'v1.1.1'
     hooks:
