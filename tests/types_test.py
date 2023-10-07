@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for types.py."""
-from amplifyp.types import NucleotidePairwiseWeightTbl, RunLengthWeightTbl
+from amplifyp.types import DNA, NucleotidePairwiseWeightTbl, RunLengthWeightTbl
 
 
 def test_run_length_weight_tbl() -> None:
@@ -57,3 +57,36 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
         ("T", "G"),
         ("T", "T"),
     }
+
+
+def test_dna() -> None:
+    """Test DNA class."""
+    # Test the creation of a DNA with invalid symbols.
+    try:
+        DNA("RYKMSW")
+    except ValueError as err:
+        assert str(err) == "DNA sequence contains invalid characters."
+
+    # Test the creation of a DNA primer.
+    dna = DNA("RYKMSW", primer=True)
+    assert dna.sequence == "RYKMSW"
+
+    # Test the string representation of a DNA sequence.
+    dna = DNA("ACGT")
+    assert str(dna) == "ACGT"
+
+    # Test the complement of a DNA sequence.
+    dna = DNA("tACGTacgta")
+    assert dna.complement == "aTGCAtgcat"
+
+    # Test the lower case of a DNA sequence.
+    dna = DNA("ACGT")
+    assert dna.lower == "acgt"
+
+    # Test the upper case of a DNA sequence.
+    dna = DNA("acgt")
+    assert dna.upper == "ACGT"
+
+    # Test the reverse of a DNA sequence.
+    dna = DNA("AACGTTA")
+    assert dna.reverse == "ATTGCAA"
