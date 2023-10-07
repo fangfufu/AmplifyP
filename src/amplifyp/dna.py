@@ -1,27 +1,41 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA."""
-from typing import Final, FrozenSet
+from typing import Final
 
-from .constants import Nucleotide
+
+class Nucleotides:
+    """Nucleotide symbols related functions."""
+
+    # These are the IUPAC degenerate base symbols.
+    SINGLE: Final[str] = "GATC"
+    DOUBLE: Final[str] = "MRWSYK"
+    TRIPLE: Final[str] = "VHDB"
+    WILDCARD: Final[str] = "N"
+
+    @classmethod
+    def is_primer_sequence(cls: type["Nucleotides"], sequence: str) -> bool:
+        """Return True if the sequence is a primer sequence."""
+        return set(sequence.upper()) <= set(
+            (cls.SINGLE + cls.DOUBLE + cls.TRIPLE + cls.WILDCARD)
+        )
+
+    @classmethod
+    def is_target_sequence(cls: type["Nucleotides"], sequence: str) -> bool:
+        """Return True if the sequence is a target sequence."""
+        return set(sequence.upper()) <= set(cls.SINGLE + cls.WILDCARD)
 
 
 class DNA:
-    """Contains a DNA sequence."""
+    """DNA sequence container."""
 
     def __init__(self, sequence: str, primer: bool = False) -> None:
         """Construct a DNA sequence."""
-        # Check if the sequence contains invalid characters.
-        # Note that we allow lower case characters.
-        test_set: Final[FrozenSet[str]] = frozenset(sequence.upper())
-
-        # This is the IUB Nucleotide Codes.
-        valid_chars = Nucleotide.single
         if primer:
-            valid_chars += Nucleotide.double
-            valid_chars += Nucleotide.triple
-            valid_chars += Nucleotide.wildcard
-        valid_char_set: Final[FrozenSet[str]] = frozenset(valid_chars)
-        if not test_set <= valid_char_set:
+            check_func = Nucleotides.is_primer_sequence
+        else:
+            check_func = Nucleotides.is_target_sequence
+
+        if not check_func(sequence):
             raise ValueError("DNA sequence contains invalid characters.")
 
         self._sequence = sequence
