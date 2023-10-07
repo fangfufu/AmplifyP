@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Amplify P - DNA class."""
+"""Amplify P - DNA."""
 from typing import Final, FrozenSet
+
+from .constants import Nucleotide
 
 
 class DNA:
@@ -13,10 +15,11 @@ class DNA:
         test_set: Final[FrozenSet[str]] = frozenset(sequence.upper())
 
         # This is the IUB Nucleotide Codes.
-        valid_chars = "ACGT"  # Single bases
+        valid_chars = Nucleotide.single
         if primer:
-            #              Double     Triple   Wildcard
-            valid_chars += "RYKMSW" + "BDHV" + "N"
+            valid_chars += Nucleotide.double
+            valid_chars += Nucleotide.triple
+            valid_chars += Nucleotide.wildcard
         valid_char_set: Final[FrozenSet[str]] = frozenset(valid_chars)
         if not test_set <= valid_char_set:
             raise ValueError("DNA sequence contains invalid characters.")
