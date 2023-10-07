@@ -1,26 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for dna.py."""
-from amplifyp.dna import DNA, Nucleotides
-
-
-def test_nucleotide_is_primer_sequence() -> None:
-    """Test function for is_primer_sequence()."""
-    assert Nucleotides.is_primer_sequence("GATC")
-    assert Nucleotides.is_primer_sequence("MRWSYK")
-    assert Nucleotides.is_primer_sequence("VHDB")
-    assert Nucleotides.is_primer_sequence("N")
-    assert Nucleotides.is_primer_sequence("GATCMRWSYKVHDBN")
-    assert not Nucleotides.is_primer_sequence("GATCX")
-
-
-def test_nucleotide_is_target_sequence() -> None:
-    """Test function for is_target_sequence()."""
-    assert Nucleotides.is_target_sequence("GATC")
-    assert not Nucleotides.is_target_sequence("MRWSYK")
-    assert not Nucleotides.is_target_sequence("VHDB")
-    assert Nucleotides.is_target_sequence("N")
-    assert Nucleotides.is_target_sequence("GATCN")
-    assert not Nucleotides.is_target_sequence("GATCX")
+from amplifyp.dna import DNA
 
 
 def test_dna_invalid_characters() -> None:

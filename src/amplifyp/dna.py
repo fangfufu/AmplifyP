@@ -1,28 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA."""
-from typing import Final
-
-
-class Nucleotides:
-    """Nucleotide symbols related functions."""
-
-    # These are the IUPAC degenerate base symbols.
-    SINGLE: Final[str] = "GATC"
-    DOUBLE: Final[str] = "MRWSYK"
-    TRIPLE: Final[str] = "VHDB"
-    WILDCARD: Final[str] = "N"
-
-    @classmethod
-    def is_primer_sequence(cls: type["Nucleotides"], sequence: str) -> bool:
-        """Return True if the sequence is a primer sequence."""
-        return set(sequence.upper()) <= set(
-            (cls.SINGLE + cls.DOUBLE + cls.TRIPLE + cls.WILDCARD)
-        )
-
-    @classmethod
-    def is_target_sequence(cls: type["Nucleotides"], sequence: str) -> bool:
-        """Return True if the sequence is a target sequence."""
-        return set(sequence.upper()) <= set(cls.SINGLE + cls.WILDCARD)
+from . import nucleotides
 
 
 class DNA:
@@ -30,14 +8,9 @@ class DNA:
 
     def __init__(self, sequence: str, primer: bool = False) -> None:
         """Construct a DNA sequence."""
-        if primer:
-            check_func = Nucleotides.is_primer_sequence
-        else:
-            check_func = Nucleotides.is_target_sequence
-
-        if not check_func(sequence):
+        check_str = nucleotides.PRIMER if primer else nucleotides.TARGET
+        if not set(sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
-
         self._sequence = sequence
 
     def __str__(self) -> str:
