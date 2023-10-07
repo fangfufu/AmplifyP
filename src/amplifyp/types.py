@@ -3,13 +3,6 @@
 from typing import Iterator
 
 
-class NucleotidePairwiseWeightTbl:  # pylint: disable=too-few-public-methods
-    """Nucleotide Pairwise Weight Table."""
-
-    def __init__(self) -> None:
-        """Construct a Nucleotide Pairwise Weight Table."""
-
-
 class RunLengthWeightTbl:
     """Run-length Weight Table Class."""
 
