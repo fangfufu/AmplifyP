@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Tests for types.py."""
-from amplifyp.types import DNA, NucleotidePairwiseWeightTbl, RunLengthWeightTbl
+from amplifyp.types import DNA, LengthWiseWeightTbl, NucleotidePairwiseWeightTbl
 
 
 def test_run_length_weight_tbl() -> None:
-    """Test the RunLengthWeightTbl class."""
-    weight_tbl = RunLengthWeightTbl(5, 0.5)
+    """Test the LengthWiseWeightTbl class."""
+    weight_tbl = LengthWiseWeightTbl(5, 0.5)
     weight_tbl[0] = 0.6
     weight_tbl[1] = 0.7
     weight_tbl[2] = 0.8

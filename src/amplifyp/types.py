@@ -51,7 +51,7 @@ class DNA:
 class NucleotidePairwiseWeightTbl:
     """Nucleotide Pairwise Weight Table."""
 
-    def __init__(self, row: str, column: str, init_weight: float) -> None:
+    def __init__(self, row: str, column: str, init_weight: float = 0) -> None:
         """Construct a Nucleotide Pairwise Weight Table."""
         self._weight = dict.fromkeys([(x, y) for x in row for y in column], init_weight)
 
@@ -80,10 +80,10 @@ class NucleotidePairwiseWeightTbl:
         return iter(self._weight)
 
 
-class RunLengthWeightTbl:
+class LengthWiseWeightTbl:
     """Run-length Weight Table Class."""
 
-    def __init__(self, size: int, init_weight: float) -> None:
+    def __init__(self, size: int, init_weight: float = 0) -> None:
         """Construct a Run-length Weight Table."""
         self._weight = [init_weight] * size
 
