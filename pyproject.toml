@@ -10,3 +10,8 @@ pythonpath = "src"
 addopts = [
     "--import-mode=importlib",
 ]
+
+[project.optional-dependencies]
+tests = [
+  'pytest',
+]

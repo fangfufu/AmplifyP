@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Types."""
-from typing import Iterator
+from typing import Iterator, List, Tuple
 
 from . import nucleotides
 
@@ -51,9 +51,19 @@ class DNA:
 class LengthWiseWeightTbl:
     """Run-length Weight Table Class."""
 
-    def __init__(self, size: int, init_weight: float = 0) -> None:
+    def __init__(
+        self,
+        size: int,
+        init_weight: float = 0,
+        overrides: List[Tuple[int, float]] | None = None,
+    ) -> None:
         """Construct a Run-length Weight Table."""
         self._weight = [init_weight] * size
+
+        if overrides is not None:
+            for item in overrides:
+                key, value = item
+                self._weight[key] = value
 
     def __getitem__(self, key: int) -> float:
         """Return the weight of at certain run-length."""
@@ -83,21 +93,44 @@ class LengthWiseWeightTbl:
 class NucleotidePairwiseWeightTbl:
     """Nucleotide Pairwise Weight Table."""
 
-    def __init__(self, row: str, column: str, init_weight: float = 0) -> None:
+    def __init__(self, row: str, column: str, weight: List[List[float]]) -> None:
         """Construct a Nucleotide Pairwise Weight Table."""
-        self._weight = dict.fromkeys([(x, y) for x in row for y in column], init_weight)
+        self._row = dict(zip(list(row), range(len(row))))
+        self._column = dict(zip(list(column), range(len(column))))
+        if len(weight) != len(row):
+            raise ValueError(
+                "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
+            )
+        for i in range(len(row)):
+            if len(weight[i]) != len(column):
+                raise ValueError(
+                    "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
+                )
+        self._weight = weight
+
+    @property
+    def row(self) -> list[str]:
+        """Return the row nucleotides."""
+        return list(self._row.keys())
+
+    @property
+    def column(self) -> list[str]:
+        """Return the column nucleotides."""
+        return list(self._column.keys())
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""
-        return self._weight[key]
+        row, column = key
+        return self._weight[self._row[row]][self._column[column]]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight at a certain nucleotide pair."""
-        self._weight[key] = value
+        row, column = key
+        self._weight[self._row[row]][self._column[column]] = value
 
     def __len__(self) -> int:
         """Return the size of the Run-length Weight table."""
-        return len(self._weight)
+        return len(self.row) * len(self.column)
 
     def __str__(self) -> str:
         """Return the string representation of the table."""
@@ -106,7 +139,3 @@ class NucleotidePairwiseWeightTbl:
     def __repr__(self) -> str:
         """Return the string representation of the table."""
         return str(self._weight)
-
-    def __iter__(self) -> Iterator[tuple[str, str]]:
-        """Return the iterator of the table."""
-        return iter(self._weight)
