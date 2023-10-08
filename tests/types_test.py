@@ -3,8 +3,12 @@
 
 import pytest
 
-from amplifyp.types import DNA, LengthWiseWeightTbl, NucleotidePairwiseWeightTbl
-from amplifyp.nucleotides import PRIMER, TARGET
+from amplifyp.types import (
+    DNA,
+    LengthWiseWeightTbl,
+    BasePairWeights,
+    Nucleotides,
+)
 
 
 def test_dna() -> None:
@@ -16,7 +20,7 @@ def test_dna() -> None:
         assert str(err) == "DNA sequence contains invalid characters."
 
     # Test the creation of a DNA primer.
-    dna = DNA("RYKMSW", primer=True)
+    dna = DNA("RYKMSW", is_primer=True)
     assert dna.sequence == "RYKMSW"
 
     # Test the string representation of a DNA sequence.
@@ -25,19 +29,25 @@ def test_dna() -> None:
 
     # Test the complement of a DNA sequence.
     dna = DNA("tACGTacgta")
-    assert dna.complement == "aTGCAtgcat"
+    assert dna.complement() == "aTGCAtgcat"
 
     # Test the lower case of a DNA sequence.
     dna = DNA("ACGT")
-    assert dna.lower == "acgt"
+    assert dna.lower() == "acgt"
 
     # Test the upper case of a DNA sequence.
     dna = DNA("acgt")
-    assert dna.upper == "ACGT"
+    assert dna.upper() == "ACGT"
 
     # Test the reverse of a DNA sequence.
     dna = DNA("AACGTTA")
-    assert dna.reverse == "ATTGCAA"
+    assert dna.reverse() == "ATTGCAA"
+
+    # Test setting the name of a DNA sequence.
+    dna = DNA("ATCG")
+    assert dna.name == ""
+    dna.name = "test"
+    assert dna.name == "test"
 
 
 def test_run_length_weight_tbl() -> None:
@@ -64,7 +74,7 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
     ]
 
     # Create a NucleotidePairwiseWeightTbl instance
-    npwt = NucleotidePairwiseWeightTbl(nucleotides, nucleotides, pairwise_weights)
+    npwt = BasePairWeights(nucleotides, nucleotides, pairwise_weights)
 
     # Test the row and column properties
     assert npwt.row == ["A", "C", "G", "T"]
@@ -86,4 +96,4 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
 
     # Create an invalid NucleotidePairwiseWeightTbl instance
     with pytest.raises(ValueError):
-        npwt = NucleotidePairwiseWeightTbl(PRIMER, TARGET, pairwise_weights)
+        npwt = BasePairWeights(Nucleotides.PRIMER, Nucleotides.TARGET, pairwise_weights)
