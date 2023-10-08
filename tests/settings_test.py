@@ -4,7 +4,7 @@
 import pytest
 
 
-from amplifyp.settings import BasePairWeights, LengthWiseWeightTbl
+from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 
 from amplifyp.dna import Nucleotides
 
@@ -31,7 +31,7 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
     ]
 
     # Create a NucleotidePairwiseWeightTbl instance
-    npwt = BasePairWeights(nucleotides, nucleotides, pairwise_weights)
+    npwt = BasePairWeightsTbl(nucleotides, nucleotides, pairwise_weights)
 
     # Test the row and column properties
     assert npwt.row == ["A", "C", "G", "T"]
@@ -53,7 +53,9 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
 
     # Create an invalid NucleotidePairwiseWeightTbl instance
     with pytest.raises(ValueError):
-        npwt = BasePairWeights(Nucleotides.PRIMER, Nucleotides.TARGET, pairwise_weights)
+        npwt = BasePairWeightsTbl(
+            Nucleotides.PRIMER, Nucleotides.TARGET, pairwise_weights
+        )
 
     # Test the support for gap symbol
     assert npwt["-", "A"] == 0

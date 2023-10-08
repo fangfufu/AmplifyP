@@ -60,7 +60,7 @@ class LengthWiseWeightTbl:
         return iter(self._weight)
 
 
-class BasePairWeights:
+class BasePairWeightsTbl:
     """Nucleotide Pairwise Weight Table."""
 
     def __init__(self, row: str, column: str, weight: List[List[float]]) -> None:
@@ -152,7 +152,7 @@ DEFAULT_RUN_WEIGHTS: Final[LengthWiseWeightTbl] = LengthWiseWeightTbl(
     overrides=[(0, 100), (1, 150), (2, 175), (3, 182), (4, 186)],
 )
 
-DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeights] = BasePairWeights(
+DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.PRIMER,
     column=Nucleotides.TARGET,
     weight=[
@@ -173,7 +173,7 @@ DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeights] = BasePairWeights(
         [30, 30, 30, 30, 30],
     ],
 )
-DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeights] = BasePairWeights(
+DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.PRIMER,
     column=Nucleotides.PRIMER,
     weight=[

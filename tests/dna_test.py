@@ -46,6 +46,5 @@ def test_dna() -> None:
     assert dna.pad(2).sequence == "--ACGT--"
     dna = DNA("ACGT", dna_type=DNAType.CIRCULAR)
     assert dna.pad(2).sequence == "GTACGTAC"
-    with pytest.raises(NotImplementedError):
-        dna = DNA("ACGT", dna_type=DNAType.PRIMER)
-        dna.pad(2)
+    dna = DNA("ACGT", dna_type=DNAType.PRIMER)
+    assert dna.pad(2) == NotImplemented

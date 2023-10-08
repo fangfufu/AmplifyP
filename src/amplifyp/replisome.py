@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .dna import DNA, DNAType
 from .settings import (
-    BasePairWeights,
+    BasePairWeightsTbl,
     LengthWiseWeightTbl,
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_MATCH_WEIGHTS,
@@ -30,7 +30,7 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
 
     target: DNA
     primer: DNA
-    base_pair_scores: BasePairWeights = DEFAULT_BASE_PAIR_WEIGHTS
+    base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
     match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
     run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
 
