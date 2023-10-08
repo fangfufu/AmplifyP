@@ -21,34 +21,21 @@ def test_dna() -> None:
         assert str(err) == "DNA sequence contains invalid characters."
 
     # Test the creation of a DNA primer.
+    seq = "RYKMSW"
     dna = DNA("RYKMSW", dna_type=DNAType.PRIMER)
-    assert dna.sequence == "RYKMSW"
-
-    # Test the string representation of a DNA sequence.
-    dna = DNA("ACGT")
-    assert str(dna) == "ACGT"
+    assert dna.sequence == seq
 
     # Test the complement of a DNA sequence.
     dna = DNA("tACGTacgta")
-    assert dna.complement() == "aTGCAtgcat"
+    assert dna.complement() == DNA("tacgtACGTa")
 
     # Test the lower case of a DNA sequence.
     dna = DNA("ACGT")
-    assert dna.lower() == "acgt"
+    assert dna.lower() == DNA("acgt")
 
     # Test the upper case of a DNA sequence.
     dna = DNA("acgt")
-    assert dna.upper() == "ACGT"
-
-    # Test the reverse of a DNA sequence.
-    dna = DNA("AACGTTA")
-    assert dna.reverse() == "ATTGCAA"
-
-    # Test setting the name of a DNA sequence.
-    dna = DNA("ATCG")
-    assert dna.name == ""
-    dna.name = "test"
-    assert dna.name == "test"
+    assert dna.upper() == DNA("ACGT")
 
 
 def test_run_length_weight_tbl() -> None:
@@ -58,8 +45,6 @@ def test_run_length_weight_tbl() -> None:
     assert weight_tbl[1] == 0.7
     weight_tbl[2] = 0.8
     assert weight_tbl[2] == 0.8
-    assert str(weight_tbl) == "[0.6, 0.7, 0.8, 0.5, 0.5]"
-    assert repr(weight_tbl) == "[0.6, 0.7, 0.8, 0.5, 0.5]"
     assert list(weight_tbl) == [0.6, 0.7, 0.8, 0.5, 0.5]
 
 

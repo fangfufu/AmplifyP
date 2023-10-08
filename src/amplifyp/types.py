@@ -25,87 +25,62 @@ class Nucleotides(StrEnum):
     PRIMER = TARGET + DOUBLE + TRIPLE
 
 
+@dataclass
 class DNA:
-    """A class representing a DNA sequence."""
+    """A class representing a DNA sequence.
 
-    def __init__(
-        self,
-        sequence: str,
-        dna_type: DNAType = DNAType.DEFAULT,
-        name: str = "",
-    ) -> None:
-        """Construct a DNA sequence.
+    Attributes:
+        sequence (str): The DNA sequence.
+        name (str): The name of the DNA sequence (optional).
+        dna_type (DNAType): The type of the DNA sequence (default is DNAType.DEFAULT).
+    """
 
-        Args:
-            sequence (str): The DNA sequence to be constructed.
-            primer (bool, optional): Whether the sequence is a primer or not.
-                Defaults to False.
-            name (str, optional): The name of the sequence. Defaults to "".
+    sequence: str
+    name: str = ""
+    dna_type: DNAType = DNAType.DEFAULT
+
+    def __post_init__(self) -> None:
+        """Validate the DNA sequence.
 
         Raises:
             ValueError: If the DNA sequence contains invalid characters.
         """
         check_str = (
-            Nucleotides.PRIMER if dna_type == DNAType.PRIMER else Nucleotides.TARGET
+            Nucleotides.PRIMER
+            if self.dna_type == DNAType.PRIMER
+            else Nucleotides.TARGET
         )
-        if not set(sequence.upper()) <= set(check_str):
+        if not set(self.sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
-        self._sequence = sequence
-        self._type = dna_type
-        self._name = name
 
-    def __str__(self) -> str:
-        """Return the string representation of a DNA sequence."""
-        return self.sequence
-
-    def __repr__(self) -> str:
-        """Return the string representation of a DNA sequence."""
-        return self.sequence
-
-    def __eq__(self, other: object) -> bool:
-        """Return True if the DNA sequences are equal."""
-        if isinstance(other, DNA):
-            return self.sequence.upper() == other.sequence.upper()
-        return NotImplemented
-
-    @property
-    def name(self) -> str:
-        """Return the name of the DNA sequence."""
-        return self._name
-
-    @name.setter
-    def name(self, value: str) -> None:
-        """Set the name of the DNA sequence."""
-        self._name = value
-
-    @property
-    def type(self) -> DNAType:
-        """Return True if the DNA sequence is a primer."""
-        return self._type
-
-    @property
-    def sequence(self) -> str:
-        """Return the DNA sequence."""
-        return self._sequence
-
-    def reverse(self) -> str:
-        """Return the reverse complement of the DNA sequence."""
-        return self._sequence[::-1]
-
-    def lower(self) -> str:
+    def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
-        return self._sequence.lower()
+        return DNA(self.sequence.lower(), self.name, self.dna_type)
 
-    def upper(self) -> str:
+    def upper(self) -> "DNA":
         """Return the DNA sequence in upper case."""
-        return self._sequence.upper()
+        return DNA(self.sequence.upper(), self.name, self.dna_type)
 
-    def complement(self) -> str:
+    def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
 
         Note that the complement of non-ACGT bases are undefined.
         """
-        return self._sequence.translate(str.maketrans("ACGTacgt", "TGCAtgca"))
+        return DNA(
+            self.sequence.translate(str.maketrans("ACGTacgt", "TGCAtgca"))[::-1],
+            self.name,
+            self.dna_type,
+        )
+
+    def __eq__(self, other: object) -> bool:
+        """Return True if the DNA sequences are equal."""
+        if not isinstance(other, DNA):
+            return NotImplemented
+
+        self_seq = self.upper().sequence
+        other_seq = other.upper().sequence
+        other_complement_seq = other.upper().complement().upper().sequence
+        return self_seq in [other_seq, other_complement_seq]
 
 
 class LengthWiseWeightTbl:
@@ -222,7 +197,7 @@ class BasePairWeights:
         return str(self._weight)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Replisome:
     """A class representing a replisome.
 

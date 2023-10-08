@@ -1,6 +1,7 @@
 # AmplifyP
-Python rewrite of  William Engels's Amplify4 by two people who went to Pembroke
-College Cambridge, hence AmplifyP.
+Python rewrite of  William Engels's
+[Amplify4](https://github.com/wrengels/Amplify4) by two people who went to
+Pembroke College Cambridge, hence AmplifyP.
 
 This is pretty much a work in progress.
 ## Todo
