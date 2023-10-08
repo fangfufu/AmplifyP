@@ -7,6 +7,7 @@ from typing import Iterator, List, Tuple
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA."""
 
+    DEFAULT = 0
     PRIMER = 1
     PLASMID = 2
 
@@ -26,7 +27,12 @@ class Nucleotides(StrEnum):
 class DNA:
     """A class representing a DNA sequence."""
 
-    def __init__(self, sequence: str, is_primer: bool = False, name: str = "") -> None:
+    def __init__(
+        self,
+        sequence: str,
+        dna_type: DNAType = DNAType.DEFAULT,
+        name: str = "",
+    ) -> None:
         """Construct a DNA sequence.
 
         Args:
@@ -38,11 +44,13 @@ class DNA:
         Raises:
             ValueError: If the DNA sequence contains invalid characters.
         """
-        check_str = Nucleotides.PRIMER if is_primer else Nucleotides.TARGET
+        check_str = (
+            Nucleotides.PRIMER if dna_type == DNAType.PRIMER else Nucleotides.TARGET
+        )
         if not set(sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
         self._sequence = sequence
-        self._is_primer = is_primer
+        self._type = dna_type
         self._name = name
 
     def __str__(self) -> str:
@@ -70,9 +78,9 @@ class DNA:
         self._name = value
 
     @property
-    def is_primer(self) -> bool:
+    def type(self) -> DNAType:
         """Return True if the DNA sequence is a primer."""
-        return self.is_primer
+        return self._type
 
     @property
     def sequence(self) -> str:
@@ -223,7 +231,6 @@ class Replisome:
         base_pair_scores: BasePairWeights,
         match_weight: LengthWiseWeightTbl,
         run_weight: LengthWiseWeightTbl,
-        is_plasmid: bool = False,
     ) -> None:
         """Construct a replisome.
 
@@ -242,7 +249,6 @@ class Replisome:
         self._match_weight = match_weight
         self._run_weight = run_weight
         self._base_pair_scores = base_pair_scores
-        self._is_plasmid = is_plasmid
 
     @property
     def target(self) -> DNA:
@@ -268,13 +274,3 @@ class Replisome:
     def run_weight(self) -> LengthWiseWeightTbl:
         """Return the run weight."""
         return self._run_weight
-
-    @property
-    def is_plasmid(self) -> bool:
-        """Return True if the target is a plasmid."""
-        return self._is_plasmid
-
-    @is_plasmid.setter
-    def is_plasmid(self, value: bool) -> None:
-        """Set the is_plasmid property."""
-        self._is_plasmid = value

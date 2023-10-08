@@ -5,6 +5,7 @@ import pytest
 
 from amplifyp.types import (
     DNA,
+    DNAType,
     LengthWiseWeightTbl,
     BasePairWeights,
     Nucleotides,
@@ -20,7 +21,7 @@ def test_dna() -> None:
         assert str(err) == "DNA sequence contains invalid characters."
 
     # Test the creation of a DNA primer.
-    dna = DNA("RYKMSW", is_primer=True)
+    dna = DNA("RYKMSW", dna_type=DNAType.PRIMER)
     assert dna.sequence == "RYKMSW"
 
     # Test the string representation of a DNA sequence.
