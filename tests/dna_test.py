@@ -48,3 +48,7 @@ def test_dna() -> None:
     assert dna.pad(2).sequence == "GTACGTAC"
     dna = DNA("ACGT", dna_type=DNAType.PRIMER)
     assert dna.pad(2) == NotImplemented
+
+    # Test the length of a DNA sequence.
+    dna = DNA("ACGT")
+    assert len(dna) == 4

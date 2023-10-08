@@ -89,6 +89,10 @@ class DNA:
             return NotImplemented
         return DNA(self.sequence + other.sequence, self.dna_type, self.name)
 
+    def __len__(self) -> int:
+        """Return the length of the DNA sequence."""
+        return len(self.sequence)
+
     def pad(self, size: int) -> "DNA":
         """Pad the DNA sequence with blank characters."""
         if self.dna_type == DNAType.LINEAR:

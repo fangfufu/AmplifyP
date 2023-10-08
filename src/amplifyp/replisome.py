@@ -43,6 +43,9 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
         if self.primer.dna_type != DNAType.PRIMER:
             raise TypeError("A target sequence had been used as a primer.")
 
+        self.target = self.target.pad(len(self.primer)).upper()
+        self.primer = self.primer.upper()
+        self.valid_range = range(1, len(self.target) - len(self.primer))
         self._primability = 0
         self._stability = 0
         self._quality = 0

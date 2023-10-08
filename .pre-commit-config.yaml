@@ -52,6 +52,7 @@ repos:
     rev: '6.3.0'
     hooks:
     -   id: pydocstyle
+        args: [--add-ignore=D401]
 -   repo: https://github.com/PyCQA/pylint
     rev: 'v2.17.6'
     hooks:
