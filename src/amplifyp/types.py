@@ -48,38 +48,6 @@ class DNA:
         return self._sequence.translate(str.maketrans("ACGTacgt", "TGCAtgca"))
 
 
-class NucleotidePairwiseWeightTbl:
-    """Nucleotide Pairwise Weight Table."""
-
-    def __init__(self, row: str, column: str, init_weight: float = 0) -> None:
-        """Construct a Nucleotide Pairwise Weight Table."""
-        self._weight = dict.fromkeys([(x, y) for x in row for y in column], init_weight)
-
-    def __getitem__(self, key: tuple[str, str]) -> float:
-        """Return the weight of at certain nucleotide pair."""
-        return self._weight[key]
-
-    def __setitem__(self, key: tuple[str, str], value: float) -> None:
-        """Set the weight at a certain nucleotide pair."""
-        self._weight[key] = value
-
-    def __len__(self) -> int:
-        """Return the size of the Run-length Weight table."""
-        return len(self._weight)
-
-    def __str__(self) -> str:
-        """Return the string representation of the table."""
-        return str(self._weight)
-
-    def __repr__(self) -> str:
-        """Return the string representation of the table."""
-        return str(self._weight)
-
-    def __iter__(self) -> Iterator[tuple[str, str]]:
-        """Return the iterator of the table."""
-        return iter(self._weight)
-
-
 class LengthWiseWeightTbl:
     """Run-length Weight Table Class."""
 
@@ -109,4 +77,36 @@ class LengthWiseWeightTbl:
 
     def __iter__(self) -> Iterator[float]:
         """Return the iterator of the Run-length Weight Table."""
+        return iter(self._weight)
+
+
+class NucleotidePairwiseWeightTbl:
+    """Nucleotide Pairwise Weight Table."""
+
+    def __init__(self, row: str, column: str, init_weight: float = 0) -> None:
+        """Construct a Nucleotide Pairwise Weight Table."""
+        self._weight = dict.fromkeys([(x, y) for x in row for y in column], init_weight)
+
+    def __getitem__(self, key: tuple[str, str]) -> float:
+        """Return the weight of at certain nucleotide pair."""
+        return self._weight[key]
+
+    def __setitem__(self, key: tuple[str, str], value: float) -> None:
+        """Set the weight at a certain nucleotide pair."""
+        self._weight[key] = value
+
+    def __len__(self) -> int:
+        """Return the size of the Run-length Weight table."""
+        return len(self._weight)
+
+    def __str__(self) -> str:
+        """Return the string representation of the table."""
+        return str(self._weight)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the table."""
+        return str(self._weight)
+
+    def __iter__(self) -> Iterator[tuple[str, str]]:
+        """Return the iterator of the table."""
         return iter(self._weight)
