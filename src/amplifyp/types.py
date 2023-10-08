@@ -79,7 +79,7 @@ class DNA:
 
         self_seq = self.upper().sequence
         other_seq = other.upper().sequence
-        other_complement_seq = other.upper().complement().upper().sequence
+        other_complement_seq = other.upper().complement().sequence
         return self_seq in [other_seq, other_complement_seq]
 
 

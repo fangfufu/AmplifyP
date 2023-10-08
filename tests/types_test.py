@@ -15,10 +15,8 @@ from amplifyp.types import (
 def test_dna() -> None:
     """Test DNA class."""
     # Test the creation of a DNA with invalid symbols.
-    try:
+    with pytest.raises(ValueError):
         DNA("RYKMSW")
-    except ValueError as err:
-        assert str(err) == "DNA sequence contains invalid characters."
 
     # Test the creation of a DNA primer.
     seq = "RYKMSW"
@@ -26,16 +24,22 @@ def test_dna() -> None:
     assert dna.sequence == seq
 
     # Test the complement of a DNA sequence.
-    dna = DNA("tACGTacgta")
-    assert dna.complement() == DNA("tacgtACGTa")
+    dna = DNA("ATGC")
+    assert dna.complement().sequence == "GCAT"
+    assert dna.complement() == dna
+
+    # Test the equality of a DNA sequence.
+    assert DNA("ATGC") == DNA("ATGC")
+    assert DNA("ATGC") == DNA("GCAT")
+    assert DNA("tACGTacgta") != DNA("AAAAAAAAA")
 
     # Test the lower case of a DNA sequence.
     dna = DNA("ACGT")
-    assert dna.lower() == DNA("acgt")
+    assert dna.lower().sequence == "acgt"
 
     # Test the upper case of a DNA sequence.
     dna = DNA("acgt")
-    assert dna.upper() == DNA("ACGT")
+    assert dna.upper().sequence == "ACGT"
 
 
 def test_run_length_weight_tbl() -> None:
