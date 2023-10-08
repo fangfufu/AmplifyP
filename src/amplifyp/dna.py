@@ -76,7 +76,6 @@ class DNA:
         """Return True if the DNA sequences are equal."""
         if not isinstance(other, DNA):
             return NotImplemented
-
         self_seq = self.upper().sequence
         other_seq = other.upper().sequence
         other_complement_seq = other.upper().complement().sequence
@@ -86,7 +85,8 @@ class DNA:
         """Return the concatenation of two DNA sequences."""
         if not isinstance(other, DNA):
             return NotImplemented
-
+        if self.dna_type != other.dna_type:
+            return NotImplemented
         return DNA(self.sequence + other.sequence, self.dna_type, self.name)
 
     def pad(self, size: int) -> "DNA":
@@ -103,5 +103,4 @@ class DNA:
                 self.dna_type,
                 self.name,
             )
-
-        raise NotImplementedError("Padding is not implemented for primers.")
+        return NotImplemented
