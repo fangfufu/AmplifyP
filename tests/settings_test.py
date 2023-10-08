@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=cyclic-import
 """Tests for types.py."""
 
 import pytest
 
 
-from amplifyp.settings import (
-    LengthWiseWeightTbl,
-    BasePairWeights,
-)
+from amplifyp.settings import BasePairWeights, LengthWiseWeightTbl
 
 from amplifyp.dna import Nucleotides
 

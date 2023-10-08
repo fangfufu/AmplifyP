@@ -21,10 +21,10 @@ class DNAType(IntEnum):
 
     DEFAULT = 0
     PRIMER = 1
-    PLASMID = 2
+    CIRCULAR = 2
 
 
-@dataclass
+@dataclass(slots=True)
 class DNA:
     """A class representing a DNA sequence.
 

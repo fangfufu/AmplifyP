@@ -4,10 +4,7 @@
 
 import pytest
 
-from amplifyp.dna import (
-    DNA,
-    DNAType,
-)
+from amplifyp.dna import DNA, DNAType
 
 
 def test_dna() -> None:

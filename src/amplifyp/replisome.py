@@ -12,8 +12,8 @@ from .settings import (
 )
 
 
-@dataclass(frozen=True, slots=True)
-class Replisome:
+@dataclass
+class Replisome:  # pylint: disable=too-many-instance-attributes
     """A class representing a replisome.
 
     Attributes:
@@ -43,14 +43,25 @@ class Replisome:
         if self.primer.dna_type != DNAType.PRIMER:
             raise TypeError("A target sequence had been used as a primer.")
 
-    def primability(self, k: int) -> float:
-        """Calculate the primability of the primer at target position k."""
+        self._primability = 0
+        self._stability = 0
+        self._quality = 0
+
+    def _calc_primability(self, k: int) -> float:
+        """Calculate the primability of the primer."""
         return k
 
-    def stability(self, k: int) -> float:
-        """Calculate the stability of the primer at target position k."""
-        return k
+    @property
+    def primability(self) -> float:
+        """Calculate the primability of the primer."""
+        return self._primability
 
-    def quality(self, k: int) -> float:
-        """Calculate the quality of the primer at target position k."""
-        return k
+    @property
+    def stability(self) -> float:
+        """Calculate the stability of the primer."""
+        return self._stability
+
+    @property
+    def quality(self) -> float:
+        """Calculate the quality of the primer."""
+        return self._quality
