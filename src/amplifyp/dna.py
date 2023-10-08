@@ -80,3 +80,10 @@ class DNA:
         other_seq = other.upper().sequence
         other_complement_seq = other.upper().complement().sequence
         return self_seq in [other_seq, other_complement_seq]
+
+    def __add__(self, other: object) -> "DNA":
+        """Return the concatenation of two DNA sequences."""
+        if not isinstance(other, DNA):
+            return NotImplemented
+
+        return DNA(self.sequence + other.sequence, self.name, self.dna_type)

@@ -35,3 +35,8 @@ def test_dna() -> None:
     # Test the upper case of a DNA sequence.
     dna = DNA("acgt")
     assert dna.upper().sequence == "ACGT"
+
+    # Test the concatenation of two DNA sequences.
+    dna_1 = DNA("ACGT")
+    dna_2 = DNA("TGCA")
+    assert (dna_1 + dna_2).sequence == "ACGTTGCA"

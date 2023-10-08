@@ -103,6 +103,9 @@ class BasePairWeights:
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""
         row, column = key
+        # This is for the gap symbol
+        if row == "-" or column == "-":
+            return 0
         return self._weight[self._row[row]][self._column[column]]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
