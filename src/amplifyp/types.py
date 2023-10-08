@@ -8,16 +8,31 @@ from . import nucleotides
 class DNA:
     """DNA sequence container."""
 
-    def __init__(self, sequence: str, primer: bool = False) -> None:
+    def __init__(self, sequence: str, primer: bool = False, name: str = "") -> None:
         """Construct a DNA sequence."""
         check_str = nucleotides.PRIMER if primer else nucleotides.TARGET
         if not set(sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
         self._sequence = sequence
+        self._name = name
 
     def __str__(self) -> str:
         """Return the string representation of a DNA sequence."""
         return self.sequence
+
+    def __repr__(self) -> str:
+        """Return the string representation of a DNA sequence."""
+        return self.sequence
+
+    @property
+    def name(self) -> str:
+        """Return the name of the DNA sequence."""
+        return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the name of the DNA sequence."""
+        self._name = value
 
     @property
     def sequence(self) -> str:
