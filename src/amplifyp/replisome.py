@@ -45,10 +45,10 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
 
         self.target = self.target.pad(len(self.primer)).upper()
         self.primer = self.primer.upper()
-        self.valid_range = range(1, len(self.target) - len(self.primer))
-        self._primability = 0
-        self._stability = 0
-        self._quality = 0
+        self.target_limits = range(0, len(self.target) - len(self.primer) - 1)
+        self.__primability = 0
+        self.__stability = 0
+        self.__quality = 0
 
     def _calc_primability(self, k: int) -> float:
         """Calculate the primability of the primer."""
@@ -57,14 +57,14 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
     @property
     def primability(self) -> float:
         """Calculate the primability of the primer."""
-        return self._primability
+        return self.__primability
 
     @property
     def stability(self) -> float:
         """Calculate the stability of the primer."""
-        return self._stability
+        return self.__stability
 
     @property
     def quality(self) -> float:
         """Calculate the quality of the primer."""
-        return self._quality
+        return self.__quality

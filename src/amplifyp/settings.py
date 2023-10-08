@@ -28,36 +28,36 @@ class LengthWiseWeightTbl:
                 of (index, weight) tuples to override the initial weights.
                 Defaults to None.
         """
-        self._weight = [init_weight] * size
+        self.__weight = [init_weight] * size
 
         if overrides is not None:
             for item in overrides:
                 key, value = item
-                self._weight[key] = value
+                self.__weight[key] = value
 
     def __getitem__(self, key: int) -> float:
         """Return the weight of at certain run-length."""
-        return self._weight[key]
+        return self.__weight[key]
 
     def __setitem__(self, key: int, value: float) -> None:
         """Set the weight at a certain run-length."""
-        self._weight[key] = value
+        self.__weight[key] = value
 
     def __len__(self) -> int:
         """Return the size of the Run-length Weight Table."""
-        return len(self._weight)
+        return len(self.__weight)
 
     def __str__(self) -> str:
         """Return the string representation of the Run-length Weight Table."""
-        return str(self._weight)
+        return str(self.__weight)
 
     def __repr__(self) -> str:
         """Return the string representation of the Run-length Weight Table."""
-        return str(self._weight)
+        return str(self.__weight)
 
     def __iter__(self) -> Iterator[float]:
         """Return the iterator of the Run-length Weight Table."""
-        return iter(self._weight)
+        return iter(self.__weight)
 
 
 class BasePairWeightsTbl:
@@ -77,8 +77,8 @@ class BasePairWeightsTbl:
             ValueError: If the length of the weight table does not match the
                 length of the row or column labels.
         """
-        self._row = dict(zip(list(row), range(len(row))))
-        self._column = dict(zip(list(column), range(len(column))))
+        self.__row = dict(zip(list(row), range(len(row))))
+        self.__column = dict(zip(list(column), range(len(column))))
         if len(weight) != len(row):
             raise ValueError(
                 "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
@@ -88,29 +88,29 @@ class BasePairWeightsTbl:
                 raise ValueError(
                     "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
                 )
-        self._weight = weight
+        self.__weight = weight
 
     @property
     def row(self) -> list[str]:
         """Return the row nucleotides."""
-        return list(self._row.keys())
+        return list(self.__row.keys())
 
     @property
     def column(self) -> list[str]:
         """Return the column nucleotides."""
-        return list(self._column.keys())
+        return list(self.__column.keys())
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""
         if Nucleotides.BLANK in key:
             return 0
         row, column = key
-        return self._weight[self._row[row]][self._column[column]]
+        return self.__weight[self.__row[row]][self.__column[column]]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight at a certain nucleotide pair."""
         row, column = key
-        self._weight[self._row[row]][self._column[column]] = value
+        self.__weight[self.__row[row]][self.__column[column]] = value
 
     def __len__(self) -> int:
         """Return the size of the Run-length Weight table."""
@@ -118,11 +118,11 @@ class BasePairWeightsTbl:
 
     def __str__(self) -> str:
         """Return the string representation of the table."""
-        return str(self._weight)
+        return str(self.__weight)
 
     def __repr__(self) -> str:
         """Return the string representation of the table."""
-        return str(self._weight)
+        return str(self.__weight)
 
 
 DEFAULT_MATCH_WEIGHTS: Final[LengthWiseWeightTbl] = LengthWiseWeightTbl(

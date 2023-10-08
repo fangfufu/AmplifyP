@@ -7,7 +7,7 @@ from amplifyp.replisome import Replisome
 
 def simple_replisome_test() -> None:
     """A simple replisome test."""
-    target = DNA("GCTAGCGGAGTGTATACTGGCTTACT")
-    primer = DNA("GCTA", DNAType.PRIMER)
+    target = DNA("GTGTACTCAGTTCCATAAACGAGCTATTAGATATGAGGTCCGTAGATTGAAAAGGGTGA")
+    primer = DNA("GTGTACT", DNAType.PRIMER)
     replisome = Replisome(target, primer)
     assert replisome.primability == 0
