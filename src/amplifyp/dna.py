@@ -64,10 +64,13 @@ class DNA:
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
 
-        Note that the complement of non-ACGT bases are undefined.
+        Please refer to the following link:
+        https://en.wikipedia.org/wiki/Nucleic_acid_notation
         """
         return DNA(
-            self.sequence.translate(str.maketrans("ACGTacgt", "TGCAtgca"))[::-1],
+            self.sequence.translate(
+                str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
+            )[::-1],
             self.dna_type,
             self.name,
         )
