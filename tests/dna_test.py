@@ -19,8 +19,8 @@ def test_dna() -> None:
     assert dna.sequence == seq
 
     # Test the complement of a DNA sequence.
-    dna = DNA("ATGC")
-    assert dna.complement().sequence == "GCAT"
+    dna = DNA("ACGTMKRYBDHVacgtmkrybdhv", dna_type=DNAType.PRIMER)
+    assert dna.complement().sequence == "bdhvrymkacgtBDHVRYMKACGT"
     assert dna.complement() == dna
 
     # Test the equality of a DNA sequence.

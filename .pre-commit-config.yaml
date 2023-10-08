@@ -54,11 +54,12 @@ repos:
     -   id: pydocstyle
         args: [--add-ignore=D401]
 -   repo: https://github.com/PyCQA/pylint
-    rev: 'v2.17.6'
+    rev: 'v3.0.1'
     hooks:
     -   id: pylint
         additional_dependencies:
           - "pytest"
+        args: [src]
 -   repo: https://github.com/PyCQA/doc8
     rev: 'v1.1.1'
     hooks:
