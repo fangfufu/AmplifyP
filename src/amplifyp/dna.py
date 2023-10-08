@@ -11,6 +11,7 @@ class Nucleotides(StrEnum):
     DOUBLE = "MRWSYK"
     TRIPLE = "VHDB"
     WILDCARD = "N"
+    BLANK = "-"
 
     TARGET = SINGLE + WILDCARD
     PRIMER = TARGET + DOUBLE + TRIPLE
@@ -19,9 +20,9 @@ class Nucleotides(StrEnum):
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA."""
 
-    DEFAULT = 0
-    PRIMER = 1
+    LINEAR = 1
     CIRCULAR = 2
+    PRIMER = 3
 
 
 @dataclass(slots=True)
@@ -30,13 +31,13 @@ class DNA:
 
     Attributes:
         sequence (str): The DNA sequence.
+        dna_type (DNAType): The type of the DNA sequence (default is DNAType.LINEAR).
         name (str): The name of the DNA sequence (optional).
-        dna_type (DNAType): The type of the DNA sequence (default is DNAType.DEFAULT).
     """
 
     sequence: str
+    dna_type: DNAType = DNAType.LINEAR
     name: str = ""
-    dna_type: DNAType = DNAType.DEFAULT
 
     def __post_init__(self) -> None:
         """Validate the DNA sequence.
@@ -47,18 +48,18 @@ class DNA:
         check_str = (
             Nucleotides.PRIMER
             if self.dna_type == DNAType.PRIMER
-            else Nucleotides.TARGET
+            else Nucleotides.TARGET + Nucleotides.BLANK
         )
         if not set(self.sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
 
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
-        return DNA(self.sequence.lower(), self.name, self.dna_type)
+        return DNA(self.sequence.lower(), self.dna_type, self.name)
 
     def upper(self) -> "DNA":
         """Return the DNA sequence in upper case."""
-        return DNA(self.sequence.upper(), self.name, self.dna_type)
+        return DNA(self.sequence.upper(), self.dna_type, self.name)
 
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
@@ -67,8 +68,8 @@ class DNA:
         """
         return DNA(
             self.sequence.translate(str.maketrans("ACGTacgt", "TGCAtgca"))[::-1],
-            self.name,
             self.dna_type,
+            self.name,
         )
 
     def __eq__(self, other: object) -> bool:
@@ -86,4 +87,21 @@ class DNA:
         if not isinstance(other, DNA):
             return NotImplemented
 
-        return DNA(self.sequence + other.sequence, self.name, self.dna_type)
+        return DNA(self.sequence + other.sequence, self.dna_type, self.name)
+
+    def pad(self, size: int) -> "DNA":
+        """Pad the DNA sequence with blank characters."""
+        if self.dna_type == DNAType.LINEAR:
+            return DNA(
+                Nucleotides.BLANK * size + self.sequence + Nucleotides.BLANK * size,
+                self.dna_type,
+                self.name,
+            )
+        if self.dna_type == DNAType.CIRCULAR:
+            return DNA(
+                self.sequence[-size:] + self.sequence + self.sequence[:size],
+                self.dna_type,
+                self.name,
+            )
+
+        raise NotImplementedError("Padding is not implemented for primers.")

@@ -40,3 +40,12 @@ def test_dna() -> None:
     dna_1 = DNA("ACGT")
     dna_2 = DNA("TGCA")
     assert (dna_1 + dna_2).sequence == "ACGTTGCA"
+
+    # Test the pad method.
+    dna = DNA("ACGT")
+    assert dna.pad(2).sequence == "--ACGT--"
+    dna = DNA("ACGT", dna_type=DNAType.CIRCULAR)
+    assert dna.pad(2).sequence == "GTACGTAC"
+    with pytest.raises(NotImplementedError):
+        dna = DNA("ACGT", dna_type=DNAType.PRIMER)
+        dna.pad(2)
