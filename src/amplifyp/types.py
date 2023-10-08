@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Data types."""
+from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from typing import Iterator, List, Tuple
 
@@ -221,56 +222,24 @@ class BasePairWeights:
         return str(self._weight)
 
 
+@dataclass(frozen=True)
 class Replisome:
-    """A class representing a replisome."""
+    """A class representing a replisome.
 
-    def __init__(  # pylint: disable=too-many-arguments
-        self,
-        target: DNA,
-        primer: DNA,
-        base_pair_scores: BasePairWeights,
-        match_weight: LengthWiseWeightTbl,
-        run_weight: LengthWiseWeightTbl,
-    ) -> None:
-        """Construct a replisome.
+    Attributes:
+        target (DNA): The DNA sequence being replicated.
+        primer (DNA): The DNA sequence that serves as a starting point for DNA
+            synthesis.
+        base_pair_scores (BasePairWeights): The weights assigned to each base
+            pair in the DNA sequence.
+        match_weight (LengthWiseWeightTbl): The weights assigned to matches
+            between the target and primer sequences.
+        run_weight (LengthWiseWeightTbl): The weights assigned to runs of
+            consecutive matches between the target and primer sequences.
+    """
 
-        Args:
-            target (DNA): The target DNA to be replicated.
-            primer (DNA): The primer DNA used for replication.
-            base_pair_scores (NucleotidePairwiseWeightTbl): The table of weights
-                for each nucleotide pair.
-            match_weight (LengthWiseWeightTbl): The table of weights for each
-                match length.
-            run_weight (LengthWiseWeightTbl): The table of weights for each run
-                length.
-        """
-        self._primer = primer
-        self._target = target
-        self._match_weight = match_weight
-        self._run_weight = run_weight
-        self._base_pair_scores = base_pair_scores
-
-    @property
-    def target(self) -> DNA:
-        """Return the target DNA."""
-        return self._target
-
-    @property
-    def primer(self) -> DNA:
-        """Return the primer DNA."""
-        return self._primer
-
-    @property
-    def base_pair_scores(self) -> BasePairWeights:
-        """Return the base pair scores."""
-        return self._base_pair_scores
-
-    @property
-    def match_weight(self) -> LengthWiseWeightTbl:
-        """Return the match weight."""
-        return self._match_weight
-
-    @property
-    def run_weight(self) -> LengthWiseWeightTbl:
-        """Return the run weight."""
-        return self._run_weight
+    target: DNA
+    primer: DNA
+    base_pair_scores: BasePairWeights
+    match_weight: LengthWiseWeightTbl
+    run_weight: LengthWiseWeightTbl
