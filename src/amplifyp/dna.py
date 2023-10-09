@@ -122,6 +122,6 @@ class DNA:
             )
         return NotImplemented
 
-    def __getitem__(self, key: slice) -> str:
+    def __getitem__(self, key: slice) -> "DNA":
         """Return the character at the given index."""
-        return self.sequence[key]
+        return DNA(self.sequence[key], self.dna_type, self.name, self.reversed)

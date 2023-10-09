@@ -45,21 +45,25 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
         if self.primer.dna_type != DNAType.PRIMER:
             raise TypeError("A target sequence had been used as a primer.")
 
-        self.target = self.target.pad(len(self.primer) - self.min_overlap).upper()
+        self.target = (
+            self.target.pad(len(self.primer) - self.min_overlap).upper().reverse()
+        )
 
-        self.primer = self.primer.upper()
-        self.__target_index_limit = slice(0, len(self.target) - len(self.primer) - 1)
+        self.primer = self.primer.upper().reverse()
+        self.__target_index_limit = slice(
+            0, len(self.target) - len(self.primer) + self.min_overlap
+        )
         self.__max_primability = 0
         self.__max_stability = 0
         self.__max_quality = 0
 
     def replicon_slice(self, k: int) -> slice:
-        """Return the target range for the given k."""
+        """The slice of the target DNA that is being replicated."""
         if k > self.target_index_limit.stop:
             raise IndexError(
                 f"Requested index {k} is out of range. (max: {self.target_index_limit.stop})"
             )
-        return slice(k + len(self.primer), k, -1)
+        return slice(k, k + len(self.primer))
 
     def calc_primability(self, k: int) -> float:
         """Calculate the primability of the primer."""

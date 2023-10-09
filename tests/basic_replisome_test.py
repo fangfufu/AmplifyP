@@ -5,12 +5,15 @@ from amplifyp.dna import DNA, DNAType
 from amplifyp.replisome import Replisome
 
 
-def test_replisome_simple() -> None:
-    """A simple replisome test."""
-    target = DNA("GTGTACTCAGTTCCATAAACGAGCTATTAGATATGAGGTCCGTAGATTGAAAAGGGTGA")
-    primer = DNA("GTGTACT", DNAType.PRIMER)
-    min_overlap = 3
-    replisome = Replisome(target, primer, min_overlap=min_overlap)
-    test_index = replisome.target_index_limit.stop - len(primer) + min_overlap
-    test_str = replisome.target[replisome.replicon_slice(test_index)]
-    assert test_str == "AGTGGGA"
+def test_replisome_replicon_slice_limit_stop() -> None:
+    """Test replicon slicing at the end of the index limit."""
+    target: DNA = DNA("GTGTACTCAGTTCCATAAACGAGCTATTAGATATGAGGTCCGTAGATTGAAAAGGGTGA")
+    primer: DNA = DNA("GTGTACT", DNAType.PRIMER)
+    target_str: str = target[0 : len(primer)].sequence[::-1] + len(primer) * "-"
+    assert isinstance(target_str, str)
+    for i in range(0, len(primer)):
+        replisome = Replisome(target, primer, min_overlap=i)
+        test_index = replisome.target_index_limit.stop - i
+        test_str: str = replisome.target[replisome.replicon_slice(test_index)].sequence
+        assert isinstance(test_str, str)
+        assert test_str == target_str[len(primer) - i : 2 * len(primer) - i]

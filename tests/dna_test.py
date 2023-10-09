@@ -54,4 +54,4 @@ def test_dna() -> None:
 
     # Test DNA sequencce setter
     dna = DNA("ACGT")
-    assert dna[0] == "A"
+    assert dna[0].sequence == "A"
