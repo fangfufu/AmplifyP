@@ -58,7 +58,7 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
         self.__max_quality = 0
 
     def replicon_slice(self, k: int) -> slice:
-        """The slice of the target DNA that is being replicated."""
+        """The slice of the target DNA that is being simulated."""
         if k > self.target_index_limit.stop or k < 0:
             raise IndexError(
                 f"Requested index {k} is out of range. (max: {self.target_index_limit.stop})"
