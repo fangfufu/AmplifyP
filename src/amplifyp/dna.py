@@ -38,6 +38,7 @@ class DNA:
     sequence: str
     dna_type: DNAType = DNAType.LINEAR
     name: str = ""
+    reversed: bool = False
 
     def __post_init__(self) -> None:
         """Validate the DNA sequence.
@@ -55,11 +56,11 @@ class DNA:
 
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
-        return DNA(self.sequence.lower(), self.dna_type, self.name)
+        return DNA(self.sequence.lower(), self.dna_type, self.name, self.reversed)
 
     def upper(self) -> "DNA":
         """Return the DNA sequence in upper case."""
-        return DNA(self.sequence.upper(), self.dna_type, self.name)
+        return DNA(self.sequence.upper(), self.dna_type, self.name, self.reversed)
 
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
@@ -73,7 +74,12 @@ class DNA:
             )[::-1],
             self.dna_type,
             self.name,
+            self.reversed,
         )
+
+    def reverse(self) -> "DNA":
+        """Return the reverse of the DNA sequence."""
+        return DNA(self.sequence[::-1], self.dna_type, self.name, not self.reversed)
 
     def __eq__(self, other: object) -> bool:
         """Return True if the DNA sequences are equal."""
@@ -90,7 +96,9 @@ class DNA:
             return NotImplemented
         if self.dna_type != other.dna_type:
             return NotImplemented
-        return DNA(self.sequence + other.sequence, self.dna_type, self.name)
+        return DNA(
+            self.sequence + other.sequence, self.dna_type, self.name, self.reversed
+        )
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence."""
@@ -103,12 +111,14 @@ class DNA:
                 Nucleotides.BLANK * size + self.sequence + Nucleotides.BLANK * size,
                 self.dna_type,
                 self.name,
+                self.reversed,
             )
         if self.dna_type == DNAType.CIRCULAR:
             return DNA(
                 self.sequence[-size:] + self.sequence + self.sequence[:size],
                 self.dna_type,
                 self.name,
+                self.reversed,
             )
         return NotImplemented
 
