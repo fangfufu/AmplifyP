@@ -14,9 +14,8 @@ def test_dna() -> None:
         DNA("RYKMSW")
 
     # Test the creation of a DNA primer.
-    seq = "RYKMSW"
     dna = DNA("RYKMSW", dna_type=DNAType.PRIMER)
-    assert dna.sequence == seq
+    assert dna.sequence == "RYKMSW"
 
     # Test the complement of a DNA sequence.
     dna = DNA("ACGTMKRYBDHVacgtmkrybdhv", dna_type=DNAType.PRIMER)
@@ -52,3 +51,7 @@ def test_dna() -> None:
     # Test the length of a DNA sequence.
     dna = DNA("ACGT")
     assert len(dna) == 4
+
+    # Test DNA sequencce setter
+    dna = DNA("ACGT")
+    assert dna[0] == "A"

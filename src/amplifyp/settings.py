@@ -35,7 +35,7 @@ class LengthWiseWeightTbl:
                 key, value = item
                 self.__weight[key] = value
 
-    def __getitem__(self, key: int) -> float:
+    def __getitem__(self, key: slice) -> list[float]:
         """Return the weight of at certain run-length."""
         return self.__weight[key]
 
@@ -194,3 +194,6 @@ DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
         [-8, -10, -10, -8, -9, -9, -10, -8, -9, -9, -8, -9, -9, -8, -9],
     ],
 )
+
+# Default minimum overlap between the primer and the target.
+DEFAULT_MIN_OVERLAP: Final[int] = 1

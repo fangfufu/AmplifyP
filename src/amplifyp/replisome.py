@@ -9,6 +9,7 @@ from .settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_MATCH_WEIGHTS,
     DEFAULT_RUN_WEIGHTS,
+    DEFAULT_MIN_OVERLAP,
 )
 
 
@@ -33,6 +34,7 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
     base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
     match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
     run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
+    min_overlap: int = DEFAULT_MIN_OVERLAP
 
     def __post_init__(self) -> None:
         """Validate replisome configuration.
@@ -43,28 +45,42 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
         if self.primer.dna_type != DNAType.PRIMER:
             raise TypeError("A target sequence had been used as a primer.")
 
-        self.target = self.target.pad(len(self.primer)).upper()
-        self.primer = self.primer.upper()
-        self.target_limits = range(0, len(self.target) - len(self.primer) - 1)
-        self.__primability = 0
-        self.__stability = 0
-        self.__quality = 0
+        self.target = self.target.pad(len(self.primer) - self.min_overlap).upper()
 
-    def _calc_primability(self, k: int) -> float:
+        self.primer = self.primer.upper()
+        self.__target_index_limit = slice(0, len(self.target) - len(self.primer) - 1)
+        self.__max_primability = 0
+        self.__max_stability = 0
+        self.__max_quality = 0
+
+    def replicon_slice(self, k: int) -> slice:
+        """Return the target range for the given k."""
+        if k > self.target_index_limit.stop:
+            raise IndexError(
+                f"Requested index {k} is out of range. (max: {self.target_index_limit.stop})"
+            )
+        return slice(k + len(self.primer), k, -1)
+
+    def calc_primability(self, k: int) -> float:
         """Calculate the primability of the primer."""
         return k
 
     @property
-    def primability(self) -> float:
+    def target_index_limit(self) -> slice:
+        """Return the index limit of the target DNA."""
+        return self.__target_index_limit
+
+    @property
+    def max_primability(self) -> float:
         """Calculate the primability of the primer."""
-        return self.__primability
+        return self.__max_primability
 
     @property
-    def stability(self) -> float:
+    def max_stability(self) -> float:
         """Calculate the stability of the primer."""
-        return self.__stability
+        return self.__max_stability
 
     @property
-    def quality(self) -> float:
+    def max_quality(self) -> float:
         """Calculate the quality of the primer."""
-        return self.__quality
+        return self.__max_quality
