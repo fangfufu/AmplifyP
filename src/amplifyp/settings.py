@@ -5,7 +5,7 @@ Don't ask me how these values were chosen, I copied them from
 https://github.com/wrengels/Amplify4/blob/master/Amplify4/Amplify4/TargDelegate.swift
 """
 
-from typing import Final, Iterator, List, Tuple
+from typing import Final, Iterator, List, Tuple, Dict
 from .dna import Nucleotides
 
 
@@ -77,40 +77,44 @@ class BasePairWeightsTbl:
             ValueError: If the length of the weight table does not match the
                 length of the row or column labels.
         """
-        self.__row = dict(zip(list(row), range(len(row))))
-        self.__column = dict(zip(list(column), range(len(column))))
+        self.__row = row + Nucleotides.BLANK
+        self.__column = column + Nucleotides.BLANK
+        self.__weight: Dict[Tuple[str, str], float] = {}
+
         if len(weight) != len(row):
             raise ValueError(
                 "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
             )
-        for i in range(len(row)):
-            if len(weight[i]) != len(column):
-                raise ValueError(
-                    "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
-                )
-        self.__weight = weight
+
+        for i, row_val in enumerate(self.__row):
+            if row_val != Nucleotides.BLANK:
+                if len(weight[i]) != len(column):
+                    raise ValueError(
+                        "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
+                    )
+            for j, col_val in enumerate(self.__column):
+                if Nucleotides.BLANK in [row_val, col_val]:
+                    self.__weight[row_val, col_val] = 0
+                else:
+                    self.__weight[row_val, col_val] = weight[i][j]
 
     @property
-    def row(self) -> list[str]:
+    def row(self) -> str:
         """Return the row nucleotides."""
-        return list(self.__row.keys())
+        return self.__row[:-1]
 
     @property
-    def column(self) -> list[str]:
+    def column(self) -> str:
         """Return the column nucleotides."""
-        return list(self.__column.keys())
+        return self.__column[:-1]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""
-        if Nucleotides.BLANK in key:
-            return 0
-        row, column = key
-        return self.__weight[self.__row[row]][self.__column[column]]
+        return self.__weight[key]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight at a certain nucleotide pair."""
-        row, column = key
-        self.__weight[self.__row[row]][self.__column[column]] = value
+        self.__weight[key] = value
 
     def __len__(self) -> int:
         """Return the size of the Run-length Weight table."""
