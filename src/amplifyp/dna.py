@@ -25,7 +25,7 @@ class DNAType(IntEnum):
     PRIMER = 3
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class DNA:
     """A class representing a DNA sequence.
 
