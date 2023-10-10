@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Data types."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .dna import DNA, DNAType
 from .settings import (
@@ -25,7 +25,9 @@ class Replicon:
 
     target: str
     primer: str
-    replisome_config: ReplisomeConfig = DEFAULT_REPLISOME_CONFIG
+    replisome_config: ReplisomeConfig = field(
+        default_factory=lambda: DEFAULT_REPLISOME_CONFIG
+    )
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""
@@ -55,7 +57,9 @@ class Replisome:
 
     target: DNA
     primer: DNA
-    replisome_config: ReplisomeConfig = DEFAULT_REPLISOME_CONFIG
+    replisome_config: ReplisomeConfig = field(
+        default_factory=lambda: DEFAULT_REPLISOME_CONFIG
+    )
 
     def __post_init__(self) -> None:
         """Validate replisome configuration.
