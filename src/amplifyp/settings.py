@@ -5,6 +5,7 @@ Don't ask me how these values were chosen, I copied them from
 https://github.com/wrengels/Amplify4/blob/master/Amplify4/Amplify4/TargDelegate.swift
 """
 
+from dataclasses import dataclass
 from typing import Final, Iterator, List, Tuple, Dict
 from .dna import Nucleotides
 
@@ -201,3 +202,27 @@ DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
 
 # Default minimum overlap between the primer and the target.
 DEFAULT_MIN_OVERLAP: Final[int] = 1
+
+
+@dataclass
+class ReplisomeConfig:
+    """A class representing a replisome configuration.
+
+    Attributes:
+        base_pair_scores (BasePairWeights): The weights assigned to each base
+            pair in the DNA sequence.
+        match_weight (LengthWiseWeightTbl): The weights assigned to matches
+            between the target and primer sequences.
+        run_weight (LengthWiseWeightTbl): The weights assigned to runs of
+            consecutive matches between the target and primer sequences.
+        min_overlap (int): The minimum overlap between the primer and the
+            target.
+    """
+
+    base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
+    match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
+    run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
+    min_overlap: int = DEFAULT_MIN_OVERLAP
+
+
+DEFAULT_REPLISOME_CONFIG: Final[ReplisomeConfig] = ReplisomeConfig()

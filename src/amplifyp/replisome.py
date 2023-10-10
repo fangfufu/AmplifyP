@@ -4,37 +4,34 @@ from dataclasses import dataclass
 
 from .dna import DNA, DNAType
 from .settings import (
-    BasePairWeightsTbl,
-    LengthWiseWeightTbl,
-    DEFAULT_BASE_PAIR_WEIGHTS,
-    DEFAULT_MATCH_WEIGHTS,
-    DEFAULT_RUN_WEIGHTS,
-    DEFAULT_MIN_OVERLAP,
+    ReplisomeConfig,
+    DEFAULT_REPLISOME_CONFIG,
 )
 
 
 @dataclass
-class Replisome:  # pylint: disable=too-many-instance-attributes
+class Replisome:
     """A class representing a replisome.
+
+    A replisome consists of a target DNA sequence and a primer DNA sequence. The
+    replisome class represents the replisome complex - the DNA polymerase with
+    the primer moves along the target sequence to find a good binding site.
 
     Attributes:
         target (DNA): The DNA sequence being replicated.
         primer (DNA): The DNA sequence that serves as a starting point for DNA
             synthesis.
-        base_pair_scores (BasePairWeights): The weights assigned to each base
-            pair in the DNA sequence.
-        match_weight (LengthWiseWeightTbl): The weights assigned to matches
-            between the target and primer sequences.
-        run_weight (LengthWiseWeightTbl): The weights assigned to runs of
-            consecutive matches between the target and primer sequences.
+        replisome_config (ReplisomeConfig): The configuration of the replisome.
+
+    Methods:
+        replicon_slice(k: int) -> slice: Returns a slice object that represents
+            the range of the replicon starting at index k.
+        range_limit() -> slice: Return the index limit of the target DNA.
     """
 
     target: DNA
     primer: DNA
-    base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
-    match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
-    run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
-    min_overlap: int = DEFAULT_MIN_OVERLAP
+    replisome_config: ReplisomeConfig = DEFAULT_REPLISOME_CONFIG
 
     def __post_init__(self) -> None:
         """Validate replisome configuration.
@@ -46,33 +43,42 @@ class Replisome:  # pylint: disable=too-many-instance-attributes
             raise TypeError("A target sequence had been used as a primer.")
 
         self.target = (
-            self.target.pad(len(self.primer) - self.min_overlap).upper().reverse()
+            self.target.pad(len(self.primer) - self.replisome_config.min_overlap)
+            .upper()
+            .reverse()
         )
 
         self.primer = self.primer.upper().reverse()
-        self.__target_index_limit = slice(
-            0, len(self.target) - len(self.primer) + self.min_overlap
+        self.__range_limit = range(
+            0, len(self.target) - len(self.primer) + self.replisome_config.min_overlap
         )
         self.__max_primability = 0
         self.__max_stability = 0
         self.__max_quality = 0
 
     def replicon_slice(self, k: int) -> slice:
-        """The slice of the target DNA that is being simulated."""
-        if k > self.target_index_limit.stop or k < 0:
+        """Returns a slice object that represents the range of the replicon.
+
+        Args:
+            k (int): The starting index of the slice.
+
+        Returns:
+            slice: A slice object that represents the range of the replicon
+            starting at index k.
+
+        Raises:
+            IndexError: If the requested index is out of range.
+        """
+        if k > self.range_limit.stop or k < 0:
             raise IndexError(
-                f"Requested index {k} is out of range. (max: {self.target_index_limit.stop})"
+                f"Requested index {k} is out of range. (max: {self.range_limit.stop})"
             )
         return slice(k, k + len(self.primer))
 
-    def calc_primability(self, k: int) -> float:
-        """Calculate the primability of the primer."""
-        return k
-
     @property
-    def target_index_limit(self) -> slice:
+    def range_limit(self) -> range:
         """Return the index limit of the target DNA."""
-        return self.__target_index_limit
+        return self.__range_limit
 
     @property
     def max_primability(self) -> float:
