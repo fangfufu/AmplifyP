@@ -35,7 +35,6 @@ class Replicon:
             raise ValueError("The target has to have the same length as the primer.")
 
 
-@dataclass
 class Replisome:
     """A class representing a replisome.
 
@@ -55,34 +54,51 @@ class Replisome:
         range_limit() -> slice: Return the index limit of the target DNA.
     """
 
-    target: DNA
-    primer: DNA
-    replisome_config: ReplisomeConfig = field(
-        default_factory=lambda: DEFAULT_REPLISOME_CONFIG
-    )
+    def __init__(
+        self,
+        target: DNA,
+        primer: DNA,
+        replisome_config: ReplisomeConfig = DEFAULT_REPLISOME_CONFIG,
+    ):
+        """Initializes a Replisome object.
 
-    def __post_init__(self) -> None:
-        """Validate replisome configuration.
+        Args:
+            target (DNA): The target DNA sequence to replicate.
+            primer (DNA): The primer DNA sequence to use for replication.
+            replisome_config (ReplisomeConfig, optional): The configuration
+                for the replisome. Defaults to DEFAULT_REPLISOME_CONFIG.
 
-        Raises
-            TypeError: If the primer is not a valid DNA primer.
+        Raises:
+            TypeError: If the primer sequence is not a primer DNA sequence.
         """
-        if self.primer.dna_type != DNAType.PRIMER:
+        if primer.dna_type != DNAType.PRIMER:
             raise TypeError("A target sequence had been used as a primer.")
 
-        self.target = (
-            self.target.pad(len(self.primer) - self.replisome_config.min_overlap)
-            .upper()
-            .reverse()
+        self.__target = (
+            target.pad(len(primer) - replisome_config.min_overlap).upper().reverse()
         )
 
-        self.primer = self.primer.upper().reverse()
+        self.__primer = primer.upper().reverse()
+        self.__replisome_config = replisome_config
+
         self.__range_limit = range(
             0, len(self.target) - len(self.primer) + self.replisome_config.min_overlap
         )
-        self.__max_primability = 0
-        self.__max_stability = 0
-        self.__max_quality = 0
+
+    @property
+    def target(self) -> DNA:
+        """Return the target DNA sequence."""
+        return self.__target
+
+    @property
+    def primer(self) -> DNA:
+        """Return the primer DNA sequence."""
+        return self.__primer
+
+    @property
+    def replisome_config(self) -> ReplisomeConfig:
+        """Return the configuration of the replisome."""
+        return self.__replisome_config
 
     @property
     def range_limit(self) -> range:
@@ -107,18 +123,3 @@ class Replisome:
                 f"Requested index {k} is out of range. (max: {self.range_limit.stop})"
             )
         return slice(k, k + len(self.primer))
-
-    @property
-    def max_primability(self) -> float:
-        """Calculate the primability of the primer."""
-        return self.__max_primability
-
-    @property
-    def max_stability(self) -> float:
-        """Calculate the stability of the primer."""
-        return self.__max_stability
-
-    @property
-    def max_quality(self) -> float:
-        """Calculate the quality of the primer."""
-        return self.__max_quality
