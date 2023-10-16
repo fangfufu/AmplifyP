@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Data types."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .dna import DNA, DNAType
 from .settings import (
@@ -25,9 +25,7 @@ class Replicon:
 
     target: str
     primer: str
-    replisome_config: ReplisomeConfig = field(
-        default_factory=lambda: DEFAULT_REPLISOME_CONFIG
-    )
+    replisome_config: ReplisomeConfig
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""
@@ -123,3 +121,22 @@ class Replisome:
                 f"Requested index {k} is out of range. (max: {self.range_limit.stop})"
             )
         return slice(k, k + len(self.primer))
+
+    def replicon(self, k: int) -> Replicon:
+        """Returns a replicon object.
+
+        Args:
+            k (int): The starting index of the replicon.
+
+        Returns:
+            Replicon: A replicon object that represents the target and primer
+            sequences for a replicon starting at index k.
+
+        Raises:
+            IndexError: If the requested index is out of range.
+        """
+        return Replicon(
+            self.target[self.replicon_slice(k)].sequence,
+            self.primer.sequence,
+            self.replisome_config,
+        )
