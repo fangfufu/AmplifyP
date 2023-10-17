@@ -209,10 +209,16 @@ DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
 # Default minimum overlap between the primer and the target.
 DEFAULT_MIN_OVERLAP: Final[int] = 1
 
+# Default threshold for primability.
+DEFAULT_PRIMABILITY_CUTOFF: Final[float] = 0.8
+
+# Default threshold for stability.
+DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
+
 
 @dataclass
-class ReplisomeConfig:
-    """A class representing a replisome configuration.
+class ReplicationConfig:
+    """A class representing a replication configuration.
 
     Attributes:
         base_pair_scores (BasePairWeights): The weights assigned to each base
@@ -229,6 +235,8 @@ class ReplisomeConfig:
     match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
     run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
     min_overlap: int = DEFAULT_MIN_OVERLAP
+    primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
+    stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
 
 
-DEFAULT_REPLISOME_CONFIG: Final[ReplisomeConfig] = ReplisomeConfig()
+DEFAULT_REPLICATION_CONFIG: Final[ReplicationConfig] = ReplicationConfig()

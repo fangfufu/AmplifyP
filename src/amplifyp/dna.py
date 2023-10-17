@@ -105,7 +105,7 @@ class DNA:
         return len(self.sequence)
 
     def pad(self, size: int) -> "DNA":
-        """Pad the DNA sequence with blank characters."""
+        """Pad the DNA sequence to the required length."""
         if self.dna_type == DNAType.LINEAR:
             return DNA(
                 Nucleotides.GAP * size + self.sequence + Nucleotides.GAP * size,

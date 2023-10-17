@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 from .dna import DNA, DNAType
 from .settings import (
-    ReplisomeConfig,
-    DEFAULT_REPLISOME_CONFIG,
+    ReplicationConfig,
+    DEFAULT_REPLICATION_CONFIG,
     LengthWiseWeightTbl,
     BasePairWeightsTbl,
 )
@@ -18,7 +18,7 @@ class Replicon:
     Attributes:
         target (str): The target DNA sequence.
         primer (str): The primer sequence.
-        replisome_config (ReplisomeConfig): The configuration for the replisome.
+        replication_config (ReplisomeConfig): The configuration for the replisome.
             Defaults to DEFAULT_REPLISOME_CONFIG.
 
     Raises:
@@ -27,7 +27,7 @@ class Replicon:
 
     target: str
     primer: str
-    replisome_config: ReplisomeConfig
+    replication_config: ReplicationConfig
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""
@@ -41,9 +41,9 @@ class Replicon:
         Returns:
             float: The primability of the replicon.
         """
-        m: LengthWiseWeightTbl = self.replisome_config.match_weight
+        m: LengthWiseWeightTbl = self.replication_config.match_weight
         S: BasePairWeightsTbl = (  # pylint: disable=invalid-name
-            self.replisome_config.base_pair_scores
+            self.replication_config.base_pair_scores
         )
         numerator: float = 0
         denominator: float = 0
@@ -60,8 +60,8 @@ class Replicon:
         Returns:
             float: The stability of the replicon.
         """
-        r = self.replisome_config.run_weight
-        S = self.replisome_config.base_pair_scores  # pylint: disable=invalid-name
+        r = self.replication_config.run_weight
+        S = self.replication_config.base_pair_scores  # pylint: disable=invalid-name
         numerator: float = 0
         denominator: float = 0
         Rn: float = 0  # pylint: disable=invalid-name
@@ -75,6 +75,19 @@ class Replicon:
         score = numerator / (Rn * denominator)
         return score
 
+    @property
+    def quality(self) -> float:
+        """Returns the quality of the replicon.
+
+        Returns:
+            float: The quality of the replicon.
+        """
+        cutoffs = (
+            self.replication_config.primability_cutoff
+            + self.replication_config.stability_cutoff
+        )
+        return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
+
 
 class Replisome:
     """A class representing a replisome.
@@ -87,7 +100,7 @@ class Replisome:
         target (DNA): The DNA sequence being replicated.
         primer (DNA): The DNA sequence that serves as a starting point for DNA
             synthesis.
-        replisome_config (ReplisomeConfig): The configuration of the replisome.
+        replication_config (ReplisomeConfig): The configuration of the replisome.
 
     Methods:
         replicon_slice(k: int) -> slice: Returns a slice object that represents
@@ -99,14 +112,14 @@ class Replisome:
         self,
         target: DNA,
         primer: DNA,
-        replisome_config: ReplisomeConfig = DEFAULT_REPLISOME_CONFIG,
+        replication_config: ReplicationConfig = DEFAULT_REPLICATION_CONFIG,
     ):
         """Initializes a Replisome object.
 
         Args:
             target (DNA): The target DNA sequence to replicate.
             primer (DNA): The primer DNA sequence to use for replication.
-            replisome_config (ReplisomeConfig, optional): The configuration
+            replication_config (ReplisomeConfig, optional): The configuration
                 for the replisome. Defaults to DEFAULT_REPLISOME_CONFIG.
 
         Raises:
@@ -116,14 +129,14 @@ class Replisome:
             raise TypeError("A target sequence had been used as a primer.")
 
         self.__target = (
-            target.pad(len(primer) - replisome_config.min_overlap).upper().reverse()
+            target.pad(len(primer) - replication_config.min_overlap).upper().reverse()
         )
 
         self.__primer = primer.upper().reverse()
-        self.__replisome_config = replisome_config
+        self.__replication_config = replication_config
 
         self.__range_limit = range(
-            0, len(self.target) - len(self.primer) + self.replisome_config.min_overlap
+            0, len(self.target) - len(self.primer) + self.replication_config.min_overlap
         )
 
     @property
@@ -137,9 +150,9 @@ class Replisome:
         return self.__primer
 
     @property
-    def replisome_config(self) -> ReplisomeConfig:
+    def replication_config(self) -> ReplicationConfig:
         """Return the configuration of the replisome."""
-        return self.__replisome_config
+        return self.__replication_config
 
     @property
     def range_limit(self) -> range:
@@ -181,5 +194,5 @@ class Replisome:
         return Replicon(
             self.target[self.replicon_slice(k)].sequence,
             self.primer.sequence,
-            self.replisome_config,
+            self.replication_config,
         )
