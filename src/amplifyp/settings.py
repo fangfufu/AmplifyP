@@ -36,7 +36,7 @@ class LengthWiseWeightTbl:
                 key, value = item
                 self.__weight[key] = value
 
-    def __getitem__(self, key: slice) -> list[float]:
+    def __getitem__(self, key: int) -> float:
         """Return the weight of at certain run-length."""
         return self.__weight[key]
 
@@ -78,9 +78,10 @@ class BasePairWeightsTbl:
             ValueError: If the length of the weight table does not match the
                 length of the row or column labels.
         """
-        self.__row = row + Nucleotides.BLANK
-        self.__column = column + Nucleotides.BLANK
+        self.__row = row + Nucleotides.GAP
+        self.__column = column + Nucleotides.GAP
         self.__weight: Dict[Tuple[str, str], float] = {}
+        self.__row_max: Dict[str, float] = {}
 
         if len(weight) != len(row):
             raise ValueError(
@@ -88,13 +89,14 @@ class BasePairWeightsTbl:
             )
 
         for i, row_val in enumerate(self.__row):
-            if row_val != Nucleotides.BLANK:
+            if row_val != Nucleotides.GAP:
                 if len(weight[i]) != len(column):
                     raise ValueError(
                         "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
                     )
+                self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__column):
-                if Nucleotides.BLANK in [row_val, col_val]:
+                if Nucleotides.GAP in [row_val, col_val]:
                     self.__weight[row_val, col_val] = 0
                 else:
                     self.__weight[row_val, col_val] = weight[i][j]
@@ -108,6 +110,10 @@ class BasePairWeightsTbl:
     def column(self) -> str:
         """Return the column nucleotides."""
         return self.__column[:-1]
+
+    def row_max(self, row: str) -> float:
+        """Return the maximum weight of a row."""
+        return self.__row_max[row]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""

@@ -11,10 +11,10 @@ class Nucleotides(StrEnum):
     DOUBLE = "MRWSYK"
     TRIPLE = "VHDB"
     WILDCARD = "N"
-    BLANK = "-"
+    GAP = "-"
 
     TARGET = SINGLE + WILDCARD
-    PRIMER = TARGET + DOUBLE + TRIPLE
+    PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
 
 
 class DNAType(IntEnum):
@@ -49,7 +49,7 @@ class DNA:
         check_str = (
             Nucleotides.PRIMER
             if self.dna_type == DNAType.PRIMER
-            else Nucleotides.TARGET + Nucleotides.BLANK
+            else Nucleotides.TARGET + Nucleotides.GAP
         )
         if not set(self.sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")
@@ -108,7 +108,7 @@ class DNA:
         """Pad the DNA sequence with blank characters."""
         if self.dna_type == DNAType.LINEAR:
             return DNA(
-                Nucleotides.BLANK * size + self.sequence + Nucleotides.BLANK * size,
+                Nucleotides.GAP * size + self.sequence + Nucleotides.GAP * size,
                 self.dna_type,
                 self.name,
                 self.reversed,

@@ -6,6 +6,8 @@ from .dna import DNA, DNAType
 from .settings import (
     ReplisomeConfig,
     DEFAULT_REPLISOME_CONFIG,
+    LengthWiseWeightTbl,
+    BasePairWeightsTbl,
 )
 
 
@@ -31,6 +33,47 @@ class Replicon:
         """Validates that the length of the target and primer are equal."""
         if len(self.target) != len(self.primer):
             raise ValueError("The target has to have the same length as the primer.")
+
+    @property
+    def primability(self) -> float:
+        """Returns the primability of the replicon.
+
+        Returns:
+            float: The primability of the replicon.
+        """
+        m: LengthWiseWeightTbl = self.replisome_config.match_weight
+        S: BasePairWeightsTbl = (  # pylint: disable=invalid-name
+            self.replisome_config.base_pair_scores
+        )
+        numerator: float = 0
+        denominator: float = 0
+        for k, (i, j) in enumerate(zip(self.primer, self.target)):
+            numerator += m[k] * S[i, j]
+            denominator += m[k] * S.row_max(i)
+        score = numerator / denominator
+        return score
+
+    @property
+    def stability(self) -> float:
+        """Returns the stability of the replicon.
+
+        Returns:
+            float: The stability of the replicon.
+        """
+        r = self.replisome_config.run_weight
+        S = self.replisome_config.base_pair_scores  # pylint: disable=invalid-name
+        numerator: float = 0
+        denominator: float = 0
+        Rn: float = 0  # pylint: disable=invalid-name
+        for k, (i, j) in enumerate(zip(self.primer, self.target)):
+            numerator += r[k] * S[i, j]
+            denominator += S.row_max(i)
+            if r[k] > Rn:
+                Rn = r[k]  # pylint: disable=invalid-name
+            if S[i, j] <= 0:
+                break
+        score = numerator / (Rn * denominator)
+        return score
 
 
 class Replisome:
@@ -85,12 +128,12 @@ class Replisome:
 
     @property
     def target(self) -> DNA:
-        """Return the target DNA sequence."""
+        """Return the processed target DNA sequence."""
         return self.__target
 
     @property
     def primer(self) -> DNA:
-        """Return the primer DNA sequence."""
+        """Return the processed primer DNA sequence."""
         return self.__primer
 
     @property
