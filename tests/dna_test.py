@@ -41,12 +41,10 @@ def test_dna() -> None:
     assert (dna_1 + dna_2).sequence == "ACGTTGCA"
 
     # Test the pad method.
-    dna = DNA("ACGT")
-    assert dna.pad(2).sequence == "--ACGT--"
     dna = DNA("ACGT", dna_type=DNAType.CIRCULAR)
-    assert dna.pad(2).sequence == "GTACGTAC"
-    dna = DNA("ACGT", dna_type=DNAType.PRIMER)
-    assert dna.pad(2) == NotImplemented
+    assert dna.circular_pad().sequence == "ACGTACGTACGT"
+    dna = DNA("ACGT", dna_type=DNAType.LINEAR)
+    assert dna.circular_pad() == NotImplemented
 
     # Test the length of a DNA sequence.
     dna = DNA("ACGT")

@@ -12,12 +12,12 @@ from .settings import (
 
 
 @dataclass
-class Replicon:
-    """A class representing the region of DNA being replicated.
+class Origin:
+    """A class representing the origin of replication.
 
     Attributes:
-        target (str): The target DNA sequence.
-        primer (str): The primer sequence.
+        target (str): The target DNA sequence as a string, in 3"-5" orientation.
+        primer (str): The primer sequence as a string, in 3"-5" orientation.
         replication_config (ReplisomeConfig): The configuration for the replisome.
             Defaults to DEFAULT_REPLISOME_CONFIG.
 
@@ -36,10 +36,10 @@ class Replicon:
 
     @property
     def primability(self) -> float:
-        """Returns the primability of the replicon.
+        """Returns the primability of the origin.
 
         Returns:
-            float: The primability of the replicon.
+            float: The primability of the origin.
         """
         m: LengthWiseWeightTbl = self.replication_config.match_weight
         S: BasePairWeightsTbl = (  # pylint: disable=invalid-name
@@ -55,10 +55,10 @@ class Replicon:
 
     @property
     def stability(self) -> float:
-        """Returns the stability of the replicon.
+        """Returns the stability of the origin.
 
         Returns:
-            float: The stability of the replicon.
+            float: The stability of the origin.
         """
         r = self.replication_config.run_weight
         S = self.replication_config.base_pair_scores  # pylint: disable=invalid-name
@@ -77,10 +77,10 @@ class Replicon:
 
     @property
     def quality(self) -> float:
-        """Returns the quality of the replicon.
+        """Returns the quality of the origin.
 
         Returns:
-            float: The quality of the replicon.
+            float: The quality of the origin.
         """
         cutoffs = (
             self.replication_config.primability_cutoff
@@ -103,8 +103,8 @@ class Replisome:
         replication_config (ReplisomeConfig): The configuration of the replisome.
 
     Methods:
-        replicon_slice(k: int) -> slice: Returns a slice object that represents
-            the range of the replicon starting at index k.
+        origin_slice(k: int) -> slice: Returns a slice object that represents
+            the range of the origin starting at index k.
         range_limit() -> slice: Return the index limit of the target DNA.
     """
 
@@ -125,19 +125,17 @@ class Replisome:
         Raises:
             TypeError: If the primer sequence is not a primer DNA sequence.
         """
-        if primer.dna_type != DNAType.PRIMER:
-            raise TypeError("A target sequence had been used as a primer.")
-
-        self.__target = (
-            target.pad(len(primer) - replication_config.min_overlap).upper().reverse()
-        )
+        if target.dna_type == DNAType.CIRCULAR:
+            self.__target = target.circular_pad().upper().reverse()
+        elif target.dna_type == DNAType.LINEAR:
+            self.__target = target.upper().reverse()
+        else:
+            raise TypeError("Invalid DNA type for target sequence.")
 
         self.__primer = primer.upper().reverse()
         self.__replication_config = replication_config
 
-        self.__range_limit = range(
-            0, len(self.target) - len(self.primer) + self.replication_config.min_overlap
-        )
+        self.__range_limit = range(0, len(self.target) - len(self.primer))
 
     @property
     def target(self) -> DNA:
@@ -159,15 +157,15 @@ class Replisome:
         """Return the index limit of the target DNA."""
         return self.__range_limit
 
-    def replicon_slice(self, k: int) -> slice:
-        """Returns a the replicon slice object.
+    def __origin_slice(self, k: int) -> slice:
+        """Returns a the origin slice object.
 
         Args:
             k (int): The starting index of the slice.
 
         Returns:
             slice: A slice object that represents the range of the target for
-            a replicon starting at index k.
+            a origin starting at index k.
 
         Raises:
             IndexError: If the requested index is out of range.
@@ -178,21 +176,21 @@ class Replisome:
             )
         return slice(k, k + len(self.primer))
 
-    def replicon(self, k: int) -> Replicon:
-        """Returns a replicon object.
+    def origin(self, k: int) -> Origin:
+        """Returns a origin object.
 
         Args:
-            k (int): The starting index of the replicon.
+            k (int): The starting index of the origin.
 
         Returns:
-            Replicon: A replicon object that represents the target and primer
-            sequences for a replicon starting at index k.
+            Origin: A origin object that represents the target and primer
+            sequences for a origin starting at index k.
 
         Raises:
             IndexError: If the requested index is out of range.
         """
-        return Replicon(
-            self.target[self.replicon_slice(k)].sequence,
+        return Origin(
+            self.target[self.__origin_slice(k)].sequence,
             self.primer.sequence,
             self.replication_config,
         )

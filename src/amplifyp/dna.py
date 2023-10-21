@@ -104,18 +104,11 @@ class DNA:
         """Return the length of the DNA sequence."""
         return len(self.sequence)
 
-    def pad(self, size: int) -> "DNA":
-        """Pad the DNA sequence to the required length."""
-        if self.dna_type == DNAType.LINEAR:
-            return DNA(
-                Nucleotides.GAP * size + self.sequence + Nucleotides.GAP * size,
-                self.dna_type,
-                self.name,
-                self.reversed,
-            )
+    def circular_pad(self) -> "DNA":
+        """Pad the circular DNA sequence to the required length."""
         if self.dna_type == DNAType.CIRCULAR:
             return DNA(
-                self.sequence[-size:] + self.sequence + self.sequence[:size],
+                self.sequence * 3,
                 self.dna_type,
                 self.name,
                 self.reversed,
