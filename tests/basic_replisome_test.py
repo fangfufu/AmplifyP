@@ -8,7 +8,7 @@ from amplifyp.dna import DNA, DNAType
 from amplifyp.replisome import Replisome
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ReplisomeExample:
     """A class representing test cases of replisome.
 

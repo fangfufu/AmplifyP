@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication origin related."""
 from dataclasses import dataclass
+from functools import cached_property
 
 from .settings import (
     ReplicationConfig,
@@ -9,7 +10,7 @@ from .settings import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Origin:
     """A class representing the origin of replication.
 
@@ -32,7 +33,7 @@ class Origin:
         if len(self.target) != len(self.primer):
             raise ValueError("The target has to have the same length as the primer.")
 
-    @property
+    @cached_property
     def primability(self) -> float:
         """Returns the primability of the origin.
 
@@ -51,7 +52,7 @@ class Origin:
         score = numerator / denominator
         return score
 
-    @property
+    @cached_property
     def stability(self) -> float:
         """Returns the stability of the origin.
 
@@ -73,7 +74,7 @@ class Origin:
         score = numerator / (Rn * denominator)
         return score
 
-    @property
+    @cached_property
     def quality(self) -> float:
         """Returns the quality of the origin.
 
