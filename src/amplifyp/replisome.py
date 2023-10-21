@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replisome related."""
 
+from functools import cache
+
 from .dna import DNA, DNAType
 from .origin import Origin
 from .settings import (
@@ -55,7 +57,7 @@ class Replisome:
         self.__primer = primer.upper().reverse()
         self.__replication_config = replication_config
 
-        self.__range_limit = range(0, len(self.target) - len(self.primer))
+        self.__range = range(0, len(self.target) - len(self.primer))
 
     @property
     def target(self) -> DNA:
@@ -73,9 +75,9 @@ class Replisome:
         return self.__replication_config
 
     @property
-    def range_limit(self) -> range:
-        """Return the index limit of the target DNA."""
-        return self.__range_limit
+    def range(self) -> range:
+        """Return the range limit of the target DNA."""
+        return self.__range
 
     def __origin_slice(self, k: int) -> slice:
         """Returns a the origin slice object.
@@ -90,12 +92,15 @@ class Replisome:
         Raises:
             IndexError: If the requested index is out of range.
         """
-        if k > self.range_limit.stop or k < 0:
+        if k > self.range.stop or k < 0:
             raise IndexError(
-                f"Requested index {k} is out of range. (max: {self.range_limit.stop})"
+                f"Requested index {k} is out of range. (max: {self.range.stop})"
             )
         return slice(k, k + len(self.primer))
 
+    # WARNING: This might actually cause memory leak. We need to look into this
+    # later.
+    @cache  # pylint: disable=method-cache-max-size-none
     def origin(self, k: int) -> Origin:
         """Returns a origin object.
 
