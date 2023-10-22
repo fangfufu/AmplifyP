@@ -33,17 +33,11 @@ class ReplicationTarget:
             replication_config (ReplicationConfig, optional):
                 The configuration for the replication process. Defaults to
                 DEFAULT_REPLICATION_CONFIG.
-
-        Raises:
-            TypeError: If the DNA sequence is not of type DNAType.CIRCULAR
-            or DNAType.LINEAR.
         """
+        self.__target_fwd: DNA = target.upper()
         if target.type == DNAType.CIRCULAR:
-            self.__target_fwd = target.circular_pad().upper()
-        elif target.type == DNAType.LINEAR:
-            self.__target_fwd = target.upper()
-        else:
-            raise TypeError("Invalid DNA type for target sequence.")
+            self.__target_fwd = self.__target_fwd.circular_pad()
+
         self.__target_rev: DNA = self.__target_fwd.complement()
 
         self.__replication_config: ReplicationConfig = replication_config
