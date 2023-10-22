@@ -9,7 +9,7 @@ from amplifyp.replication_origin import ReplicationOrigin
 from amplifyp.replication_target import ReplicationConfig
 
 
-def test_origin_init() -> None:
+def test_replication_origin_init() -> None:
     """Test the initialization of a Origin object with invalid parameters."""
     with pytest.raises(ValueError):
         ReplicationOrigin(
@@ -18,7 +18,7 @@ def test_origin_init() -> None:
 
 
 @dataclass(frozen=True, slots=True)
-class OriginExample:
+class ReplicationOriginExample:
     """A class representing test cases of origins.
 
     Attributes:
@@ -34,9 +34,9 @@ class OriginExample:
     quality: float
 
 
-origin_examples: List[OriginExample] = []
+origin_examples: List[ReplicationOriginExample] = []
 origin_examples.append(
-    OriginExample(
+    ReplicationOriginExample(
         ReplicationOrigin(
             target=DNA("CGACTGGGCAAAGGAAATCCTT").complement().reverse().sequence,
             primer="GCTGACCCNTTTCYYTTAGGCA",
@@ -49,7 +49,7 @@ origin_examples.append(
 )
 
 origin_examples.append(
-    OriginExample(
+    ReplicationOriginExample(
         ReplicationOrigin(
             target=DNA("CGAGGGGGCAAAGGAAATCC").reverse().sequence,
             primer=DNA("CGACTGGGCAAAGGAAATCC").reverse().sequence,

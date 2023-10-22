@@ -9,7 +9,7 @@ from amplifyp.replication_target import ReplicationTarget
 
 
 @dataclass(frozen=True, slots=True)
-class ReplisomeExample:
+class ReplicationTargetExample:
     """A class representing test cases of replisome.
 
     Attributes:
@@ -22,9 +22,9 @@ class ReplisomeExample:
     origin_index: int
 
 
-replisome_examples: List[ReplisomeExample] = []
+replisome_examples: List[ReplicationTargetExample] = []
 replisome_examples.append(
-    ReplisomeExample(
+    ReplicationTargetExample(
         target=DNA("GTGTACTCAGTTCCATAAACGAGCTATTAGATATGAGGTCCGTAGATTGAAAAGGGTGA"),
         primer=DNA("TTCCATA", DNAType.PRIMER),
         origin_index=10,
@@ -32,7 +32,7 @@ replisome_examples.append(
 )
 
 replisome_examples.append(
-    ReplisomeExample(
+    ReplicationTargetExample(
         target=DNA("ATTGTGCGATCCCTGCACCTCAGCTAAGGTAGCTACCAATATTTAGTTTCTAAGCCTTGC"),
         primer=DNA("GCGATC", DNAType.PRIMER),
         origin_index=5,
@@ -40,7 +40,7 @@ replisome_examples.append(
 )
 
 
-def test_origin_equality() -> None:
+def test_replication_origin_equality() -> None:
     """Test replication origin generation by replisome."""
     for ex in replisome_examples:
         replisome = ReplicationTarget(ex.target)
