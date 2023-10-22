@@ -54,7 +54,7 @@ class DNA:
         self,
         sequence: str,
         dna_type: DNAType = DNAType.LINEAR,
-        name: str = " ",
+        name: str | None = None,
         direction: bool | DNADirection = DNADirection.FORWARD,
     ) -> None:
         """Initializes a DNA object.
@@ -69,9 +69,12 @@ class DNA:
         Raises:
             ValueError: If the DNA sequence contains invalid characters.
         """
-        self.__sequence: str = sequence
-        self.__dna_type: DNAType = dna_type
-        self.__name: str = name
+        self.__sequence: str = sequence.strip()
+        self.__type: DNAType = dna_type
+        if name is None:
+            self.__name = sequence
+        else:
+            self.__name = name.strip()
         self.__direction: DNADirection | bool = direction
         check_str = (
             Nucleotides.PRIMER
@@ -86,28 +89,48 @@ class DNA:
         """Return the DNA sequence as a string."""
         return self.__sequence
 
+    @sequence.setter
+    def sequence(self, value: str) -> None:
+        """Set the DNA sequence."""
+        self.__sequence = value.strip()
+
     @property
-    def dna_type(self) -> DNAType:
+    def type(self) -> DNAType:
         """Return the DNA type."""
-        return self.__dna_type
+        return self.__type
+
+    @type.setter
+    def type(self, value: DNAType) -> None:
+        """Set the DNA type."""
+        self.__type = value
 
     @property
     def name(self) -> str:
         """Return the name of the DNA sequence."""
         return self.__name
 
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set the name of the DNA sequence."""
+        self.__name = value.strip()
+
     @property
     def direction(self) -> bool | DNADirection:
         """Return the direction of the DNA sequence."""
         return self.__direction
 
+    @direction.setter
+    def direction(self, value: bool | DNADirection) -> None:
+        """Set the direction of the DNA sequence."""
+        self.__direction = value
+
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
-        return DNA(self.sequence.lower(), self.dna_type, self.name, self.direction)
+        return DNA(self.sequence.lower(), self.type, self.name, self.direction)
 
     def upper(self) -> "DNA":
         """Return the DNA sequence in upper case."""
-        return DNA(self.sequence.upper(), self.dna_type, self.name, self.direction)
+        return DNA(self.sequence.upper(), self.type, self.name, self.direction)
 
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
@@ -119,14 +142,14 @@ class DNA:
             self.sequence.translate(
                 str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
             )[::-1],
-            self.dna_type,
+            self.type,
             self.name,
             self.direction,
         )
 
     def reverse(self) -> "DNA":
         """Return the reverse of the DNA sequence."""
-        return DNA(self.sequence[::-1], self.dna_type, self.name, not self.direction)
+        return DNA(self.sequence[::-1], self.type, self.name, not self.direction)
 
     def __eq__(self, other: object) -> bool:
         """Return True if the DNA sequences are equal."""
@@ -146,11 +169,9 @@ class DNA:
         """Return the concatenation of two DNA sequences."""
         if not isinstance(other, DNA):
             return NotImplemented
-        if self.dna_type != other.dna_type:
+        if self.type != other.type:
             return NotImplemented
-        return DNA(
-            self.sequence + other.sequence, self.dna_type, self.name, self.direction
-        )
+        return DNA(self.sequence + other.sequence, self.type, self.name, self.direction)
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence."""
@@ -158,10 +179,10 @@ class DNA:
 
     def circular_pad(self) -> "DNA":
         """Pad the circular DNA sequence to the required length."""
-        if self.dna_type == DNAType.CIRCULAR:
+        if self.type == DNAType.CIRCULAR:
             return DNA(
                 self.sequence * 3,
-                self.dna_type,
+                self.type,
                 self.name,
                 self.direction,
             )
@@ -169,12 +190,12 @@ class DNA:
 
     def __getitem__(self, key: slice) -> "DNA":
         """Return the character at the given index."""
-        return DNA(self.sequence[key], self.dna_type, self.name, self.direction)
+        return DNA(self.sequence[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
         """Return the string representation of the DNA sequence."""
-        return self.name
+        return f"DNA: {self.name}"
 
     def __repr__(self) -> str:
         """Return the representation of the DNA sequence."""
-        return f"{self.name}: {self.dna_type}, {self.direction}, {self.sequence}"
+        return f"DNA: {self.name}, {self.type}, {self.direction}, {self.sequence}"

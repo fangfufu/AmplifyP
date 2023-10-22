@@ -4,7 +4,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from amplifyp.dna import DNA, DNAType
+from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.replisome import Replisome
 
 
@@ -44,18 +44,20 @@ def test_origin_equality() -> None:
     """Test replication origin generation by replisome."""
     for ex in replisome_examples:
         replisome = Replisome(ex.target)
-        origin = replisome.origin(ex.origin_index, ex.primer)
+        origin = replisome.origin(ex.origin_index, ex.primer, DNADirection.FORWARD)
 
         # Make sure that the primer is correct
-        assert origin.primer == ex.primer.sequence.upper()[::-1]
+        assert origin.primer == ex.primer.sequence[::-1]
 
         # Make sure for the example replication index, the replication origin in
         # question is the same as the primer
         target_slice = slice(ex.origin_index, ex.origin_index + len(ex.primer))
-        assert origin.target == ex.target.reverse().sequence[target_slice].upper()
+        assert origin.target == ex.target.sequence[target_slice][::-1]
 
         # Make sure that the target in the generated replication origin is the
         # same as if we slicce the target sequence of the replisome manually.
         for i in replisome.target_range(ex.primer):
-            exp_str = ex.target.reverse().sequence[i : i + len(origin.primer)].upper()
-            assert replisome.origin(i, ex.primer).target == exp_str
+            exp_str = ex.target.sequence[i : i + len(origin.primer)][::-1]
+            assert (
+                replisome.origin(i, ex.primer, DNADirection.FORWARD).target == exp_str
+            )

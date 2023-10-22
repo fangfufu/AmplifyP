@@ -53,7 +53,7 @@ repos:
     hooks:
     -   id: pydocstyle
         args:
-        - --add-ignore=D202,D400,D401
+        - --add-ignore=D202,D401
 -   repo: https://github.com/PyCQA/pylint
     rev: 'v3.0.1'
     hooks:
@@ -65,10 +65,6 @@ repos:
     rev: 'v1.1.1'
     hooks:
     -   id: doc8
--   repo: https://github.com/PyCQA/docformatter
-    rev: 'v1.7.5'
-    hooks:
-    -   id: docformatter
 -   repo: https://github.com/PyCQA/autoflake
     rev: 'v2.2.1'
     hooks:
