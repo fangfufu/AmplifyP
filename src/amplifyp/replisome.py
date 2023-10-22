@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Amplify P - Replisome related."""
+"""Amplify P - Replisome related"""
 
-from functools import cache
 
-from .dna import DNA, DNAType
+from .dna import DNA, DNAType, DNADirection
 from .origin import Origin
 from .settings import (
     ReplicationConfig,
@@ -12,28 +11,11 @@ from .settings import (
 
 
 class Replisome:
-    """A class representing a replisome.
-
-    A replisome consists of a target DNA sequence and a primer DNA sequence. The
-    replisome class represents the replisome complex - the DNA polymerase with
-    the primer moves along the target sequence to find a good binding site.
-
-    Attributes:
-        target (DNA): The DNA sequence being replicated.
-        primer (DNA): The DNA sequence that serves as a starting point for DNA
-            synthesis.
-        replication_config (ReplisomeConfig): The configuration of the replisome.
-
-    Methods:
-        origin_slice(k: int) -> slice: Returns a slice object that represents
-            the range of the origin starting at index k.
-        range_limit() -> slice: Return the index limit of the target DNA.
-    """
+    """A class representing a replisome."""
 
     def __init__(
         self,
         target: DNA,
-        primer: DNA,
         replication_config: ReplicationConfig = DEFAULT_REPLICATION_CONFIG,
     ):
         """Initializes a Replisome object.
@@ -48,38 +30,42 @@ class Replisome:
             TypeError: If the primer sequence is not a primer DNA sequence.
         """
         if target.dna_type == DNAType.CIRCULAR:
-            self.__target = target.circular_pad().upper().reverse()
+            self.__target_fwd = target.circular_pad().upper()
         elif target.dna_type == DNAType.LINEAR:
-            self.__target = target.upper().reverse()
+            self.__target_fwd = target.upper().reverse()
         else:
             raise TypeError("Invalid DNA type for target sequence.")
+        self.__target_rev: DNA = self.__target_fwd.complement().reverse()
 
-        self.__primer = primer.upper().reverse()
-        self.__replication_config = replication_config
+        self.__replication_config: ReplicationConfig = replication_config
 
-        self.__range = range(0, len(self.target) - len(self.primer))
+    def target(self, direction: DNADirection = DNADirection.FORWARD) -> DNA:
+        """Return the processed target DNA sequence.
 
-    @property
-    def target(self) -> DNA:
-        """Return the processed target DNA sequence."""
-        return self.__target
+        Args:
+            direction (DNADirection): The direction of the DNA sequence.
+                Defaults to DNADirection.FORWARD.
 
-    @property
-    def primer(self) -> DNA:
-        """Return the processed primer DNA sequence."""
-        return self.__primer
+        Returns:
+            DNA: The processed target DNA sequence.
+        """
+
+        return (
+            self.__target_fwd
+            if direction == DNADirection.FORWARD
+            else self.__target_rev
+        )
 
     @property
     def replication_config(self) -> ReplicationConfig:
         """Return the configuration of the replisome."""
         return self.__replication_config
 
-    @property
-    def range(self) -> range:
+    def target_range(self, primer: DNA) -> range:
         """Return the range limit of the target DNA."""
-        return self.__range
+        return range(0, len(self.target()) - len(primer))
 
-    def __origin_slice(self, k: int) -> slice:
+    def __origin_slice(self, k: int, primer: DNA) -> slice:
         """Returns a the origin slice object.
 
         Args:
@@ -92,16 +78,14 @@ class Replisome:
         Raises:
             IndexError: If the requested index is out of range.
         """
-        if k > self.range.stop or k < 0:
+        target_range = self.target_range(primer)
+        if k > target_range.stop or k < 0:
             raise IndexError(
-                f"Requested index {k} is out of range. (max: {self.range.stop})"
+                f"Requested index {k} is out of range. (max: {target_range.stop})"
             )
-        return slice(k, k + len(self.primer))
+        return slice(k, k + len(primer))
 
-    # WARNING: This might actually cause memory leak. We need to look into this
-    # later.
-    @cache  # pylint: disable=method-cache-max-size-none
-    def origin(self, k: int) -> Origin:
+    def origin(self, k: int, primer: DNA) -> Origin:
         """Returns a origin object.
 
         Args:
@@ -115,7 +99,8 @@ class Replisome:
             IndexError: If the requested index is out of range.
         """
         return Origin(
-            self.target[self.__origin_slice(k)].sequence,
-            self.primer.sequence,
+            self.target()[self.__origin_slice(k, primer)].sequence,
+            # WARNING: this *might* cause performance issues.
+            primer.sequence[::-1],
             self.replication_config,
         )

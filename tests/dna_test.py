@@ -20,11 +20,10 @@ def test_dna() -> None:
     # Test the complement of a DNA sequence.
     dna = DNA("ACGTMKRYBDHVacgtmkrybdhv", dna_type=DNAType.PRIMER)
     assert dna.complement().sequence == "bdhvrymkacgtBDHVRYMKACGT"
-    assert dna.complement() == dna
 
     # Test the equality of a DNA sequence.
     assert DNA("ATGC") == DNA("ATGC")
-    assert DNA("ATGC") == DNA("GCAT")
+    assert DNA("ATGC").is_complement_of(DNA("GCAT"))
     assert DNA("tACGTacgta") != DNA("AAAAAAAAA")
 
     # Test the lower case of a DNA sequence.
