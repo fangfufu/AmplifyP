@@ -5,14 +5,16 @@ from typing import List
 import pytest
 
 from amplifyp.dna import DNA
-from amplifyp.origin import Origin
-from amplifyp.replisome import ReplicationConfig
+from amplifyp.replication_origin import ReplicationOrigin
+from amplifyp.replication_target import ReplicationConfig
 
 
 def test_origin_init() -> None:
     """Test the initialization of a Origin object with invalid parameters."""
     with pytest.raises(ValueError):
-        Origin(target="ATCG", primer="ATC", replication_config=ReplicationConfig())
+        ReplicationOrigin(
+            target="ATCG", primer="ATC", replication_config=ReplicationConfig()
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,7 +28,7 @@ class OriginExample:
         quality (float): The quality score of the origin.
     """
 
-    origin: Origin
+    origin: ReplicationOrigin
     primability: float
     stability: float
     quality: float
@@ -35,7 +37,7 @@ class OriginExample:
 origin_examples: List[OriginExample] = []
 origin_examples.append(
     OriginExample(
-        Origin(
+        ReplicationOrigin(
             target=DNA("CGACTGGGCAAAGGAAATCCTT").complement().reverse().sequence,
             primer="GCTGACCCNTTTCYYTTAGGCA",
             replication_config=ReplicationConfig(),
@@ -48,7 +50,7 @@ origin_examples.append(
 
 origin_examples.append(
     OriginExample(
-        Origin(
+        ReplicationOrigin(
             target=DNA("CGAGGGGGCAAAGGAAATCC").reverse().sequence,
             primer=DNA("CGACTGGGCAAAGGAAATCC").reverse().sequence,
             replication_config=ReplicationConfig(),

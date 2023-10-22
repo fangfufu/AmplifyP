@@ -3,14 +3,14 @@
 
 
 from .dna import DNA, DNAType, DNADirection
-from .origin import Origin
+from .replication_origin import ReplicationOrigin
 from .settings import (
     ReplicationConfig,
     DEFAULT_REPLICATION_CONFIG,
 )
 
 
-class Replisome:
+class ReplicationTarget:
     """
     A class representing a replisome.
 
@@ -74,9 +74,9 @@ class Replisome:
             )
         return slice(k, k + len(primer))
 
-    def origin(self, k: int, primer: DNA, direction: DNADirection) -> Origin:
+    def origin(self, k: int, primer: DNA, direction: DNADirection) -> ReplicationOrigin:
         """Returns an Origin object representing the origin of replication."""
-        return Origin(
+        return ReplicationOrigin(
             # WARNING: The reveral here might cause performance issues
             self.target(direction).sequence[self.__origin_slice(k, primer)][::-1],
             primer.sequence[::-1],

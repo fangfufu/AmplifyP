@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List
 
 from amplifyp.dna import DNA, DNADirection, DNAType
-from amplifyp.replisome import Replisome
+from amplifyp.replication_target import ReplicationTarget
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,7 +43,7 @@ replisome_examples.append(
 def test_origin_equality() -> None:
     """Test replication origin generation by replisome."""
     for ex in replisome_examples:
-        replisome = Replisome(ex.target)
+        replisome = ReplicationTarget(ex.target)
         origin = replisome.origin(ex.origin_index, ex.primer, DNADirection.FORWARD)
 
         # Make sure that the primer is correct

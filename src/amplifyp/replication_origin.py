@@ -11,7 +11,7 @@ from .settings import (
 
 
 @dataclass(frozen=True)
-class Origin:
+class ReplicationOrigin:
     """A class representing the origin of replication.
 
     Attributes:
