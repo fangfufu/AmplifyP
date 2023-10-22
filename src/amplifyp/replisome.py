@@ -11,23 +11,32 @@ from .settings import (
 
 
 class Replisome:
-    """A class representing a replisome."""
+    """
+    A class representing a replisome.
+
+    A replisome is a complex of proteins that carries out DNA replication. This
+    class provides a representation of a replisome, including the target DNA
+    sequence to be replicated, the configuration for DNA replication, and methods
+    for accessing and manipulating the target sequence.
+    """
 
     def __init__(
         self,
         target: DNA,
         replication_config: ReplicationConfig = DEFAULT_REPLICATION_CONFIG,
     ):
-        """Initializes a Replisome object.
+        """
+        Initializes a new instance of the Replicator class.
 
         Args:
-            target (DNA): The target DNA sequence to replicate.
-            primer (DNA): The primer DNA sequence to use for replication.
-            replication_config (ReplisomeConfig, optional): The configuration
-                for the replisome. Defaults to DEFAULT_REPLISOME_CONFIG.
+            target (DNA): The DNA sequence to be replicated.
+            replication_config (ReplicationConfig, optional):
+                The configuration for the replication process. Defaults to
+                DEFAULT_REPLICATION_CONFIG.
 
         Raises:
-            TypeError: If the primer sequence is not a primer DNA sequence.
+            TypeError: If the DNA sequence is not of type DNAType.CIRCULAR
+            or DNAType.LINEAR.
         """
         if target.type == DNAType.CIRCULAR:
             self.__target_fwd = target.circular_pad().upper()
