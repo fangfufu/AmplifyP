@@ -101,12 +101,10 @@ class BasePairWeightsTbl:
                 else:
                     self.__weight[row_val, col_val] = weight[i][j]
 
-    @property
     def row(self) -> str:
         """Return the row nucleotides."""
         return self.__row[:-1]
 
-    @property
     def column(self) -> str:
         """Return the column nucleotides."""
         return self.__column[:-1]
@@ -125,7 +123,7 @@ class BasePairWeightsTbl:
 
     def __len__(self) -> int:
         """Return the size of the Run-length Weight table."""
-        return len(self.row) * len(self.column)
+        return len(self.row()) * len(self.column())
 
     def __str__(self) -> str:
         """Return the string representation of the table."""

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import List
 
 from amplifyp.dna import DNA, DNADirection, DNAType
-from amplifyp.replication_target import ReplicationTarget
+from amplifyp.replication import ReplicationTarget
 
 
 @dataclass(frozen=True, slots=True)

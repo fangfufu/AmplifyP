@@ -5,8 +5,8 @@ from typing import List
 import pytest
 
 from amplifyp.dna import DNA
-from amplifyp.replication_origin import ReplicationOrigin
-from amplifyp.replication_target import ReplicationConfig
+from amplifyp.replication import ReplicationOrigin
+from amplifyp.settings import ReplicationConfig
 
 
 def test_replication_origin_init() -> None:
@@ -65,16 +65,16 @@ origin_examples.append(
 def test_origin_primability() -> None:
     """Test if origin primability is working correctly."""
     for ex in origin_examples:
-        assert ex.primability == ex.origin.primability
+        assert ex.primability == ex.origin.primability()
 
 
 def test_origin_stability() -> None:
     """Test if origin stability is working correctly."""
     for ex in origin_examples:
-        assert ex.stability == ex.origin.stability
+        assert ex.stability == ex.origin.stability()
 
 
 def test_origin_quality() -> None:
     """Test if origin quality is working correctly."""
     for ex in origin_examples:
-        assert ex.quality == ex.origin.quality
+        assert ex.quality == ex.origin.quality()

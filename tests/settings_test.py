@@ -34,8 +34,8 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
     npwt = BasePairWeightsTbl(nucleotides, nucleotides, pairwise_weights)
 
     # Test the row and column properties
-    assert npwt.row == "ACGT"
-    assert npwt.column == "ACGT"
+    assert npwt.row() == "ACGT"
+    assert npwt.column() == "ACGT"
 
     # Test the __setitem__ method
     npwt[("G", "G")] = 1.0
