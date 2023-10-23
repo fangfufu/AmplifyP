@@ -2,6 +2,7 @@
 """Amplify P - Replication related."""
 
 from dataclasses import dataclass
+from functools import cached_property
 
 from .dna import DNA, DNAType, DNADirection
 from .settings import (
@@ -111,21 +112,25 @@ class ReplicationTarget:
                 The configuration for the replication process. Defaults to
                 DEFAULT_REPLICATION_CONFIG.
         """
+        self.target_fwd = target
+
+        self.__replication_config: ReplicationConfig = replication_config
+
+    @property
+    def target_fwd(self) -> DNA:
+        """Return the target DNA sequence."""
+        return self.__target_fwd
+
+    @target_fwd.setter
+    def target_fwd(self, target: DNA) -> None:
         self.__target_fwd: DNA = target.upper()
         if target.type == DNAType.CIRCULAR:
             self.__target_fwd = self.__target_fwd.circular_pad()
 
-        self.__target_rev: DNA = self.__target_fwd.complement()
-
-        self.__replication_config: ReplicationConfig = replication_config
-
-    def target(self, direction: DNADirection) -> DNA:
-        """Return the target DNA sequence."""
-        return (
-            self.__target_fwd
-            if direction == DNADirection.FORWARD
-            else self.__target_rev
-        )
+    @cached_property
+    def target_rev(self) -> DNA:
+        """Return the reverse complement of the target DNA sequence."""
+        return self.__target_fwd.complement()
 
     @property
     def replication_config(self) -> ReplicationConfig:
@@ -139,7 +144,7 @@ class ReplicationTarget:
 
     def target_range(self, primer: DNA) -> range:
         """Return the range limit for the target DNA, given a primer sequence."""
-        return range(0, len(self.target(DNADirection.FORWARD)) - len(primer))
+        return range(0, len(self.target_fwd) - len(primer))
 
     def __origin_slice(self, k: int, primer: DNA) -> slice:
         """Returns a slice object for extracting the replication origin."""
@@ -152,9 +157,12 @@ class ReplicationTarget:
 
     def origin(self, k: int, primer: DNA, direction: DNADirection) -> ReplicationOrigin:
         """Returns an Origin object representing the origin of replication."""
+        target: DNA = (
+            self.target_fwd if direction == DNADirection.FORWARD else self.target_rev
+        )
         return ReplicationOrigin(
             # WARNING: The reversal here might cause performance issues
-            self.target(direction).sequence[self.__origin_slice(k, primer)][::-1],
+            target.sequence[self.__origin_slice(k, primer)][::-1],
             primer.sequence[::-1],
             self.replication_config,
         )
