@@ -153,8 +153,28 @@ class ReplicationTarget:
     def origin(self, k: int, primer: DNA, direction: DNADirection) -> ReplicationOrigin:
         """Returns an Origin object representing the origin of replication."""
         return ReplicationOrigin(
-            # WARNING: The reveral here might cause performance issues
+            # WARNING: The reversal here might cause performance issues
             self.target(direction).sequence[self.__origin_slice(k, primer)][::-1],
             primer.sequence[::-1],
             self.replication_config,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class PrimerScore:
+    """
+    A class representing a primer's score.
+
+    Attributes:
+        primer (DNA): The DNA sequence of the primer.
+        index (int): The index of the primer.
+        primability (float): The primability score of the primer.
+        stability (float): The stability score of the primer.
+        quality (float): The quality score of the primer.
+    """
+
+    primer: DNA
+    index: int
+    primability: float
+    stability: float
+    quality: float
