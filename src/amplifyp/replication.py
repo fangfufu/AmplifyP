@@ -3,6 +3,7 @@
 
 from dataclasses import dataclass
 from functools import cached_property
+from typing import List
 
 from .dna import DNA, DNAType, DNADirection
 from .settings import (
@@ -112,17 +113,17 @@ class ReplicationTarget:
                 The configuration for the replication process. Defaults to
                 DEFAULT_REPLICATION_CONFIG.
         """
-        self.target_fwd = target
+        self.target = target
 
         self.__replication_config: ReplicationConfig = replication_config
 
     @property
-    def target_fwd(self) -> DNA:
+    def target(self) -> DNA:
         """Return the target DNA sequence."""
         return self.__target_fwd
 
-    @target_fwd.setter
-    def target_fwd(self, target: DNA) -> None:
+    @target.setter
+    def target(self, target: DNA) -> None:
         self.__target_fwd: DNA = target.upper()
         if target.type == DNAType.CIRCULAR:
             self.__target_fwd = self.__target_fwd.circular_pad()
@@ -144,7 +145,7 @@ class ReplicationTarget:
 
     def target_range(self, primer: DNA) -> range:
         """Return the range limit for the target DNA, given a primer sequence."""
-        return range(0, len(self.target_fwd) - len(primer))
+        return range(0, len(self.target) - len(primer))
 
     def __origin_slice(self, k: int, primer: DNA) -> slice:
         """Returns a slice object for extracting the replication origin."""
@@ -158,7 +159,7 @@ class ReplicationTarget:
     def origin(self, k: int, primer: DNA, direction: DNADirection) -> ReplicationOrigin:
         """Returns an Origin object representing the origin of replication."""
         target: DNA = (
-            self.target_fwd if direction == DNADirection.FORWARD else self.target_rev
+            self.target if direction == DNADirection.FORWARD else self.target_rev
         )
         return ReplicationOrigin(
             # WARNING: The reversal here might cause performance issues
@@ -186,3 +187,57 @@ class PrimerScore:
     primability: float
     stability: float
     quality: float
+
+
+class Replisome:
+    """A class representing a DNA replication complex, or replisome."""
+
+    def __init__(
+        self,
+        target: DNA,
+        primers: List[DNA],
+        replication_config: ReplicationConfig = DEFAULT_REPLICATION_CONFIG,
+    ):
+        """
+        Initializes a Replication object.
+
+        Args:
+            target (DNA): The DNA sequence to be replicated.
+            primers (List[DNA]): A list of DNA sequences to be used as primers
+                for replication.
+            replication_config (ReplicationConfig, optional): The configuration
+                for the replication process. Defaults to
+                DEFAULT_REPLICATION_CONFIG.
+        """
+        self.__replication_target = ReplicationTarget(target, replication_config)
+        self.__primers = primers
+
+    @property
+    def target(self) -> DNA:
+        """Return the target DNA sequence."""
+        return self.__replication_target.target
+
+    @target.setter
+    def target(self, value: DNA) -> None:
+        """Set the target DNA sequence."""
+        self.__replication_target.target = value
+
+    @property
+    def primers(self) -> List[DNA]:
+        """Return the list of primers."""
+        return self.__primers
+
+    @primers.setter
+    def primers(self, value: List[DNA]) -> None:
+        """Set the list of primers."""
+        self.__primers = value
+
+    @property
+    def replication_config(self) -> ReplicationConfig:
+        """Return the configuration of the replisome."""
+        return self.__replication_target.replication_config
+
+    @replication_config.setter
+    def replication_config(self, value: ReplicationConfig) -> None:
+        """Set the configuration of the replisome."""
+        self.__replication_target.replication_config = value
