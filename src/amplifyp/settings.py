@@ -210,6 +210,9 @@ DEFAULT_PRIMABILITY_CUTOFF: Final[float] = 0.8
 # Default threshold for stability.
 DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 
+# Default minimum overlap between the primer and the target.
+DEFAULT_MIN_OVERLAP: Final[int] = 1
+
 
 @dataclass
 class ReplicationConfig:
@@ -228,6 +231,7 @@ class ReplicationConfig:
     run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
+    min_overlap: int = DEFAULT_MIN_OVERLAP
 
 
 DEFAULT_REPLICATION_CONFIG: Final[ReplicationConfig] = ReplicationConfig()
