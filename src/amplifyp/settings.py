@@ -215,7 +215,7 @@ DEFAULT_MIN_OVERLAP: Final[int] = 1
 
 
 @dataclass
-class ReplicationConfig:
+class Settings:
     """Configuration class for replication settings.
 
     Attributes:
@@ -234,4 +234,4 @@ class ReplicationConfig:
     min_overlap: int = DEFAULT_MIN_OVERLAP
 
 
-DEFAULT_REPLICATION_CONFIG: Final[ReplicationConfig] = ReplicationConfig()
+DEFAULT_REPLICATION_CONFIG: Final[Settings] = Settings()
