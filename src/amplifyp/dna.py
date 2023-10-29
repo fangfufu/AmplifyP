@@ -23,32 +23,33 @@ class DNAType(IntEnum):
     CIRCULAR = 2
     PRIMER = 3
 
+    def __repr__(self) -> str:
+        return f"DNAType.{self.name}"
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
 
 class DNADirection(Flag):
-    """An enumeration representing the direction of DNA."""
+    """
+    An enumeration representing the direction of DNA.
 
-    FORWARD = False
-    REVERSE = True
+    Forward DNA (True) means DNA going from 5' to 3'.
+    Reverse DNA (False) means DNA going from 3' to 5'.
+    """
+
+    FORWARD = True
+    REVERSE = False
+
+    def __repr__(self) -> str:
+        return f"DNADirection.{self.name}"
+
+    def __str__(self) -> str:
+        return f"{self.name}"
 
 
 class DNA:
-    """A class representing a DNA sequence.
-
-    Attributes:
-        sequence (str): The DNA sequence.
-        dna_type (DNAType): The type of DNA (e.g. primer or target).
-        name (str): The name of the DNA object.
-        direction (bool | DNADirection): The direction of the DNA sequence.
-
-    Methods:
-        lower() -> DNA: Returns the DNA sequence in lower case.
-        upper() -> DNA: Returns the DNA sequence in upper case.
-        complement() -> DNA: Returns the complement of the DNA sequence.
-        reverse() -> DNA: Returns the reverse of the DNA sequence.
-        is_complement_of(other: DNA) -> bool: Returns True if the other DNA is
-            a complement of this sequence.
-        circular_pad() -> DNA: Pads the circular DNA sequence to the required length.
-    """
+    """A class representing a DNA sequence."""
 
     def __init__(
         self,
@@ -57,18 +58,7 @@ class DNA:
         name: str | None = None,
         direction: bool | DNADirection = DNADirection.FORWARD,
     ) -> None:
-        """Initializes a DNA object.
-
-        Args:
-            sequence (str): The DNA sequence.
-            dna_type (DNAType): The type of DNA (e.g. primer or target).
-            name (str, optional): The name of the DNA object. Defaults to " ".
-            reversed (bool | DNADirection, optional): The direction of the DNA
-                sequence. Defaults to DNADirection.FORWARD.
-
-        Raises:
-            ValueError: If the DNA sequence contains invalid characters.
-        """
+        """Initializes a DNA object."""
         self.__sequence: str = sequence.strip()
         self.__type: DNAType = dna_type
         if name is None:
@@ -77,7 +67,7 @@ class DNA:
             self.__name = name.strip()
         self.__direction: DNADirection | bool = direction
         check_str = (
-            Nucleotides.PRIMER
+            Nucleotides.PRIMER + Nucleotides.GAP
             if dna_type == DNAType.PRIMER
             else Nucleotides.TARGET + Nucleotides.GAP
         )
@@ -133,18 +123,14 @@ class DNA:
         return DNA(self.sequence.upper(), self.type, self.name, self.direction)
 
     def complement(self) -> "DNA":
-        """Return the complement of the DNA sequence.
-
-        Please refer to the following link:
-        https://en.wikipedia.org/wiki/Nucleic_acid_notation
-        """
+        """Return the complement of the DNA sequence."""
         return DNA(
             self.sequence.translate(
                 str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
-            )[::-1],
+            ),
             self.type,
             self.name,
-            self.direction,
+            not self.direction,
         )
 
     def reverse(self) -> "DNA":
@@ -152,44 +138,51 @@ class DNA:
         return DNA(self.sequence[::-1], self.type, self.name, not self.direction)
 
     def __eq__(self, other: object) -> bool:
-        """Return True if the DNA sequences are equal."""
+        """Return True if the DNA sequences are identical."""
         if not isinstance(other, DNA):
             return NotImplemented
-        return self.sequence.upper() == other.sequence.upper()
+        return (
+            self.sequence.upper() == other.sequence.upper()
+            and self.direction == other.direction
+        )
 
     def is_complement_of(self, other: "DNA") -> bool:
         """Return True if the other DNA is a complement of this sequence."""
-        return self.sequence.upper() == other.complement().sequence.upper()
-
-    def __hash__(self) -> int:
-        """Return the hash value of the DNA sequence in uppercase."""
-        return self.sequence.upper().__hash__()
-
-    def __add__(self, other: object) -> "DNA":
-        """Return the concatenation of two DNA sequences."""
-        if not isinstance(other, DNA):
-            return NotImplemented
-        if self.type != other.type:
-            return NotImplemented
-        return DNA(self.sequence + other.sequence, self.type, self.name, self.direction)
+        return (
+            self.sequence.upper() == other.complement().sequence.upper()
+            and self.direction != other.direction
+        )
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence."""
         return len(self.sequence)
 
-    def circular_pad(self) -> "DNA":
-        """Pad the circular DNA sequence to the required length."""
+    def pad(self, i: int) -> "DNA":
+        """Pad the DNA sequence to the required length."""
+        if self.direction == DNADirection.REVERSE:
+            new_base_str = self.reverse().sequence
+        else:
+            new_base_str = self.sequence
+
         if self.type == DNAType.CIRCULAR:
-            return DNA(
-                self.sequence * 3,
-                self.type,
-                self.name,
-                self.direction,
-            )
-        return NotImplemented
+            padding_str = new_base_str[-i::]
+        else:
+            padding_str = Nucleotides.GAP * i
+
+        new_return_str = padding_str + new_base_str
+
+        if self.direction == DNADirection.REVERSE:
+            new_return_str = new_return_str[::-1]
+
+        return DNA(
+            new_return_str,
+            self.type,
+            self.name,
+            self.direction,
+        )
 
     def __getitem__(self, key: slice) -> "DNA":
-        """Return the character at the given index."""
+        """Return the nucleotides at the given index."""
         return DNA(self.sequence[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
@@ -198,4 +191,7 @@ class DNA:
 
     def __repr__(self) -> str:
         """Return the representation of the DNA sequence."""
-        return f"DNA: {self.name}, {self.type}, {self.direction}, {self.sequence}"
+        return (
+            f"DNA: Name: {self.name}, {repr(self.type)}, "
+            + f"{repr(self.direction)}, Seq: {self.sequence}"
+        )

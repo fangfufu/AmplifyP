@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import List
 
-from .dna import DNA, DNAType, DNADirection
+from .dna import DNA, DNADirection
 from .settings import (
     ReplicationConfig,
     LengthWiseWeightTbl,
@@ -19,8 +19,8 @@ class ReplicationOrigin:
     """A class representing the origin of replication.
 
     Attributes:
-        target (str): The target DNA sequence as a string, in 3"-5" orientation.
-        primer (str): The primer sequence as a string, in 3"-5" orientation.
+        target (str): The target DNA sequence as a string, in 3'-5' orientation.
+        primer (str): The primer sequence as a string, in 3'-5' orientation.
         replication_config (ReplisomeConfig): The configuration for the replisome.
             Defaults to DEFAULT_REPLISOME_CONFIG.
 
@@ -125,8 +125,6 @@ class ReplicationTarget:
     @target.setter
     def target(self, target: DNA) -> None:
         self.__target_fwd: DNA = target.upper()
-        if target.type == DNAType.CIRCULAR:
-            self.__target_fwd = self.__target_fwd.circular_pad()
 
     @cached_property
     def target_rev(self) -> DNA:
