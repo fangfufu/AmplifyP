@@ -5,7 +5,7 @@ from typing import List
 import pytest
 
 from amplifyp.dna import DNA
-from amplifyp.replication import ReplicationOrigin
+from amplifyp.origin import ReplicationOrigin
 from amplifyp.settings import ReplicationConfig
 
 
@@ -38,7 +38,7 @@ origin_examples: List[ReplicationOriginExample] = []
 origin_examples.append(
     ReplicationOriginExample(
         ReplicationOrigin(
-            target=DNA("CGACTGGGCAAAGGAAATCCTT").complement().reverse().sequence,
+            target=DNA("CGACTGGGCAAAGGAAATCCTT").complement().sequence,
             primer="GCTGACCCNTTTCYYTTAGGCA",
             replication_config=ReplicationConfig(),
         ),
