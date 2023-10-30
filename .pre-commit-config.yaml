@@ -53,7 +53,7 @@ repos:
     hooks:
     -   id: pydocstyle
         args:
-        - --add-ignore=D105,D200,D202,D401
+        - --add-ignore=D105,D202,D401
 -   repo: https://github.com/PyCQA/pylint
     rev: 'v3.0.1'
     hooks:

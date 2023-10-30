@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
 from enum import Flag, IntEnum, StrEnum
+from typing import Dict, List
 
 
 class Nucleotides(StrEnum):
@@ -70,7 +71,7 @@ class DNA:
             Nucleotides.PRIMER if dna_type == DNAType.PRIMER else Nucleotides.TARGET
         )
         if not set(sequence.upper()) <= set(check_str):
-            raise ValueError("DNA sequence contains invalid characters.")
+            raise ValueError("The DNA sequence contains invalid characters.")
 
     @property
     def sequence(self) -> str:
@@ -92,6 +93,11 @@ class DNA:
         """Set the DNA type."""
         self.__type = value
 
+    @type.deleter
+    def type(self) -> None:
+        """Delete the DNA type."""
+        del self.__type
+
     @property
     def name(self) -> str:
         """Return the name of the DNA sequence."""
@@ -111,6 +117,11 @@ class DNA:
     def direction(self, value: bool | DNADirection) -> None:
         """Set the direction of the DNA sequence."""
         self.__direction = value
+
+    @direction.deleter
+    def direction(self) -> None:
+        """Delete the direction of the DNA sequence."""
+        del self.__direction
 
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
@@ -193,3 +204,42 @@ class DNA:
             f"DNA: Name: {self.name}, {repr(self.type)}, "
             + f"{repr(self.direction)}, Seq: {self.sequence}"
         )
+
+
+class Primer(DNA):
+    """
+    A class representing a Primer sequence.
+
+    Primer is a subclass of DNA, and it has no direction attribute, as it is
+    always written in the 5'-3' direction. It has no type attribute, as it is
+    a primer.
+    """
+
+    def __init__(
+        self,
+        sequence: str,
+        name: str | None = None,
+    ) -> None:
+        """Initializes a Primer object."""
+        super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FORWARD)
+
+        self.__index: Dict[DNADirection, List[int]] = {
+            DNADirection.FORWARD: [],
+            DNADirection.REVERSE: [],
+        }
+
+    def index(self, direction: DNADirection) -> List[int]:
+        """Return the match indices of the Primer."""
+        return self.__index[direction]
+
+    def index_append(self, direction: DNADirection, index: int) -> None:
+        """Append the match index of the Primer."""
+        self.__index[direction].append(index)
+
+    def index_clear(self, direction: DNADirection) -> None:
+        """Clear the match index of the Primer."""
+        self.__index[direction].clear()
+
+    def index_remove(self, direction: DNADirection, index: int) -> None:
+        """Remove the match index of the Primer."""
+        self.__index[direction].remove(index)
