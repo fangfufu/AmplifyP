@@ -12,8 +12,8 @@ class Nucleotides(StrEnum):
     WILDCARD = "N"
     GAP = "-"
 
-    TARGET = SINGLE + WILDCARD
-    PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
+    TARGET = SINGLE + WILDCARD + GAP
+    PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD + GAP
 
 
 class DNAType(IntEnum):
@@ -67,9 +67,7 @@ class DNA:
             self.__name = name.strip()
         self.__direction: DNADirection | bool = direction
         check_str = (
-            Nucleotides.PRIMER + Nucleotides.GAP
-            if dna_type == DNAType.PRIMER
-            else Nucleotides.TARGET + Nucleotides.GAP
+            Nucleotides.PRIMER if dna_type == DNAType.PRIMER else Nucleotides.TARGET
         )
         if not set(sequence.upper()) <= set(check_str):
             raise ValueError("DNA sequence contains invalid characters.")

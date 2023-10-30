@@ -22,7 +22,7 @@ def test_run_length_weight_tbl() -> None:
 def test_nucleotide_pairwise_weight_tbl() -> None:
     """Test function for the NucleotidePairwiseWeightTbl class."""
     # Define the nucleotides and their pairwise weights
-    nucleotides = "ACGT"
+    nucleotides = "ACGT-"
     pairwise_weights = [
         [1.0, 0.5, 0.2, 0.1],
         [0.5, 1.0, 0.1, 0.2],

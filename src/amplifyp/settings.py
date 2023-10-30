@@ -78,19 +78,21 @@ class BasePairWeightsTbl:
             ValueError: If the length of the weight table does not match the
                 length of the row or column labels.
         """
-        self.__row = row + Nucleotides.GAP
-        self.__column = column + Nucleotides.GAP
+        self.__row = row
+        self.__column = column
         self.__weight: Dict[Tuple[str, str], float] = {}
         self.__row_max: Dict[str, float] = {}
 
-        if len(weight) != len(row):
+        # We never put the gap symbol in the table, hence the -1.
+        if len(weight) != len(row) - 1:
             raise ValueError(
                 "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
             )
 
         for i, row_val in enumerate(self.__row):
             if row_val != Nucleotides.GAP:
-                if len(weight[i]) != len(column):
+                # We never put the gap symbol in the table, hence the -1.
+                if len(weight[i]) != len(column) - 1:
                     raise ValueError(
                         "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
                     )
