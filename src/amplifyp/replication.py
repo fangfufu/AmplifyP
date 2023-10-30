@@ -21,6 +21,7 @@ class ReplicationConfig:
         min_overlap: int = config.min_overlap
         padding_len: int = len(primer) - min_overlap
 
+        self.primer = primer
         # We reverse the sequences here, because Bill's algorithm requires you
         # to count from the 3' end. This is documented in ReplicationOrigin's
         # class docstring.
