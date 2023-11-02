@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
 from enum import Flag, IntEnum, StrEnum
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 class Nucleotides(StrEnum):
@@ -147,13 +147,31 @@ class DNA:
         return DNA(self.sequence[::-1], self.type, self.name, not self.direction)
 
     def __eq__(self, other: object) -> bool:
-        """Return True if the DNA sequences are identical."""
+        """
+        Return True if the DNA sequences are identical.
+
+        DNA are considered identical if they have the same sequence, direction,
+        and type.
+        """
         if not isinstance(other, DNA):
             return NotImplemented
         return (
             self.sequence.upper() == other.sequence.upper()
             and self.direction == other.direction
+            and self.type == other.type
         )
+
+    def __hash__(self) -> int:
+        """
+        Return a hash value for the DNA object.
+
+        The hash value is calculated based on the DNA sequence, direction,
+        and type.
+
+        Returns:
+            int: The hash value for the DNA object.
+        """
+        return hash((self.sequence.upper(), self.direction, self.type))
 
     def is_complement_of(self, other: "DNA") -> bool:
         """Return True if the other DNA is a complement of this sequence."""
@@ -223,23 +241,22 @@ class Primer(DNA):
         """Initializes a Primer object."""
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FORWARD)
 
-        self.__index: Dict[DNADirection, List[int]] = {
-            DNADirection.FORWARD: [],
-            DNADirection.REVERSE: [],
-        }
+        self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
 
-    def index(self, direction: DNADirection) -> List[int]:
+    def index(self, dna: DNA, direction: DNADirection) -> List[int]:
         """Return the match indices of the Primer."""
-        return self.__index[direction]
+        return self.__index[dna, direction]
 
-    def index_append(self, direction: DNADirection, index: int) -> None:
+    def index_append(self, dna: DNA, direction: DNADirection, index: int) -> None:
         """Append the match index of the Primer."""
-        self.__index[direction].append(index)
+        if (dna, direction) not in self.__index:
+            self.__index[dna, direction] = []
+        self.__index[dna, direction].append(index)
 
-    def index_clear(self, direction: DNADirection) -> None:
+    def index_clear(self, dna: DNA, direction: DNADirection) -> None:
         """Clear the match index of the Primer."""
-        self.__index[direction].clear()
+        self.__index[dna, direction].clear()
 
-    def index_remove(self, direction: DNADirection, index: int) -> None:
+    def index_remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
         """Remove the match index of the Primer."""
-        self.__index[direction].remove(index)
+        self.__index[dna, direction].remove(index)

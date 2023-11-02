@@ -116,19 +116,34 @@ def test_dna_repr() -> None:
 
 def test_primer_init() -> None:
     """Test the initialization of a Primer object."""
-    p = Primer("ATCG")
-    assert p.sequence == "ATCG"
-    assert p.type == DNAType.PRIMER
+    primer = Primer("ATCG")
+    assert primer.sequence == "ATCG"
+    assert primer.type == DNAType.PRIMER
+    assert primer.direction == DNADirection.FORWARD
+    assert primer.name == "ATCG"
 
 
 def test_primer_index() -> None:
-    """Test function to check the index related methods of the Primer class."""
-    p = Primer("ATCG")
-    p.index_append(DNADirection.FORWARD, 0)
-    assert p.index(DNADirection.FORWARD) == [0]
-    p.index_clear(DNADirection.FORWARD)
-    assert p.index(DNADirection.FORWARD) == []
-    p.index_append(DNADirection.REVERSE, 1)
-    assert p.index(DNADirection.REVERSE) == [1]
-    p.index_remove(DNADirection.REVERSE, 1)
-    assert p.index(DNADirection.REVERSE) == []
+    """Test the index method of the Primer class."""
+    dna = DNA("ATCG")
+    primer = Primer("AT")
+    primer.index_append(dna, DNADirection.FORWARD, 0)
+    assert primer.index(dna, DNADirection.FORWARD) == [0]
+
+
+def test_primer_index_clear() -> None:
+    """Test the index_clear method."""
+    dna = DNA("ATCG")
+    primer = Primer("AT")
+    primer.index_append(dna, DNADirection.FORWARD, 0)
+    primer.index_clear(dna, DNADirection.FORWARD)
+    assert primer.index(dna, DNADirection.FORWARD) == []
+
+
+def test_primer_index_remove() -> None:
+    """Test the functionality of the Primer.index_remove() method."""
+    dna = DNA("ATCG")
+    primer = Primer("AT")
+    primer.index_append(dna, DNADirection.FORWARD, 0)
+    primer.index_remove(dna, DNADirection.FORWARD, 0)
+    assert primer.index(dna, DNADirection.FORWARD) == []
