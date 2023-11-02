@@ -11,10 +11,12 @@ class ReplicationConfig:
     A class representing a Replication Configuration.
 
     We define a "replication configuration" being a combination of a single
-    primer and two padded DNA target sequence. The reason this class is
-    needed is because primers vary by length, and the target sequence needs to
-    be padded accordingly. There are two target sequences, because we care about
-    the forward sequence, and the reverse complement sequence.
+    primer and two padded target DNA sequence. An instance of this class should
+    be created when we want switch the primer.
+
+    The reason this class is needed is because primers vary by length, and the
+    target sequence needs to be padded accordingly. There are two target
+    sequences -- the forward sequence, and the reverse complement sequence.
     """
 
     def __init__(self, target: DNA, primer: DNA, settings: Settings) -> None:

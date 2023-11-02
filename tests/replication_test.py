@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Simple tests for replisome.py."""
 
-from amplifyp.dna import DNA, DNAType
+from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.replication import ReplicationConfig
 from amplifyp.settings import Settings
 
@@ -21,6 +21,22 @@ def test_replication_config_linear() -> None:
     assert rc.range() == range(0, 7)
     assert rc.slice(2) == slice(2, 6)
 
+    origin = rc.origin(DNADirection.FORWARD, 0)
+    assert origin.primer == "TAGC"
+    assert origin.target == "GCTA"
+
+    origin = rc.origin(DNADirection.FORWARD, 6)
+    assert origin.primer == "TAGC"
+    assert origin.target == "TA--"
+
+    origin = rc.origin(DNADirection.REVERSE, 0)
+    assert origin.primer == "TAGC"
+    assert origin.target == "TAGC"
+
+    origin = rc.origin(DNADirection.REVERSE, 6)
+    assert origin.primer == "TAGC"
+    assert origin.target == "GC--"
+
 
 def test_replication_config_circular() -> None:
     """Test the ReplicationConfig class with a circular target DNA."""
@@ -36,3 +52,19 @@ def test_replication_config_circular() -> None:
     assert rc.reverse_sequence == "TAGCTAGCTAG"
     assert rc.range() == range(0, 8)
     assert rc.slice(2) == slice(2, 6)
+
+    origin = rc.origin(DNADirection.FORWARD, 0)
+    assert origin.primer == "TAGC"
+    assert origin.target == "GCTA"
+
+    origin = rc.origin(DNADirection.FORWARD, 6)
+    assert origin.primer == "TAGC"
+    assert origin.target == "TAGC"
+
+    origin = rc.origin(DNADirection.REVERSE, 0)
+    assert origin.primer == "TAGC"
+    assert origin.target == "TAGC"
+
+    origin = rc.origin(DNADirection.REVERSE, 6)
+    assert origin.primer == "TAGC"
+    assert origin.target == "GCTA"
