@@ -64,12 +64,12 @@ class LengthWiseWeightTbl:
 class BasePairWeightsTbl:
     """Nucleotide Pairwise Weight Table."""
 
-    def __init__(self, row: str, column: str, weight: List[List[float]]) -> None:
+    def __init__(self, row: str, col: str, weight: List[List[float]]) -> None:
         """Construct a Nucleotide Pairwise Weight Table.
 
         Args:
             row (str): A string representing the row labels of the weight table.
-            column (str): A string representing the column labels of the weight
+            col (str): A string representing the column labels of the weight
                 table.
             weight (List[List[float]]): A 2D list of floats representing the
                 weights of each nucleotide pair.
@@ -79,12 +79,14 @@ class BasePairWeightsTbl:
                 length of the row or column labels.
         """
         self.__row = row
-        self.__column = column
+        self.__col = col
         self.__weight: Dict[Tuple[str, str], float] = {}
         self.__row_max: Dict[str, float] = {}
+        exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
+        exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
 
         # We never put the gap symbol in the table, hence the -1.
-        if len(weight) != len(row) - 1:
+        if len(weight) != exp_row_len:
             raise ValueError(
                 "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
             )
@@ -92,12 +94,12 @@ class BasePairWeightsTbl:
         for i, row_val in enumerate(self.__row):
             if row_val != Nucleotides.GAP:
                 # We never put the gap symbol in the table, hence the -1.
-                if len(weight[i]) != len(column) - 1:
+                if len(weight[i]) != exp_col_len:
                     raise ValueError(
                         "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
                     )
                 self.__row_max[row_val] = max(weight[i])
-            for j, col_val in enumerate(self.__column):
+            for j, col_val in enumerate(self.__col):
                 if Nucleotides.GAP in [row_val, col_val]:
                     self.__weight[row_val, col_val] = 0
                 else:
@@ -109,7 +111,7 @@ class BasePairWeightsTbl:
 
     def column(self) -> str:
         """Return the column nucleotides."""
-        return self.__column[:-1]
+        return self.__col[:-1]
 
     def row_max(self, row: str) -> float:
         """Return the maximum weight of a row."""
@@ -165,7 +167,7 @@ DEFAULT_RUN_WEIGHTS: Final[LengthWiseWeightTbl] = LengthWiseWeightTbl(
 
 DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.PRIMER,
-    column=Nucleotides.TARGET,
+    col=Nucleotides.LINEAR,
     weight=[
         [100, 0, 0, 0, 30],
         [0, 100, 0, 0, 30],
@@ -186,7 +188,7 @@ DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
 )
 DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.PRIMER,
-    column=Nucleotides.PRIMER,
+    col=Nucleotides.PRIMER,
     weight=[
         [-20, -20, -20, 30, 5, -20, -20, 5, 5, -20, -3, -3, -20, -3, -8],
         [-20, -20, 20, -20, -20, -20, 0, -20, 0, 0, -20, -7, -7, -7, -10],

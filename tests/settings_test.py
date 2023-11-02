@@ -54,7 +54,7 @@ def test_nucleotide_pairwise_weight_tbl() -> None:
     # Create an invalid NucleotidePairwiseWeightTbl instance
     with pytest.raises(ValueError):
         npwt = BasePairWeightsTbl(
-            Nucleotides.PRIMER, Nucleotides.TARGET, pairwise_weights
+            Nucleotides.PRIMER, Nucleotides.LINEAR, pairwise_weights
         )
 
     # Test the support for gap symbol
