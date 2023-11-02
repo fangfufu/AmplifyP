@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
 
-from .dna import DNA, DNADirection
+from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
 
@@ -19,7 +19,7 @@ class ReplicationConfig:
     sequences -- the forward sequence, and the reverse complement sequence.
     """
 
-    def __init__(self, target: DNA, primer: DNA, settings: Settings) -> None:
+    def __init__(self, target: DNA, primer: Primer, settings: Settings) -> None:
         """Initialize the ReplicationConfig object."""
         min_overlap: int = settings.min_overlap
         padding_len: int = len(primer) - min_overlap
