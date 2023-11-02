@@ -14,32 +14,11 @@ def test_dna_init() -> None:
     assert dna.direction == DNADirection.FORWARD
 
 
-def test_dna_sequence_setter() -> None:
-    """Test the sequence setter method of the DNA class."""
-    dna = DNA("ATCG")
-    dna.sequence = "CGTA"
-    assert dna.sequence == "CGTA"
-
-
-def test_dna_type_setter() -> None:
-    """Test that the type of a DNA sequence can be set."""
-    dna = DNA("ATCG")
-    dna.type = DNAType.CIRCULAR
-    assert dna.type == DNAType.CIRCULAR
-
-
 def test_dna_name_setter() -> None:
     """Test that the name of a DNA object can be set correctly."""
     dna = DNA("ATCG")
     dna.name = "test"
     assert dna.name == "test"
-
-
-def test_dna_direction_setter() -> None:
-    """Test that the direction of a DNA sequence can be set to REVERSE."""
-    dna = DNA("ATCG")
-    dna.direction = DNADirection.REVERSE
-    assert dna.direction == DNADirection.REVERSE
 
 
 def test_dna_lower() -> None:

@@ -78,25 +78,10 @@ class DNA:
         """Return the DNA sequence as a string."""
         return self.__sequence
 
-    @sequence.setter
-    def sequence(self, value: str) -> None:
-        """Set the DNA sequence."""
-        self.__sequence = value.strip()
-
     @property
     def type(self) -> DNAType:
         """Return the DNA type."""
         return self.__type
-
-    @type.setter
-    def type(self, value: DNAType) -> None:
-        """Set the DNA type."""
-        self.__type = value
-
-    @type.deleter
-    def type(self) -> None:
-        """Delete the DNA type."""
-        del self.__type
 
     @property
     def name(self) -> str:
@@ -112,16 +97,6 @@ class DNA:
     def direction(self) -> bool | DNADirection:
         """Return the direction of the DNA sequence."""
         return self.__direction
-
-    @direction.setter
-    def direction(self, value: bool | DNADirection) -> None:
-        """Set the direction of the DNA sequence."""
-        self.__direction = value
-
-    @direction.deleter
-    def direction(self) -> None:
-        """Delete the direction of the DNA sequence."""
-        del self.__direction
 
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
