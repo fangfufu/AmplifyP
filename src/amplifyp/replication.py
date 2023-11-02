@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
 
-from .dna import DNA
+from .dna import DNA, DNADirection
+from .origin import ReplicationOrigin
 from .settings import Settings
 
 
@@ -16,19 +17,22 @@ class ReplicationConfig:
     the forward sequence, and the reverse complement sequence.
     """
 
-    def __init__(self, target: DNA, primer: DNA, config: Settings) -> None:
+    def __init__(self, target: DNA, primer: DNA, settings: Settings) -> None:
         """Initialize the ReplicationConfig object."""
-        min_overlap: int = config.min_overlap
+        min_overlap: int = settings.min_overlap
         padding_len: int = len(primer) - min_overlap
 
         self.primer = primer
         # We reverse the sequences here, because Bill's algorithm requires you
         # to count from the 3' end. This is documented in ReplicationOrigin's
         # class docstring.
-        self.primer_sequence: str = target.reverse().sequence
+        self.primer_sequence: str = primer.reverse().sequence
         self.forward_sequence: str = target.pad(padding_len).reverse().sequence
-        # We want the reverse of the "reverse complement", so we don't reverse.
-        self.reverse_sequence: str = target.pad(padding_len).complement().sequence
+        self.reverse_sequence: str = (
+            target.complement().pad(padding_len).reverse().sequence
+        )
+
+        self.settings = settings
 
     def range(self) -> range:
         """Return the range of the target in ReplicationConfig."""
@@ -37,3 +41,16 @@ class ReplicationConfig:
     def slice(self, i: int) -> slice:
         """Return the slice of the target in ReplicationConfig."""
         return slice(i, i + len(self.primer_sequence))
+
+    def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
+        """Return the origin of replication."""
+        sequence = (
+            self.forward_sequence
+            if direction == DNADirection.FORWARD
+            else self.reverse_sequence
+        )
+        return ReplicationOrigin(
+            sequence[self.slice(i)],
+            self.primer_sequence,
+            self.settings,
+        )

@@ -186,23 +186,21 @@ class DNA:
 
     def pad(self, i: int) -> "DNA":
         """Pad the DNA sequence to the required length."""
-        if self.direction == DNADirection.REVERSE:
-            new_base_str = self.reverse().sequence
-        else:
-            new_base_str = self.sequence
-
-        if self.type == DNAType.CIRCULAR:
-            padding_str = new_base_str[-i::]
-        else:
-            padding_str = Nucleotides.GAP * i
-
-        new_return_str = padding_str + new_base_str
+        base_str = (
+            self.sequence
+            if self.direction == DNADirection.FORWARD
+            else self.reverse().sequence
+        )
+        padding_str = (
+            base_str[-i::] if self.type == DNAType.CIRCULAR else Nucleotides.GAP * i
+        )
+        new_str = padding_str + base_str
 
         if self.direction == DNADirection.REVERSE:
-            new_return_str = new_return_str[::-1]
+            new_str = new_str[::-1]
 
         return DNA(
-            new_return_str,
+            new_str,
             self.type,
             self.name,
             self.direction,

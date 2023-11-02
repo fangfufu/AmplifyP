@@ -26,7 +26,7 @@ class ReplicationOrigin:
 
     target: str
     primer: str
-    replication_config: Settings
+    settings: Settings
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""
@@ -39,9 +39,9 @@ class ReplicationOrigin:
         Returns:
             float: The primability of the origin.
         """
-        m: LengthWiseWeightTbl = self.replication_config.match_weight
+        m: LengthWiseWeightTbl = self.settings.match_weight
         S: BasePairWeightsTbl = (  # pylint: disable=invalid-name
-            self.replication_config.base_pair_scores
+            self.settings.base_pair_scores
         )
         numerator: float = 0
         denominator: float = 0
@@ -57,8 +57,8 @@ class ReplicationOrigin:
         Returns:
             float: The stability of the origin.
         """
-        r = self.replication_config.run_weight
-        S = self.replication_config.base_pair_scores  # pylint: disable=invalid-name
+        r = self.settings.run_weight
+        S = self.settings.base_pair_scores  # pylint: disable=invalid-name
         numerator: float = 0
         denominator: float = 0
         Rn: float = 0  # pylint: disable=invalid-name
@@ -78,8 +78,5 @@ class ReplicationOrigin:
         Returns:
             float: The quality of the origin.
         """
-        cutoffs = (
-            self.replication_config.primability_cutoff
-            + self.replication_config.stability_cutoff
-        )
+        cutoffs = self.settings.primability_cutoff + self.settings.stability_cutoff
         return (self.primability() + self.stability() - cutoffs) / (2 - cutoffs)

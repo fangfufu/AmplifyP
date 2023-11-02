@@ -12,7 +12,7 @@ from amplifyp.settings import Settings
 def test_replication_origin_init() -> None:
     """Test the initialization of a Origin object with invalid parameters."""
     with pytest.raises(ValueError):
-        ReplicationOrigin(target="ATCG", primer="ATC", replication_config=Settings())
+        ReplicationOrigin(target="ATCG", primer="ATC", settings=Settings())
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,7 +38,7 @@ origin_examples.append(
         ReplicationOrigin(
             target=DNA("CGACTGGGCAAAGGAAATCCTT").complement().sequence,
             primer="GCTGACCCNTTTCYYTTAGGCA",
-            replication_config=Settings(),
+            settings=Settings(),
         ),
         0.9923605805958747,
         0.9118497898586322,
@@ -51,7 +51,7 @@ origin_examples.append(
         ReplicationOrigin(
             target=DNA("CGAGGGGGCAAAGGAAATCC").reverse().sequence,
             primer=DNA("CGACTGGGCAAAGGAAATCC").reverse().sequence,
-            replication_config=Settings(),
+            settings=Settings(),
         ),
         0.9850746268656716,
         0.8914650537634409,
