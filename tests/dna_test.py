@@ -124,3 +124,15 @@ def test_primer_index_remove() -> None:
     primer.index.append(dna, DNADirection.FWD, 0)
     primer.index.remove(dna, DNADirection.FWD, 0)
     assert not primer.index[dna, DNADirection.FWD]
+
+
+def test_primer_index_clear_all() -> None:
+    """Test the functionality of the Primer.index.clear_all() method."""
+    dna1 = DNA("ATCG")
+    dna2 = DNA("ATCG")
+    primer = Primer("AT")
+    primer.index.append(dna1, DNADirection.FWD, 0)
+    primer.index.append(dna2, DNADirection.FWD, 0)
+    primer.index.clear_all()
+    assert not primer.index[dna1, DNADirection.FWD]
+    assert not primer.index[dna2, DNADirection.FWD]

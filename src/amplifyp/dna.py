@@ -233,6 +233,10 @@ class OriginIndex:
             return
         self.__index[dna, direction].clear()
 
+    def clear_all(self) -> None:
+        """Clear all the match indices."""
+        self.__index.clear()
+
     def remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
         """Remove the match index of the Primer."""
         if (dna, direction) not in self.__index:
