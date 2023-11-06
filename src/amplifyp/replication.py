@@ -79,3 +79,7 @@ class ReplicationConfig:
                         direction,
                         len(self.target_seq[direction]) - i - len(self.primer),
                     )
+
+    def __str__(self) -> str:
+        """Return the string representation of the ReplicationConfig object."""
+        return f"ReplicationConfig: Primer: {self.primer}, Target: {self.target}"

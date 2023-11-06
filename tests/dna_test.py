@@ -80,15 +80,9 @@ def test_dna_getitem() -> None:
 
 
 def test_dna_str() -> None:
-    """Test the string representation of a DNA object."""
+    """Test the string representation of the DNA class."""
     dna = DNA("ATCG")
-    assert str(dna) == "DNA: ATCG"
-
-
-def test_dna_repr() -> None:
-    """Test the __repr__ method of the DNA class."""
-    dna = DNA("ATCG")
-    assert repr(dna) == "DNA: Name: ATCG, DNAType.LINEAR, DNADir.FWD, Seq: ATCG"
+    assert str(dna) == "DNA: ATCG, LINEAR, FWD"
 
 
 def test_primer_init() -> None:

@@ -25,12 +25,6 @@ class DNAType(IntEnum):
     CIRCULAR = 2
     PRIMER = 3
 
-    def __repr__(self) -> str:
-        return f"DNAType.{self.name}"
-
-    def __str__(self) -> str:
-        return f"{self.name}"
-
 
 class DNADirection(Flag):
     """
@@ -42,12 +36,6 @@ class DNADirection(Flag):
 
     FWD = True
     REV = False
-
-    def __repr__(self) -> str:
-        return f"DNADir.{self.name}"
-
-    def __str__(self) -> str:
-        return f"{self.name}"
 
 
 class DNA:
@@ -67,7 +55,7 @@ class DNA:
             self.__name = sequence
         else:
             self.__name = name.strip()
-        self.__direction: DNADirection | bool = direction
+        self.__direction: bool | DNADirection = direction
         if dna_type == DNAType.CIRCULAR:
             check_str = Nucleotides.CIRCULAR
         elif dna_type == DNAType.LINEAR:
@@ -193,14 +181,9 @@ class DNA:
         return DNA(self.sequence[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
-        """Return the string representation of the DNA sequence."""
-        return f"DNA: {self.name}"
-
-    def __repr__(self) -> str:
         """Return the representation of the DNA sequence."""
         return (
-            f"DNA: Name: {self.name}, {repr(self.type)}, "
-            + f"{repr(self.direction)}, Seq: {self.sequence}"
+            f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
 
 

@@ -52,10 +52,6 @@ class LengthWiseWeightTbl:
         """Return the string representation of the Run-length Weight Table."""
         return str(self.__weight)
 
-    def __repr__(self) -> str:
-        """Return the string representation of the Run-length Weight Table."""
-        return str(self.__weight)
-
     def __iter__(self) -> Iterator[float]:
         """Return the iterator of the Run-length Weight Table."""
         return iter(self.__weight)
@@ -130,10 +126,6 @@ class BasePairWeightsTbl:
         return len(self.row()) * len(self.column())
 
     def __str__(self) -> str:
-        """Return the string representation of the table."""
-        return str(self.__weight)
-
-    def __repr__(self) -> str:
         """Return the string representation of the table."""
         return str(self.__weight)
 
