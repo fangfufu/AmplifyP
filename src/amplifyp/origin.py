@@ -10,7 +10,7 @@ from .settings import (
 )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class ReplicationOrigin:
     """A class representing the origin of replication.
 
