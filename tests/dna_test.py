@@ -11,7 +11,7 @@ def test_dna_init() -> None:
     assert dna.sequence == "ATCG"
     assert dna.type == DNAType.LINEAR
     assert dna.name == "ATCG"
-    assert dna.direction == DNADirection.FORWARD
+    assert dna.direction == DNADirection.FWD
 
 
 def test_dna_name_setter() -> None:
@@ -55,7 +55,7 @@ def test_dna_eq() -> None:
 def test_dna_is_complement_of() -> None:
     """Test the is_complement_of method of the DNA class."""
     dna1 = DNA("ATCG")
-    dna2 = DNA("TAGC", direction=DNADirection.REVERSE)
+    dna2 = DNA("TAGC", direction=DNADirection.REV)
     assert dna1.is_complement_of(dna2)
 
 
@@ -88,9 +88,7 @@ def test_dna_str() -> None:
 def test_dna_repr() -> None:
     """Test the __repr__ method of the DNA class."""
     dna = DNA("ATCG")
-    assert (
-        repr(dna) == "DNA: Name: ATCG, DNAType.LINEAR, DNADirection.FORWARD, Seq: ATCG"
-    )
+    assert repr(dna) == "DNA: Name: ATCG, DNAType.LINEAR, DNADir.FWD, Seq: ATCG"
 
 
 def test_primer_init() -> None:
@@ -98,7 +96,7 @@ def test_primer_init() -> None:
     primer = Primer("ATCG")
     assert primer.sequence == "ATCG"
     assert primer.type == DNAType.PRIMER
-    assert primer.direction == DNADirection.FORWARD
+    assert primer.direction == DNADirection.FWD
     assert primer.name == "ATCG"
 
 
@@ -106,23 +104,23 @@ def test_primer_index() -> None:
     """Test the index method of the Primer class."""
     dna = DNA("ATCG")
     primer = Primer("AT")
-    primer.index_append(dna, DNADirection.FORWARD, 0)
-    assert primer.index(dna, DNADirection.FORWARD) == [0]
+    primer.index.append(dna, DNADirection.FWD, 0)
+    assert primer.index[dna, DNADirection.FWD] == [0]
 
 
 def test_primer_index_clear() -> None:
     """Test the index_clear method."""
     dna = DNA("ATCG")
     primer = Primer("AT")
-    primer.index_append(dna, DNADirection.FORWARD, 0)
-    primer.index_clear(dna, DNADirection.FORWARD)
-    assert primer.index(dna, DNADirection.FORWARD) == []
+    primer.index.append(dna, DNADirection.FWD, 0)
+    primer.index.clear(dna, DNADirection.FWD)
+    assert not primer.index[dna, DNADirection.FWD]
 
 
 def test_primer_index_remove() -> None:
     """Test the functionality of the Primer.index_remove() method."""
     dna = DNA("ATCG")
     primer = Primer("AT")
-    primer.index_append(dna, DNADirection.FORWARD, 0)
-    primer.index_remove(dna, DNADirection.FORWARD, 0)
-    assert primer.index(dna, DNADirection.FORWARD) == []
+    primer.index.append(dna, DNADirection.FWD, 0)
+    primer.index.remove(dna, DNADirection.FWD, 0)
+    assert not primer.index[dna, DNADirection.FWD]

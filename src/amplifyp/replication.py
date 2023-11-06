@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
 
+from typing import Dict
+
 from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
@@ -25,34 +27,59 @@ class ReplicationConfig:
         padding_len: int = len(primer) - min_overlap
 
         self.primer = primer
+        self.target = target
+
         # We reverse the sequences here, because Bill's algorithm requires you
         # to count from the 3' end. This is documented in ReplicationOrigin's
         # class docstring.
-        self.primer_sequence: str = primer.reverse().sequence
-        self.forward_sequence: str = target.pad(padding_len).reverse().sequence
-        self.reverse_sequence: str = (
+        self.target_seq: Dict[DNADirection, str] = {}
+        self.target_seq[DNADirection.FWD] = target.pad(padding_len).reverse().sequence
+        self.target_seq[DNADirection.REV] = (
             target.complement().pad(padding_len).reverse().sequence
         )
+        self.primer_seq: str = primer.reverse().sequence
 
         self.settings = settings
 
     def range(self) -> range:
         """Return the range of the target in ReplicationConfig."""
-        return range(0, len(self.forward_sequence) - len(self.primer_sequence) + 1)
+        return range(
+            0, len(self.target_seq[DNADirection.FWD]) - len(self.primer_seq) + 1
+        )
 
     def slice(self, i: int) -> slice:
         """Return the slice of the target in ReplicationConfig."""
-        return slice(i, i + len(self.primer_sequence))
+        return slice(i, i + len(self.primer_seq))
 
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
         """Return the origin of replication."""
-        sequence = (
-            self.forward_sequence
-            if direction == DNADirection.FORWARD
-            else self.reverse_sequence
-        )
         return ReplicationOrigin(
-            sequence[self.slice(i)],
-            self.primer_sequence,
+            self.target_seq[direction][self.slice(i)],
+            self.primer_seq,
             self.settings,
         )
+
+    def __search(self, direction: DNADirection) -> None:
+        """
+        Search for the valid replication origins.
+
+        A valid replication origin is a replication origin where the primability
+        is above the primability cutoff, and the stability is above the
+        stability cut off
+        """
+        for i in self.range():
+            origin = self.origin(direction, i)
+            if (
+                origin.primability() > self.settings.primability_cutoff
+                and origin.stability() > self.settings.stability_cutoff
+            ):
+                self.primer.index.append(
+                    self.target,
+                    direction,
+                    len(self.target_seq[direction]) - i - len(self.primer),
+                )
+
+    def search(self) -> None:
+        """Search for the valid replication origins in both directions."""
+        for i in DNADirection:
+            self.__search(i)

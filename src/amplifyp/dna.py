@@ -40,11 +40,11 @@ class DNADirection(Flag):
     Reverse DNA (False) means DNA going from 3' to 5'.
     """
 
-    FORWARD = True
-    REVERSE = False
+    FWD = True
+    REV = False
 
     def __repr__(self) -> str:
-        return f"DNADirection.{self.name}"
+        return f"DNADir.{self.name}"
 
     def __str__(self) -> str:
         return f"{self.name}"
@@ -58,7 +58,7 @@ class DNA:
         sequence: str,
         dna_type: DNAType = DNAType.LINEAR,
         name: str | None = None,
-        direction: bool | DNADirection = DNADirection.FORWARD,
+        direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
         """Initializes a DNA object."""
         self.__sequence: str = sequence.strip()
@@ -170,7 +170,7 @@ class DNA:
         """Pad the DNA sequence to the required length."""
         base_str = (
             self.sequence
-            if self.direction == DNADirection.FORWARD
+            if self.direction == DNADirection.FWD
             else self.reverse().sequence
         )
         padding_str = (
@@ -178,7 +178,7 @@ class DNA:
         )
         new_str = padding_str + base_str
 
-        if self.direction == DNADirection.REVERSE:
+        if self.direction == DNADirection.REV:
             new_str = new_str[::-1]
 
         return DNA(
@@ -204,13 +204,49 @@ class DNA:
         )
 
 
+class OriginIndex:
+    """The origin index class.
+
+    This class stores the indices of valid replication origins for each DNA /
+    DNA direction pair.
+    """
+
+    def __init__(self) -> None:
+        """Initializes a PrimerIndex object."""
+        self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
+
+    def __getitem__(self, key: tuple[DNA, DNADirection]) -> List[int]:
+        """Return the match indices of the Primer."""
+        if key not in self.__index:
+            return []
+        return self.__index[key]
+
+    def append(self, dna: DNA, direction: DNADirection, index: int) -> None:
+        """Append the match index of the Primer."""
+        if (dna, direction) not in self.__index:
+            self.__index[dna, direction] = []
+        self.__index[dna, direction].append(index)
+
+    def clear(self, dna: DNA, direction: DNADirection) -> None:
+        """Clear the match index of the Primer."""
+        if (dna, direction) not in self.__index:
+            return
+        self.__index[dna, direction].clear()
+
+    def remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
+        """Remove the match index of the Primer."""
+        if (dna, direction) not in self.__index:
+            return
+        self.__index[dna, direction].remove(index)
+
+
 class Primer(DNA):
     """
     A class representing a Primer sequence.
 
-    Primer is a subclass of DNA, and it has no direction attribute, as it is
-    always written in the 5'-3' direction. It has no type attribute, as it is
-    a primer.
+    Primer is a subclass of DNA, but it has an additional attribute called
+    index, which is a dictionary that stores the valid replication origin for
+    each DNA sequence / DNA direction pair.
     """
 
     def __init__(
@@ -219,24 +255,10 @@ class Primer(DNA):
         name: str | None = None,
     ) -> None:
         """Initializes a Primer object."""
-        super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FORWARD)
+        super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
+        self.__index: OriginIndex = OriginIndex()
 
-        self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
-
-    def index(self, dna: DNA, direction: DNADirection) -> List[int]:
+    @property
+    def index(self) -> OriginIndex:
         """Return the match indices of the Primer."""
-        return self.__index[dna, direction]
-
-    def index_append(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Append the match index of the Primer."""
-        if (dna, direction) not in self.__index:
-            self.__index[dna, direction] = []
-        self.__index[dna, direction].append(index)
-
-    def index_clear(self, dna: DNA, direction: DNADirection) -> None:
-        """Clear the match index of the Primer."""
-        self.__index[dna, direction].clear()
-
-    def index_remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Remove the match index of the Primer."""
-        self.__index[dna, direction].remove(index)
+        return self.__index
