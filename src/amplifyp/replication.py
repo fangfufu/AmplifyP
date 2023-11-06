@@ -59,27 +59,23 @@ class ReplicationConfig:
             self.settings,
         )
 
-    def __search(self, direction: DNADirection) -> None:
-        """
-        Search for the valid replication origins.
-
-        A valid replication origin is a replication origin where the primability
-        is above the primability cutoff, and the stability is above the
-        stability cut off
-        """
-        for i in self.range():
-            origin = self.origin(direction, i)
-            if (
-                origin.primability() > self.settings.primability_cutoff
-                and origin.stability() > self.settings.stability_cutoff
-            ):
-                self.primer.index.append(
-                    self.target,
-                    direction,
-                    len(self.target_seq[direction]) - i - len(self.primer),
-                )
+    def clear(self) -> None:
+        """Clear the primer index."""
+        for direction in DNADirection:
+            self.primer.index.clear(self.target, direction)
 
     def search(self) -> None:
         """Search for the valid replication origins in both directions."""
-        for i in DNADirection:
-            self.__search(i)
+        self.clear()
+        for direction in DNADirection:
+            for i in self.range():
+                origin = self.origin(direction, i)
+                if (
+                    origin.primability() > self.settings.primability_cutoff
+                    and origin.stability() > self.settings.stability_cutoff
+                ):
+                    self.primer.index.append(
+                        self.target,
+                        direction,
+                        len(self.target_seq[direction]) - i - len(self.primer),
+                    )
