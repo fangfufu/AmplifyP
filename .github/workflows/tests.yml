@@ -1,0 +1,44 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+        os: [windows-latest, ubuntu-latest, macos-latest]
+      fail-fast: true
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Micromamba
+      uses: mamba-org/provision-with-micromamba@v16
+      with:
+        environment-file: false
+
+    - name: Python ${{ matrix.python-version }}
+      shell: bash -l {0}
+      run: >
+        micromamba create --name TEST python=${{ matrix.python-version }} pytest --file requirements-dev.txt --channel conda-forge
+        && micromamba activate TEST
+
+    - name: Install AmplifyP
+      shell: bash -l {0}
+      run: >
+        micromamba activate TEST
+        && python -m pip install -e . --no-deps --force-reinstall
+
+
+    - name: Tests
+      shell: bash -l {0}
+      run: >
+        micromamba activate TEST
+        && python -m pytest -rxs tests/
