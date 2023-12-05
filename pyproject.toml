@@ -4,6 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "AmplifyP"
+version = "v0.0.1"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
