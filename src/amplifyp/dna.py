@@ -190,16 +190,16 @@ class DNA:
 class OriginIndex:
     """The origin index class.
 
-    This class stores the index numbers of valid replication origins for each
-    DNA / DNA direction pair.
+    This class stores the index numbers of the valid replication origins for
+    each DNA / DNA direction pair.
     """
 
     def __init__(self) -> None:
-        """Initializes a PrimerIndex object."""
+        """Initializes a OriginIndex object."""
         self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
 
     def __getitem__(self, key: tuple[DNA, DNADirection]) -> List[int]:
-        """Return the index number of the valid primers."""
+        """Return the index number of a valid replication origin."""
         if key not in self.__index:
             return []
         return self.__index[key]

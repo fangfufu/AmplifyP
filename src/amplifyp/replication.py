@@ -41,6 +41,23 @@ class ReplicationConfig:
 
         self.settings = settings
 
+    def __eq__(self, other: object) -> bool:
+        """
+        Check if two ReplicationConfig objects are equal.
+
+        Args:
+            other (object): The object to compare with.
+
+        Returns:
+            bool: True if the objects are equal, False otherwise.
+        """
+        if not isinstance(other, ReplicationConfig):
+            return NotImplemented
+        return self.primer == other.primer and self.target == other.target
+
+    def __hash__(self) -> int:
+        return hash((self.primer, self.target))
+
     def range(self) -> range:
         """Return the range of the target in ReplicationConfig."""
         return range(
