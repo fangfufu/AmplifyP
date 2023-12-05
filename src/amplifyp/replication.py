@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
 
-from typing import Dict
+from typing import Dict, List
 
 from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
@@ -77,9 +77,33 @@ class ReplicationConfig:
                     self.primer.index.append(
                         self.target,
                         direction,
-                        len(self.target_seq[direction]) - i - len(self.primer),
+                        i,
                     )
 
     def __str__(self) -> str:
         """Return the string representation of the ReplicationConfig object."""
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.target}"
+
+
+class PCRMixture:
+    """
+    A class representing a PCR Mixture.
+
+    A PCRMixture represents the chemical environment of a PCR reaction. It
+    contains one target DNA sequence, and a list of primers. PCRMixture
+    generates ReplicationConfig.
+    """
+
+    def __init__(self, target: DNA, primers: List[Primer], settings: Settings) -> None:
+        """Initialize the PCRMixture object."""
+        self.target = target
+        self.primers = primers
+        self.settings = settings
+        self.configs: List[ReplicationConfig] = []
+        for primer in self.primers:
+            self.configs.append(ReplicationConfig(self.target, primer, self.settings))
+
+    def search(self) -> None:
+        """Search for the valid replication origins in all configurations."""
+        for config in self.configs:
+            config.search()

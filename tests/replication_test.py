@@ -15,9 +15,12 @@ def test_replication_config_linear() -> None:
 
     rc = ReplicationConfig(target, primer, config)
     rc.search()
-    assert primer.index[target, DNADirection.FWD] == [4]
-    idx_start = primer.index[target, DNADirection.FWD][0]
+    assert primer.index[target, DNADirection.FWD] == [2]
+    idx_start = primer.index[target, DNADirection.FWD][0] + min_overlap
     idx_end = idx_start + len(primer)
+    print(target.pad(len(primer) - min_overlap).sequence)
+    print(idx_start)
+    print(idx_end)
     assert (
         target.pad(len(primer) - min_overlap).sequence[idx_start:idx_end]
         == primer.sequence
@@ -58,9 +61,9 @@ def test_replication_config_circular() -> None:
     rc = ReplicationConfig(target, primer, config)
     rc.search()
     search_results = primer.index[target, DNADirection.FWD]
-    assert search_results == [5, 1]
+    assert search_results == [2, 6]
     for i in search_results:
-        idx_start = i
+        idx_start = i - min_overlap
         idx_end = idx_start + len(primer)
         assert (
             target.pad(len(primer) - min_overlap).sequence[idx_start:idx_end]

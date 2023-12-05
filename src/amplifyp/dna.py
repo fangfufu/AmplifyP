@@ -190,8 +190,8 @@ class DNA:
 class OriginIndex:
     """The origin index class.
 
-    This class stores the indices of valid replication origins for each DNA /
-    DNA direction pair.
+    This class stores the index numbers of valid replication origins for each
+    DNA / DNA direction pair.
     """
 
     def __init__(self) -> None:
@@ -199,19 +199,19 @@ class OriginIndex:
         self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
 
     def __getitem__(self, key: tuple[DNA, DNADirection]) -> List[int]:
-        """Return the match indices of the Primer."""
+        """Return the index number of the valid primers."""
         if key not in self.__index:
             return []
         return self.__index[key]
 
     def append(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Append the match index of the Primer."""
+        """Add a valid index number to the list."""
         if (dna, direction) not in self.__index:
             self.__index[dna, direction] = []
         self.__index[dna, direction].append(index)
 
     def clear(self, dna: DNA, direction: DNADirection) -> None:
-        """Clear the match index of the Primer."""
+        """Clear the dictionary of the valid index numbers."""
         if (dna, direction) not in self.__index:
             return
         self.__index[dna, direction].clear()
@@ -221,7 +221,7 @@ class OriginIndex:
         self.__index.clear()
 
     def remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Remove the match index of the Primer."""
+        """Remove the index of a DNA / direction pair."""
         if (dna, direction) not in self.__index:
             return
         self.__index[dna, direction].remove(index)
@@ -249,3 +249,34 @@ class Primer(DNA):
     def index(self) -> OriginIndex:
         """Return the match indices of the Primer."""
         return self.__index
+
+
+class Amplicon(DNA):
+    """
+    A class representing amplicons.
+
+    Amplicon is the product of PCR reaction. It is a subclass of DNA, with the
+    two additional attributes: the forward primer and the reverse primer.
+    """
+
+    def __init__(
+        self,
+        sequence: str,
+        fwd_primer: Primer,
+        rev_primer: Primer,
+        dna_type: DNAType = DNAType.LINEAR,
+        name: str | None = None,
+    ) -> None:
+        super().__init__(sequence, dna_type, name, DNADirection.FWD)
+        self.fwd_primer = fwd_primer
+        self.rev_primer = rev_primer
+
+    @property
+    def fwd_primer(self) -> Primer:
+        """Return the forward primer."""
+        return self.fwd_primer
+
+    @property
+    def rev_primer(self) -> Primer:
+        """Return the reverse primer."""
+        return self.rev_primer
