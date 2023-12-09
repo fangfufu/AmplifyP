@@ -186,47 +186,6 @@ class DNA:
             f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
 
-
-class OriginIndex:
-    """The origin index class.
-
-    This class stores the index numbers of the valid replication origins for
-    each DNA / DNA direction pair.
-    """
-
-    def __init__(self) -> None:
-        """Initializes a OriginIndex object."""
-        self.__index: Dict[Tuple[DNA, DNADirection], List[int]] = {}
-
-    def __getitem__(self, key: tuple[DNA, DNADirection]) -> List[int]:
-        """Return the index number of a valid replication origin."""
-        if key not in self.__index:
-            return []
-        return self.__index[key]
-
-    def append(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Add a valid index number to the list."""
-        if (dna, direction) not in self.__index:
-            self.__index[dna, direction] = []
-        self.__index[dna, direction].append(index)
-
-    def clear(self, dna: DNA, direction: DNADirection) -> None:
-        """Clear the dictionary of the valid index numbers."""
-        if (dna, direction) not in self.__index:
-            return
-        self.__index[dna, direction].clear()
-
-    def clear_all(self) -> None:
-        """Clear all the match indices."""
-        self.__index.clear()
-
-    def remove(self, dna: DNA, direction: DNADirection, index: int) -> None:
-        """Remove the index of a DNA / direction pair."""
-        if (dna, direction) not in self.__index:
-            return
-        self.__index[dna, direction].remove(index)
-
-
 class Primer(DNA):
     """
     A class representing a Primer sequence.
@@ -243,40 +202,3 @@ class Primer(DNA):
     ) -> None:
         """Initializes a Primer object."""
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
-        self.__index: OriginIndex = OriginIndex()
-
-    @property
-    def index(self) -> OriginIndex:
-        """Return the match indices of the Primer."""
-        return self.__index
-
-
-class Amplicon(DNA):
-    """
-    A class representing amplicons.
-
-    Amplicon is the product of PCR reaction. It is a subclass of DNA, with the
-    two additional attributes: the forward primer and the reverse primer.
-    """
-
-    def __init__(
-        self,
-        sequence: str,
-        fwd_primer: Primer,
-        rev_primer: Primer,
-        dna_type: DNAType = DNAType.LINEAR,
-        name: str | None = None,
-    ) -> None:
-        super().__init__(sequence, dna_type, name, DNADirection.FWD)
-        self.fwd_primer = fwd_primer
-        self.rev_primer = rev_primer
-
-    @property
-    def fwd_primer(self) -> Primer:
-        """Return the forward primer."""
-        return self.fwd_primer
-
-    @property
-    def rev_primer(self) -> Primer:
-        """Return the reverse primer."""
-        return self.rev_primer

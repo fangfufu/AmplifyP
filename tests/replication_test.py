@@ -29,8 +29,8 @@ def test_replication_config_linear() -> None:
 
     assert rc.primer == primer
     assert rc.primer_seq == "TAGC"
-    assert rc.target_seq[DNADirection.FWD] == "GCTAGCTA--"
-    assert rc.target_seq[DNADirection.REV] == "TAGCTAGC--"
+    assert rc.template_seq[DNADirection.FWD] == "GCTAGCTA--"
+    assert rc.template_seq[DNADirection.REV] == "TAGCTAGC--"
     assert rc.range() == range(0, 7)
     assert rc.slice(2) == slice(2, 6)
 
@@ -73,8 +73,8 @@ def test_replication_config_circular() -> None:
 
     assert rc.primer == primer
     assert rc.primer_seq == "TAGC"
-    assert rc.target_seq[DNADirection.FWD] == "GCTAGCTAGCT"
-    assert rc.target_seq[DNADirection.REV] == "TAGCTAGCTAG"
+    assert rc.template_seq[DNADirection.FWD] == "GCTAGCTAGCT"
+    assert rc.template_seq[DNADirection.REV] == "TAGCTAGCTAG"
     assert rc.range() == range(0, 8)
     assert rc.slice(2) == slice(2, 6)
 
