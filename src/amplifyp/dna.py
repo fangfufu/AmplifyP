@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
 from enum import Flag, IntEnum, StrEnum
-from typing import Dict, List, Tuple
 
 
 class Nucleotides(StrEnum):
@@ -185,6 +184,7 @@ class DNA:
         return (
             f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
+
 
 class Primer(DNA):
     """

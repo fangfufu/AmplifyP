@@ -7,6 +7,7 @@ from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
 
+
 class OriginIndex:
     """The origin index class.
 
@@ -46,6 +47,7 @@ class OriginIndex:
             return
         self.__index[dna, direction].remove(index)
 
+
 class ReplicationConfig:
     """
     A class representing a Replication Configuration.
@@ -71,7 +73,9 @@ class ReplicationConfig:
         # to count from the 3' end. This is documented in ReplicationOrigin's
         # class docstring.
         self.template_seq: Dict[DNADirection, str] = {}
-        self.template_seq[DNADirection.FWD] = template.pad(padding_len).reverse().sequence
+        self.template_seq[DNADirection.FWD] = (
+            template.pad(padding_len).reverse().sequence
+        )
         self.template_seq[DNADirection.REV] = (
             template.complement().pad(padding_len).reverse().sequence
         )
@@ -139,4 +143,3 @@ class ReplicationConfig:
     def __str__(self) -> str:
         """Return the string representation of the ReplicationConfig object."""
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
-
