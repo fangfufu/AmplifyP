@@ -1,95 +1,35 @@
 # -*- coding: utf-8 -*-
 """Simple tests for replisome.py."""
 
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.replication import ReplicationConfig
+from amplifyp.dna import DNA, DNAType, Primer
+from amplifyp.replication import Repliconf
 from amplifyp.settings import Settings
 
 
-def test_replication_config_linear() -> None:
-    """Test the ReplicationConfig class with a linear target DNA."""
+def test_repliconf_idx_to_template_idx_linear() -> None:
+    """Test case for the `idx_repliconf_to_template` for linear template."""
+    # Create an instance of the class
     target = DNA("ATCGATCG")
     primer = Primer("CGAT")
     min_overlap = 2
     config = Settings(min_overlap=min_overlap)
 
-    rc = ReplicationConfig(target, primer, config)
-    rc.search()
-    assert primer.index[target, DNADirection.FWD] == [2]
-    idx_start = primer.index[target, DNADirection.FWD][0] + min_overlap
-    idx_end = idx_start + len(primer)
-    print(target.pad(len(primer) - min_overlap).sequence)
-    print(idx_start)
-    print(idx_end)
-    assert (
-        target.pad(len(primer) - min_overlap).sequence[idx_start:idx_end]
-        == primer.sequence
-    )
-    assert not primer.index[target, DNADirection.REV]
+    replication = Repliconf(target, primer, config)
 
-    assert rc.primer == primer
-    assert rc.primer_seq == "TAGC"
-    assert rc.template_seq[DNADirection.FWD] == "GCTAGCTA--"
-    assert rc.template_seq[DNADirection.REV] == "TAGCTAGC--"
-    assert rc.range() == range(0, 7)
-    assert rc.slice(2) == slice(2, 6)
-
-    origin = rc.origin(DNADirection.FWD, 0)
-    assert origin.primer == "TAGC"
-    assert origin.target == "GCTA"
-
-    origin = rc.origin(DNADirection.FWD, 6)
-    assert origin.primer == "TAGC"
-    assert origin.target == "TA--"
-
-    origin = rc.origin(DNADirection.REV, 0)
-    assert origin.primer == "TAGC"
-    assert origin.target == "TAGC"
-
-    origin = rc.origin(DNADirection.REV, 6)
-    assert origin.primer == "TAGC"
-    assert origin.target == "GC--"
+    origin_idx = 3
+    expected_result = 4
+    assert replication.idx_repliconf_to_template(origin_idx) == expected_result
 
 
-def test_replication_config_circular() -> None:
-    """Test the ReplicationConfig class with a circular target DNA."""
+def test_repliconf_idx_to_template_idx_circular() -> None:
+    """Test case for the `idx_repliconf_to_template` for circular template."""
     target = DNA("ATCGATCG", DNAType.CIRCULAR)
     primer = Primer("CGAT")
-    min_overlap = 1
+    min_overlap = 2
     config = Settings(min_overlap=min_overlap)
 
-    rc = ReplicationConfig(target, primer, config)
-    rc.search()
-    search_results = primer.index[target, DNADirection.FWD]
-    assert search_results == [2, 6]
-    for i in search_results:
-        idx_start = i - min_overlap
-        idx_end = idx_start + len(primer)
-        assert (
-            target.pad(len(primer) - min_overlap).sequence[idx_start:idx_end]
-            == primer.sequence
-        )
-    assert not primer.index[target, DNADirection.REV]
+    replication = Repliconf(target, primer, config)
 
-    assert rc.primer == primer
-    assert rc.primer_seq == "TAGC"
-    assert rc.template_seq[DNADirection.FWD] == "GCTAGCTAGCT"
-    assert rc.template_seq[DNADirection.REV] == "TAGCTAGCTAG"
-    assert rc.range() == range(0, 8)
-    assert rc.slice(2) == slice(2, 6)
-
-    origin = rc.origin(DNADirection.FWD, 0)
-    assert origin.primer == "TAGC"
-    assert origin.target == "GCTA"
-
-    origin = rc.origin(DNADirection.FWD, 6)
-    assert origin.primer == "TAGC"
-    assert origin.target == "TAGC"
-
-    origin = rc.origin(DNADirection.REV, 0)
-    assert origin.primer == "TAGC"
-    assert origin.target == "TAGC"
-
-    origin = rc.origin(DNADirection.REV, 6)
-    assert origin.primer == "TAGC"
-    assert origin.target == "GCTA"
+    origin_idx = 7
+    expected_result = 2
+    assert replication.idx_repliconf_to_template(origin_idx) == expected_result

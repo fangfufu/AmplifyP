@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
 from enum import Flag, IntEnum, StrEnum
-from typing import Dict, List, Tuple
+from warnings import warn
 
 
 class Nucleotides(StrEnum):
@@ -156,14 +156,18 @@ class DNA:
 
     def pad(self, i: int) -> "DNA":
         """Pad the DNA sequence to the required length."""
+        # Disabled padding for linear DNA
+        # This is done to simplify the implementation for ReplicationConfig.
+        if self.type == DNAType.LINEAR:
+            warn("Padding is unsupported for linear DNA.")
+            return self
         base_str = (
             self.sequence
             if self.direction == DNADirection.FWD
             else self.reverse().sequence
         )
-        padding_str = (
-            base_str[-i::] if self.type == DNAType.CIRCULAR else Nucleotides.GAP * i
-        )
+        padding_str = base_str[-i::]
+
         new_str = padding_str + base_str
 
         if self.direction == DNADirection.REV:
@@ -186,13 +190,12 @@ class DNA:
             f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
 
+
 class Primer(DNA):
     """
     A class representing a Primer sequence.
 
-    Primer is a subclass of DNA, but it has an additional attribute called
-    index, which is a dictionary that stores the valid replication origin for
-    each DNA sequence / DNA direction pair.
+    Primer is a subclass of DNA
     """
 
     def __init__(
