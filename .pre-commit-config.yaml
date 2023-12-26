@@ -17,11 +17,11 @@ repos:
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
 -   repo: https://github.com/psf/black
-    rev: 23.11.0
+    rev: 23.12.1
     hooks:
     -   id: black
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.7.1'
+    rev: 'v1.8.0'
     hooks:
     -   id: mypy
         args: [--strict, --ignore-missing-imports, --explicit-package-bases]
@@ -44,7 +44,7 @@ repos:
     hooks:
     -   id: sync-pre-commit-deps
 -   repo: https://github.com/PyCQA/bandit
-    rev: '1.7.5'
+    rev: '1.7.6'
     hooks:
     -   id: bandit
         exclude: ^tests/
@@ -55,7 +55,7 @@ repos:
         args:
         - --add-ignore=D105,D202,D401
 -   repo: https://github.com/PyCQA/pylint
-    rev: 'v3.0.1'
+    rev: 'v3.0.3'
     hooks:
     -   id: pylint
         additional_dependencies:
