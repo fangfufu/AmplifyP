@@ -1,11 +1,25 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
+from dataclasses import dataclass
 
 from typing import Dict, List
 
-from .dna import DNA, DNAType, Primer, DNADirection
+from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
+
+
+@dataclass(frozen=True, slots=True)
+class OriginIndex:
+    """
+    Represents the start and end indices of an origin.
+
+    Note that it is expected the indices stored here are the indices with
+    respect to the repliconf sequence, not the template sequence.
+    """
+
+    start: int
+    end: int
 
 
 class Repliconf:
@@ -23,10 +37,7 @@ class Repliconf:
 
     def __init__(self, template: DNA, primer: Primer, settings: Settings) -> None:
         """Initialize the ReplicationConfig object."""
-        min_overlap: int = settings.min_overlap
-        self.padding_len: int = 0
-        if template.type == DNAType.CIRCULAR:
-            self.padding_len = len(primer) - min_overlap
+        self.padding_len = len(primer)
 
         self.primer = primer
         self.template = template
@@ -45,7 +56,7 @@ class Repliconf:
 
         self.settings = settings
 
-        self.clear_valid_origin()
+        self.valid_origin: Dict[DNADirection, List[int]] = {}
 
     def clear_valid_origin(self) -> None:
         """
@@ -54,7 +65,7 @@ class Repliconf:
         The valid origin dictionary stores the valid origins for each DNA direction.
         After calling this method, the dictionary will be empty.
         """
-        self.valid_origin: Dict[DNADirection, List[int]] = {}
+
         self.valid_origin[DNADirection.FWD] = []
         self.valid_origin[DNADirection.REV] = []
 
@@ -68,11 +79,10 @@ class Repliconf:
         Returns:
             int: The corresponding index in the template sequence.
         """
-        if self.template.type == DNAType.CIRCULAR:
-            origin_idx -= self.padding_len
-            if origin_idx < 0:
-                origin_idx += len(self.template)
-        return len(self.template) - origin_idx - 1
+        origin_idx -= self.padding_len
+        if origin_idx < 0:
+            origin_idx += len(self.template)
+        return len(self.template) - origin_idx
 
     def range(self) -> range:
         """Return the valid origin range for this ReplicationConfig."""
@@ -85,7 +95,7 @@ class Repliconf:
         return slice(i, i + len(self.primer_seq))
 
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
-        """Return the origin of replication."""
+        """Return an origin of replication."""
         return ReplicationOrigin(
             self.template_seq[direction][self.slice(i)],
             self.primer_seq,
@@ -103,7 +113,6 @@ class Repliconf:
                     and origin.stability() > self.settings.stability_cutoff
                 ):
                     # self.primer.index.append(
-                    #     self.template,
                     #     direction,
                     #     i,
                     # )

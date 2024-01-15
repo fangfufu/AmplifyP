@@ -155,18 +155,19 @@ class DNA:
         return len(self.sequence)
 
     def pad(self, i: int) -> "DNA":
-        """Pad the DNA sequence to the required length."""
-        # Disabled padding for linear DNA
-        # This is done to simplify the implementation for ReplicationConfig.
-        if self.type == DNAType.LINEAR:
-            warn("Padding is unsupported for linear DNA.")
-            return self
+        """Add padding to the 5' end, so DNA reaches the required length."""
         base_str = (
             self.sequence
             if self.direction == DNADirection.FWD
             else self.reverse().sequence
         )
-        padding_str = base_str[-i::]
+
+        if self.type == DNAType.LINEAR:
+            padding_str = Nucleotides.GAP * i
+        elif self.type == DNAType.CIRCULAR:
+            padding_str = base_str[-i::]
+        else:
+            raise ValueError("Invalid DNA type for padding operation.")
 
         new_str = padding_str + base_str
 
@@ -179,6 +180,15 @@ class DNA:
             self.name,
             self.direction,
         )
+
+    def rotate(self, i: int) -> "DNA":
+        """Rotate the DNA sequence by i bases."""
+        if self.type == DNAType.LINEAR:
+            warn("Rotation is unsupported for linear DNA.")
+            return self
+        padded_dna = self.pad(i)
+
+        return padded_dna[0 : len(self.sequence)]
 
     def __getitem__(self, key: slice) -> "DNA":
         """Return the nucleotides at the given index."""

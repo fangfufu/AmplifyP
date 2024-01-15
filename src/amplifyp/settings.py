@@ -227,7 +227,6 @@ class Settings:
     run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
-    min_overlap: int = DEFAULT_MIN_OVERLAP
 
 
 DEFAULT_REPLICATION_CONFIG: Final[Settings] = Settings()
