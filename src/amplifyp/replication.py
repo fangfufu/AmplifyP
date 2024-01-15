@@ -1,25 +1,11 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
-from dataclasses import dataclass
 
 from typing import Dict, List
 
 from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
-
-
-@dataclass(frozen=True, slots=True)
-class OriginIndex:
-    """
-    Represents the start and end indices of an origin.
-
-    Note that it is expected the indices stored here are the indices with
-    respect to the repliconf sequence, not the template sequence.
-    """
-
-    start: int
-    end: int
 
 
 class Repliconf:
@@ -56,9 +42,9 @@ class Repliconf:
 
         self.settings = settings
 
-        self.valid_origin: Dict[DNADirection, List[int]] = {}
+        self.origin_start: Dict[DNADirection, List[int]] = {}
 
-    def clear_valid_origin(self) -> None:
+    def clear_origin_start(self) -> None:
         """
         Clears the valid origin dictionary.
 
@@ -66,12 +52,15 @@ class Repliconf:
         After calling this method, the dictionary will be empty.
         """
 
-        self.valid_origin[DNADirection.FWD] = []
-        self.valid_origin[DNADirection.REV] = []
+        self.origin_start[DNADirection.FWD] = []
+        self.origin_start[DNADirection.REV] = []
 
-    def idx_repliconf_to_template(self, origin_idx: int) -> int:
+    def idx_repliconf_to_template(self, repliconf_idx: int) -> int:
         """
-        Converts an index from the repliconf sequence to the template sequence.
+        Repliconf / Template index conversion.
+
+        Converts an index that is relative the repliconf DNA sequence (which is
+        reverse and padded) to an index relative to the template sequence.
 
         Args:
             origin_idx (int): The index in the repliconf sequence.
@@ -79,10 +68,8 @@ class Repliconf:
         Returns:
             int: The corresponding index in the template sequence.
         """
-        origin_idx -= self.padding_len
-        if origin_idx < 0:
-            origin_idx += len(self.template)
-        return len(self.template) - origin_idx
+        repliconf_idx -= self.padding_len
+        return len(self.template) - repliconf_idx - len(self.primer)
 
     def range(self) -> range:
         """Return the valid origin range for this ReplicationConfig."""
@@ -112,11 +99,9 @@ class Repliconf:
                     origin.primability() > self.settings.primability_cutoff
                     and origin.stability() > self.settings.stability_cutoff
                 ):
-                    # self.primer.index.append(
-                    #     direction,
-                    #     i,
-                    # )
-                    pass
+                    self.origin_start[direction].append(
+                        self.idx_repliconf_to_template(i)
+                    )
 
     def __eq__(self, other: object) -> bool:
         """
