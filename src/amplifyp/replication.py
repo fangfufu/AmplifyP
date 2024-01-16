@@ -5,7 +5,7 @@ from typing import Dict, List
 
 from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
-from .settings import Settings
+from .settings import Settings, DEFAULT_REPLICATION_CONFIG
 
 
 class Repliconf:
@@ -21,7 +21,12 @@ class Repliconf:
     sequences -- the forward sequence, and the reverse complement sequence.
     """
 
-    def __init__(self, template: DNA, primer: Primer, settings=Settings) -> None:
+    def __init__(
+        self,
+        template: DNA,
+        primer: Primer,
+        settings: Settings = DEFAULT_REPLICATION_CONFIG,
+    ) -> None:
         """Initialize the ReplicationConfig object."""
         self.padding_len = len(primer)
 
@@ -31,26 +36,25 @@ class Repliconf:
         # Bill's algorithm scores from 3' to 5'. We pre-reverse it here.
         self.primer_seq: str = primer.reverse().sequence
 
-        # We don't pre-reverse these to preserve our sanity.
+        # We don't pre-reverse these there in order to make things easier to
+        # reason with.
         self.template_seq: Dict[DNADirection, str] = {}
-        self.template_seq[DNADirection.FWD] = (
-            template.pad(self.padding_len).sequence
-        )
+        self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).sequence
         self.template_seq[DNADirection.REV] = (
             template.reverse().complement().pad(self.padding_len).sequence
         )
 
         self.settings = settings
 
-        self.origin_start: Dict[DNADirection, List[int]] = {}
+        self.amplicon_start: Dict[DNADirection, List[int]] = {}
 
     def clear(self) -> None:
         """
         Clears the lists of valid replication origins
         """
 
-        self.origin_start[DNADirection.FWD] = []
-        self.origin_start[DNADirection.REV] = []
+        self.amplicon_start[DNADirection.FWD] = []
+        self.amplicon_start[DNADirection.REV] = []
 
     def range(self) -> range:
         """Return the valid search range for replication origin."""
@@ -82,7 +86,9 @@ class Repliconf:
                     origin.primability() > self.settings.primability_cutoff
                     and origin.stability() > self.settings.stability_cutoff
                 ):
-                    self.origin_start[direction].append(i)
+                    self.amplicon_start[direction].append(
+                        i if direction else i + len(self.primer_seq)
+                    )
 
     def __eq__(self, other: object) -> bool:
         """

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from .settings import (
     Settings,
+    DEFAULT_REPLICATION_CONFIG,
     LengthWiseWeightTbl,
     BasePairWeightsTbl,
 )
@@ -26,7 +27,7 @@ class ReplicationOrigin:
 
     target: str
     primer: str
-    settings: Settings
+    settings: Settings = DEFAULT_REPLICATION_CONFIG
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""
