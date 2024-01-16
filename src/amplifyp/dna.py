@@ -155,24 +155,16 @@ class DNA:
         return len(self.sequence)
 
     def pad(self, i: int) -> "DNA":
-        """Add padding to the 5' end, so DNA reaches the required length."""
-        base_str = (
-            self.sequence
-            if self.direction == DNADirection.FWD
-            else self.reverse().sequence
-        )
+        """ Add padding to the 5' end. """
 
         if self.type == DNAType.LINEAR:
             padding_str = Nucleotides.GAP * i
         elif self.type == DNAType.CIRCULAR:
-            padding_str = base_str[-i::]
+            padding_str = self.sequence[-i::]
         else:
             raise ValueError("Invalid DNA type for padding operation.")
 
-        new_str = padding_str + base_str
-
-        if self.direction == DNADirection.REV:
-            new_str = new_str[::-1]
+        new_str = padding_str + self.sequence
 
         return DNA(
             new_str,
