@@ -27,7 +27,7 @@ class ReplicationOrigin:
 
     target: str
     primer: str
-    settings: Settings = DEFAULT_REPLICATION_CONFIG
+    settings: Settings
 
     def __post_init__(self) -> None:
         """Validates that the length of the target and primer are equal."""

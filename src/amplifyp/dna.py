@@ -155,7 +155,7 @@ class DNA:
         return len(self.sequence)
 
     def pad(self, i: int) -> "DNA":
-        """Add padding to the 5' end."""
+        """Add padding to beginning of the DNA sequence string."""
 
         if self.type == DNAType.LINEAR:
             padding_str = Nucleotides.GAP * i

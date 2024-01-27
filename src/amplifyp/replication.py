@@ -25,7 +25,7 @@ class Repliconf:
         self,
         template: DNA,
         primer: Primer,
-        settings: Settings = DEFAULT_REPLICATION_CONFIG,
+        settings: Settings,
     ) -> None:
         """Initialize the ReplicationConfig object."""
         self.padding_len = len(primer)
@@ -33,28 +33,32 @@ class Repliconf:
         self.primer = primer
         self.template = template
 
-        # Bill's algorithm scores from 3' to 5'. We pre-reverse it here.
-        self.primer_seq: str = primer.reverse().sequence
+        self.primer_seq: str = primer.sequence
 
-        # We don't pre-reverse these there in order to make things easier to
-        # reason with.
         self.template_seq: Dict[DNADirection, str] = {}
+        # Add padding the 5' end of the template
         self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).sequence
+        # Add padding to the 3' end of the DNA, compute the complement.
         self.template_seq[DNADirection.REV] = (
-            template.reverse().complement().pad(self.padding_len).sequence
+            template.reverse().pad(self.padding_len).reverse().complement().sequence
         )
+
+        print("")
+        print(self.template_seq[DNADirection.FWD])
+        print(self.template_seq[DNADirection.REV])
 
         self.settings = settings
 
-        self.amplicon_start: Dict[DNADirection, List[int]] = {}
+        self.amplicon_start: List[int] = []
+        self.amplicon_end: List[int] = []
 
     def clear(self) -> None:
         """
         Clears the lists of valid replication origins
         """
 
-        self.amplicon_start[DNADirection.FWD] = []
-        self.amplicon_start[DNADirection.REV] = []
+        self.amplicon_start = []
+        self.amplicon_end = []
 
     def range(self) -> range:
         """Return the valid search range for replication origin."""
@@ -69,26 +73,33 @@ class Repliconf:
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
         """Return the ith ReplicationOrigin."""
         return ReplicationOrigin(
-            # Note that we reverse the template sequence slice here, because
-            # Bill's algorithm score from 3' to 5'.
+            # We reverse the template sequence slice here, because Bill's
+            # algorithm score from 3' to 5'.
             self.template_seq[direction][self.slice(i)][::-1],
-            self.primer_seq,
+            # We reverse the primer sequence here, if the template is 5'->3'
+            # Otherwise the template is 3'->5', so we don't have to reverse
+            # the primer
+            self.primer_seq[::-1] if direction else self.primer_seq,
             self.settings,
         )
 
     def search(self) -> None:
         """Search for the valid replication origins in both directions."""
         self.clear()
-        for direction in DNADirection:
+        for direction in [DNADirection.FWD, DNADirection.REV]:
+            print("\nDIRECTION: ")
+            print(direction)
             for i in self.range():
                 origin = self.origin(direction, i)
                 if (
                     origin.primability() > self.settings.primability_cutoff
                     and origin.stability() > self.settings.stability_cutoff
                 ):
-                    self.amplicon_start[direction].append(
-                        i if direction else i + len(self.primer_seq)
-                    )
+                    print(origin)
+                    if direction:
+                        self.amplicon_start.append(i - len(self.primer_seq))
+                    else:
+                        self.amplicon_end.append(i + len(self.primer_seq))
 
     def __eq__(self, other: object) -> bool:
         """
