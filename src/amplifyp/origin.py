@@ -67,8 +67,8 @@ class ReplicationOrigin:
             denominator += S.row_max(i)
             if r[k] > Rn:
                 Rn = r[k]  # pylint: disable=invalid-name
-            if S[i, j] <= 0:
-                break
+            # if S[i, j] <= 0:
+            #     break
         score = numerator / (Rn * denominator)
         return score
 

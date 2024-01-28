@@ -12,7 +12,7 @@ def test_repliconf_search_short() -> None:
     #               0123456789ABCDEF
     template = DNA("AACCTCCTAGGAGGTT")
     primer = Primer("CCT")
-    repliconf = Repliconf(template, primer, settings=Settings)
+    repliconf = Repliconf(template, primer, Settings)
     repliconf.search()
     assert repliconf.origin_id[DNADirection.FWD] == [5, 8]
     assert repliconf.origin_id[DNADirection.REV] == [8, 11]

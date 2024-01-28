@@ -49,7 +49,7 @@ class DNA:
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
         """Initializes a DNA object."""
-        self.__sequence: str = sequence.strip()
+        self.__sequence: str = "".join(sequence.split())
         self.__type: DNAType = dna_type
         if name is None:
             self.__name = sequence
@@ -65,7 +65,7 @@ class DNA:
         else:
             raise ValueError("Invalid DNA type.")
 
-        if not set(sequence.upper()) <= set(check_str):
+        if not set(self.__sequence.upper()) <= set(check_str):
             raise ValueError("The DNA sequence contains invalid characters.")
 
     @property

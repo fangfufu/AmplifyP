@@ -115,7 +115,10 @@ class BasePairWeightsTbl:
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Return the weight of at certain nucleotide pair."""
-        return self.__weight[key]
+        i, j = key
+        i = i.upper()
+        j = j.upper()
+        return self.__weight[i, j]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight at a certain nucleotide pair."""
