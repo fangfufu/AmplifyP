@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - Replication related."""
 
+from functools import cached_property
 from typing import Dict, List
 import logging
 
@@ -51,24 +52,21 @@ class Repliconf:
 
         self.settings = settings
 
-        self.amplicon_start: List[int] = []
-        self.amplicon_end: List[int] = []
+        self.clear_origin_id()
 
-    def clear(self) -> None:
+    def clear_origin_id(self) -> None:
         """Clears the lists of valid replication origins."""
-
-        self.amplicon_start = []
-        self.amplicon_end = []
+        self.origin_id: Dict[DNADirection, List[int]] = {}
+        self.origin_id[DNADirection.FWD] = []
+        self.origin_id[DNADirection.REV] = []
 
     def range(self) -> range:
         """Return the valid search range for replication origin."""
-        return range(
-            0, len(self.template_seq[DNADirection.FWD]) - len(self.primer.sequence) + 1
-        )
+        return range(0, len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
 
     def slice(self, i: int) -> slice:
         """Return a object for constructing ReplicationOrigin."""
-        return slice(i, i + len(self.primer.sequence))
+        return slice(i, i + len(self.primer))
 
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
         """Return the ith ReplicationOrigin."""
@@ -85,7 +83,7 @@ class Repliconf:
 
     def search(self) -> None:
         """Search for the valid replication origins in both directions."""
-        self.clear()
+        self.clear_origin_id()
         for direction in [DNADirection.FWD, DNADirection.REV]:
             logging.debug(f"Repliconf.search(): {direction}")
             for i in self.range():
@@ -94,11 +92,10 @@ class Repliconf:
                     origin.primability() > self.settings.primability_cutoff
                     and origin.stability() > self.settings.stability_cutoff
                 ):
-                    logging.debug(f"Repliconf.search(): adding {origin}")
-                    if direction:
-                        self.amplicon_start.append(i - len(self.primer.sequence))
-                    else:
-                        self.amplicon_end.append(i + len(self.primer.sequence))
+                    logging.debug(
+                        f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
+                    )
+                    self.origin_id[direction].append(i)
 
     def __eq__(self, other: object) -> bool:
         """
@@ -120,3 +117,13 @@ class Repliconf:
     def __str__(self) -> str:
         """Return the string representation of the ReplicationConfig object."""
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
+
+    @cached_property
+    def amplicon_start(self) -> List[int]:
+        """Return the list of amplicon starting position."""
+        return [x - len(self.primer) for x in self.origin_id[DNADirection.FWD]]
+
+    @cached_property
+    def amplicon_end(self) -> List[int]:
+        """Return the list of amplicon ending position."""
+        return [x + len(self.primer) for x in self.origin_id[DNADirection.REV]]
