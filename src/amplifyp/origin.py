@@ -5,7 +5,6 @@ from dataclasses import dataclass
 
 from .settings import (
     Settings,
-    DEFAULT_REPLICATION_CONFIG,
     LengthWiseWeightTbl,
     BasePairWeightsTbl,
 )

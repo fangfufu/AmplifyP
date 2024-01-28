@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Simple tests for replisome.py."""
 
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.dna import DNA, Primer
 from amplifyp.replication import Repliconf
 from amplifyp.settings import Settings
 
@@ -14,5 +14,5 @@ def test_repliconf_search_short() -> None:
     primer = Primer("CCT")
     repliconf = Repliconf(template, primer, settings=Settings)
     repliconf.search()
-    print(repliconf.amplicon_start)
-    print(repliconf.amplicon_end)
+    assert repliconf.amplicon_start == [2, 5]
+    assert repliconf.amplicon_end == [11, 14]

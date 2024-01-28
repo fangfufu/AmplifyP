@@ -60,7 +60,9 @@ repos:
     -   id: pylint
         additional_dependencies:
           - "pytest"
-        args: [src]
+        args:
+        - src
+        - --disable=W1203
 -   repo: https://github.com/PyCQA/doc8
     rev: 'v1.1.1'
     hooks:
