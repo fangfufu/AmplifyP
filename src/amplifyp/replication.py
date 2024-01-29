@@ -71,9 +71,11 @@ class Repliconf:
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
         """Return the ith ReplicationOrigin."""
         return ReplicationOrigin(
-            self.template_seq[direction][self.slice(i)][::-1]
-            if direction
-            else self.template_seq[direction][self.slice(i)],
+            (
+                self.template_seq[direction][self.slice(i)][::-1]
+                if direction
+                else self.template_seq[direction][self.slice(i)]
+            ),
             self.primer.sequence[::-1],
             self.settings,
         )

@@ -17,7 +17,7 @@ repos:
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
 -   repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 24.1.1
     hooks:
     -   id: black
 -   repo: https://github.com/pre-commit/mirrors-mypy
@@ -44,16 +44,16 @@ repos:
     hooks:
     -   id: sync-pre-commit-deps
 -   repo: https://github.com/PyCQA/bandit
-    rev: '1.7.6'
+    rev: '1.7.7'
     hooks:
     -   id: bandit
         exclude: ^tests/
--   repo: https://github.com/PyCQA/pydocstyle
-    rev: '6.3.0'
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.14
     hooks:
-    -   id: pydocstyle
-        args:
-        - --add-ignore=D105,D202,D401
+    -   id: ruff
+        args: [ --fix ]
+    -   id: ruff-format
 -   repo: https://github.com/PyCQA/pylint
     rev: 'v3.0.3'
     hooks:
