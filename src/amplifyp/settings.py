@@ -78,10 +78,11 @@ class BasePairWeightsTbl:
         self.__col = col
         self.__weight: Dict[Tuple[str, str], float] = {}
         self.__row_max: Dict[str, float] = {}
+
+        # Expected row and column lengths
         exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
         exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
 
-        # We never put the gap symbol in the table, hence the -1.
         if len(weight) != exp_row_len:
             raise ValueError(
                 "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
@@ -122,6 +123,9 @@ class BasePairWeightsTbl:
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight at a certain nucleotide pair."""
+        i, j = key
+        i = i.upper()
+        j = j.upper()
         self.__weight[key] = value
 
     def __len__(self) -> int:
@@ -227,7 +231,7 @@ class Settings:
 
     base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
     match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
-    run_weight: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
+    run_weights: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
 

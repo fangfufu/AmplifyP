@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=cyclic-import
-"""Tests for types.py."""
+"""Tests for DNA class related code."""
 
 from amplifyp.dna import DNA, DNAType, DNADirection, Primer
 
