@@ -65,7 +65,7 @@ def test_dna_len() -> None:
 
 
 def test_dna_pad() -> None:
-    """Test the pading method of the DNA class."""
+    """Test the padding method of the DNA class."""
     dna = DNA("ATCG", dna_type=DNAType.CIRCULAR)
     assert dna.pad(2).sequence == "CGATCG"
     dna = DNA("ATCG")

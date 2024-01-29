@@ -1,9 +1,11 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = [
+  "hatchling",
+]
 
 [project]
-name = "AmplifyP"
+name = "amplifyp"
 version = "v0.0.1"
 
 [tool.pytest.ini_options]
@@ -14,5 +16,5 @@ addopts = [
 
 [project.optional-dependencies]
 tests = [
-  'pytest',
+  "pytest",
 ]
