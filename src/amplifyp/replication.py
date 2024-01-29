@@ -71,13 +71,10 @@ class Repliconf:
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
         """Return the ith ReplicationOrigin."""
         return ReplicationOrigin(
-            # We reverse the template sequence slice here, because Bill's
-            # algorithm score from 3' to 5'.
-            self.template_seq[direction][self.slice(i)][::-1],
-            # We reverse the primer sequence here, if the template is 5'->3'
-            # Otherwise the template is 3'->5', so we don't have to reverse
-            # the primer
-            self.primer.sequence[::-1] if direction else self.primer.sequence,
+            self.template_seq[direction][self.slice(i)][::-1]
+            if direction
+            else self.template_seq[direction][self.slice(i)],
+            self.primer.sequence[::-1],
             self.settings,
         )
 
@@ -89,8 +86,8 @@ class Repliconf:
             for i in self.range():
                 origin = self.origin(direction, i)
                 if (
-                    origin.primability() > self.settings.primability_cutoff
-                    and origin.stability() > self.settings.stability_cutoff
+                    origin.primability > self.settings.primability_cutoff
+                    and origin.stability > self.settings.stability_cutoff
                 ):
                     logging.debug(
                         f"Repliconf.search(): adding [{direction}, {i}]: {origin}"

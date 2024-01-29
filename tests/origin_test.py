@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Tests related to replication origin."""
+"""
+Tests related to replication origin.
+
+This file contains a list of test stimulus to make sure that the primability,
+stability and quality scores are calculated correctly.
+"""
 from dataclasses import dataclass
 from typing import List
 import pytest
@@ -16,7 +21,7 @@ def test_replication_origin_init() -> None:
 
 @dataclass(frozen=True, slots=True)
 class ReplicationOriginExample:
-    """A class representing test cases of origins.
+    """A class representing the test cases of origins.
 
     Attributes:
         origin (Origin): The origin being tested.
@@ -85,6 +90,7 @@ origin_examples.append(
     )
 )
 
+# Forward origin for primer 20049
 origin_examples.append(
     ReplicationOriginExample(
         Amplify4FwdOrigin(
@@ -173,18 +179,16 @@ origin_examples.append(
 def test_origin_primability() -> None:
     """Test if origin primability is working correctly."""
     for ex in origin_examples:
-        assert ex.primability == ex.origin.primability()
+        assert ex.primability == ex.origin.primability
 
 
 def test_origin_stability() -> None:
     """Test if origin stability is working correctly."""
-    print("")
     for ex in origin_examples:
-        assert ex.stability == ex.origin.stability()
+        assert ex.stability == ex.origin.stability
 
 
 def test_origin_quality() -> None:
     """Test if origin quality is working correctly."""
-    print("")
     for ex in origin_examples:
-        assert ex.quality == ex.origin.quality()
+        assert ex.quality == ex.origin.quality

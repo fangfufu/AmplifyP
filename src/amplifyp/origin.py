@@ -33,6 +33,7 @@ class ReplicationOrigin:
         if len(self.target) != len(self.primer):
             raise ValueError("The target has to have the same length as the primer.")
 
+    @property
     def primability(self) -> float:
         """Returns the primability of the origin.
 
@@ -51,6 +52,7 @@ class ReplicationOrigin:
         score = numerator / denominator
         return score
 
+    @property
     def stability(self) -> float:
         """Returns the stability of the origin.
 
@@ -84,6 +86,7 @@ class ReplicationOrigin:
         score = numerator / (denominator * r[int(max(0, len(self.primer) - 1))])
         return score
 
+    @property
     def quality(self) -> float:
         """Returns the quality of the origin.
 
@@ -91,7 +94,7 @@ class ReplicationOrigin:
             float: The quality of the origin.
         """
         cutoffs = self.settings.primability_cutoff + self.settings.stability_cutoff
-        return (self.primability() + self.stability() - cutoffs) / (2 - cutoffs)
+        return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
 
 
 class Amplify4RevOrigin(ReplicationOrigin):
