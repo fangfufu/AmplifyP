@@ -10,11 +10,13 @@ def test_repliconf_search_short() -> None:
     """A short test for the search feature of repliconf."""
     # This is just for helping me to count the index
     #               0123456789ABCDEF
-    template = DNA("AACCTCCTAGGAGGTT")
+    template = DNA("ACCTCCTAGGAGGTTT")
     primer = Primer("CCT")
     repliconf = Repliconf(template, primer, Settings)
+    assert repliconf.template_seq[DNADirection.FWD] == "---ACCTCCTAGGAGGTTT"
+    assert repliconf.template_seq[DNADirection.REV] == "TGGAGGATCCTCCAAA---"
     repliconf.search()
-    assert repliconf.origin_id[DNADirection.FWD] == [5, 8]
-    assert repliconf.origin_id[DNADirection.REV] == [8, 11]
-    assert repliconf.amplicon_start == [2, 5]
-    assert repliconf.amplicon_end == [11, 14]
+    assert repliconf.origin_id[DNADirection.FWD] == [4, 7]
+    assert repliconf.origin_id[DNADirection.REV] == [7, 10]
+    assert repliconf.amplicon_start == [1, 4]
+    assert repliconf.amplicon_end == [10, 13]
