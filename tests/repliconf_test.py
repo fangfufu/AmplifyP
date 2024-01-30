@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Simple tests for replisome.py."""
+"""Tests related to repliconf."""
 
 from amplifyp.dna import DNA, DNADirection, Primer
 from amplifyp.replication import Repliconf

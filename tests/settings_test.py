@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for types.py."""
+"""Tests related to settings.py."""
 
 import pytest
 from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl, DEFAULT_SETTINGS

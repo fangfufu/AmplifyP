@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Tests for DNA class related code."""
+"""Tests related to the DNA class."""
 
 from amplifyp.dna import DNA, DNAType, DNADirection, Primer
 

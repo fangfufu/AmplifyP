@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Amplify P - Replication related."""
+"""Amplify P - replication configuration related."""
 
 from functools import cached_property
 from typing import Dict, List

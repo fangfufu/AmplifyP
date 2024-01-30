@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - settings related.
 
-Don't ask me how these values were chosen, I copied them from
+Don't ask me how the default values were chosen, I shamelessly copied them from
 https://github.com/wrengels/Amplify4/blob/master/Amplify4/Amplify4/TargDelegate.swift
 """
 
@@ -18,16 +18,7 @@ class LengthWiseWeightTbl:
         default_weight: float = 0,
         overrides: Dict[int, float] | None = None,
     ) -> None:
-        """Initialize a Run-length Weight Table.
-
-        Args:
-            size (int): The size of the weight table.
-            init_weight (float, optional): The initial weight for all elements
-                in the table. Defaults to 0.
-            overrides (List[Tuple[int, float]] | None, optional): A list
-                of (index, weight) tuples to override the initial weights.
-                Defaults to None.
-        """
+        """Initialize a Run-length Weight Table."""
         if overrides is None:
             overrides = {}
         self.__default_weight = default_weight
