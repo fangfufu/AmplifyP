@@ -19,14 +19,17 @@ repos:
     -   id: mixed-line-ending
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
+
 -   repo: https://github.com/psf/black
     rev: 24.1.1
     hooks:
         -   id: black
+
 -   repo: https://github.com/keewis/blackdoc
     rev: v0.3.9
     hooks:
         -   id: blackdoc
+
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
@@ -35,10 +38,12 @@ repos:
                 (?x)^(
                     .*resources/primers.txt|
                 )$
+
 -   repo: https://github.com/tox-dev/pyproject-fmt
     rev: "1.7.0"
     hooks:
         -   id: pyproject-fmt
+
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.8.0'
     hooks:
@@ -48,6 +53,7 @@ repos:
         -   --ignore-missing-imports
         -   --explicit-package-bases
         additional_dependencies: [tokenize-rt==3.2.0]
+
 -   repo: https://github.com/aio-libs/sort-all
     rev: "v1.2.0"
     hooks:
@@ -67,15 +73,18 @@ repos:
     -   id: rst-directive-colons
     -   id: rst-inline-touching-normal
     -   id: text-unicode-replacement-char
+
 -   repo: https://github.com/pre-commit/sync-pre-commit-deps
     rev: v0.0.1
     hooks:
     -   id: sync-pre-commit-deps
+
 -   repo: https://github.com/PyCQA/bandit
     rev: '1.7.7'
     hooks:
     -   id: bandit
         exclude: ^tests/
+
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.14
     hooks:
@@ -83,6 +92,7 @@ repos:
         args:
         -   --fix
     -   id: ruff-format
+
 -   repo: https://github.com/PyCQA/pylint
     rev: 'v3.0.3'
     hooks:
@@ -91,15 +101,19 @@ repos:
           - "pytest"
         args:
         -   src
-        -   --disable=W1203
+        -   --disable=logging-fstring-interpolation
+        -   --disable=relative-beyond-top-level
+
 -   repo: https://github.com/PyCQA/doc8
     rev: 'v1.1.1'
     hooks:
     -   id: doc8
+
 -   repo: https://github.com/PyCQA/autoflake
     rev: 'v2.2.1'
     hooks:
     -   id: autoflake
+
 ci:
     autofix_commit_msg: |
         [pre-commit.ci] auto fixes from pre-commit.com hooks

@@ -1,12 +1,20 @@
+[project]
+name = "amplifyp"
+version = "v0.0.1"
+author = [
+ { name="Fufu Fang", email="fangfufu2003@gmail.com"},
+]
+description = "Python rewrite of Amplify 4"
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://github.com/fangfufu/AmplifyP"
+Issues = "https://github.com/fangfufu/AmplifyP/issues"
 [build-system]
 build-backend = "hatchling.build"
 requires = [
   "hatchling",
 ]
-
-[project]
-name = "amplifyp"
-version = "v0.0.1"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
