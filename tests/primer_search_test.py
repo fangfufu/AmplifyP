@@ -2,10 +2,9 @@
 """Test primer search using Amplify 4 built-in examples."""
 
 import logging
-
 from amplifyp.dna import DNADirection
 from amplifyp.replication import Repliconf
-from amplifyp.settings import Settings
+from amplifyp.settings import DEFAULT_SETTINGS
 from .amplify4_examples_test import (
     amplify4_linear_example,
     primer_20049,
@@ -16,7 +15,7 @@ from .amplify4_examples_test import (
 
 def test_linear_search_primer_10290() -> None:
     """Test: search for primer 10290 in the Amplify 4 example template."""
-    repliconf = Repliconf(amplify4_linear_example, primer_10290, Settings)
+    repliconf = Repliconf(amplify4_linear_example, primer_10290, DEFAULT_SETTINGS)
     repliconf.search()
     origin_id = repliconf.origin_id
     logging.info(origin_id)
@@ -34,7 +33,7 @@ def test_linear_search_primer_10290() -> None:
 
 def test_linear_search_primer_20049() -> None:
     """Test: search for primer 20049 in the Amplify 4 example template."""
-    repliconf = Repliconf(amplify4_linear_example, primer_20049, Settings)
+    repliconf = Repliconf(amplify4_linear_example, primer_20049, DEFAULT_SETTINGS)
     repliconf.search()
     origin_id = repliconf.origin_id
     logging.info(origin_id)
@@ -54,7 +53,7 @@ def test_linear_search_primer_20049() -> None:
 
 def test_linear_search_primer_2223() -> None:
     """Test: search for primer 2223 in the Amplify 4 example template."""
-    repliconf = Repliconf(amplify4_linear_example, primer_2223, Settings)
+    repliconf = Repliconf(amplify4_linear_example, primer_2223, DEFAULT_SETTINGS)
     repliconf.search()
     origin_id = repliconf.origin_id
     logging.info(origin_id)

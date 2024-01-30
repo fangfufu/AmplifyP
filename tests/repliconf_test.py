@@ -3,7 +3,7 @@
 
 from amplifyp.dna import DNA, DNADirection, Primer
 from amplifyp.replication import Repliconf
-from amplifyp.settings import Settings
+from amplifyp.settings import DEFAULT_SETTINGS
 
 
 def test_repliconf_search_short() -> None:
@@ -12,7 +12,7 @@ def test_repliconf_search_short() -> None:
     #               0123456789ABCDEF
     template = DNA("ACCTCCTAGGAGGTTT")
     primer = Primer("CCT")
-    repliconf = Repliconf(template, primer, Settings)
+    repliconf = Repliconf(template, primer, DEFAULT_SETTINGS)
     assert repliconf.template_seq[DNADirection.FWD] == "---ACCTCCTAGGAGGTTT"
     assert repliconf.template_seq[DNADirection.REV] == "TGGAGGATCCTCCAAA---"
     repliconf.search()

@@ -2,21 +2,23 @@
 """Tests for types.py."""
 
 import pytest
-
-
-from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
-
+from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl, DEFAULT_SETTINGS
 from amplifyp.dna import Nucleotides
 
 
 def test_run_length_weight_tbl() -> None:
     """Test the LengthWiseWeightTbl class."""
-    weight_tbl = LengthWiseWeightTbl(5, 0.5, [(0, 0.6), (1, 0.7)])
+    weight_tbl = LengthWiseWeightTbl(0.5, {0: 0.6, 1: 0.7})
     assert weight_tbl[0] == 0.6
     assert weight_tbl[1] == 0.7
     weight_tbl[2] = 0.8
     assert weight_tbl[2] == 0.8
-    assert list(weight_tbl) == [0.6, 0.7, 0.8, 0.5, 0.5]
+    assert weight_tbl[100] == 0.5
+
+
+def test_default_run_weight_tbl() -> None:
+    """Test if the default settings work"""
+    assert DEFAULT_SETTINGS.match_weight[0] == 30
 
 
 def test_nucleotide_pairwise_weight_tbl() -> None:
