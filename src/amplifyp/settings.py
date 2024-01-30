@@ -189,9 +189,6 @@ DEFAULT_PRIMABILITY_CUTOFF: Final[float] = 0.8
 # Default threshold for stability.
 DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 
-# Default minimum overlap between the primer and the target.
-DEFAULT_MIN_OVERLAP: Final[int] = 1
-
 
 @dataclass(slots=True)
 class Settings:
