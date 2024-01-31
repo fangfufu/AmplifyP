@@ -2,7 +2,7 @@
 """Tests related to repliconf."""
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.replication import Repliconf
+from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS
 
 
