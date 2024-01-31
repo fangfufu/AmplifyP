@@ -2,14 +2,16 @@
 """Test primer search using Amplify 4 built-in examples."""
 
 import logging
+
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS
+
 from .amplify4_examples_test import (
     amplify4_linear_example,
-    primer_20049,
-    primer_10290,
     primer_2223,
+    primer_10290,
+    primer_20049,
 )
 
 

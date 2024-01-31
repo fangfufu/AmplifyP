@@ -2,6 +2,7 @@
 """Tests related to settings.py."""
 
 import pytest
+
 from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 
 

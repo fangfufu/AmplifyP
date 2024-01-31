@@ -2,12 +2,9 @@
 """Amplify P - replication origin related."""
 
 from dataclasses import dataclass
+
 from .dna import DNA, Primer
-from .settings import (
-    Settings,
-    LengthWiseWeightTbl,
-    BasePairWeightsTbl,
-)
+from .settings import BasePairWeightsTbl, LengthWiseWeightTbl, Settings
 
 
 @dataclass(frozen=True, slots=True)
