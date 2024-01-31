@@ -2,10 +2,10 @@
 """Tests related to settings.py."""
 
 import pytest
-from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl, DEFAULT_SETTINGS
+from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 
 
-def test_run_length_weight_tbl() -> None:
+def test_length_wise_weight_tbl() -> None:
     """Test the LengthWiseWeightTbl class."""
     weight_tbl = LengthWiseWeightTbl(0.5, {0: 0.6, 1: 0.7})
     assert weight_tbl[0] == 0.6
@@ -15,9 +15,10 @@ def test_run_length_weight_tbl() -> None:
     assert weight_tbl[100] == 0.5
 
 
-def test_default_run_weight_tbl() -> None:
-    """Test if the default settings work"""
-    assert DEFAULT_SETTINGS.match_weight[0] == 30
+def test_empty_length_wise_weight_tbl() -> None:
+    """Test the initialisation of an empty LengthWiseWeightTbl"""
+    a = LengthWiseWeightTbl()
+    assert a[0] == 0
 
 
 pairwise_weights = [
@@ -38,7 +39,7 @@ def test_invalid_tbl_generation() -> None:
         BasePairWeightsTbl("ABCD", "AB", pairwise_weights)
 
 
-def test_nucleotide_pairwise_weight_tbl() -> None:
+def test_base_pair_weights_tbl() -> None:
     """Test function for the BasePairWeightsTbl class."""
     # Define the nucleotides and their pairwise weights
     nucleotides = "ACGT-"

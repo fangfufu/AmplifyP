@@ -108,7 +108,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
     def __init__(self, target: str, primer: str) -> None:
         """Constructor."""
         super().__init__(
-            target=DNA(target).complement().sequence, primer=primer, settings=Settings()
+            target=DNA(target).complement().seq, primer=primer, settings=Settings()
         )
 
 
@@ -123,7 +123,7 @@ class Amplify4FwdOrigin(ReplicationOrigin):
     def __init__(self, target: str, primer: str) -> None:
         """Constructor."""
         super().__init__(
-            target=DNA(target).reverse().sequence,
-            primer=Primer(primer).reverse().sequence,
+            target=DNA(target).reverse().seq,
+            primer=Primer(primer).reverse().seq,
             settings=Settings(),
         )

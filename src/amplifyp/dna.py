@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
 from enum import Flag, IntEnum, StrEnum
-from warnings import warn
 
 
 class Nucleotides(StrEnum):
@@ -43,17 +42,17 @@ class DNA:
 
     def __init__(
         self,
-        sequence: str,
+        seq: str,
         dna_type: DNAType = DNAType.LINEAR,
         name: str | None = None,
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
         """Initializes a DNA object."""
-        self.__sequence: str = "".join(sequence.split())
+        self.__seq: str = "".join(seq.split())
         self.__type: DNAType = dna_type
 
         if name is None:
-            self.__name = sequence
+            self.__name = seq
         else:
             self.__name = name.strip()
         self.__direction: bool | DNADirection = direction
@@ -65,15 +64,15 @@ class DNA:
         elif dna_type == DNAType.PRIMER:
             check_str = Nucleotides.PRIMER
         else:
-            raise ValueError("Invalid DNA type.")
+            raise TypeError("Invalid DNA type.")
 
-        if not set(self.__sequence.upper()) <= set(check_str):
+        if not set(self.__seq.upper()) <= set(check_str):
             raise ValueError("The DNA sequence contains invalid characters.")
 
     @property
-    def sequence(self) -> str:
+    def seq(self) -> str:
         """Return the DNA sequence as a string."""
-        return self.__sequence
+        return self.__seq
 
     @property
     def type(self) -> DNAType:
@@ -97,16 +96,16 @@ class DNA:
 
     def lower(self) -> "DNA":
         """Return the DNA sequence in lower case."""
-        return DNA(self.sequence.lower(), self.type, self.name, self.direction)
+        return DNA(self.seq.lower(), self.type, self.name, self.direction)
 
     def upper(self) -> "DNA":
         """Return the DNA sequence in upper case."""
-        return DNA(self.sequence.upper(), self.type, self.name, self.direction)
+        return DNA(self.seq.upper(), self.type, self.name, self.direction)
 
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence."""
         return DNA(
-            self.sequence.translate(
+            self.seq.translate(
                 str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
             ),
             self.type,
@@ -116,7 +115,7 @@ class DNA:
 
     def reverse(self) -> "DNA":
         """Return the reverse of the DNA sequence."""
-        return DNA(self.sequence[::-1], self.type, self.name, not self.direction)
+        return DNA(self.seq[::-1], self.type, self.name, not self.direction)
 
     def __eq__(self, other: object) -> bool:
         """
@@ -128,7 +127,7 @@ class DNA:
         if not isinstance(other, DNA):
             return NotImplemented
         return (
-            self.sequence.upper() == other.sequence.upper()
+            self.seq.upper() == other.seq.upper()
             and self.direction == other.direction
             and self.type == other.type
         )
@@ -143,18 +142,18 @@ class DNA:
         Returns:
             int: The hash value for the DNA object.
         """
-        return hash((self.sequence.upper(), self.direction, self.type))
+        return hash((self.seq.upper(), self.direction, self.type))
 
     def is_complement_of(self, other: "DNA") -> bool:
         """Return True if the other DNA is a complement of this sequence."""
         return (
-            self.sequence.upper() == other.complement().sequence.upper()
+            self.seq.upper() == other.complement().seq.upper()
             and self.direction != other.direction
         )
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence."""
-        return len(self.sequence)
+        return len(self.seq)
 
     def pad(self, i: int) -> "DNA":
         """Add padding to beginning of the DNA sequence string."""
@@ -162,11 +161,11 @@ class DNA:
         if self.type == DNAType.LINEAR:
             padding_str = Nucleotides.GAP * i
         elif self.type == DNAType.CIRCULAR:
-            padding_str = self.sequence[-i::]
+            padding_str = self.seq[-i::]
         else:
-            raise ValueError("Invalid DNA type for padding operation.")
+            raise TypeError("Invalid DNA type for padding operation.")
 
-        new_str = padding_str + self.sequence
+        new_str = padding_str + self.seq
 
         return DNA(
             new_str,
@@ -175,18 +174,17 @@ class DNA:
             self.direction,
         )
 
-    def rotate(self, i: int) -> "DNA":
+    def rot(self, i: int) -> "DNA":
         """Rotate the DNA sequence by i bases."""
         if self.type == DNAType.LINEAR:
-            warn("Rotation is unsupported for linear DNA.")
-            return self
+            raise TypeError("Rotation is unsupported for linear DNA.")
         padded_dna = self.pad(i)
 
-        return padded_dna[0 : len(self.sequence)]
+        return padded_dna[0 : len(self.seq)]
 
     def __getitem__(self, key: slice) -> "DNA":
         """Return the nucleotides at the given index."""
-        return DNA(self.sequence[key], self.type, self.name, self.direction)
+        return DNA(self.seq[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
         """Return the representation of the DNA sequence."""

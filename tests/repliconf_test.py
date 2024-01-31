@@ -56,3 +56,8 @@ def test_repliconf_str() -> None:
         "ReplicationConfig: Primer: DNA: CCT, "
         + "PRIMER, FWD, Target: DNA: TGAAAAAGGAAAAACC, CIRCULAR, FWD"
     )
+
+
+def test_dna_hash() -> None:
+    """Test that the Repliconf hash function generates a hash"""
+    assert hash(test_repliconf)

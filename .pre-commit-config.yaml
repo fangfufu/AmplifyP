@@ -118,7 +118,7 @@ repos:
     hooks:
     -   id: pytest-cov
         name: pytest-cov
-        entry: pytest --cov
+        entry: pytest --cov --cov-fail-under=100
         language: system
         pass_filenames: false
         always_run: true

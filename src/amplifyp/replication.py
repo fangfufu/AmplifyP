@@ -37,10 +37,10 @@ class Repliconf:
 
         self.template_seq: Dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
-        self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).sequence
+        self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).seq
         # Add padding to the 3' end of the DNA, compute the complement.
         self.template_seq[DNADirection.REV] = (
-            template.reverse().pad(self.padding_len).reverse().complement().sequence
+            template.reverse().pad(self.padding_len).reverse().complement().seq
         )
 
         logging.debug(
@@ -76,7 +76,7 @@ class Repliconf:
                 if direction
                 else self.template_seq[direction][self.slice(i)]
             ),
-            self.primer.sequence[::-1],
+            self.primer.seq[::-1],
             self.settings,
         )
 
