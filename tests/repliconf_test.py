@@ -36,3 +36,23 @@ def test_repliconf_circular_search() -> None:
     assert repliconf.origin_id[DNADirection.REV] == [6]
     assert repliconf.amplicon_start == [-2]
     assert repliconf.amplicon_end == [9]
+
+
+test_repliconf = Repliconf(
+    DNA("TGAAAAAGGAAAAACC", DNAType.CIRCULAR), Primer("CCT"), DEFAULT_SETTINGS
+)
+
+
+def test_repliconf_comparison() -> None:
+    """Test repliconf comparison"""
+    a = test_repliconf
+    assert a == test_repliconf
+    assert test_repliconf != ""
+
+
+def test_repliconf_str() -> None:
+    """Test repliconf string representation"""
+    assert str(test_repliconf) == (
+        "ReplicationConfig: Primer: DNA: CCT, "
+        + "PRIMER, FWD, Target: DNA: TGAAAAAGGAAAAACC, CIRCULAR, FWD"
+    )

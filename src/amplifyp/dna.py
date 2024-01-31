@@ -51,15 +51,17 @@ class DNA:
         """Initializes a DNA object."""
         self.__sequence: str = "".join(sequence.split())
         self.__type: DNAType = dna_type
+
         if name is None:
             self.__name = sequence
         else:
             self.__name = name.strip()
         self.__direction: bool | DNADirection = direction
-        if dna_type == DNAType.CIRCULAR:
-            check_str = Nucleotides.CIRCULAR
-        elif dna_type == DNAType.LINEAR:
+
+        if dna_type == DNAType.LINEAR:
             check_str = Nucleotides.LINEAR
+        elif dna_type == DNAType.CIRCULAR:
+            check_str = Nucleotides.CIRCULAR
         elif dna_type == DNAType.PRIMER:
             check_str = Nucleotides.PRIMER
         else:

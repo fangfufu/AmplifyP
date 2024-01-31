@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Tests related to the DNA class."""
 
+import pytest
+
 from amplifyp.dna import DNA, DNAType, DNADirection, Primer
 
 
@@ -49,6 +51,7 @@ def test_dna_eq() -> None:
     dna1 = DNA("ATCG")
     dna2 = DNA("ATCG")
     assert dna1 == dna2
+    assert dna1 != ""
 
 
 def test_dna_is_complement_of() -> None:
@@ -70,6 +73,9 @@ def test_dna_pad() -> None:
     assert dna.pad(2).sequence == "CGATCG"
     dna = DNA("ATCG")
     assert dna.pad(2).sequence == "--ATCG"
+    with pytest.raises(ValueError):
+        primer = Primer("ATCG")
+        primer.pad(3)
 
 
 def test_dna_getitem() -> None:
@@ -91,3 +97,15 @@ def test_primer_init() -> None:
     assert primer.type == DNAType.PRIMER
     assert primer.direction == DNADirection.FWD
     assert primer.name == "ATCG"
+
+
+def test_dna_invalid_type() -> None:
+    """Test DNA initialised with invalid type"""
+    with pytest.raises(ValueError):
+        DNA("A", 4)
+
+
+def test_dna_invalid_char() -> None:
+    """Test DNA initialised with invalid characters"""
+    with pytest.raises(ValueError):
+        DNA("L")

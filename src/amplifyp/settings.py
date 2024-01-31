@@ -63,7 +63,7 @@ class BasePairWeightsTbl:
 
         if len(weight) != exp_row_len:
             raise ValueError(
-                "NucleotidePairwiseWeightTbl: row length mismatch at initialisation."
+                "BasePairWeightsTbl: row length mismatch at initialisation."
             )
 
         for i, row_val in enumerate(self.__row):
@@ -71,7 +71,7 @@ class BasePairWeightsTbl:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
                     raise ValueError(
-                        "NucleotidePairwiseWeightTbl: column length mismatch at initialisation."
+                        "BasePairWeightsTbl: column length mismatch at initialisation."
                     )
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
