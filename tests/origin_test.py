@@ -175,6 +175,15 @@ origin_examples.append(
     )
 )
 
+origin_examples.append(
+    ReplicationOriginExample(
+        Amplify4FwdOrigin(target="---GAAAAAA", primer="CCTGAAAAAA"),
+        0.8421052631578947,  # Amplify4 reports 84%
+        0.7,  # Amplify4 reports 70%
+        0.4276315789473682,  # Amplify4 reports 0.425
+    )
+)
+
 
 def test_origin_primability() -> None:
     """Test if origin primability is working correctly."""
