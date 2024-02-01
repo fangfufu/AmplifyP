@@ -3,7 +3,7 @@
 
 import pytest
 
-from amplifyp.dna import DNA, DNAType, DNADirection, Primer
+from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 
 
 def test_dna_init() -> None:

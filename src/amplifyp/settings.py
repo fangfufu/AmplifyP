@@ -6,7 +6,8 @@ https://github.com/wrengels/Amplify4/blob/master/Amplify4/Amplify4/TargDelegate.
 """
 
 from dataclasses import dataclass
-from typing import Final, List, Tuple, Dict
+from typing import Dict, Final, List, Tuple
+
 from .dna import Nucleotides
 
 

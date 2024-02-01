@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """Amplify P - replication configuration related."""
 
+import logging
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Dict, List
-import logging
 
-from .dna import DNA, Primer, DNADirection
+from .dna import DNA, DNADirection, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
 
