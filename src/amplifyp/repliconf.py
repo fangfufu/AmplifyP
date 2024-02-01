@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Amplify P - replication configuration related."""
 
+from dataclasses import dataclass
 from functools import cached_property
 from typing import Dict, List
 import logging
@@ -8,6 +9,21 @@ import logging
 from .dna import DNA, Primer, DNADirection
 from .origin import ReplicationOrigin
 from .settings import Settings
+
+
+@dataclass
+class OriginIdx:
+    """A class for storing the location of replication origins."""
+
+    fwd: List[int]
+    rev: List[int]
+    searched: bool
+
+    def clear(self) -> None:
+        """Clear the origin index"""
+        self.fwd = []
+        self.rev = []
+        self.searched = False
 
 
 class Repliconf:
@@ -51,14 +67,7 @@ class Repliconf:
         )
 
         self.settings = settings
-
-        self.clear_origin_id()
-
-    def clear_origin_id(self) -> None:
-        """Clears the lists of valid replication origins."""
-        self.origin_id: Dict[DNADirection, List[int]] = {}
-        self.origin_id[DNADirection.FWD] = []
-        self.origin_id[DNADirection.REV] = []
+        self.origin_idx = OriginIdx([], [], False)
 
     def range(self) -> range:
         """Return the valid search range for replication origin."""
@@ -82,7 +91,7 @@ class Repliconf:
 
     def search(self) -> None:
         """Search for the valid replication origins in both directions."""
-        self.clear_origin_id()
+        self.origin_idx.clear()
         for direction in [DNADirection.FWD, DNADirection.REV]:
             logging.debug(f"Repliconf.search(): {direction}")
             for i in self.range():
@@ -94,7 +103,11 @@ class Repliconf:
                     logging.debug(
                         f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
                     )
-                    self.origin_id[direction].append(i)
+                    if direction:
+                        self.origin_idx.fwd.append(i)
+                    else:
+                        self.origin_idx.rev.append(i)
+        self.origin_idx.searched = True
 
     def __eq__(self, other: object) -> bool:
         """
@@ -120,9 +133,9 @@ class Repliconf:
     @cached_property
     def amplicon_start(self) -> List[int]:
         """Return the list of amplicon starting position."""
-        return [x - len(self.primer) for x in self.origin_id[DNADirection.FWD]]
+        return [x - len(self.primer) for x in self.origin_idx.fwd]
 
     @cached_property
     def amplicon_end(self) -> List[int]:
         """Return the list of amplicon ending position."""
-        return [x + len(self.primer) for x in self.origin_id[DNADirection.REV]]
+        return [x + len(self.primer) for x in self.origin_idx.rev]

@@ -16,8 +16,8 @@ def test_repliconf_linear_search() -> None:
     assert repliconf.template_seq[DNADirection.FWD] == "---ACCTCCTAGGAGGTTT"
     assert repliconf.template_seq[DNADirection.REV] == "TGGAGGATCCTCCAAA---"
     repliconf.search()
-    assert repliconf.origin_id[DNADirection.FWD] == [4, 7]
-    assert repliconf.origin_id[DNADirection.REV] == [7, 10]
+    assert repliconf.origin_idx.fwd == [4, 7]
+    assert repliconf.origin_idx.rev == [7, 10]
     assert repliconf.amplicon_start == [1, 4]
     assert repliconf.amplicon_end == [10, 13]
 
@@ -32,8 +32,8 @@ def test_repliconf_circular_search() -> None:
     assert repliconf.template_seq[DNADirection.FWD] == "ACCTGAAAAAGGAAAAACC"
     assert repliconf.template_seq[DNADirection.REV] == "ACTTTTTCCTTTTTGGACT"
     repliconf.search()
-    assert repliconf.origin_id[DNADirection.FWD] == [1]
-    assert repliconf.origin_id[DNADirection.REV] == [6]
+    assert repliconf.origin_idx.fwd == [1]
+    assert repliconf.origin_idx.rev == [6]
     assert repliconf.amplicon_start == [-2]
     assert repliconf.amplicon_end == [9]
 
