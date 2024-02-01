@@ -7,9 +7,10 @@ stability and quality scores are calculated correctly.
 """
 from dataclasses import dataclass
 from typing import List
+
 import pytest
 
-from amplifyp.origin import ReplicationOrigin, Amplify4RevOrigin, Amplify4FwdOrigin
+from amplifyp.origin import Amplify4FwdOrigin, Amplify4RevOrigin, ReplicationOrigin
 from amplifyp.settings import Settings
 
 
