@@ -1,4 +1,4 @@
-name: Tests
+name: AmplifyP post-commit
 
 on:
   pull_request:
