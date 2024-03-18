@@ -5,6 +5,7 @@ Tests related to replication origin.
 This file contains a list of test stimulus to make sure that the primability,
 stability and quality scores are calculated correctly.
 """
+
 from dataclasses import dataclass
 from typing import List
 
