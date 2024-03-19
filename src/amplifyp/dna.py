@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Amplify P - DNA related."""
+
 from enum import Flag, IntEnum, StrEnum
 
 
