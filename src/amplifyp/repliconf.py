@@ -45,7 +45,7 @@ class Repliconf:
         primer: Primer,
         settings: Settings,
     ) -> None:
-        """Initialize the ReplicationConfig object."""
+        """Construct the ReplicationConfig object."""
         self.padding_len = len(primer)
 
         self.primer = primer

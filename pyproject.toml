@@ -26,10 +26,9 @@ urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
 author = [
   { name = "Fufu Fang", email = "fangfufu2003@gmail.com" },
 ]
+
 [tool.pytest.ini_options]
 pythonpath = "src"
 addopts = [
   "--import-mode=importlib",
 ]
-
-[project.optional-dependencies]
