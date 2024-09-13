@@ -35,12 +35,12 @@ repos:
                 )$
 
 -   repo: https://github.com/tox-dev/pyproject-fmt
-    rev: "2.2.1"
+    rev: "2.2.3"
     hooks:
         -   id: pyproject-fmt
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.11.1'
+    rev: 'v1.11.2'
     hooks:
     -   id: mypy
         args:
@@ -81,7 +81,7 @@ repos:
         exclude: ^tests/
 
 -   repo: https://github.com/PyCQA/pylint
-    rev: 'v3.2.6'
+    rev: 'v3.2.7'
     hooks:
     -   id: pylint
         additional_dependencies:
@@ -92,7 +92,7 @@ repos:
         -   --disable=relative-beyond-top-level
 
 -   repo: https://github.com/PyCQA/doc8
-    rev: 'v1.1.1'
+    rev: 'v1.1.2'
     hooks:
     -   id: doc8
 
@@ -107,7 +107,7 @@ repos:
         -   id: black
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.7
+    rev: v0.6.4
     hooks:
     -   id: ruff
         args:
