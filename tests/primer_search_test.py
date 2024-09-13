@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Test primer search using Amplify 4 built-in examples."""
+"""Search potential replication origin using Amplify 4's built-in examples."""
 
 import logging
 

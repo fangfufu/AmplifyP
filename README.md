@@ -12,5 +12,22 @@ Pembroke College Cambridge, hence AmplifyP.
 
 This is pretty much a work in progress.
 
+## How does it all work?
+These are all notes for Fufu to understand.
+
+### Replication configuration
+A replication configuration (**Repliconf**) consists of a long strand
+of DNA which acts as the **template**, and a **primer**.
+
+The **search()** function enumerates all the possible replication origins, and
+calculate the primability and stability score. For a potential replication
+origin, if the primability and stability scores are above the threshold, the
+index (location) of this potential replication origin is considered as valid.
+It is recorded in **origin_idx.fwd** and **origin_idx.rev**. Note that during
+the search, the template sequence is searched in both forward and reverse
+direction. The process of search in the reverse direction involves reversing
+the DNA template. (I will add more information about the reverse compliment
+later.)
+
 ## Running the unit tests
 Please invoke ``pytest`` at the root of the repository.
