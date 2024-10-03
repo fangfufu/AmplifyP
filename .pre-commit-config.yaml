@@ -81,7 +81,7 @@ repos:
         exclude: ^tests/
 
 -   repo: https://github.com/PyCQA/pylint
-    rev: 'v3.3.0'
+    rev: 'v3.3.1'
     hooks:
     -   id: pylint
         additional_dependencies:
@@ -107,7 +107,7 @@ repos:
         -   id: black
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.7
+    rev: v0.6.8
     hooks:
     -   id: ruff
         args:
