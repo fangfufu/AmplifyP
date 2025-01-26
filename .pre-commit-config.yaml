@@ -70,7 +70,7 @@ repos:
     -   id: text-unicode-replacement-char
 
 -   repo: https://github.com/pre-commit/sync-pre-commit-deps
-    rev: v0.0.2
+    rev: v0.0.3
     hooks:
     -   id: sync-pre-commit-deps
 
@@ -107,7 +107,7 @@ repos:
         -   id: black
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.9.1
+    rev: v0.9.2
     hooks:
     -   id: ruff
         args:
