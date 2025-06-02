@@ -35,12 +35,12 @@ repos:
                 )$
 
 -   repo: https://github.com/tox-dev/pyproject-fmt
-    rev: "v2.5.1"
+    rev: "v2.6.0"
     hooks:
         -   id: pyproject-fmt
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.15.0'
+    rev: 'v1.16.0'
     hooks:
     -   id: mypy
         args:
@@ -107,7 +107,7 @@ repos:
         -   id: black
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.10
+    rev: v0.11.12
     hooks:
     -   id: ruff
         args:
