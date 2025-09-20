@@ -68,8 +68,6 @@ class DNA:
         direction (DNADirection): The direction of the DNA sequence.
     """
 
-
-
     def __init__(
         self,
         seq: str,
