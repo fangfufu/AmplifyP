@@ -29,7 +29,6 @@ class Amplicon:
 
     def __post_init__(self) -> None:
         """Post-initialization checks for the Amplicon."""
-        pass
 
 
 class AmpliconGenerator:

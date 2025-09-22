@@ -40,7 +40,7 @@ repos:
         -   id: pyproject-fmt
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.18.1'
+    rev: 'v1.18.2'
     hooks:
     -   id: mypy
         args:
@@ -102,12 +102,12 @@ repos:
     -   id: autoflake
 
 -   repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 25.9.0
     hooks:
         -   id: black
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.13.0
+    rev: v0.13.1
     hooks:
     -   id: ruff
         args:
