@@ -72,5 +72,26 @@ class AmpliconGenerator:
                 "The Repliconf contains a different template to the AmpliconGenerator."
             )
 
-        if not self.repliconfs:
+        if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
+
+    def generate_amplicons(self) -> List[Amplicon]:
+        """
+        Generate amplicons from the added replication configurations.
+
+        Returns:
+            List[Amplicon]: A list of generated Amplicons.
+        """
+        amplicons = []
+        for fwd_conf in self.repliconfs:
+            for start in fwd_conf.amplicon_start:
+                for rev_conf in self.repliconfs:
+                    for end in rev_conf.amplicon_end:
+                        if start < end:
+                            # Generate amplicon sequence from template slice.
+                            # Python slicing handles ends gracefully.
+                            seq = self.template[start:end]
+                            amplicons.append(
+                                Amplicon(seq, fwd_conf.primer, rev_conf.primer)
+                            )
+        return amplicons
