@@ -1,9 +1,11 @@
 """Verify amplicon generation."""
+
 import logging
 from amplifyp.dna import DNA, Primer
 from amplifyp.settings import Settings
 from amplifyp.repliconf import Repliconf
 from amplifyp.amplicon import AmpliconGenerator
+
 
 def test_verify_amplicon_gen() -> None:
     """Run verification for amplicon generation."""
@@ -41,7 +43,7 @@ def test_verify_amplicon_gen() -> None:
                 longest_amp = amp
 
     assert longest_amp is not None, "No valid amplicon found"
-    
+
     logging.info(f"Longest Amplicon Len: {max_len}")
     logging.info(f"Seq: {longest_amp.sequence.seq}")
 

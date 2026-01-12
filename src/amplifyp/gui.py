@@ -79,9 +79,9 @@ class AmplifyPApp(tk.Tk):
             side="left", padx=5
         )
 
-        ttk.Button(
-            settings_frame, text="Simulate PCR", command=self.simulate_pcr
-        ).pack(side="right", padx=10)
+        ttk.Button(settings_frame, text="Simulate PCR", command=self.simulate_pcr).pack(
+            side="right", padx=10
+        )
 
         # --- Results Section ---
         self.tree = ttk.Treeview(
