@@ -80,3 +80,31 @@ def test_base_pair_weights_tbl() -> None:
     )
 
     assert len(npwt) == 16
+
+
+def test_base_pair_weights_tbl_case_sensitivity() -> None:
+    """Test that BasePairWeightsTbl handles case sensitivity correctly."""
+    row = "acgt-"
+    col = "acgt-"
+    weights = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+
+    # Initialize with lowercase
+    tbl = BasePairWeightsTbl(row, col, weights)
+
+    # Check if row() and column() return uppercase (accessing row and col)
+    assert tbl.row() == "ACGT"
+    assert tbl.column() == "ACGT"
+
+    # Check if __getitem__ works with uppercase keys
+    assert tbl["A", "A"] == 1.0
+
+    # Check if __getitem__ works with lowercase keys
+    assert tbl["a", "a"] == 1.0
+
+    # Check mixed case
+    assert tbl["A", "a"] == 1.0

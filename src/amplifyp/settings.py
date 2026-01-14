@@ -108,8 +108,8 @@ class BasePairWeightsTbl:
             ValueError: If the dimensions of the weight table do not match the
                         lengths of the row and column labels.
         """
-        self.__row = row
-        self.__col = col
+        self.__row = row.upper()
+        self.__col = col.upper()
         self.__weight: Dict[Tuple[str, str], float] = {}
         self.__row_max: Dict[str, float] = {}
 
@@ -154,6 +154,7 @@ class BasePairWeightsTbl:
         Returns:
             float: The maximum weight in the specified row.
         """
+        row = row.upper()
         return self.__row_max[row]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
