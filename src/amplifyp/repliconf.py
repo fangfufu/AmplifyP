@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """Replication configuration-related classes for AmplifyP."""
 
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Dict, List
 
 from .dna import DNA, DNADirection, Primer
 from .origin import ReplicationOrigin
@@ -13,8 +11,7 @@ from .settings import Settings
 
 @dataclass
 class OriginIdx:
-    """
-    A class for storing the locations of replication origins.
+    """A class for storing the locations of replication origins.
 
     This class holds the indices of forward and reverse replication origins
     found within a DNA template. It also tracks whether a search has been
@@ -27,8 +24,8 @@ class OriginIdx:
                          been completed.
     """
 
-    fwd: List[int]
-    rev: List[int]
+    fwd: list[int]
+    rev: list[int]
     searched: bool
 
     def clear(self) -> None:
@@ -39,8 +36,7 @@ class OriginIdx:
 
 
 class Repliconf:
-    """
-    A class representing a replication configuration.
+    """A class representing a replication configuration.
 
     A "replication configuration" is defined as a combination of a single
     primer and a padded target DNA sequence. This class is instantiated when
@@ -65,8 +61,7 @@ class Repliconf:
         primer: Primer,
         settings: Settings,
     ) -> None:
-        """
-        Construct the Repliconf object.
+        """Construct the Repliconf object.
 
         Args:
             template (DNA): The template DNA sequence.
@@ -78,7 +73,7 @@ class Repliconf:
         self.primer = primer
         self.template = template
 
-        self.template_seq: Dict[DNADirection, str] = {}
+        self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
         self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).seq
         # Add padding to the 3' end of the DNA, compute the complement.
@@ -97,8 +92,7 @@ class Repliconf:
         self.origin_idx = OriginIdx([], [], False)
 
     def range(self) -> range:
-        """
-        Return the valid search range for replication origins.
+        """Return the valid search range for replication origins.
 
         The search range is determined by the length of the padded template
         sequence and the length of the primer.
@@ -109,8 +103,7 @@ class Repliconf:
         return range(0, len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
 
     def slice(self, i: int) -> slice:
-        """
-        Return a slice object for constructing a ReplicationOrigin.
+        """Return a slice object for constructing a ReplicationOrigin.
 
         This slice is used to extract the target sequence for a potential
         replication origin at a given index.
@@ -124,8 +117,7 @@ class Repliconf:
         return slice(i, i + len(self.primer))
 
     def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
-        """
-        Return the ith ReplicationOrigin.
+        """Return the ith ReplicationOrigin.
 
         This method constructs a `ReplicationOrigin` object for a given
         direction and index.
@@ -168,8 +160,7 @@ class Repliconf:
         self.origin_idx.searched = True
 
     def __eq__(self, other: object) -> bool:
-        """
-        Check if two Repliconf objects are equal.
+        """Check if two Repliconf objects are equal.
 
         Two Repliconf objects are considered equal if they have the same primer
         and template DNA.
@@ -185,8 +176,7 @@ class Repliconf:
         return self.primer == other.primer and self.template == other.template
 
     def __hash__(self) -> int:
-        """
-        Return a hash value for the Repliconf object.
+        """Return a hash value for the Repliconf object.
 
         The hash is based on the primer and template DNA.
 
@@ -196,8 +186,7 @@ class Repliconf:
         return hash((self.primer, self.template))
 
     def __str__(self) -> str:
-        """
-        Return the string representation of the Repliconf object.
+        """Return the string representation of the Repliconf object.
 
         Returns:
             str: A string representation of the object.
@@ -205,9 +194,8 @@ class Repliconf:
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
 
     @cached_property
-    def amplicon_start(self) -> List[int]:
-        """
-        Return the list of amplicon starting positions.
+    def amplicon_start(self) -> list[int]:
+        """Return the list of amplicon starting positions.
 
         The starting positions are calculated from the forward replication
         origin indices.
@@ -218,9 +206,8 @@ class Repliconf:
         return [x - len(self.primer) for x in self.origin_idx.fwd]
 
     @cached_property
-    def amplicon_end(self) -> List[int]:
-        """
-        Return the list of amplicon ending positions.
+    def amplicon_end(self) -> list[int]:
+        """Return the list of amplicon ending positions.
 
         The ending positions are calculated from the reverse replication
         origin indices.

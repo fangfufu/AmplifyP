@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
 """DNA-related classes and enumerations for AmplifyP."""
 
 from enum import Flag, IntEnum, StrEnum
 
 
 class Nucleotides(StrEnum):
-    """
-    Enumeration of valid nucleotide characters for use in AmplifyP.
+    """Enumeration of valid nucleotide characters for use in AmplifyP.
 
     This class defines groups of nucleotide characters that are valid in
     different contexts within the AmplifyP application. It includes single
@@ -26,8 +24,7 @@ class Nucleotides(StrEnum):
 
 
 class DNAType(IntEnum):
-    """
-    An enumeration representing the type of DNA.
+    """An enumeration representing the type of DNA.
 
     This enumeration is used to specify whether a DNA sequence is linear,
     circular, or a primer. This distinction is important for certain
@@ -40,8 +37,7 @@ class DNAType(IntEnum):
 
 
 class DNADirection(Flag):
-    """
-    An enumeration representing the direction of a DNA strand.
+    """An enumeration representing the direction of a DNA strand.
 
     This enumeration defines the two possible directions for a DNA strand:
     forward (5' to 3') and reverse (3' to 5'). It is used to track the
@@ -53,8 +49,7 @@ class DNADirection(Flag):
 
 
 class DNA:
-    """
-    A class representing a DNA sequence.
+    """A class representing a DNA sequence.
 
     This class encapsulates a DNA sequence and its properties, such as its type
     (linear, circular, or primer), name, and direction. It provides methods for
@@ -75,8 +70,7 @@ class DNA:
         name: str | None = None,
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
-        """
-        Initializes a DNA object.
+        """Initializes a DNA object.
 
         Args:
             seq (str): The DNA sequence.
@@ -90,7 +84,6 @@ class DNA:
             TypeError: If the DNA type is invalid.
             ValueError: If the DNA sequence contains invalid characters.
         """
-
         self.__seq: str = "".join(seq.split())
         self.__type: DNAType = dna_type
 
@@ -138,8 +131,7 @@ class DNA:
         return self.__direction
 
     def lower(self) -> "DNA":
-        """
-        Return a new DNA object with the sequence in lower case.
+        """Return a new DNA object with the sequence in lower case.
 
         Returns:
             DNA: A new DNA object with the sequence in lower case.
@@ -147,8 +139,7 @@ class DNA:
         return DNA(self.seq.lower(), self.type, self.name, self.direction)
 
     def upper(self) -> "DNA":
-        """
-        Return a new DNA object with the sequence in upper case.
+        """Return a new DNA object with the sequence in upper case.
 
         Returns:
             DNA: A new DNA object with the sequence in upper case.
@@ -156,8 +147,7 @@ class DNA:
         return DNA(self.seq.upper(), self.type, self.name, self.direction)
 
     def complement(self) -> "DNA":
-        """
-        Return the complement of the DNA sequence.
+        """Return the complement of the DNA sequence.
 
         The complement is created by swapping A with T, C with G, and vice versa.
         The direction of the new DNA object is also inverted.
@@ -176,8 +166,7 @@ class DNA:
         )
 
     def reverse(self) -> "DNA":
-        """
-        Return the reverse of the DNA sequence.
+        """Return the reverse of the DNA sequence.
 
         The direction of the new DNA object is also inverted.
 
@@ -188,8 +177,7 @@ class DNA:
         return DNA(self.seq[::-1], self.type, self.name, not self.direction)
 
     def __eq__(self, other: object) -> bool:
-        """
-        Check if two DNA objects are identical.
+        """Check if two DNA objects are identical.
 
         DNA objects are considered identical if they have the same sequence,
         direction, and type. The comparison is case-insensitive.
@@ -209,8 +197,7 @@ class DNA:
         )
 
     def __hash__(self) -> int:
-        """
-        Return a hash value for the DNA object.
+        """Return a hash value for the DNA object.
 
         The hash value is calculated based on the DNA sequence (in upper case),
         direction, and type.
@@ -221,8 +208,7 @@ class DNA:
         return hash((self.seq.upper(), self.direction, self.type))
 
     def is_complement_of(self, other: "DNA") -> bool:
-        """
-        Check if another DNA object is the complement of this one.
+        """Check if another DNA object is the complement of this one.
 
         This method checks if the sequence of the other DNA object is the
         complement of this object's sequence and if their directions are
@@ -241,8 +227,7 @@ class DNA:
         )
 
     def __len__(self) -> int:
-        """
-        Return the length of the DNA sequence.
+        """Return the length of the DNA sequence.
 
         Returns:
             int: The length of the DNA sequence.
@@ -250,8 +235,7 @@ class DNA:
         return len(self.seq)
 
     def pad(self, i: int) -> "DNA":
-        """
-        Add padding to the beginning of the DNA sequence string.
+        """Add padding to the beginning of the DNA sequence string.
 
         For linear DNA, the padding consists of gap characters ('-'). For
         circular DNA, the padding is taken from the end of the sequence,
@@ -267,7 +251,6 @@ class DNA:
             TypeError: If padding is attempted on a DNA type that does not
                        support it.
         """
-
         if self.type == DNAType.LINEAR:
             padding_str = Nucleotides.GAP * i
         elif self.type == DNAType.CIRCULAR:
@@ -285,8 +268,7 @@ class DNA:
         )
 
     def rot(self, i: int) -> "DNA":
-        """
-        Rotate the DNA sequence by a specified number of bases.
+        """Rotate the DNA sequence by a specified number of bases.
 
         This operation is only supported for circular DNA.
 
@@ -306,8 +288,7 @@ class DNA:
         return padded_dna[0 : len(self.seq)]
 
     def __getitem__(self, key: slice) -> "DNA":
-        """
-        Return a slice of the DNA sequence.
+        """Return a slice of the DNA sequence.
 
         This method allows for slicing of the DNA object, returning a new DNA
         object representing the specified slice.
@@ -321,8 +302,7 @@ class DNA:
         return DNA(self.seq[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
-        """
-        Return a string representation of the DNA object.
+        """Return a string representation of the DNA object.
 
         The string includes the DNA's name, type, and direction.
 
@@ -335,8 +315,7 @@ class DNA:
 
 
 class Primer(DNA):
-    """
-    A class representing a primer sequence.
+    """A class representing a primer sequence.
 
     A primer is a short single-stranded DNA sequence used as a starting point
     for DNA synthesis. This class is a specialized subclass of `DNA` with the
@@ -352,8 +331,7 @@ class Primer(DNA):
         sequence: str,
         name: str | None = None,
     ) -> None:
-        """
-        Initializes a Primer object.
+        """Initializes a Primer object.
 
         Args:
             sequence (str): The primer sequence.

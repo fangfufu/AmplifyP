@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Built-in test examples from Amplify 4."""
 
 from amplifyp.dna import DNA, DNAType, Primer

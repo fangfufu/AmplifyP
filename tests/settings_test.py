@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests related to settings.py."""
 
 import pytest
@@ -17,7 +16,7 @@ def test_length_wise_weight_tbl() -> None:
 
 
 def test_empty_length_wise_weight_tbl() -> None:
-    """Test the initialisation of an empty LengthWiseWeightTbl"""
+    """Test the initialisation of an empty LengthWiseWeightTbl."""
     a = LengthWiseWeightTbl()
     assert a[0] == 0
 
@@ -32,7 +31,6 @@ pairwise_weights = [
 
 def test_invalid_tbl_generation() -> None:
     """Test invalid BasePairWeightsTbl creation."""
-
     with pytest.raises(ValueError):
         BasePairWeightsTbl("AB", "ABCD", pairwise_weights)
 

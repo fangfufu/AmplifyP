@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests related to the DNA class."""
 
 import pytest
@@ -100,13 +99,13 @@ def test_primer_init() -> None:
 
 
 def test_dna_invalid_type() -> None:
-    """Test DNA initialised with invalid type"""
+    """Test DNA initialised with invalid type."""
     with pytest.raises(TypeError):
         DNA("A", 4)
 
 
 def test_dna_invalid_char() -> None:
-    """Test DNA initialised with invalid characters"""
+    """Test DNA initialised with invalid characters."""
     with pytest.raises(ValueError):
         DNA("L")
 
@@ -123,5 +122,5 @@ def test_dna_rotation() -> None:
 
 
 def test_dna_hash() -> None:
-    """Test that the DNA hash function generates a hash"""
+    """Test that the DNA hash function generates a hash."""
     assert hash(DNA("A"))

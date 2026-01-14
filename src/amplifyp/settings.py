@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Settings-related classes and constants for AmplifyP.
 
 This module contains the configuration classes and default values used for
@@ -10,14 +9,13 @@ https://github.com/wrengels/Amplify4
 """
 
 from dataclasses import dataclass
-from typing import Dict, Final, List, Tuple
+from typing import Final
 
 from .dna import Nucleotides
 
 
 class LengthWiseWeightTbl:
-    """
-    A class representing a length-wise weight table.
+    """A class representing a length-wise weight table.
 
     This class is used to store weights that vary based on the length of a
     sequence, such as a run of identical nucleotides. It allows for a default
@@ -33,10 +31,9 @@ class LengthWiseWeightTbl:
     def __init__(
         self,
         default_weight: float = 0,
-        overrides: Dict[int, float] | None = None,
+        overrides: dict[int, float] | None = None,
     ) -> None:
-        """
-        Initialize a LengthWiseWeightTbl object.
+        """Initialize a LengthWiseWeightTbl object.
 
         Args:
             default_weight (float, optional): The default weight.
@@ -50,8 +47,7 @@ class LengthWiseWeightTbl:
         self.__overrides = overrides
 
     def __getitem__(self, key: int) -> float:
-        """
-        Return the weight for a given length.
+        """Return the weight for a given length.
 
         If the length is present in the overrides, the specific weight is
         returned. Otherwise, the default weight is returned.
@@ -67,8 +63,7 @@ class LengthWiseWeightTbl:
         return self.__default_weight
 
     def __setitem__(self, key: int, value: float) -> None:
-        """
-        Set the weight for a specific length.
+        """Set the weight for a specific length.
 
         Args:
             key (int): The length to set the weight for.
@@ -78,8 +73,7 @@ class LengthWiseWeightTbl:
 
 
 class BasePairWeightsTbl:
-    """
-    A class representing a nucleotide pairwise weight table.
+    """A class representing a nucleotide pairwise weight table.
 
     This class stores the weights for all possible pairs of nucleotides. It is
     used to score the interactions between a primer and a target DNA sequence.
@@ -93,9 +87,8 @@ class BasePairWeightsTbl:
                                     the maximum weight in that row.
     """
 
-    def __init__(self, row: str, col: str, weight: List[List[float]]) -> None:
-        """
-        Construct a BasePairWeightsTbl object.
+    def __init__(self, row: str, col: str, weight: list[list[float]]) -> None:
+        """Construct a BasePairWeightsTbl object.
 
         Args:
             row (str): A string representing the row labels of the weight table.
@@ -110,8 +103,8 @@ class BasePairWeightsTbl:
         """
         self.__row = row.upper()
         self.__col = col.upper()
-        self.__weight: Dict[Tuple[str, str], float] = {}
-        self.__row_max: Dict[str, float] = {}
+        self.__weight: dict[tuple[str, str], float] = {}
+        self.__row_max: dict[str, float] = {}
 
         # Expected row and column lengths
         exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
@@ -145,8 +138,7 @@ class BasePairWeightsTbl:
         return self.__col[:-1]
 
     def row_max(self, row: str) -> float:
-        """
-        Return the maximum weight of a given row.
+        """Return the maximum weight of a given row.
 
         Args:
             row (str): The nucleotide representing the row.
@@ -158,8 +150,7 @@ class BasePairWeightsTbl:
         return self.__row_max[row]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
-        """
-        Return the weight of a specific nucleotide pair.
+        """Return the weight of a specific nucleotide pair.
 
         The lookup is case-insensitive.
 
@@ -175,8 +166,7 @@ class BasePairWeightsTbl:
         return self.__weight[i, j]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
-        """
-        Set the weight of a specific nucleotide pair.
+        """Set the weight of a specific nucleotide pair.
 
         The key is case-insensitive.
 
@@ -190,8 +180,7 @@ class BasePairWeightsTbl:
         self.__weight[key] = value
 
     def __len__(self) -> int:
-        """
-        Return the size of the weight table.
+        """Return the size of the weight table.
 
         The size is the number of nucleotide pairs in the table.
 
@@ -201,8 +190,7 @@ class BasePairWeightsTbl:
         return len(self.row()) * len(self.column())
 
     def __str__(self) -> str:
-        """
-        Return a string representation of the weight table.
+        """Return a string representation of the weight table.
 
         Returns:
             str: A string representation of the weight table.
@@ -287,8 +275,7 @@ DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 
 @dataclass(slots=True)
 class Settings:
-    """
-    A configuration class for replication settings.
+    """A configuration class for replication settings.
 
     This class holds all the parameters needed to analyze replication origins,
     including weight tables and cutoff values.

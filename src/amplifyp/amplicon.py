@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
 """Amplicon-related classes for AmplifyP."""
 
 from dataclasses import dataclass
-from typing import List
 
 from .dna import DNA, Primer
 from .repliconf import Repliconf
@@ -10,8 +8,7 @@ from .repliconf import Repliconf
 
 @dataclass
 class Amplicon:
-    """
-    A class representing an amplicon.
+    """A class representing an amplicon.
 
     An amplicon is a piece of DNA or RNA that is the source and/or product of
     amplification or replication events. It is defined by the sequence that has
@@ -32,8 +29,7 @@ class Amplicon:
 
 
 class AmpliconGenerator:
-    """
-    A class for generating amplicons from a template DNA sequence.
+    """A class for generating amplicons from a template DNA sequence.
 
     This class takes a template DNA and a list of replication configurations
     (Repliconf) to generate amplicons. It ensures that all replication
@@ -47,18 +43,16 @@ class AmpliconGenerator:
     # pylint: disable=too-few-public-methods
 
     def __init__(self, template: DNA) -> None:
-        """
-        Constructs an AmpliconGenerator object.
+        """Constructs an AmpliconGenerator object.
 
         Args:
             template (DNA): The template DNA sequence.
         """
         self.template = template
-        self.repliconfs: List[Repliconf] = []
+        self.repliconfs: list[Repliconf] = []
 
     def add(self, repliconf: Repliconf) -> None:
-        """
-        Adds a replication configuration to the AmpliconGenerator.
+        """Adds a replication configuration to the AmpliconGenerator.
 
         Args:
             repliconf (Repliconf): The replication configuration to add.
@@ -75,9 +69,8 @@ class AmpliconGenerator:
         if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
 
-    def generate_amplicons(self) -> List[Amplicon]:
-        """
-        Generate amplicons from the added replication configurations.
+    def generate_amplicons(self) -> list[Amplicon]:
+        """Generate amplicons from the added replication configurations.
 
         Returns:
             List[Amplicon]: A list of generated Amplicons.

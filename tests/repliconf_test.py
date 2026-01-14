@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests related to repliconf."""
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
@@ -23,7 +22,7 @@ def test_repliconf_linear_search() -> None:
 
 
 def test_repliconf_circular_search() -> None:
-    """A short test for circular search of repliconf"""
+    """A short test for circular search of repliconf."""
     # This is just for helping me to count the index
     #               0123456789ABCDEF
     template = DNA("TGAAAAAGGAAAAACC", DNAType.CIRCULAR)
@@ -44,20 +43,20 @@ test_repliconf = Repliconf(
 
 
 def test_repliconf_comparison() -> None:
-    """Test repliconf comparison"""
+    """Test repliconf comparison."""
     a = test_repliconf
     assert a == test_repliconf
     assert test_repliconf != ""
 
 
 def test_repliconf_str() -> None:
-    """Test repliconf string representation"""
+    """Test repliconf string representation."""
     assert str(test_repliconf) == (
         "ReplicationConfig: Primer: DNA: CCT, "
         + "PRIMER, FWD, Target: DNA: TGAAAAAGGAAAAACC, CIRCULAR, FWD"
     )
 
 
-def test_dna_hash() -> None:
-    """Test that the Repliconf hash function generates a hash"""
+def test_repliconf_hash() -> None:
+    """Test that the Repliconf hash function generates a hash."""
     assert hash(test_repliconf)

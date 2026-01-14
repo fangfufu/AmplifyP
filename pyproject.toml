@@ -27,8 +27,23 @@ author = [
   { name = "Fufu Fang", email = "fangfufu2003@gmail.com" },
 ]
 
-[tool.pylint.main]
-ignore = [ "gui.py" ]
+[tool.ruff]
+target-version = "py312"
+
+line-length = 88
+# Enable everything you mentioned:
+lint.select = [
+  "D",  # pydocstyle (Docstrings)
+  "E",
+  "F",
+  "I",  # isort
+  "S",  # Bandit (Security)
+  "UP", # pyupgrade
+  "W",  # Flake8 / Pyflakes
+]
+# Ignore "S101" (assert used) in all files inside the tests directory
+lint.per-file-ignores."tests/**/*.py" = [ "S101" ]
+lint.pydocstyle.convention = "google"              # or "numpy" / "pep257"
 
 [tool.pytest.ini_options]
 pythonpath = "src"

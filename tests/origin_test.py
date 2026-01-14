@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Tests related to replication origin.
+"""Tests related to replication origin.
 
 This file contains a list of test stimulus to make sure that the primability,
 stability and quality scores are calculated correctly.
 """
 
 from dataclasses import dataclass
-from typing import List
 
 import pytest
 
@@ -38,7 +35,7 @@ class ReplicationOriginExample:
     quality: float
 
 
-origin_examples: List[ReplicationOriginExample] = []
+origin_examples: list[ReplicationOriginExample] = []
 
 # Origin example 1 from the documentation
 origin_examples.append(

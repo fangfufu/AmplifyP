@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 """Tests amplicon generation."""
 
 import pytest
+
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import DNA, DNAType, Primer
 from amplifyp.repliconf import Repliconf

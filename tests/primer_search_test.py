@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Search potential replication origin using Amplify 4's built-in examples."""
 
 import logging

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Replication origin-related classes for AmplifyP."""
 
 from dataclasses import dataclass
@@ -9,8 +8,7 @@ from .settings import BasePairWeightsTbl, LengthWiseWeightTbl, Settings
 
 @dataclass(frozen=True, slots=True)
 class ReplicationOrigin:
-    """
-    A class representing a replication origin.
+    """A class representing a replication origin.
 
     A replication origin is a specific sequence in a genome at which replication
     is initiated. This class calculates various properties of a replication
@@ -39,8 +37,7 @@ class ReplicationOrigin:
 
     @property
     def primability(self) -> float:
-        """
-        Calculate the primability of the replication origin.
+        """Calculate the primability of the replication origin.
 
         Primability is a measure of how well a primer can bind to a target DNA
         sequence. It is calculated based on the base pairing scores and match
@@ -63,8 +60,7 @@ class ReplicationOrigin:
 
     @property
     def stability(self) -> float:
-        """
-        Calculate the stability of the replication origin.
+        """Calculate the stability of the replication origin.
 
         Stability is a measure of the strength of the binding between the primer
         and the target DNA sequence. It is calculated based on the base pairing
@@ -102,8 +98,7 @@ class ReplicationOrigin:
 
     @property
     def quality(self) -> float:
-        """
-        Calculate the quality of the replication origin.
+        """Calculate the quality of the replication origin.
 
         The quality is a combined measure of primability and stability. It is
         calculated as the average of the primability and stability scores,
@@ -117,8 +112,7 @@ class ReplicationOrigin:
 
 
 class Amplify4RevOrigin(ReplicationOrigin):
-    """
-    A class representing an Amplify4-style reverse replication origin.
+    """A class representing an Amplify4-style reverse replication origin.
 
     This class simplifies the process of constructing an Amplify4-style reverse
     replication origin. It is mainly used in testing and for compatibility with
@@ -126,8 +120,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
     """
 
     def __init__(self, target: str, primer: str) -> None:
-        """
-        Construct an Amplify4RevOrigin object.
+        """Construct an Amplify4RevOrigin object.
 
         Args:
             target (str): The target DNA sequence.
@@ -139,8 +132,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
 
 
 class Amplify4FwdOrigin(ReplicationOrigin):
-    """
-    A class representing an Amplify4-style forward replication origin.
+    """A class representing an Amplify4-style forward replication origin.
 
     This class simplifies the process of constructing an Amplify4-style forward
     replication origin. It is mainly used in testing and for compatibility with
@@ -148,8 +140,7 @@ class Amplify4FwdOrigin(ReplicationOrigin):
     """
 
     def __init__(self, target: str, primer: str) -> None:
-        """
-        Construct an Amplify4FwdOrigin object.
+        """Construct an Amplify4FwdOrigin object.
 
         Args:
             target (str): The target DNA sequence.

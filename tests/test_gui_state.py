@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 """Test GUI Save/Load state functionality."""
 
 import json
 import os
 import unittest
 from unittest.mock import MagicMock, patch
+
 from amplifyp.gui import AmplifyPApp, Primer
 
 
@@ -43,7 +43,7 @@ class TestGUIState(unittest.TestCase):
             self.app.save_state()
 
             # 4. Verify File Content
-            with open(test_file, "r", encoding="utf-8") as f:
+            with open(test_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             self.assertEqual(data["version"], 1)

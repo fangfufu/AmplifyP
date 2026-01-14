@@ -1,14 +1,12 @@
-# -*- coding: utf-8 -*-
 """Calculates PCR stats."""
 
 import copy
+import json
 import os
 import sys
-import traceback
-import json
 import tkinter as tk
-from tkinter import messagebox, ttk, filedialog
-from typing import List
+import traceback
+from tkinter import filedialog, messagebox, ttk
 
 # Ensure we can import amplifyp when running as a script
 if __name__ == "__main__" and __package__ is None:
@@ -18,7 +16,6 @@ from amplifyp.amplicon import AmpliconGenerator  # pylint: disable=C0413
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer  # pylint: disable=C0413
 from amplifyp.repliconf import Repliconf  # pylint: disable=C0413
 from amplifyp.settings import DEFAULT_SETTINGS  # pylint: disable=C0413
-
 
 settings = copy.deepcopy(DEFAULT_SETTINGS)
 
@@ -63,7 +60,7 @@ class PrimerStatsDialog(tk.Toplevel):
             rc.search()  # This populates origin_idx
 
             # Helper to add rows
-            def add_rows(indices: List[int], direction: DNADirection) -> None:
+            def add_rows(indices: list[int], direction: DNADirection) -> None:
                 strand_str = "Forward" if direction == DNADirection.FWD else "Reverse"
                 for i in indices:
                     origin = rc.origin(direction, i)
@@ -152,7 +149,7 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
         # Listbox for keys
         self.primers_list = tk.Listbox(primers_frame, height=5)
         self.primers_list.pack(fill="both", expand=True, padx=5, pady=5)
-        self.primers_data: List[Primer] = []
+        self.primers_data: list[Primer] = []
 
         # --- Settings and Action ---
         settings_frame = ttk.Frame(self)
@@ -322,7 +319,7 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
             return
 
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 state = json.load(f)
 
             # Validate version if needed in future
