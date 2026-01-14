@@ -27,8 +27,14 @@ author = [
   { name = "Fufu Fang", email = "fangfufu2003@gmail.com" },
 ]
 
+[tool.pylint.main]
+ignore = [ "gui.py" ]
+
 [tool.pytest.ini_options]
 pythonpath = "src"
 addopts = [
   "--import-mode=importlib",
 ]
+
+[tool.coverage.run]
+omit = [ "src/amplifyp/gui.py" ]

@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 """Calculates PCR stats."""
 
+import copy
 import os
 import sys
 import traceback
+import json
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 from typing import List
 
 # Ensure we can import amplifyp when running as a script
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from amplifyp.amplicon import AmpliconGenerator
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.repliconf import Repliconf
-from amplifyp.settings import DEFAULT_SETTINGS
-import copy
+from amplifyp.amplicon import AmpliconGenerator  # pylint: disable=C0413
+from amplifyp.dna import DNA, DNADirection, DNAType, Primer  # pylint: disable=C0413
+from amplifyp.repliconf import Repliconf  # pylint: disable=C0413
+from amplifyp.settings import DEFAULT_SETTINGS  # pylint: disable=C0413
+
 
 settings = copy.deepcopy(DEFAULT_SETTINGS)
 
@@ -57,14 +59,7 @@ class PrimerStatsDialog(tk.Toplevel):
         """Calculate and display stats."""
         try:
             template = DNA(self.template_seq, DNAType.LINEAR, "Template")
-            # Use strictness 0 to find all matches (or very low matches)
-            # Use strictness 0 to find all matches (or very low matches)
-            # Use a copy of the global settings to avoid modifying them
-            local_settings = copy.deepcopy(settings)
-            local_settings.primability_cutoff = 0.0
-            local_settings.stability_cutoff = 0.0
-
-            rc = Repliconf(template, self.primer, local_settings)
+            rc = Repliconf(template, self.primer, settings)
             rc.search()  # This populates origin_idx
 
             # Helper to add rows
@@ -96,7 +91,7 @@ class PrimerStatsDialog(tk.Toplevel):
             self.destroy()
 
 
-class AmplifyPApp(tk.Tk):
+class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
     """Main application class for AmplifyP GUI."""
 
     def __init__(self) -> None:
@@ -105,7 +100,21 @@ class AmplifyPApp(tk.Tk):
         self.title("AmplifyP")
         self.geometry("800x600")
 
+        self.create_menu()
         self.create_widgets()
+
+    def create_menu(self) -> None:
+        """Create application menu."""
+        menubar = tk.Menu(self)
+
+        file_menu = tk.Menu(menubar, tearoff=0)
+        file_menu.add_command(label="Save State", command=self.save_state)
+        file_menu.add_command(label="Load State", command=self.load_state)
+        file_menu.add_separator()
+        file_menu.add_command(label="Exit", command=self.quit)
+
+        menubar.add_cascade(label="File", menu=file_menu)
+        self.config(menu=menubar)
 
     def create_widgets(self) -> None:
         """Create and arrange widgets."""
@@ -277,6 +286,71 @@ class AmplifyPApp(tk.Tk):
                     amp.rev_origin.name,
                 ),
             )
+
+    def save_state(self) -> None:
+        """Save the current state to a JSON file."""
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+        )
+        if not file_path:
+            return
+
+        state = {
+            "version": 1,
+            "template": self.template_text.get("1.0", tk.END).strip(),
+            "primers": [{"name": p.name, "sequence": p.seq} for p in self.primers_data],
+            "settings": {
+                "primability_cutoff": self.primability_var.get(),
+                "stability_cutoff": self.stability_var.get(),
+            },
+        }
+
+        try:
+            with open(file_path, "w") as f:
+                json.dump(state, f, indent=2)
+            messagebox.showinfo("Success", "State saved successfully.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save state: {e}")
+
+    def load_state(self) -> None:
+        """Load state from a JSON file."""
+        file_path = filedialog.askopenfilename(
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        if not file_path:
+            return
+
+        try:
+            with open(file_path, "r") as f:
+                state = json.load(f)
+
+            # Validate version if needed in future
+            # if state.get("version") != 1: ...
+
+            # Restore Template
+            self.template_text.delete("1.0", tk.END)
+            self.template_text.insert(tk.END, state.get("template", ""))
+
+            # Restore Settings
+            settings_data = state.get("settings", {})
+            if "primability_cutoff" in settings_data:
+                self.primability_var.set(settings_data["primability_cutoff"])
+            if "stability_cutoff" in settings_data:
+                self.stability_var.set(settings_data["stability_cutoff"])
+
+            # Restore Primers
+            self.primers_data = []
+            self.primers_list.delete(0, tk.END)
+            for p_data in state.get("primers", []):
+                p = Primer(p_data["sequence"], p_data.get("name"))
+                self.primers_data.append(p)
+                self.primers_list.insert(tk.END, f"{p.name}: {p.seq}")
+
+            messagebox.showinfo("Success", "State loaded successfully.")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load state: {e}")
 
 
 if __name__ == "__main__":
