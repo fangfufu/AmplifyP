@@ -100,7 +100,7 @@ class Repliconf:
         Returns:
             range: The valid search range.
         """
-        return range(0, len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
+        return range(len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
 
     def slice(self, i: int) -> slice:
         """Return a slice object for constructing a ReplicationOrigin.

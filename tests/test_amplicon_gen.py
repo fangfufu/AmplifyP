@@ -1,10 +1,11 @@
 """Verify amplicon generation."""
 
 import logging
-from amplifyp.dna import DNA, Primer
-from amplifyp.settings import Settings
-from amplifyp.repliconf import Repliconf
+
 from amplifyp.amplicon import AmpliconGenerator
+from amplifyp.dna import DNA, Primer
+from amplifyp.repliconf import Repliconf
+from amplifyp.settings import Settings
 
 
 def test_verify_amplicon_gen() -> None:

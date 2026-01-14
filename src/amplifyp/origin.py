@@ -52,7 +52,7 @@ class ReplicationOrigin:
         )
         numerator: float = 0
         denominator: float = 0
-        for k, (i, j) in enumerate(zip(self.primer, self.target)):
+        for k, (i, j) in enumerate(zip(self.primer, self.target, strict=False)):
             numerator += m[k] * S[i, j]
             denominator += m[k] * S.row_max(i)
         score = numerator / denominator
@@ -78,7 +78,7 @@ class ReplicationOrigin:
         denominator: float = 0
         this_run_len: float = 0
         this_run_score: float = 0
-        for i, j in zip(self.primer, self.target):
+        for i, j in zip(self.primer, self.target, strict=False):
             denominator += S.row_max(i)
             if S[i, j] > 0:
                 this_run_len += 1

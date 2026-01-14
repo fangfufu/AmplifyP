@@ -1,7 +1,7 @@
 """Verify primer analysis logic."""
 
-import sys
 import os
+import sys
 
 # Add src to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
@@ -50,7 +50,8 @@ def verify() -> None:
         for i in indices:
             origin = rc.origin(direction, i)
             print(
-                f"[{d_str} at {i}] Primability: {origin.primability:.4f}, Stability: {origin.stability:.4f}, Quality: {origin.quality:.4f}"
+                f"[{d_str} at {i}] Primability: {origin.primability:.4f}, "
+                f"Stability: {origin.stability:.4f}, Quality: {origin.quality:.4f}"
             )
             found_any = True
 
@@ -61,7 +62,8 @@ def verify() -> None:
 
     if not found_any:
         print(
-            "FAIL: No origins found with 0.0 cutoff (should find matches for GATC in GATC...)"
+            "FAIL: No origins found with 0.0 cutoff (should find matches for "
+            "GATC in GATC...)"
         )
         sys.exit(1)
 

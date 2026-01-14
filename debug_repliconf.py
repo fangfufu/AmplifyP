@@ -1,9 +1,10 @@
 """Debug script for Repliconf."""
 
 import logging
-from amplifyp.dna import DNA, Primer, DNADirection
-from amplifyp.settings import Settings
+
+from amplifyp.dna import DNA, DNADirection, Primer
 from amplifyp.repliconf import Repliconf
+from amplifyp.settings import Settings
 
 # Setup logging to see debug output from Repliconf
 logging.basicConfig(level=logging.DEBUG)
@@ -23,7 +24,8 @@ primer_fwd = Primer("ATGC", "PF")  # ATGC -> binds to GCAT on template
 # Forward primer is identical to the Sense (+) strand (5'->3').
 # It binds to the Antisense (-) strand (3'->5').
 # Extension goes 5'->3' on the new strand, which matches the Sense strand.
-# So Fwd Primer "ATGC" should match "ATGC" in the template sequence if template is Sense strand.
+# So Fwd Primer "ATGC" should match "ATGC" in the template sequence if template is
+# Sense strand.
 # "ATGC" in template -> FWD match.
 
 primer_rev = Primer("GCAT", "PR")

@@ -33,13 +33,19 @@ target-version = "py312"
 line-length = 88
 # Enable everything you mentioned:
 lint.select = [
-  "D",  # pydocstyle (Docstrings)
-  "E",
-  "F",
-  "I",  # isort
-  "S",  # Bandit (Security)
-  "UP", # pyupgrade
-  "W",  # Flake8 / Pyflakes
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "D",   # pydocstyle (Docstrings)
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # isort
+  "PGH", # pygrep-hooks
+  "PIE", # flake8-pie
+  "RUF", # Ruff-specific rules
+  "S",   # Bandit (Security)
+  "T10", # flake8-debugger
+  "UP",  # pyupgrade
+  "W",   # pycodestyle warnings
 ]
 # Ignore "S101" (assert used) in all files inside the tests directory
 lint.per-file-ignores."tests/**/*.py" = [ "S101" ]
