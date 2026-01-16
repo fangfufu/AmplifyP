@@ -113,6 +113,24 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
         menubar.add_cascade(label="File", menu=file_menu)
         self.config(menu=menubar)
 
+    def create_context_menu(self, widget: tk.Text | ttk.Entry) -> None:
+        """Create a right-click context menu for a widget."""
+        menu = tk.Menu(widget, tearoff=0)
+        menu.add_command(
+            label="Cut", command=lambda: widget.event_generate("<<Cut>>")
+        )
+        menu.add_command(
+            label="Copy", command=lambda: widget.event_generate("<<Copy>>")
+        )
+        menu.add_command(
+            label="Paste", command=lambda: widget.event_generate("<<Paste>>")
+        )
+
+        def show_menu(event: tk.Event) -> None:  # type: ignore[type-arg]
+            menu.tk_popup(event.x_root, event.y_root)
+
+        widget.bind("<Button-3>", show_menu)
+
     def create_widgets(self) -> None:
         """Create and arrange widgets."""
         # --- Template DNA Section ---
@@ -121,6 +139,7 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
 
         self.template_text = tk.Text(template_frame, height=5)
         self.template_text.pack(fill="x", padx=5, pady=5)
+        self.create_context_menu(self.template_text)
 
         # --- Primers Section ---
         primers_frame = ttk.LabelFrame(self, text="Primers")
@@ -131,15 +150,15 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
 
         ttk.Label(input_frame, text="Name:").pack(side="left")
         self.primer_name_var = tk.StringVar()
-        ttk.Entry(input_frame, textvariable=self.primer_name_var, width=15).pack(
-            side="left", padx=5
-        )
+        name_entry = ttk.Entry(input_frame, textvariable=self.primer_name_var, width=15)
+        name_entry.pack(side="left", padx=5)
+        self.create_context_menu(name_entry)
 
         ttk.Label(input_frame, text="Sequence:").pack(side="left")
         self.primer_seq_var = tk.StringVar()
-        ttk.Entry(input_frame, textvariable=self.primer_seq_var).pack(
-            side="left", fill="x", expand=True, padx=5
-        )
+        seq_entry = ttk.Entry(input_frame, textvariable=self.primer_seq_var)
+        seq_entry.pack(side="left", fill="x", expand=True, padx=5)
+        self.create_context_menu(seq_entry)
 
         ttk.Button(input_frame, text="Add", command=self.add_primer).pack(side="left")
         ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(
