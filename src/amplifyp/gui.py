@@ -23,7 +23,7 @@ settings = copy.deepcopy(DEFAULT_SETTINGS)
 class PrimerStatsDialog(tk.Toplevel):
     """Dialog to display primer properties."""
 
-    def __init__(self, parent: tk.Tk, primer: Primer, template_seq: str) -> None:
+    def __init__(self, parent: tk.Misc, primer: Primer, template_seq: str) -> None:
         """Initialize the dialog."""
         super().__init__(parent)
         self.title(f"Primer Properties: {primer.name}")
@@ -88,21 +88,27 @@ class PrimerStatsDialog(tk.Toplevel):
             self.destroy()
 
 
-class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
+class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
     """Main application class for AmplifyP GUI."""
 
-    def __init__(self) -> None:
+    def __init__(self, master: tk.Tk | None = None) -> None:
         """Initialize the application."""
-        super().__init__()
-        self.title("AmplifyP")
-        self.geometry("800x600")
+        super().__init__(master)
+        if master:
+            master.title("AmplifyP")
+            master.geometry("800x600")
+            # Create a menu
+            self.create_menu()
 
-        self.create_menu()
+        self.pack(fill="both", expand=True)
         self.create_widgets()
 
     def create_menu(self) -> None:
         """Create application menu."""
-        menubar = tk.Menu(self)
+        if not isinstance(self.master, tk.Tk):
+            return
+
+        menubar = tk.Menu(self.master)
 
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Save State", command=self.save_state)
@@ -111,7 +117,7 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
         file_menu.add_command(label="Exit", command=self.quit)
 
         menubar.add_cascade(label="File", menu=file_menu)
-        self.config(menu=menubar)
+        self.master.configure(menu=menubar)
 
     def create_context_menu(self, widget: tk.Text | ttk.Entry) -> None:
         """Create a right-click context menu for a widget."""
@@ -411,5 +417,6 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
 
 
 if __name__ == "__main__":
-    app = AmplifyPApp()
-    app.mainloop()
+    root = tk.Tk()
+    app = AmplifyPApp(root)
+    root.mainloop()

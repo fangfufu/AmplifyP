@@ -2,6 +2,7 @@
 
 import json
 import os
+import tkinter as tk
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -11,9 +12,21 @@ from amplifyp.gui import AmplifyPApp, Primer
 class TestGUIState(unittest.TestCase):
     """Test Case for GUI Save/Load state."""
 
+    root: tk.Tk
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """Create root window once for the class."""
+        cls.root = tk.Tk()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """Destroy root window after all tests."""
+        cls.root.destroy()
+
     def setUp(self) -> None:
         """Set up the test environment."""
-        self.app = AmplifyPApp()
+        self.app = AmplifyPApp(self.root)
         # Prevent the mainloop from running if we ever call it (we won't)
         self.app.update()
 
