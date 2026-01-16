@@ -116,9 +116,7 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
     def create_context_menu(self, widget: tk.Text | ttk.Entry) -> None:
         """Create a right-click context menu for a widget."""
         menu = tk.Menu(widget, tearoff=0)
-        menu.add_command(
-            label="Cut", command=lambda: widget.event_generate("<<Cut>>")
-        )
+        menu.add_command(label="Cut", command=lambda: widget.event_generate("<<Cut>>"))
         menu.add_command(
             label="Copy", command=lambda: widget.event_generate("<<Copy>>")
         )
@@ -161,8 +159,11 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
         self.create_context_menu(seq_entry)
 
         ttk.Button(input_frame, text="Add", command=self.add_primer).pack(side="left")
-        ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(
+        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(
             side="left", padx=5
+        )
+        ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(
+            side="left"
         )
 
         # Listbox for keys
@@ -170,21 +171,40 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
         self.primers_list.pack(fill="both", expand=True, padx=5, pady=5)
         self.primers_data: list[Primer] = []
 
+        # Context menu for listbox
+        self.list_menu = tk.Menu(self.primers_list, tearoff=0)
+        self.list_menu.add_command(label="Delete", command=self.delete_primer)
+
+        def show_list_menu(event: tk.Event) -> None:  # type: ignore[type-arg]
+            # Select the item under mouse if not already selected
+            index = self.primers_list.nearest(event.y)  # type: ignore[no-untyped-call]
+            if index not in self.primers_list.curselection():  # type: ignore[no-untyped-call]
+                self.primers_list.selection_clear(0, tk.END)
+                self.primers_list.selection_set(index)
+                self.primers_list.activate(index)
+            self.list_menu.tk_popup(event.x_root, event.y_root)
+
+        self.primers_list.bind("<Button-3>", show_list_menu)
+
         # --- Settings and Action ---
         settings_frame = ttk.Frame(self)
         settings_frame.pack(fill="x", padx=10, pady=5)
 
         ttk.Label(settings_frame, text="Primability Cutoff:").pack(side="left")
         self.primability_var = tk.DoubleVar(value=settings.primability_cutoff)
-        ttk.Entry(settings_frame, textvariable=self.primability_var, width=10).pack(
-            side="left", padx=5
+        self.primability_entry = ttk.Entry(
+            settings_frame, textvariable=self.primability_var, width=10
         )
+        self.primability_entry.pack(side="left", padx=5)
+        self.create_context_menu(self.primability_entry)
 
         ttk.Label(settings_frame, text="Stability Cutoff:").pack(side="left")
         self.stability_var = tk.DoubleVar(value=settings.stability_cutoff)
-        ttk.Entry(settings_frame, textvariable=self.stability_var, width=10).pack(
-            side="left", padx=5
+        self.stability_entry = ttk.Entry(
+            settings_frame, textvariable=self.stability_var, width=10
         )
+        self.stability_entry.pack(side="left", padx=5)
+        self.create_context_menu(self.stability_entry)
 
         ttk.Button(settings_frame, text="Simulate PCR", command=self.simulate_pcr).pack(
             side="right", padx=10
@@ -223,6 +243,27 @@ class AmplifyPApp(tk.Tk):  # pylint: disable=R0902
             self.primer_seq_var.set("")
         except Exception as e:
             messagebox.showerror("Error", f"Invalid primer: {e}")
+
+    def delete_primer(self) -> None:
+        """Delete selected primer."""
+        selection = self.primers_list.curselection()  # type: ignore[no-untyped-call]
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a primer to delete.")
+            return
+
+        index = selection[0]
+
+        # Remove from data
+        try:
+            del self.primers_data[index]
+        except IndexError:
+            messagebox.showerror(
+                "Error", "Could not delete primer: Index out of range."
+            )
+            return
+
+        # Remove from listbox
+        self.primers_list.delete(index)
 
     def analyze_primer(self) -> None:
         """Analyze selected primer against template."""
