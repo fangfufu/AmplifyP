@@ -22,6 +22,30 @@ jobs:
     - name: Install pytest
       run: |
         pip install pytest-cov
+    - name: Set TCL/TK env vars (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $pythonPath = python -c "import sys; print(sys.base_prefix)"
+        Write-Host "Python Path: $pythonPath"
+        # Find init.tcl
+        $tclFile = Get-ChildItem -Path $pythonPath -Filter "init.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($tclFile) {
+            $tclDir = Split-Path $tclFile.FullName
+            Write-Host "Found TCL_LIBRARY: $tclDir"
+            echo "TCL_LIBRARY=$tclDir" >> $env:GITHUB_ENV
+        } else {
+            Write-Warning "Could not find init.tcl"
+        }
+        # Find tk.tcl
+        $tkFile = Get-ChildItem -Path $pythonPath -Filter "tk.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($tkFile) {
+            $tkDir = Split-Path $tkFile.FullName
+            Write-Host "Found TK_LIBRARY: $tkDir"
+            echo "TK_LIBRARY=$tkDir" >> $env:GITHUB_ENV
+        } else {
+            Write-Warning "Could not find tk.tcl"
+        }
     - name: Install system dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
