@@ -1,8 +1,28 @@
 """Examples provided by jcww2."""
 
+from dataclasses import dataclass
+
 from amplifyp.dna import DNA, DNAType, Primer
 
-jcww2_linear_example = DNA(
+
+@dataclass(frozen=True, slots=True)
+class AmpliconExample:
+    """A class representing amplicon examples.
+
+    Attributes:
+        template (DNA): The template DNA sequence.
+        forward_primer (Primer): The forward primer sequence.
+        reverse_primer (Primer): The reverse primer sequence.
+        product (DNA): The expected amplified DNA sequence.
+    """
+
+    template: DNA
+    forward_primer: Primer
+    reverse_primer: Primer
+    product: DNA
+
+
+jcww2_template = DNA(
     """GCTAGCGGAGTGTATACTGGCTTACTATGTTGGCACTGATGAGGGTGTCA
     GTGAAGTGCTTCATGTGGCAGGAGAAAAAAGGCTGCACCGGTGCGTCAGCAGAATATGTGATACAGGATATATTCC
     GCTTCCTCGCTCACTGACTCGCTACGCTCGGTCGTTCGACTGCGGCGAGCGGAAATGGCTTACGAACGGGGCGGAG
@@ -83,41 +103,50 @@ jcww2_linear_example = DNA(
     "pBAD_AraC-VP249_GFPx-TP-Strep",
 )
 
-primer_jcww2_l1 = Primer(
+jcww2_left_primer = [0 for _ in range(6)]
+jcww2_right_primer = [0 for _ in range(3)]
+
+jcww2_left_primer[0] = Primer(
     "atgaactgtataaaggcagcATGCCGAACAAAAACTCCCGTAACGGGATCCACAGTCAAC", "GFPxVP249TPGF"
 )
 
-primer_jcww2_l2 = Primer(
+jcww2_left_primer[1] = Primer(
     "atgaactgtataaaggcagcCCCACAAATGGGAAGGATCGTGCTACCATTCGCTTCAACA", "VP249GTd87_GF"
 )
 
-primer_jcww2_l3 = Primer(
+jcww2_left_primer[2] = Primer(
     "atgaactgtataaaggcagcGCCCAGGAATTCGCACAGCACGAGAAACAACTGCCAGGGT", "VP249GTd68_GF"
 )
 
-primer_jcww2_l4 = Primer(
+jcww2_left_primer[3] = Primer(
     "atgaactgtataaaggcagcCAATATTACGATGAAATCGACGCTTTAACGGCTCGCCCG", "VP249GTd41_GF"
 )
 
-primer_jcww2_l5 = Primer(
+jcww2_left_primer[4] = Primer(
     "atgaactgtataaaggcagcACACCATATCAGAAGCGTAAAATCAAACAATATTACGATGAAATC", "VP249GTd32_GF"
 )
 
-primer_jcww2_l6 = Primer(
+jcww2_left_primer[5] = Primer(
     "atgaactgtataaaggcagcGTTAATTTTGATTTTGATCTTCGCCAAGAGTTGACACCAT", "VP249GTd21_GF"
 )
 
-primer_jcww2_r1 = Primer("gataaagaaCacagtcataagtgcggcgacgatagtcatgccccg", "TetRSTR")
+jcww2_right_primer[0] = Primer(
+    "gataaagaaCacagtcataagtgcggcgacgatagtcatgccccg", "TetRSTR"
+)
 
-primer_jcww2_r2 = Primer(
+jcww2_right_primer[1] = Primer(
     "TGTGAACCACCGCCTCCGCTGCGGGCACGTTTACGGTCCGCTTGAAGCTTGCGTTTATTT", "VP249GTd12C_GR"
 )
 
-primer_jcww2_r3 = Primer(
+jcww2_right_primer[2] = Primer(
     "TGTGAACCACCGCCTCCGCTATTTGCTTGCTTCTCCGTCATATAGTCAGAGTAGTCCGCTTGAT", "VP249GTd24C_GR"
 )
 
-jcww2_l1_r1 = DNA(
+jcww2_product = [
+    [0 for _ in range(len(jcww2_right_primer))] for _ in range(len(jcww2_left_primer))
+]
+
+jcww2_product[0][0] = DNA(
     """
     atgaactgtataaaggcagcatgccgaacaaaaactcccgtaacgggatccacagtcaacGTTTGAAGGCCATCCG
     CCCCTACGTTAATTTTGATTTTGATCTTCGCCAAGAGTTGACACCATATCAGAAGCGTAAAATCAAACAATATTAC
@@ -163,7 +192,7 @@ jcww2_l1_r1 = DNA(
     "jcww2_l1_r1",
 )
 
-jcww2_l2_r1 = DNA(
+jcww2_product[1][0] = DNA(
     """
     atgaactgtataaaggcagccccacaaatgggaaggatcgtgctaccattcgcttcaacaAGAAAGGCGACATTGT
     CGCCACTACGGAACATGTCACTACTCGTGTTCTGTCCTTGGATACTATGGAATTGATCACGGACCCCATCGGTCAC
@@ -206,7 +235,7 @@ jcww2_l2_r1 = DNA(
     "jcww2_l2_r1",
 )
 
-jcww2_l3_r1 = DNA(
+jcww2_product[2][0] = DNA(
     """
     atgaactgtataaaggcagcgcccaggaattcgcacagcacgagaaacaactgccagggtTAAAGGTAGCCTTCAT
     CCCCACAAATGGGAAGGATCGTGCTACCATTCGCTTCAACAAGAAAGGCGACATTGTCGCCACTACGGAACATGTC
@@ -249,7 +278,7 @@ jcww2_l3_r1 = DNA(
     "jcww2_l3_r1",
 )
 
-jcww2_l4_r1 = DNA(
+jcww2_product[3][0] = DNA(
     """
     atgaactgtataaaggcagccaatattacgatgaaatcgacgctttaacggctcgcccgTACCAGGTTTACAAACC
     AAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAGAAACAACTGCCAGGGTTAAAGGTAGCC
@@ -293,7 +322,7 @@ jcww2_l4_r1 = DNA(
     "jcww2_l4_r1",
 )
 
-jcww2_l5_r1 = DNA(
+jcww2_product[4][0] = DNA(
     """
     atgaactgtataaaggcagcacaccatatcagaagcgtaaaatcaaacaatattacgatgaaatcGACGCTTTAAC
     GGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAG
@@ -339,7 +368,7 @@ jcww2_l5_r1 = DNA(
     "jcww2_l5_r1",
 )
 
-jcww2_l6_r1 = DNA(
+jcww2_product[5][0] = DNA(
     """
     atgaactgtataaaggcagcgttaattttgattttgatcttcgccaagagttgacaccatATCAGAAGCGTAAAAT
     CAAACAATATTACGATGAAATCGACGCTTTAACGGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGC
@@ -385,7 +414,7 @@ jcww2_l6_r1 = DNA(
     "jcww2_l6_r1",
 )
 
-jcww2_l1_r2 = DNA(
+jcww2_product[0][1] = DNA(
     """
     atgaactgtataaaggcagcatgccgaacaaaaactcccgtaacgggatccacagtcaacGTTTGAAGGCCATCCG
     CCCCTACGTTAATTTTGATTTTGATCTTCGCCAAGAGTTGACACCATATCAGAAGCGTAAAATCAAACAATATTAC
@@ -403,7 +432,7 @@ jcww2_l1_r2 = DNA(
     "jcww2_l1_r2",
 )
 
-jcww2_l2_r2 = DNA(
+jcww2_product[1][1] = DNA(
     """
     atgaactgtataaaggcagccccacaaatgggaaggatcgtgctaccattcgcttcaacaAGAAAGGCGACATTGT
     CGCCACTACGGAACATGTCACTACTCGTGTTCTGTCCTTGGATACTATGGAATTGATCACGGACCCCATCGGTCAC
@@ -416,7 +445,7 @@ jcww2_l2_r2 = DNA(
     "jcww2_l2_r2",
 )
 
-jcww2_l3_r2 = DNA(
+jcww2_product[2][1] = DNA(
     """
     atgaactgtataaaggcagcgcccaggaattcgcacagcacgagaaacaactgccagggtTAAAGGTAGCCTTCAT
     CCCCACAAATGGGAAGGATCGTGCTACCATTCGCTTCAACAAGAAAGGCGACATTGTCGCCACTACGGAACATGTC
@@ -430,7 +459,7 @@ jcww2_l3_r2 = DNA(
     "jcww2_l3_r2",
 )
 
-jcww2_l4_r2 = DNA(
+jcww2_product[3][1] = DNA(
     """
     atgaactgtataaaggcagccaatattacgatgaaatcgacgctttaacggctcgcccgTACCAGGTTTACAAACC
     AAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAGAAACAACTGCCAGGGTTAAAGGTAGCC
@@ -445,7 +474,7 @@ jcww2_l4_r2 = DNA(
     "jcww2_l4_r2",
 )
 
-jcww2_l5_r2 = DNA(
+jcww2_product[4][1] = DNA(
     """
     atgaactgtataaaggcagcacaccatatcagaagcgtaaaatcaaacaatattacgatgaaatcGACGCTTTAAC
     GGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAG
@@ -461,7 +490,7 @@ jcww2_l5_r2 = DNA(
     "jcww2_l5_r2",
 )
 
-jcww2_l6_r2 = DNA(
+jcww2_product[5][1] = DNA(
     """
     atgaactgtataaaggcagcgttaattttgattttgatcttcgccaagagttgacaccatATCAGAAGCGTAAAAT
     CAAACAATATTACGATGAAATCGACGCTTTAACGGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGC
@@ -477,7 +506,7 @@ jcww2_l6_r2 = DNA(
     "jcww2_l6_r2",
 )
 
-jcww2_l1_r3 = DNA(
+jcww2_product[0][2] = DNA(
     """
     atgaactgtataaaggcagcatgccgaacaaaaactcccgtaacgggatccacagtcaacGTTTGAAGGCCATCCG
     CCCCTACGTTAATTTTGATTTTGATCTTCGCCAAGAGTTGACACCATATCAGAAGCGTAAAATCAAACAATATTAC
@@ -493,7 +522,7 @@ jcww2_l1_r3 = DNA(
     "jcww2_l1_r3",
 )
 
-jcww2_l2_r3 = DNA(
+jcww2_product[1][2] = DNA(
     """
     atgaactgtataaaggcagccccacaaatgggaaggatcgtgctaccattcgcttcaacaAGAAAGGCGACATTGT
     CGCCACTACGGAACATGTCACTACTCGTGTTCTGTCCTTGGATACTATGGAATTGATCACGGACCCCATCGGTCAC
@@ -506,7 +535,7 @@ jcww2_l2_r3 = DNA(
     "jcww2_l2_r3",
 )
 
-jcww2_l3_r3 = DNA(
+jcww2_product[2][2] = DNA(
     """
     atgaactgtataaaggcagcgcccaggaattcgcacagcacgagaaacaactgccagggtTAAAGGTAGCCTTCAT
     CCCCACAAATGGGAAGGATCGTGCTACCATTCGCTTCAACAAGAAAGGCGACATTGTCGCCACTACGGAACATGTC
@@ -520,7 +549,7 @@ jcww2_l3_r3 = DNA(
     "jcww2_l3_r3",
 )
 
-jcww2_l4_r3 = DNA(
+jcww2_product[3][2] = DNA(
     """
     atgaactgtataaaggcagccaatattacgatgaaatcgacgctttaacggctcgcccgTACCAGGTTTACAAACC
     AAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAGAAACAACTGCCAGGGTTAAAGGTAGCC
@@ -535,7 +564,7 @@ jcww2_l4_r3 = DNA(
     "jcww2_l4_r3",
 )
 
-jcww2_l5_r3 = DNA(
+jcww2_product[4][2] = DNA(
     """
     atgaactgtataaaggcagcacaccatatcagaagcgtaaaatcaaacaatattacgatgaaatcGACGCTTTAAC
     GGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGCCTGAAGAAAGCCCAGGAATTCGCACAGCACGAG
@@ -550,7 +579,7 @@ jcww2_l5_r3 = DNA(
     "jcww2_l5_r3",
 )
 
-jcww2_l6_r3 = DNA(
+jcww2_product[5][2] = DNA(
     """
     atgaactgtataaaggcagcgttaattttgattttgatcttcgccaagagttgacaccatATCAGAAGCGTAAAAT
     CAAACAATATTACGATGAAATCGACGCTTTAACGGCTCGCCCGTACCAGGTTTACAAACCAAAGTCCAAGCAACGC
@@ -565,3 +594,17 @@ jcww2_l6_r3 = DNA(
     DNAType.LINEAR,
     "jcww2_l6_r3",
 )
+
+jcww2_amplicon: list[list[AmpliconExample | None]] = [
+    [None for _ in range(len(jcww2_right_primer))]
+    for _ in range(len(jcww2_left_primer))
+]
+
+for i in range(len(jcww2_left_primer)):
+    for j in range(len(jcww2_right_primer)):
+        jcww2_amplicon[i][j] = AmpliconExample(
+            jcww2_template,
+            jcww2_left_primer[i],
+            jcww2_right_primer[j],
+            jcww2_product[i][j],
+        )

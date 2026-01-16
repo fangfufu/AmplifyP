@@ -9,7 +9,7 @@ from .origin import ReplicationOrigin
 from .settings import Settings
 
 
-@dataclass
+@dataclass(slots=True)
 class OriginIdx:
     """A class for storing the locations of replication origins.
 

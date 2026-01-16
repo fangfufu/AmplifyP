@@ -6,7 +6,7 @@ from .dna import DNA, Primer
 from .repliconf import Repliconf
 
 
-@dataclass
+@dataclass(slots=True)
 class Amplicon:
     """A class representing an amplicon.
 
