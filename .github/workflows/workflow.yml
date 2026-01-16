@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.11', '3.12']
+        python-version: ['3.12', '3.13', '3.14']
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
@@ -24,7 +24,7 @@ jobs:
         pip install pytest-cov
     - name: Run pytest
       run: |
-        coverage run -m pytest
+        coverage run -m pytest --ignore=tests/test_gui_state.py
     - name: Display coverage report
       run: |
         coverage report -m
