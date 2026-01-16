@@ -103,8 +103,8 @@ jcww2_template = DNA(
     "pBAD_AraC-VP249_GFPx-TP-Strep",
 )
 
-jcww2_left_primer = [0 for _ in range(6)]
-jcww2_right_primer = [0 for _ in range(3)]
+jcww2_left_primer: list[Primer | None] = [None for _ in range(6)]
+jcww2_right_primer: list[Primer | None] = [None for _ in range(3)]
 
 jcww2_left_primer[0] = Primer(
     "atgaactgtataaaggcagcATGCCGAACAAAAACTCCCGTAACGGGATCCACAGTCAAC", "GFPxVP249TPGF"
@@ -142,8 +142,9 @@ jcww2_right_primer[2] = Primer(
     "TGTGAACCACCGCCTCCGCTATTTGCTTGCTTCTCCGTCATATAGTCAGAGTAGTCCGCTTGAT", "VP249GTd24C_GR"
 )
 
-jcww2_product = [
-    [0 for _ in range(len(jcww2_right_primer))] for _ in range(len(jcww2_left_primer))
+jcww2_product: list[list[DNA | None]] = [
+    [None for _ in range(len(jcww2_right_primer))]
+    for _ in range(len(jcww2_left_primer))
 ]
 
 jcww2_product[0][0] = DNA(
@@ -602,9 +603,15 @@ jcww2_amplicon: list[list[AmpliconExample | None]] = [
 
 for i in range(len(jcww2_left_primer)):
     for j in range(len(jcww2_right_primer)):
+        forward = jcww2_left_primer[i]
+        reverse = jcww2_right_primer[j]
+        product = jcww2_product[i][j]
+        if forward is None or reverse is None or product is None:
+            raise ValueError("Example data not fully initialized")
+
         jcww2_amplicon[i][j] = AmpliconExample(
             jcww2_template,
-            jcww2_left_primer[i],
-            jcww2_right_primer[j],
-            jcww2_product[i][j],
+            forward,
+            reverse,
+            product,
         )
