@@ -31,23 +31,27 @@ jobs:
       run: |
         $pythonPath = python -c "import sys; print(sys.base_prefix)"
         Write-Host "Python Path: $pythonPath"
-        # Find init.tcl
-        $tclFile = Get-ChildItem -Path $pythonPath -Filter "init.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($tclFile) {
-            $tclDir = Split-Path $tclFile.FullName
-            Write-Host "Found TCL_LIBRARY: $tclDir"
-            echo "TCL_LIBRARY=$tclDir" >> $env:GITHUB_ENV
+        $tclPath = Join-Path $pythonPath "tcl"
+        if (Test-Path $tclPath) {
+            $tclLib = Get-ChildItem -Path $tclPath -Filter "tcl8*" -Directory | Select-Object -First 1
+            if ($tclLib) {
+                $tclLibPath = $tclLib.FullName -replace '\\', '/'
+                Write-Host "Found TCL_LIBRARY: $tclLibPath"
+                "TCL_LIBRARY=$tclLibPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+            } else {
+                Write-Warning "Could not find tcl8* directory in $tclPath"
+            }
+
+            $tkLib = Get-ChildItem -Path $tclPath -Filter "tk8*" -Directory | Select-Object -First 1
+            if ($tkLib) {
+                $tkLibPath = $tkLib.FullName -replace '\\', '/'
+                Write-Host "Found TK_LIBRARY: $tkLibPath"
+                "TK_LIBRARY=$tkLibPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+            } else {
+                Write-Warning "Could not find tk8* directory in $tclPath"
+            }
         } else {
-            Write-Warning "Could not find init.tcl"
-        }
-        # Find tk.tcl
-        $tkFile = Get-ChildItem -Path $pythonPath -Filter "tk.tcl" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($tkFile) {
-            $tkDir = Split-Path $tkFile.FullName
-            Write-Host "Found TK_LIBRARY: $tkDir"
-            echo "TK_LIBRARY=$tkDir" >> $env:GITHUB_ENV
-        } else {
-            Write-Warning "Could not find tk.tcl"
+            Write-Warning "tcl directory not found at $tclPath"
         }
     - name: Install system dependencies (Linux)
       if: runner.os == 'Linux'
