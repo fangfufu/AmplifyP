@@ -31,9 +31,11 @@ def test_jcww2_amplicon_examples() -> None:
         for _ in range(len(ex.jcww2_left_primer))
     ]
 
-    # for i, left_repliconf in enumerate(jcww2_left_repliconfs):
-    #     for j, right_repliconf in enumerate(jcww2_right_repliconfs):
-    #         amplicon = Amplicon(left_repliconf, right_repliconf, DEFAULT_SETTINGS)
-    #         jcww2_test_amplicon[i][j] = amplicon
+    for i, left_repliconf in enumerate(jcww2_left_repliconfs):
+        for j, right_repliconf in enumerate(jcww2_right_repliconfs):
+            amplicon = AmpliconGenerator(ex.jcww2_template)
+            amplicon.add(left_repliconf)
+            amplicon.add(right_repliconf)
+            jcww2_test_amplicon[i][j] = amplicon
 
     return

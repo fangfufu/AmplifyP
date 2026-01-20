@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from .dna import DNA, Primer
 from .repliconf import Repliconf
+from .errors import DuplicateRepliconfError
 
 
 @dataclass(slots=True)
@@ -68,6 +69,21 @@ class AmpliconGenerator:
 
         if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
+        else:
+            raise DuplicateRepliconfError(
+                "The Repliconf is already in the AmpliconGenerator."
+            )
+
+    def remove(self, repliconf: Repliconf) -> None:
+        """Removes a replication configuration from the AmpliconGenerator.
+
+        Args:
+            repliconf (Repliconf): The replication configuration to remove.
+
+        Raises:
+            ValueError: If the Repliconf is not in the AmpliconGenerator.
+        """
+        self.repliconfs.remove(repliconf)
 
     def generate_amplicons(self) -> list[Amplicon]:
         """Generate amplicons from the added replication configurations.
