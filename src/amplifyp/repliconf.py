@@ -91,11 +91,6 @@ class Repliconf:
         self.settings = settings
         self.origin_idx = OriginIdx([], [], False)
 
-    @property
-    def searched(self) -> bool:
-        """Return whether the origin index has been searched."""
-        return self.origin_idx.searched
-
     def range(self) -> range:
         """Return the valid search range for replication origins.
 
@@ -163,6 +158,11 @@ class Repliconf:
                     else:
                         self.origin_idx.rev.append(i)
         self.origin_idx.searched = True
+
+    @property
+    def searched(self) -> bool:
+        """Return whether we have searched for the replication origins."""
+        return self.origin_idx.searched
 
     def __eq__(self, other: object) -> bool:
         """Check if two Repliconf objects are equal.

@@ -7,7 +7,7 @@ from .errors import DuplicateRepliconfError
 from .repliconf import Repliconf
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class Amplicon:
     """A class representing an amplicon.
 
@@ -28,9 +28,6 @@ class Amplicon:
     rev_origin: Primer
     start: int
     end: int
-
-    def __post_init__(self) -> None:
-        """Post-initialization checks for the Amplicon."""
 
 
 class AmpliconGenerator:
