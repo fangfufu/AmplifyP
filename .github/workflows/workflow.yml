@@ -24,7 +24,7 @@ jobs:
       run: python --version
     - name: Install dependencies
       run: |
-        pip install pytest-cov pre-commit
+        pip install .[tests] pre-commit
     - name: Set TCL/TK env vars (Windows)
       if: runner.os == 'Windows'
       shell: powershell

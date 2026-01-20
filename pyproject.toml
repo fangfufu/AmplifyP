@@ -20,6 +20,8 @@ classifiers = [
 ]
 optional-dependencies.tests = [
   "pytest",
+  "pytest-cov",
+  "pytest-testmon",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
@@ -55,6 +57,7 @@ lint.pydocstyle.convention = "google"              # or "numpy" / "pep257"
 pythonpath = "src"
 addopts = [
   "--import-mode=importlib",
+  "--testmon",
 ]
 
 [tool.coverage.run]
