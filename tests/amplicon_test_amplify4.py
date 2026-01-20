@@ -32,8 +32,9 @@ def test_amplify4_examples() -> None:
 
     amplicons = amplicon_generator.get_amplicons()
     for amplicon in amplicons:
-        logging.info("Amplicon: %s", len(amplicon.product.seq))
-        logging.info("Amplicon: %s", amplicon.product.seq)
+        logging.info("Forward primer: %s", amplicon.fwd_origin)
+        logging.info("Reverse primer: %s", amplicon.rev_origin)
+        logging.info("Amplicon length: %s", len(amplicon.product.seq))
         if len(amplicon.product.seq) == 660:
             assert amplicon.product.seq.upper() == ex.fragment_660bp.seq.upper()
             logging.info("Amplicon 660bp is correct")
@@ -43,3 +44,4 @@ def test_amplify4_examples() -> None:
         elif len(amplicon.product.seq) == 220:
             assert amplicon.product.seq.upper() == ex.fragment_220bp.seq.upper()
             logging.info("Amplicon 220bp is correct")
+        logging.info("Amplicon: %s", amplicon.product.seq)

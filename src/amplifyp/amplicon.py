@@ -19,11 +19,15 @@ class Amplicon:
         product (DNA): The amplification product.
         fwd_origin (Primer): The forward replication origin.
         rev_origin (Primer): The reverse replication origin.
+        start (int): The start index of the amplicon relative to the template.
+        end (int): The end index of the amplicon relative to the template.
     """
 
     product: DNA
     fwd_origin: Primer
     rev_origin: Primer
+    start: int
+    end: int
 
     def __post_init__(self) -> None:
         """Post-initialization checks for the Amplicon."""
@@ -106,6 +110,8 @@ class AmpliconGenerator:
                             # Python slicing handles ends gracefully.
                             seq = self.template[start:end]
                             amplicons.append(
-                                Amplicon(seq, fwd_conf.primer, rev_conf.primer)
+                                Amplicon(
+                                    seq, fwd_conf.primer, rev_conf.primer, start, end
+                                )
                             )
         return amplicons
