@@ -10,9 +10,9 @@ from .repliconf import Repliconf
 class Amplicon:
     """A class representing an amplicon.
 
-    An amplicon is a piece of DNA or RNA that is the source and/or product of
-    amplification or replication events. It is defined by the sequence that has
-    been amplified, and the forward and reverse replication origins.
+    An amplicon is a piece of DNA that is the product of the amplification
+    events. It is defined by the sequence that has been amplified, and the
+    forward and reverse replication origins.
 
     Attributes:
         sequence (DNA): The DNA sequence of the amplicon.
