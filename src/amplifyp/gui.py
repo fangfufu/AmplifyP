@@ -341,8 +341,8 @@ class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
                 "",
                 tk.END,
                 values=(
-                    amp.sequence.seq,
-                    len(amp.sequence),
+                    amp.product.seq,
+                    len(amp.product),
                     "N/A",
                     "N/A",
                     amp.fwd_origin.name,
