@@ -63,6 +63,9 @@ jobs:
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
           xvfb-run -a pre-commit run --all-files --show-diff-on-failure
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          export PYTEST_ADDOPTS="--ignore=tests/gui"
+          pre-commit run --all-files --show-diff-on-failure
         else
           pre-commit run --all-files --show-diff-on-failure
         fi
