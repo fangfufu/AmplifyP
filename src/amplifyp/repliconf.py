@@ -2,7 +2,6 @@
 
 import logging
 from dataclasses import dataclass
-from functools import cached_property
 
 from .dna import DNA, DNADirection, Primer
 from .origin import ReplicationOrigin
@@ -198,7 +197,7 @@ class Repliconf:
         """
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
 
-    @cached_property
+    @property
     def amplicon_start(self) -> list[int]:
         """Return the list of amplicon starting positions.
 
@@ -210,7 +209,7 @@ class Repliconf:
         """
         return [x - len(self.primer) for x in self.origin_idx.fwd]
 
-    @cached_property
+    @property
     def amplicon_end(self) -> list[int]:
         """Return the list of amplicon ending positions.
 
