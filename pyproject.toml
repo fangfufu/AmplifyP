@@ -58,6 +58,8 @@ pythonpath = "src"
 addopts = [
   "--import-mode=importlib",
   "--testmon",
+  "--cov=src/amplifyp",
+  "--cov-report=xml",
 ]
 
 [tool.coverage.run]

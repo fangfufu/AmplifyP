@@ -1,6 +1,3 @@
-# Temporarily added, awaiting for confirmation that this can be public
-tests/replisome_test.py
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -133,3 +130,6 @@ dmypy.json
 
 # VS Code
 .vscode
+
+# Pytest
+.testmondata
