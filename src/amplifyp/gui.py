@@ -130,7 +130,7 @@ class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
             label="Paste", command=lambda: widget.event_generate("<<Paste>>")
         )
 
-        def show_menu(event: tk.Event) -> None:  # type: ignore[type-arg]
+        def show_menu(event: tk.Event) -> None:
             menu.tk_popup(event.x_root, event.y_root)
 
         widget.bind("<Button-3>", show_menu)
@@ -181,7 +181,7 @@ class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
         self.list_menu = tk.Menu(self.primers_list, tearoff=0)
         self.list_menu.add_command(label="Delete", command=self.delete_primer)
 
-        def show_list_menu(event: tk.Event) -> None:  # type: ignore[type-arg]
+        def show_list_menu(event: tk.Event) -> None:
             # Select the item under mouse if not already selected
             index = self.primers_list.nearest(event.y)  # type: ignore[no-untyped-call]
             if index not in self.primers_list.curselection():  # type: ignore[no-untyped-call]

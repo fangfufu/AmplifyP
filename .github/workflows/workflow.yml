@@ -22,9 +22,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Display Python version
       run: python --version
-    - name: Install pytest
+    - name: Install dependencies
       run: |
-        pip install pytest-cov
+        pip install pytest-cov pre-commit
     - name: Set TCL/TK env vars (Windows)
       if: runner.os == 'Windows'
       shell: powershell
@@ -58,13 +58,13 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y xvfb python3-tk
-    - name: Run pytest
+    - name: Run pre-commit
       shell: bash
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          xvfb-run -a coverage run -m pytest
+          xvfb-run -a pre-commit run --all-files --show-diff-on-failure
         else
-          coverage run -m pytest
+          pre-commit run --all-files --show-diff-on-failure
         fi
     - name: Display coverage report
       run: |

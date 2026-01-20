@@ -35,6 +35,15 @@ repos:
         -   --explicit-package-bases
         additional_dependencies: [tokenize-rt==3.2.0]
 
+-   repo: local
+    hooks:
+    -   id: pytest
+        name: pytest
+        entry: coverage run -m pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+
 ci:
     autofix_commit_msg: |
         [pre-commit.ci] auto fixes from pre-commit.com hooks
