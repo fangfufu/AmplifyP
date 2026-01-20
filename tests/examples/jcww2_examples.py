@@ -606,9 +606,6 @@ for i in range(len(jcww2_left_primer)):
         forward = jcww2_left_primer[i]
         reverse = jcww2_right_primer[j]
         product = jcww2_product[i][j]
-        if forward is None or reverse is None or product is None:
-            raise ValueError("Example data not fully initialized")
-
         jcww2_example_amplicon[i][j] = AmpliconExample(
             jcww2_template,
             forward,
