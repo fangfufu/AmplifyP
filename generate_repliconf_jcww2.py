@@ -36,7 +36,7 @@ def generate_repliconfs() -> None:
     # Configure logging to see debug output if needed
     logging.basicConfig(level=logging.ERROR, format="%(message)s")
 
-    template = ex.jcww2_linear_example
+    template = ex.jcww2_template
     settings = DEFAULT_SETTINGS
 
     # List of primers from the example file

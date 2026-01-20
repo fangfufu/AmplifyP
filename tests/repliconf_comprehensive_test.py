@@ -8,8 +8,8 @@ from amplifyp.settings import DEFAULT_SETTINGS
 
 def test_repliconf_primer_jcww2_l1() -> None:
     """Test repliconf with primer_jcww2_l1 (GFPxVP249TPGF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l1
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[0]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -28,8 +28,8 @@ def test_repliconf_primer_jcww2_l1() -> None:
 
 def test_repliconf_primer_jcww2_l2() -> None:
     """Test repliconf with primer_jcww2_l2 (VP249GTd87_GF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l2
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[1]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -48,8 +48,8 @@ def test_repliconf_primer_jcww2_l2() -> None:
 
 def test_repliconf_primer_jcww2_l3() -> None:
     """Test repliconf with primer_jcww2_l3 (VP249GTd68_GF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l3
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[2]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -68,8 +68,8 @@ def test_repliconf_primer_jcww2_l3() -> None:
 
 def test_repliconf_primer_jcww2_l4() -> None:
     """Test repliconf with primer_jcww2_l4 (VP249GTd41_GF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l4
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[3]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -88,8 +88,8 @@ def test_repliconf_primer_jcww2_l4() -> None:
 
 def test_repliconf_primer_jcww2_l5() -> None:
     """Test repliconf with primer_jcww2_l5 (VP249GTd32_GF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l5
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[4]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -108,8 +108,8 @@ def test_repliconf_primer_jcww2_l5() -> None:
 
 def test_repliconf_primer_jcww2_l6() -> None:
     """Test repliconf with primer_jcww2_l6 (VP249GTd21_GF)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_l6
+    template = ex.jcww2_template
+    primer = ex.jcww2_left_primer[5]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -128,8 +128,8 @@ def test_repliconf_primer_jcww2_l6() -> None:
 
 def test_repliconf_primer_jcww2_r1() -> None:
     """Test repliconf with primer_jcww2_r1 (TetRSTR)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_r1
+    template = ex.jcww2_template
+    primer = ex.jcww2_right_primer[0]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -148,8 +148,8 @@ def test_repliconf_primer_jcww2_r1() -> None:
 
 def test_repliconf_primer_jcww2_r2() -> None:
     """Test repliconf with primer_jcww2_r2 (VP249GTd12C_GR)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_r2
+    template = ex.jcww2_template
+    primer = ex.jcww2_right_primer[1]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
@@ -168,8 +168,8 @@ def test_repliconf_primer_jcww2_r2() -> None:
 
 def test_repliconf_primer_jcww2_r3() -> None:
     """Test repliconf with primer_jcww2_r3 (VP249GTd24C_GR)."""
-    template = ex.jcww2_linear_example
-    primer = ex.primer_jcww2_r3
+    template = ex.jcww2_template
+    primer = ex.jcww2_right_primer[2]
     settings = DEFAULT_SETTINGS
 
     repliconf = Repliconf(template, primer, settings)
