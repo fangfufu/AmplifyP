@@ -327,7 +327,7 @@ class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
 
         # 5. Generate
         try:
-            amplicons = generator.generate_amplicons()
+            amplicons = generator.get_amplicons()
         except Exception as e:
             messagebox.showerror("Error", f"Simulation failed: {e}")
             return

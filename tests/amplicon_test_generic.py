@@ -1,4 +1,4 @@
-"""Tests related to AmpliconGenerator."""
+"""Generic tests related to AmpliconGenerator."""
 
 import pytest
 
@@ -21,6 +21,7 @@ def test_duplicate_repliconf_error() -> None:
     with pytest.raises(DuplicateRepliconfError):
         generator.add(repliconf)
 
+
 def test_remove_repliconf() -> None:
     """Test that a Repliconf can be removed from the AmpliconGenerator."""
     dna = DNA("ATGC" * 10, name="Template")
@@ -30,7 +31,7 @@ def test_remove_repliconf() -> None:
 
     generator.add(repliconf)
     assert repliconf in generator.repliconfs
-    
+
     generator.remove(repliconf)
     assert repliconf not in generator.repliconfs
 

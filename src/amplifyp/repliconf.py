@@ -91,6 +91,11 @@ class Repliconf:
         self.settings = settings
         self.origin_idx = OriginIdx([], [], False)
 
+    @property
+    def searched(self) -> bool:
+        """Return whether the origin index has been searched."""
+        return self.origin_idx.searched
+
     def range(self) -> range:
         """Return the valid search range for replication origins.
 

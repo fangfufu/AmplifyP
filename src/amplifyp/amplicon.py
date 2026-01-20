@@ -3,8 +3,8 @@
 from dataclasses import dataclass
 
 from .dna import DNA, Primer
-from .repliconf import Repliconf
 from .errors import DuplicateRepliconfError
+from .repliconf import Repliconf
 
 
 @dataclass(slots=True)
@@ -16,12 +16,12 @@ class Amplicon:
     forward and reverse replication origins.
 
     Attributes:
-        sequence (DNA): The DNA sequence of the amplicon.
+        product (DNA): The amplification product.
         fwd_origin (Primer): The forward replication origin.
         rev_origin (Primer): The reverse replication origin.
     """
 
-    sequence: DNA
+    product: DNA
     fwd_origin: Primer
     rev_origin: Primer
 
@@ -85,13 +85,18 @@ class AmpliconGenerator:
         """
         self.repliconfs.remove(repliconf)
 
-    def generate_amplicons(self) -> list[Amplicon]:
-        """Generate amplicons from the added replication configurations.
+    def get_amplicons(self) -> list[Amplicon]:
+        """Get amplicons from the added replication configurations.
 
         Returns:
             List[Amplicon]: A list of generated Amplicons.
         """
-        amplicons = []
+        amplicons: list[Amplicon] = []
+
+        for repliconf in self.repliconfs:
+            if not repliconf.searched:
+                repliconf.search()
+
         for fwd_conf in self.repliconfs:
             for start in fwd_conf.amplicon_start:
                 for rev_conf in self.repliconfs:
