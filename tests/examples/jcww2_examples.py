@@ -596,7 +596,7 @@ jcww2_product[5][2] = DNA(
     "jcww2_l6_r3",
 )
 
-jcww2_amplicon_example: list[list[AmpliconExample | None]] = [
+jcww2_example_amplicon: list[list[AmpliconExample | None]] = [
     [None for _ in range(len(jcww2_right_primer))]
     for _ in range(len(jcww2_left_primer))
 ]
@@ -609,7 +609,7 @@ for i in range(len(jcww2_left_primer)):
         if forward is None or reverse is None or product is None:
             raise ValueError("Example data not fully initialized")
 
-        jcww2_amplicon_example[i][j] = AmpliconExample(
+        jcww2_example_amplicon[i][j] = AmpliconExample(
             jcww2_template,
             forward,
             reverse,
