@@ -47,9 +47,7 @@ class ReplicationOrigin:
             float: The primability of the origin, a value between 0 and 1.
         """
         m: LengthWiseWeightTbl = self.settings.match_weight
-        S: BasePairWeightsTbl = (  # pylint: disable=invalid-name
-            self.settings.base_pair_scores
-        )
+        S: BasePairWeightsTbl = self.settings.base_pair_scores
         numerator: float = 0
         denominator: float = 0
         for k, (i, j) in enumerate(zip(self.primer, self.target, strict=False)):
@@ -72,8 +70,8 @@ class ReplicationOrigin:
         Returns:
             float: The stability of the origin, a value between 0 and 1.
         """
-        r = self.settings.run_weights  # pylint: disable=invalid-name
-        S = self.settings.base_pair_scores  # pylint: disable=invalid-name
+        r = self.settings.run_weights
+        S = self.settings.base_pair_scores
         numerator: float = 0
         denominator: float = 0
         this_run_len: float = 0

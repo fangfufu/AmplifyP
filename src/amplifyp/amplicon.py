@@ -45,8 +45,6 @@ class AmpliconGenerator:
         repliconfs (List[Repliconf]): A list of replication configurations.
     """
 
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, template: DNA) -> None:
         """Constructs an AmpliconGenerator object.
 

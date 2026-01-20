@@ -12,10 +12,15 @@ from tkinter import filedialog, messagebox, ttk
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
 
-from amplifyp.amplicon import AmpliconGenerator  # pylint: disable=C0413
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer  # pylint: disable=C0413
-from amplifyp.repliconf import Repliconf  # pylint: disable=C0413
-from amplifyp.settings import DEFAULT_SETTINGS  # pylint: disable=C0413
+from amplifyp.amplicon import AmpliconGenerator
+from amplifyp.dna import (
+    DNA,
+    DNADirection,
+    DNAType,
+    Primer,
+)
+from amplifyp.repliconf import Repliconf
+from amplifyp.settings import DEFAULT_SETTINGS
 
 settings = copy.deepcopy(DEFAULT_SETTINGS)
 
@@ -88,7 +93,7 @@ class PrimerStatsDialog(tk.Toplevel):
             self.destroy()
 
 
-class AmplifyPApp(ttk.Frame):  # pylint: disable=R0902
+class AmplifyPApp(ttk.Frame):
     """Main application class for AmplifyP GUI."""
 
     def __init__(self, master: tk.Tk | None = None) -> None:
