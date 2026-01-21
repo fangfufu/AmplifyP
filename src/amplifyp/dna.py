@@ -252,8 +252,7 @@ class DNA:
             bool: True if `other` is the complement of this object.
         """
         return (
-            self.seq.upper() == other.complement().seq.upper()
-            and self.direction != other.direction
+            self.seq.upper() == other.complement().seq.upper() and self.direction != other.direction
         )
 
     def __len__(self) -> int:
@@ -333,9 +332,7 @@ class DNA:
         Returns:
             str: A formatted string containing name, type, and direction.
         """
-        return (
-            f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
-        )
+        return f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
 
     def __add__(self, other: "DNA") -> "DNA":
         """Concatenate two DNA sequences.

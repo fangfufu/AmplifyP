@@ -7,9 +7,7 @@ from amplifyp.settings import DEFAULT_SETTINGS, Settings
 def test_gui_settings_exists() -> None:
     """Verify that gui.settings exists and is of the correct type."""
     assert hasattr(gui, "settings"), "gui module should have a 'settings' attribute"
-    assert isinstance(gui.settings, Settings), (
-        "gui.settings should be an instance of Settings"
-    )
+    assert isinstance(gui.settings, Settings), "gui.settings should be an instance of Settings"
 
 
 def test_gui_settings_initialization() -> None:

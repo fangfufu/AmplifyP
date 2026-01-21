@@ -103,9 +103,7 @@ class BasePairWeightsTbl:
         self.__row_max: dict[str, float] = {}
 
         # Optimized lookups
-        self.__matrix: list[list[float]] = [
-            [0.0] * len(self.__col) for _ in range(len(self.__row))
-        ]
+        self.__matrix: list[list[float]] = [[0.0] * len(self.__col) for _ in range(len(self.__row))]
         self.__row_map: list[int] = [-1] * 128
         self.__col_map: list[int] = [-1] * 128
 
@@ -134,9 +132,7 @@ class BasePairWeightsTbl:
         exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
 
         if len(weight) != exp_row_len:
-            raise ValueError(
-                "BasePairWeightsTbl: row length mismatch at initialisation."
-            )
+            raise ValueError("BasePairWeightsTbl: row length mismatch at initialisation.")
 
         for i, row_val in enumerate(self.__row):
             if row_val != Nucleotides.GAP:

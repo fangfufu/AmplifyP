@@ -156,12 +156,8 @@ class AmplifyPApp(ttk.Frame):
         """
         menu = tk.Menu(widget, tearoff=0)
         menu.add_command(label="Cut", command=lambda: widget.event_generate("<<Cut>>"))
-        menu.add_command(
-            label="Copy", command=lambda: widget.event_generate("<<Copy>>")
-        )
-        menu.add_command(
-            label="Paste", command=lambda: widget.event_generate("<<Paste>>")
-        )
+        menu.add_command(label="Copy", command=lambda: widget.event_generate("<<Copy>>"))
+        menu.add_command(label="Paste", command=lambda: widget.event_generate("<<Paste>>"))
 
         def show_menu(event: tk.Event) -> None:
             menu.tk_popup(event.x_root, event.y_root)
@@ -198,12 +194,8 @@ class AmplifyPApp(ttk.Frame):
         self.create_context_menu(seq_entry)
 
         ttk.Button(input_frame, text="Add", command=self.add_primer).pack(side="left")
-        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(
-            side="left", padx=5
-        )
-        ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(
-            side="left"
-        )
+        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(side="left", padx=5)
+        ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(side="left")
 
         # Listbox for keys
         self.primers_list = tk.Listbox(primers_frame, height=5)
@@ -239,9 +231,7 @@ class AmplifyPApp(ttk.Frame):
 
         ttk.Label(settings_frame, text="Stability Cutoff:").pack(side="left")
         self.stability_var = tk.DoubleVar(value=settings.stability_cutoff)
-        self.stability_entry = ttk.Entry(
-            settings_frame, textvariable=self.stability_var, width=10
-        )
+        self.stability_entry = ttk.Entry(settings_frame, textvariable=self.stability_var, width=10)
         self.stability_entry.pack(side="left", padx=5)
         self.create_context_menu(self.stability_entry)
 
@@ -298,9 +288,7 @@ class AmplifyPApp(ttk.Frame):
         try:
             del self.primers_data[index]
         except IndexError:
-            messagebox.showerror(
-                "Error", "Could not delete primer: Index out of range."
-            )
+            messagebox.showerror("Error", "Could not delete primer: Index out of range.")
             return
 
         # Remove from listbox

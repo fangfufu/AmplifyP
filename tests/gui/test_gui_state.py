@@ -36,9 +36,7 @@ class TestGUIState(unittest.TestCase):
 
     @patch("amplifyp.gui.filedialog.asksaveasfilename")
     @patch("amplifyp.gui.messagebox.showinfo")
-    def test_save_state(
-        self, mock_showinfo: MagicMock, mock_asksaveas: MagicMock
-    ) -> None:
+    def test_save_state(self, mock_showinfo: MagicMock, mock_asksaveas: MagicMock) -> None:
         """Test saving state to a JSON file."""
         # 1. Setup App State
         self.app.template_text.insert("1.0", "ATGC")
@@ -75,9 +73,7 @@ class TestGUIState(unittest.TestCase):
 
     @patch("amplifyp.gui.filedialog.askopenfilename")
     @patch("amplifyp.gui.messagebox.showinfo")
-    def test_load_state(
-        self, mock_showinfo: MagicMock, mock_askopen: MagicMock
-    ) -> None:
+    def test_load_state(self, mock_showinfo: MagicMock, mock_askopen: MagicMock) -> None:
         """Test loading state from a JSON file."""
         # 1. Create Test File
         test_file = "test_load_state.json"

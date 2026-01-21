@@ -243,9 +243,7 @@ class Repliconf:
         self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
         if template.type == DNAType.LINEAR:
-            self.template_seq[DNADirection.FWD] = (
-                Nucleotides.GAP * self.padding_len + template.seq
-            )
+            self.template_seq[DNADirection.FWD] = Nucleotides.GAP * self.padding_len + template.seq
             self.template_seq[DNADirection.REV] = (
                 template.seq + Nucleotides.GAP * self.padding_len
             ).translate(COMPLEMENT_TABLE)
@@ -259,12 +257,8 @@ class Repliconf:
         else:
             raise TypeError("Invalid DNA type for padding operation.")
 
-        logging.debug(
-            f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}"
-        )
-        logging.debug(
-            f"Repliconf.__init__(): REV: {self.template_seq[DNADirection.REV]}"
-        )
+        logging.debug(f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}")
+        logging.debug(f"Repliconf.__init__(): REV: {self.template_seq[DNADirection.REV]}")
 
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
@@ -457,9 +451,7 @@ class Repliconf:
 
                     if primability > prim_cutoff and stability > stab_cutoff:
                         origin = self.origin(direction, i)
-                        logging.debug(
-                            f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
-                        )
+                        logging.debug(f"Repliconf.search(): adding [{direction}, {i}]: {origin}")
                         self.origin_db.fwd.append(DirIdx(direction, i))
 
             else:
@@ -496,9 +488,7 @@ class Repliconf:
 
                     if primability > prim_cutoff and stability > stab_cutoff:
                         origin = self.origin(direction, i)
-                        logging.debug(
-                            f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
-                        )
+                        logging.debug(f"Repliconf.search(): adding [{direction}, {i}]: {origin}")
                         self.origin_db.rev.append(DirIdx(direction, i))
 
         self.origin_db.searched = True

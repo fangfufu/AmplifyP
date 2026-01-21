@@ -5,7 +5,7 @@ DNA templates in AmplifyP. It specifically addresses confusion about
 directionality (Sense vs Antisense) and how searches are performed.
 """
 
-from amplifyp.dna import DNA, DNADirection, Primer
+from amplifyp.dna import DNA, Primer
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import Settings
 

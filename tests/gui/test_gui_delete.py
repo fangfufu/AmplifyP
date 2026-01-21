@@ -71,9 +71,7 @@ class TestGUIDelete(unittest.TestCase):
         self.app.delete_primer()
 
         # 4. Verify Warning
-        mock_showwarning.assert_called_with(
-            "Warning", "Please select a primer to delete."
-        )
+        mock_showwarning.assert_called_with("Warning", "Please select a primer to delete.")
 
         # Verify nothing deleted
         self.assertEqual(len(self.app.primers_data), 1)

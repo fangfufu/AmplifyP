@@ -89,9 +89,7 @@ class AmpliconGenerator:
         if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
         else:
-            raise DuplicateRepliconfError(
-                "The Repliconf is already in the AmpliconGenerator."
-            )
+            raise DuplicateRepliconfError("The Repliconf is already in the AmpliconGenerator.")
 
     def remove(self, repliconf: Repliconf) -> None:
         """Remove a replication configuration from the generator.

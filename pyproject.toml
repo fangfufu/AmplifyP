@@ -33,7 +33,7 @@ author = [
 target-version = "py312"
 exclude = ["resources"]
 
-line-length = 88
+line-length = 100
 # Enable everything you mentioned:
 lint.select = [
   "B",   # flake8-bugbear
@@ -52,7 +52,7 @@ lint.select = [
 ]
 # Ignore "S101" (assert used) in all files inside the tests directory
 lint.per-file-ignores."tests/**/*.py" = [ "S101" ]
-lint.pydocstyle.convention = "google"              # or "numpy" / "pep257"
+lint.pydocstyle.convention = "google"
 
 [tool.pytest.ini_options]
 pythonpath = "src"

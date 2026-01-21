@@ -128,9 +128,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
             target (str): The target DNA sequence. The complement will be used.
             primer (str): The primer sequence.
         """
-        super().__init__(
-            target=DNA(target).complement().seq, primer=primer, settings=Settings()
-        )
+        super().__init__(target=DNA(target).complement().seq, primer=primer, settings=Settings())
 
 
 class Amplify4FwdOrigin(ReplicationOrigin):
