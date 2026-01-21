@@ -191,19 +191,27 @@ class Repliconf:
         """
         return slice(i, i + len(self.primer))
 
-    def origin(self, direction: DNADirection, i: int) -> ReplicationOrigin:
-        """Return the ith ReplicationOrigin.
-
-        This method constructs a `ReplicationOrigin` object for a given
-        direction and index.
+    def origin(
+        self, var: DirectionIndex | DNADirection, *idx: int
+    ) -> ReplicationOrigin:
+        """Return the ReplicationOrigin at the given index.
 
         Args:
-            direction (DNADirection): The direction of the DNA strand.
-            i (int): The index of the replication origin.
+            var (DirectionIndex | DNADirection): The direction of the DNA strand.
+            *idx (int): The index of the replication origin.
 
         Returns:
             ReplicationOrigin: The replication origin object.
         """
+        if isinstance(var, DirectionIndex):
+            direction = var.direction
+            i = var.index
+        elif isinstance(var, DNADirection):
+            direction = var
+            i = idx[0]
+        else:
+            raise TypeError("var must be DirectionIndex or DNADirection")
+
         return ReplicationOrigin(
             (
                 self.template_seq[direction][self.slice(i)][::-1]
