@@ -400,6 +400,21 @@ class Repliconf:
         stab_cutoff = self.settings.stability_cutoff
 
         for direction in [DNADirection.FWD, DNADirection.REV]:
+            # FWD direction:
+            # - Searches `template_seq[FWD]`, which is the Sense strand (5'-3').
+            # - Matches the primer sequence against the Sense strand (reversed).
+            # - Effectively finds binding sites for Forward Primers (which are
+            #   identical to the Sense strand) by checking for identity.
+            #
+            # REV direction:
+            # - Searches `template_seq[REV]`, which is the Antisense strand
+            #   (complement of Sense, read 3'-5' in physical space, but stored
+            #   as a string).
+            # - Matches the primer sequence against the Antisense strand.
+            # - Effectively finds binding sites for Reverse Primers (which are
+            #   complementary to the Sense strand) by checking for identity
+            #   against the Antisense strand.
+
             logging.debug(f"Repliconf.search(): {direction}")
 
             seq = self.template_seq[direction]
