@@ -1,3 +1,5 @@
+"""Tests for GUI simulation functionality."""
+
 import os
 import sys
 import threading
@@ -10,52 +12,59 @@ sys.path.insert(0, os.path.abspath("src"))
 
 # Create mock classes for Tkinter
 class MockTk:
-    def __init__(self):
-        pass
+    """Mock Tk class."""
 
-    def title(self, t):
-        pass
+    def __init__(self) -> None:
+        """Initialize MockTk."""
 
-    def geometry(self, g):
-        pass
+    def title(self, t: str) -> None:
+        """Set title."""
 
-    def configure(self, **kwargs):
-        pass
+    def geometry(self, g: str) -> None:
+        """Set geometry."""
 
-    def mainloop(self):
-        pass
+    def configure(self, **kwargs: object) -> None:
+        """Configure widget."""
+
+    def mainloop(self) -> None:
+        """Start mainloop."""
 
 
 class MockFrame:
-    def __init__(self, master=None):
+    """Mock Frame class."""
+
+    def __init__(self, master: object = None) -> None:
+        """Initialize MockFrame."""
         self.master = master
 
-    def pack(self, **kwargs):
-        pass
+    def pack(self, **kwargs: object) -> None:
+        """Pack widget."""
 
-    def config(self, **kwargs):
-        pass
+    def config(self, **kwargs: object) -> None:
+        """Configure widget."""
 
-    def after(self, ms, func=None, *args):
+    def after(self, ms: int, func: object = None, *args: object) -> None:
+        """Schedule callback."""
         # Verify after is called
-        pass
 
-    def quit(self):
-        pass
+    def quit(self) -> None:
+        """Quit application."""
 
 
 class MockToplevel:
-    def __init__(self, master=None):
-        pass
+    """Mock Toplevel class."""
 
-    def title(self, text):
-        pass
+    def __init__(self, master: object = None) -> None:
+        """Initialize MockToplevel."""
 
-    def geometry(self, geom):
-        pass
+    def title(self, text: str) -> None:
+        """Set title."""
 
-    def destroy(self):
-        pass
+    def geometry(self, geom: str) -> None:
+        """Set geometry."""
+
+    def destroy(self) -> None:
+        """Destroy widget."""
 
 
 # Prepare the mocks
@@ -71,13 +80,19 @@ mock_ttk.Frame = MockFrame
 # IMPORTANT: Link ttk to tk so 'from tkinter import ttk' works as expected
 mock_tk.ttk = mock_ttk
 
+# Force reload of amplifyp.gui to ensure it uses the mocked tkinter
+sys.modules.pop("amplifyp.gui", None)
+
 with patch.dict(sys.modules, {"tkinter": mock_tk, "tkinter.ttk": mock_ttk}):
     from amplifyp.dna import Primer
     from amplifyp.gui import AmplifyPApp
 
 
 class TestGUISimulation(unittest.TestCase):
-    def setUp(self):
+    """Test GUI Simulation."""
+
+    def setUp(self) -> None:
+        """Set up test fixtures."""
         # Instantiate app
         self.root = MockTk()
         self.app = AmplifyPApp(self.root)
@@ -107,8 +122,12 @@ class TestGUISimulation(unittest.TestCase):
     @patch("amplifyp.gui.AmpliconGenerator")
     @patch("amplifyp.gui.Repliconf")
     def test_simulate_pcr_starts_thread(
-        self, MockRepliconf, MockAmpliconGenerator, MockMessagebox
-    ):
+        self,
+        MockRepliconf: MagicMock,
+        MockAmpliconGenerator: MagicMock,
+        MockMessagebox: MagicMock,
+    ) -> None:
+        """Test that simulating PCR starts a new thread."""
         # Setup mocks
         mock_gen = MockAmpliconGenerator.return_value
         mock_gen.get_amplicons.return_value = []
@@ -123,7 +142,8 @@ class TestGUISimulation(unittest.TestCase):
         # Check if thread started
         self.assertTrue(hasattr(self.app, "simulation_thread"))
         self.assertIsInstance(self.app.simulation_thread, threading.Thread)
-        # We don't check is_alive() because thread might finish instantly due to mocking/small input
+        # We don't check is_alive() because thread might finish instantly due to mocking
+        # or small input
 
         # Check if after called to schedule check
         self.app.after.assert_called()
@@ -143,7 +163,8 @@ class TestGUISimulation(unittest.TestCase):
         self.app.config.assert_called_with(cursor="")
 
         # Check results are populated (meaning thread ran)
-        # If AmpliconGenerator was real, it produced results. If mock, it produced return_value.
+        # If AmpliconGenerator was real, it produced results. If mock,
+        # it produced return_value.
         # Since we found out it's running real one, it should have results.
         self.assertIsNotNone(self.app.simulation_result)
 
