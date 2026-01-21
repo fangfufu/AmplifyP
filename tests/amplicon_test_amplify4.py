@@ -1,6 +1,7 @@
 """Amplify 4-specific tests for AmpliconGenerator."""
 
 from amplifyp.amplicon import AmpliconGenerator
+from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS
 from tests.examples.amplify4_examples import (
@@ -75,8 +76,31 @@ def test_amplify4_1701_10289_10290() -> None:
             encountered_2516 = True
         elif len(amplicon.product.seq) == 566:
             assert amplicon.product.seq.upper() == fragment_566bp.seq.upper()
-            # assert amplicon.q_score == 68702
+            assert amplicon.q_score == 55696.52822187758
             encountered_566 = True
     assert encountered_2033
     assert encountered_2516
     assert encountered_566
+
+
+def test_10290_10289_566bp_manual() -> None:
+    """Test 10290_10289_566bp manually.
+
+    This calculates the 566bp amplicon generated from the built-in template using
+    the built-in primers with the label 10290 and 10289. The target sequence
+    length is 526bp. The whole amplicon is 566bp.
+    """
+    repliconf_10290.search()
+    repliconf_10289.search()
+    assert repliconf_10290.origin_db.fwd == [710, 2177]
+    origin_fwd = repliconf_10290.origin_from_db(DNADirection.FWD, 1)
+    assert origin_fwd.primability == 0.8059701492537313
+    assert origin_fwd.stability == 0.4717741935483871
+    assert origin_fwd.quality == 0.09718042850264788
+    origin_rev = repliconf_10289.origin_from_db(DNADirection.REV, 0)
+    assert origin_rev.primability == 1.0
+    assert origin_rev.stability == 1.0
+    assert origin_rev.quality == 1.0
+    fwd_quality = origin_fwd.quality
+    rev_quality = origin_rev.quality
+    assert 526 / (fwd_quality * rev_quality) ** 2 == 55696.52822187758

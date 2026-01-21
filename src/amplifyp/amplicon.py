@@ -122,12 +122,10 @@ class AmpliconGenerator:
                 repliconf.search()
 
         for fwd_conf in self.repliconfs:
-            for start in fwd_conf.target_start:
+            for start in fwd_conf.origin_db.fwd:
                 for rev_conf in self.repliconfs:
-                    for end in rev_conf.target_end:
+                    for end in rev_conf.origin_db.rev:
                         if start < end:
-                            # Generate amplicon sequence from template slice.
-                            # Python slicing handles ends gracefully.
                             seq = (
                                 fwd_conf.primer
                                 + self.template[start:end]

@@ -17,8 +17,6 @@ def test_repliconf_linear_search() -> None:
     repliconf.search()
     assert repliconf.origin_db.fwd == [4, 7]
     assert repliconf.origin_db.rev == [7, 10]
-    assert repliconf.target_start == [4, 7]
-    assert repliconf.target_end == [7, 10]
 
 
 def test_repliconf_circular_search() -> None:
@@ -33,8 +31,6 @@ def test_repliconf_circular_search() -> None:
     repliconf.search()
     assert repliconf.origin_db.fwd == [1]
     assert repliconf.origin_db.rev == [6]
-    assert repliconf.target_start == [1]
-    assert repliconf.target_end == [6]
 
 
 test_repliconf = Repliconf(

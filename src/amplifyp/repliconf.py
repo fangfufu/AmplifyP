@@ -302,27 +302,3 @@ class Repliconf:
             str: A string representation of the object.
         """
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
-
-    @property
-    def target_start(self) -> list[DirIdx]:
-        """Return the list of amplicon starting positions.
-
-        The starting positions are calculated from the forward replication
-        origin indices.
-
-        Returns:
-            List[int]: A list of amplicon starting positions.
-        """
-        return self.origin_db.fwd
-
-    @property
-    def target_end(self) -> list[DirIdx]:
-        """Return the list of amplicon ending positions.
-
-        The ending positions are calculated from the reverse replication
-        origin indices.
-
-        Returns:
-            List[int]: A list of amplicon ending positions.
-        """
-        return self.origin_db.rev
