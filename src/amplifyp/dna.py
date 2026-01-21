@@ -10,6 +10,16 @@ class Nucleotides(StrEnum):
     different contexts within the AmplifyP application. It includes single
     nucleotides, ambiguous (double and triple) nucleotides, wildcards, and gaps.
     It also defines composite groups for circular, linear, and primer DNA types.
+
+    Attributes:
+        SINGLE: Standard single nucleotides (G, A, T, C).
+        DOUBLE: Ambiguous nucleotides representing two possibilities (M, R, W, S, Y, K).
+        TRIPLE: Ambiguous nucleotides representing three possibilities (V, H, D, B).
+        WILDCARD: Wildcard character representing any nucleotide (N).
+        GAP: Gap character (-).
+        CIRCULAR: Valid characters for circular DNA (SINGLE + WILDCARD).
+        LINEAR: Valid characters for linear DNA (CIRCULAR + GAP).
+        PRIMER: Valid characters for primers (SINGLE + DOUBLE + TRIPLE + WILDCARD).
     """
 
     SINGLE = "GATC"
@@ -29,6 +39,11 @@ class DNAType(IntEnum):
     This enumeration is used to specify whether a DNA sequence is linear,
     circular, or a primer. This distinction is important for certain
     operations, such as padding and rotation.
+
+    Attributes:
+        LINEAR: Represents linear DNA (e.g., chromosomes).
+        CIRCULAR: Represents circular DNA (e.g., plasmids).
+        PRIMER: Represents a primer sequence.
     """
 
     LINEAR = 1
@@ -42,6 +57,10 @@ class DNADirection(Flag):
     This enumeration defines the two possible directions for a DNA strand:
     forward (5' to 3') and reverse (3' to 5'). It is used to track the
     orientation of DNA sequences.
+
+    Attributes:
+        FWD: Represents the forward direction (5' -> 3').
+        REV: Represents the reverse direction (3' -> 5').
     """
 
     FWD = True
@@ -57,10 +76,10 @@ class DNA:
     reversing, and padding.
 
     Attributes:
-        seq (str): The DNA sequence.
-        type (DNAType): The type of the DNA sequence.
-        name (str): The name of the DNA sequence.
-        direction (DNADirection): The direction of the DNA sequence.
+        seq (str): The DNA sequence string.
+        type (DNAType): The type of the DNA sequence (LINEAR, CIRCULAR, or PRIMER).
+        name (str): The name identifier of the DNA sequence.
+        direction (bool | DNADirection): The direction of the DNA sequence (FWD or REV).
     """
 
     def __init__(
@@ -70,19 +89,20 @@ class DNA:
         name: str | None = None,
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
-        """Initializes a DNA object.
+        """Initializes a new DNA object.
 
         Args:
-            seq (str): The DNA sequence.
-            dna_type (DNAType, optional): The type of DNA. Defaults to
-              DNAType.LINEAR.
-            name (str, optional): The name of the DNA sequence. Defaults to None.
+            seq (str): The raw DNA sequence. Whitespace will be removed.
+            dna_type (DNAType, optional): The type of DNA (LINEAR, CIRCULAR, PRIMER).
+                Defaults to DNAType.LINEAR.
+            name (str, optional): The name of the DNA sequence. If None, the sequence
+                itself is used as the name. Defaults to None.
             direction (bool | DNADirection, optional): The direction of the DNA
-              sequence. Defaults to DNADirection.FWD.
+                sequence. Defaults to DNADirection.FWD.
 
         Raises:
-            TypeError: If the DNA type is invalid.
-            ValueError: If the DNA sequence contains invalid characters.
+            TypeError: If the provided `dna_type` is invalid.
+            ValueError: If the `seq` contains characters invalid for the specified `dna_type`.
         """
         self.__seq: str = "".join(seq.split())
         self.__type: DNAType = dna_type
@@ -112,7 +132,7 @@ class DNA:
 
     @property
     def type(self) -> DNAType:
-        """The DNA type."""
+        """The DNA type (LINEAR, CIRCULAR, or PRIMER)."""
         return self.__type
 
     @property
@@ -122,7 +142,11 @@ class DNA:
 
     @name.setter
     def name(self, value: str) -> None:
-        """Set the name of the DNA sequence."""
+        """Set the name of the DNA sequence.
+
+        Args:
+            value (str): The new name. Whitespace will be stripped.
+        """
         self.__name = value.strip()
 
     @property
@@ -131,30 +155,29 @@ class DNA:
         return self.__direction
 
     def lower(self) -> "DNA":
-        """Return a new DNA object with the sequence in lower case.
+        """Return a copy of the DNA object with the sequence in lowercase.
 
         Returns:
-            DNA: A new DNA object with the sequence in lower case.
+            DNA: A new DNA object with the lowercase sequence.
         """
         return DNA(self.seq.lower(), self.type, self.name, self.direction)
 
     def upper(self) -> "DNA":
-        """Return a new DNA object with the sequence in upper case.
+        """Return a copy of the DNA object with the sequence in uppercase.
 
         Returns:
-            DNA: A new DNA object with the sequence in upper case.
+            DNA: A new DNA object with the uppercase sequence.
         """
         return DNA(self.seq.upper(), self.type, self.name, self.direction)
 
     def complement(self) -> "DNA":
         """Return the complement of the DNA sequence.
 
-        The complement is created by swapping A with T, C with G, and vice versa.
-        The direction of the new DNA object is also inverted.
+        The complement is calculated by swapping A<->T, C<->G, etc.
+        The direction of the returned DNA object is inverted relative to the original.
 
         Returns:
-            DNA: A new DNA object representing the complement of the original
-                 sequence.
+            DNA: A new DNA object representing the complement sequence.
         """
         return DNA(
             self.seq.translate(
@@ -168,36 +191,35 @@ class DNA:
     def reverse(self) -> "DNA":
         """Return the reverse of the DNA sequence.
 
-        The direction of the new DNA object is also inverted.
+        The direction of the returned DNA object is inverted relative to the original.
 
         Returns:
-            DNA: A new DNA object representing the reverse of the original
-                 sequence.
+            DNA: A new DNA object representing the reversed sequence.
         """
         return DNA(self.seq[::-1], self.type, self.name, not self.direction)
 
     def reverse_complement(self) -> "DNA":
         """Return the reverse complement of the DNA sequence.
 
-        The direction of the new DNA object is also inverted.
+        This is equivalent to calling `.reverse().complement()`.
+        The direction of the returned DNA object is inverted relative to the original.
 
         Returns:
-            DNA: A new DNA object representing the reverse complement of the
-                 original sequence.
+            DNA: A new DNA object representing the reverse complement sequence.
         """
         return self.reverse().complement()
 
     def __eq__(self, other: object) -> bool:
-        """Check if two DNA objects are identical.
+        """Check if two DNA objects are equal.
 
-        DNA objects are considered identical if they have the same sequence,
-        direction, and type. The comparison is case-insensitive.
+        Equality is determined by case-insensitive sequence comparison,
+        matching direction, and matching DNA type.
 
         Args:
             other (object): The object to compare with.
 
         Returns:
-            bool: True if the DNA sequences are identical, False otherwise.
+            bool: True if the objects are equal, False otherwise.
         """
         if not isinstance(other, DNA):
             return NotImplemented
@@ -210,27 +232,23 @@ class DNA:
     def __hash__(self) -> int:
         """Return a hash value for the DNA object.
 
-        The hash value is calculated based on the DNA sequence (in upper case),
-        direction, and type.
+        The hash is computed from the uppercase sequence, direction, and type.
 
         Returns:
-            int: The hash value for the DNA object.
+            int: The hash value.
         """
         return hash((self.seq.upper(), self.direction, self.type))
 
     def is_complement_of(self, other: "DNA") -> bool:
-        """Check if another DNA object is the complement of this one.
+        """Check if this DNA object is the complement of another.
 
-        This method checks if the sequence of the other DNA object is the
-        complement of this object's sequence and if their directions are
-        opposite.
+        This checks if `other` has the complementary sequence and opposite direction.
 
         Args:
             other (DNA): The other DNA object to compare with.
 
         Returns:
-            bool: True if the other DNA object is the complement of this one,
-                  False otherwise.
+            bool: True if `other` is the complement of this object.
         """
         return (
             self.seq.upper() == other.complement().seq.upper()
@@ -241,26 +259,24 @@ class DNA:
         """Return the length of the DNA sequence.
 
         Returns:
-            int: The length of the DNA sequence.
+            int: The length of the sequence.
         """
         return len(self.seq)
 
     def pad(self, i: int) -> "DNA":
-        """Add padding to the beginning of the DNA sequence string.
+        """Add padding to the beginning of the DNA sequence.
 
-        For linear DNA, the padding consists of gap characters ('-'). For
-        circular DNA, the padding is taken from the end of the sequence,
-        simulating a circular molecule.
+        - Linear DNA is padded with gaps ('-').
+        - Circular DNA is padded by wrapping around (taking characters from the end).
 
         Args:
-            i (int): The amount of padding to add.
+            i (int): The number of characters to pad.
 
         Returns:
             DNA: A new DNA object with the padded sequence.
 
         Raises:
-            TypeError: If padding is attempted on a DNA type that does not
-                       support it.
+            TypeError: If the DNA type does not support padding (e.g., PRIMER).
         """
         if self.type == DNAType.LINEAR:
             padding_str = Nucleotides.GAP * i
@@ -281,16 +297,17 @@ class DNA:
     def rot(self, i: int) -> "DNA":
         """Rotate the DNA sequence by a specified number of bases.
 
-        This operation is only supported for circular DNA.
+        This essentially shifts the starting point of the sequence.
+        Only supported for circular DNA.
 
         Args:
-            i (int): The number of bases to rotate the sequence by.
+            i (int): The number of bases to rotate.
 
         Returns:
             DNA: A new DNA object with the rotated sequence.
 
         Raises:
-            TypeError: If rotation is attempted on non-circular DNA.
+            TypeError: If the DNA is not circular.
         """
         if self.type == DNAType.LINEAR:
             raise TypeError("Rotation is unsupported for linear DNA.")
@@ -299,39 +316,34 @@ class DNA:
         return padded_dna[0 : len(self.seq)]
 
     def __getitem__(self, key: slice) -> "DNA":
-        """Return a slice of the DNA sequence.
-
-        This method allows for slicing of the DNA object, returning a new DNA
-        object representing the specified slice.
+        """Get a slice of the DNA sequence.
 
         Args:
-            key (slice): The slice to be taken from the DNA sequence.
+            key (slice): The slice object specifying the range.
 
         Returns:
-            DNA: A new DNA object representing the slice.
+            DNA: A new DNA object representing the subsequence.
         """
         return DNA(self.seq[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
         """Return a string representation of the DNA object.
 
-        The string includes the DNA's name, type, and direction.
-
         Returns:
-            str: A string representation of the DNA object.
+            str: A formatted string containing name, type, and direction.
         """
         return (
             f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
 
     def __add__(self, other: "DNA") -> "DNA":
-        """Add two DNA sequences.
+        """Concatenate two DNA sequences.
 
         Args:
-            other (DNA): The other DNA sequence to add.
+            other (DNA): The DNA sequence to append.
 
         Returns:
-            DNA: A new DNA object representing the sum of the two sequences.
+            DNA: A new DNA object with the combined sequence. The type is set to LINEAR.
         """
         return DNA(self.seq + other.seq, DNAType.LINEAR, self.name, self.direction)
 
@@ -340,12 +352,8 @@ class Primer(DNA):
     """A class representing a primer sequence.
 
     A primer is a short single-stranded DNA sequence used as a starting point
-    for DNA synthesis. This class is a specialized subclass of `DNA` with the
-    type set to `DNAType.PRIMER` and the direction set to `DNADirection.FWD`.
-
-    Attributes:
-        seq (str): The primer sequence.
-        name (str): The name of the primer.
+    for DNA synthesis. This class inherits from `DNA` but enforces
+    `DNAType.PRIMER` and `DNADirection.FWD`.
     """
 
     def __init__(
@@ -356,7 +364,7 @@ class Primer(DNA):
         """Initializes a Primer object.
 
         Args:
-            sequence (str): The primer sequence.
-            name (str, optional): The name of the primer. Defaults to None.
+            sequence (str): The nucleotide sequence of the primer.
+            name (str, optional): An optional name for the primer. Defaults to None.
         """
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
