@@ -1,7 +1,9 @@
 """Pytest configuration and fixtures for GUI tests."""
 
 import copy
+
 import pytest
+
 from amplifyp import gui
 from amplifyp.settings import DEFAULT_SETTINGS
 
