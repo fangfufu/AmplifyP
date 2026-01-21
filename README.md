@@ -117,7 +117,6 @@ pytest
 
 ### Todo
 
-- [ ] Melting temperature calculation
 - [ ] Verification of circular target amplification
 
 ## Attribution
