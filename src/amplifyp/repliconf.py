@@ -25,13 +25,21 @@ class DirectionIndex:
         """Return the index as an index."""
         return self.index
 
-    def __add__(self, other: int) -> DirectionIndex:
+    def __add__(self, other: object) -> DirectionIndex:
         """Add an integer to the index."""
-        return DirectionIndex(self.direction, self.index + other)
+        if isinstance(other, int):
+            return DirectionIndex(self.direction, self.index + other)
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return DirectionIndex(self.direction, self.index + other.index)
 
-    def __sub__(self, other: int) -> DirectionIndex:
+    def __sub__(self, other: object) -> DirectionIndex:
         """Subtract an integer from the index."""
-        return DirectionIndex(self.direction, self.index - other)
+        if isinstance(other, int):
+            return DirectionIndex(self.direction, self.index - other)
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return DirectionIndex(self.direction, self.index - other.index)
 
     def __eq__(self, other: object) -> bool:
         """Check if two DirectionIndex objects are equal."""
@@ -40,6 +48,38 @@ class DirectionIndex:
         if not isinstance(other, DirectionIndex):
             return NotImplemented
         return self.direction == other.direction and self.index == other.index
+
+    def __lt__(self, other: object) -> bool:
+        """Check if one DirectionIndex is less than another."""
+        if isinstance(other, int):
+            return self.index < other
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return self.index < other.index
+
+    def __gt__(self, other: object) -> bool:
+        """Check if one DirectionIndex is greater than another."""
+        if isinstance(other, int):
+            return self.index > other
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return self.index > other.index
+
+    def __le__(self, other: object) -> bool:
+        """Check if one DirectionIndex is less than or equal to another."""
+        if isinstance(other, int):
+            return self.index <= other
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return self.index <= other.index
+
+    def __ge__(self, other: object) -> bool:
+        """Check if one DirectionIndex is greater than or equal to another."""
+        if isinstance(other, int):
+            return self.index >= other
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return self.index >= other.index
 
 
 @dataclass(slots=True)

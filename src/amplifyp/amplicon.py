@@ -2,6 +2,9 @@
 
 from dataclasses import dataclass
 
+from amplifyp.dna import DNADirection
+from amplifyp.repliconf import DirectionIndex
+
 from .dna import DNA, Primer
 from .errors import DuplicateRepliconfError
 from .repliconf import Repliconf
@@ -26,8 +29,17 @@ class Amplicon:
     product: DNA
     fwd_origin: Primer
     rev_origin: Primer
-    start: int
-    end: int
+    start: DirectionIndex
+    end: DirectionIndex
+
+    def __post_init__(self) -> None:
+        """Validate the amplicon indices."""
+        if self.start.direction != DNADirection.FWD:
+            raise ValueError("Start direction must be forward.")
+        if self.end.direction != DNADirection.REV:
+            raise ValueError("End direction must be reverse.")
+        if self.end < self.start:
+            raise ValueError("End index must be after start index.")
 
 
 class AmpliconGenerator:
