@@ -23,19 +23,5 @@ def test_gui_settings_initialization() -> None:
 
 def test_gui_settings_modification() -> None:
     """Verify that gui.settings can be modified and persists."""
-    # We should probably reset settings after this test or use a fixture if we
-    # wanted full isolation, but since this runs in a separate process or we want
-    # to test state persistence (as implied by "persist"), we'll follow the script's
-    # logic. However, purely modifying global state in tests is risky. For now,
-    # I will mirror the script's logic to pass the "verify it persists" requirement
-    # within the scope of the test execution.
-
-    # Save original value to restore it later if needed (good practice)
-    original_cutoff = gui.settings.primability_cutoff
-
-    try:
-        gui.settings.primability_cutoff = 0.5
-        assert gui.settings.primability_cutoff == 0.5
-    finally:
-        # Restore state to avoid polluting other tests if they run in the same process
-        gui.settings.primability_cutoff = original_cutoff
+    gui.settings.primability_cutoff = 0.5
+    assert gui.settings.primability_cutoff == 0.5
