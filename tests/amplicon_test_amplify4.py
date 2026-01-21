@@ -35,6 +35,7 @@ def test_amplify4_examples() -> None:
         logging.info("Forward primer: %s", amplicon.fwd_origin)
         logging.info("Reverse primer: %s", amplicon.rev_origin)
         logging.info("Amplicon length: %s", len(amplicon.product.seq))
+        logging.info("Amplicon quality: %s", amplicon.q_score)
         if len(amplicon.product.seq) == 660:
             assert amplicon.product.seq.upper() == ex.fragment_660bp.seq.upper()
             logging.info("Amplicon 660bp is correct")

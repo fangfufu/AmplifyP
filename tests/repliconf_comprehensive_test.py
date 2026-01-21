@@ -16,9 +16,9 @@ def test_repliconf_primer_jcww2_l1() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4482]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4482]
 
     origin = repliconf.origin(DNADirection.FWD, 4482)
     assert origin.primability == 1.0
@@ -36,9 +36,9 @@ def test_repliconf_primer_jcww2_l2() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4743]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4743]
 
     origin = repliconf.origin(DNADirection.FWD, 4743)
     assert origin.primability == 0.9137931034482759
@@ -56,9 +56,9 @@ def test_repliconf_primer_jcww2_l3() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4686]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4686]
 
     origin = repliconf.origin(DNADirection.FWD, 4686)
     assert origin.primability == 0.9022988505747126
@@ -76,9 +76,9 @@ def test_repliconf_primer_jcww2_l4() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4604]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4604]
 
     origin = repliconf.origin(DNADirection.FWD, 4604)
     assert origin.primability == 0.9421965317919075
@@ -96,9 +96,9 @@ def test_repliconf_primer_jcww2_l5() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4583]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4583]
 
     origin = repliconf.origin(DNADirection.FWD, 4583)
     assert origin.primability == 0.9329608938547486
@@ -116,9 +116,9 @@ def test_repliconf_primer_jcww2_l6() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 1
-    assert len(repliconf.origin_idx.rev) == 0
-    assert repliconf.origin_idx.fwd == [4545]
+    assert len(repliconf.origin_db.fwd) == 1
+    assert len(repliconf.origin_db.rev) == 0
+    assert repliconf.origin_db.fwd == [4545]
 
     origin = repliconf.origin(DNADirection.FWD, 4545)
     assert origin.primability == 0.9022988505747126
@@ -136,9 +136,9 @@ def test_repliconf_primer_jcww2_r1() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 0
-    assert len(repliconf.origin_idx.rev) == 1
-    assert repliconf.origin_idx.rev == [1616]
+    assert len(repliconf.origin_db.fwd) == 0
+    assert len(repliconf.origin_db.rev) == 1
+    assert repliconf.origin_db.rev == [1616]
 
     origin = repliconf.origin(DNADirection.REV, 1616)
     assert origin.primability == 0.9937106918238994
@@ -156,9 +156,9 @@ def test_repliconf_primer_jcww2_r2() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 0
-    assert len(repliconf.origin_idx.rev) == 1
-    assert repliconf.origin_idx.rev == [5071]
+    assert len(repliconf.origin_db.fwd) == 0
+    assert len(repliconf.origin_db.rev) == 1
+    assert repliconf.origin_db.rev == [5071]
 
     origin = repliconf.origin(DNADirection.REV, 5071)
     assert origin.primability == 0.9080459770114943
@@ -176,9 +176,9 @@ def test_repliconf_primer_jcww2_r3() -> None:
     repliconf.search()
 
     # Assertions based on generated output
-    assert len(repliconf.origin_idx.fwd) == 0
-    assert len(repliconf.origin_idx.rev) == 1
-    assert repliconf.origin_idx.rev == [5031]
+    assert len(repliconf.origin_db.fwd) == 0
+    assert len(repliconf.origin_db.rev) == 1
+    assert repliconf.origin_db.rev == [5031]
 
     origin = repliconf.origin(DNADirection.REV, 5031)
     assert origin.primability == 0.9157303370786517

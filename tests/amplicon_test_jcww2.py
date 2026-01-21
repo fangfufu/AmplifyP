@@ -40,7 +40,7 @@ def test_jcww2_amplicon_examples() -> None:
                 continue
             amplicon_generator.add(left_repliconf)
             logging.info("Added left repliconf: %s", left_repliconf)
-            logging.info("Left repliconf index: %s", left_repliconf.origin_idx)
+            logging.info("Left repliconf index: %s", left_repliconf.origin_db)
             logging.info(
                 "Left repliconf amplicon start: %s", left_repliconf.amplicon_start
             )
@@ -48,7 +48,7 @@ def test_jcww2_amplicon_examples() -> None:
                 continue
             amplicon_generator.add(right_repliconf)
             logging.info("Added right repliconf: %s", right_repliconf)
-            logging.info("Right repliconf index: %s", right_repliconf.origin_idx)
+            logging.info("Right repliconf index: %s", right_repliconf.origin_db)
             logging.info(
                 "Right repliconf amplicon end: %s", right_repliconf.amplicon_end
             )

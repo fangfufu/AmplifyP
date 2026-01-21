@@ -67,21 +67,21 @@ def generate_repliconfs() -> None:
 
         # Output results
         print(f"  Primer Sequence: {primer.seq}")
-        print(f"  Forward Origins Found: {len(repliconf.origin_idx.fwd)}")
-        print(f"  Reverse Origins Found: {len(repliconf.origin_idx.rev)}")
+        print(f"  Forward Origins Found: {len(repliconf.origin_db.fwd)}")
+        print(f"  Reverse Origins Found: {len(repliconf.origin_db.rev)}")
 
-        if repliconf.origin_idx.fwd:
-            print(f"  Forward Origin Indices: {repliconf.origin_idx.fwd}")
-            for idx in repliconf.origin_idx.fwd:
+        if repliconf.origin_db.fwd:
+            print(f"  Forward Origin Indices: {repliconf.origin_db.fwd}")
+            for idx in repliconf.origin_db.fwd:
                 origin = repliconf.origin(DNADirection.FWD, idx)
                 print(f"    Index {idx}:")
                 print(f"      Primability: {origin.primability}")
                 print(f"      Stability:   {origin.stability}")
                 print(f"      Quality:     {origin.quality}")
 
-        if repliconf.origin_idx.rev:
-            print(f"  Reverse Origin Indices: {repliconf.origin_idx.rev}")
-            for idx in repliconf.origin_idx.rev:
+        if repliconf.origin_db.rev:
+            print(f"  Reverse Origin Indices: {repliconf.origin_db.rev}")
+            for idx in repliconf.origin_db.rev:
                 origin = repliconf.origin(DNADirection.REV, idx)
                 print(f"    Index {idx}:")
                 print(f"      Primability: {origin.primability}")

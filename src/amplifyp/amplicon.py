@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from amplifyp.dna import DNADirection
-from amplifyp.repliconf import DirectionIndex
+from amplifyp.repliconf import DirIdx
 
 from .dna import DNA, Primer
 from .errors import DuplicateRepliconfError
@@ -29,8 +29,9 @@ class Amplicon:
     product: DNA
     fwd_origin: Primer
     rev_origin: Primer
-    start: DirectionIndex
-    end: DirectionIndex
+    start: DirIdx
+    end: DirIdx
+    q_score: float
 
     def __post_init__(self) -> None:
         """Validate the amplicon indices."""
@@ -96,6 +97,19 @@ class AmpliconGenerator:
         """
         self.repliconfs.remove(repliconf)
 
+    def get_amplicon_quality_score(
+        self,
+        fwd_conf: Repliconf,
+        rev_conf: Repliconf,
+        start_idx: int,
+        end_idx: int,
+        length: int,
+    ) -> float:
+        """Get the quality score of the amplicons."""
+        fwd_quality = fwd_conf.origin_from_db(DNADirection.FWD, start_idx).quality
+        rev_quality = rev_conf.origin_from_db(DNADirection.REV, end_idx).quality
+        return length / (fwd_quality * rev_quality) ** 2
+
     def get_amplicons(self) -> list[Amplicon]:
         """Get amplicons from the added replication configurations.
 
@@ -109,16 +123,24 @@ class AmpliconGenerator:
                 repliconf.search()
 
         for fwd_conf in self.repliconfs:
-            for start in fwd_conf.amplicon_start:
+            for start_idx, start in enumerate(fwd_conf.amplicon_start):
                 for rev_conf in self.repliconfs:
-                    for end in rev_conf.amplicon_end:
+                    for end_idx, end in enumerate(rev_conf.amplicon_end):
                         if start < end:
                             # Generate amplicon sequence from template slice.
                             # Python slicing handles ends gracefully.
                             seq = self.template[start:end]
+                            q_score = self.get_amplicon_quality_score(
+                                fwd_conf, rev_conf, start_idx, end_idx, int(end - start)
+                            )
                             amplicons.append(
                                 Amplicon(
-                                    seq, fwd_conf.primer, rev_conf.primer, start, end
+                                    seq,
+                                    fwd_conf.primer,
+                                    rev_conf.primer,
+                                    start,
+                                    end,
+                                    q_score,
                                 )
                             )
         return amplicons

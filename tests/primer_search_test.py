@@ -18,7 +18,7 @@ def test_linear_search_primer_10290() -> None:
     """Test: search for primer 10290 in the Amplify 4 example template."""
     repliconf = Repliconf(amplify4_linear_example, primer_10290, DEFAULT_SETTINGS)
     repliconf.search()
-    origin_idx = repliconf.origin_idx
+    origin_idx = repliconf.origin_db
     logging.info(origin_idx)
 
     origin_1 = repliconf.origin(origin_idx.fwd[0])
@@ -36,7 +36,7 @@ def test_linear_search_primer_20049() -> None:
     """Test: search for primer 20049 in the Amplify 4 example template."""
     repliconf = Repliconf(amplify4_linear_example, primer_20049, DEFAULT_SETTINGS)
     repliconf.search()
-    origin_index = repliconf.origin_idx
+    origin_index = repliconf.origin_db
     logging.info(origin_index)
 
     origin_1 = repliconf.origin(origin_index.fwd[0])
@@ -56,7 +56,7 @@ def test_linear_search_primer_2223() -> None:
     """Test: search for primer 2223 in the Amplify 4 example template."""
     repliconf = Repliconf(amplify4_linear_example, primer_2223, DEFAULT_SETTINGS)
     repliconf.search()
-    origin_index = repliconf.origin_idx
+    origin_index = repliconf.origin_db
     logging.info(origin_index)
 
     origin_1 = repliconf.origin(DNADirection.FWD, origin_index.fwd[0])

@@ -81,8 +81,8 @@ class PrimerStatsDialog(tk.Toplevel):
                         ),
                     )
 
-            add_rows(rc.origin_idx.fwd, DNADirection.FWD)
-            add_rows(rc.origin_idx.rev, DNADirection.REV)
+            add_rows(rc.origin_db.fwd, DNADirection.FWD)
+            add_rows(rc.origin_db.rev, DNADirection.REV)
 
         except Exception as e:
             traceback.print_exc()

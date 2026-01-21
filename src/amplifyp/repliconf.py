@@ -11,7 +11,7 @@ from .settings import Settings
 
 
 @dataclass(slots=True, frozen=True)
-class DirectionIndex:
+class DirIdx:
     """A class for storing the index of a specific direction."""
 
     direction: DNADirection
@@ -25,27 +25,27 @@ class DirectionIndex:
         """Return the index as an index."""
         return self.index
 
-    def __add__(self, other: object) -> DirectionIndex:
+    def __add__(self, other: object) -> DirIdx:
         """Add an integer to the index."""
         if isinstance(other, int):
-            return DirectionIndex(self.direction, self.index + other)
-        if not isinstance(other, DirectionIndex):
+            return DirIdx(self.direction, self.index + other)
+        if not isinstance(other, DirIdx):
             return NotImplemented
-        return DirectionIndex(self.direction, self.index + other.index)
+        return DirIdx(self.direction, self.index + other.index)
 
-    def __sub__(self, other: object) -> DirectionIndex:
+    def __sub__(self, other: object) -> DirIdx:
         """Subtract an integer from the index."""
         if isinstance(other, int):
-            return DirectionIndex(self.direction, self.index - other)
-        if not isinstance(other, DirectionIndex):
+            return DirIdx(self.direction, self.index - other)
+        if not isinstance(other, DirIdx):
             return NotImplemented
-        return DirectionIndex(self.direction, self.index - other.index)
+        return DirIdx(self.direction, self.index - other.index)
 
     def __eq__(self, other: object) -> bool:
         """Check if two DirectionIndex objects are equal."""
         if isinstance(other, int):
             return self.index == other
-        if not isinstance(other, DirectionIndex):
+        if not isinstance(other, DirIdx):
             return NotImplemented
         return self.direction == other.direction and self.index == other.index
 
@@ -53,7 +53,7 @@ class DirectionIndex:
         """Check if one DirectionIndex is less than another."""
         if isinstance(other, int):
             return self.index < other
-        if not isinstance(other, DirectionIndex):
+        if not isinstance(other, DirIdx):
             return NotImplemented
         return self.index < other.index
 
@@ -61,7 +61,7 @@ class DirectionIndex:
         """Check if one DirectionIndex is greater than another."""
         if isinstance(other, int):
             return self.index > other
-        if not isinstance(other, DirectionIndex):
+        if not isinstance(other, DirIdx):
             return NotImplemented
         return self.index > other.index
 
@@ -69,7 +69,7 @@ class DirectionIndex:
         """Check if one DirectionIndex is less than or equal to another."""
         if isinstance(other, int):
             return self.index <= other
-        if not isinstance(other, DirectionIndex):
+        if not isinstance(other, DirIdx):
             return NotImplemented
         return self.index <= other.index
 
@@ -77,13 +77,13 @@ class DirectionIndex:
         """Check if one DirectionIndex is greater than or equal to another."""
         if isinstance(other, int):
             return self.index >= other
-        if not isinstance(other, DirectionIndex):
+        if not isinstance(other, DirIdx):
             return NotImplemented
         return self.index >= other.index
 
 
 @dataclass(slots=True)
-class OriginIndices:
+class DirIdxDb:
     """A class for storing the locations of replication origins.
 
     This class holds the indices of forward and reverse replication origins
@@ -99,8 +99,8 @@ class OriginIndices:
                          been completed.
     """
 
-    fwd: list[DirectionIndex]
-    rev: list[DirectionIndex]
+    fwd: list[DirIdx]
+    rev: list[DirIdx]
     searched: bool = False
 
     def clear(self) -> None:
@@ -108,6 +108,14 @@ class OriginIndices:
         self.fwd.clear()
         self.rev.clear()
         self.searched = False
+
+    def __getitem__(self, key: tuple[DNADirection, int]) -> DirIdx:
+        """Get the DirectionIndex at the given index."""
+        direction, i = key
+        if direction == DNADirection.FWD:
+            return self.fwd[i]
+        else:
+            return self.rev[i]
 
 
 class Repliconf:
@@ -127,7 +135,7 @@ class Repliconf:
                                                 padded forward and reverse
                                                 template sequences.
         settings (Settings): The settings for replication analysis.
-        origin_idx (OriginIndices): The index of replication origins.
+        origin_db (DirIdxDb): For storing the indices of replication origins.
     """
 
     def __init__(
@@ -164,7 +172,7 @@ class Repliconf:
         )
 
         self.settings = settings
-        self.origin_idx = OriginIndices([], [], False)
+        self.origin_db = DirIdxDb([], [], False)
 
     def range(self) -> range:
         """Return the valid search range for replication origins.
@@ -191,9 +199,7 @@ class Repliconf:
         """
         return slice(i, i + len(self.primer))
 
-    def origin(
-        self, var: DirectionIndex | DNADirection, *idx: int
-    ) -> ReplicationOrigin:
+    def origin(self, var: DirIdx | DNADirection, *idx: int) -> ReplicationOrigin:
         """Return the ReplicationOrigin at the given index.
 
         Args:
@@ -203,7 +209,7 @@ class Repliconf:
         Returns:
             ReplicationOrigin: The replication origin object.
         """
-        if isinstance(var, DirectionIndex):
+        if isinstance(var, DirIdx):
             direction = var.direction
             i = var.index
         elif isinstance(var, DNADirection):
@@ -222,9 +228,21 @@ class Repliconf:
             self.settings,
         )
 
+    def origin_from_db(self, direction: DNADirection, i: int) -> ReplicationOrigin:
+        """Return the ReplicationOrigin at a given index from the origin database.
+
+        Args:
+            direction (DNADirection): The direction of the DNA strand.
+            i (int): The index for the replication origin in the origin database.
+
+        Returns:
+            ReplicationOrigin: The replication origin object.
+        """
+        return self.origin(self.origin_db[direction, i])
+
     def search(self) -> None:
         """Search for valid replication origins in both directions."""
-        self.origin_idx.clear()
+        self.origin_db.clear()
         for direction in [DNADirection.FWD, DNADirection.REV]:
             logging.debug(f"Repliconf.search(): {direction}")
             for i in self.range():
@@ -237,15 +255,15 @@ class Repliconf:
                         f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
                     )
                     if direction:
-                        self.origin_idx.fwd.append(DirectionIndex(direction, i))
+                        self.origin_db.fwd.append(DirIdx(direction, i))
                     else:
-                        self.origin_idx.rev.append(DirectionIndex(direction, i))
-        self.origin_idx.searched = True
+                        self.origin_db.rev.append(DirIdx(direction, i))
+        self.origin_db.searched = True
 
     @property
     def searched(self) -> bool:
         """Return whether we have searched for the replication origins."""
-        return self.origin_idx.searched
+        return self.origin_db.searched
 
     def __eq__(self, other: object) -> bool:
         """Check if two Repliconf objects are equal.
@@ -282,7 +300,7 @@ class Repliconf:
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
 
     @property
-    def amplicon_start(self) -> list[DirectionIndex]:
+    def amplicon_start(self) -> list[DirIdx]:
         """Return the list of amplicon starting positions.
 
         The starting positions are calculated from the forward replication
@@ -291,10 +309,10 @@ class Repliconf:
         Returns:
             List[int]: A list of amplicon starting positions.
         """
-        return [x - len(self.primer) for x in self.origin_idx.fwd]
+        return [x - len(self.primer) for x in self.origin_db.fwd]
 
     @property
-    def amplicon_end(self) -> list[DirectionIndex]:
+    def amplicon_end(self) -> list[DirIdx]:
         """Return the list of amplicon ending positions.
 
         The ending positions are calculated from the reverse replication
@@ -303,4 +321,4 @@ class Repliconf:
         Returns:
             List[int]: A list of amplicon ending positions.
         """
-        return [x + len(self.primer) for x in self.origin_idx.rev]
+        return [x + len(self.primer) for x in self.origin_db.rev]
