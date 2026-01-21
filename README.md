@@ -105,6 +105,10 @@ pip install pytest pytest-cov
 pytest
 ```
 
+### Todo
+- [ ] Melting temperature calculation
+- [ ] Verification of circular target amplification
+
 ## Attribution
 
 This project is based on the logic and methodology of [Amplify4](https://github.com/wrengels/Amplify4) by William Engels. We aim to preserve the accuracy of the original simulations while providing a modern Python implementation.
