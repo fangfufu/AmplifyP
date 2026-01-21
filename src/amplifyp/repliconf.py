@@ -1,11 +1,55 @@
 """Replication configuration-related classes for AmplifyP."""
 
+from __future__ import annotations
+
 import logging
-from dataclasses import dataclass
+from collections import UserList
+from dataclasses import dataclass, field
+from typing import SupportsIndex, overload
 
 from .dna import DNA, DNADirection, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
+
+
+class DirectionList(UserList[int]):
+    """A list of indices for a specific direction."""
+
+    def __init__(
+        self, indices: list[int] | None = None, direction: DNADirection | None = None
+    ) -> None:
+        """Construct the DirectionList object.
+
+        Args:
+            indices (list[int] | None): The list of indices.
+            direction (DNADirection | None): The direction of the DNA strand.
+        """
+        self.direction = direction
+        super().__init__(indices)
+
+    @overload
+    def __getitem__(self, key: SupportsIndex) -> int: ...
+
+    @overload
+    def __getitem__(self, key: slice) -> DirectionList: ...
+
+    def __getitem__(self, key: SupportsIndex | slice) -> int | DirectionList:
+        """Get an item from the list.
+
+        Args:
+            key (SupportsIndex | slice): The index or slice to get.
+
+        Returns:
+            int | DirectionList: The item at the given index or slice.
+        """
+        if isinstance(key, slice):
+            return DirectionList(self.data[key], self.direction)
+        return self.data[key]
+
+    def clear(self) -> None:
+        """Clear the origin index, resetting all lists and flags."""
+        self.data.clear()
+        self.direction = None
 
 
 @dataclass(slots=True)
@@ -23,14 +67,20 @@ class OriginIdx:
                          been completed.
     """
 
-    fwd: list[int]
-    rev: list[int]
-    searched: bool
+    fwd: DirectionList = field(
+        default_factory=lambda: DirectionList([], DNADirection.FWD)
+    )
+    rev: DirectionList = field(
+        default_factory=lambda: DirectionList([], DNADirection.REV)
+    )
+    searched: bool = False
 
     def clear(self) -> None:
         """Clear the origin index, resetting all lists and flags."""
-        self.fwd = []
-        self.rev = []
+        self.fwd.clear()
+        self.rev.clear()
+        self.fwd.direction = DNADirection.FWD
+        self.rev.direction = DNADirection.REV
         self.searched = False
 
 
@@ -88,7 +138,7 @@ class Repliconf:
         )
 
         self.settings = settings
-        self.origin_idx = OriginIdx([], [], False)
+        self.origin_idx = OriginIdx()
 
     def range(self) -> range:
         """Return the valid search range for replication origins.
