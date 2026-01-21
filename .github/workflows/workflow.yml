@@ -1,0 +1,76 @@
+name: AmplifyP post-commit
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.12', '3.13', '3.14']
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Display Python version
+      run: python --version
+    - name: Install dependencies
+      run: |
+        pip install .[tests] pre-commit
+    - name: Set TCL/TK env vars (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $pythonPath = python -c "import sys; print(sys.base_prefix)"
+        Write-Host "Python Path: $pythonPath"
+        $tclPath = Join-Path $pythonPath "tcl"
+        if (Test-Path $tclPath) {
+            $tclLib = Get-ChildItem -Path $tclPath -Filter "tcl8*" -Directory | Select-Object -First 1
+            if ($tclLib) {
+                $tclLibPath = $tclLib.FullName -replace '\\', '/'
+                Write-Host "Found TCL_LIBRARY: $tclLibPath"
+                "TCL_LIBRARY=$tclLibPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+            } else {
+                Write-Warning "Could not find tcl8* directory in $tclPath"
+            }
+
+            $tkLib = Get-ChildItem -Path $tclPath -Filter "tk8*" -Directory | Select-Object -First 1
+            if ($tkLib) {
+                $tkLibPath = $tkLib.FullName -replace '\\', '/'
+                Write-Host "Found TK_LIBRARY: $tkLibPath"
+                "TK_LIBRARY=$tkLibPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+            } else {
+                Write-Warning "Could not find tk8* directory in $tclPath"
+            }
+        } else {
+            Write-Warning "tcl directory not found at $tclPath"
+        }
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb python3-tk
+    - name: Run pre-commit
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          xvfb-run -a pre-commit run --all-files --show-diff-on-failure
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          export PYTEST_ADDOPTS="--ignore=tests/gui"
+          pre-commit run --all-files --show-diff-on-failure
+        else
+          pre-commit run --all-files --show-diff-on-failure
+        fi
+    - name: Display coverage report
+      run: |
+        coverage report -m
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v3
