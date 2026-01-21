@@ -29,7 +29,8 @@ class PrimerStatsDialog(tk.Toplevel):
     """A dialog window for displaying analysis statistics for a single primer.
 
     This window calculates and lists all potential binding sites for a given primer
-    on the template DNA, showing detailed scores for primability, stability, and quality.
+    on the template DNA, showing detailed scores for primability, stability, and
+    quality.
 
     Attributes:
         primer (Primer): The primer being analyzed.

@@ -48,7 +48,8 @@ class DirIdx:
             other (int | DirIdx): The value to add.
 
         Returns:
-            DirIdx: A new DirIdx with the updated index value. The direction remains unchanged.
+            DirIdx: A new DirIdx with the updated index value. The direction remains
+                unchanged.
         """
         if isinstance(other, int):
             return DirIdx(self.direction, self.index + other)
@@ -63,7 +64,8 @@ class DirIdx:
             other (int | DirIdx): The value to subtract.
 
         Returns:
-            DirIdx: A new DirIdx with the updated index value. The direction remains unchanged.
+            DirIdx: A new DirIdx with the updated index value. The direction remains
+                unchanged.
         """
         if isinstance(other, int):
             return DirIdx(self.direction, self.index - other)
@@ -78,7 +80,8 @@ class DirIdx:
             other (object): The object to compare.
 
         Returns:
-            bool: True if equal, False otherwise. If comparing with int, checks index only.
+            bool: True if equal, False otherwise. If comparing with int, checks
+                index only.
         """
         if isinstance(other, int):
             return self.index == other
@@ -164,8 +167,10 @@ class DirIdxDb:
     a search operation has been performed.
 
     Attributes:
-        fwd (list[DirIdx]): A list of locations (DirIdx) for origins on the forward strand.
-        rev (list[DirIdx]): A list of locations (DirIdx) for origins on the reverse strand.
+        fwd (list[DirIdx]): A list of locations (DirIdx) for origins on the forward
+            strand.
+        rev (list[DirIdx]): A list of locations (DirIdx) for origins on the reverse
+            strand.
         searched (bool): Indicates if the search has been executed. Defaults to False.
     """
 
@@ -174,7 +179,7 @@ class DirIdxDb:
     searched: bool = False
 
     def clear(self) -> None:
-        """Clear the database, removing all stored indices and resetting the searched flag."""
+        """Clear the database, removing stored indices and resetting search flag."""
         self.fwd.clear()
         self.rev.clear()
         self.searched = False
@@ -255,7 +260,8 @@ class Repliconf:
         """Return the range of valid starting indices for search.
 
         Returns:
-            range: A range object covering all valid start positions in the padded template.
+            range: A range object covering all valid start positions in the padded
+                template.
         """
         return range(len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
 
@@ -313,7 +319,8 @@ class Repliconf:
 
         Args:
             direction (DNADirection): The direction to look up in the database.
-            i (int): The index *within the list of found origins* (not the genomic index).
+            i (int): The index *within the list of found origins* (not the genomic
+                index).
 
         Returns:
             ReplicationOrigin: The replication origin object.

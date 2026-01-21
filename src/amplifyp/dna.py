@@ -102,7 +102,8 @@ class DNA:
 
         Raises:
             TypeError: If the provided `dna_type` is invalid.
-            ValueError: If the `seq` contains characters invalid for the specified `dna_type`.
+            ValueError: If the `seq` contains characters invalid for the specified
+                `dna_type`.
         """
         self.__seq: str = "".join(seq.split())
         self.__type: DNAType = dna_type

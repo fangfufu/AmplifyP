@@ -88,7 +88,8 @@ class BasePairWeightsTbl:
         Args:
             row (str): A string representing the row labels (nucleotides) of the table.
                 Gap characters are allowed but not stored in the table.
-            col (str): A string representing the column labels (nucleotides) of the table.
+            col (str): A string representing the column labels (nucleotides) of the
+                table.
             weight (list[list[float]]): A 2D list (matrix) of weights. `weight[i][j]`
                 corresponds to the pair (`row[i]`, `col[j]`).
 
@@ -128,7 +129,8 @@ class BasePairWeightsTbl:
         """Return the string of row nucleotides.
 
         Returns:
-            str: The row nucleotides, excluding the last character if it was a gap placeholder.
+            str: The row nucleotides, excluding the last character if it was a gap
+                placeholder.
         """
         return self.__row[:-1]
 
@@ -136,7 +138,8 @@ class BasePairWeightsTbl:
         """Return the string of column nucleotides.
 
         Returns:
-            str: The column nucleotides, excluding the last character if it was a gap placeholder.
+            str: The column nucleotides, excluding the last character if it was a gap
+                placeholder.
         """
         return self.__col[:-1]
 
@@ -192,7 +195,8 @@ class BasePairWeightsTbl:
         """Return a string representation of the weight table.
 
         Returns:
-            str: A string representation of the internal dictionary mapping pairs to weights.
+            str: A string representation of the internal dictionary mapping pairs to
+                weights.
         """
         return str(self.__weight)
 
@@ -283,12 +287,13 @@ class Settings:
     Attributes:
         base_pair_scores (BasePairWeightsTbl): Table of weights for nucleotide pairs.
             Defaults to `DEFAULT_BASE_PAIR_WEIGHTS`.
-        match_weight (LengthWiseWeightTbl): Weights based on the length of matching segments.
-            Defaults to `DEFAULT_MATCH_WEIGHTS`.
-        run_weights (LengthWiseWeightTbl): Weights based on the length of consecutive runs.
-            Defaults to `DEFAULT_RUN_WEIGHTS`.
-        primability_cutoff (float): The minimum score required for a site to be considered
-            a valid priming site (primability). Defaults to `DEFAULT_PRIMABILITY_CUTOFF`.
+        match_weight (LengthWiseWeightTbl): Weights based on the length of matching
+            segments. Defaults to `DEFAULT_MATCH_WEIGHTS`.
+        run_weights (LengthWiseWeightTbl): Weights based on the length of consecutive
+            runs. Defaults to `DEFAULT_RUN_WEIGHTS`.
+        primability_cutoff (float): The minimum score required for a site to be
+            considered a valid priming site (primability). Defaults to
+            `DEFAULT_PRIMABILITY_CUTOFF`.
         stability_cutoff (float): The minimum stability score required.
             Defaults to `DEFAULT_STABILITY_CUTOFF`.
     """

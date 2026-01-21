@@ -67,7 +67,8 @@ class ReplicationOrigin:
         applying weights based on the length of these runs.
 
         Note:
-            The formula used here is a direct translation from the Amplify 4 source code,
+            The formula used here is a direct translation from the Amplify 4 source
+            code,
             which differs from the formula described in the Amplify 4 README.
 
         Returns:
@@ -115,8 +116,9 @@ class Amplify4RevOrigin(ReplicationOrigin):
     """A helper class for creating an Amplify4-style reverse replication origin.
 
     This class facilitates the creation of a `ReplicationOrigin` for the reverse
-    strand by automatically complementing the target sequence and using default settings.
-    It is primarily used for testing and ensuring compatibility with Amplify 4 logic.
+    strand by automatically complementing the target sequence and using default
+    settings. It is primarily used for testing and ensuring compatibility with
+    Amplify 4 logic.
     """
 
     def __init__(self, target: str, primer: str) -> None:
