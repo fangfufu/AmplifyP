@@ -17,15 +17,15 @@ from .dna import Nucleotides
 class LengthWiseWeightTbl:
     """A class representing a length-wise weight table.
 
-    This class is used to store weights that vary based on the length of a
-    sequence, such as a run of identical nucleotides. It allows for a default
-    weight and specific overrides for certain lengths.
+    This class is used to score sequences based on their length, such as
+    runs of identical nucleotides. It allows defining a default score (weight)
+    that applies generally, along with specific overrides for certain lengths.
 
     Attributes:
-        default_weight (float): The default weight for lengths not specified in
-                                the overrides.
-        overrides (Dict[int, float]): A dictionary mapping lengths to specific
-                                     weights.
+        default_weight (float): The default weight returned for lengths not
+            found in the overrides.
+        overrides (dict[int, float]): A dictionary mapping specific lengths (int)
+            to their corresponding weights (float).
     """
 
     def __init__(
@@ -36,10 +36,10 @@ class LengthWiseWeightTbl:
         """Initialize a LengthWiseWeightTbl object.
 
         Args:
-            default_weight (float, optional): The default weight.
-              Defaults to 0.
-            overrides (Dict[int, float], optional): A dictionary of length-specific
-                                                    weights. Defaults to None.
+            default_weight (float, optional): The default weight to use when a
+                length is not specified in overrides. Defaults to 0.
+            overrides (dict[int, float], optional): A dictionary mapping specific
+                lengths to their weights. Defaults to None.
         """
         if overrides is None:
             overrides = {}
@@ -49,14 +49,12 @@ class LengthWiseWeightTbl:
     def __getitem__(self, key: int) -> float:
         """Return the weight for a given length.
 
-        If the length is present in the overrides, the specific weight is
-        returned. Otherwise, the default weight is returned.
-
         Args:
-            key (int): The length to get the weight for.
+            key (int): The length to look up.
 
         Returns:
-            float: The weight for the given length.
+            float: The weight associated with the length. Returns the specific
+            override if present, otherwise returns the default weight.
         """
         if key in self.__overrides:
             return self.__overrides[key]
@@ -67,7 +65,7 @@ class LengthWiseWeightTbl:
 
         Args:
             key (int): The length to set the weight for.
-            value (float): The weight to set.
+            value (float): The weight value.
         """
         self.__overrides[key] = value
 
@@ -75,36 +73,61 @@ class LengthWiseWeightTbl:
 class BasePairWeightsTbl:
     """A class representing a nucleotide pairwise weight table.
 
-    This class stores the weights for all possible pairs of nucleotides. It is
-    used to score the interactions between a primer and a target DNA sequence.
+    This table stores scores (weights) for every possible pair of nucleotides.
+    It is typically used to score the interaction (binding strength) between
+    a primer and a target DNA sequence.
 
     Attributes:
-        row (str): The nucleotides corresponding to the rows of the table.
-        col (str): The nucleotides corresponding to the columns of the table.
-        weight (Dict[Tuple[str, str], float]): A dictionary mapping nucleotide
-                                               pairs to their weights.
-        row_max (Dict[str, float]): A dictionary mapping each row nucleotide to
-                                    the maximum weight in that row.
+        row (str): The string of nucleotides corresponding to the table rows.
+        col (str): The string of nucleotides corresponding to the table columns.
     """
 
     def __init__(self, row: str, col: str, weight: list[list[float]]) -> None:
         """Construct a BasePairWeightsTbl object.
 
         Args:
-            row (str): A string representing the row labels of the weight table.
-            col (str): A string representing the column labels of the weight
-                       table.
-            weight (List[List[float]]): A 2D list of floats representing the
-                                        weights of each nucleotide pair.
+            row (str): A string representing the row labels (nucleotides) of the table.
+                Gap characters are allowed but not stored in the table.
+            col (str): A string representing the column labels (nucleotides) of the
+                table.
+            weight (list[list[float]]): A 2D list (matrix) of weights. `weight[i][j]`
+                corresponds to the pair (`row[i]`, `col[j]`).
 
         Raises:
-            ValueError: If the dimensions of the weight table do not match the
-                        lengths of the row and column labels.
+            ValueError: If the dimensions of the provided weight matrix do not match
+                the lengths of the row and column strings (excluding gaps).
         """
         self.__row = row.upper()
         self.__col = col.upper()
         self.__weight: dict[tuple[str, str], float] = {}
         self.__row_max: dict[str, float] = {}
+
+        # Optimized lookups
+        self.__matrix: list[list[float]] = [
+            [0.0] * len(self.__col) for _ in range(len(self.__row))
+        ]
+        self.__row_map: list[int] = [-1] * 128
+        self.__col_map: list[int] = [-1] * 128
+
+        # Populate row map
+        for i, char in enumerate(self.__row):
+            code = ord(char)
+            if 0 <= code < 128:
+                self.__row_map[code] = i
+                # Handle lowercase
+                lower_code = ord(char.lower())
+                if 0 <= lower_code < 128:
+                    self.__row_map[lower_code] = i
+
+        # Populate col map
+        for i, char in enumerate(self.__col):
+            code = ord(char)
+            if 0 <= code < 128:
+                self.__col_map[code] = i
+                # Handle lowercase
+                lower_code = ord(char.lower())
+                if 0 <= lower_code < 128:
+                    self.__col_map[lower_code] = i
 
         # Expected row and column lengths
         exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
@@ -124,68 +147,95 @@ class BasePairWeightsTbl:
                     )
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
+                val: float | int
                 if Nucleotides.GAP in [row_val, col_val]:
-                    self.__weight[row_val, col_val] = 0
+                    val = 0
                 else:
-                    self.__weight[row_val, col_val] = weight[i][j]
+                    val = weight[i][j]
+                self.__weight[row_val, col_val] = val
+                self.__matrix[i][j] = val
 
     def row(self) -> str:
-        """Return the row nucleotides."""
+        """Return the string of row nucleotides.
+
+        Returns:
+            str: The row nucleotides, excluding the last character if it was a gap
+                placeholder.
+        """
         return self.__row[:-1]
 
     def column(self) -> str:
-        """Return the column nucleotides."""
+        """Return the string of column nucleotides.
+
+        Returns:
+            str: The column nucleotides, excluding the last character if it was a gap
+                placeholder.
+        """
         return self.__col[:-1]
 
     def row_max(self, row: str) -> float:
-        """Return the maximum weight of a given row.
+        """Return the maximum weight available for a given row nucleotide.
 
         Args:
-            row (str): The nucleotide representing the row.
+            row (str): The nucleotide character for the row.
 
         Returns:
-            float: The maximum weight in the specified row.
+            float: The maximum weight value in that row.
         """
         row = row.upper()
         return self.__row_max[row]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
-        """Return the weight of a specific nucleotide pair.
-
-        The lookup is case-insensitive.
+        """Retrieve the weight for a specific nucleotide pair.
 
         Args:
-            key (tuple[str, str]): The pair of nucleotides to look up.
+            key (tuple[str, str]): A tuple containing two nucleotide characters.
+                The lookup is case-insensitive.
 
         Returns:
-            float: The weight of the nucleotide pair.
+            float: The weight associated with the pair.
         """
         i, j = key
+        try:
+            r = self.__row_map[ord(i)]
+            c = self.__col_map[ord(j)]
+            if r != -1 and c != -1:
+                return self.__matrix[r][c]
+        except (TypeError, IndexError):
+            pass
+
+        # Fallback to dictionary lookup
         i = i.upper()
         j = j.upper()
         return self.__weight[i, j]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
-        """Set the weight of a specific nucleotide pair.
-
-        The key is case-insensitive.
+        """Set the weight for a specific nucleotide pair.
 
         Args:
-            key (tuple[str, str]): The pair of nucleotides to set the weight for.
-            value (float): The weight to set.
+            key (tuple[str, str]): A tuple containing two nucleotide characters.
+                The key is case-insensitive.
+            value (float): The new weight value.
         """
         i, j = key
-        i = i.upper()
-        j = j.upper()
-        self.__weight[key] = value
+        # We use upper case keys to be consistent with getitem expectation
+        i_upper = i.upper()
+        j_upper = j.upper()
+        self.__weight[i_upper, j_upper] = value
+
+        try:
+            r = self.__row_map[ord(i)]
+            c = self.__col_map[ord(j)]
+            if r != -1 and c != -1:
+                self.__matrix[r][c] = value
+        except (TypeError, IndexError):
+            pass
 
     def __len__(self) -> int:
-        """Return the size of the weight table.
-
-        The size is the number of nucleotide pairs in the table.
+        """Return the total number of entries in the weight table.
 
         Returns:
-            int: The size of the weight table.
+            int: The product of the number of row and column nucleotides.
         """
         return len(self.row()) * len(self.column())
 
@@ -193,7 +243,8 @@ class BasePairWeightsTbl:
         """Return a string representation of the weight table.
 
         Returns:
-            str: A string representation of the weight table.
+            str: A string representation of the internal dictionary mapping pairs to
+                weights.
         """
         return str(self.__weight)
 
@@ -277,17 +328,22 @@ DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 class Settings:
     """A configuration class for replication settings.
 
-    This class holds all the parameters needed to analyze replication origins,
-    including weight tables and cutoff values.
+    This class aggregates all parameters required for analyzing replication origins.
+    It includes scoring tables for base pairing and run lengths, as well as cutoff
+    thresholds for filtering results.
 
     Attributes:
-        base_pair_scores (BasePairWeightsTbl): A table of weights for each
-                                               base pair.
-        match_weight (LengthWiseWeightTbl): A table of weights for match
-                                            lengths.
-        run_weights (LengthWiseWeightTbl): A table of weights for run lengths.
-        primability_cutoff (float): The cutoff value for primability.
-        stability_cutoff (float): The cutoff value for stability.
+        base_pair_scores (BasePairWeightsTbl): Table of weights for nucleotide pairs.
+            Defaults to `DEFAULT_BASE_PAIR_WEIGHTS`.
+        match_weight (LengthWiseWeightTbl): Weights based on the length of matching
+            segments. Defaults to `DEFAULT_MATCH_WEIGHTS`.
+        run_weights (LengthWiseWeightTbl): Weights based on the length of consecutive
+            runs. Defaults to `DEFAULT_RUN_WEIGHTS`.
+        primability_cutoff (float): The minimum score required for a site to be
+            considered a valid priming site (primability). Defaults to
+            `DEFAULT_PRIMABILITY_CUTOFF`.
+        stability_cutoff (float): The minimum stability score required.
+            Defaults to `DEFAULT_STABILITY_CUTOFF`.
     """
 
     base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
