@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .dna import DNA, DNADirection, Primer
+from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
+
+COMPLEMENT_TABLE = str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
 
 
 @dataclass(slots=True, frozen=True)
@@ -162,11 +164,22 @@ class Repliconf:
 
         self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
-        self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).seq
-        # Add padding to the 3' end of the DNA, compute the complement.
-        self.template_seq[DNADirection.REV] = (
-            template.reverse().pad(self.padding_len).reverse().complement().seq
-        )
+        if template.type == DNAType.LINEAR:
+            self.template_seq[DNADirection.FWD] = (
+                Nucleotides.GAP * self.padding_len + template.seq
+            )
+            self.template_seq[DNADirection.REV] = (
+                template.seq + Nucleotides.GAP * self.padding_len
+            ).translate(COMPLEMENT_TABLE)
+        elif template.type == DNAType.CIRCULAR:
+            # Matches existing behavior including 0 case where padding is empty
+            padding = template.seq[-self.padding_len :] if self.padding_len > 0 else ""
+            self.template_seq[DNADirection.FWD] = padding + template.seq
+            self.template_seq[DNADirection.REV] = (
+                template.seq + template.seq[: self.padding_len]
+            ).translate(COMPLEMENT_TABLE)
+        else:
+            raise TypeError("Invalid DNA type for padding operation.")
 
         logging.debug(
             f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}"
