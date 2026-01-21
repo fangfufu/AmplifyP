@@ -5,9 +5,11 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from .dna import DNA, DNADirection, Nucleotides, Primer
+from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
+
+COMPLEMENT_TABLE = str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
 
 
 @dataclass(slots=True, frozen=True)
@@ -162,11 +164,22 @@ class Repliconf:
 
         self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
-        self.template_seq[DNADirection.FWD] = template.pad(self.padding_len).seq
-        # Add padding to the 3' end of the DNA, compute the complement.
-        self.template_seq[DNADirection.REV] = (
-            template.reverse().pad(self.padding_len).reverse().complement().seq
-        )
+        if template.type == DNAType.LINEAR:
+            self.template_seq[DNADirection.FWD] = (
+                Nucleotides.GAP * self.padding_len + template.seq
+            )
+            self.template_seq[DNADirection.REV] = (
+                template.seq + Nucleotides.GAP * self.padding_len
+            ).translate(COMPLEMENT_TABLE)
+        elif template.type == DNAType.CIRCULAR:
+            # Matches existing behavior including 0 case where padding is empty
+            padding = template.seq[-self.padding_len :] if self.padding_len > 0 else ""
+            self.template_seq[DNADirection.FWD] = padding + template.seq
+            self.template_seq[DNADirection.REV] = (
+                template.seq + template.seq[: self.padding_len]
+            ).translate(COMPLEMENT_TABLE)
+        else:
+            raise TypeError("Invalid DNA type for padding operation.")
 
         logging.debug(
             f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}"
@@ -177,6 +190,9 @@ class Repliconf:
 
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
+
+        # Pre-calculate reversed primer sequence
+        self._rev_primer_seq = self.primer.seq[::-1]
 
     def range(self) -> range:
         """Return the valid search range for replication origins.
@@ -222,13 +238,21 @@ class Repliconf:
         else:
             raise TypeError("var must be DirectionIndex or DNADirection")
 
+        if direction:
+            # Optimized reverse slicing: template_seq[end-1:start-1:-1]
+            # This creates only 1 string object instead of 2 (slice then reverse)
+            end = i + len(self.primer)
+            target = (
+                self.template_seq[direction][end - 1 : i - 1 : -1]
+                if i > 0
+                else self.template_seq[direction][end - 1 :: -1]
+            )
+        else:
+            target = self.template_seq[direction][self.slice(i)]
+
         return ReplicationOrigin(
-            (
-                self.template_seq[direction][self.slice(i)][::-1]
-                if direction
-                else self.template_seq[direction][self.slice(i)]
-            ),
-            self.primer.seq[::-1],
+            target,
+            self._rev_primer_seq,
             self.settings,
         )
 
