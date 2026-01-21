@@ -81,6 +81,10 @@ class DirIdx:
             return NotImplemented
         return self.index >= other.index
 
+    def __str__(self) -> str:
+        """Return the index as a string."""
+        return f"{self.index}"
+
 
 @dataclass(slots=True)
 class DirIdxDb:

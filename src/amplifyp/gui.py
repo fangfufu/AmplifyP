@@ -224,7 +224,7 @@ class AmplifyPApp(ttk.Frame):
         # --- Results Section ---
         self.tree = ttk.Treeview(
             self,
-            columns=("seq", "len", "start", "end", "fwd", "rev"),
+            columns=("seq", "len", "start", "end", "fwd", "rev", "q_score"),
             show="headings",
         )
         self.tree.heading("seq", text="Sequence")
@@ -233,6 +233,7 @@ class AmplifyPApp(ttk.Frame):
         self.tree.heading("end", text="End")
         self.tree.heading("fwd", text="Fwd Origin")
         self.tree.heading("rev", text="Rev Origin")
+        self.tree.heading("q_score", text="Q-Score")
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
     def add_primer(self) -> None:
@@ -352,6 +353,7 @@ class AmplifyPApp(ttk.Frame):
                     amp.end,
                     amp.fwd_origin.name,
                     amp.rev_origin.name,
+                    f"{amp.q_score:.2f}",
                 ),
             )
 

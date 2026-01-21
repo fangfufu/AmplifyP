@@ -59,7 +59,6 @@ pythonpath = "src"
 norecursedirs = ["resources"]
 addopts = [
   "--import-mode=importlib",
-  "--testmon",
   "--cov=src/amplifyp",
   "--cov-report=xml",
 ]

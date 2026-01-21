@@ -101,14 +101,12 @@ class AmpliconGenerator:
         self,
         fwd_conf: Repliconf,
         rev_conf: Repliconf,
-        start_db_idx: int,
-        end_db_idx: int,
         start: DirIdx,
         end: DirIdx,
     ) -> float:
         """Get the quality score of the amplicons."""
-        fwd_quality = fwd_conf.origin_from_db(DNADirection.FWD, start_db_idx).quality
-        rev_quality = rev_conf.origin_from_db(DNADirection.REV, end_db_idx).quality
+        fwd_quality = fwd_conf.origin(start).quality
+        rev_quality = rev_conf.origin(end).quality
         return (int(end - start)) / (fwd_quality * rev_quality) ** 2
 
     def get_amplicons(self) -> list[Amplicon]:
@@ -124,9 +122,9 @@ class AmpliconGenerator:
                 repliconf.search()
 
         for fwd_conf in self.repliconfs:
-            for start_db_idx, start in enumerate(fwd_conf.target_start):
+            for start in fwd_conf.target_start:
                 for rev_conf in self.repliconfs:
-                    for end_db_idx, end in enumerate(rev_conf.target_end):
+                    for end in rev_conf.target_end:
                         if start < end:
                             # Generate amplicon sequence from template slice.
                             # Python slicing handles ends gracefully.
@@ -136,7 +134,7 @@ class AmpliconGenerator:
                                 + rev_conf.primer.reverse_complement()
                             )
                             q_score = self.get_amplicon_quality_score(
-                                fwd_conf, rev_conf, start_db_idx, end_db_idx, start, end
+                                fwd_conf, rev_conf, start, end
                             )
                             amplicons.append(
                                 Amplicon(
