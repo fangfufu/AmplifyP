@@ -300,7 +300,7 @@ class Repliconf:
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
 
     @property
-    def amplicon_start(self) -> list[DirIdx]:
+    def target_start(self) -> list[DirIdx]:
         """Return the list of amplicon starting positions.
 
         The starting positions are calculated from the forward replication
@@ -309,10 +309,10 @@ class Repliconf:
         Returns:
             List[int]: A list of amplicon starting positions.
         """
-        return [x - len(self.primer) for x in self.origin_db.fwd]
+        return self.origin_db.fwd
 
     @property
-    def amplicon_end(self) -> list[DirIdx]:
+    def target_end(self) -> list[DirIdx]:
         """Return the list of amplicon ending positions.
 
         The ending positions are calculated from the reverse replication
@@ -321,4 +321,4 @@ class Repliconf:
         Returns:
             List[int]: A list of amplicon ending positions.
         """
-        return [x + len(self.primer) for x in self.origin_db.rev]
+        return self.origin_db.rev

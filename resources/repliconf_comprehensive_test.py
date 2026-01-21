@@ -1,6 +1,7 @@
 """Comprehensive tests for Repliconf using jcww2 examples."""
 
 import tests.examples.jcww2_examples as ex
+
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS

@@ -1,3 +1,4 @@
+exclude: ^resources/
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
@@ -20,10 +21,6 @@ repos:
     rev: v2.4.1
     hooks:
     -   id: codespell
-        exclude: >
-            (?x)^(
-                .*resources/primers.txt|
-            )$
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
     rev: 'v1.19.1'

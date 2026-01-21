@@ -46,7 +46,7 @@ rc.search()
 print(f"Template Seq (FWD padded): {rc.template_seq[DNADirection.FWD]}")
 print(f"Origins FWD: {rc.origin_db.fwd}")
 # amplicon_start calculation: [x - len(primer) for x in fwd]
-print(f"Amplicon Start: {rc.amplicon_start}")
+print(f"Amplicon Start: {rc.target_start}")
 
 print("-" * 20)
 print("Reverse Primer Test")
@@ -54,4 +54,4 @@ rc2 = Repliconf(template, primer_rev, settings)
 rc2.search()
 print(f"Origins REV: {rc2.origin_db.rev}")
 # amplicon_end calculation: [x + len(primer) for x in rev]
-print(f"Amplicon End: {rc2.amplicon_end}")
+print(f"Amplicon End: {rc2.target_end}")

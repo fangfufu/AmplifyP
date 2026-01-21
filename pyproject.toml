@@ -31,6 +31,7 @@ author = [
 
 [tool.ruff]
 target-version = "py312"
+exclude = ["resources"]
 
 line-length = 88
 # Enable everything you mentioned:
@@ -55,6 +56,7 @@ lint.pydocstyle.convention = "google"              # or "numpy" / "pep257"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
+norecursedirs = ["resources"]
 addopts = [
   "--import-mode=importlib",
   "--testmon",

@@ -176,6 +176,17 @@ class DNA:
         """
         return DNA(self.seq[::-1], self.type, self.name, not self.direction)
 
+    def reverse_complement(self) -> "DNA":
+        """Return the reverse complement of the DNA sequence.
+
+        The direction of the new DNA object is also inverted.
+
+        Returns:
+            DNA: A new DNA object representing the reverse complement of the
+                 original sequence.
+        """
+        return self.reverse().complement()
+
     def __eq__(self, other: object) -> bool:
         """Check if two DNA objects are identical.
 
@@ -312,6 +323,17 @@ class DNA:
         return (
             f"DNA: {self.name}, {self.type.name}, {DNADirection(self.direction).name}"
         )
+
+    def __add__(self, other: "DNA") -> "DNA":
+        """Add two DNA sequences.
+
+        Args:
+            other (DNA): The other DNA sequence to add.
+
+        Returns:
+            DNA: A new DNA object representing the sum of the two sequences.
+        """
+        return DNA(self.seq + other.seq, DNAType.LINEAR, self.name, self.direction)
 
 
 class Primer(DNA):
