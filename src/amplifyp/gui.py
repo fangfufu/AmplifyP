@@ -4,6 +4,7 @@ import copy
 import json
 import os
 import sys
+import threading
 import tkinter as tk
 import traceback
 from tkinter import filedialog, messagebox, ttk
@@ -244,9 +245,10 @@ class AmplifyPApp(ttk.Frame):
         self.stability_entry.pack(side="left", padx=5)
         self.create_context_menu(self.stability_entry)
 
-        ttk.Button(settings_frame, text="Simulate PCR", command=self.simulate_pcr).pack(
-            side="right", padx=10
+        self.simulate_btn = ttk.Button(
+            settings_frame, text="Simulate PCR", command=self.simulate_pcr
         )
+        self.simulate_btn.pack(side="right", padx=10)
 
         # --- Results Section ---
         self.tree = ttk.Treeview(
@@ -346,43 +348,75 @@ class AmplifyPApp(ttk.Frame):
             messagebox.showerror("Error", "Invalid numeric values for settings.")
             return
 
-        # 3. Build Generator
-        generator = AmpliconGenerator(template)
+        # UI Updates
+        self.simulate_btn.config(state="disabled")
+        self.config(cursor="watch")
 
-        # 4. Add Repliconfs (Combinations of Primer + Template + Settings)
-        for primer in self.primers_data:
+        # Prepare data for thread
+        sim_settings = copy.deepcopy(settings)
+        sim_primers = list(self.primers_data)
+
+        self.simulation_result = None
+        self.simulation_error = None
+
+        def worker() -> None:
             try:
-                rc = Repliconf(template, primer, settings)
-                rc.search()  # Important: Must search for origins first!
-                generator.add(rc)
-            except Exception as e:
-                print(f"Failed to process primer {primer.name}: {e}")
+                # 3. Build Generator
+                generator = AmpliconGenerator(template)
 
-        # 5. Generate
-        try:
-            amplicons = generator.get_amplicons()
-        except Exception as e:
-            messagebox.showerror("Error", f"Simulation failed: {e}")
+                # 4. Add Repliconfs (Combinations of Primer + Template + Settings)
+                for primer in sim_primers:
+                    try:
+                        rc = Repliconf(template, primer, sim_settings)
+                        rc.search()  # Important: Must search for origins first!
+                        generator.add(rc)
+                    except Exception as e:
+                        print(f"Failed to process primer {primer.name}: {e}")
+
+                # 5. Generate
+                self.simulation_result = generator.get_amplicons()
+            except Exception as e:
+                self.simulation_error = e
+
+        self.simulation_thread = threading.Thread(target=worker, daemon=True)
+        self.simulation_thread.start()
+        self.after(100, self.check_simulation)
+
+    def check_simulation(self) -> None:
+        """Check if the simulation thread is still running."""
+        if self.simulation_thread.is_alive():
+            self.after(100, self.check_simulation)
+        else:
+            self.on_simulation_complete()
+
+    def on_simulation_complete(self) -> None:
+        """Handle completion of the simulation."""
+        self.simulate_btn.config(state="normal")
+        self.config(cursor="")
+
+        if self.simulation_error:
+            messagebox.showerror("Error", f"Simulation failed: {self.simulation_error}")
             return
 
         # 6. Display Results
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        for amp in amplicons:
-            self.tree.insert(
-                "",
-                tk.END,
-                values=(
-                    amp.product.seq,
-                    len(amp.product),
-                    amp.start,
-                    amp.end,
-                    amp.fwd_origin.name,
-                    amp.rev_origin.name,
-                    f"{amp.q_score:.2f}",
-                ),
-            )
+        if self.simulation_result:
+            for amp in self.simulation_result:
+                self.tree.insert(
+                    "",
+                    tk.END,
+                    values=(
+                        amp.product.seq,
+                        len(amp.product),
+                        amp.start,
+                        amp.end,
+                        amp.fwd_origin.name,
+                        amp.rev_origin.name,
+                        f"{amp.q_score:.2f}",
+                    ),
+                )
 
     def save_state(self) -> None:
         """Serialize the current application state (inputs, settings) to a JSON file."""
