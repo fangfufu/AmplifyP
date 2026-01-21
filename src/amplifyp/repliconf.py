@@ -359,21 +359,133 @@ class Repliconf:
         cutoffs are stored in `origin_db`.
         """
         self.origin_db.clear()
+
+        # Optimization: Pre-calculate constants and lookup tables
+        m = self.settings.match_weight
+        S = self.settings.base_pair_scores
+        r = self.settings.run_weights
+
+        primer_rev = self.primer.seq[::-1]
+        L = len(primer_rev)
+
+        prim_denom = 0.0
+        stab_denom_base = 0.0
+
+        prim_score_lookup: list[dict[str, float]] = []
+        stab_score_lookup: list[dict[str, float]] = []
+
+        # Prepare set of characters for lookup keys
+        lookup_keys = set(Nucleotides.LINEAR)
+        lookup_keys.update(c.lower() for c in list(lookup_keys))
+
+        for k, base_p in enumerate(primer_rev):
+            row_max = S.row_max(base_p)
+            prim_denom += m[k] * row_max
+            stab_denom_base += row_max
+
+            p_dict = {}
+            s_dict = {}
+
+            for base_t in lookup_keys:
+                score = S[base_p, base_t]
+                p_dict[base_t] = m[k] * score
+                s_dict[base_t] = score
+
+            prim_score_lookup.append(p_dict)
+            stab_score_lookup.append(s_dict)
+
+        stab_denom = stab_denom_base * r[int(max(0, L - 1))]
+
+        prim_cutoff = self.settings.primability_cutoff
+        stab_cutoff = self.settings.stability_cutoff
+
         for direction in [DNADirection.FWD, DNADirection.REV]:
             logging.debug(f"Repliconf.search(): {direction}")
-            for i in self.range():
-                origin = self.origin(direction, i)
-                if (
-                    origin.primability > self.settings.primability_cutoff
-                    and origin.stability > self.settings.stability_cutoff
-                ):
-                    logging.debug(
-                        f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
-                    )
-                    if direction:
+
+            seq = self.template_seq[direction]
+            search_range = self.range()
+
+            if direction == DNADirection.FWD:
+                # FWD: target is slice reversed.
+                # target[k] = seq[i + L - 1 - k]
+                for i in search_range:
+                    prim_num = 0.0
+                    stab_num = 0.0
+                    run_len = 0
+                    run_score = 0.0
+
+                    for k in range(L):
+                        base_t = seq[i + L - 1 - k]
+
+                        # Primability
+                        prim_num += prim_score_lookup[k][base_t]
+
+                        # Stability
+                        val = stab_score_lookup[k][base_t]
+                        if val > 0:
+                            run_len += 1
+                            run_score += val
+                        else:
+                            if run_len > 0:
+                                idx = run_len - 1
+                                stab_num += r[idx] * run_score
+                                run_len = 0
+                                run_score = 0.0
+
+                    # Finish stability run
+                    if run_len > 0:
+                        idx = run_len - 1
+                        stab_num += r[idx] * run_score
+
+                    primability = prim_num / prim_denom if prim_denom != 0 else 0.0
+                    stability = stab_num / stab_denom if stab_denom != 0 else 0.0
+
+                    if primability > prim_cutoff and stability > stab_cutoff:
+                        origin = self.origin(direction, i)
+                        logging.debug(
+                            f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
+                        )
                         self.origin_db.fwd.append(DirIdx(direction, i))
-                    else:
+
+            else:
+                # REV: target is slice (not reversed).
+                # target[k] = seq[i + k]
+                for i in search_range:
+                    prim_num = 0.0
+                    stab_num = 0.0
+                    run_len = 0
+                    run_score = 0.0
+
+                    for k in range(L):
+                        base_t = seq[i + k]
+
+                        prim_num += prim_score_lookup[k][base_t]
+
+                        val = stab_score_lookup[k][base_t]
+                        if val > 0:
+                            run_len += 1
+                            run_score += val
+                        else:
+                            if run_len > 0:
+                                idx = run_len - 1
+                                stab_num += r[idx] * run_score
+                                run_len = 0
+                                run_score = 0.0
+
+                    if run_len > 0:
+                        idx = run_len - 1
+                        stab_num += r[idx] * run_score
+
+                    primability = prim_num / prim_denom if prim_denom != 0 else 0.0
+                    stability = stab_num / stab_denom if stab_denom != 0 else 0.0
+
+                    if primability > prim_cutoff and stability > stab_cutoff:
+                        origin = self.origin(direction, i)
+                        logging.debug(
+                            f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
+                        )
                         self.origin_db.rev.append(DirIdx(direction, i))
+
         self.origin_db.searched = True
 
     @property
