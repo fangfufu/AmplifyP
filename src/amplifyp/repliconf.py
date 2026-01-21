@@ -53,7 +53,7 @@ class DirectionList(UserList[int]):
 
 
 @dataclass(slots=True)
-class OriginIdx:
+class OriginIndices:
     """A class for storing the locations of replication origins.
 
     This class holds the indices of forward and reverse replication origins
@@ -138,7 +138,7 @@ class Repliconf:
         )
 
         self.settings = settings
-        self.origin_idx = OriginIdx()
+        self.origin_idx = OriginIndices()
 
     def range(self) -> range:
         """Return the valid search range for replication origins.
