@@ -178,6 +178,9 @@ class Repliconf:
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
 
+        # Pre-calculate reversed primer sequence
+        self._rev_primer_seq = self.primer.seq[::-1]
+
     def range(self) -> range:
         """Return the valid search range for replication origins.
 
@@ -222,13 +225,21 @@ class Repliconf:
         else:
             raise TypeError("var must be DirectionIndex or DNADirection")
 
+        if direction:
+            # Optimized reverse slicing: template_seq[end-1:start-1:-1]
+            # This creates only 1 string object instead of 2 (slice then reverse)
+            end = i + len(self.primer)
+            target = (
+                self.template_seq[direction][end - 1 : i - 1 : -1]
+                if i > 0
+                else self.template_seq[direction][end - 1 :: -1]
+            )
+        else:
+            target = self.template_seq[direction][self.slice(i)]
+
         return ReplicationOrigin(
-            (
-                self.template_seq[direction][self.slice(i)][::-1]
-                if direction
-                else self.template_seq[direction][self.slice(i)]
-            ),
-            self.primer.seq[::-1],
+            target,
+            self._rev_primer_seq,
             self.settings,
         )
 
