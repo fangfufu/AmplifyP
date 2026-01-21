@@ -12,18 +12,19 @@ from .repliconf import Repliconf
 
 @dataclass(slots=True, frozen=True)
 class Amplicon:
-    """A class representing an amplicon.
+    """A class representing a DNA amplification product (Amplicon).
 
-    An amplicon is a piece of DNA that is the product of the amplification
-    events. It is defined by the sequence that has been amplified, and the
-    forward and reverse replication origins.
+    An amplicon is defined by the DNA sequence resulting from a PCR reaction,
+    bounded by the forward and reverse primers. It stores metadata about
+    the primers involved and the genomic location of the product.
 
     Attributes:
-        product (DNA): The amplification product.
-        fwd_origin (Primer): The forward replication origin.
-        rev_origin (Primer): The reverse replication origin.
-        start (int): The start index of the amplicon relative to the template.
-        end (int): The end index of the amplicon relative to the template.
+        product (DNA): The full DNA sequence of the amplicon.
+        fwd_origin (Primer): The primer that initiated the forward strand synthesis.
+        rev_origin (Primer): The primer that initiated the reverse strand synthesis.
+        start (DirIdx): The starting index of the amplicon on the template DNA.
+        end (DirIdx): The ending index of the amplicon on the template DNA.
+        q_score (float): A calculated quality score for the amplicon.
     """
 
     product: DNA
@@ -34,7 +35,12 @@ class Amplicon:
     q_score: float
 
     def __post_init__(self) -> None:
-        """Validate the amplicon indices."""
+        """Validate the consistency of the amplicon indices.
+
+        Raises:
+            ValueError: If `start` is not forward, `end` is not reverse, or
+                if `end` index precedes `start` index.
+        """
         if self.start.direction != DNADirection.FWD:
             raise ValueError("Start direction must be forward.")
         if self.end.direction != DNADirection.REV:
@@ -44,19 +50,20 @@ class Amplicon:
 
 
 class AmpliconGenerator:
-    """A class for generating amplicons from a template DNA sequence.
+    """A generator for predicting PCR amplicons from a template.
 
-    This class takes a template DNA and a list of replication configurations
-    (Repliconf) to generate amplicons. It ensures that all replication
-    configurations use the same template DNA.
+    This class manages a list of replication configurations (Repliconfs) associated
+    with a single DNA template. It simulates the PCR process by finding valid
+    combinations of forward and reverse priming sites that could produce an amplicon.
 
     Attributes:
-        template (DNA): The template DNA sequence.
-        repliconfs (List[Repliconf]): A list of replication configurations.
+        template (DNA): The DNA sequence used as the template for amplification.
+        repliconfs (list[Repliconf]): A list of `Repliconf` objects, each representing
+            a primer and its binding properties on the template.
     """
 
     def __init__(self, template: DNA) -> None:
-        """Constructs an AmpliconGenerator object.
+        """Initialize an AmpliconGenerator.
 
         Args:
             template (DNA): The template DNA sequence.
@@ -65,14 +72,14 @@ class AmpliconGenerator:
         self.repliconfs: list[Repliconf] = []
 
     def add(self, repliconf: Repliconf) -> None:
-        """Adds a replication configuration to the AmpliconGenerator.
+        """Add a replication configuration to the generator.
 
         Args:
-            repliconf (Repliconf): The replication configuration to add.
+            repliconf (Repliconf): The configuration to add.
 
         Raises:
-            ValueError: If the Repliconf contains a different template than
-                        the one in the AmpliconGenerator.
+            ValueError: If the `repliconf` uses a different template than the generator.
+            DuplicateRepliconfError: If the `repliconf` has already been added.
         """
         if self.template != repliconf.template:
             raise ValueError(
@@ -87,13 +94,13 @@ class AmpliconGenerator:
             )
 
     def remove(self, repliconf: Repliconf) -> None:
-        """Removes a replication configuration from the AmpliconGenerator.
+        """Remove a replication configuration from the generator.
 
         Args:
-            repliconf (Repliconf): The replication configuration to remove.
+            repliconf (Repliconf): The configuration to remove.
 
         Raises:
-            ValueError: If the Repliconf is not in the AmpliconGenerator.
+            ValueError: If the `repliconf` is not present in the generator.
         """
         self.repliconfs.remove(repliconf)
 
@@ -104,16 +111,33 @@ class AmpliconGenerator:
         start: DirIdx,
         end: DirIdx,
     ) -> float:
-        """Get the quality score of the amplicons."""
+        """Calculate a quality score for a potential amplicon.
+
+        The score is derived from the length of the amplicon and the quality scores
+        of the forward and reverse priming events.
+
+        Args:
+            fwd_conf (Repliconf): The configuration providing the forward primer.
+            rev_conf (Repliconf): The configuration providing the reverse primer.
+            start (DirIdx): The start index of the amplicon.
+            end (DirIdx): The end index of the amplicon.
+
+        Returns:
+            float: The calculated quality score.
+        """
         fwd_quality = fwd_conf.origin(start).quality
         rev_quality = rev_conf.origin(end).quality
         return (int(end - start)) / (fwd_quality * rev_quality) ** 2
 
     def get_amplicons(self) -> list[Amplicon]:
-        """Get amplicons from the added replication configurations.
+        """Generate all possible amplicons based on added configurations.
+
+        This method triggers the search for origins in all added `Repliconf` objects
+        (if not already searched), and then iterates through all combinations of
+        forward and reverse origins to find valid amplicons.
 
         Returns:
-            List[Amplicon]: A list of generated Amplicons.
+            list[Amplicon]: A list of all generated `Amplicon` objects.
         """
         amplicons: list[Amplicon] = []
 

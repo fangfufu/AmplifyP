@@ -1,4 +1,4 @@
-"""Calculates PCR stats."""
+"""GUI application module for AmplifyP."""
 
 import copy
 import json
@@ -27,10 +27,25 @@ settings = copy.deepcopy(DEFAULT_SETTINGS)
 
 
 class PrimerStatsDialog(tk.Toplevel):
-    """Dialog to display primer properties."""
+    """A dialog window for displaying analysis statistics for a single primer.
+
+    This window calculates and lists all potential binding sites for a given primer
+    on the template DNA, showing detailed scores for primability, stability, and
+    quality.
+
+    Attributes:
+        primer (Primer): The primer being analyzed.
+        template_seq (str): The template DNA sequence string.
+    """
 
     def __init__(self, parent: tk.Misc, primer: Primer, template_seq: str) -> None:
-        """Initialize the dialog."""
+        """Initialize the PrimerStatsDialog.
+
+        Args:
+            parent (tk.Misc): The parent widget.
+            primer (Primer): The primer object to analyze.
+            template_seq (str): The raw template DNA sequence.
+        """
         super().__init__(parent)
         self.title(f"Primer Properties: {primer.name}")
         self.geometry("800x400")
@@ -42,7 +57,7 @@ class PrimerStatsDialog(tk.Toplevel):
         self.analyze()
 
     def create_widgets(self) -> None:
-        """Create and arrange widgets."""
+        """Initialize and layout the GUI widgets (Treeview, Scrollbar)."""
         columns = ("pos", "strand", "primability", "stability", "quality")
         self.tree = ttk.Treeview(self, columns=columns, show="headings")
         self.tree.heading("pos", text="Position")
@@ -59,7 +74,7 @@ class PrimerStatsDialog(tk.Toplevel):
         scrollbar.pack(side="right", fill="y")
 
     def analyze(self) -> None:
-        """Calculate and display stats."""
+        """Perform the analysis and populate the Treeview with results."""
         try:
             template = DNA(self.template_seq, DNAType.LINEAR, "Template")
             rc = Repliconf(template, self.primer, settings)
@@ -95,10 +110,18 @@ class PrimerStatsDialog(tk.Toplevel):
 
 
 class AmplifyPApp(ttk.Frame):
-    """Main application class for AmplifyP GUI."""
+    """The main application frame for the AmplifyP GUI.
+
+    This class manages the main window layout, including inputs for template DNA
+    and primers, settings configuration, and the display of simulation results.
+    """
 
     def __init__(self, master: tk.Tk | None = None) -> None:
-        """Initialize the application."""
+        """Initialize the AmplifyP application.
+
+        Args:
+            master (tk.Tk, optional): The root window. Defaults to None.
+        """
         super().__init__(master)
         if master:
             master.title("AmplifyP")
@@ -110,7 +133,7 @@ class AmplifyPApp(ttk.Frame):
         self.create_widgets()
 
     def create_menu(self) -> None:
-        """Create application menu."""
+        """Create and attach the main application menu bar."""
         if not isinstance(self.master, tk.Tk):
             return
 
@@ -126,7 +149,11 @@ class AmplifyPApp(ttk.Frame):
         self.master.configure(menu=menubar)
 
     def create_context_menu(self, widget: tk.Text | ttk.Entry) -> None:
-        """Create a right-click context menu for a widget."""
+        """Attach a standard Cut/Copy/Paste context menu to a widget.
+
+        Args:
+            widget (tk.Text | ttk.Entry): The widget to attach the menu to.
+        """
         menu = tk.Menu(widget, tearoff=0)
         menu.add_command(label="Cut", command=lambda: widget.event_generate("<<Cut>>"))
         menu.add_command(
@@ -142,7 +169,7 @@ class AmplifyPApp(ttk.Frame):
         widget.bind("<Button-3>", show_menu)
 
     def create_widgets(self) -> None:
-        """Create and arrange widgets."""
+        """Initialize and arrange all widgets in the main frame."""
         # --- Template DNA Section ---
         template_frame = ttk.LabelFrame(self, text="Template DNA")
         template_frame.pack(fill="x", padx=10, pady=5)
@@ -239,7 +266,7 @@ class AmplifyPApp(ttk.Frame):
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
 
     def add_primer(self) -> None:
-        """Add primer to the list."""
+        """Parse inputs and add a new primer to the list."""
         name = self.primer_name_var.get().strip()
         seq = self.primer_seq_var.get().strip()
 
@@ -259,7 +286,7 @@ class AmplifyPApp(ttk.Frame):
             messagebox.showerror("Error", f"Invalid primer: {e}")
 
     def delete_primer(self) -> None:
-        """Delete selected primer."""
+        """Remove the currently selected primer from the list."""
         selection = self.primers_list.curselection()  # type: ignore[no-untyped-call]
         if not selection:
             messagebox.showwarning("Warning", "Please select a primer to delete.")
@@ -280,7 +307,7 @@ class AmplifyPApp(ttk.Frame):
         self.primers_list.delete(index)
 
     def analyze_primer(self) -> None:
-        """Analyze selected primer against template."""
+        """Open the PrimerStatsDialog for the selected primer."""
         # Get selected primer
         selection = self.primers_list.curselection()  # type: ignore[no-untyped-call]
         if not selection:
@@ -299,7 +326,7 @@ class AmplifyPApp(ttk.Frame):
         PrimerStatsDialog(self, primer, template_str)
 
     def simulate_pcr(self) -> None:
-        """Run the simulation."""
+        """Execute the PCR simulation and display potential amplicons."""
         # 1. Get Template
         template_str = self.template_text.get("1.0", tk.END).strip()
         if not template_str:
@@ -392,7 +419,7 @@ class AmplifyPApp(ttk.Frame):
                 )
 
     def save_state(self) -> None:
-        """Save the current state to a JSON file."""
+        """Serialize the current application state (inputs, settings) to a JSON file."""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
@@ -418,7 +445,7 @@ class AmplifyPApp(ttk.Frame):
             messagebox.showerror("Error", f"Failed to save state: {e}")
 
     def load_state(self) -> None:
-        """Load state from a JSON file."""
+        """Deserialize application state from a JSON file and populate widgets."""
         file_path = filedialog.askopenfilename(
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )

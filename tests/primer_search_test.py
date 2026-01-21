@@ -3,8 +3,7 @@
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS
-
-from .examples.amplify4_examples import (
+from tests.examples.amplify4_examples import (
     amplify4_linear_example,
     primer_2223,
     primer_10290,
