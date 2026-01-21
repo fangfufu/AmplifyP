@@ -3,53 +3,43 @@
 from __future__ import annotations
 
 import logging
-from collections import UserList
-from dataclasses import dataclass, field
-from typing import SupportsIndex, overload
+from dataclasses import dataclass
 
 from .dna import DNA, DNADirection, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
 
 
-class DirectionList(UserList[int]):
-    """A list of indices for a specific direction."""
+@dataclass(slots=True, frozen=True)
+class DirectionIndex:
+    """A class for storing the index of a specific direction."""
 
-    def __init__(
-        self, indices: list[int] | None = None, direction: DNADirection | None = None
-    ) -> None:
-        """Construct the DirectionList object.
+    direction: DNADirection
+    index: int
 
-        Args:
-            indices (list[int] | None): The list of indices.
-            direction (DNADirection | None): The direction of the DNA strand.
-        """
-        self.direction = direction
-        super().__init__(indices)
+    def __int__(self) -> int:
+        """Return the index as an integer."""
+        return self.index
 
-    @overload
-    def __getitem__(self, key: SupportsIndex) -> int: ...
+    def __index__(self) -> int:
+        """Return the index as an index."""
+        return self.index
 
-    @overload
-    def __getitem__(self, key: slice) -> DirectionList: ...
+    def __add__(self, other: int) -> DirectionIndex:
+        """Add an integer to the index."""
+        return DirectionIndex(self.direction, self.index + other)
 
-    def __getitem__(self, key: SupportsIndex | slice) -> int | DirectionList:
-        """Get an item from the list.
+    def __sub__(self, other: int) -> DirectionIndex:
+        """Subtract an integer from the index."""
+        return DirectionIndex(self.direction, self.index - other)
 
-        Args:
-            key (SupportsIndex | slice): The index or slice to get.
-
-        Returns:
-            int | DirectionList: The item at the given index or slice.
-        """
-        if isinstance(key, slice):
-            return DirectionList(self.data[key], self.direction)
-        return self.data[key]
-
-    def clear(self) -> None:
-        """Clear the origin index, resetting all lists and flags."""
-        self.data.clear()
-        self.direction = None
+    def __eq__(self, other: object) -> bool:
+        """Check if two DirectionIndex objects are equal."""
+        if isinstance(other, int):
+            return self.index == other
+        if not isinstance(other, DirectionIndex):
+            return NotImplemented
+        return self.direction == other.direction and self.index == other.index
 
 
 @dataclass(slots=True)
@@ -61,26 +51,22 @@ class OriginIndices:
     performed.
 
     Attributes:
-        fwd (List[int]): A list of indices for forward replication origins.
-        rev (List[int]): A list of indices for reverse replication origins.
+        fwd (List[DirectionIndex]): A list of DirectionIndex for forward
+        replication origins.
+        rev (List[DirectionIndex]): A list of DirectionIndex for reverse
+        replication origins.
         searched (bool): A flag indicating whether a search for origins has
                          been completed.
     """
 
-    fwd: DirectionList = field(
-        default_factory=lambda: DirectionList([], DNADirection.FWD)
-    )
-    rev: DirectionList = field(
-        default_factory=lambda: DirectionList([], DNADirection.REV)
-    )
+    fwd: list[DirectionIndex]
+    rev: list[DirectionIndex]
     searched: bool = False
 
     def clear(self) -> None:
         """Clear the origin index, resetting all lists and flags."""
         self.fwd.clear()
         self.rev.clear()
-        self.fwd.direction = DNADirection.FWD
-        self.rev.direction = DNADirection.REV
         self.searched = False
 
 
@@ -101,7 +87,7 @@ class Repliconf:
                                                 padded forward and reverse
                                                 template sequences.
         settings (Settings): The settings for replication analysis.
-        origin_idx (OriginIdx): The index of replication origins.
+        origin_idx (OriginIndices): The index of replication origins.
     """
 
     def __init__(
@@ -138,7 +124,7 @@ class Repliconf:
         )
 
         self.settings = settings
-        self.origin_idx = OriginIndices()
+        self.origin_idx = OriginIndices([], [], False)
 
     def range(self) -> range:
         """Return the valid search range for replication origins.
@@ -203,9 +189,9 @@ class Repliconf:
                         f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
                     )
                     if direction:
-                        self.origin_idx.fwd.append(i)
+                        self.origin_idx.fwd.append(DirectionIndex(direction, i))
                     else:
-                        self.origin_idx.rev.append(i)
+                        self.origin_idx.rev.append(DirectionIndex(direction, i))
         self.origin_idx.searched = True
 
     @property
@@ -248,7 +234,7 @@ class Repliconf:
         return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
 
     @property
-    def amplicon_start(self) -> list[int]:
+    def amplicon_start(self) -> list[DirectionIndex]:
         """Return the list of amplicon starting positions.
 
         The starting positions are calculated from the forward replication
@@ -260,7 +246,7 @@ class Repliconf:
         return [x - len(self.primer) for x in self.origin_idx.fwd]
 
     @property
-    def amplicon_end(self) -> list[int]:
+    def amplicon_end(self) -> list[DirectionIndex]:
         """Return the list of amplicon ending positions.
 
         The ending positions are calculated from the reverse replication
