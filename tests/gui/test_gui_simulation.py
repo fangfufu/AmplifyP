@@ -1,50 +1,68 @@
+import os
+import sys
+import threading
 import unittest
 from unittest.mock import MagicMock, patch
-import sys
-import os
-import threading
-import time
 
 # Ensure src is in path
 sys.path.insert(0, os.path.abspath("src"))
+
 
 # Create mock classes for Tkinter
 class MockTk:
     def __init__(self):
         pass
-    def title(self, t): pass
-    def geometry(self, g): pass
-    def configure(self, **kwargs): pass
-    def mainloop(self): pass
+
+    def title(self, t):
+        pass
+
+    def geometry(self, g):
+        pass
+
+    def configure(self, **kwargs):
+        pass
+
+    def mainloop(self):
+        pass
+
 
 class MockFrame:
     def __init__(self, master=None):
         self.master = master
+
     def pack(self, **kwargs):
         pass
+
     def config(self, **kwargs):
         pass
+
     def after(self, ms, func=None, *args):
         # Verify after is called
         pass
+
     def quit(self):
         pass
+
 
 class MockToplevel:
     def __init__(self, master=None):
         pass
+
     def title(self, text):
         pass
+
     def geometry(self, geom):
         pass
+
     def destroy(self):
         pass
+
 
 # Prepare the mocks
 mock_tk = MagicMock()
 mock_tk.Tk = MockTk
 mock_tk.Toplevel = MockToplevel
-mock_tk.Misc = object # For type hinting
+mock_tk.Misc = object  # For type hinting
 mock_tk.END = "end"
 
 mock_ttk = MagicMock()
@@ -53,11 +71,10 @@ mock_ttk.Frame = MockFrame
 # IMPORTANT: Link ttk to tk so 'from tkinter import ttk' works as expected
 mock_tk.ttk = mock_ttk
 
-with patch.dict(sys.modules, {'tkinter': mock_tk, 'tkinter.ttk': mock_ttk}):
-    import tkinter as tk
-    from tkinter import ttk
-    from amplifyp.gui import AmplifyPApp
+with patch.dict(sys.modules, {"tkinter": mock_tk, "tkinter.ttk": mock_ttk}):
     from amplifyp.dna import Primer
+    from amplifyp.gui import AmplifyPApp
+
 
 class TestGUISimulation(unittest.TestCase):
     def setUp(self):
@@ -86,10 +103,12 @@ class TestGUISimulation(unittest.TestCase):
         self.app.after = MagicMock()
         self.app.config = MagicMock()
 
-    @patch('amplifyp.gui.messagebox')
-    @patch('amplifyp.gui.AmpliconGenerator')
-    @patch('amplifyp.gui.Repliconf')
-    def test_simulate_pcr_starts_thread(self, MockRepliconf, MockAmpliconGenerator, MockMessagebox):
+    @patch("amplifyp.gui.messagebox")
+    @patch("amplifyp.gui.AmpliconGenerator")
+    @patch("amplifyp.gui.Repliconf")
+    def test_simulate_pcr_starts_thread(
+        self, MockRepliconf, MockAmpliconGenerator, MockMessagebox
+    ):
         # Setup mocks
         mock_gen = MockAmpliconGenerator.return_value
         mock_gen.get_amplicons.return_value = []
@@ -102,7 +121,7 @@ class TestGUISimulation(unittest.TestCase):
         self.app.config.assert_called_with(cursor="watch")
 
         # Check if thread started
-        self.assertTrue(hasattr(self.app, 'simulation_thread'))
+        self.assertTrue(hasattr(self.app, "simulation_thread"))
         self.assertIsInstance(self.app.simulation_thread, threading.Thread)
         # We don't check is_alive() because thread might finish instantly due to mocking/small input
 
@@ -128,5 +147,6 @@ class TestGUISimulation(unittest.TestCase):
         # Since we found out it's running real one, it should have results.
         self.assertIsNotNone(self.app.simulation_result)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
