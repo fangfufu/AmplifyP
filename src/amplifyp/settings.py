@@ -106,6 +106,33 @@ class BasePairWeightsTbl:
         self.__weight: dict[tuple[str, str], float] = {}
         self.__row_max: dict[str, float] = {}
 
+        # Optimized lookups
+        self.__matrix: list[list[float]] = [
+            [0.0] * len(self.__col) for _ in range(len(self.__row))
+        ]
+        self.__row_map: list[int] = [-1] * 128
+        self.__col_map: list[int] = [-1] * 128
+
+        # Populate row map
+        for i, char in enumerate(self.__row):
+            code = ord(char)
+            if 0 <= code < 128:
+                self.__row_map[code] = i
+                # Handle lowercase
+                lower_code = ord(char.lower())
+                if 0 <= lower_code < 128:
+                    self.__row_map[lower_code] = i
+
+        # Populate col map
+        for i, char in enumerate(self.__col):
+            code = ord(char)
+            if 0 <= code < 128:
+                self.__col_map[code] = i
+                # Handle lowercase
+                lower_code = ord(char.lower())
+                if 0 <= lower_code < 128:
+                    self.__col_map[lower_code] = i
+
         # Expected row and column lengths
         exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
         exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
@@ -124,10 +151,13 @@ class BasePairWeightsTbl:
                     )
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
+                val: float | int
                 if Nucleotides.GAP in [row_val, col_val]:
-                    self.__weight[row_val, col_val] = 0
+                    val = 0
                 else:
-                    self.__weight[row_val, col_val] = weight[i][j]
+                    val = weight[i][j]
+                self.__weight[row_val, col_val] = val
+                self.__matrix[i][j] = val
 
     def row(self) -> str:
         """Return the row nucleotides."""
@@ -161,6 +191,15 @@ class BasePairWeightsTbl:
             float: The weight of the nucleotide pair.
         """
         i, j = key
+        try:
+            r = self.__row_map[ord(i)]
+            c = self.__col_map[ord(j)]
+            if r != -1 and c != -1:
+                return self.__matrix[r][c]
+        except (TypeError, IndexError):
+            pass
+
+        # Fallback to dictionary lookup
         i = i.upper()
         j = j.upper()
         return self.__weight[i, j]
@@ -175,9 +214,18 @@ class BasePairWeightsTbl:
             value (float): The weight to set.
         """
         i, j = key
-        i = i.upper()
-        j = j.upper()
-        self.__weight[key] = value
+        # We use upper case keys to be consistent with getitem expectation
+        i_upper = i.upper()
+        j_upper = j.upper()
+        self.__weight[i_upper, j_upper] = value
+
+        try:
+            r = self.__row_map[ord(i)]
+            c = self.__col_map[ord(j)]
+            if r != -1 and c != -1:
+                self.__matrix[r][c] = value
+        except (TypeError, IndexError):
+            pass
 
     def __len__(self) -> int:
         """Return the size of the weight table.
