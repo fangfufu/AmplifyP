@@ -11,18 +11,18 @@ AmplifyP is a Python rewrite of William Engels's
 [Amplify4](https://github.com/wrengels/Amplify4), a tool for simulating
 Polymerase Chain Reaction (PCR). It allows users to predict amplification
 products (amplicons) from a given DNA template and a set of primers, taking into
- account the primability and stability of primer binding sites.
+account the primability and stability of primer binding sites.
 
 ## Features
 
 - **PCR Simulation**: Predict potential amplicons based on primer binding
-properties.
+  properties.
 - **Scoring System**: Calculates primability and stability scores for primer
-binding sites using customizable weight tables.
+  binding sites using customizable weight tables.
 - **GUI Application**: Includes a Tkinter-based graphical user interface for
-easy interaction.
+  easy interaction.
 - **Python API**: Provides a flexible API for programmatic access to simulation
-tools.
+  tools.
 
 ## Installation
 
@@ -30,12 +30,14 @@ To use AmplifyP, clone the repository and ensure you have a compatible Python
 environment (Python 3.12+).
 
 You probably want to set up your Python virtual environment first:
+
 ```
 python -m venv venv
 source venv/bin/activate
 ```
 
 Then install AmplifyP:
+
 ```bash
 git clone https://github.com/fangfufu/AmplifyP.git
 cd AmplifyP
@@ -53,11 +55,12 @@ python -m amplifyp.gui
 ```
 
 The GUI allows you to:
+
 1. Input a template DNA sequence.
-2. Add multiple primers.
-3. Configure primability and stability cutoffs.
-4. Simulate PCR to view potential amplicons.
-5. Analyze individual primers to see all potential binding sites.
+1. Add multiple primers.
+1. Configure primability and stability cutoffs.
+1. Simulate PCR to view potential amplicons.
+1. Analyze individual primers to see all potential binding sites.
 
 ### Python API
 
@@ -125,3 +128,8 @@ This project is based on the logic and methodology of
 [Amplify4](https://github.com/wrengels/Amplify4) by William Engels. We aim to
 preserve the accuracy of the original simulations while providing a modern
 Python implementation.
+
+## License
+
+This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE)
+file for details.
