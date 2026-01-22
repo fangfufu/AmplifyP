@@ -118,10 +118,6 @@ pip install pytest pytest-cov
 pytest
 ```
 
-### Todo
-
-- [ ] Verification of circular target amplification
-
 ## Attribution
 
 This project is based on the logic and methodology of

@@ -265,23 +265,6 @@ class DNA:
         """
         return hash((self.seq.upper(), self.direction, self.type))
 
-    def is_complement_of(self, other: "DNA") -> bool:
-        """Check if this DNA object is the complement of another.
-
-        This checks if `other` has the complementary sequence and opposite
-        direction.
-
-        Args:
-            other (DNA): The other DNA object to compare with.
-
-        Returns:
-            bool: True if `other` is the complement of this object.
-        """
-        return (
-            self.seq.upper() == other.complement().seq.upper()
-            and self.direction != other.direction
-        )
-
     def __len__(self) -> int:
         """Return the length of the DNA sequence.
 
@@ -289,59 +272,6 @@ class DNA:
             int: The length of the sequence.
         """
         return len(self.seq)
-
-    def pad(self, i: int) -> "DNA":
-        """Add padding to the beginning of the DNA sequence.
-
-        - Linear DNA is padded with gaps ('-').
-        - Circular DNA is padded by wrapping around (taking characters from the
-          end).
-
-        Args:
-            i (int): The number of characters to pad.
-
-        Returns:
-            DNA: A new DNA object with the padded sequence.
-
-        Raises:
-            TypeError: If the DNA type does not support padding (e.g., PRIMER).
-        """
-        if self.type == DNAType.LINEAR:
-            padding_str = Nucleotides.GAP * i
-        elif self.type == DNAType.CIRCULAR:
-            padding_str = self.seq[-i::]
-        else:
-            raise TypeError("Invalid DNA type for padding operation.")
-
-        new_str = padding_str + self.seq
-
-        return DNA(
-            new_str,
-            self.type,
-            self.name,
-            self.direction,
-        )
-
-    def rot(self, i: int) -> "DNA":
-        """Rotate the DNA sequence by a specified number of bases.
-
-        This essentially shifts the starting point of the sequence.
-        Only supported for circular DNA.
-
-        Args:
-            i (int): The number of bases to rotate.
-
-        Returns:
-            DNA: A new DNA object with the rotated sequence.
-
-        Raises:
-            TypeError: If the DNA is not circular.
-        """
-        if self.type == DNAType.LINEAR:
-            raise TypeError("Rotation is unsupported for linear DNA.")
-        padded_dna = self.pad(i)
-
-        return padded_dna[0 : len(self.seq)]
 
     def __getitem__(self, key: slice) -> "DNA":
         """Get a slice of the DNA sequence.

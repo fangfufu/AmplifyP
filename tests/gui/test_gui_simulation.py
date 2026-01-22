@@ -95,22 +95,34 @@ mock_ttk.Frame = MockFrame
 # IMPORTANT: Link ttk to tk so 'from tkinter import ttk' works as expected
 mock_tk.ttk = mock_ttk
 
-# Force reload of amplifyp.gui to ensure it uses the mocked tkinter
-sys.modules.pop("amplifyp.gui", None)
-
-with patch.dict(sys.modules, {"tkinter": mock_tk, "tkinter.ttk": mock_ttk}):
-    from amplifyp.dna import Primer
-    from amplifyp.gui import AmplifyPApp
-
 
 class TestGUISimulation(unittest.TestCase):
     """Test GUI Simulation."""
 
     def setUp(self) -> None:
         """Set up test fixtures."""
+        from amplifyp.dna import Primer
+
+        self.sys_modules_backup = sys.modules.copy()
+
+        # Patch tkinter modules
+        self.patcher = patch.dict(
+            sys.modules, {"tkinter": mock_tk, "tkinter.ttk": mock_ttk}
+        )
+        self.patcher.start()
+
+        # Reload amplifyp.gui to use mocked tkinter
+        if "amplifyp.gui" in sys.modules:
+            del sys.modules["amplifyp.gui"]
+
+        # We need to import inside the patched environment
+        from amplifyp.gui import AmplifyPApp
+
+        self.AmplifyPApp = AmplifyPApp
+
         # Instantiate app
         self.root = MockTk()
-        self.app = AmplifyPApp(self.root)
+        self.app = self.AmplifyPApp(self.root)
 
         # Setup some mock widgets that simulate_pcr uses
         self.app.template_text = MagicMock()
@@ -132,6 +144,14 @@ class TestGUISimulation(unittest.TestCase):
         # Mock self.after to capture callbacks
         self.app.after = MagicMock()
         self.app.config = MagicMock()
+
+    def tearDown(self) -> None:
+        """Clean up."""
+        self.patcher.stop()
+
+        # Restore sys.modules to original state
+        sys.modules.clear()
+        sys.modules.update(self.sys_modules_backup)
 
     @patch("amplifyp.gui.messagebox")
     @patch("amplifyp.gui.AmpliconGenerator")

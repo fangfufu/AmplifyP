@@ -17,7 +17,7 @@
 
 from dataclasses import dataclass
 
-from amplifyp.dna import DNADirection
+from amplifyp.dna import DNADirection, DNAType
 from amplifyp.repliconf import DirIdx
 
 from .dna import DNA, Primer
@@ -62,8 +62,6 @@ class Amplicon:
             raise ValueError("Start direction must be forward.")
         if self.end.direction != DNADirection.REV:
             raise ValueError("End direction must be reverse.")
-        if self.end < self.start:
-            raise ValueError("End index must be after start index.")
 
 
 class AmpliconGenerator:
@@ -130,6 +128,7 @@ class AmpliconGenerator:
         rev_conf: Repliconf,
         start: DirIdx,
         end: DirIdx,
+        len: int,
     ) -> float:
         """Calculate a quality score for a potential amplicon.
 
@@ -141,15 +140,16 @@ class AmpliconGenerator:
                 primer.
             rev_conf (Repliconf): The configuration providing the reverse
                 primer.
-            start (DirIdx): The start index of the amplicon.
-            end (DirIdx): The end index of the amplicon.
+            start (DirIdx): The start index of the forward primer.
+            end (DirIdx): The end index of the reverse primer.
+            len (int): The length of the amplicon.
 
         Returns:
             float: The calculated quality score.
         """
         fwd_quality = fwd_conf.origin(start).quality
         rev_quality = rev_conf.origin(end).quality
-        return (int(end - start)) / (fwd_quality * rev_quality) ** 2
+        return len / (fwd_quality * rev_quality) ** 2
 
     def get_amplicons(self) -> list[Amplicon]:
         """Generate all possible amplicons based on added configurations.
@@ -171,23 +171,52 @@ class AmpliconGenerator:
             for start in fwd_conf.origin_db.fwd:
                 for rev_conf in self.repliconfs:
                     for end in rev_conf.origin_db.rev:
+                        seq = None
                         if start < end:
+                            # This is the linear DNA template branch
                             seq = (
                                 fwd_conf.primer
                                 + self.template[start:end]
                                 + rev_conf.primer.reverse_complement()
                             )
-                            q_score = self.get_amplicon_quality_score(
-                                fwd_conf, rev_conf, start, end
+                        elif self.template.type == DNAType.CIRCULAR:
+                            # This branch implies that end > start. The
+                            # resulting sequence needs special handling.
+                            seq = (
+                                fwd_conf.primer
+                                + self.template[start:]
+                                + self.template[:end]
+                                + rev_conf.primer.reverse_complement()
                             )
-                            amplicons.append(
-                                Amplicon(
-                                    seq,
-                                    fwd_conf.primer,
-                                    rev_conf.primer,
-                                    start,
-                                    end,
-                                    q_score,
-                                )
+                        elif (start > end) and (
+                            self.template.type == DNAType.LINEAR
+                        ):
+                            continue
+                        else:
+                            raise NotImplementedError(
+                                "Attempted to search for an amplicon "
+                                "with the start index bigger than the end "
+                                "index on a linear DNA template."
                             )
+                        q_score = self.get_amplicon_quality_score(
+                            fwd_conf,
+                            rev_conf,
+                            start,
+                            end,
+                            (
+                                len(seq)
+                                - len(fwd_conf.primer)
+                                - len(rev_conf.primer)
+                            ),
+                        )
+                        amplicons.append(
+                            Amplicon(
+                                seq,
+                                fwd_conf.primer,
+                                rev_conf.primer,
+                                start,
+                                end,
+                                q_score,
+                            )
+                        )
         return amplicons

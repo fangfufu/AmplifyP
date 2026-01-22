@@ -39,8 +39,8 @@ def test_linear_search_primer_10290() -> None:
     assert origin_1.stability == 1.0
     assert origin_1.quality == 1.0
 
-    # It appears that for the example below, Amplify 4 actually truncates the
-    # primability and stability. This results in a different quality score.
+    # N.B. Amplify 4 reports a different quality score, because it calculates
+    # the quality score from truncated primability and stability scores.
     origin_2 = repliconf.origin(origin_idx.fwd[1])
     assert origin_2.primability == 0.8059701492537313
     assert origin_2.stability == 0.4717741935483871
