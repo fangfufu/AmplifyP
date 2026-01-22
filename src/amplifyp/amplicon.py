@@ -35,8 +35,10 @@ class Amplicon:
 
     Attributes:
         product (DNA): The full DNA sequence of the amplicon.
-        fwd_origin (Primer): The primer that initiated the forward strand synthesis.
-        rev_origin (Primer): The primer that initiated the reverse strand synthesis.
+        fwd_origin (Primer): The primer that initiated the forward strand
+            synthesis.
+        rev_origin (Primer): The primer that initiated the reverse strand
+            synthesis.
         start (DirIdx): The starting index of the amplicon on the template DNA.
         end (DirIdx): The ending index of the amplicon on the template DNA.
         q_score (float): A calculated quality score for the amplicon.
@@ -67,14 +69,15 @@ class Amplicon:
 class AmpliconGenerator:
     """A generator for predicting PCR amplicons from a template.
 
-    This class manages a list of replication configurations (Repliconfs) associated
-    with a single DNA template. It simulates the PCR process by finding valid
-    combinations of forward and reverse priming sites that could produce an amplicon.
+    This class manages a list of replication configurations (Repliconfs)
+    associated with a single DNA template. It simulates the PCR process by
+    finding valid combinations of forward and reverse priming sites that could
+    produce an amplicon.
 
     Attributes:
         template (DNA): The DNA sequence used as the template for amplification.
-        repliconfs (list[Repliconf]): A list of `Repliconf` objects, each representing
-            a primer and its binding properties on the template.
+        repliconfs (list[Repliconf]): A list of `Repliconf` objects, each
+            representing a primer and its binding properties on the template.
     """
 
     def __init__(self, template: DNA) -> None:
@@ -93,18 +96,22 @@ class AmpliconGenerator:
             repliconf (Repliconf): The configuration to add.
 
         Raises:
-            ValueError: If the `repliconf` uses a different template than the generator.
+            ValueError: If the `repliconf` uses a different template than the
+                generator.
             DuplicateRepliconfError: If the `repliconf` has already been added.
         """
         if self.template != repliconf.template:
             raise ValueError(
-                "The Repliconf contains a different template to the AmpliconGenerator."
+                "The Repliconf contains a different template to the "
+                "AmpliconGenerator."
             )
 
         if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
         else:
-            raise DuplicateRepliconfError("The Repliconf is already in the AmpliconGenerator.")
+            raise DuplicateRepliconfError(
+                "The Repliconf is already in the AmpliconGenerator."
+            )
 
     def remove(self, repliconf: Repliconf) -> None:
         """Remove a replication configuration from the generator.
@@ -126,12 +133,14 @@ class AmpliconGenerator:
     ) -> float:
         """Calculate a quality score for a potential amplicon.
 
-        The score is derived from the length of the amplicon and the quality scores
-        of the forward and reverse priming events.
+        The score is derived from the length of the amplicon and the quality
+        scores of the forward and reverse priming events.
 
         Args:
-            fwd_conf (Repliconf): The configuration providing the forward primer.
-            rev_conf (Repliconf): The configuration providing the reverse primer.
+            fwd_conf (Repliconf): The configuration providing the forward
+                primer.
+            rev_conf (Repliconf): The configuration providing the reverse
+                primer.
             start (DirIdx): The start index of the amplicon.
             end (DirIdx): The end index of the amplicon.
 
@@ -145,9 +154,9 @@ class AmpliconGenerator:
     def get_amplicons(self) -> list[Amplicon]:
         """Generate all possible amplicons based on added configurations.
 
-        This method triggers the search for origins in all added `Repliconf` objects
-        (if not already searched), and then iterates through all combinations of
-        forward and reverse origins to find valid amplicons.
+        This method triggers the search for origins in all added `Repliconf`
+        objects (if not already searched), and then iterates through all
+        combinations of forward and reverse origins to find valid amplicons.
 
         Returns:
             list[Amplicon]: A list of all generated `Amplicon` objects.

@@ -39,8 +39,8 @@ class LengthWiseWeightTbl:
     Attributes:
         default_weight (float): The default weight returned for lengths not
             found in the overrides.
-        overrides (dict[int, float]): A dictionary mapping specific lengths (int)
-            to their corresponding weights (float).
+        overrides (dict[int, float]): A dictionary mapping specific lengths
+            (int) to their corresponding weights (float).
     """
 
     def __init__(
@@ -53,8 +53,8 @@ class LengthWiseWeightTbl:
         Args:
             default_weight (float, optional): The default weight to use when a
                 length is not specified in overrides. Defaults to 0.
-            overrides (dict[int, float], optional): A dictionary mapping specific
-                lengths to their weights. Defaults to None.
+            overrides (dict[int, float], optional): A dictionary mapping
+                specific lengths to their weights. Defaults to None.
         """
         if overrides is None:
             overrides = {}
@@ -101,16 +101,18 @@ class BasePairWeightsTbl:
         """Construct a BasePairWeightsTbl object.
 
         Args:
-            row (str): A string representing the row labels (nucleotides) of the table.
-                Gap characters are allowed but not stored in the table.
-            col (str): A string representing the column labels (nucleotides) of the
+            row (str): A string representing the row labels (nucleotides) of
+                the table. Gap characters are allowed but not stored in the
                 table.
-            weight (list[list[float]]): A 2D list (matrix) of weights. `weight[i][j]`
-                corresponds to the pair (`row[i]`, `col[j]`).
+            col (str): A string representing the column labels (nucleotides) of
+                the table.
+            weight (list[list[float]]): A 2D list (matrix) of weights.
+                `weight[i][j]` corresponds to the pair (`row[i]`, `col[j]`).
 
         Raises:
-            ValueError: If the dimensions of the provided weight matrix do not match
-                the lengths of the row and column strings (excluding gaps).
+            ValueError: If the dimensions of the provided weight matrix do not
+                match the lengths of the row and column strings (excluding
+                gaps).
         """
         self.__row = row.upper()
         self.__col = col.upper()
@@ -118,7 +120,9 @@ class BasePairWeightsTbl:
         self.__row_max: dict[str, float] = {}
 
         # Optimized lookups
-        self.__matrix: list[list[float]] = [[0.0] * len(self.__col) for _ in range(len(self.__row))]
+        self.__matrix: list[list[float]] = [
+            [0.0] * len(self.__col) for _ in range(len(self.__row))
+        ]
         self.__row_map: list[int] = [-1] * 128
         self.__col_map: list[int] = [-1] * 128
 
@@ -147,14 +151,17 @@ class BasePairWeightsTbl:
         exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
 
         if len(weight) != exp_row_len:
-            raise ValueError("BasePairWeightsTbl: row length mismatch at initialisation.")
+            raise ValueError(
+                "BasePairWeightsTbl: row length mismatch at initialisation."
+            )
 
         for i, row_val in enumerate(self.__row):
             if row_val != Nucleotides.GAP:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
                     raise ValueError(
-                        "BasePairWeightsTbl: column length mismatch at initialisation."
+                        "BasePairWeightsTbl: column length mismatch at "
+                        "initialisation."
                     )
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
@@ -170,8 +177,9 @@ class BasePairWeightsTbl:
         """Return the string of row nucleotides.
 
         Returns:
-            str: The row nucleotides, excluding the last character if it was a gap
-                placeholder.
+        Returns:
+            str: The row nucleotides, excluding the last character if it was a
+                gap placeholder.
         """
         return self.__row[:-1]
 
@@ -179,8 +187,9 @@ class BasePairWeightsTbl:
         """Return the string of column nucleotides.
 
         Returns:
-            str: The column nucleotides, excluding the last character if it was a gap
-                placeholder.
+        Returns:
+            str: The column nucleotides, excluding the last character if it was
+                a gap placeholder.
         """
         return self.__col[:-1]
 
@@ -254,8 +263,9 @@ class BasePairWeightsTbl:
         """Return a string representation of the weight table.
 
         Returns:
-            str: A string representation of the internal dictionary mapping pairs to
-                weights.
+        Returns:
+            str: A string representation of the internal dictionary mapping
+                pairs to weights.
         """
         return str(self.__weight)
 
@@ -341,11 +351,12 @@ class MeltingSettings:
 
     Attributes:
         dna_conc (float): Total strand concentration in nM. Defaults to 50.
-        dnap_conc (float): DNA Polymerase concentration. Not currently used in standard Tm.
-            Defaults to 0.
-        monovalent_salt_conc (float): Concentration of monovalent cations (Na+, K+, Tris+) in mM.
-            Defaults to 50.
-        divalent_salt_conc (float): Concentration of divalent cations (Mg++) in mM. Defaults to 1.5.
+        dnap_conc (float): DNA Polymerase concentration. Not currently used in
+            standard Tm. Defaults to 0.
+        monovalent_salt_conc (float): Concentration of monovalent cations (Na+,
+            K+, Tris+) in mM. Defaults to 50.
+        divalent_salt_conc (float): Concentration of divalent cations (Mg++) in
+            mM. Defaults to 1.5.
         dnTP_conc (float): Concentration of dNTPs in mM. Defaults to 0.
     """
 
@@ -360,17 +371,17 @@ class MeltingSettings:
 class Settings:
     """A configuration class for replication settings.
 
-    This class aggregates all parameters required for analyzing replication origins.
-    It includes scoring tables for base pairing and run lengths, as well as cutoff
-    thresholds for filtering results.
+    This class aggregates all parameters required for analyzing replication
+    origins. It includes scoring tables for base pairing and run lengths, as
+    well as cutoff thresholds for filtering results.
 
     Attributes:
-        base_pair_scores (BasePairWeightsTbl): Table of weights for nucleotide pairs.
-            Defaults to `DEFAULT_BASE_PAIR_WEIGHTS`.
-        match_weight (LengthWiseWeightTbl): Weights based on the length of matching
-            segments. Defaults to `DEFAULT_MATCH_WEIGHTS`.
-        run_weights (LengthWiseWeightTbl): Weights based on the length of consecutive
-            runs. Defaults to `DEFAULT_RUN_WEIGHTS`.
+        base_pair_scores (BasePairWeightsTbl): Table of weights for nucleotide
+            pairs. Defaults to `DEFAULT_BASE_PAIR_WEIGHTS`.
+        match_weight (LengthWiseWeightTbl): Weights based on the length of
+            matching segments. Defaults to `DEFAULT_MATCH_WEIGHTS`.
+        run_weights (LengthWiseWeightTbl): Weights based on the length of
+            consecutive runs. Defaults to `DEFAULT_RUN_WEIGHTS`.
         primability_cutoff (float): The minimum score required for a site to be
             considered a valid priming site (primability). Defaults to
             `DEFAULT_PRIMABILITY_CUTOFF`.

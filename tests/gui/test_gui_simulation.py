@@ -157,7 +157,8 @@ class TestGUISimulation(unittest.TestCase):
         # Check if thread started
         self.assertTrue(hasattr(self.app, "simulation_thread"))
         self.assertIsInstance(self.app.simulation_thread, threading.Thread)
-        # We don't check is_alive() because thread might finish instantly due to mocking
+        # We don't check is_alive() because thread might finish instantly due to
+        # mocking or small input
         # or small input
 
         # Check if after called to schedule check

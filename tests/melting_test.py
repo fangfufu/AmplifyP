@@ -85,7 +85,10 @@ def test_magnesium_stabilization() -> None:
 
 
 def test_gc_content_contribution() -> None:
-    """Test that GC-rich sequences have higher Tm than AT-rich sequences of same length."""
+    """Test that GC-rich sequences have higher Tm than AT-rich sequences.
+
+    Checks sequences of same length.
+    """
     settings = MeltingSettings()
 
     poly_a = "AAAAAAAAAAAAAAAAAAAA"  # 20 A
@@ -98,13 +101,17 @@ def test_gc_content_contribution() -> None:
 
 
 def test_invalid_chars_handling() -> None:
-    """Test handling of invalid characters (should be skipped/ignored without error)."""
+    """Test handling of invalid characters.
+
+    Can handle skipped/ignored characters without error.
+    """
     settings = MeltingSettings()
     # NN should only skip the invalid dinucleotide steps
     # "ACGT" -> AC, CG, GT
     # "ACNRT" -> AC, CN(skip), NR(skip), RT(skip)?
     # Current implementation: if dinuc not in table, pass.
-    # So "ACNT" -> AC (valid), CN (invalid), NT(invalid). Only first step counts.
+    # So "ACNT" -> AC (valid), CN (invalid), NT(invalid). Only first step
+    # counts.
 
     seq_normal = "ACGT"
     seq_n = "ACNT"

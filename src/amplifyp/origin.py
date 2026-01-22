@@ -31,10 +31,11 @@ class ReplicationOrigin:
     and an overall quality score.
 
     Attributes:
-        target (str): The target DNA sequence as a string, aligned with the primer.
-            It must be in the 3'-5' orientation relative to the primer's binding.
-        primer (str): The primer sequence as a string, typically in 3'-5' orientation
-            for calculation purposes.
+        target (str): The target DNA sequence as a string, aligned with the
+            primer. It must be in the 3'-5' orientation relative to the
+            primer's binding.
+        primer (str): The primer sequence as a string, typically in 3'-5'
+            orientation for calculation purposes.
         settings (Settings): The configuration object containing scoring tables
             and cutoff thresholds.
     """
@@ -50,15 +51,19 @@ class ReplicationOrigin:
             ValueError: If the lengths of `target` and `primer` do not match.
         """
         if len(self.target) != len(self.primer):
-            raise ValueError("The target has to have the same length as the primer.")
+            raise ValueError(
+                "The target has to have the same length as the primer."
+            )
 
     @property
     def primability(self) -> float:
         """Calculate the primability score of the replication origin.
 
-        Primability estimates the likelihood of the primer binding to the target.
-        It is a weighted average of base-pairing scores, where weights are determined
-        by the position of the base pair (length-wise match weights).
+        Primability estimates the likelihood of the primer binding to the
+        target.
+        It is a weighted average of base-pairing scores, where weights are
+        determined by the position of the base pair (length-wise match
+        weights).
 
         Returns:
             float: The primability score, ranging from 0.0 to 1.0.
@@ -82,9 +87,9 @@ class ReplicationOrigin:
         applying weights based on the length of these runs.
 
         Note:
-            The formula used here is a direct translation from the Amplify 4 source
-            code,
-            which differs from the formula described in the Amplify 4 README.
+            The formula used here is a direct translation from the Amplify 4
+            source code, which differs from the formula described in the
+            Amplify 4 README.
 
         Returns:
             float: The stability score, ranging from 0.0 to 1.0.
@@ -117,13 +122,18 @@ class ReplicationOrigin:
     def quality(self) -> float:
         """Calculate the overall quality score of the replication origin.
 
-        The quality score combines primability and stability into a single metric.
-        It averages the two scores after adjusting for their respective cutoffs.
+        The quality score combines primability and stability into a single
+        metric.
+        It averages the two scores after adjusting for their respective
+        cutoffs.
 
         Returns:
-            float: The quality score. Can be negative if scores are below cutoffs.
+            float: The quality score. Can be negative if scores are below
+                cutoffs.
         """
-        cutoffs = self.settings.primability_cutoff + self.settings.stability_cutoff
+        cutoffs = (
+            self.settings.primability_cutoff + self.settings.stability_cutoff
+        )
         return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
 
 
@@ -143,17 +153,22 @@ class Amplify4RevOrigin(ReplicationOrigin):
             target (str): The target DNA sequence. The complement will be used.
             primer (str): The primer sequence.
         """
-        super().__init__(target=DNA(target).complement().seq, primer=primer, settings=Settings())
+        super().__init__(
+            target=DNA(target).complement().seq,
+            primer=primer,
+            settings=Settings(),
+        )
 
 
 class Amplify4FwdOrigin(ReplicationOrigin):
     """A helper class for creating an Amplify4-style forward replication origin.
 
-    This class facilitates the creation of a `ReplicationOrigin` for the forward
-    strand by automatically reversing the target and primer sequences (as required
-    by the internal calculation logic) and using default settings.
+    This class facilitates the creation of a `ReplicationOrigin` for the
+    forward strand by automatically reversing the target and primer sequences
+    (as required by the internal calculation logic) and using default settings.
 
-    It is primarily used for testing and ensuring compatibility with Amplify 4 logic.
+    It is primarily used for testing and ensuring compatibility with Amplify 4
+    logic.
     """
 
     def __init__(self, target: str, primer: str) -> None:

@@ -33,10 +33,18 @@ from tests.examples.amplify4_examples import (
     primer_10290,
 )
 
-repliconf_11bp = Repliconf(amplify4_linear_example, primer_11bp, DEFAULT_SETTINGS)
-repliconf_1701 = Repliconf(amplify4_linear_example, primer_1701, DEFAULT_SETTINGS)
-repliconf_10289 = Repliconf(amplify4_linear_example, primer_10289, DEFAULT_SETTINGS)
-repliconf_10290 = Repliconf(amplify4_linear_example, primer_10290, DEFAULT_SETTINGS)
+repliconf_11bp = Repliconf(
+    amplify4_linear_example, primer_11bp, DEFAULT_SETTINGS
+)
+repliconf_1701 = Repliconf(
+    amplify4_linear_example, primer_1701, DEFAULT_SETTINGS
+)
+repliconf_10289 = Repliconf(
+    amplify4_linear_example, primer_10289, DEFAULT_SETTINGS
+)
+repliconf_10290 = Repliconf(
+    amplify4_linear_example, primer_10290, DEFAULT_SETTINGS
+)
 
 
 def test_amplify4_11bp_1701_10289_10290() -> None:
@@ -101,9 +109,9 @@ def test_amplify4_1701_10289_10290() -> None:
 def test_10290_10289_566bp_manual() -> None:
     """Test 10290_10289_566bp manually.
 
-    This calculates the 566bp amplicon generated from the built-in template using
-    the built-in primers with the label 10290 and 10289. The target sequence
-    length is 526bp. The whole amplicon is 566bp.
+    This calculates the 566bp amplicon generated from the built-in template
+    using the built-in primers with the label 10290 and 10289. The target
+    sequence length is 526bp. The whole amplicon is 566bp.
     """
     repliconf_10290.search()
     repliconf_10289.search()

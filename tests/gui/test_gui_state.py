@@ -51,7 +51,9 @@ class TestGUIState(unittest.TestCase):
 
     @patch("amplifyp.gui.filedialog.asksaveasfilename")
     @patch("amplifyp.gui.messagebox.showinfo")
-    def test_save_state(self, mock_showinfo: MagicMock, mock_asksaveas: MagicMock) -> None:
+    def test_save_state(
+        self, mock_showinfo: MagicMock, mock_asksaveas: MagicMock
+    ) -> None:
         """Test saving state to a JSON file."""
         # 1. Setup App State
         self.app.template_text.insert("1.0", "ATGC")
@@ -80,7 +82,9 @@ class TestGUIState(unittest.TestCase):
             self.assertEqual(data["settings"]["primability_cutoff"], 0.8)
             self.assertEqual(data["settings"]["stability_cutoff"], 0.2)
 
-            mock_showinfo.assert_called_with("Success", "State saved successfully.")
+            mock_showinfo.assert_called_with(
+                "Success", "State saved successfully."
+            )
 
         finally:
             if os.path.exists(test_file):
@@ -88,7 +92,9 @@ class TestGUIState(unittest.TestCase):
 
     @patch("amplifyp.gui.filedialog.askopenfilename")
     @patch("amplifyp.gui.messagebox.showinfo")
-    def test_load_state(self, mock_showinfo: MagicMock, mock_askopen: MagicMock) -> None:
+    def test_load_state(
+        self, mock_showinfo: MagicMock, mock_askopen: MagicMock
+    ) -> None:
         """Test loading state from a JSON file."""
         # 1. Create Test File
         test_file = "test_load_state.json"
@@ -108,7 +114,9 @@ class TestGUIState(unittest.TestCase):
             self.app.load_state()
 
             # 3. Verify App State
-            self.assertEqual(self.app.template_text.get("1.0", "end-1c"), "GGCC")
+            self.assertEqual(
+                self.app.template_text.get("1.0", "end-1c"), "GGCC"
+            )
             self.assertEqual(len(self.app.primers_data), 1)
             self.assertEqual(self.app.primers_data[0].name, "P2")
             self.assertEqual(self.app.primers_data[0].seq, "TTTT")
@@ -118,7 +126,9 @@ class TestGUIState(unittest.TestCase):
             # Check Listbox contains the item
             self.assertEqual(self.app.primers_list.get(0), "P2: TTTT")
 
-            mock_showinfo.assert_called_with("Success", "State loaded successfully.")
+            mock_showinfo.assert_called_with(
+                "Success", "State loaded successfully."
+            )
 
         finally:
             if os.path.exists(test_file):

@@ -23,7 +23,11 @@ from dataclasses import dataclass
 
 import pytest
 
-from amplifyp.origin import Amplify4FwdOrigin, Amplify4RevOrigin, ReplicationOrigin
+from amplifyp.origin import (
+    Amplify4FwdOrigin,
+    Amplify4RevOrigin,
+    ReplicationOrigin,
+)
 from amplifyp.settings import Settings
 
 

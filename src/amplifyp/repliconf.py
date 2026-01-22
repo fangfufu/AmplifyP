@@ -24,7 +24,9 @@ from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
 from .origin import ReplicationOrigin
 from .settings import Settings
 
-COMPLEMENT_TABLE = str.maketrans("ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb")
+COMPLEMENT_TABLE = str.maketrans(
+    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
+)
 
 
 @dataclass(slots=True, frozen=True)
@@ -65,8 +67,8 @@ class DirIdx:
             other (int | DirIdx): The value to add.
 
         Returns:
-            DirIdx: A new DirIdx with the updated index value. The direction remains
-                unchanged.
+            DirIdx: A new DirIdx with the updated index value. The direction
+                remains unchanged.
         """
         if isinstance(other, int):
             return DirIdx(self.direction, self.index + other)
@@ -81,8 +83,8 @@ class DirIdx:
             other (int | DirIdx): The value to subtract.
 
         Returns:
-            DirIdx: A new DirIdx with the updated index value. The direction remains
-                unchanged.
+            DirIdx: A new DirIdx with the updated index value. The direction
+                remains unchanged.
         """
         if isinstance(other, int):
             return DirIdx(self.direction, self.index - other)
@@ -179,16 +181,17 @@ class DirIdx:
 class DirIdxDb:
     """A database for storing valid replication origin locations.
 
-    This container holds lists of indices where valid replication origins were found,
-    segregated by strand direction (forward and reverse). It also tracks whether
-    a search operation has been performed.
+    This container holds lists of indices where valid replication origins were
+    found, segregated by strand direction (forward and reverse). It also tracks
+    whether a search operation has been performed.
 
     Attributes:
-        fwd (list[DirIdx]): A list of locations (DirIdx) for origins on the forward
-            strand.
-        rev (list[DirIdx]): A list of locations (DirIdx) for origins on the reverse
-            strand.
-        searched (bool): Indicates if the search has been executed. Defaults to False.
+        fwd (list[DirIdx]): A list of locations (DirIdx) for origins on the
+            forward strand.
+        rev (list[DirIdx]): A list of locations (DirIdx) for origins on the
+            reverse strand.
+        searched (bool): Indicates if the search has been executed. Defaults to
+            False.
     """
 
     fwd: list[DirIdx]
@@ -196,7 +199,10 @@ class DirIdxDb:
     searched: bool = False
 
     def clear(self) -> None:
-        """Clear the database, removing stored indices and resetting search flag."""
+        """Clear the database.
+
+        Removes stored indices and resets search flag.
+        """
         self.fwd.clear()
         self.rev.clear()
         self.searched = False
@@ -205,8 +211,8 @@ class DirIdxDb:
         """Retrieve a stored DirIdx by direction and list index.
 
         Args:
-            key (tuple[DNADirection, int]): A tuple specifying the direction (FWD/REV)
-                and the integer index within that list.
+            key (tuple[DNADirection, int]): A tuple specifying the direction
+                (FWD/REV) and the integer index within that list.
 
         Returns:
             DirIdx: The requested directed index.
@@ -221,13 +227,14 @@ class DirIdxDb:
 class Repliconf:
     """A class representing a Replication Configuration.
 
-    A 'Repliconf' encapsulates the setup required to search for replication origins
-    given a specific Primer and Template DNA. It prepares the template sequences
-    (including padding and complementary strands) and manages the search process.
+    A 'Repliconf' encapsulates the setup required to search for replication
+    origins given a specific Primer and Template DNA. It prepares the template
+    sequences (including padding and complementary strands) and manages the
+    search process.
 
     Attributes:
-        padding_len (int): The length of padding added to the template, typically
-            equal to the primer length.
+        padding_len (int): The length of padding added to the template,
+            typically equal to the primer length.
         primer (Primer): The primer sequence being analyzed.
         template (DNA): The original template DNA sequence.
         template_seq (dict[DNADirection, str]): A dictionary mapping direction
@@ -258,13 +265,19 @@ class Repliconf:
         self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
         if template.type == DNAType.LINEAR:
-            self.template_seq[DNADirection.FWD] = Nucleotides.GAP * self.padding_len + template.seq
+            self.template_seq[DNADirection.FWD] = (
+                Nucleotides.GAP * self.padding_len + template.seq
+            )
             self.template_seq[DNADirection.REV] = (
                 template.seq + Nucleotides.GAP * self.padding_len
             ).translate(COMPLEMENT_TABLE)
         elif template.type == DNAType.CIRCULAR:
             # Matches existing behavior including 0 case where padding is empty
-            padding = template.seq[-self.padding_len :] if self.padding_len > 0 else ""
+            padding = (
+                template.seq[-self.padding_len :]
+                if self.padding_len > 0
+                else ""
+            )
             self.template_seq[DNADirection.FWD] = padding + template.seq
             self.template_seq[DNADirection.REV] = (
                 template.seq + template.seq[: self.padding_len]
@@ -272,8 +285,12 @@ class Repliconf:
         else:
             raise TypeError("Invalid DNA type for padding operation.")
 
-        logging.debug(f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}")
-        logging.debug(f"Repliconf.__init__(): REV: {self.template_seq[DNADirection.REV]}")
+        logging.debug(
+            f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}"
+        )
+        logging.debug(
+            f"Repliconf.__init__(): REV: {self.template_seq[DNADirection.REV]}"
+        )
 
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
@@ -285,10 +302,12 @@ class Repliconf:
         """Return the range of valid starting indices for search.
 
         Returns:
-            range: A range object covering all valid start positions in the padded
-                template.
+            range: A range object covering all valid start positions in the
+                padded template.
         """
-        return range(len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1)
+        return range(
+            len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1
+        )
 
     def slice(self, i: int) -> slice:
         """Create a slice object for extracting a target segment.
@@ -301,7 +320,9 @@ class Repliconf:
         """
         return slice(i, i + len(self.primer))
 
-    def origin(self, var: DirIdx | DNADirection, *idx: int) -> ReplicationOrigin:
+    def origin(
+        self, var: DirIdx | DNADirection, *idx: int
+    ) -> ReplicationOrigin:
         """Construct a ReplicationOrigin object for a specific location.
 
         This method extracts the target sequence from the pre-processed template
@@ -309,10 +330,10 @@ class Repliconf:
         object to evaluate it.
 
         Args:
-            var (DirIdx | DNADirection): Either a `DirIdx` object containing both
-                direction and index, or a `DNADirection` enum.
-            *idx (int): If `var` is a `DNADirection`, this argument must be provided
-                as the integer index.
+            var (DirIdx | DNADirection): Either a `DirIdx` object containing
+                both direction and index, or a `DNADirection` enum.
+            *idx (int): If `var` is a `DNADirection`, this argument must be
+                provided as the integer index.
 
         Returns:
             ReplicationOrigin: An evaluated replication origin object.
@@ -331,7 +352,8 @@ class Repliconf:
 
         if direction:
             # Optimized reverse slicing: template_seq[end-1:start-1:-1]
-            # This creates only 1 string object instead of 2 (slice then reverse)
+            # This creates only 1 string object instead of 2 (slice then
+            # reverse)
             end = i + len(self.primer)
             target = (
                 self.template_seq[direction][end - 1 : i - 1 : -1]
@@ -347,13 +369,15 @@ class Repliconf:
             self.settings,
         )
 
-    def origin_from_db(self, direction: DNADirection, i: int) -> ReplicationOrigin:
-        """Retrieve a ReplicationOrigin based on an index stored in the database.
+    def origin_from_db(
+        self, direction: DNADirection, i: int
+    ) -> ReplicationOrigin:
+        """Retrieve a ReplicationOrigin based on database index.
 
         Args:
             direction (DNADirection): The direction to look up in the database.
-            i (int): The index *within the list of found origins* (not the genomic
-                index).
+            i (int): The index *within the list of found origins* (not the
+                genomic index).
 
         Returns:
             ReplicationOrigin: The replication origin object.
@@ -364,8 +388,8 @@ class Repliconf:
         """Perform a search for valid replication origins.
 
         Scans the entire template in both forward and reverse directions.
-        Locations where the primability and stability scores exceed the configured
-        cutoffs are stored in `origin_db`.
+        Locations where the primability and stability scores exceed the
+        configured cutoffs are stored in `origin_db`.
         """
         self.origin_db.clear()
 
@@ -461,12 +485,19 @@ class Repliconf:
                         idx = run_len - 1
                         stab_num += r[idx] * run_score
 
-                    primability = prim_num / prim_denom if prim_denom != 0 else 0.0
-                    stability = stab_num / stab_denom if stab_denom != 0 else 0.0
+                    primability = (
+                        prim_num / prim_denom if prim_denom != 0 else 0.0
+                    )
+                    stability = (
+                        stab_num / stab_denom if stab_denom != 0 else 0.0
+                    )
 
                     if primability > prim_cutoff and stability > stab_cutoff:
                         origin = self.origin(direction, i)
-                        logging.debug(f"Repliconf.search(): adding [{direction}, {i}]: {origin}")
+                        logging.debug(
+                            f"Repliconf.search(): adding [{direction}, {i}]: "
+                            f"{origin}"
+                        )
                         self.origin_db.fwd.append(DirIdx(direction, i))
 
             else:
@@ -498,12 +529,19 @@ class Repliconf:
                         idx = run_len - 1
                         stab_num += r[idx] * run_score
 
-                    primability = prim_num / prim_denom if prim_denom != 0 else 0.0
-                    stability = stab_num / stab_denom if stab_denom != 0 else 0.0
+                    primability = (
+                        prim_num / prim_denom if prim_denom != 0 else 0.0
+                    )
+                    stability = (
+                        stab_num / stab_denom if stab_denom != 0 else 0.0
+                    )
 
                     if primability > prim_cutoff and stability > stab_cutoff:
                         origin = self.origin(direction, i)
-                        logging.debug(f"Repliconf.search(): adding [{direction}, {i}]: {origin}")
+                        logging.debug(
+                            f"Repliconf.search(): adding [{direction}, {i}]: "
+                            f"{origin}"
+                        )
                         self.origin_db.rev.append(DirIdx(direction, i))
 
         self.origin_db.searched = True
@@ -546,4 +584,6 @@ class Repliconf:
         Returns:
             str: Description of the configuration.
         """
-        return f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
+        return (
+            f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
+        )

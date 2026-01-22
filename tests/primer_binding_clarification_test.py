@@ -40,15 +40,17 @@ def test_primer_binding_logic_clarification() -> None:
           identical to the primer on the Antisense strand (which corresponds
           to the Complement of the Sense strand).
 
-    This test sets up a scenario where we know exactly where the primers should bind
-    and asserts that `Repliconf` finds them in the expected `DNADirection` buckets.
+    This test sets up a scenario where we know exactly where the primers should
+    bind and asserts that `Repliconf` finds them in the expected `DNADirection`
+    buckets.
     """
     # Template: 5'-AAAA ATGC AAAA-3' (Sense)
     # Sense sequence: "AAAAATGCAAAA"
     # Antisense sequence (3'->5'): "TTTTTACGTTTT"
     template_str = "AAAAATGCAAAA"
     template = DNA(template_str, name="TestTemplate")
-    # Use strict cutoff to avoid partial matches (like 3/4 bases) confusing the test results
+    # Use strict cutoff to avoid partial matches (like 3/4 bases) confusing the
+    # test results
     # Note: Cutoff is exclusive (>), so we use 0.99 to allow 1.0 matches.
     settings = Settings(primability_cutoff=0.99)
 
@@ -95,6 +97,7 @@ def test_primer_binding_logic_clarification() -> None:
     # Check the found origin
     origin_rev = repliconf_rev.origin(repliconf_rev.origin_db.rev[0])
     # The target found on the Antisense template should be "TACG".
-    # This corresponds to the Antisense sequence segment complementary to "ATGC".
+    # This corresponds to the Antisense sequence segment complementary to
+    # "ATGC".
     assert origin_rev.target == "TACG"
     assert origin_rev.primability == 1.0

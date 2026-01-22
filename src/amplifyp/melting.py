@@ -27,7 +27,8 @@ from .settings import MeltingSettings
 # Thermodynamic parameters (SantaLucia 1998)
 # Enthalpy (dH) in cal/mol, Entropy (dS) in cal/(K*mol)
 # Keys are dinucleotides (5'->3')
-# Source: SantaLucia, J. (1998). "A unified view of polymer, dumbbell, and oligonucleotide DNA
+# Source: SantaLucia, J. (1998). "A unified view of polymer, dumbbell, and
+# oligonucleotide DNA
 # nearest-neighbor thermodynamics". PNAS, 95(4), 1460-1465.
 NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "AA": (-7900, -22.2),
@@ -52,8 +53,8 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
 
-    Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic parameters
-    and salt corrections.
+    Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic
+    parameters and salt corrections.
 
     Formula used:
         Tm = (dH / (dS + R * ln(Ct/4))) - 273.15
@@ -125,8 +126,9 @@ def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
 
     # Salt Correction (Owczarzy 2008)
     # References:
-    # Owczarzy et al. (2008). "Predicting Stability of DNA Duplexes in Solutions Containing
-    # Magnesium and Monovalent Cations". Biochemistry, 47(19), 5336-5353.
+    # Owczarzy et al. (2008). "Predicting Stability of DNA Duplexes in
+    # Solutions Containing Magnesium and Monovalent Cations". Biochemistry,
+    # 47(19), 5336-5353.
 
     # 1. Calculate concentrations
     # Monovalent: Na+, K+, Tris+ (mM -> M)
@@ -134,7 +136,8 @@ def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
     mono_M = mono_mM * 1e-3
 
     # Divalent: Mg2+ (mM -> M)
-    # We ignore dNTPs for now (which chelate Mg2+) as per standard simple inputs,
+    # We ignore dNTPs for now (which chelate Mg2+) as per standard simple
+    # inputs,
     # or assume free Mg2+ is provided.
     div_mM = settings.divalent_salt_conc
     div_M = div_mM * 1e-3
@@ -217,12 +220,13 @@ def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
             + (1 / (2 * (n - 1))) * (e + f * log_mg + g * (log_mg**2))
         )
 
-        # Note: If Mixed mode, Owczarzy 2008 sometimes specifies different coeffs or eq.
-        # But Eq 16 is often used generally for Mg presence in simplified implementations.
-        # Since exact mixed mode coeffs are complex/variable, we stick to Eq 16
-        # which accounts for Mg effects well.
-        # Note also Von Ahsen et al (2001) suggests Na_eq = Mon + 3.8*sqrt(Mg) for mixed.
-        # But we use the Owczarzy Eq 16 which is specific for Mg.
+        # Note: If Mixed mode, Owczarzy 2008 sometimes specifies different
+        # coeffs or eq. But Eq 16 is often used generally for Mg presence in
+        # simplified implementations. Since exact mixed mode coeffs are
+        # complex/variable, we stick to Eq 16 which accounts for Mg effects
+        # well. Note also Von Ahsen et al (2001) suggests Na_eq = Mon +
+        # 3.8*sqrt(Mg) for mixed. But we use the Owczarzy Eq 16 which is
+        # specific for Mg.
 
         tm_inv = (1.0 / tm_1m_K) + corr
         tm_final_K = 1.0 / tm_inv

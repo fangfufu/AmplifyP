@@ -26,7 +26,9 @@ from tkinter import filedialog, messagebox, ttk
 
 # Ensure we can import amplifyp when running as a script
 if __name__ == "__main__" and __package__ is None:
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../")))
+    sys.path.insert(
+        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+    )
 
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import (
@@ -44,16 +46,18 @@ settings = copy.deepcopy(DEFAULT_SETTINGS)
 class PrimerStatsDialog(tk.Toplevel):
     """A dialog window for displaying analysis statistics for a single primer.
 
-    This window calculates and lists all potential binding sites for a given primer
-    on the template DNA, showing detailed scores for primability, stability, and
-    quality.
+    This window calculates and lists all potential binding sites for a given
+    primer on the template DNA, showing detailed scores for primability,
+    stability, and quality.
 
     Attributes:
         primer (Primer): The primer being analyzed.
         template_seq (str): The template DNA sequence string.
     """
 
-    def __init__(self, parent: tk.Misc, primer: Primer, template_seq: str) -> None:
+    def __init__(
+        self, parent: tk.Misc, primer: Primer, template_seq: str
+    ) -> None:
         """Initialize the PrimerStatsDialog.
 
         Args:
@@ -82,7 +86,9 @@ class PrimerStatsDialog(tk.Toplevel):
         self.tree.heading("quality", text="Quality")
 
         # Add scrollbar
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(
+            self, orient="vertical", command=self.tree.yview
+        )
         self.tree.configure(yscrollcommand=scrollbar.set)
 
         self.tree.pack(side="left", fill="both", expand=True)
@@ -97,7 +103,9 @@ class PrimerStatsDialog(tk.Toplevel):
 
             # Helper to add rows
             def add_rows(indices: list[int], direction: DNADirection) -> None:
-                strand_str = "Forward" if direction == DNADirection.FWD else "Reverse"
+                strand_str = (
+                    "Forward" if direction == DNADirection.FWD else "Reverse"
+                )
                 for i in indices:
                     origin = rc.origin(direction, i)
                     self.tree.insert(
@@ -170,9 +178,15 @@ class AmplifyPApp(ttk.Frame):
             widget (tk.Text | ttk.Entry): The widget to attach the menu to.
         """
         menu = tk.Menu(widget, tearoff=0)
-        menu.add_command(label="Cut", command=lambda: widget.event_generate("<<Cut>>"))
-        menu.add_command(label="Copy", command=lambda: widget.event_generate("<<Copy>>"))
-        menu.add_command(label="Paste", command=lambda: widget.event_generate("<<Paste>>"))
+        menu.add_command(
+            label="Cut", command=lambda: widget.event_generate("<<Cut>>")
+        )
+        menu.add_command(
+            label="Copy", command=lambda: widget.event_generate("<<Copy>>")
+        )
+        menu.add_command(
+            label="Paste", command=lambda: widget.event_generate("<<Paste>>")
+        )
 
         def show_menu(event: tk.Event) -> None:
             menu.tk_popup(event.x_root, event.y_root)
@@ -198,7 +212,9 @@ class AmplifyPApp(ttk.Frame):
 
         ttk.Label(input_frame, text="Name:").pack(side="left")
         self.primer_name_var = tk.StringVar()
-        name_entry = ttk.Entry(input_frame, textvariable=self.primer_name_var, width=15)
+        name_entry = ttk.Entry(
+            input_frame, textvariable=self.primer_name_var, width=15
+        )
         name_entry.pack(side="left", padx=5)
         self.create_context_menu(name_entry)
 
@@ -208,9 +224,15 @@ class AmplifyPApp(ttk.Frame):
         seq_entry.pack(side="left", fill="x", expand=True, padx=5)
         self.create_context_menu(seq_entry)
 
-        ttk.Button(input_frame, text="Add", command=self.add_primer).pack(side="left")
-        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(side="left", padx=5)
-        ttk.Button(input_frame, text="Analyze", command=self.analyze_primer).pack(side="left")
+        ttk.Button(input_frame, text="Add", command=self.add_primer).pack(
+            side="left"
+        )
+        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(
+            side="left", padx=5
+        )
+        ttk.Button(
+            input_frame, text="Analyze", command=self.analyze_primer
+        ).pack(side="left")
 
         # Listbox for keys
         self.primers_list = tk.Listbox(primers_frame, height=5)
@@ -246,7 +268,9 @@ class AmplifyPApp(ttk.Frame):
 
         ttk.Label(settings_frame, text="Stability Cutoff:").pack(side="left")
         self.stability_var = tk.DoubleVar(value=settings.stability_cutoff)
-        self.stability_entry = ttk.Entry(settings_frame, textvariable=self.stability_var, width=10)
+        self.stability_entry = ttk.Entry(
+            settings_frame, textvariable=self.stability_var, width=10
+        )
         self.stability_entry.pack(side="left", padx=5)
         self.create_context_menu(self.stability_entry)
 
@@ -294,7 +318,9 @@ class AmplifyPApp(ttk.Frame):
         """Remove the currently selected primer from the list."""
         selection = self.primers_list.curselection()  # type: ignore[no-untyped-call]
         if not selection:
-            messagebox.showwarning("Warning", "Please select a primer to delete.")
+            messagebox.showwarning(
+                "Warning", "Please select a primer to delete."
+            )
             return
 
         index = selection[0]
@@ -303,7 +329,9 @@ class AmplifyPApp(ttk.Frame):
         try:
             del self.primers_data[index]
         except IndexError:
-            messagebox.showerror("Error", "Could not delete primer: Index out of range.")
+            messagebox.showerror(
+                "Error", "Could not delete primer: Index out of range."
+            )
             return
 
         # Remove from listbox
@@ -314,7 +342,9 @@ class AmplifyPApp(ttk.Frame):
         # Get selected primer
         selection = self.primers_list.curselection()  # type: ignore[no-untyped-call]
         if not selection:
-            messagebox.showwarning("Warning", "Please select a primer from the list.")
+            messagebox.showwarning(
+                "Warning", "Please select a primer from the list."
+            )
             return
 
         index = selection[0]
@@ -348,7 +378,9 @@ class AmplifyPApp(ttk.Frame):
             settings.primability_cutoff = self.primability_var.get()
             settings.stability_cutoff = self.stability_var.get()
         except ValueError:
-            messagebox.showerror("Error", "Invalid numeric values for settings.")
+            messagebox.showerror(
+                "Error", "Invalid numeric values for settings."
+            )
             return
 
         # UI Updates
@@ -367,7 +399,8 @@ class AmplifyPApp(ttk.Frame):
                 # 3. Build Generator
                 generator = AmpliconGenerator(template)
 
-                # 4. Add Repliconfs (Combinations of Primer + Template + Settings)
+                # 4. Add Repliconfs (Combinations of Primer + Template +
+                # Settings)
                 for primer in sim_primers:
                     try:
                         rc = Repliconf(template, primer, sim_settings)
@@ -398,7 +431,9 @@ class AmplifyPApp(ttk.Frame):
         self.config(cursor="")
 
         if self.simulation_error:
-            messagebox.showerror("Error", f"Simulation failed: {self.simulation_error}")
+            messagebox.showerror(
+                "Error", f"Simulation failed: {self.simulation_error}"
+            )
             return
 
         # 6. Display Results
@@ -422,7 +457,7 @@ class AmplifyPApp(ttk.Frame):
                 )
 
     def save_state(self) -> None:
-        """Serialize the current application state (inputs, settings) to a JSON file."""
+        """Serialize the current application state to a JSON file."""
         file_path = filedialog.asksaveasfilename(
             defaultextension=".json",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
@@ -433,7 +468,9 @@ class AmplifyPApp(ttk.Frame):
         state = {
             "version": 1,
             "template": self.template_text.get("1.0", tk.END).strip(),
-            "primers": [{"name": p.name, "sequence": p.seq} for p in self.primers_data],
+            "primers": [
+                {"name": p.name, "sequence": p.seq} for p in self.primers_data
+            ],
             "settings": {
                 "primability_cutoff": self.primability_var.get(),
                 "stability_cutoff": self.stability_var.get(),
@@ -448,7 +485,7 @@ class AmplifyPApp(ttk.Frame):
             messagebox.showerror("Error", f"Failed to save state: {e}")
 
     def load_state(self) -> None:
-        """Deserialize application state from a JSON file and populate widgets."""
+        """Deserialize application state from a JSON file."""
         file_path = filedialog.askopenfilename(
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
