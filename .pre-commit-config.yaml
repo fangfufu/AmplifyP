@@ -38,7 +38,7 @@ repos:
         name: pytest
         entry: pytest
         language: python
-        additional_dependencies: [pytest, pytest-cov, pytest-testmon, "."]
+        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "customtkinter"]
         pass_filenames: false
         always_run: true
 

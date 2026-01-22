@@ -21,6 +21,8 @@ import threading
 import unittest
 from unittest.mock import MagicMock, patch
 
+from tests.gui.mocks import create_mock_ctk
+
 # Ensure src is in path
 sys.path.insert(0, os.path.abspath("src"))
 
@@ -107,7 +109,12 @@ class TestGUISimulation(unittest.TestCase):
 
         # Patch tkinter modules
         self.patcher = patch.dict(
-            sys.modules, {"tkinter": mock_tk, "tkinter.ttk": mock_ttk}
+            sys.modules,
+            {
+                "tkinter": mock_tk,
+                "tkinter.ttk": mock_ttk,
+                "customtkinter": create_mock_ctk(),
+            },
         )
         self.patcher.start()
 
@@ -121,7 +128,16 @@ class TestGUISimulation(unittest.TestCase):
         self.AmplifyPApp = AmplifyPApp
 
         # Instantiate app
-        self.root = MockTk()
+        # mock_ctk is the MagicMock returned by create_mock_ctk()
+        # The classes are attributes of it.
+        # But wait, self.AmplifyPApp was imported AFTER patch, so it uses the
+        # mocks in sys.modules['customtkinter'] which is the object provided by
+        # create_mock_ctk().
+        # So create_mock_ctk().CTk should be the class.
+        # But I need to instantiate it.
+        # simpler: use the one from sys.modules
+        mock_ctk = sys.modules["customtkinter"]
+        self.root = mock_ctk.CTk()
         self.app = self.AmplifyPApp(self.root)
 
         # Setup some mock widgets that simulate_pcr uses
@@ -171,8 +187,8 @@ class TestGUISimulation(unittest.TestCase):
         self.app.simulate_pcr()
 
         # Check if button disabled
-        self.app.simulate_btn.config.assert_called_with(state="disabled")
-        self.app.config.assert_called_with(cursor="watch")
+        self.app.simulate_btn.configure.assert_called_with(state="disabled")
+        self.app.configure.assert_called_with(cursor="watch")
 
         # Check if thread started
         self.assertTrue(hasattr(self.app, "simulation_thread"))
@@ -195,8 +211,8 @@ class TestGUISimulation(unittest.TestCase):
 
         # Check if on_simulation_complete logic ran
         # Button enabled
-        self.app.simulate_btn.config.assert_called_with(state="normal")
-        self.app.config.assert_called_with(cursor="")
+        self.app.simulate_btn.configure.assert_called_with(state="normal")
+        self.app.configure.assert_called_with(cursor="")
 
         # Check results are populated (meaning thread ran)
         # If AmpliconGenerator was real, it produced results. If mock,

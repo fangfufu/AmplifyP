@@ -10,6 +10,9 @@ version = "v0.0.1"
 description = "Python rewrite of Amplify 4"
 readme = "README.md"
 requires-python = ">=3.12"
+dependencies = [
+  "customtkinter",
+]
 
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
@@ -50,7 +53,7 @@ lint.select = [
   "W",   # pycodestyle warnings
 ]
 # Ignore "S101" (assert used) in all files inside the tests directory
-lint.per-file-ignores."tests/**/*.py" = [ "S101" ]
+lint.per-file-ignores."tests/**/*.py" = [ "S101", "D" ]
 lint.pydocstyle.convention = "google"
 
 [tool.pytest.ini_options]

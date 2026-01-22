@@ -24,11 +24,7 @@ import tkinter as tk
 import traceback
 from tkinter import filedialog, messagebox, ttk
 
-# Ensure we can import amplifyp when running as a script
-if __name__ == "__main__" and __package__ is None:
-    sys.path.insert(
-        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
-    )
+import customtkinter as ctk
 
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import (
@@ -40,10 +36,22 @@ from amplifyp.dna import (
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import DEFAULT_SETTINGS
 
+# Set theme
+ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
+ctk.set_default_color_theme(
+    "blue"
+)  # Themes: "blue" (standard), "green", "dark-blue"
+
+# Ensure we can import amplifyp when running as a script
+if __name__ == "__main__" and __package__ is None:
+    sys.path.insert(
+        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+    )
+
 settings = copy.deepcopy(DEFAULT_SETTINGS)
 
 
-class PrimerStatsDialog(tk.Toplevel):
+class PrimerStatsDialog(ctk.CTkToplevel):  # type: ignore[misc]
     """A dialog window for displaying analysis statistics for a single primer.
 
     This window calculates and lists all potential binding sites for a given
@@ -86,6 +94,8 @@ class PrimerStatsDialog(tk.Toplevel):
         self.tree.heading("quality", text="Quality")
 
         # Add scrollbar
+        # Note: CTk doesn't have a native Treeview, so we keep using
+        # ttk.Treeview but we can try to style it or just let it be.
         scrollbar = ttk.Scrollbar(
             self, orient="vertical", command=self.tree.yview
         )
@@ -132,7 +142,7 @@ class PrimerStatsDialog(tk.Toplevel):
             self.destroy()
 
 
-class AmplifyPApp(ttk.Frame):
+class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
     """The main application frame for the AmplifyP GUI.
 
     This class manages the main window layout, including inputs for template DNA
@@ -157,7 +167,8 @@ class AmplifyPApp(ttk.Frame):
 
     def create_menu(self) -> None:
         """Create and attach the main application menu bar."""
-        if not isinstance(self.master, tk.Tk):
+        # Menus are still attached to the root tk/ctk object
+        if not isinstance(self.master, (tk.Tk, ctk.CTk)):
             return
 
         menubar = tk.Menu(self.master)
@@ -196,45 +207,62 @@ class AmplifyPApp(ttk.Frame):
     def create_widgets(self) -> None:
         """Initialize and arrange all widgets in the main frame."""
         # --- Template DNA Section ---
-        template_frame = ttk.LabelFrame(self, text="Template DNA")
+        template_frame = ctk.CTkFrame(self)
         template_frame.pack(fill="x", padx=10, pady=5)
 
-        self.template_text = tk.Text(template_frame, height=5)
+        # Label for the frame since CTkFrame doesn't have 'text' argument like
+        # LabelFrame
+        ctk.CTkLabel(
+            template_frame, text="Template DNA", font=("", 14, "bold")
+        ).pack(anchor="w", padx=10, pady=(5, 0))
+
+        self.template_text = ctk.CTkTextbox(template_frame, height=100)
         self.template_text.pack(fill="x", padx=5, pady=5)
         self.create_context_menu(self.template_text)
 
         # --- Primers Section ---
-        primers_frame = ttk.LabelFrame(self, text="Primers")
+        primers_frame = ctk.CTkFrame(self)
         primers_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        input_frame = ttk.Frame(primers_frame)
+        ctk.CTkLabel(primers_frame, text="Primers", font=("", 14, "bold")).pack(
+            anchor="w", padx=10, pady=(5, 0)
+        )
+
+        input_frame = ctk.CTkFrame(primers_frame, fg_color="transparent")
         input_frame.pack(fill="x", padx=5, pady=5)
 
-        ttk.Label(input_frame, text="Name:").pack(side="left")
+        ctk.CTkLabel(input_frame, text="Name:").pack(side="left", padx=5)
         self.primer_name_var = tk.StringVar()
-        name_entry = ttk.Entry(
-            input_frame, textvariable=self.primer_name_var, width=15
+        name_entry = ctk.CTkEntry(
+            input_frame, textvariable=self.primer_name_var, width=120
         )
         name_entry.pack(side="left", padx=5)
         self.create_context_menu(name_entry)
 
-        ttk.Label(input_frame, text="Sequence:").pack(side="left")
+        ctk.CTkLabel(input_frame, text="Sequence:").pack(side="left", padx=5)
         self.primer_seq_var = tk.StringVar()
-        seq_entry = ttk.Entry(input_frame, textvariable=self.primer_seq_var)
+        seq_entry = ctk.CTkEntry(input_frame, textvariable=self.primer_seq_var)
         seq_entry.pack(side="left", fill="x", expand=True, padx=5)
         self.create_context_menu(seq_entry)
 
-        ttk.Button(input_frame, text="Add", command=self.add_primer).pack(
-            side="left"
-        )
-        ttk.Button(input_frame, text="Delete", command=self.delete_primer).pack(
-            side="left", padx=5
-        )
-        ttk.Button(
-            input_frame, text="Analyze", command=self.analyze_primer
-        ).pack(side="left")
+        ctk.CTkButton(
+            input_frame, text="Add", command=self.add_primer, width=60
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(
+            input_frame,
+            text="Delete",
+            command=self.delete_primer,
+            width=60,
+            fg_color="red",
+            hover_color="darkred",
+        ).pack(side="left", padx=5)
+        ctk.CTkButton(
+            input_frame, text="Analyze", command=self.analyze_primer, width=80
+        ).pack(side="left", padx=5)
 
-        # Listbox for keys
+        # Listbox for keys - CTk doesn't have Listbox. Use standard tk.Listbox
+        # or a ScrollableFrame. Keeping tk.Listbox for now for simplicity,
+        # maybe wrap in a frame.
         self.primers_list = tk.Listbox(primers_frame, height=5)
         self.primers_list.pack(fill="both", expand=True, padx=5, pady=5)
         self.primers_data: list[Primer] = []
@@ -255,26 +283,30 @@ class AmplifyPApp(ttk.Frame):
         self.primers_list.bind("<Button-3>", show_list_menu)
 
         # --- Settings and Action ---
-        settings_frame = ttk.Frame(self)
+        settings_frame = ctk.CTkFrame(self)
         settings_frame.pack(fill="x", padx=10, pady=5)
 
-        ttk.Label(settings_frame, text="Primability Cutoff:").pack(side="left")
+        ctk.CTkLabel(settings_frame, text="Primability Cutoff:").pack(
+            side="left", padx=5
+        )
         self.primability_var = tk.DoubleVar(value=settings.primability_cutoff)
-        self.primability_entry = ttk.Entry(
-            settings_frame, textvariable=self.primability_var, width=10
+        self.primability_entry = ctk.CTkEntry(
+            settings_frame, textvariable=self.primability_var, width=60
         )
         self.primability_entry.pack(side="left", padx=5)
         self.create_context_menu(self.primability_entry)
 
-        ttk.Label(settings_frame, text="Stability Cutoff:").pack(side="left")
+        ctk.CTkLabel(settings_frame, text="Stability Cutoff:").pack(
+            side="left", padx=5
+        )
         self.stability_var = tk.DoubleVar(value=settings.stability_cutoff)
-        self.stability_entry = ttk.Entry(
-            settings_frame, textvariable=self.stability_var, width=10
+        self.stability_entry = ctk.CTkEntry(
+            settings_frame, textvariable=self.stability_var, width=60
         )
         self.stability_entry.pack(side="left", padx=5)
         self.create_context_menu(self.stability_entry)
 
-        self.simulate_btn = ttk.Button(
+        self.simulate_btn = ctk.CTkButton(
             settings_frame, text="Simulate PCR", command=self.simulate_pcr
         )
         self.simulate_btn.pack(side="right", padx=10)
@@ -384,8 +416,8 @@ class AmplifyPApp(ttk.Frame):
             return
 
         # UI Updates
-        self.simulate_btn.config(state="disabled")
-        self.config(cursor="watch")
+        self.simulate_btn.configure(state="disabled")
+        self.configure(cursor="watch")
 
         # Prepare data for thread
         sim_settings = copy.deepcopy(settings)
@@ -427,8 +459,8 @@ class AmplifyPApp(ttk.Frame):
 
     def on_simulation_complete(self) -> None:
         """Handle completion of the simulation."""
-        self.simulate_btn.config(state="normal")
-        self.config(cursor="")
+        self.simulate_btn.configure(state="normal")
+        self.configure(cursor="")
 
         if self.simulation_error:
             messagebox.showerror(
@@ -525,6 +557,6 @@ class AmplifyPApp(ttk.Frame):
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     app = AmplifyPApp(root)
     root.mainloop()
