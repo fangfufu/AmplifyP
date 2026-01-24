@@ -110,3 +110,43 @@ def test_dna_invalid_char() -> None:
 def test_dna_hash() -> None:
     """Test that the DNA hash function generates a hash."""
     assert hash(DNA("A"))
+
+
+def test_dna_count_at() -> None:
+    """Test the count_at method."""
+    dna = DNA("ATCGW", dna_type=DNAType.PRIMER)
+    assert dna.count_at() == 3  # A, T, W
+    assert (
+        DNA("atcgw", dna_type=DNAType.PRIMER).count_at() == 3
+    )  # Case insensitive
+    assert DNA("CG", dna_type=DNAType.PRIMER).count_at() == 0
+
+
+def test_dna_count_cg() -> None:
+    """Test the count_cg method."""
+    dna = DNA("ATCGS", dna_type=DNAType.PRIMER)
+    assert dna.count_cg() == 3  # C, G, S
+    assert (
+        DNA("atcgs", dna_type=DNAType.PRIMER).count_cg() == 3
+    )  # Case insensitive
+    assert DNA("AT", dna_type=DNAType.PRIMER).count_cg() == 0
+
+
+def test_dna_ratio_at() -> None:
+    """Test the ratio_at method."""
+    dna = DNA("AAAA")
+    assert dna.ratio_at() == 1.0
+    dna = DNA("ATCG")
+    assert dna.ratio_at() == 0.5
+    dna = DNA("")
+    assert dna.ratio_at() == 0.0
+
+
+def test_dna_ratio_cg() -> None:
+    """Test the ratio_cg method."""
+    dna = DNA("CCCC")
+    assert dna.ratio_cg() == 1.0
+    dna = DNA("ATCG")
+    assert dna.ratio_cg() == 0.5
+    dna = DNA("")
+    assert dna.ratio_cg() == 0.0

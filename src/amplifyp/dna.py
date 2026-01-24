@@ -309,6 +309,48 @@ class DNA:
             self.seq + other.seq, DNAType.LINEAR, self.name, self.direction
         )
 
+    def count_at(self) -> int:
+        """Count the number of A, T, or W (A/T ambiguous) bases.
+
+        Returns:
+            int: The count of A, T, and W bases.
+        """
+        seq_upper = self.seq.upper()
+        return (
+            seq_upper.count("A") + seq_upper.count("T") + seq_upper.count("W")
+        )
+
+    def count_cg(self) -> int:
+        """Count the number of C, G, or S (C/G ambiguous) bases.
+
+        Returns:
+            int: The count of C, G, and S bases.
+        """
+        seq_upper = self.seq.upper()
+        return (
+            seq_upper.count("C") + seq_upper.count("G") + seq_upper.count("S")
+        )
+
+    def ratio_at(self) -> float:
+        """Calculate the ratio of A, T, or W bases in the sequence.
+
+        Returns:
+            float: The ratio of A/T/W bases. Returns 0.0 if sequence is empty.
+        """
+        if len(self) == 0:
+            return 0.0
+        return self.count_at() / len(self)
+
+    def ratio_cg(self) -> float:
+        """Calculate the ratio of C, G, or S bases in the sequence.
+
+        Returns:
+            float: The ratio of C/G/S bases. Returns 0.0 if sequence is empty.
+        """
+        if len(self) == 0:
+            return 0.0
+        return self.count_cg() / len(self)
+
 
 class Primer(DNA):
     """A class representing a primer sequence.
