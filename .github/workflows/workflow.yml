@@ -2,8 +2,13 @@ name: AmplifyP post-commit
 
 on:
   pull_request:
+    branches:
+      - master
+      - dev
   push:
-    branches: [master]
+    branches:
+      - master
+      - dev
 
 permissions:
   contents: read
