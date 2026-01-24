@@ -42,6 +42,7 @@ class Amplicon:
         start (DirIdx): The starting index of the amplicon on the template DNA.
         end (DirIdx): The ending index of the amplicon on the template DNA.
         q_score (float): A calculated quality score for the amplicon.
+        circular (bool): Whether the amplicon is circular.
     """
 
     product: DNA
@@ -50,6 +51,7 @@ class Amplicon:
     start: DirIdx
     end: DirIdx
     q_score: float
+    circular: bool
 
     def __post_init__(self) -> None:
         """Validate the consistency of the amplicon indices.
@@ -62,6 +64,49 @@ class Amplicon:
             raise ValueError("Start direction must be forward.")
         if self.end.direction != DNADirection.REV:
             raise ValueError("End direction must be reverse.")
+        if (self.start.index > self.end.index) and not self.circular:
+            raise ValueError(
+                "End index must be greater than start index for linear DNA."
+            )
+
+    def q_score_report_str(self, verbose: bool = False) -> str:
+        """Generate textual report based on the amplicon q-score.
+
+        Args:
+            verbose (bool): Whether to return verbose description of the
+                q-score.
+
+        Returns:
+            str: The textual report.
+        """
+        str = ""
+        if self.q_score < 300:
+            str = "good"
+            str += " amplification" if verbose else ""
+        elif self.q_score < 700:
+            str = "okay"
+            str += " amplification" if verbose else ""
+        elif self.q_score < 1500:
+            str = "moderate"
+            str += " amplification" if verbose else ""
+        elif self.q_score < 4000:
+            str = "weak"
+            str += (
+                " amplification — might be visible on an agarose gel"
+                if verbose
+                else ""
+            )
+        else:
+            str = "very weak"
+            str += (
+                " amplification — probably not visible on an agarose gel"
+                if verbose
+                else ""
+            )
+
+        if self.circular:
+            str += " (Circular)"
+        return str
 
 
 class AmpliconGenerator:
@@ -172,6 +217,7 @@ class AmpliconGenerator:
                 for rev_conf in self.repliconfs:
                     for end in rev_conf.origin_db.rev:
                         seq = None
+                        circular = False
                         if start < end:
                             # This is the linear DNA template branch
                             seq = (
@@ -188,9 +234,12 @@ class AmpliconGenerator:
                                 + self.template[:end]
                                 + rev_conf.primer.reverse_complement()
                             )
+                            circular = True
                         elif (start > end) and (
                             self.template.type == DNAType.LINEAR
                         ):
+                            # This branch is not possible on a linear DNA
+                            # template.
                             continue
                         else:
                             raise NotImplementedError(
@@ -217,6 +266,7 @@ class AmpliconGenerator:
                                 start,
                                 end,
                                 q_score,
+                                circular,
                             )
                         )
         return amplicons
