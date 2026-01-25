@@ -182,11 +182,14 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
         menubar.add_cascade(label="File", menu=file_menu)
         self.master.configure(menu=menubar)
 
-    def create_context_menu(self, widget: tk.Text | ttk.Entry) -> None:
+    def create_context_menu(
+        self, widget: tk.Text | ttk.Entry | ctk.CTkEntry
+    ) -> None:
         """Attach a standard Cut/Copy/Paste context menu to a widget.
 
         Args:
-            widget (tk.Text | ttk.Entry): The widget to attach the menu to.
+            widget (tk.Text | ttk.Entry | ctk.CTkEntry): The widget to attach
+                the menu to.
         """
         menu = tk.Menu(widget, tearoff=0)
         menu.add_command(
@@ -203,6 +206,36 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
             menu.tk_popup(event.x_root, event.y_root)
 
         widget.bind("<Button-3>", show_menu)
+
+    def _create_labeled_entry(
+        self,
+        parent: ctk.CTkFrame,
+        label: str,
+        variable: tk.Variable,
+        width: int = 140,
+        **pack_kwargs: dict,
+    ) -> ctk.CTkEntry:
+        """Create and pack a labeled entry widget with context menu.
+
+        Args:
+            parent: The parent widget.
+            label: Text for the label.
+            variable: The variable to bind.
+            width: Width of the entry.
+            pack_kwargs: Additional arguments for packing the entry.
+
+        Returns:
+            The created entry widget.
+        """
+        ctk.CTkLabel(parent, text=label).pack(side="left", padx=5)
+        entry = ctk.CTkEntry(parent, textvariable=variable, width=width)
+
+        pack_args = {"side": "left", "padx": 5}
+        pack_args.update(pack_kwargs)  # type: ignore[arg-type]
+
+        entry.pack(**pack_args)
+        self.create_context_menu(entry)
+        return entry
 
     def create_widgets(self) -> None:
         """Initialize and arrange all widgets in the main frame."""
@@ -231,19 +264,20 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
         input_frame = ctk.CTkFrame(primers_frame, fg_color="transparent")
         input_frame.pack(fill="x", padx=5, pady=5)
 
-        ctk.CTkLabel(input_frame, text="Name:").pack(side="left", padx=5)
         self.primer_name_var = tk.StringVar()
-        name_entry = ctk.CTkEntry(
-            input_frame, textvariable=self.primer_name_var, width=120
+        self._create_labeled_entry(
+            input_frame, "Name:", self.primer_name_var, width=120
         )
-        name_entry.pack(side="left", padx=5)
-        self.create_context_menu(name_entry)
 
-        ctk.CTkLabel(input_frame, text="Sequence:").pack(side="left", padx=5)
         self.primer_seq_var = tk.StringVar()
-        seq_entry = ctk.CTkEntry(input_frame, textvariable=self.primer_seq_var)
-        seq_entry.pack(side="left", fill="x", expand=True, padx=5)
-        self.create_context_menu(seq_entry)
+        self._create_labeled_entry(
+            input_frame,
+            "Sequence:",
+            self.primer_seq_var,
+            width=140,
+            fill="x",
+            expand=True,
+        )
 
         ctk.CTkButton(
             input_frame, text="Add", command=self.add_primer, width=60
@@ -286,25 +320,21 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
         settings_frame = ctk.CTkFrame(self)
         settings_frame.pack(fill="x", padx=10, pady=5)
 
-        ctk.CTkLabel(settings_frame, text="Primability Cutoff:").pack(
-            side="left", padx=5
-        )
         self.primability_var = tk.DoubleVar(value=settings.primability_cutoff)
-        self.primability_entry = ctk.CTkEntry(
-            settings_frame, textvariable=self.primability_var, width=60
+        self.primability_entry = self._create_labeled_entry(
+            settings_frame,
+            "Primability Cutoff:",
+            self.primability_var,
+            width=60,
         )
-        self.primability_entry.pack(side="left", padx=5)
-        self.create_context_menu(self.primability_entry)
 
-        ctk.CTkLabel(settings_frame, text="Stability Cutoff:").pack(
-            side="left", padx=5
-        )
         self.stability_var = tk.DoubleVar(value=settings.stability_cutoff)
-        self.stability_entry = ctk.CTkEntry(
-            settings_frame, textvariable=self.stability_var, width=60
+        self.stability_entry = self._create_labeled_entry(
+            settings_frame,
+            "Stability Cutoff:",
+            self.stability_var,
+            width=60,
         )
-        self.stability_entry.pack(side="left", padx=5)
-        self.create_context_menu(self.stability_entry)
 
         self.simulate_btn = ctk.CTkButton(
             settings_frame, text="Simulate PCR", command=self.simulate_pcr

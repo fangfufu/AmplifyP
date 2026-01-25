@@ -79,34 +79,30 @@ class Amplicon:
         Returns:
             str: The textual report.
         """
-        str = ""
-        if self.q_score < 300:
-            str = "good"
-            str += " amplification" if verbose else ""
-        elif self.q_score < 700:
-            str = "okay"
-            str += " amplification" if verbose else ""
-        elif self.q_score < 1500:
-            str = "moderate"
-            str += " amplification" if verbose else ""
-        elif self.q_score < 4000:
-            str = "weak"
-            str += (
-                " amplification — might be visible on an agarose gel"
-                if verbose
-                else ""
-            )
-        else:
-            str = "very weak"
-            str += (
-                " amplification — probably not visible on an agarose gel"
-                if verbose
-                else ""
-            )
+        thresholds = [
+            (300, "good", " amplification"),
+            (700, "okay", " amplification"),
+            (1500, "moderate", " amplification"),
+            (
+                4000,
+                "weak",
+                " amplification — might be visible on an agarose gel",
+            ),
+        ]
 
+        desc, verbose_suffix = "very weak", (
+            " amplification — probably not visible on an agarose gel"
+        )
+
+        for limit, text, v_text in thresholds:
+            if self.q_score < limit:
+                desc, verbose_suffix = text, v_text
+                break
+
+        result = desc + (verbose_suffix if verbose else "")
         if self.circular:
-            str += " (Circular)"
-        return str
+            result += " (Circular)"
+        return result
 
 
 class AmpliconGenerator:
@@ -196,6 +192,56 @@ class AmpliconGenerator:
         rev_quality = rev_conf.origin(end).quality
         return len / (fwd_quality * rev_quality) ** 2
 
+    def _construct_amplicon_sequence(
+        self,
+        fwd_conf: Repliconf,
+        rev_conf: Repliconf,
+        start: DirIdx,
+        end: DirIdx,
+    ) -> tuple[DNA | None, bool]:
+        """Construct the amplicon sequence from start and end points.
+
+        Args:
+            fwd_conf (Repliconf): Configuration for the forward primer.
+            rev_conf (Repliconf): Configuration for the reverse primer.
+            start (DirIdx): Start index.
+            end (DirIdx): End index.
+
+        Returns:
+            tuple[DNA | None, bool]: A tuple containing the sequence (or None
+                if invalid) and a boolean indicating if it's circular.
+
+        Raises:
+            NotImplementedError: If indices are invalid for linear DNA.
+        """
+        seq = None
+        circular = False
+        if start < end:
+            # Linear DNA template branch
+            seq = (
+                fwd_conf.primer
+                + self.template[start:end]
+                + rev_conf.primer.reverse_complement()
+            )
+        elif self.template.type == DNAType.CIRCULAR:
+            # Circular DNA handling
+            seq = (
+                fwd_conf.primer
+                + self.template[start:]
+                + self.template[:end]
+                + rev_conf.primer.reverse_complement()
+            )
+            circular = True
+        elif (start > end) and (self.template.type == DNAType.LINEAR):
+            # Not possible on linear DNA
+            pass
+        else:
+            raise NotImplementedError(
+                "Attempted to search for an amplicon with the start index "
+                "bigger than the end index on a linear DNA template."
+            )
+        return seq, circular
+
     def get_amplicons(self) -> list[Amplicon]:
         """Generate all possible amplicons based on added configurations.
 
@@ -208,65 +254,45 @@ class AmpliconGenerator:
         """
         amplicons: list[Amplicon] = []
 
+        # Ensure all repliconfs are searched and collect origins
+        all_fwd_origins = []
+        all_rev_origins = []
+
         for repliconf in self.repliconfs:
             if not repliconf.searched:
                 repliconf.search()
+            # Collect (conf, index) pairs
+            for start in repliconf.origin_db.fwd:
+                all_fwd_origins.append((repliconf, start))
+            for end in repliconf.origin_db.rev:
+                all_rev_origins.append((repliconf, end))
 
-        for fwd_conf in self.repliconfs:
-            for start in fwd_conf.origin_db.fwd:
-                for rev_conf in self.repliconfs:
-                    for end in rev_conf.origin_db.rev:
-                        seq = None
-                        circular = False
-                        if start < end:
-                            # This is the linear DNA template branch
-                            seq = (
-                                fwd_conf.primer
-                                + self.template[start:end]
-                                + rev_conf.primer.reverse_complement()
-                            )
-                        elif self.template.type == DNAType.CIRCULAR:
-                            # This branch implies that end > start. The
-                            # resulting sequence needs special handling.
-                            seq = (
-                                fwd_conf.primer
-                                + self.template[start:]
-                                + self.template[:end]
-                                + rev_conf.primer.reverse_complement()
-                            )
-                            circular = True
-                        elif (start > end) and (
-                            self.template.type == DNAType.LINEAR
-                        ):
-                            # This branch is not possible on a linear DNA
-                            # template.
-                            continue
-                        else:
-                            raise NotImplementedError(
-                                "Attempted to search for an amplicon "
-                                "with the start index bigger than the end "
-                                "index on a linear DNA template."
-                            )
-                        q_score = self.get_amplicon_quality_score(
-                            fwd_conf,
-                            rev_conf,
-                            start,
-                            end,
-                            (
-                                len(seq)
-                                - len(fwd_conf.primer)
-                                - len(rev_conf.primer)
-                            ),
-                        )
-                        amplicons.append(
-                            Amplicon(
-                                seq,
-                                fwd_conf.primer,
-                                rev_conf.primer,
-                                start,
-                                end,
-                                q_score,
-                                circular,
-                            )
-                        )
+        # Iterate over combinations
+        for fwd_conf, start in all_fwd_origins:
+            for rev_conf, end in all_rev_origins:
+                seq, circular = self._construct_amplicon_sequence(
+                    fwd_conf, rev_conf, start, end
+                )
+
+                if seq is None:
+                    continue
+
+                q_score = self.get_amplicon_quality_score(
+                    fwd_conf,
+                    rev_conf,
+                    start,
+                    end,
+                    (len(seq) - len(fwd_conf.primer) - len(rev_conf.primer)),
+                )
+                amplicons.append(
+                    Amplicon(
+                        seq,
+                        fwd_conf.primer,
+                        rev_conf.primer,
+                        start,
+                        end,
+                        q_score,
+                        circular,
+                    )
+                )
         return amplicons

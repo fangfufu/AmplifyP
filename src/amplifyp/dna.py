@@ -311,16 +311,25 @@ class DNA:
             self.seq + other.seq, DNAType.LINEAR, self.name, self.direction
         )
 
+    def _count_bases(self, bases: str) -> int:
+        """Count the occurrences of any character from `bases` in the sequence.
+
+        Args:
+            bases (str): A string of characters to count.
+
+        Returns:
+            int: The total count of characters in `bases` found in the sequence.
+        """
+        seq_upper = self.seq.upper()
+        return sum(seq_upper.count(base) for base in bases)
+
     def count_at(self) -> int:
         """Count the number of A, T, or W (A/T ambiguous) bases.
 
         Returns:
             int: The count of A, T, and W bases.
         """
-        seq_upper = self.seq.upper()
-        return (
-            seq_upper.count("A") + seq_upper.count("T") + seq_upper.count("W")
-        )
+        return self._count_bases("ATW")
 
     def count_cg(self) -> int:
         """Count the number of C, G, or S (C/G ambiguous) bases.
@@ -328,10 +337,7 @@ class DNA:
         Returns:
             int: The count of C, G, and S bases.
         """
-        seq_upper = self.seq.upper()
-        return (
-            seq_upper.count("C") + seq_upper.count("G") + seq_upper.count("S")
-        )
+        return self._count_bases("CGS")
 
     def ratio_at(self) -> float:
         """Calculate the ratio of A, T, or W bases in the sequence.
