@@ -349,27 +349,7 @@ DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
         [30, 30, 30, 30, 30],
     ],
 )
-DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
-    row=Nucleotides.PRIMER,
-    col=Nucleotides.PRIMER,
-    weight=[
-        [-20, -20, -20, 30, 5, -20, -20, 5, 5, -20, -3, -3, -20, -3, -8],
-        [-20, -20, 20, -20, -20, -20, 0, -20, 0, 0, -20, -7, -7, -7, -10],
-        [-20, 20, -20, -20, 0, 0, 0, -20, -20, -20, -7, -7, -7, -20, -10],
-        [30, -20, -20, -20, -20, 5, -20, 5, -20, 5, -3, -20, -3, -3, -8],
-        [5, -20, 0, -20, -20, -8, -10, -8, -10, 3, -12, -13, -5, -5, -9],
-        [-20, -20, 0, 5, -8, -20, -10, -8, 3, -10, -12, -5, -13, -5, -9],
-        [-20, 0, 0, -20, -10, -10, 0, -20, -10, -10, -13, -7, -7, -13, -10],
-        [5, -20, -20, 5, -8, -8, -20, 5, -8, -8, -3, -12, -12, -3, -8],
-        [5, 0, -20, -20, -10, 3, -10, -8, -20, -8, -5, -13, -5, -12, -9],
-        [-20, 0, -20, 5, 3, -10, -10, -8, -8, -20, -5, -5, -13, -12, -9],
-        [-3, -20, -7, -3, -12, -12, -13, -3, -5, -5, -9, -10, -10, -4, -8],
-        [-3, -7, -7, -20, -13, -5, -7, -12, -13, -5, -10, -11, -6, -10, -9],
-        [-20, -7, -7, -3, -5, -13, -7, -12, -5, -13, -10, -6, -11, -10, -9],
-        [-3, -7, -20, -3, -5, -5, -13, -3, -12, -12, -4, -10, -10, -9, -8],
-        [-8, -10, -10, -8, -9, -9, -10, -8, -9, -9, -8, -9, -9, -8, -9],
-    ],
-)
+
 
 # Default threshold for primability.
 DEFAULT_PRIMABILITY_CUTOFF: Final[float] = 0.8
@@ -482,11 +462,58 @@ class Amplify4TMSettings:
     dna_conc: float = 50.0
     monovalent_salt_conc: float = 50.0
     enthalpy: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTHALPY
+        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTHALPY.copy()
     )
     entropy: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTROPY
+        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTROPY.copy()
     )
 
 
 DEFAULT_AMPLIFY4_TM_SETTINGS: Final[Amplify4TMSettings] = Amplify4TMSettings()
+
+DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
+    row=Nucleotides.PRIMER,
+    col=Nucleotides.PRIMER,
+    weight=[
+        [-20, -20, -20, 30, 5, -20, -20, 5, 5, -20, -3, -3, -20, -3, -8],
+        [-20, -20, 20, -20, -20, -20, 0, -20, 0, 0, -20, -7, -7, -7, -10],
+        [-20, 20, -20, -20, 0, 0, 0, -20, -20, -20, -7, -7, -7, -20, -10],
+        [30, -20, -20, -20, -20, 5, -20, 5, -20, 5, -3, -20, -3, -3, -8],
+        [5, -20, 0, -20, -20, -8, -10, -8, -10, 3, -12, -13, -5, -5, -9],
+        [-20, -20, 0, 5, -8, -20, -10, -8, 3, -10, -12, -5, -13, -5, -9],
+        [-20, 0, 0, -20, -10, -10, 0, -20, -10, -10, -13, -7, -7, -13, -10],
+        [5, -20, -20, 5, -8, -8, -20, 5, -8, -8, -3, -12, -12, -3, -8],
+        [5, 0, -20, -20, -10, 3, -10, -8, -20, -8, -5, -13, -5, -12, -9],
+        [-20, 0, -20, 5, 3, -10, -10, -8, -8, -20, -5, -5, -13, -12, -9],
+        [-3, -20, -7, -3, -12, -12, -13, -3, -5, -5, -9, -10, -10, -4, -8],
+        [-3, -7, -7, -20, -13, -5, -7, -12, -13, -5, -10, -11, -6, -10, -9],
+        [-20, -7, -7, -3, -5, -13, -7, -12, -5, -13, -10, -6, -11, -10, -9],
+        [-3, -7, -20, -3, -5, -5, -13, -3, -12, -12, -4, -10, -10, -9, -8],
+        [-8, -10, -10, -8, -9, -9, -10, -8, -9, -9, -8, -9, -9, -8, -9],
+    ],
+)
+
+DEFAULT_PRIMER_DIMER_OVERLAP: Final[int] = 3
+DEFAULT_PRIMER_DIMER_THRESHOLD: Final[float] = 60.0
+
+
+@dataclass(slots=True, frozen=True)
+class PrimerDimerSettings:
+    """Settings for primer dimer analysis.
+
+    Attributes:
+        weights (BasePairWeightsTbl): Scoring table for base pair interactions.
+        overlap (int): Minimum overlap length to consider a dimer serious.
+        threshold (float): Minimum quality score to consider a dimer serious.
+    """
+
+    weights: BasePairWeightsTbl = field(
+        default_factory=lambda: DEFAULT_PRIMER_DIMER_WEIGHTS.copy()
+    )
+    overlap: int = DEFAULT_PRIMER_DIMER_OVERLAP
+    threshold: float = DEFAULT_PRIMER_DIMER_THRESHOLD
+
+
+DEFAULT_PRIMER_DIMER_SETTINGS: Final[PrimerDimerSettings] = (
+    PrimerDimerSettings()
+)
