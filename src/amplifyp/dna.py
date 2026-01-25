@@ -36,8 +36,6 @@ class Nucleotides(StrEnum):
             B).
         WILDCARD: Wildcard character representing any nucleotide (N).
         GAP: Gap character (-).
-        CIRCULAR: Valid characters for circular DNA (SINGLE + WILDCARD).
-        LINEAR: Valid characters for linear DNA (CIRCULAR + GAP).
         PRIMER: Valid characters for primers (SINGLE + DOUBLE + TRIPLE +
             WILDCARD).
     """
@@ -47,9 +45,7 @@ class Nucleotides(StrEnum):
     TRIPLE = "VHDB"
     WILDCARD = "N"
     GAP = "-"
-
-    CIRCULAR = SINGLE + WILDCARD
-    LINEAR = CIRCULAR + GAP
+    TEMPLATE = SINGLE + WILDCARD + GAP
     PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
 
 
@@ -136,17 +132,20 @@ class DNA:
             self.__name = name.strip()
         self.__direction: bool | DNADirection = direction
 
-        if dna_type == DNAType.LINEAR:
-            check_str = Nucleotides.LINEAR
-        elif dna_type == DNAType.CIRCULAR:
-            check_str = Nucleotides.CIRCULAR
+        if dna_type == DNAType.LINEAR or dna_type == DNAType.CIRCULAR:
+            check_str = Nucleotides.TEMPLATE
         elif dna_type == DNAType.PRIMER:
             check_str = Nucleotides.PRIMER
         else:
             raise TypeError("Invalid DNA type.")
 
-        if not set(self.__seq.upper()) <= set(check_str):
-            raise ValueError("The DNA sequence contains invalid characters.")
+        invalid_chars = set(self.__seq.upper()) - set(check_str)
+        if invalid_chars:
+            raise ValueError(
+                f"The DNA sequence contains invalid characters: {
+                    ', '.join(sorted(invalid_chars))
+                }"
+            )
 
     @property
     def seq(self) -> str:

@@ -262,24 +262,6 @@ def calculate_tm_amplify4(
     if seq_len < 1:
         return 0.0
 
-    # Effective length limit
-    n = min(amplify4_settings.effective_primer_length, seq_len)
-
-    # Map bases to indices: G=0, A=1, T=2, C=3, Other=4
-    # (Matches Amplify4: Primer.swift)
-    seqn: list[int] = []
-    for c in seq:
-        if c == "G":
-            seqn.append(0)
-        elif c == "A":
-            seqn.append(1)
-        elif c == "T":
-            seqn.append(2)
-        elif c == "C":
-            seqn.append(3)
-        else:
-            seqn.append(4)
-
     entropy = amplify4_settings.entropy
     enthalpy = amplify4_settings.enthalpy
 
@@ -289,11 +271,11 @@ def calculate_tm_amplify4(
     # Sum neighbors
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
-    for i in range(n - 1):
-        x = seqn[i]
-        y = seqn[i + 1]
-        entr += entropy[y][x]
-        enth += enthalpy[y][x]
+    for i in range(seq_len - 1):
+        x = primer.seq[i]
+        y = primer.seq[i + 1]
+        entr += entropy[y, x]
+        enth += enthalpy[y, x]
 
     # Scaling applied in Swift code
     entr = -entr * 0.1
