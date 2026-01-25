@@ -90,8 +90,9 @@ class Amplicon:
             ),
         ]
 
-        desc, verbose_suffix = "very weak", (
-            " amplification — probably not visible on an agarose gel"
+        desc, verbose_suffix = (
+            "very weak",
+            (" amplification — probably not visible on an agarose gel"),
         )
 
         for limit, text, v_text in thresholds:
