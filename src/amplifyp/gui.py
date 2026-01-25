@@ -223,10 +223,11 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
             label: Text for the label.
             variable: The variable to bind.
             width: Width of the entry.
-            pack_kwargs: Additional arguments for packing the entry.
+            pack_kwargs: Additional arguments for packing the entry widget (e.g.
+                fill, expand).
 
         Returns:
-            The created entry widget.
+            The created and packed entry widget.
         """
         ctk.CTkLabel(parent, text=label).pack(side="left", padx=5)
         entry = ctk.CTkEntry(parent, textvariable=variable, width=width)

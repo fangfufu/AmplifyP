@@ -72,12 +72,15 @@ class Amplicon:
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
 
+        Uses a set of predefined thresholds to categorize the quality score
+        into descriptive strings ranging from "good" to "very weak".
+
         Args:
             verbose (bool): Whether to return verbose description of the
                 q-score.
 
         Returns:
-            str: The textual report.
+            str: The textual report describing the amplification quality.
         """
         thresholds = [
             (300, "good", " amplification"),
@@ -202,6 +205,10 @@ class AmpliconGenerator:
     ) -> tuple[DNA | None, bool]:
         """Construct the amplicon sequence from start and end points.
 
+        Handles both linear and circular DNA templates. For linear DNA, ensures
+        start < end. For circular DNA, handles wrapping around the origin if
+        end < start.
+
         Args:
             fwd_conf (Repliconf): Configuration for the forward primer.
             rev_conf (Repliconf): Configuration for the reverse primer.
@@ -209,11 +216,14 @@ class AmpliconGenerator:
             end (DirIdx): End index.
 
         Returns:
-            tuple[DNA | None, bool]: A tuple containing the sequence (or None
-                if invalid) and a boolean indicating if it's circular.
+            tuple[DNA | None, bool]: A tuple containing the constructed DNA
+                sequence (or None if the range is invalid for linear DNA) and
+                a boolean indicating if the product is circular.
 
         Raises:
-            NotImplementedError: If indices are invalid for linear DNA.
+            NotImplementedError: If the start index is greater than the end
+                index on a linear DNA template (which should be unreachable
+                logic if called correctly).
         """
         seq = None
         circular = False
@@ -246,12 +256,14 @@ class AmpliconGenerator:
     def get_amplicons(self) -> list[Amplicon]:
         """Generate all possible amplicons based on added configurations.
 
-        This method triggers the search for origins in all added `Repliconf`
-        objects (if not already searched), and then iterates through all
-        combinations of forward and reverse origins to find valid amplicons.
+        Triggers the search for origins in all added `Repliconf` objects (if
+        not already searched). Then, collects all forward and reverse origins
+        and iterates through their Cartesian product to identify valid
+        amplicon combinations.
 
         Returns:
-            list[Amplicon]: A list of all generated `Amplicon` objects.
+            list[Amplicon]: A list of all generated `Amplicon` objects sorted
+                by discovery order.
         """
         amplicons: list[Amplicon] = []
 

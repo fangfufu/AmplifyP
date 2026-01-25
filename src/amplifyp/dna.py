@@ -314,11 +314,14 @@ class DNA:
     def _count_bases(self, bases: str) -> int:
         """Count the occurrences of any character from `bases` in the sequence.
 
+        Helper method to sum the counts of individual characters provided in the
+        `bases` argument within the DNA sequence.
+
         Args:
-            bases (str): A string of characters to count.
+            bases (str): A string containing the characters to be counted.
 
         Returns:
-            int: The total count of characters in `bases` found in the sequence.
+            int: The total count of the specified characters in the sequence.
         """
         seq_upper = self.seq.upper()
         return sum(seq_upper.count(base) for base in bases)
@@ -326,16 +329,20 @@ class DNA:
     def count_at(self) -> int:
         """Count the number of A, T, or W (A/T ambiguous) bases.
 
+        Delegates to `_count_bases` to count "A", "T", and "W".
+
         Returns:
-            int: The count of A, T, and W bases.
+            int: The total count of A, T, and W bases in the sequence.
         """
         return self._count_bases("ATW")
 
     def count_cg(self) -> int:
         """Count the number of C, G, or S (C/G ambiguous) bases.
 
+        Delegates to `_count_bases` to count "C", "G", and "S".
+
         Returns:
-            int: The count of C, G, and S bases.
+            int: The total count of C, G, and S bases in the sequence.
         """
         return self._count_bases("CGS")
 
