@@ -18,7 +18,11 @@
 from dataclasses import dataclass
 
 from .dna import DNA, Primer
-from .settings import BasePairWeightsTbl, LengthWiseWeightTbl, Settings
+from .settings import (
+    BasePairWeightsTbl,
+    LengthWiseWeightTbl,
+    ReplicationSettings,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +46,7 @@ class ReplicationOrigin:
 
     target: str
     primer: str
-    settings: Settings
+    settings: ReplicationSettings
 
     def __post_init__(self) -> None:
         """Validate that the target and primer have equal lengths.
@@ -156,7 +160,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).complement().seq,
             primer=primer,
-            settings=Settings(),
+            settings=ReplicationSettings(),
         )
 
 
@@ -181,5 +185,5 @@ class Amplify4FwdOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).reverse().seq,
             primer=Primer(primer).reverse().seq,
-            settings=Settings(),
+            settings=ReplicationSettings(),
         )

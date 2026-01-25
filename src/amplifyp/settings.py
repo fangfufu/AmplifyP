@@ -23,7 +23,7 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Final
 
 from .dna import Nucleotides
@@ -346,29 +346,7 @@ DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 
 
 @dataclass(slots=True)
-class MeltingSettings:
-    """Configuration for melting temperature calculations.
-
-    Attributes:
-        dna_conc (float): Total strand concentration in nM. Defaults to 50.
-        dnap_conc (float): DNA Polymerase concentration. Not currently used in
-            standard Tm. Defaults to 0.
-        monovalent_salt_conc (float): Concentration of monovalent cations (Na+,
-            K+, Tris+) in mM. Defaults to 50.
-        divalent_salt_conc (float): Concentration of divalent cations (Mg++) in
-            mM. Defaults to 1.5.
-        dnTP_conc (float): Concentration of dNTPs in mM. Defaults to 0.
-    """
-
-    dna_conc: float = 50.0
-    dnap_conc: float = 0.0
-    monovalent_salt_conc: float = 50.0
-    divalent_salt_conc: float = 1.5
-    dnTP_conc: float = 0.0
-
-
-@dataclass(slots=True)
-class Settings:
+class ReplicationSettings:
     """A configuration class for replication settings.
 
     This class aggregates all parameters required for analyzing replication
@@ -394,7 +372,31 @@ class Settings:
     run_weights: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
-    melting: MeltingSettings = field(default_factory=MeltingSettings)
 
 
-DEFAULT_SETTINGS: Final[Settings] = Settings()
+DEFAULT_REPLICATION_SETTINGS: Final[ReplicationSettings] = ReplicationSettings()
+
+
+@dataclass(slots=True)
+class MeltingSettings:
+    """Configuration for melting temperature calculations.
+
+    Attributes:
+        dna_conc (float): Total strand concentration in nM. Defaults to 50.
+        dnap_conc (float): DNA Polymerase concentration. Not currently used in
+            standard Tm. Defaults to 0.
+        monovalent_salt_conc (float): Concentration of monovalent cations (Na+,
+            K+, Tris+) in mM. Defaults to 50.
+        divalent_salt_conc (float): Concentration of divalent cations (Mg++) in
+            mM. Defaults to 1.5.
+        dnTP_conc (float): Concentration of dNTPs in mM. Defaults to 0.
+    """
+
+    dna_conc: float = 50.0
+    dnap_conc: float = 0.0
+    monovalent_salt_conc: float = 50.0
+    divalent_salt_conc: float = 1.5
+    dnTP_conc: float = 0.0
+
+
+DEFAULT_MELTING_SETTINGS: Final[MeltingSettings] = MeltingSettings()

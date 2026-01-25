@@ -22,7 +22,7 @@ directionality (Sense vs Antisense) and how searches are performed.
 
 from amplifyp.dna import DNA, Primer
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import Settings
+from amplifyp.settings import ReplicationSettings
 
 
 def test_primer_binding_logic_clarification() -> None:
@@ -52,7 +52,7 @@ def test_primer_binding_logic_clarification() -> None:
     # Use strict cutoff to avoid partial matches (like 3/4 bases) confusing the
     # test results
     # Note: Cutoff is exclusive (>), so we use 0.99 to allow 1.0 matches.
-    settings = Settings(primability_cutoff=0.99)
+    settings = ReplicationSettings(primability_cutoff=0.99)
 
     # --- Scenario 1: Forward Primer ---
     # Primer Sequence: 5'-ATGC-3'

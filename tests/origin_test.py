@@ -28,13 +28,15 @@ from amplifyp.origin import (
     Amplify4RevOrigin,
     ReplicationOrigin,
 )
-from amplifyp.settings import Settings
+from amplifyp.settings import ReplicationSettings
 
 
 def test_replication_origin_init() -> None:
     """Test the initialization of a Origin object with invalid parameters."""
     with pytest.raises(ValueError):
-        ReplicationOrigin(target="ATCG", primer="ATC", settings=Settings())
+        ReplicationOrigin(
+            target="ATCG", primer="ATC", settings=ReplicationSettings()
+        )
 
 
 @dataclass(frozen=True, slots=True)

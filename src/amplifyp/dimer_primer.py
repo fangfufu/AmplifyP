@@ -20,13 +20,15 @@ from typing import cast
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import Primer
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import Settings
+from amplifyp.settings import ReplicationSettings
 
 
 class DimerPrimerAnalyser:
     """Dimer primer analyser for AmplifyP."""
 
-    def __init__(self, primers: list[Primer], settings: Settings) -> None:
+    def __init__(
+        self, primers: list[Primer], settings: ReplicationSettings
+    ) -> None:
         """Initialize the dimer primer analyser."""
         self.primers = primers
         self.settings = settings

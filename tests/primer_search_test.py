@@ -17,7 +17,7 @@
 
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import DEFAULT_SETTINGS
+from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
 from tests.examples.amplify4_examples import (
     amplify4_linear_example,
     primer_2223,
@@ -29,7 +29,7 @@ from tests.examples.amplify4_examples import (
 def test_linear_search_primer_10290() -> None:
     """Test: search for primer 10290 in the Amplify 4 example template."""
     repliconf = Repliconf(
-        amplify4_linear_example, primer_10290, DEFAULT_SETTINGS
+        amplify4_linear_example, primer_10290, DEFAULT_REPLICATION_SETTINGS
     )
     repliconf.search()
     origin_idx = repliconf.origin_db
@@ -50,7 +50,7 @@ def test_linear_search_primer_10290() -> None:
 def test_linear_search_primer_20049() -> None:
     """Test: search for primer 20049 in the Amplify 4 example template."""
     repliconf = Repliconf(
-        amplify4_linear_example, primer_20049, DEFAULT_SETTINGS
+        amplify4_linear_example, primer_20049, DEFAULT_REPLICATION_SETTINGS
     )
     repliconf.search()
     origin_index = repliconf.origin_db
@@ -69,7 +69,7 @@ def test_linear_search_primer_20049() -> None:
 def test_linear_search_primer_2223() -> None:
     """Test: search for primer 2223 in the Amplify 4 example template."""
     repliconf = Repliconf(
-        amplify4_linear_example, primer_2223, DEFAULT_SETTINGS
+        amplify4_linear_example, primer_2223, DEFAULT_REPLICATION_SETTINGS
     )
     repliconf.search()
     origin_index = repliconf.origin_db

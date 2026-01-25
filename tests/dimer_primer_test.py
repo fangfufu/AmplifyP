@@ -16,7 +16,7 @@
 """Dimer primer related tests."""
 
 from amplifyp.dimer_primer import DimerPrimerAnalyser
-from amplifyp.settings import DEFAULT_SETTINGS
+from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
 from tests.examples.amplify4_examples import (
     primer_11bp,
     primer_1701,
@@ -28,7 +28,8 @@ from tests.examples.amplify4_examples import (
 def test_dimer_primer_analyser() -> None:
     """Test dimer primer analyser."""
     dimer_primer_analyser = DimerPrimerAnalyser(
-        [primer_11bp, primer_1701, primer_10289, primer_10290], DEFAULT_SETTINGS
+        [primer_11bp, primer_1701, primer_10289, primer_10290],
+        DEFAULT_REPLICATION_SETTINGS,
     )
     amplicons = dimer_primer_analyser.get_all_amplicons()
     assert len(amplicons) == 0

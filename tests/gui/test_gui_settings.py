@@ -16,7 +16,7 @@
 """Test GUI settings using Amplify 4's settings module."""
 
 from amplifyp import gui
-from amplifyp.settings import DEFAULT_SETTINGS, Settings
+from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS, ReplicationSettings
 
 
 def test_gui_settings_exists() -> None:
@@ -24,7 +24,7 @@ def test_gui_settings_exists() -> None:
     assert hasattr(gui, "settings"), (
         "gui module should have a 'settings' attribute"
     )
-    assert isinstance(gui.settings, Settings), (
+    assert isinstance(gui.settings, ReplicationSettings), (
         "gui.settings should be an instance of Settings"
     )
 
@@ -36,9 +36,13 @@ def test_gui_settings_initialization() -> None:
     # In the original script, we checked primability_cutoff and
     # stability_cutoff.
     assert (
-        gui.settings.primability_cutoff == DEFAULT_SETTINGS.primability_cutoff
+        gui.settings.primability_cutoff
+        == DEFAULT_REPLICATION_SETTINGS.primability_cutoff
     )
-    assert gui.settings.stability_cutoff == DEFAULT_SETTINGS.stability_cutoff
+    assert (
+        gui.settings.stability_cutoff
+        == DEFAULT_REPLICATION_SETTINGS.stability_cutoff
+    )
 
 
 def test_gui_settings_modification() -> None:
