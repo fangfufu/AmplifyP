@@ -15,6 +15,8 @@
 
 """DNA-related classes and enumerations for AmplifyP."""
 
+from __future__ import annotations
+
 from enum import Flag, IntEnum, StrEnum
 
 
@@ -175,7 +177,7 @@ class DNA:
         """The direction of the DNA sequence."""
         return self.__direction
 
-    def lower(self) -> "DNA":
+    def lower(self) -> DNA:
         """Return a copy of the DNA object with the sequence in lowercase.
 
         Returns:
@@ -183,7 +185,7 @@ class DNA:
         """
         return DNA(self.seq.lower(), self.type, self.name, self.direction)
 
-    def upper(self) -> "DNA":
+    def upper(self) -> DNA:
         """Return a copy of the DNA object with the sequence in uppercase.
 
         Returns:
@@ -191,7 +193,7 @@ class DNA:
         """
         return DNA(self.seq.upper(), self.type, self.name, self.direction)
 
-    def complement(self) -> "DNA":
+    def complement(self) -> DNA:
         """Return the complement of the DNA sequence.
 
         The complement is calculated by swapping A<->T, C<->G, etc.
@@ -212,7 +214,7 @@ class DNA:
             not self.direction,
         )
 
-    def reverse(self) -> "DNA":
+    def reverse(self) -> DNA:
         """Return the reverse of the DNA sequence.
 
         The direction of the returned DNA object is inverted relative to the
@@ -223,7 +225,7 @@ class DNA:
         """
         return DNA(self.seq[::-1], self.type, self.name, not self.direction)
 
-    def reverse_complement(self) -> "DNA":
+    def reverse_complement(self) -> DNA:
         """Return the reverse complement of the DNA sequence.
 
         This is equivalent to calling `.reverse().complement()`.
@@ -273,7 +275,7 @@ class DNA:
         """
         return len(self.seq)
 
-    def __getitem__(self, key: slice) -> "DNA":
+    def __getitem__(self, key: slice) -> DNA:
         """Get a slice of the DNA sequence.
 
         Args:
@@ -295,7 +297,7 @@ class DNA:
             f"{DNADirection(self.direction).name}"
         )
 
-    def __add__(self, other: "DNA") -> "DNA":
+    def __add__(self, other: DNA) -> DNA:
         """Concatenate two DNA sequences.
 
         Args:
