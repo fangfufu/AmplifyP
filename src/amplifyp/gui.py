@@ -23,6 +23,7 @@ import threading
 import tkinter as tk
 import traceback
 from tkinter import filedialog, messagebox, ttk
+from typing import Any
 
 import customtkinter as ctk
 
@@ -213,7 +214,7 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
         label: str,
         variable: tk.Variable,
         width: int = 140,
-        **pack_kwargs: dict,
+        **pack_kwargs: Any,
     ) -> ctk.CTkEntry:
         """Create and pack a labeled entry widget with context menu.
 
@@ -231,7 +232,7 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
         entry = ctk.CTkEntry(parent, textvariable=variable, width=width)
 
         pack_args = {"side": "left", "padx": 5}
-        pack_args.update(pack_kwargs)  # type: ignore[arg-type]
+        pack_args.update(pack_kwargs)
 
         entry.pack(**pack_args)
         self.create_context_menu(entry)
