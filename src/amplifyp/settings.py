@@ -23,7 +23,7 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Final
 
 from .dna import Nucleotides
@@ -60,6 +60,17 @@ class LengthWiseWeightTbl:
             overrides = {}
         self.__default_weight = default_weight
         self.__overrides = overrides
+
+    def copy(self) -> "LengthWiseWeightTbl":
+        """Return a deep copy of this object.
+
+        Returns:
+            LengthWiseWeightTbl: A new object with the same weights.
+        """
+        return LengthWiseWeightTbl(
+            default_weight=self.__default_weight,
+            overrides=self.__overrides.copy(),
+        )
 
     def __getitem__(self, key: int) -> float:
         """Return the weight for a given length.
@@ -269,6 +280,32 @@ class BasePairWeightsTbl:
         """
         return str(self.__weight)
 
+    def copy(self) -> "BasePairWeightsTbl":
+        """Return a deep copy of this object.
+
+        Returns:
+            BasePairWeightsTbl: A new object with the same weights.
+        """
+        # We can reconstruct it using the internal dictionary, but we need
+        # to format it back into a list of lists if we use the constructor.
+        # Alternatively, we can just create a new instance and copy internal
+        # state, or provide a way to construct from dictionary.
+        # For simplicity and robustness, let's use the constructor with
+        # the original parameters, or better, manually copy since we have
+        # a lot of internal state.
+
+        # Actually, reconstructing the matrix for the constructor is annoying.
+        # Let's just manually copy.
+        new_obj = BasePairWeightsTbl.__new__(BasePairWeightsTbl)
+        new_obj.__row = self.__row
+        new_obj.__col = self.__col
+        new_obj.__weight = self.__weight.copy()
+        new_obj.__row_max = self.__row_max.copy()
+        new_obj.__matrix = [row[:] for row in self.__matrix]
+        new_obj.__row_map = self.__row_map[:]
+        new_obj.__col_map = self.__col_map[:]
+        return new_obj
+
 
 DEFAULT_MATCH_WEIGHTS: Final[LengthWiseWeightTbl] = LengthWiseWeightTbl(
     default_weight=1,
@@ -367,9 +404,15 @@ class ReplicationSettings:
             Defaults to `DEFAULT_STABILITY_CUTOFF`.
     """
 
-    base_pair_scores: BasePairWeightsTbl = DEFAULT_BASE_PAIR_WEIGHTS
-    match_weight: LengthWiseWeightTbl = DEFAULT_MATCH_WEIGHTS
-    run_weights: LengthWiseWeightTbl = DEFAULT_RUN_WEIGHTS
+    base_pair_scores: BasePairWeightsTbl = field(
+        default_factory=lambda: DEFAULT_BASE_PAIR_WEIGHTS.copy()
+    )
+    match_weight: LengthWiseWeightTbl = field(
+        default_factory=lambda: DEFAULT_MATCH_WEIGHTS.copy()
+    )
+    run_weights: LengthWiseWeightTbl = field(
+        default_factory=lambda: DEFAULT_RUN_WEIGHTS.copy()
+    )
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
 
@@ -378,7 +421,7 @@ DEFAULT_REPLICATION_SETTINGS: Final[ReplicationSettings] = ReplicationSettings()
 
 
 @dataclass(slots=True)
-class MeltingSettings:
+class TMSettings:
     """Configuration for melting temperature calculations.
 
     Attributes:
@@ -399,4 +442,50 @@ class MeltingSettings:
     dnTP_conc: float = 0.0
 
 
-DEFAULT_MELTING_SETTINGS: Final[MeltingSettings] = MeltingSettings()
+DEFAULT_TM_SETTINGS: Final[TMSettings] = TMSettings()
+
+DEFAULT_AMPLIFY4_TM_ENTHALPY: Final[list[list[int]]] = [
+    [110, 78, 58, 119, 94],
+    [56, 91, 60, 58, 81],
+    [65, 86, 91, 78, 78],
+    [111, 65, 56, 110, 105],
+    [65, 86, 60, 78, 78],
+]
+
+DEFAULT_AMPLIFY4_TM_ENTROPY: Final[list[list[int]]] = [
+    [266, 208, 129, 278, 220],
+    [135, 240, 169, 129, 168],
+    [173, 239, 240, 208, 215],
+    [267, 173, 135, 266, 210],
+    [173, 239, 169, 208, 215],
+]
+
+
+@dataclass(slots=True)
+class Amplify4TMSettings:
+    """Configuration specific to the Amplify4 melting temperature algorithm.
+
+    Attributes:
+        dna_conc (float): Total strand concentration in nM. Defaults to 50.
+        monovalent_salt_conc (float): Concentration of monovalent cations (Na+,
+            K+, Tris+) in mM. Defaults to 50.
+        enthalpy (list[list[int]]): Enthalpy values (5x5 matrix).
+            Defaults to DEFAULT_AMPLIFY4_ENTHALPY.
+        entropy (list[list[int]]): Entropy values (5x5 matrix).
+            Defaults to DEFAULT_AMPLIFY4_ENTROPY.
+        effective_primer_length (int): Effective primer length for calculation.
+            Defaults to 30.
+    """
+
+    dna_conc: float = 50.0
+    monovalent_salt_conc: float = 50.0
+    enthalpy: list[list[int]] = field(
+        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTHALPY
+    )
+    entropy: list[list[int]] = field(
+        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTROPY
+    )
+    effective_primer_length: int = 30
+
+
+DEFAULT_AMPLIFY4_TM_SETTINGS: Final[Amplify4TMSettings] = Amplify4TMSettings()

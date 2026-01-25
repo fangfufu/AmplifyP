@@ -22,7 +22,12 @@ DNA primers using the Nearest-Neighbor thermodynamics model.
 import math
 from typing import Final
 
-from .settings import MeltingSettings
+from .dna import Primer
+from .settings import (
+    DEFAULT_AMPLIFY4_TM_SETTINGS,
+    Amplify4TMSettings,
+    TMSettings,
+)
 
 # Thermodynamic parameters (SantaLucia 1998)
 # Enthalpy (dH) in cal/mol, Entropy (dS) in cal/(K*mol)
@@ -50,7 +55,7 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 }
 
 
-def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
+def calculate_tm(primer: Primer, settings: TMSettings) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
 
     Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic
@@ -69,13 +74,13 @@ def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
         dS_corrected = dS_1M + 0.368 * (N - 1) * ln([Na+])
 
     Args:
-        sequence: The DNA sequence (5' -> 3').
+        primer: The primer object containing the sequence.
         settings: Melting settings containing concentrations.
 
     Returns:
         The melting temperature in degrees Celsius.
     """
-    seq = sequence.upper()
+    seq = primer.seq.upper()
     n = len(seq)
     if n < 2:
         return 0.0
@@ -232,3 +237,84 @@ def calculate_tm(sequence: str, settings: MeltingSettings) -> float:
         tm_final_K = 1.0 / tm_inv
 
     return tm_final_K - 273.15
+
+
+def calculate_tm_amplify4(
+    primer: Primer,
+    amplify4_settings: Amplify4TMSettings = DEFAULT_AMPLIFY4_TM_SETTINGS,
+) -> float:
+    """Calculate Tm using the original Amplify4 algorithm.
+
+    This method is a direct port of the ``calcTm`` method from the Swift
+    codebase (Primer.swift). It uses its own set of entropy and enthalpy
+    tables (typically 5x5 matrices) and specific correction factors.
+
+    Args:
+        primer: The primer object containing the sequence.
+        amplify4_settings: Amplify4-specific settings (tables, etc.).
+
+    Returns:
+        The melting temperature in degrees Celsius. Returns 0.0 if the
+        sequence length is less than 1.
+    """
+    seq = primer.seq.upper()
+    seq_len = len(seq)
+    if seq_len < 1:
+        return 0.0
+
+    # Effective length limit
+    n = min(amplify4_settings.effective_primer_length, seq_len)
+
+    # Map bases to indices: G=0, A=1, T=2, C=3, Other=4
+    # (Matches Amplify4: Primer.swift)
+    seqn: list[int] = []
+    for c in seq:
+        if c == "G":
+            seqn.append(0)
+        elif c == "A":
+            seqn.append(1)
+        elif c == "T":
+            seqn.append(2)
+        elif c == "C":
+            seqn.append(3)
+        else:
+            seqn.append(4)
+
+    entropy = amplify4_settings.entropy
+    enthalpy = amplify4_settings.enthalpy
+
+    entr: float = 108.0
+    enth: float = 0.0
+
+    # Sum neighbors
+    # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
+    # where x is current base, y is next base.
+    for i in range(n - 1):
+        x = seqn[i]
+        y = seqn[i + 1]
+        entr += entropy[y][x]
+        enth += enthalpy[y][x]
+
+    # Scaling applied in Swift code
+    entr = -entr * 0.1
+    enth = -enth * 0.1
+
+    # Corrections
+    # DNAConc in settings is usually nM (default 50).
+    # Swift formula: 1.987 * log(DNAConc/4e9)
+    # If DNAConc=50, 50/4e9 = 1.25e-8 => 12.5 nM concentration assumption?
+    # Or maybe it treats input as raw number?
+    # We use settings.DNAConc exactly as Swift does.
+    dna_conc_val = amplify4_settings.dna_conc
+    log_dna = 1.987 * math.log(dna_conc_val / 4.0e9)
+
+    # Salt: 16.6 * log(saltConc/1000) / log(10.0)
+    # saltConc is typically mM (default 50).
+    salt_conc_val = amplify4_settings.monovalent_salt_conc
+    if salt_conc_val <= 0:
+        salt_conc_val = 50.0  # prevent log error if 0
+
+    log_salt = 16.6 * math.log10(salt_conc_val / 1000.0)
+
+    tm = (enth * 1000.0) / (entr + log_dna) - 273.15 + log_salt
+    return tm

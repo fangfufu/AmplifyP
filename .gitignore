@@ -133,3 +133,9 @@ dmypy.json
 
 # Pytest
 .testmondata
+
+# Python package management related
+uv.lock
+
+# Google Antigravity related
+.agent
