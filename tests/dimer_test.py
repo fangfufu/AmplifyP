@@ -141,3 +141,8 @@ def test_calculate_dimer_real_examples() -> None:
     result_1701_1701 = calculate_dimer(primer_1701, primer_1701)
     assert result_1701_1701.quality == 120
     assert result_1701_1701.overlap == 8
+
+    result_dimer_group = analyze_group(
+        [primer_10289, primer_10290, primer_11bp, primer_1701]
+    )
+    assert len(result_dimer_group) == 4

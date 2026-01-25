@@ -79,18 +79,6 @@ def calculate_dimer(
     n1 = len(short_p)
     n2 = len(long_p)
 
-    # In Swift, if bad bases exist, quality = -1.
-    # Here Primer guarantees valid bases for its type, but let's assume
-    # we just run the algorithm.
-
-    # Optimization: Convert nucleotides to indices or just iterate chars.
-    # The weights table supports string lookup. For performance in Python,
-    # direct string lookup in the loop might be slow compared to pre-lookup,
-    # but let's start with clean code.
-    # The Swift code optimizes by pre-calculating indices.
-    # Given we are in Python, let's just use the weights object which has
-    # internal optimizations (matrix lookup if chars are standard).
-
     seq1 = short_p.seq.upper()
     seq2 = long_p.seq.upper()
 
