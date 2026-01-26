@@ -293,6 +293,9 @@ class Repliconf:
         # Pre-calculate reversed primer sequence
         self._rev_primer_seq = self.primer.seq[::-1]
 
+        # Pre-calculate reverse complement primer for amplicon generation
+        self.rev_comp_primer = self.primer.reverse_complement()
+
     def range(self) -> range:
         """Return the range of valid starting indices for search.
 

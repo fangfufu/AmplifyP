@@ -232,7 +232,7 @@ class AmpliconGenerator:
             seq = (
                 fwd_conf.primer
                 + self.template[start:end]
-                + rev_conf.primer.reverse_complement()
+                + rev_conf.rev_comp_primer
             )
         elif self.template.type == DNAType.CIRCULAR:
             # Circular DNA handling
@@ -240,7 +240,7 @@ class AmpliconGenerator:
                 fwd_conf.primer
                 + self.template[start:]
                 + self.template[:end]
-                + rev_conf.primer.reverse_complement()
+                + rev_conf.rev_comp_primer
             )
             circular = True
         elif (start > end) and (self.template.type == DNAType.LINEAR):
