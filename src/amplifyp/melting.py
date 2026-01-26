@@ -58,7 +58,8 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 # Optimization: Pre-compute tuple keys for faster lookup in loops
 # zip(seq, seq[1:]) produces tuples of characters, e.g. ('A', 'A')
 _NN_THERMO_DATA_TUPLE: Final[dict[tuple[str, str], tuple[float, float]]] = {
-    tuple(k): v for k, v in NN_THERMO_DATA.items()  # type: ignore[misc]
+    tuple(k): v
+    for k, v in NN_THERMO_DATA.items()  # type: ignore[misc]
 }
 
 
