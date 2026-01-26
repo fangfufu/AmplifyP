@@ -51,6 +51,12 @@ class ReplicationOrigin:
     settings: ReplicationSettings = field(
         default_factory=lambda: GLOBAL_REPLICATION_SETTINGS
     )
+    _cached_primability: float | None = field(
+        default=None, compare=False, repr=False
+    )
+    _cached_stability: float | None = field(
+        default=None, compare=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         """Validate that the target and primer have equal lengths.
@@ -76,6 +82,9 @@ class ReplicationOrigin:
         Returns:
             float: The primability score, ranging from 0.0 to 1.0.
         """
+        if self._cached_primability is not None:
+            return self._cached_primability
+
         m: LengthWiseWeightTbl = self.settings.match_weight
         S: BasePairWeightsTbl = self.settings.base_pair_scores
         numerator: float = 0
@@ -102,6 +111,9 @@ class ReplicationOrigin:
         Returns:
             float: The stability score, ranging from 0.0 to 1.0.
         """
+        if self._cached_stability is not None:
+            return self._cached_stability
+
         r = self.settings.run_weights
         S = self.settings.base_pair_scores
         numerator: float = 0
