@@ -268,8 +268,8 @@ class AmpliconGenerator:
         amplicons: list[Amplicon] = []
 
         # Ensure all repliconfs are searched and collect origins
-        all_fwd_origins = []
-        all_rev_origins = []
+        all_fwd_origins: list[tuple[Repliconf, DirIdx]] = []
+        all_rev_origins: list[tuple[Repliconf, DirIdx]] = []
 
         for repliconf in self.repliconfs:
             if not repliconf.searched:
@@ -281,8 +281,12 @@ class AmpliconGenerator:
                 all_rev_origins.append((repliconf, end))
 
         # Iterate over combinations
+        is_circular = self.template.type == DNAType.CIRCULAR
         for fwd_conf, start in all_fwd_origins:
             for rev_conf, end in all_rev_origins:
+                if not is_circular and start.index >= end.index:
+                    continue
+
                 seq, circular = self._construct_amplicon_sequence(
                     fwd_conf, rev_conf, start, end
                 )
