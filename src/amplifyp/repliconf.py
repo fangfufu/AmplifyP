@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import builtins
 from dataclasses import dataclass
+from functools import lru_cache
 
 from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
 from .origin import ReplicationOrigin
@@ -318,6 +319,7 @@ class Repliconf:
         """
         return slice(i, i + len(self.primer))
 
+    @lru_cache(maxsize=1024)
     def origin(self, var: DirIdx) -> ReplicationOrigin:
         """Construct a ReplicationOrigin object for a specific location.
 
