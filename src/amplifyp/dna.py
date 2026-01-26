@@ -49,6 +49,11 @@ class Nucleotides(StrEnum):
     PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
 
 
+_COMPLEMENT_TRANS = str.maketrans(
+    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
+)
+
+
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA.
 
@@ -207,11 +212,7 @@ class DNA:
             DNA: A new DNA object representing the complement sequence.
         """
         return DNA(
-            self.seq.translate(
-                str.maketrans(
-                    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
-                )
-            ),
+            self.seq.translate(_COMPLEMENT_TRANS),
             self.type,
             self.name,
             not self.direction,
