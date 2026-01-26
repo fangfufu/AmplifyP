@@ -142,29 +142,60 @@ class MapView(tk.Canvas):
             # or two parts.
             # Using simple bar for now.
 
-            if amp.circular:
-                # TODO: visual for circular wrap
-                pass
-
-            width = end_x - start_x
-            if width < 0:  # Wrap around or circular
-                # Just draw nothing for now or handle later
-                pass
-
-            # Bar
-            self.plotters.append(
-                RectThing(
-                    start_x,
-                    current_y,
-                    end_x,
-                    current_y + 10,
-                    fill="black",
-                    outline="",
+            # Check for wrapping (start > end implies wrapping in circular DNA)
+            if end_x < start_x:
+                # Circular wrapping visualization
+                # Segment 1: start_x to end of template
+                right_limit = basex(self.target_length)
+                self.plotters.append(
+                    RectThing(
+                        start_x,
+                        current_y,
+                        right_limit,
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
                 )
-            )
+
+                # Segment 2: start of template to end_x
+                left_limit = basex(0)
+                self.plotters.append(
+                    RectThing(
+                        left_limit,
+                        current_y,
+                        end_x,
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
+                )
+
+                # Label placement on the longer segment
+                len_seg1 = right_limit - start_x
+                len_seg2 = end_x - left_limit
+
+                if len_seg1 >= len_seg2:
+                    center_x = start_x + len_seg1 / 2
+                else:
+                    center_x = left_limit + len_seg2 / 2
+
+            else:
+                # Linear visualization
+                self.plotters.append(
+                    RectThing(
+                        start_x,
+                        current_y,
+                        end_x,
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
+                )
+                width = end_x - start_x
+                center_x = start_x + width / 2
 
             # Size label centered
-            center_x = start_x + width / 2
             self.plotters.append(
                 StringThing(
                     str(len(amp.product)) + " bp",
