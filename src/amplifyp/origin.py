@@ -16,6 +16,7 @@
 """Replication origin-related classes for AmplifyP."""
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from math import trunc
 
 from .dna import DNA, Primer
@@ -27,7 +28,7 @@ from .settings import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(unsafe_hash=True)
 class ReplicationOrigin:
     """A class representing a potential replication origin.
 
@@ -35,6 +36,10 @@ class ReplicationOrigin:
     and replication initiates. This class calculates the binding properties
     of a primer to a specific target sequence, including primability, stability,
     and an overall quality score.
+
+    Note:
+        This class is mutable to support `cached_property` for performance
+        optimization. However, it should be treated as immutable.
 
     Attributes:
         target (str): The target DNA sequence as a string, aligned with the
@@ -63,7 +68,7 @@ class ReplicationOrigin:
                 "The target has to have the same length as the primer."
             )
 
-    @property
+    @cached_property
     def primability(self) -> float:
         """Calculate the primability score of the replication origin.
 
@@ -86,7 +91,7 @@ class ReplicationOrigin:
         score = numerator / denominator
         return score
 
-    @property
+    @cached_property
     def stability(self) -> float:
         """Calculate the stability score of the replication origin.
 
