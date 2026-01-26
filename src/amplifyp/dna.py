@@ -143,7 +143,16 @@ class DNA:
         else:
             raise TypeError("Invalid DNA type.")
 
-        invalid_chars = set(self.__seq.upper()) - set(check_str)
+        # Optimization: cache the uppercase sequence to avoid repeated
+        # allocations in _count_bases and other methods.
+        seq_upper = self.__seq.upper()
+        if seq_upper == self.__seq:
+            # If the sequence is already uppercase, avoid duplicating the string.
+            self._seq_upper = self.__seq
+        else:
+            self._seq_upper = seq_upper
+
+        invalid_chars = set(self._seq_upper) - set(check_str)
         if invalid_chars:
             raise ValueError(
                 f"The DNA sequence contains invalid characters: {
@@ -255,7 +264,7 @@ class DNA:
         if not isinstance(other, DNA):
             return NotImplemented
         return (
-            self.seq.upper() == other.seq.upper()
+            self._seq_upper == other._seq_upper
             and self.direction == other.direction
             and self.type == other.type
         )
@@ -268,7 +277,7 @@ class DNA:
         Returns:
             int: The hash value.
         """
-        return hash((self.seq.upper(), self.direction, self.type))
+        return hash((self._seq_upper, self.direction, self.type))
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence.
@@ -326,8 +335,7 @@ class DNA:
         Returns:
             int: The total count of the specified characters in the sequence.
         """
-        seq_upper = self.seq.upper()
-        return sum(seq_upper.count(base) for base in bases)
+        return sum(self._seq_upper.count(base) for base in bases)
 
     def count_at(self) -> int:
         """Count the number of A, T, or W (A/T ambiguous) bases.
