@@ -21,7 +21,7 @@ import threading
 import unittest
 from unittest.mock import MagicMock, patch
 
-from tests.gui.mocks import create_mock_ctk
+from tests.antigravity_gui.mocks import create_mock_ctk
 
 # Ensure src is in path
 sys.path.insert(0, os.path.abspath("src"))
@@ -120,12 +120,12 @@ class TestGUISimulation(unittest.TestCase):
 
         # Reload amplifyp.gui to use mocked tkinter
         # Reload amplifyp.gui to use mocked tkinter
-        for mod in ["amplifyp.gui", "amplifyp.gui.gui"]:
+        for mod in ["amplifyp.antigravity_gui", "amplifyp.antigravity_gui.gui"]:
             if mod in sys.modules:
                 del sys.modules[mod]
 
         # We need to import inside the patched environment
-        from amplifyp.gui import AmplifyPApp
+        from amplifyp.antigravity_gui import AmplifyPApp
 
         self.AmplifyPApp = AmplifyPApp
 
@@ -171,9 +171,9 @@ class TestGUISimulation(unittest.TestCase):
         sys.modules.clear()
         sys.modules.update(self.sys_modules_backup)
 
-    @patch("amplifyp.gui.gui.messagebox")
-    @patch("amplifyp.gui.gui.AmpliconGenerator")
-    @patch("amplifyp.gui.gui.Repliconf")
+    @patch("amplifyp.antigravity_gui.gui.messagebox")
+    @patch("amplifyp.antigravity_gui.gui.AmpliconGenerator")
+    @patch("amplifyp.antigravity_gui.gui.Repliconf")
     def test_simulate_pcr_starts_thread(
         self,
         MockRepliconf: MagicMock,

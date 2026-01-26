@@ -66,7 +66,7 @@ addopts = [
 ]
 
 [tool.coverage.run]
-omit = [ "src/amplifyp/gui.py" ]
+omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 
 [tool.mypy]
 mypy_path = "src"

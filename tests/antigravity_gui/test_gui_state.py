@@ -22,7 +22,7 @@ import unittest
 from typing import cast
 from unittest.mock import MagicMock, patch
 
-from tests.gui.mocks import create_mock_ctk, create_mock_tk
+from tests.antigravity_gui.mocks import create_mock_ctk, create_mock_tk
 
 
 class TestGUIState(unittest.TestCase):
@@ -47,11 +47,11 @@ class TestGUIState(unittest.TestCase):
 
         # Reload amplifyp.gui to use mocked modules
         # Reload amplifyp.gui to use mocked modules
-        for mod in ["amplifyp.gui", "amplifyp.gui.gui"]:
+        for mod in ["amplifyp.antigravity_gui", "amplifyp.antigravity_gui.gui"]:
             if mod in sys.modules:
                 del sys.modules[mod]
 
-        from amplifyp.gui import AmplifyPApp
+        from amplifyp.antigravity_gui import AmplifyPApp
 
         self.AmplifyPApp = AmplifyPApp
 

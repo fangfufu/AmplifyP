@@ -20,7 +20,7 @@ from collections.abc import Generator
 
 import pytest
 
-import amplifyp.gui.gui as gui
+import amplifyp.antigravity_gui.gui as gui
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 

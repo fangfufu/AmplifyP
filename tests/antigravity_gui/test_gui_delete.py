@@ -19,7 +19,7 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from tests.gui.mocks import create_mock_ctk, create_mock_tk
+from tests.antigravity_gui.mocks import create_mock_ctk, create_mock_tk
 
 
 class TestGUIDelete(unittest.TestCase):
@@ -44,11 +44,11 @@ class TestGUIDelete(unittest.TestCase):
 
         # Reload amplifyp.gui to use mocked modules
         # Reload amplifyp.gui to use mocked modules
-        for mod in ["amplifyp.gui", "amplifyp.gui.gui"]:
+        for mod in ["amplifyp.antigravity_gui", "amplifyp.antigravity_gui.gui"]:
             if mod in sys.modules:
                 del sys.modules[mod]
 
-        from amplifyp.gui import AmplifyPApp, Primer
+        from amplifyp.antigravity_gui import AmplifyPApp, Primer
 
         self.AmplifyPApp = AmplifyPApp
         self.Primer = Primer
