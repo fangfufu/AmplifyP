@@ -131,6 +131,7 @@ class AmpliconGenerator:
         """
         self.template = template
         self.repliconfs: list[Repliconf] = []
+        self._repliconfs_set: set[Repliconf] = set()
 
     def add_repliconf(self, repliconf: Repliconf) -> None:
         """Add a replication configuration to the generator.
@@ -149,8 +150,9 @@ class AmpliconGenerator:
                 "AmpliconGenerator."
             )
 
-        if repliconf not in self.repliconfs:
+        if repliconf not in self._repliconfs_set:
             self.repliconfs.append(repliconf)
+            self._repliconfs_set.add(repliconf)
         else:
             raise DuplicateRepliconfError(
                 "The Repliconf is already in the AmpliconGenerator."
@@ -166,6 +168,7 @@ class AmpliconGenerator:
             ValueError: If the `repliconf` is not present in the generator.
         """
         self.repliconfs.remove(repliconf)
+        self._repliconfs_set.remove(repliconf)
 
     def get_amplicon_quality_score(
         self,
