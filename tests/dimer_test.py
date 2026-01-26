@@ -1,5 +1,6 @@
-from amplifyp.dimer import analyze_group, calculate_dimer
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
+from amplifyp.settings import PrimerDimerSettings
 from tests.examples.amplify4_examples import (
     primer_11bp,
     primer_1701,
@@ -8,141 +9,189 @@ from tests.examples.amplify4_examples import (
 )
 
 
-def test_calculate_dimer_strong() -> None:
-    # AAAA vs TTTT -> 4 A-T pairs = 4 * 20 = 80. Serious > 60.
-    p1 = Primer("AAAA")
-    p2 = Primer("TTTT")
+def test_primer_dimer_generator() -> None:
+    primer_dimer_generator = PrimerDimerGenerator()
 
-    res = calculate_dimer(p1, p2)
-    assert res.quality == 80.0
-    assert res.overlap == 4
-    assert res.serious is True
-    # p1 is shorter/equal? Equal. logic uses p2 as long.
-    # calculate_dimer logic: if len(p1) < len(p2): p1 short. else: p2 short.
-    # So p1=AAAA, p2=TTTT -> len same -> short=TTTT(p2), long=AAAA(p1).
-    # Wait, let's check my implementation logic again.
-    # if len(p1) < len(p2): short=p1
-    # else: short=p2, long=p1.
-    # So passing (AAAA, TTTT) -> short=TTTT, long=AAAA.
-    # Result object has p1=short, p2=long.
-    # So res.p1 should be TTTT, res.p2 should be AAAA.
-    assert res.p1.seq == "TTTT"
-    assert res.p2.seq == "AAAA"
-
-
-def test_calculate_dimer_self_palindromic() -> None:
-    # 5' GGCC 3'
-    # 3' CCGG 5'
-    # Perfect self-dimer. 4 G-C pairs = 4 * 30 = 120.
-    p = Primer("GGCC")
-    res = calculate_dimer(p, p)
-
-    assert res.quality == 120.0
-    assert res.overlap == 4
-    assert res.serious is True
-    assert res.p1 == p
-    assert res.p2 == p
-
-
-def test_calculate_dimer_none() -> None:
-    # AAAA vs AAAA.
-    # A-A pairing is -20.
-    # 4 overlaps -> -80.
-    p = Primer("AAAA")
-    res = calculate_dimer(p, p)
-
-    assert res.quality < 0
-    assert res.serious is False
-
-
-def test_calculate_dimer_group() -> None:
-    p1 = Primer("AAAA", name="P1")
-    p2 = Primer("TTTT", name="P2")
-    p3 = Primer("CCCC", name="P3")  # Self-dimer? C-C is -20.
-
-    # P1-P2 is serious (80).
-    # Others are not.
-
-    results = analyze_group([p1, p2, p3])
-
-    assert len(results) >= 1
-    # Check that we found (P1, P2) or (P2, P1)
-    # The result stores pointers to the primer objects.
-    names = {(r.p1.name, r.p2.name) for r in results}
-    # Logic: short=TTTT, long=AAAA. So P2, P1.
-    # But analyze_group calls combinations(P1, P2). (A, B).
-    # If passed in that order, calc(A, B) -> A is short if len <.
-    # Here len equal. So short=B(P2), long=A(P1).
-    # So result should be (P2, P1).
-
-    # Wait, is there any other interaction?
-    # P3-P3 (CCCC-CCCC) -> C-C -20.
-    # P1-P3 (AAAA-CCCC) -> A-C -20.
-    # P2-P3 (TTTT-CCCC) -> T-C -20.
-
-    assert ("P2", "P1") in names or ("P1", "P2") in names
-
-    # Ensure score is 80
-    serious_results = [r for r in results if r.quality == 80]
-    assert len(serious_results) == 1
-
-
-def test_calculate_dimer_offset_alignment() -> None:
-    # P1: 5' AT 3'
-    # P2: 5' GGATCC 3'
-    # P1 should bind to the AT in the middle?
-    # Indexing:
-    # P2: G G A T C C
-    #     0 1 2 3 4 5
-    # P1 (3'->5'): T A
-    # If aligned at pos 2 (A):
-    # p1(T) vs p2(A) (pos 2)
-    # p1(A) vs p2(T) (pos 3)
-    # match!
-
-    p1 = Primer("AT")
-    p2 = Primer("GGATCC")
-
-    res = calculate_dimer(p1, p2)
-
-    # Expected: 2 overlaps.
-    # A-T (20) + T-A (20) = 40.
-    # Serious? Cutoff 60. So False.
-    assert res.quality == 40.0
-    assert res.p1_pos == 2
-    assert res.serious is False
-
-    # Let's lower cutoff to verify logic works
-    from dataclasses import replace
-
-    from amplifyp.settings import DEFAULT_PRIMER_DIMER_SETTINGS
-
-    custom_settings = replace(
-        DEFAULT_PRIMER_DIMER_SETTINGS, threshold=30.0, overlap=2
-    )
-    res_low = calculate_dimer(p1, p2, settings=custom_settings)
-    assert res_low.serious is True
-
-
-def test_calculate_dimer_real_examples() -> None:
     # Real examples from Amplify4
-    result_10289_10289 = calculate_dimer(primer_10289, primer_10289)
+    result_10289_10289 = primer_dimer_generator.generate_primer_dimer(
+        primer_10289, primer_10289
+    )
     assert result_10289_10289.quality == 160
     assert result_10289_10289.overlap == 10
 
-    result_10290_10290 = calculate_dimer(primer_10290, primer_10290)
+    result_10290_10290 = primer_dimer_generator.generate_primer_dimer(
+        primer_10290, primer_10290
+    )
     assert result_10290_10290.quality == 200
     assert result_10290_10290.overlap == 12
 
-    result_10290_11bp = calculate_dimer(primer_10290, primer_11bp)
+    result_10290_11bp = primer_dimer_generator.generate_primer_dimer(
+        primer_10290, primer_11bp
+    )
     assert result_10290_11bp.quality == 70
     assert result_10290_11bp.overlap == 6
 
-    result_1701_1701 = calculate_dimer(primer_1701, primer_1701)
+    result_1701_1701 = primer_dimer_generator.generate_primer_dimer(
+        primer_1701, primer_1701
+    )
     assert result_1701_1701.quality == 120
     assert result_1701_1701.overlap == 8
 
-    result_dimer_group = analyze_group(
-        [primer_10289, primer_10290, primer_11bp, primer_1701]
+    result_11bp_11bp = primer_dimer_generator.generate_primer_dimer(
+        primer_11bp, primer_11bp
     )
-    assert len(result_dimer_group) == 4
+    assert result_11bp_11bp.quality == 60
+    assert result_11bp_11bp.overlap == 9
+
+    primer_dimer_generator.add(primer_10289)
+    primer_dimer_generator.add(primer_10290)
+    primer_dimer_generator.add(primer_1701)
+    primer_dimer_generator.add(primer_11bp)
+    primer_dimer_generator.analyse_primers()
+    assert len(primer_dimer_generator.primer_dimers) == 4
+    assert result_10289_10289 in primer_dimer_generator.primer_dimers
+    assert result_10290_10290 in primer_dimer_generator.primer_dimers
+    assert result_10290_11bp in primer_dimer_generator.primer_dimers
+    assert result_1701_1701 in primer_dimer_generator.primer_dimers
+    assert result_11bp_11bp not in primer_dimer_generator.primer_dimers
+
+
+def test_generator_management() -> None:
+    """Test adding, removing, clearing primers and analysis state."""
+    generator = PrimerDimerGenerator()
+    p1 = primer_10289
+    p2 = primer_10290
+
+    # Test add
+    generator.add(p1)
+    generator.add(p2)
+    assert len(generator.primers) == 2
+    assert p1 in generator.primers
+    assert p2 in generator.primers
+    assert not generator.analysed
+
+    # Test remove
+    generator.remove(p1)
+    assert len(generator.primers) == 1
+    assert p1 not in generator.primers
+    assert p2 in generator.primers
+
+    # Test clear
+    generator.add(p1)
+    generator.analyse_primers()
+    assert generator.analysed
+    assert (
+        len(generator.primer_dimers) > 0
+    )  # Should have self-dimers if they pass threshold
+
+    generator.clear()
+    assert len(generator.primers) == 0
+    assert len(generator.primer_dimers) == 0
+    assert not generator.analysed
+
+
+def test_custom_settings() -> None:
+    """Test using custom settings for the generator."""
+    # Create settings with a very high threshold so nothing should pass
+    high_threshold_settings = PrimerDimerSettings(threshold=1000.0)
+    generator = PrimerDimerGenerator(settings=high_threshold_settings)
+
+    generator.add(primer_10289)
+    generator.add(primer_10290)
+    generator.analyse_primers()
+
+    assert len(generator.primer_dimers) == 0
+
+    # Create settings with low overlap requirement
+    # primer_11bp self dimer has Q=60, overlap=9. Default threshold=60.
+    # Let's set threshold higher than 60 to filter it out.
+    # Default settings: threshold 60. result_11bp_11bp Q=60.
+    # Logic is `> threshold` (strictly greater). So 60 > 60 is False.
+    # That explains why it wasn't in the original test:
+    # `assert result_11bp_11bp not in primer_dimer_generator.primer_dimers`
+
+    # Let's lower threshold to 59
+    low_threshold_settings = PrimerDimerSettings(threshold=59.0)
+    generator_low = PrimerDimerGenerator(settings=low_threshold_settings)
+    generator_low.add(primer_11bp)
+    generator_low.analyse_primers()
+
+    # Should now be included
+    # We need to construct what the result would be or check existence
+    assert len(generator_low.primer_dimers) == 1
+    assert generator_low.primer_dimers[0].primer_1 == primer_11bp
+    assert generator_low.primer_dimers[0].primer_2 == primer_11bp
+
+
+def test_edge_cases() -> None:
+    """Test edge cases like short primers, no overlap potential, etc."""
+    generator = PrimerDimerGenerator()
+
+    # Very short primer - unlikely to have high score
+    short_p = Primer("ATCG", "short")
+
+    # Compare with itself
+    res = generator.generate_primer_dimer(short_p, short_p)
+    # 4 bases. Max score roughly 4*30 = 120? But alignments might be poor.
+    # Just check it doesn't crash
+    assert isinstance(res, PrimerDimer)
+    assert res.primer_1 == short_p
+    assert res.primer_2 == short_p
+
+    # Primers with no complementarity (poly-A vs poly-A)
+    # Default weights: A-A mismatches are penalty (-20 or similar)
+    pA = Primer("AAAAA", "polyA")
+    res_A = generator.generate_primer_dimer(pA, pA)
+    # Should be low quality
+    assert res_A.quality < 0
+
+
+def test_sorting_and_filtering() -> None:
+    """Test that analyse_primers filters and sorts correctly."""
+    # We'll use 3 primers that produce dimers of varying quality
+    # p1-p1: Q=100 (hypothetical)
+    # p2-p2: Q=80
+    # p3-p3: Q=50
+    # Threshold=60.
+
+    # We can use the real examples since we know their scores.
+    # 10290-10290: 200
+    # 10289-10289: 160
+    # 1701-1701: 120
+    # 11bp-11bp: 60 (filtered out by >60)
+
+    generator = PrimerDimerGenerator()
+    generator.add(primer_10290)
+    generator.add(primer_10289)
+    generator.add(primer_1701)
+    generator.add(primer_11bp)
+
+    generator.analyse_primers()
+
+    results = generator.primer_dimers
+
+    # Verify sorting (descending quality)
+    qualities = [pd.quality for pd in results]
+    assert qualities == sorted(qualities, reverse=True)
+
+    # Verify filtering
+    # 11bp self dimer has Q=60. Threshold is 60. > check excludes it.
+    for pd in results:
+        assert pd.quality > 60.0
+        assert pd.overlap > 3  # default min overlap
+
+
+def test_primer_dimer_attributes() -> None:
+    """Test PrimerDimer dataclass attributes."""
+    pd = PrimerDimer(
+        primer_1=primer_11bp,
+        primer_2=primer_1701,
+        quality=123.4,
+        overlap=5,
+        p1_pos=2,
+    )
+    assert pd.primer_1 == primer_11bp
+    assert pd.primer_2 == primer_1701
+    assert pd.quality == 123.4
+    assert pd.overlap == 5
+    assert pd.p1_pos == 2

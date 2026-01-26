@@ -28,165 +28,144 @@ from .settings import (
 
 
 @dataclass(slots=True, frozen=True)
-class DimerResult:
-    """Result of a primer dimer analysis between two primers.
+class PrimerDimer:
+    """Represents a primer dimer.
 
     Attributes:
-        p1 (Primer): The shorter primer (or first if equal length).
-        p2 (Primer): The longer primer (or second if equal length).
-        overlap (int): The length of the overlap region.
+        primer_1 (Primer): The first primer.
+        primer_2 (Primer): The second primer.
         quality (float): The calculated dimer quality score.
-        serious (bool): Whether the dimer is considered serious based on
-            overlap and quality thresholds.
+        overlap (int): The length of the overlap region.
         p1_pos (int): The starting position of the alignment on p2 (0-indexed).
     """
 
-    p1: Primer
-    p2: Primer
-    overlap: int
+    primer_1: Primer
+    primer_2: Primer
     quality: float
-    serious: bool
+    overlap: int
     p1_pos: int
 
 
-def calculate_dimer(
-    p1: Primer,
-    p2: Primer,
-    settings: PrimerDimerSettings = DEFAULT_PRIMER_DIMER_SETTINGS,
-) -> DimerResult:
-    """Calculate the dimer potential (quality) between two primers.
+class PrimerDimerGenerator:
+    """Generates and analyses primer dimers directly from primers."""
 
-    The algorithm mimics the Amplify4 implementation. It aligns the 3' end of
-    the shorter primer (p1) with different positions on the longer primer (p2)
-    and scores the antiparallel overlap.
+    def __init__(
+        self, settings: PrimerDimerSettings = DEFAULT_PRIMER_DIMER_SETTINGS
+    ):
+        """Initialize the PrimerDimerGenerator.
 
-    Args:
-        p1 (Primer): The first primer.
-        p2 (Primer): The second primer.
-        settings (PrimerDimerSettings, optional): The settings object containing
-            weights, overlap cutoff, and threshold cutoff. Uses
-            DEFAULT_PRIMER_DIMER_SETTINGS if not provided.
+        Args:
+            settings (PrimerDimerSettings): Settings to use for dimer
+                generation.
+        """
+        self.settings = settings
+        self.primers: list[Primer] = []
+        self.primer_dimers: list[PrimerDimer] = []
+        self.__analysed: bool = False
 
-    Returns:
-        DimerResult: The best dimer alignment found.
-    """
-    # Ensure p1 is the shorter primer (or equal)
-    if len(p1) < len(p2):
-        short_p, long_p = p1, p2
-    else:
-        short_p, long_p = p2, p1
+    def add(self, primer: Primer) -> None:
+        """Add a primer to the generator.
 
-    n1 = len(short_p)
-    n2 = len(long_p)
+        Args:
+            primer (Primer): The primer to add.
+        """
+        self.primers.append(primer)
 
-    seq1 = short_p.seq.upper()
-    seq2 = long_p.seq.upper()
+    def remove(self, primer: Primer) -> None:
+        """Remove a primer from the generator.
 
-    best_quality: float = float("-inf")
-    best_pos: int = 0
+        Args:
+            primer (Primer): The primer to remove.
+        """
+        self.primers.remove(primer)
 
-    # Iterate through all possible starting positions on p2
-    # leftEnd in Swift implementation.
-    for left_end in range(n2):
-        q: float = 0.0
-        # Overlap length
-        # Swift: for rightEnd in leftEnd..<min(leftEnd + n1 , n2)
-        # Length of segment = (min_end - left_end)
+    def clear(self) -> None:
+        """Clear all primers and results from the generator."""
+        self.primers.clear()
+        self.primer_dimers.clear()
+        self.__analysed = False
 
-        # We iterate offset from 0 to overlap_len
-        current_overlap = min(n1, n2 - left_end)
+    @property
+    def analysed(self) -> bool:
+        """Return whether the primers have been analysed."""
+        return self.__analysed
 
-        for offset in range(current_overlap):
-            # Align p1's 3' end (index n1-1) with p2 at (left_end)
-            # as offset increases, we move 5' on p1 and 3' on p2
+    def generate_primer_dimer(self, p1: Primer, p2: Primer) -> PrimerDimer:
+        """Calculate the dimer potential (quality) between two primers.
 
-            # P1 index: n1 - 1 - offset
-            c1 = seq1[n1 - 1 - offset]
+        The algorithm mimics the Amplify4 implementation. It aligns the 3' end
+        of the shorter primer (p1) with different positions on the longer
+        primer (p2) and scores the antiparallel overlap.
 
-            # P2 index: left_end + offset
-            c2 = seq2[left_end + offset]
+        Args:
+            p1 (Primer): The first primer.
+            p2 (Primer): The second primer.
 
-            # Sum weights
-            q += settings.weights[c1, c2]
+        Returns:
+            PrimerDimer: The best dimer alignment found.
+        """
+        # Ensure p1 is the shorter primer (or equal)
+        if len(p1) < len(p2):
+            short_p, long_p = p1, p2
+        else:
+            short_p, long_p = p2, p1
 
-        if q >= best_quality:
-            best_quality = q
-            best_pos = left_end
+        n1 = len(short_p)
+        n2 = len(long_p)
 
-    overlap_len = min(n1, n2 - best_pos)
+        seq1 = short_p.seq.upper()
+        seq2 = long_p.seq.upper()
 
-    is_serious = (best_quality > settings.threshold) and (
-        overlap_len >= settings.overlap
-    )
+        best_quality: float = float("-inf")
+        best_pos: int = 0
 
-    return DimerResult(
-        p1=short_p,
-        p2=long_p,
-        overlap=overlap_len,
-        quality=best_quality,
-        serious=is_serious,
-        p1_pos=best_pos,
-    )
+        # Iterate through all possible starting positions on p2
+        # leftEnd in Swift implementation.
+        for left_end in range(n2):
+            q: float = 0.0
+            # Overlap length
+            # Swift: for rightEnd in leftEnd..<min(leftEnd + n1 , n2)
+            # Length of segment = (min_end - left_end)
 
+            # We iterate offset from 0 to overlap_len
+            current_overlap = min(n1, n2 - left_end)
 
-def analyze_group(
-    primers: list[Primer],
-    settings: PrimerDimerSettings = DEFAULT_PRIMER_DIMER_SETTINGS,
-) -> list[DimerResult]:
-    """Analyze a group of primers for all potential dimers.
+            for offset in range(current_overlap):
+                # Align p1's 3' end (index n1-1) with p2 at (left_end)
+                # as offset increases, we move 5' on p1 and 3' on p2
 
-    Includes self-dimers.
+                # P1 index: n1 - 1 - offset
+                c1 = seq1[n1 - 1 - offset]
 
-    Args:
-        primers (list[Primer]): List of primers to analyze.
-        settings (PrimerDimerSettings, optional): Settings object.
+                # P2 index: left_end + offset
+                c2 = seq2[left_end + offset]
 
-    Returns:
-        list[DimerResult]: A list of all significant (serious) dimer results,
-            or all results if filtered?
-            Usually users only care about "serious" dimers.
-            But the User Request said "analyse a group of primer at once".
-            Let's return only the serious ones to keep it clean, or maybe
-            sort by quality?
-            Let's return all serious ones.
-    """
-    results: list[DimerResult] = []
+                # Sum weights
+                q += self.settings.weights[c1, c2]
 
-    # Analyze all combinations with replacement (includes self-dimers)
-    # Swift uses `combinations` of some sort? No, the user just said analyze a
-    # group.
-    # Usually we compare every primer with every other primer AND itself.
-    # So `itertools.combinations_with_replacement` covers (A, A), (A, B),
-    # (B, B).
-    # Order matters? transform(A, B) vs transform(B, A).
-    # calculate_dimer normalizes by length.
-    # If len(A) == len(B), calculate_dimer(A, B) swaps to (B, A) effectively
-    # (assuming p2=A in my logic if p1 passed as B).
-    # Wait, my logic: if len(p1) < len(p2): short=p1. else: short=p2.
-    # If equal: short=p2 (second arg).
-    # So calculate_dimer(A, B) -> short=B, long=A.
-    # calculate_dimer(B, A) -> short=A, long=B.
-    # This might produce slightly different result if the scoring is asymmetric?
-    # Or if the alignment finds a different max?
-    # Ideally the dimer potential is symmetric physically, but the algorithm
-    # scans "short along long".
-    # If equal length, scanning A along B vs B along A should be symmetric
-    # IF the weights are symmetric.
-    # `DEFAULT_PRIMER_DIMER_WEIGHTS` matrix...
-    # `[-20, -20, -20, 30...`
-    # It looks symmetric for base pairs (A-T vs T-A).
-    # So we probably only need `combinations_with_replacement`.
+            if q >= best_quality:
+                best_quality = q
+                best_pos = left_end
 
-    for p1, p2 in itertools.combinations_with_replacement(primers, 2):
-        res = calculate_dimer(
-            p1,
-            p2,
-            settings=settings,
+        overlap_len = min(n1, n2 - best_pos)
+
+        return PrimerDimer(
+            primer_1=short_p,
+            primer_2=long_p,
+            overlap=overlap_len,
+            quality=best_quality,
+            p1_pos=best_pos,
         )
-        if res.serious:
-            results.append(res)
 
-    # Sort results by quality descending
-    results.sort(key=lambda x: x.quality, reverse=True)
-
-    return results
+    def analyse_primers(self) -> None:
+        """Analyse all pairs of primers for primer dimers."""
+        self.primer_dimers.clear()
+        for p1, p2 in itertools.combinations_with_replacement(self.primers, 2):
+            res = self.generate_primer_dimer(p1, p2)
+            if (
+                res.quality > self.settings.threshold
+                and res.overlap > self.settings.min_overlap
+            ):
+                self.primer_dimers.append(res)
+        self.primer_dimers.sort(key=lambda x: x.quality, reverse=True)
+        self.__analysed = True

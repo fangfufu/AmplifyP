@@ -18,7 +18,6 @@
 from __future__ import annotations
 
 import builtins
-import logging
 from dataclasses import dataclass
 
 from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
@@ -284,13 +283,6 @@ class Repliconf:
                 template.seq + template.seq[: self.padding_len]
             ).translate(COMPLEMENT_TABLE)
 
-        logging.debug(
-            f"Repliconf.__init__(): FWD: {self.template_seq[DNADirection.FWD]}"
-        )
-        logging.debug(
-            f"Repliconf.__init__(): REV: {self.template_seq[DNADirection.REV]}"
-        )
-
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
 
@@ -460,10 +452,6 @@ class Repliconf:
             stability = stab_num / stab_denom if stab_denom != 0 else 0.0
 
             if primability > prim_cutoff and stability > stab_cutoff:
-                origin = self.origin(direction, i)
-                logging.debug(
-                    f"Repliconf.search(): adding [{direction}, {i}]: {origin}"
-                )
                 origin_list.append(DirIdx(direction, i))
 
     def search(self) -> None:
@@ -531,7 +519,6 @@ class Repliconf:
             #   complementary to the Sense strand) by checking for identity
             #   against the Antisense strand.
 
-            logging.debug(f"Repliconf.search(): {direction}")
             self._scan_direction(
                 direction,
                 self.template_seq[direction],

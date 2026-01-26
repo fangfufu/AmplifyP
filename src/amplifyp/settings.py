@@ -503,14 +503,14 @@ class PrimerDimerSettings:
 
     Attributes:
         weights (BasePairWeightsTbl): Scoring table for base pair interactions.
-        overlap (int): Minimum overlap length to consider a dimer serious.
-        threshold (float): Minimum quality score to consider a dimer serious.
+        min_overlap (int): Minimum overlap length for a primer dimer.
+        threshold (float): Minimum quality score for a primer dimer.
     """
 
     weights: BasePairWeightsTbl = field(
         default_factory=lambda: DEFAULT_PRIMER_DIMER_WEIGHTS.copy()
     )
-    overlap: int = DEFAULT_PRIMER_DIMER_OVERLAP
+    min_overlap: int = DEFAULT_PRIMER_DIMER_OVERLAP
     threshold: float = DEFAULT_PRIMER_DIMER_THRESHOLD
 
 
