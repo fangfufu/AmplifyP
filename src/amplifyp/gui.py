@@ -35,7 +35,7 @@ from amplifyp.dna import (
     Primer,
 )
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 # Set theme
 ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -49,7 +49,7 @@ if __name__ == "__main__" and __package__ is None:
         0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
     )
 
-settings = copy.deepcopy(DEFAULT_REPLICATION_SETTINGS)
+settings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)
 
 
 class PrimerStatsDialog(ctk.CTkToplevel):  # type: ignore[misc]

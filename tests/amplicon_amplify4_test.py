@@ -20,7 +20,7 @@ import pytest
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 from tests.examples.amplify4_examples import (
     amplify4_circular_example,
     amplify4_linear_example,
@@ -46,22 +46,22 @@ def test_amplify4_11bp_1701_10289_10290() -> None:
     amplicon_generator = AmpliconGenerator(amplify4_linear_example)
 
     repliconf_11bp = Repliconf(
-        amplify4_linear_example, primer_11bp, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_11bp, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_1701 = Repliconf(
-        amplify4_linear_example, primer_1701, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_1701, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10289 = Repliconf(
-        amplify4_linear_example, primer_10289, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_10289, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10290 = Repliconf(
-        amplify4_linear_example, primer_10290, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_10290, GLOBAL_REPLICATION_SETTINGS
     )
 
-    amplicon_generator.add(repliconf_11bp)
-    amplicon_generator.add(repliconf_1701)
-    amplicon_generator.add(repliconf_10289)
-    amplicon_generator.add(repliconf_10290)
+    amplicon_generator.add_repliconf(repliconf_11bp)
+    amplicon_generator.add_repliconf(repliconf_1701)
+    amplicon_generator.add_repliconf(repliconf_10289)
+    amplicon_generator.add_repliconf(repliconf_10290)
 
     amplicons = amplicon_generator.get_amplicons()
     assert len(amplicons) == 7
@@ -134,10 +134,10 @@ def test_10290_10289_566bp_manual() -> None:
     primability and stability scores.
     """
     repliconf_10289 = Repliconf(
-        amplify4_linear_example, primer_10289, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_10289, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10290 = Repliconf(
-        amplify4_linear_example, primer_10290, DEFAULT_REPLICATION_SETTINGS
+        amplify4_linear_example, primer_10290, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10289.search()
     repliconf_10290.search()
@@ -162,22 +162,22 @@ def test_amplify4_circular_11bp_1701_10289_10290() -> None:
     amplicon_generator = AmpliconGenerator(amplify4_circular_example)
 
     repliconf_11bp = Repliconf(
-        amplify4_circular_example, primer_11bp, DEFAULT_REPLICATION_SETTINGS
+        amplify4_circular_example, primer_11bp, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_1701 = Repliconf(
-        amplify4_circular_example, primer_1701, DEFAULT_REPLICATION_SETTINGS
+        amplify4_circular_example, primer_1701, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10289 = Repliconf(
-        amplify4_circular_example, primer_10289, DEFAULT_REPLICATION_SETTINGS
+        amplify4_circular_example, primer_10289, GLOBAL_REPLICATION_SETTINGS
     )
     repliconf_10290 = Repliconf(
-        amplify4_circular_example, primer_10290, DEFAULT_REPLICATION_SETTINGS
+        amplify4_circular_example, primer_10290, GLOBAL_REPLICATION_SETTINGS
     )
 
-    amplicon_generator.add(repliconf_11bp)
-    amplicon_generator.add(repliconf_1701)
-    amplicon_generator.add(repliconf_10289)
-    amplicon_generator.add(repliconf_10290)
+    amplicon_generator.add_repliconf(repliconf_11bp)
+    amplicon_generator.add_repliconf(repliconf_1701)
+    amplicon_generator.add_repliconf(repliconf_10289)
+    amplicon_generator.add_repliconf(repliconf_10290)
 
     amplicons = amplicon_generator.get_amplicons()
     assert len(amplicons) == 10

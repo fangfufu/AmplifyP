@@ -24,7 +24,8 @@ from typing import Final
 
 from .dna import Primer
 from .settings import (
-    DEFAULT_AMPLIFY4_TM_SETTINGS,
+    GLOBAL_AMPLIFY4_TM_SETTINGS,
+    GLOBAL_TM_SETTINGS,
     Amplify4TMSettings,
     TMSettings,
 )
@@ -55,7 +56,9 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 }
 
 
-def calculate_tm(primer: Primer, settings: TMSettings) -> float:
+def calculate_tm(
+    primer: Primer, settings: TMSettings = GLOBAL_TM_SETTINGS
+) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
 
     Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic
@@ -241,7 +244,7 @@ def calculate_tm(primer: Primer, settings: TMSettings) -> float:
 
 def calculate_tm_amplify4(
     primer: Primer,
-    amplify4_settings: Amplify4TMSettings = DEFAULT_AMPLIFY4_TM_SETTINGS,
+    amplify4_settings: Amplify4TMSettings = GLOBAL_AMPLIFY4_TM_SETTINGS,
 ) -> float:
     """Calculate Tm using the original Amplify4 algorithm.
 

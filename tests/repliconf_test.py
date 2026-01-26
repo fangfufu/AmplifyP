@@ -17,7 +17,7 @@
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 
 def test_repliconf_linear_search() -> None:
@@ -26,7 +26,7 @@ def test_repliconf_linear_search() -> None:
     #               0123456789ABCDEF
     template = DNA("ACCTCCTAGGAGGTTT")
     primer = Primer("CCT")
-    repliconf = Repliconf(template, primer, DEFAULT_REPLICATION_SETTINGS)
+    repliconf = Repliconf(template, primer, GLOBAL_REPLICATION_SETTINGS)
     assert repliconf.template_seq[DNADirection.FWD] == "---ACCTCCTAGGAGGTTT"
     assert repliconf.template_seq[DNADirection.REV] == "TGGAGGATCCTCCAAA---"
     repliconf.search()
@@ -40,7 +40,7 @@ def test_repliconf_circular_search() -> None:
     #               0123456789ABCDEF
     template = DNA("TGAAAAAGGAAAAACC", DNAType.CIRCULAR)
     primer = Primer("CCT")
-    repliconf = Repliconf(template, primer, DEFAULT_REPLICATION_SETTINGS)
+    repliconf = Repliconf(template, primer, GLOBAL_REPLICATION_SETTINGS)
     assert repliconf.template_seq[DNADirection.FWD] == "ACCTGAAAAAGGAAAAACC"
     assert repliconf.template_seq[DNADirection.REV] == "ACTTTTTCCTTTTTGGACT"
     repliconf.search()
@@ -51,7 +51,7 @@ def test_repliconf_circular_search() -> None:
 test_repliconf = Repliconf(
     DNA("TGAAAAAGGAAAAACC", DNAType.CIRCULAR),
     Primer("CCT"),
-    DEFAULT_REPLICATION_SETTINGS,
+    GLOBAL_REPLICATION_SETTINGS,
 )
 
 

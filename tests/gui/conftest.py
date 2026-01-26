@@ -21,7 +21,7 @@ from collections.abc import Generator
 import pytest
 
 from amplifyp import gui
-from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 
 @pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
@@ -32,4 +32,4 @@ def reset_gui_settings() -> Generator[None, None, None]:
     during a test do not leak into other tests.
     """
     yield
-    gui.settings = copy.deepcopy(DEFAULT_REPLICATION_SETTINGS)
+    gui.settings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)

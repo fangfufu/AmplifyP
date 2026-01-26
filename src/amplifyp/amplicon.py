@@ -132,7 +132,7 @@ class AmpliconGenerator:
         self.template = template
         self.repliconfs: list[Repliconf] = []
 
-    def add(self, repliconf: Repliconf) -> None:
+    def add_repliconf(self, repliconf: Repliconf) -> None:
         """Add a replication configuration to the generator.
 
         Args:
@@ -156,7 +156,7 @@ class AmpliconGenerator:
                 "The Repliconf is already in the AmpliconGenerator."
             )
 
-    def remove(self, repliconf: Repliconf) -> None:
+    def remove_repliconf(self, repliconf: Repliconf) -> None:
         """Remove a replication configuration from the generator.
 
         Args:

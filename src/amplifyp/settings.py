@@ -351,10 +351,9 @@ DEFAULT_BASE_PAIR_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
 )
 
 
-# Default threshold for primability.
 DEFAULT_PRIMABILITY_CUTOFF: Final[float] = 0.8
 
-# Default threshold for stability.
+
 DEFAULT_STABILITY_CUTOFF: Final[float] = 0.4
 
 
@@ -378,6 +377,8 @@ class ReplicationSettings:
             `DEFAULT_PRIMABILITY_CUTOFF`.
         stability_cutoff (float): The minimum stability score required.
             Defaults to `DEFAULT_STABILITY_CUTOFF`.
+        amplify4_compatibility_mode (bool): For scoring, whether to use Amplify4
+            compatibility mode. Defaults to `False`.
     """
 
     base_pair_scores: BasePairWeightsTbl = field(
@@ -394,7 +395,7 @@ class ReplicationSettings:
     amplify4_compatibility_mode: bool = False
 
 
-DEFAULT_REPLICATION_SETTINGS: Final[ReplicationSettings] = ReplicationSettings()
+GLOBAL_REPLICATION_SETTINGS: ReplicationSettings = ReplicationSettings()
 
 
 @dataclass(slots=True)
@@ -419,7 +420,7 @@ class TMSettings:
     dnTP_conc: float = 0.0
 
 
-DEFAULT_TM_SETTINGS: Final[TMSettings] = TMSettings()
+GLOBAL_TM_SETTINGS: TMSettings = TMSettings()
 
 DEFAULT_AMPLIFY4_TM_ENTHALPY: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.SINGLE + Nucleotides.WILDCARD,
@@ -470,7 +471,7 @@ class Amplify4TMSettings:
     )
 
 
-DEFAULT_AMPLIFY4_TM_SETTINGS: Final[Amplify4TMSettings] = Amplify4TMSettings()
+GLOBAL_AMPLIFY4_TM_SETTINGS: Amplify4TMSettings = Amplify4TMSettings()
 
 DEFAULT_PRIMER_DIMER_WEIGHTS: Final[BasePairWeightsTbl] = BasePairWeightsTbl(
     row=Nucleotides.PRIMER,
@@ -515,6 +516,4 @@ class PrimerDimerSettings:
     threshold: float = DEFAULT_PRIMER_DIMER_THRESHOLD
 
 
-DEFAULT_PRIMER_DIMER_SETTINGS: Final[PrimerDimerSettings] = (
-    PrimerDimerSettings()
-)
+GLOBAL_PRIMER_DIMER_SETTINGS: PrimerDimerSettings = PrimerDimerSettings()

@@ -23,3 +23,11 @@ class DuplicateRepliconfError(ValueError):
     `AmpliconGenerator` that already contains an identical configuration (same
     primer and template).
     """
+
+
+class PrimerNotFoundError(ValueError):
+    """Exception raised when a primer is not found."""
+
+
+class DuplicatedPrimerError(ValueError):
+    """Exception raised when a primer is already added."""

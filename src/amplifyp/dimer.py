@@ -22,7 +22,7 @@ from dataclasses import dataclass
 
 from .dna import Primer
 from .settings import (
-    DEFAULT_PRIMER_DIMER_SETTINGS,
+    GLOBAL_PRIMER_DIMER_SETTINGS,
     PrimerDimerSettings,
 )
 
@@ -50,7 +50,7 @@ class PrimerDimerGenerator:
     """Generates and analyses primer dimers directly from primers."""
 
     def __init__(
-        self, settings: PrimerDimerSettings = DEFAULT_PRIMER_DIMER_SETTINGS
+        self, settings: PrimerDimerSettings = GLOBAL_PRIMER_DIMER_SETTINGS
     ):
         """Initialize the PrimerDimerGenerator.
 
@@ -63,7 +63,7 @@ class PrimerDimerGenerator:
         self.primer_dimers: list[PrimerDimer] = []
         self.__analysed: bool = False
 
-    def add(self, primer: Primer) -> None:
+    def add_primer(self, primer: Primer) -> None:
         """Add a primer to the generator.
 
         Args:
@@ -71,7 +71,7 @@ class PrimerDimerGenerator:
         """
         self.primers.append(primer)
 
-    def remove(self, primer: Primer) -> None:
+    def remove_primer(self, primer: Primer) -> None:
         """Remove a primer from the generator.
 
         Args:

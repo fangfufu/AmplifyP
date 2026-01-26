@@ -22,7 +22,11 @@ from dataclasses import dataclass
 
 from .dna import DNA, DNADirection, DNAType, Nucleotides, Primer
 from .origin import ReplicationOrigin
-from .settings import LengthWiseWeightTbl, ReplicationSettings
+from .settings import (
+    GLOBAL_REPLICATION_SETTINGS,
+    LengthWiseWeightTbl,
+    ReplicationSettings,
+)
 
 COMPLEMENT_TABLE = str.maketrans(
     "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
@@ -248,7 +252,7 @@ class Repliconf:
         self,
         template: DNA,
         primer: Primer,
-        settings: ReplicationSettings,
+        settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ) -> None:
         """Initialize a Repliconf object.
 

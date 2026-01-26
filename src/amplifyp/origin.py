@@ -15,11 +15,12 @@
 
 """Replication origin-related classes for AmplifyP."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import trunc
 
 from .dna import DNA, Primer
 from .settings import (
+    GLOBAL_REPLICATION_SETTINGS,
     BasePairWeightsTbl,
     LengthWiseWeightTbl,
     ReplicationSettings,
@@ -47,7 +48,9 @@ class ReplicationOrigin:
 
     target: str
     primer: str
-    settings: ReplicationSettings
+    settings: ReplicationSettings = field(
+        default_factory=lambda: GLOBAL_REPLICATION_SETTINGS
+    )
 
     def __post_init__(self) -> None:
         """Validate that the target and primer have equal lengths.

@@ -12,6 +12,7 @@ from tests.examples.amplify4_examples import (
 
 
 def test_primer_dimer_generator() -> None:
+    """Test PrimerDimerGenerator using real examples from Amplify4."""
     primer_dimer_generator = PrimerDimerGenerator()
 
     # Real examples from Amplify4
@@ -45,10 +46,10 @@ def test_primer_dimer_generator() -> None:
     assert result_11bp_11bp.quality == 60
     assert result_11bp_11bp.overlap == 9
 
-    primer_dimer_generator.add(primer_10289)
-    primer_dimer_generator.add(primer_10290)
-    primer_dimer_generator.add(primer_1701)
-    primer_dimer_generator.add(primer_11bp)
+    primer_dimer_generator.add_primer(primer_10289)
+    primer_dimer_generator.add_primer(primer_10290)
+    primer_dimer_generator.add_primer(primer_1701)
+    primer_dimer_generator.add_primer(primer_11bp)
     primer_dimer_generator.analyse_primers()
     assert len(primer_dimer_generator.primer_dimers) == 4
     assert result_10289_10289 in primer_dimer_generator.primer_dimers
@@ -65,21 +66,21 @@ def test_generator_management() -> None:
     p2 = primer_10290
 
     # Test add
-    generator.add(p1)
-    generator.add(p2)
+    generator.add_primer(p1)
+    generator.add_primer(p2)
     assert len(generator.primers) == 2
     assert p1 in generator.primers
     assert p2 in generator.primers
     assert not generator.analysed
 
     # Test remove
-    generator.remove(p1)
+    generator.remove_primer(p1)
     assert len(generator.primers) == 1
     assert p1 not in generator.primers
     assert p2 in generator.primers
 
     # Test clear
-    generator.add(p1)
+    generator.add_primer(p1)
     generator.analyse_primers()
     assert generator.analysed
     assert (
@@ -98,8 +99,8 @@ def test_custom_settings() -> None:
     high_threshold_settings = PrimerDimerSettings(threshold=1000.0)
     generator = PrimerDimerGenerator(settings=high_threshold_settings)
 
-    generator.add(primer_10289)
-    generator.add(primer_10290)
+    generator.add_primer(primer_10289)
+    generator.add_primer(primer_10290)
     generator.analyse_primers()
 
     assert len(generator.primer_dimers) == 0
@@ -115,7 +116,7 @@ def test_custom_settings() -> None:
     # Let's lower threshold to 59
     low_threshold_settings = PrimerDimerSettings(threshold=59.0)
     generator_low = PrimerDimerGenerator(settings=low_threshold_settings)
-    generator_low.add(primer_11bp)
+    generator_low.add_primer(primer_11bp)
     generator_low.analyse_primers()
 
     # Should now be included
@@ -163,10 +164,10 @@ def test_sorting_and_filtering() -> None:
     # 11bp-11bp: 60 (filtered out by >60)
 
     generator = PrimerDimerGenerator()
-    generator.add(primer_10290)
-    generator.add(primer_10289)
-    generator.add(primer_1701)
-    generator.add(primer_11bp)
+    generator.add_primer(primer_10290)
+    generator.add_primer(primer_10289)
+    generator.add_primer(primer_1701)
+    generator.add_primer(primer_11bp)
 
     generator.analyse_primers()
 

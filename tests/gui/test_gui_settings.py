@@ -18,7 +18,7 @@
 import pytest
 
 from amplifyp import gui
-from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS, ReplicationSettings
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
 
 def test_gui_settings_exists() -> None:
@@ -38,10 +38,10 @@ def test_gui_settings_initialization() -> None:
     # In the original script, we checked primability_cutoff and
     # stability_cutoff.
     assert gui.settings.primability_cutoff == pytest.approx(
-        DEFAULT_REPLICATION_SETTINGS.primability_cutoff
+        GLOBAL_REPLICATION_SETTINGS.primability_cutoff
     )
     assert gui.settings.stability_cutoff == pytest.approx(
-        DEFAULT_REPLICATION_SETTINGS.stability_cutoff
+        GLOBAL_REPLICATION_SETTINGS.stability_cutoff
     )
 
 
