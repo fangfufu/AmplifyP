@@ -479,38 +479,73 @@ class MapView(tk.Canvas):
             # or two parts.
             # Using simple bar for now.
 
-            if amp.circular:
-                # TODO: visual for circular wrap
-                pass
-
             width = end_x - start_x
             if width < 0:  # Wrap around or circular
-                # Just draw nothing for now or handle later
-                pass
-
-            # Bar
-            self.plotters.append(
-                RectThing(
-                    start_x,
-                    current_y,
-                    end_x,
-                    current_y + 10,
-                    fill="black",
-                    outline="",
+                # Draw two parts
+                # 1. Start to End of Template
+                self.plotters.append(
+                    RectThing(
+                        start_x,
+                        current_y,
+                        basex(self.target_length),
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
                 )
-            )
-
-            # Size label centered
-            center_x = start_x + width / 2
-            self.plotters.append(
-                StringThing(
-                    str(len(amp.product)) + " bp",
-                    center_x,
-                    current_y + 12,
-                    anchor="n",
-                    font=("Arial", 9),
+                # 2. Start of Template to End
+                self.plotters.append(
+                    RectThing(
+                        basex(0),
+                        current_y,
+                        end_x,
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
                 )
-            )
+
+                # Label placement: on the longer segment
+                len1 = basex(self.target_length) - start_x
+                len2 = end_x - basex(0)
+                if len1 >= len2:
+                    center_x = start_x + len1 / 2
+                else:
+                    center_x = basex(0) + len2 / 2
+
+                self.plotters.append(
+                    StringThing(
+                        str(len(amp.product)) + " bp",
+                        center_x,
+                        current_y + 12,
+                        anchor="n",
+                        font=("Arial", 9),
+                    )
+                )
+            else:
+                # Bar
+                self.plotters.append(
+                    RectThing(
+                        start_x,
+                        current_y,
+                        end_x,
+                        current_y + 10,
+                        fill="black",
+                        outline="",
+                    )
+                )
+
+                # Size label centered
+                center_x = start_x + width / 2
+                self.plotters.append(
+                    StringThing(
+                        str(len(amp.product)) + " bp",
+                        center_x,
+                        current_y + 12,
+                        anchor="n",
+                        font=("Arial", 9),
+                    )
+                )
 
             current_y += self.v_frag_spacing
 
