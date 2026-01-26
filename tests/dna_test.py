@@ -150,3 +150,37 @@ def test_dna_ratio_cg() -> None:
     assert dna.ratio_cg() == pytest.approx(0.5)
     dna = DNA("")
     assert dna.ratio_cg() == pytest.approx(0.0)
+
+def test_dna_reverse_complement_optimization() -> None:
+    """Test reverse_complement correctness and consistency with reverse().complement()."""
+    # Test 1: Standard sequence
+    seq = "ATGC"
+    dna = DNA(seq)
+    rc = dna.reverse_complement()
+
+    # Expected: Reverse of ATGC is CGTA. Complement of CGTA is GCAT.
+    assert rc.seq == "GCAT"
+    # Should be bool True (FWD equivalent) as per legacy behavior of reverse().complement()
+    assert rc.direction is True
+    assert rc.type == dna.type
+
+    # Test 2: Verify consistency with reverse().complement() logic manually
+    # reverse() -> NOT direction. complement() -> NOT (NOT direction) -> direction.
+    assert rc.direction == bool(dna.direction)
+
+    # Test 3: Ambiguous nucleotides
+    # R (G/A) -> Y (C/T)
+    # Y (C/T) -> R (G/A)
+    # N -> N
+    # Sequence: RYN
+    # Reverse: NYR
+    # Complement: N (N->N), Y (Y->R), R (R->Y) -> NRY
+    seq_ambig = "RYN"
+    dna_ambig = DNA(seq_ambig, dna_type=DNAType.PRIMER)
+    rc_ambig = dna_ambig.reverse_complement()
+    assert rc_ambig.seq == "NRY"
+
+    # Test 4: Lowercase handling
+    # "atgc" -> reverse "cgta" -> complement "gcat"
+    dna_lower = DNA("atgc")
+    assert dna_lower.reverse_complement().seq == "gcat"

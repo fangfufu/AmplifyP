@@ -49,6 +49,12 @@ class Nucleotides(StrEnum):
     PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
 
 
+# Translation table for DNA complementation.
+COMPLEMENT_TRANS_TABLE = str.maketrans(
+    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
+)
+
+
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA.
 
@@ -216,11 +222,7 @@ class DNA:
             DNA: A new DNA object representing the complement sequence.
         """
         return DNA(
-            self.seq.translate(
-                str.maketrans(
-                    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
-                )
-            ),
+            self.seq.translate(COMPLEMENT_TRANS_TABLE),
             self.type,
             self.name,
             not self.direction,
@@ -247,7 +249,12 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the reverse complement sequence.
         """
-        return self.reverse().complement()
+        return DNA(
+            self.seq.translate(COMPLEMENT_TRANS_TABLE)[::-1],
+            self.type,
+            self.name,
+            bool(self.direction),
+        )
 
     def __eq__(self, other: object) -> bool:
         """Check if two DNA objects are equal.
