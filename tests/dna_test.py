@@ -150,3 +150,42 @@ def test_dna_ratio_cg() -> None:
     assert dna.ratio_cg() == pytest.approx(0.5)
     dna = DNA("")
     assert dna.ratio_cg() == pytest.approx(0.0)
+
+
+def test_primer_redundant_base_count_none() -> None:
+    """Test redundant_base_count for a non-degenerate primer."""
+    primer = Primer("ACGT")
+    assert primer.redundant_base_count == 0
+    assert primer.redundancy_fold == 1
+
+
+def test_primer_redundancy_fold_double() -> None:
+    """Test redundancy_fold for double bases."""
+    # R = A or G (2 fold)
+    primer = Primer("ACGR")
+    assert primer.redundancy_fold == 2
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_fold_triple() -> None:
+    """Test redundancy_fold for triple bases."""
+    # V = A, C, or G (3 fold)
+    primer = Primer("ACGV")
+    assert primer.redundancy_fold == 3
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_fold_wildcard() -> None:
+    """Test redundancy_fold for wildcard bases."""
+    # N = A, C, G, or T (4 fold)
+    primer = Primer("ACGN")
+    assert primer.redundancy_fold == 4
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_mixed() -> None:
+    """Test redundancy calculation with mixed degenerate bases."""
+    # R (2) * N (4) * Y (2) = 16
+    primer = Primer("RNY")
+    assert primer.redundancy_fold == 16
+    assert primer.redundant_base_count == 3

@@ -400,3 +400,38 @@ class Primer(DNA):
                 None.
         """
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
+
+    @property
+    def redundancy_fold(self) -> int:
+        """Calculate the fold redundancy of the primer.
+
+        Returns:
+            int: The product of the number of possible bases at each position.
+        """
+        fold = 1
+        for base in self.seq.upper():
+            if base in Nucleotides.WILDCARD:
+                fold *= 4
+            elif base in Nucleotides.TRIPLE:
+                fold *= 3
+            elif base in Nucleotides.DOUBLE:
+                fold *= 2
+        return fold
+
+    @property
+    def redundant_base_count(self) -> int:
+        """Count the number of redundant bases in the primer.
+
+        Returns:
+            int: The number of bases that are not single nucleotides (A, C, G,
+                T).
+        """
+        count = 0
+        for base in self.seq.upper():
+            if (
+                base in Nucleotides.WILDCARD
+                or base in Nucleotides.TRIPLE
+                or base in Nucleotides.DOUBLE
+            ):
+                count += 1
+        return count
