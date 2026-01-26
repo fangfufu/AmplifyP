@@ -20,7 +20,7 @@ from collections.abc import Generator
 
 import pytest
 
-from amplifyp import gui
+import amplifyp.gui as gui
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 

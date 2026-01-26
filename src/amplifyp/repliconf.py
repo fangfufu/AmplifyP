@@ -315,9 +315,7 @@ class Repliconf:
         """
         return slice(i, i + len(self.primer))
 
-    def origin(
-        self, var: DirIdx | DNADirection, *idx: int
-    ) -> ReplicationOrigin:
+    def origin(self, var: DirIdx) -> ReplicationOrigin:
         """Construct a ReplicationOrigin object for a specific location.
 
         This method extracts the target sequence from the pre-processed template
@@ -325,25 +323,13 @@ class Repliconf:
         object to evaluate it.
 
         Args:
-            var (DirIdx | DNADirection): Either a `DirIdx` object containing
-                both direction and index, or a `DNADirection` enum.
-            *idx (int): If `var` is a `DNADirection`, this argument must be
-                provided as the integer index.
+            var (DirIdx): A `DirIdx` object containing both direction and index.
 
         Returns:
             ReplicationOrigin: An evaluated replication origin object.
-
-        Raises:
-            TypeError: If arguments are not of the expected types.
         """
-        if isinstance(var, DirIdx):
-            direction = var.direction
-            i = var.index
-        elif isinstance(var, DNADirection):
-            direction = var
-            i = idx[0]
-        else:
-            raise TypeError("var must be DirIdx or DNADirection")
+        direction = var.direction
+        i = var.index
 
         if direction:
             # Optimized reverse slicing: template_seq[end-1:start-1:-1]

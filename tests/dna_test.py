@@ -98,7 +98,7 @@ def test_primer_init() -> None:
 def test_dna_invalid_type() -> None:
     """Test DNA initialised with invalid type."""
     with pytest.raises(TypeError):
-        DNA("A", 4)
+        DNA("A", 4)  # type: ignore[arg-type]
 
 
 def test_dna_invalid_char() -> None:

@@ -15,6 +15,8 @@
 
 """GUI application module for AmplifyP."""
 
+__all__ = ["AmplifyPApp", "Primer", "PrimerStatsDialog", "settings"]
+
 import copy
 import json
 import os
@@ -30,12 +32,14 @@ import customtkinter as ctk
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import (
     DNA,
-    DNADirection,
     DNAType,
     Primer,
 )
 from amplifyp.repliconf import Repliconf
-from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
+from amplifyp.settings import (
+    GLOBAL_REPLICATION_SETTINGS,
+    ReplicationSettings,
+)
 
 # Set theme
 ctk.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
@@ -49,7 +53,7 @@ if __name__ == "__main__" and __package__ is None:
         0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
     )
 
-settings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)
+settings: ReplicationSettings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)
 
 
 class PrimerStatsDialog(ctk.CTkToplevel):  # type: ignore[misc]
@@ -113,26 +117,23 @@ class PrimerStatsDialog(ctk.CTkToplevel):  # type: ignore[misc]
             rc.search()  # This populates origin_idx
 
             # Helper to add rows
-            def add_rows(indices: list[int], direction: DNADirection) -> None:
-                strand_str = (
-                    "Forward" if direction == DNADirection.FWD else "Reverse"
-                )
+            def add_rows(indices: list[Any]) -> None:
                 for i in indices:
-                    origin = rc.origin(direction, i)
+                    origin = rc.origin(i)
                     self.tree.insert(
                         "",
                         tk.END,
                         values=(
-                            i,
-                            strand_str,
+                            i.index,
+                            i.direction,
                             f"{origin.primability:.4f}",
                             f"{origin.stability:.4f}",
                             f"{origin.quality:.4f}",
                         ),
                     )
 
-            add_rows(rc.origin_db.fwd, DNADirection.FWD)
-            add_rows(rc.origin_db.rev, DNADirection.REV)
+            add_rows(rc.origin_db.fwd)
+            add_rows(rc.origin_db.rev)
 
         except Exception as e:
             traceback.print_exc()
@@ -469,7 +470,7 @@ class AmplifyPApp(ctk.CTkFrame):  # type: ignore[misc]
                     try:
                         rc = Repliconf(template, primer, sim_settings)
                         rc.search()  # Important: Must search for origins first!
-                        generator.add(rc)
+                        generator.add_repliconf(rc)
                     except Exception as e:
                         print(f"Failed to process primer {primer.name}: {e}")
 

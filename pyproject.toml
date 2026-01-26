@@ -67,3 +67,6 @@ addopts = [
 
 [tool.coverage.run]
 omit = [ "src/amplifyp/gui.py" ]
+
+[tool.mypy]
+mypy_path = "src"

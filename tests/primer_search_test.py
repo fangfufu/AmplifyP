@@ -17,7 +17,6 @@
 
 import pytest
 
-from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 from tests.examples.amplify4_examples import (
@@ -76,7 +75,7 @@ def test_linear_search_primer_2223() -> None:
     repliconf.search()
     origin_index = repliconf.origin_db
 
-    origin_1 = repliconf.origin(DNADirection.FWD, origin_index.fwd[0])
+    origin_1 = repliconf.origin(origin_index.fwd[0])
     assert origin_1.primability == pytest.approx(1.0)
     assert origin_1.stability == pytest.approx(1.0)
     assert origin_1.quality == pytest.approx(1.0)

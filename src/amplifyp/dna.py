@@ -82,6 +82,10 @@ class DNADirection(Flag):
     FWD = True
     REV = False
 
+    def __str__(self) -> str:
+        """The direction as a string."""
+        return "Forward" if self == DNADirection.FWD else "Reverse"
+
 
 class DNA:
     """A class representing a DNA sequence.
