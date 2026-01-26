@@ -54,6 +54,12 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "CC": (-8000, -19.9),
 }
 
+# Optimization: Pre-compute tuple keys for faster lookup in loops
+# zip(seq, seq[1:]) produces tuples of characters, e.g. ('A', 'A')
+_NN_THERMO_DATA_TUPLE: Final[dict[tuple[str, str], tuple[float, float]]] = {
+    tuple(k): v for k, v in NN_THERMO_DATA.items()  # type: ignore[misc]
+}
+
 
 def calculate_tm_santalucia_1998_owczarzy_2008(
     primer: Primer, settings: TMSettings = GLOBAL_TM_SETTINGS
@@ -120,11 +126,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbour steps
-    for i in range(n - 1):
-        dinuc = seq[i : i + 2]
-        if dinuc in NN_THERMO_DATA:
-            val = NN_THERMO_DATA[dinuc]
+    # Nearest neighbor steps
+    for dinuc in zip(seq, seq[1:]):
+        if dinuc in _NN_THERMO_DATA_TUPLE:
+            val = _NN_THERMO_DATA_TUPLE[dinuc]
             dh += val[0]
             ds += val[1]
         else:
