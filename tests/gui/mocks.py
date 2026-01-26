@@ -37,6 +37,8 @@ class MockCTkFrame:
         self.configure = MagicMock()
         self.after = MagicMock()
         self.destroy = MagicMock()
+        self.grid_columnconfigure = MagicMock()
+        self.grid_rowconfigure = MagicMock()
 
     def quit(self) -> None:
         """Quit application."""
