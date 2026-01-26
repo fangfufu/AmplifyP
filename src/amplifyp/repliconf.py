@@ -394,55 +394,84 @@ class Repliconf:
             else self.origin_db.rev
         )
 
-        # Pre-compute index generator to avoid conditional inside inner loop
+        # Pre-compute L_range
+        L_range = range(L)
+
         if direction == DNADirection.FWD:
-            # FWD: target[k] = seq[i + L - 1 - k]
-            # map k (0..L-1) to indices (i+L-1 .. i)
-            # Range for seq_indices: start=i+L-1, stop=i-1, step=-1
-            def range_args(i: int) -> tuple[int, int, int]:
-                return (i + L - 1, i - 1, -1)
+            for i in search_range:
+                prim_num = 0.0
+                stab_num = 0.0
+                run_len = 0
+                run_score = 0.0
+
+                start_idx = i + L - 1
+
+                for k in L_range:
+                    seq_idx = start_idx - k
+                    base_t = seq[seq_idx]
+
+                    # Primability
+                    prim_num += prim_score_lookup[k][base_t]
+
+                    # Stability
+                    val = stab_score_lookup[k][base_t]
+                    if val > 0:
+                        run_len += 1
+                        run_score += val
+                    else:
+                        if run_len > 0:
+                            idx = run_len - 1
+                            stab_num += r[idx] * run_score
+                            run_len = 0
+                            run_score = 0.0
+
+                # Finish stability run
+                if run_len > 0:
+                    idx = run_len - 1
+                    stab_num += r[idx] * run_score
+
+                primability = prim_num / prim_denom if prim_denom != 0 else 0.0
+                stability = stab_num / stab_denom if stab_denom != 0 else 0.0
+
+                if primability > prim_cutoff and stability > stab_cutoff:
+                    origin_list.append(DirIdx(direction, i))
+
         else:
-            # REV: target[k] = seq[i + k]
-            # map k (0..L-1) to indices (i .. i+L-1)
-            def range_args(i: int) -> tuple[int, int, int]:
-                return (i, i + L, 1)
+            for i in search_range:
+                prim_num = 0.0
+                stab_num = 0.0
+                run_len = 0
+                run_score = 0.0
 
-        for i in search_range:
-            prim_num = 0.0
-            stab_num = 0.0
-            run_len = 0
-            run_score = 0.0
+                for k in L_range:
+                    seq_idx = i + k
+                    base_t = seq[seq_idx]
 
-            seq_indices = range(*range_args(i))
+                    # Primability
+                    prim_num += prim_score_lookup[k][base_t]
 
-            for k, seq_idx in enumerate(seq_indices):
-                base_t = seq[seq_idx]
+                    # Stability
+                    val = stab_score_lookup[k][base_t]
+                    if val > 0:
+                        run_len += 1
+                        run_score += val
+                    else:
+                        if run_len > 0:
+                            idx = run_len - 1
+                            stab_num += r[idx] * run_score
+                            run_len = 0
+                            run_score = 0.0
 
-                # Primability
-                prim_num += prim_score_lookup[k][base_t]
+                # Finish stability run
+                if run_len > 0:
+                    idx = run_len - 1
+                    stab_num += r[idx] * run_score
 
-                # Stability
-                val = stab_score_lookup[k][base_t]
-                if val > 0:
-                    run_len += 1
-                    run_score += val
-                else:
-                    if run_len > 0:
-                        idx = run_len - 1
-                        stab_num += r[idx] * run_score
-                        run_len = 0
-                        run_score = 0.0
+                primability = prim_num / prim_denom if prim_denom != 0 else 0.0
+                stability = stab_num / stab_denom if stab_denom != 0 else 0.0
 
-            # Finish stability run
-            if run_len > 0:
-                idx = run_len - 1
-                stab_num += r[idx] * run_score
-
-            primability = prim_num / prim_denom if prim_denom != 0 else 0.0
-            stability = stab_num / stab_denom if stab_denom != 0 else 0.0
-
-            if primability > prim_cutoff and stability > stab_cutoff:
-                origin_list.append(DirIdx(direction, i))
+                if primability > prim_cutoff and stability > stab_cutoff:
+                    origin_list.append(DirIdx(direction, i))
 
     def search(self) -> None:
         """Perform a search for valid replication origins.
