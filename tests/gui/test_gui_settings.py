@@ -17,7 +17,7 @@
 
 import pytest
 
-import amplifyp.gui as gui
+import amplifyp.gui.gui as gui
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
 

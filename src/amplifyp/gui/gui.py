@@ -51,7 +51,7 @@ ctk.set_default_color_theme(
 # Ensure we can import amplifyp when running as a script
 if __name__ == "__main__" and __package__ is None:
     sys.path.insert(
-        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../"))
+        0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../"))
     )
 
 settings: ReplicationSettings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)

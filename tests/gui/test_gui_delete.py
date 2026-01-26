@@ -43,8 +43,10 @@ class TestGUIDelete(unittest.TestCase):
         self.patcher.start()
 
         # Reload amplifyp.gui to use mocked modules
-        if "amplifyp.gui" in sys.modules:
-            del sys.modules["amplifyp.gui"]
+        # Reload amplifyp.gui to use mocked modules
+        for mod in ["amplifyp.gui", "amplifyp.gui.gui"]:
+            if mod in sys.modules:
+                del sys.modules[mod]
 
         from amplifyp.gui import AmplifyPApp, Primer
 

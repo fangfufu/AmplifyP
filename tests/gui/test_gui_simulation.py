@@ -119,8 +119,10 @@ class TestGUISimulation(unittest.TestCase):
         self.patcher.start()
 
         # Reload amplifyp.gui to use mocked tkinter
-        if "amplifyp.gui" in sys.modules:
-            del sys.modules["amplifyp.gui"]
+        # Reload amplifyp.gui to use mocked tkinter
+        for mod in ["amplifyp.gui", "amplifyp.gui.gui"]:
+            if mod in sys.modules:
+                del sys.modules[mod]
 
         # We need to import inside the patched environment
         from amplifyp.gui import AmplifyPApp
@@ -169,9 +171,9 @@ class TestGUISimulation(unittest.TestCase):
         sys.modules.clear()
         sys.modules.update(self.sys_modules_backup)
 
-    @patch("amplifyp.gui.messagebox")
-    @patch("amplifyp.gui.AmpliconGenerator")
-    @patch("amplifyp.gui.Repliconf")
+    @patch("amplifyp.gui.gui.messagebox")
+    @patch("amplifyp.gui.gui.AmpliconGenerator")
+    @patch("amplifyp.gui.gui.Repliconf")
     def test_simulate_pcr_starts_thread(
         self,
         MockRepliconf: MagicMock,

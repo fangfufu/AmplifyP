@@ -13,23 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Pytest configuration and fixtures for GUI tests."""
+"""GUI module for AmplifyP."""
 
-import copy
-from collections.abc import Generator
+from .gui import AmplifyPApp, Primer, PrimerStatsDialog, settings
 
-import pytest
-
-import amplifyp.gui.gui as gui
-from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
-
-
-@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
-def reset_gui_settings() -> Generator[None, None, None]:
-    """Fixture to reset gui.settings to defaults after each test.
-
-    This ensures that any modifications to the global gui.settings object
-    during a test do not leak into other tests.
-    """
-    yield
-    gui.settings = copy.deepcopy(GLOBAL_REPLICATION_SETTINGS)
+__all__ = ["AmplifyPApp", "Primer", "PrimerStatsDialog", "settings"]
