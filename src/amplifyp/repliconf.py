@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 from .dna import (
     DNA,
@@ -229,6 +230,92 @@ class DirIdxDb:
             return self.rev[i]
 
 
+class _SettingsWrapper:
+    """Wrapper to make settings hashable by identity for lru_cache."""
+
+    __slots__ = ("settings",)
+
+    def __init__(self, settings: ReplicationSettings) -> None:
+        """Initialize the wrapper with settings.
+
+        Args:
+            settings (ReplicationSettings): The settings object to wrap.
+        """
+        self.settings = settings
+
+    def __hash__(self) -> int:
+        """Return the hash of the settings object based on identity.
+
+        Returns:
+            int: The id of the settings object.
+        """
+        return id(self.settings)
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality based on identity.
+
+        Args:
+            other (object): The object to compare with.
+
+        Returns:
+            bool: True if the wrapped settings are the same object.
+        """
+        if isinstance(other, _SettingsWrapper):
+            return self.settings is other.settings
+        return NotImplemented
+
+
+@lru_cache(maxsize=128)
+def _get_scoring_tables(
+    primer_rev_seq: str, settings_wrapper: _SettingsWrapper
+) -> tuple[float, float, list[dict[str, float]], list[dict[str, float]]]:
+    """Calculate scoring tables and denominators.
+
+    This function caches the expensive table construction for primer scoring.
+
+    Args:
+        primer_rev_seq (str): The reversed primer sequence.
+        settings_wrapper (_SettingsWrapper): Wrapped replication settings.
+
+    Returns:
+        tuple: (prim_denom, stab_denom, prim_score_lookup, stab_score_lookup)
+    """
+    settings = settings_wrapper.settings
+    m = settings.match_weight
+    S = settings.base_pair_scores
+    r = settings.run_weights
+
+    prim_denom = 0.0
+    stab_denom_base = 0.0
+
+    prim_score_lookup: list[dict[str, float]] = []
+    stab_score_lookup: list[dict[str, float]] = []
+
+    # Prepare set of characters for lookup keys
+    lookup_keys = set(Nucleotides.TEMPLATE)
+    lookup_keys.update(c.lower() for c in list(lookup_keys))
+
+    for k, base_p in enumerate(primer_rev_seq):
+        row_max = S.row_max(base_p)
+        prim_denom += m[k] * row_max
+        stab_denom_base += row_max
+
+        p_dict = {}
+        s_dict = {}
+
+        for base_t in lookup_keys:
+            score = S[base_p, base_t]
+            p_dict[base_t] = m[k] * score
+            s_dict[base_t] = score
+
+        prim_score_lookup.append(p_dict)
+        stab_score_lookup.append(s_dict)
+
+    stab_denom = stab_denom_base * r[int(max(0, len(primer_rev_seq) - 1))]
+
+    return prim_denom, stab_denom, prim_score_lookup, stab_score_lookup
+
+
 class Repliconf:
     """A class representing a Replication Configuration.
 
@@ -379,40 +466,19 @@ class Repliconf:
         self.origin_db.clear()
 
         # Optimization: Pre-calculate constants and lookup tables
-        m = self.settings.match_weight
-        S = self.settings.base_pair_scores
+        # m = self.settings.match_weight  # Not used directly in loop
+        # S = self.settings.base_pair_scores  # Not used directly in loop
         r = self.settings.run_weights
         L = len(self.primer)
 
         primer_rev = self.primer.seq[::-1]
 
-        prim_denom = 0.0
-        stab_denom_base = 0.0
-
-        prim_score_lookup: list[dict[str, float]] = []
-        stab_score_lookup: list[dict[str, float]] = []
-
-        # Prepare set of characters for lookup keys
-        lookup_keys = set(Nucleotides.TEMPLATE)
-        lookup_keys.update(c.lower() for c in list(lookup_keys))
-
-        for k, base_p in enumerate(primer_rev):
-            row_max = S.row_max(base_p)
-            prim_denom += m[k] * row_max
-            stab_denom_base += row_max
-
-            p_dict = {}
-            s_dict = {}
-
-            for base_t in lookup_keys:
-                score = S[base_p, base_t]
-                p_dict[base_t] = m[k] * score
-                s_dict[base_t] = score
-
-            prim_score_lookup.append(p_dict)
-            stab_score_lookup.append(s_dict)
-
-        stab_denom = stab_denom_base * r[int(max(0, len(primer_rev) - 1))]
+        (
+            prim_denom,
+            stab_denom,
+            prim_score_lookup,
+            stab_score_lookup,
+        ) = _get_scoring_tables(primer_rev, _SettingsWrapper(self.settings))
 
         prim_cutoff = self.settings.primability_cutoff
         stab_cutoff = self.settings.stability_cutoff
