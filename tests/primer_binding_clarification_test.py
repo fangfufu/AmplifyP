@@ -20,6 +20,8 @@ DNA templates in AmplifyP. It specifically addresses confusion about
 directionality (Sense vs Antisense) and how searches are performed.
 """
 
+import pytest
+
 from amplifyp.dna import DNA, Primer
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import ReplicationSettings
@@ -73,7 +75,7 @@ def test_primer_binding_logic_clarification() -> None:
     # because FWD search compares Primer(reversed) to Sense(reversed).
     # "ATGC" reversed is "CGTA".
     assert origin_fwd.target == "CGTA"
-    assert origin_fwd.primability == 1.0
+    assert origin_fwd.primability == pytest.approx(1.0)
 
     # --- Scenario 2: Reverse Primer ---
     # Primer Sequence: 5'-GCAT-3'
@@ -100,4 +102,4 @@ def test_primer_binding_logic_clarification() -> None:
     # This corresponds to the Antisense sequence segment complementary to
     # "ATGC".
     assert origin_rev.target == "TACG"
-    assert origin_rev.primability == 1.0
+    assert origin_rev.primability == pytest.approx(1.0)

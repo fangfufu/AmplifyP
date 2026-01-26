@@ -1,3 +1,5 @@
+import pytest
+
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.settings import PrimerDimerSettings
@@ -192,6 +194,6 @@ def test_primer_dimer_attributes() -> None:
     )
     assert pd.primer_1 == primer_11bp
     assert pd.primer_2 == primer_1701
-    assert pd.quality == 123.4
+    assert pd.quality == pytest.approx(123.4)
     assert pd.overlap == 5
     assert pd.p1_pos == 2

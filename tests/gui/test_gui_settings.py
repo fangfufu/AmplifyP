@@ -15,6 +15,8 @@
 
 """Test GUI settings using Amplify 4's settings module."""
 
+import pytest
+
 from amplifyp import gui
 from amplifyp.settings import DEFAULT_REPLICATION_SETTINGS, ReplicationSettings
 
@@ -35,17 +37,15 @@ def test_gui_settings_initialization() -> None:
     # deepcopy creates new instances, so we check individual fields or values.
     # In the original script, we checked primability_cutoff and
     # stability_cutoff.
-    assert (
-        gui.settings.primability_cutoff
-        == DEFAULT_REPLICATION_SETTINGS.primability_cutoff
+    assert gui.settings.primability_cutoff == pytest.approx(
+        DEFAULT_REPLICATION_SETTINGS.primability_cutoff
     )
-    assert (
-        gui.settings.stability_cutoff
-        == DEFAULT_REPLICATION_SETTINGS.stability_cutoff
+    assert gui.settings.stability_cutoff == pytest.approx(
+        DEFAULT_REPLICATION_SETTINGS.stability_cutoff
     )
 
 
 def test_gui_settings_modification() -> None:
     """Verify that gui.settings can be modified and persists."""
     gui.settings.primability_cutoff = 0.5
-    assert gui.settings.primability_cutoff == 0.5
+    assert gui.settings.primability_cutoff == pytest.approx(0.5)

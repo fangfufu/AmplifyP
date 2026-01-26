@@ -391,6 +391,7 @@ class ReplicationSettings:
     )
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
+    amplify4_compatibility_mode: bool = False
 
 
 DEFAULT_REPLICATION_SETTINGS: Final[ReplicationSettings] = ReplicationSettings()

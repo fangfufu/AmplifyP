@@ -67,7 +67,7 @@ origin_examples.append(
         ),
         0.9923605805958747,  # Amplify4 reports 99%
         0.9293543192561425,  # Amplify4 reports 92%
-        0.9021436248150215,  # Amplify4 reports 0.8875
+        0.8875,  # Amplify4 reports 0.8875
     )
 )
 
@@ -80,7 +80,7 @@ origin_examples.append(
         ),
         0.9850746268656716,  # Amplify4 reports 98%
         0.8911290322580645,  # Amplify4 reports 89%
-        0.8452545739046701,  # Amplify4 reports 0.8375
+        0.8375,  # Amplify4 reports 0.8375
     )
 )
 
@@ -93,7 +93,7 @@ origin_examples.append(
         ),
         0.855072463768116,  # Amplify4 reports 85%
         0.9005376344086021,  # Amplify4 reports 90%
-        0.6945126227208976,  # Amplify4 reports 0.6875
+        0.6875,  # Amplify4 reports 0.6875
     )
 )
 
@@ -106,7 +106,7 @@ origin_examples.append(
         ),
         0.8076923076923077,  # Amplify4 reports 80%
         0.6653225806451613,  # Amplify4 reports 66%
-        0.34126861042183604,  # Amplify4 reports 0.325
+        0.325,  # Amplify4 reports 0.325
     )
 )
 
@@ -119,7 +119,7 @@ origin_examples.append(
         ),
         0.8188405797101449,  # Amplify4 reports 81%
         0.4838709677419355,  # Amplify4 reports 48%
-        0.12838943431510044,  # Amplify4 reports 0.1125
+        0.1125,  # Amplify4 reports 0.1125
     )
 )
 
@@ -131,7 +131,7 @@ origin_examples.append(
         ),
         0.8229166666666666,  # Amplify4 reports 82%
         0.7142857142857143,  # Amplify4 reports 71%
-        0.42150297619047605,  # Amplify4 reports 0.4125
+        0.4125,  # Amplify4 reports 0.4125
     )
 )
 
@@ -143,7 +143,7 @@ origin_examples.append(
         ),
         0.9166666666666666,  # Amplify4 reports 91%
         0.8571428571428571,  # Amplify4 reports 85%
-        0.7172619047619045,  # Amplify4 reports 0.7
+        0.7,  # Amplify4 reports 0.7
     )
 )
 
@@ -167,7 +167,7 @@ origin_examples.append(
         ),
         0.8543689320388349,  # Amplify4 reports 85%
         0.75,  # Amplify4 reports 75%
-        0.5054611650485437,  # Amplify4 reports 0.5
+        0.5,  # Amplify4 reports 0.5
     )
 )
 
@@ -179,7 +179,7 @@ origin_examples.append(
         ),
         0.9320388349514563,  # Amplify4 reports 93%
         0.875,  # Amplify4 reports 87%
-        0.7587985436893204,  # Amplify4 reports 0.75
+        0.75,  # Amplify4 reports 0.75
     )
 )
 
@@ -200,7 +200,7 @@ origin_examples.append(
         Amplify4FwdOrigin(target="---GAAAAAA", primer="CCTGAAAAAA"),
         0.8421052631578947,  # Amplify4 reports 84%
         0.7,  # Amplify4 reports 70%
-        0.4276315789473682,  # Amplify4 reports 0.425
+        0.425,  # Amplify4 reports 0.425
     )
 )
 
@@ -208,16 +208,16 @@ origin_examples.append(
 def test_origin_primability() -> None:
     """Test if origin primability is working correctly."""
     for ex in origin_examples:
-        assert ex.primability == ex.origin.primability
+        assert ex.origin.primability == pytest.approx(ex.primability)
 
 
 def test_origin_stability() -> None:
     """Test if origin stability is working correctly."""
     for ex in origin_examples:
-        assert ex.stability == ex.origin.stability
+        assert ex.origin.stability == pytest.approx(ex.stability)
 
 
 def test_origin_quality() -> None:
     """Test if origin quality is working correctly."""
     for ex in origin_examples:
-        assert ex.quality == ex.origin.quality
+        assert ex.origin.quality == pytest.approx(ex.quality)

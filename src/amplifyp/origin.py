@@ -16,6 +16,7 @@
 """Replication origin-related classes for AmplifyP."""
 
 from dataclasses import dataclass
+from math import trunc
 
 from .dna import DNA, Primer
 from .settings import (
@@ -138,7 +139,12 @@ class ReplicationOrigin:
         cutoffs = (
             self.settings.primability_cutoff + self.settings.stability_cutoff
         )
-        return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
+        if not self.settings.amplify4_compatibility_mode:
+            return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
+        else:
+            primability = trunc(self.primability * 100) / 100
+            stability = trunc(self.stability * 100) / 100
+            return (primability + stability - cutoffs) / (2 - cutoffs)
 
 
 class Amplify4RevOrigin(ReplicationOrigin):
@@ -160,7 +166,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).complement().seq,
             primer=primer,
-            settings=ReplicationSettings(),
+            settings=ReplicationSettings(amplify4_compatibility_mode=True),
         )
 
 
@@ -185,5 +191,5 @@ class Amplify4FwdOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).reverse().seq,
             primer=Primer(primer).reverse().seq,
-            settings=ReplicationSettings(),
+            settings=ReplicationSettings(amplify4_compatibility_mode=True),
         )

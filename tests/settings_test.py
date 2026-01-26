@@ -23,11 +23,11 @@ from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 def test_length_wise_weight_tbl() -> None:
     """Test the LengthWiseWeightTbl class."""
     weight_tbl = LengthWiseWeightTbl(0.5, {0: 0.6, 1: 0.7})
-    assert weight_tbl[0] == 0.6
-    assert weight_tbl[1] == 0.7
+    assert weight_tbl[0] == pytest.approx(0.6)
+    assert weight_tbl[1] == pytest.approx(0.7)
     weight_tbl[2] = 0.8
-    assert weight_tbl[2] == 0.8
-    assert weight_tbl[100] == 0.5
+    assert weight_tbl[2] == pytest.approx(0.8)
+    assert weight_tbl[100] == pytest.approx(0.5)
 
 
 def test_empty_length_wise_weight_tbl() -> None:
@@ -70,14 +70,14 @@ def test_base_pair_weights_tbl() -> None:
     npwt[("T", "T")] = 1.0
 
     # Test the __getitem__ method
-    assert npwt[("A", "C")] == 0.5
-    assert npwt[("G", "T")] == 0.5
-    assert npwt[("C", "A")] == 0.5
-    assert npwt[("T", "G")] == 0.5
-    assert npwt[("A", "A")] == 1.0
-    assert npwt[("C", "C")] == 1.0
-    assert npwt[("G", "G")] == 1.0
-    assert npwt[("T", "T")] == 1.0
+    assert npwt[("A", "C")] == pytest.approx(0.5)
+    assert npwt[("G", "T")] == pytest.approx(0.5)
+    assert npwt[("C", "A")] == pytest.approx(0.5)
+    assert npwt[("T", "G")] == pytest.approx(0.5)
+    assert npwt[("A", "A")] == pytest.approx(1.0)
+    assert npwt[("C", "C")] == pytest.approx(1.0)
+    assert npwt[("G", "G")] == pytest.approx(1.0)
+    assert npwt[("T", "T")] == pytest.approx(1.0)
 
     # Test the support for gap symbol
     assert npwt["-", "A"] == 0
@@ -114,10 +114,10 @@ def test_base_pair_weights_tbl_case_sensitivity() -> None:
     assert tbl.column() == "ACGT"
 
     # Check if __getitem__ works with uppercase keys
-    assert tbl["A", "A"] == 1.0
+    assert tbl["A", "A"] == pytest.approx(1.0)
 
     # Check if __getitem__ works with lowercase keys
-    assert tbl["a", "a"] == 1.0
+    assert tbl["a", "a"] == pytest.approx(1.0)
 
     # Check mixed case
-    assert tbl["A", "a"] == 1.0
+    assert tbl["A", "a"] == pytest.approx(1.0)

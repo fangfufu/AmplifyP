@@ -54,10 +54,10 @@ def test_calculate_tm_edge_cases() -> None:
     settings = DEFAULT_TM_SETTINGS
 
     # Empty sequence
-    assert calculate_tm(Primer(""), settings) == 0.0
+    assert calculate_tm(Primer(""), settings) == pytest.approx(0.0)
 
     # Single base
-    assert calculate_tm(Primer("A"), settings) == 0.0
+    assert calculate_tm(Primer("A"), settings) == pytest.approx(0.0)
 
     # Two bases (minimum for NN) - effectively doesn't bind at room temp
     # Tm ~ -200C is expected for very short/unstable sequences
@@ -153,7 +153,15 @@ def test_amplify4_tm_calculation() -> None:
 
 def test_tm_calculation() -> None:
     """Test Tm calculation using standard algorithm."""
-    assert calculate_tm(primer_11bp, DEFAULT_TM_SETTINGS) == 23.251668245623136
-    assert calculate_tm(primer_1701, DEFAULT_TM_SETTINGS) == 60.15678755876894
-    assert calculate_tm(primer_10289, DEFAULT_TM_SETTINGS) == 65.15445294119144
-    assert calculate_tm(primer_10290, DEFAULT_TM_SETTINGS) == 55.377546798740696
+    assert calculate_tm(primer_11bp, DEFAULT_TM_SETTINGS) == pytest.approx(
+        23.251668245623136
+    )
+    assert calculate_tm(primer_1701, DEFAULT_TM_SETTINGS) == pytest.approx(
+        60.15678755876894
+    )
+    assert calculate_tm(primer_10289, DEFAULT_TM_SETTINGS) == pytest.approx(
+        65.15445294119144
+    )
+    assert calculate_tm(primer_10290, DEFAULT_TM_SETTINGS) == pytest.approx(
+        55.377546798740696
+    )

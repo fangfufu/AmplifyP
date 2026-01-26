@@ -135,18 +135,18 @@ def test_dna_count_cg() -> None:
 def test_dna_ratio_at() -> None:
     """Test the ratio_at method."""
     dna = DNA("AAAA")
-    assert dna.ratio_at() == 1.0
+    assert dna.ratio_at() == pytest.approx(1.0)
     dna = DNA("ATCG")
-    assert dna.ratio_at() == 0.5
+    assert dna.ratio_at() == pytest.approx(0.5)
     dna = DNA("")
-    assert dna.ratio_at() == 0.0
+    assert dna.ratio_at() == pytest.approx(0.0)
 
 
 def test_dna_ratio_cg() -> None:
     """Test the ratio_cg method."""
     dna = DNA("CCCC")
-    assert dna.ratio_cg() == 1.0
+    assert dna.ratio_cg() == pytest.approx(1.0)
     dna = DNA("ATCG")
-    assert dna.ratio_cg() == 0.5
+    assert dna.ratio_cg() == pytest.approx(0.5)
     dna = DNA("")
-    assert dna.ratio_cg() == 0.0
+    assert dna.ratio_cg() == pytest.approx(0.0)

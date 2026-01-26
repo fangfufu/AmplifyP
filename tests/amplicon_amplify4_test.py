@@ -15,6 +15,8 @@
 
 """Amplify 4-specific tests for AmpliconGenerator."""
 
+import pytest
+
 from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dna import DNADirection
 from amplifyp.repliconf import Repliconf
@@ -80,7 +82,7 @@ def test_amplify4_11bp_1701_10289_10290() -> None:
         elif len(amplicon.product.seq) == 190:
             assert amplicon.product.seq.upper() == fragment_190bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
-            assert amplicon.q_score == 699.9337337142201
+            assert amplicon.q_score == pytest.approx(699.9337337142201)
             encountered_190 = True
         elif len(amplicon.product.seq) == 220:
             assert amplicon.product.seq.upper() == fragment_220bp.seq.upper()
@@ -90,7 +92,7 @@ def test_amplify4_11bp_1701_10289_10290() -> None:
             assert amplicon.product.seq.upper() == fragment_566bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
             # See test_10290_10289_566bp_manual for more information.
-            assert amplicon.q_score == 55696.52822187758
+            assert amplicon.q_score == pytest.approx(55696.52822187758)
             encountered_566 = True
         elif len(amplicon.product.seq) == 660:
             assert amplicon.product.seq.upper() == fragment_660bp.seq.upper()
@@ -141,16 +143,18 @@ def test_10290_10289_566bp_manual() -> None:
     repliconf_10290.search()
     assert repliconf_10290.origin_db.fwd == [710, 2177]
     origin_fwd = repliconf_10290.origin_from_db(DNADirection.FWD, 1)
-    assert origin_fwd.primability == 0.8059701492537313
-    assert origin_fwd.stability == 0.4717741935483871
-    assert origin_fwd.quality == 0.09718042850264788
+    assert origin_fwd.primability == pytest.approx(0.8059701492537313)
+    assert origin_fwd.stability == pytest.approx(0.4717741935483871)
+    assert origin_fwd.quality == pytest.approx(0.09718042850264788)
     origin_rev = repliconf_10289.origin_from_db(DNADirection.REV, 0)
-    assert origin_rev.primability == 1.0
-    assert origin_rev.stability == 1.0
-    assert origin_rev.quality == 1.0
+    assert origin_rev.primability == pytest.approx(1.0)
+    assert origin_rev.stability == pytest.approx(1.0)
+    assert origin_rev.quality == pytest.approx(1.0)
     fwd_quality = origin_fwd.quality
     rev_quality = origin_rev.quality
-    assert 526 / (fwd_quality * rev_quality) ** 2 == 55696.52822187758
+    assert 526 / (fwd_quality * rev_quality) ** 2 == pytest.approx(
+        55696.52822187758
+    )
 
 
 def test_amplify4_circular_11bp_1701_10289_10290() -> None:
@@ -198,7 +202,7 @@ def test_amplify4_circular_11bp_1701_10289_10290() -> None:
         elif len(amplicon.product.seq) == 190:
             assert amplicon.product.seq.upper() == fragment_190bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
-            assert amplicon.q_score == 699.9337337142201
+            assert amplicon.q_score == pytest.approx(699.9337337142201)
             encountered_190 = True
         elif len(amplicon.product.seq) == 220:
             assert amplicon.product.seq.upper() == fragment_220bp.seq.upper()
@@ -208,7 +212,7 @@ def test_amplify4_circular_11bp_1701_10289_10290() -> None:
             assert amplicon.product.seq.upper() == fragment_566bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
             # See test_10290_10289_566bp_manual for more information.
-            assert amplicon.q_score == 55696.52822187758
+            assert amplicon.q_score == pytest.approx(55696.52822187758)
             encountered_566 = True
         elif len(amplicon.product.seq) == 660:
             assert amplicon.product.seq.upper() == fragment_660bp.seq.upper()
@@ -226,7 +230,7 @@ def test_amplify4_circular_11bp_1701_10289_10290() -> None:
         elif len(amplicon.product.seq) == 1250:
             assert amplicon.product.seq.upper() == fragment_1250bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
-            assert amplicon.q_score == 5405.777515729951
+            assert amplicon.q_score == pytest.approx(5405.777515729951)
             encountered_1250 = True
         elif len(amplicon.product.seq) == 1280:
             assert amplicon.product.seq.upper() == fragment_1280bp.seq.upper()
@@ -235,7 +239,7 @@ def test_amplify4_circular_11bp_1701_10289_10290() -> None:
         elif len(amplicon.product.seq) == 1626:
             assert amplicon.product.seq.upper() == fragment_1626bp.seq.upper()
             # N.B. This Q-score is different than what is reported by Amplify 4.
-            assert amplicon.q_score == 168889.6625739444
+            assert amplicon.q_score == pytest.approx(168889.6625739444)
             encountered_1626 = True
         else:
             raise AssertionError(
