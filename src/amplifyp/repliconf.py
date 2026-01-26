@@ -442,18 +442,14 @@ class Repliconf:
                 else self.origin_db.rev
             )
 
-            # Pre-compute index generator to avoid conditional inside inner loop
             if direction == DNADirection.FWD:
-                # FWD: target[k] = seq[i + L - 1 - k]
-                # map k (0..L-1) to indices (i+L-1 .. i)
-                # Range for seq_indices: start=i+L-1, stop=i-1, step=-1
-                def range_args(i: int) -> tuple[int, int, int]:
-                    return (i + L - 1, i - 1, -1)
+                start_offset = L - 1
+                step = -1
             else:
-                # REV: target[k] = seq[i + k]
-                # map k (0..L-1) to indices (i .. i+L-1)
-                def range_args(i: int) -> tuple[int, int, int]:
-                    return (i, i + L, 1)
+                start_offset = 0
+                step = 1
+
+            k_range = range(L)
 
             for i in search_range:
                 prim_num = 0.0
@@ -461,9 +457,9 @@ class Repliconf:
                 run_len = 0
                 run_score = 0.0
 
-                seq_indices = range(*range_args(i))
+                seq_idx = i + start_offset
 
-                for k, seq_idx in enumerate(seq_indices):
+                for k in k_range:
                     base_t = seq[seq_idx]
 
                     # Primability
@@ -480,6 +476,8 @@ class Repliconf:
                             stab_num += r[idx] * run_score
                             run_len = 0
                             run_score = 0.0
+
+                    seq_idx += step
 
                 # Finish stability run
                 if run_len > 0:
