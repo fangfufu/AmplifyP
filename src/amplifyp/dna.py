@@ -243,7 +243,7 @@ class DNA:
         """Return the reverse complement of the DNA sequence.
 
         This is equivalent to calling `.reverse().complement()`.
-        The direction of the returned DNA object is inverted relative to the
+        The direction of the returned DNA object is preserved relative to the
         original.
 
         Returns:
