@@ -19,6 +19,10 @@ from __future__ import annotations
 
 from enum import Flag, IntEnum, StrEnum
 
+GLOBAL_COMPLEMENT_TABLE = str.maketrans(
+    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
+)
+
 
 class Nucleotides(StrEnum):
     """Enumeration of valid nucleotide characters for use in AmplifyP.
@@ -207,11 +211,7 @@ class DNA:
             DNA: A new DNA object representing the complement sequence.
         """
         return DNA(
-            self.seq.translate(
-                str.maketrans(
-                    "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
-                )
-            ),
+            self.seq.translate(GLOBAL_COMPLEMENT_TABLE),
             self.type,
             self.name,
             not self.direction,
