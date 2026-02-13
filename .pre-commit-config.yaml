@@ -11,7 +11,7 @@ repos:
     -   id: trailing-whitespace
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.0
+    rev: v0.15.1
     hooks:
     -   id: ruff-format
     -   id: ruff
@@ -38,7 +38,7 @@ repos:
         name: pytest
         entry: pytest
         language: python
-        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "customtkinter"]
+        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "customtkinter", "flet"]
         pass_filenames: false
         always_run: true
 
