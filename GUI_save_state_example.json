@@ -17,6 +17,10 @@
     {
       "name": "primer_10289",
       "sequence": "GCAGCGCGAAACGTCGATGT"
+    },
+    {
+      "name": "11bp+",
+      "sequence": "NRYATTAACCCTTA"
     }
   ],
   "settings": {

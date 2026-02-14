@@ -42,6 +42,7 @@ class Nucleotides(StrEnum):
         GAP: Gap character (-).
         PRIMER: Valid characters for primers (SINGLE + DOUBLE + TRIPLE +
             WILDCARD).
+        ALL_VALID: All valid characters for nucleotides (PRIMER + GAP).
     """
 
     SINGLE = "GATC"
@@ -51,6 +52,7 @@ class Nucleotides(StrEnum):
     GAP = "-"
     TEMPLATE = SINGLE + WILDCARD + GAP
     PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
+    ALL_VALID = PRIMER + GAP
 
 
 class DNAType(IntEnum):
@@ -127,26 +129,17 @@ class DNA:
                 sequence. Defaults to DNADirection.FWD.
 
         Raises:
-            TypeError: If the provided `dna_type` is invalid.
             ValueError: If the `seq` contains characters invalid for the
                 specified `dna_type`.
         """
-        self.__seq: str = "".join(seq.split())
-        self.__type: DNAType = dna_type
-
-        if name is None:
-            self.__name = seq
-        else:
-            self.__name = name.strip()
-        self.__direction: bool | DNADirection = direction
-
-        if dna_type == DNAType.LINEAR or dna_type == DNAType.CIRCULAR:
-            check_str = Nucleotides.TEMPLATE
-        elif dna_type == DNAType.PRIMER:
-            check_str = Nucleotides.PRIMER
-        else:
+        if (
+            dna_type != DNAType.PRIMER
+            and dna_type != DNAType.CIRCULAR
+            and dna_type != DNAType.LINEAR
+        ):
             raise TypeError("Invalid DNA type.")
 
+        self.__seq: str = "".join(seq.split())
         # Optimization: cache the uppercase sequence to avoid repeated
         # allocations in _count_bases and other methods.
         seq_upper = self.__seq.upper()
@@ -157,13 +150,21 @@ class DNA:
         else:
             self._seq_upper = seq_upper
 
-        invalid_chars = set(self._seq_upper) - set(check_str)
+        invalid_chars = set(self._seq_upper) - set(Nucleotides.ALL_VALID)
         if invalid_chars:
             raise ValueError(
                 f"The DNA sequence contains invalid characters: {
                     ', '.join(sorted(invalid_chars))
                 }"
             )
+
+        self.__type: DNAType = dna_type
+
+        if name is None:
+            self.__name = seq
+        else:
+            self.__name = name.strip()
+        self.__direction: bool | DNADirection = direction
 
     @property
     def seq(self) -> str:
