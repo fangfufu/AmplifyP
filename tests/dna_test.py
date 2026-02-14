@@ -189,3 +189,9 @@ def test_primer_redundancy_mixed() -> None:
     primer = Primer("RNY")
     assert primer.redundancy_fold == 16
     assert primer.redundant_base_count == 3
+
+
+def test_dna_direction_str() -> None:
+    """Test the string representation of DNADirection."""
+    assert str(DNADirection.FWD) == "Forward"
+    assert str(DNADirection.REV) == "Reverse"

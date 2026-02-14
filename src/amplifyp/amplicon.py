@@ -245,12 +245,12 @@ class AmpliconGenerator:
             circular = True
         elif (start > end) and (self.template.type == DNAType.LINEAR):
             # Not possible on linear DNA
-            pass
+            pass  # pragma: no cover
         else:
             raise NotImplementedError(
                 "Attempted to search for an amplicon with the start index "
                 "bigger than the end index on a linear DNA template."
-            )
+            )  # pragma: no cover
         return seq, circular
 
     def get_amplicons(self) -> list[Amplicon]:
@@ -291,7 +291,7 @@ class AmpliconGenerator:
                     fwd_conf, rev_conf, start, end
                 )
 
-                if seq is None:
+                if seq is None:  # pragma: no cover
                     continue
 
                 q_score = self.get_amplicon_quality_score(

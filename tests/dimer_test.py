@@ -198,3 +198,23 @@ def test_primer_dimer_attributes() -> None:
     assert pd.quality == pytest.approx(123.4)
     assert pd.overlap == 5
     assert pd.p1_pos == 2
+
+
+def test_primer_order_swap() -> None:
+    """Test that generate_primer_dimer handles primers in any order."""
+    generator = PrimerDimerGenerator()
+    p_long = Primer("AAAAATTTTT", "long")
+    p_short = Primer("AAAAA", "short")
+
+    # Case 1: p1 is shorter (normal)
+    res1 = generator.generate_primer_dimer(p_short, p_long)
+
+    # Case 2: p1 is longer (should swap internally)
+    res2 = generator.generate_primer_dimer(p_long, p_short)
+
+    # Results should be identical in quality and overlap
+    assert res1.quality == res2.quality
+    assert res1.overlap == res2.overlap
+    # primer_1 should always be the shorter one
+    assert res1.primer_1 == p_short
+    assert res2.primer_1 == p_short

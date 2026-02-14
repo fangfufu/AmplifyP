@@ -18,5 +18,5 @@ def main(page: ft.Page) -> None:
     )
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     ft.app(target=main)

@@ -165,3 +165,49 @@ def test_tm_calculation() -> None:
     assert calculate_tm(primer_10290, GLOBAL_TM_SETTINGS) == pytest.approx(
         55.377546798740696
     )
+
+
+def test_calculate_tm_zero_conc() -> None:
+    """Test Tm calculation with zero DNA concentration."""
+    # Standard settings have 50nM.
+    # We want to test the branch where dna_conc <= 0 -> 50e-9
+
+    zero_conc_settings = replace(GLOBAL_TM_SETTINGS, dna_conc=0.0)
+
+    # Should give same result as 50nM if it falls back to 50nM
+    # Or at least shouldn't crash
+    tm = calculate_tm(Primer("ATCG"), zero_conc_settings)
+    assert tm > -273.15
+
+
+def test_calculate_tm_no_monovalent() -> None:
+    """Test Tm calculation with no monovalent salt."""
+    # This hits the divergence check mono_M == 0
+    settings = replace(GLOBAL_TM_SETTINGS, monovalent_salt_conc=0.0)
+    tm = calculate_tm(Primer("ATCG"), settings)
+    assert tm > -273.15
+
+
+def test_calculate_tm_amplify4_edge_cases() -> None:
+    """Test Tm calculation (Amplify4) with edge cases."""
+    # Empty primer
+    assert calculate_tm_amplify4(Primer(""), GLOBAL_AMPLIFY4_TM_SETTINGS) == 0.0
+
+    # Zero/negative salt
+    # Should fallback to 50mM
+    neg_salt_settings = replace(
+        GLOBAL_AMPLIFY4_TM_SETTINGS, monovalent_salt_conc=-10.0
+    )
+    tm = calculate_tm_amplify4(primer_11bp, neg_salt_settings)
+    assert tm > 0.0
+
+
+def test_calculate_tm_no_salts() -> None:
+    """Test Tm calculation with no salts (monovalent=0, divalent=0)."""
+    settings = replace(
+        GLOBAL_TM_SETTINGS, monovalent_salt_conc=0.0, divalent_salt_conc=0.0
+    )
+    # Should fallback to 1M Na+ logic (tm_1m_K) without correction?
+    # Or just return tm_1m_K essentially.
+    tm = calculate_tm(Primer("ATCG"), settings)
+    assert tm > -273.15

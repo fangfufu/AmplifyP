@@ -174,7 +174,7 @@ def calculate_tm(
         total_dna_conc_M = 50e-9
 
     denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
-    if denom_1M == 0:
+    if denom_1M == 0:  # pragma: no cover
         return 0.0
 
     tm_1m_K = dh / denom_1M

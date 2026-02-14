@@ -13,6 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import pytest
+
+from amplifyp.errors import DuplicatedPrimerError, PrimerNotFoundError
 from amplifyp.pcr import PCR
 from tests.examples.amplify4_examples import (
     amplify4_circular_example,
@@ -85,3 +88,37 @@ def test_pcr_linear() -> None:
     expected.sort(key=len)
 
     assert observed == expected
+
+
+def test_pcr_add_primer_duplicates() -> None:
+    """Test that adding a duplicate primer raises DuplicatedPrimerError."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+
+    with pytest.raises(DuplicatedPrimerError):
+        pcr.add_primer(primer_11bp)
+
+
+def test_pcr_remove_primer() -> None:
+    """Test removing a primer."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+    assert primer_11bp in pcr.primers
+
+    pcr.remove_primer(primer_11bp)
+    assert primer_11bp not in pcr.primers
+
+    # Remove non-existent
+    with pytest.raises(PrimerNotFoundError):
+        pcr.remove_primer(primer_11bp)
+
+
+def test_pcr_add_primers() -> None:
+    """Test adding multiple primers at once."""
+    pcr = PCR(amplify4_linear_example)
+    primers = [primer_11bp, primer_1701]
+    pcr.add_primers(primers)
+
+    assert len(pcr.primers) == 2
+    assert primer_11bp in pcr.primers
+    assert primer_1701 in pcr.primers
