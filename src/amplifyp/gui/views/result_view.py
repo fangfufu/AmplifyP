@@ -60,19 +60,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
 
         self.controls = [
-            ft.Row(
-                [
-                    ft.FilledButton(
-                        "Run Custom PCR", on_click=self.run_pcr_clicked
-                    )
-                ]
-            ),
             self.diagram_container,
             ft.Container(content=self.result_list, expand=True),
         ]
 
-    def run_pcr_clicked(self, e: ft.ControlEvent) -> None:
-        """Handle running the PCR."""
+    def run_pcr(self) -> None:
+        """Execute the PCR simulation and update the UI."""
         self.result_list.controls.clear()
         self.diagram_canvas.shapes.clear()
         self.diagram_container.visible = False

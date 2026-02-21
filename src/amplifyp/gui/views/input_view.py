@@ -23,10 +23,11 @@ import flet as ft
 class InputView(ft.Column):  # type: ignore[misc]
     """Input view for DNA template and primers."""
 
-    def __init__(self, page: ft.Page) -> None:
+    def __init__(self, page: ft.Page, on_change: Any | None = None) -> None:
         """Initialize the InputView."""
         super().__init__(expand=True)
         self.app_page = page
+        self.on_change = on_change
 
         self.template_sequence = ft.TextField(
             multiline=True,
@@ -34,9 +35,12 @@ class InputView(ft.Column):  # type: ignore[misc]
             label="Template Sequence",
             text_align=ft.TextAlign.LEFT,
             hint_text="Enter DNA sequence here...",
+            on_change=self.on_change_handler,
         )
         self.template_circular = ft.Checkbox(
-            label="Circular Template", value=False
+            label="Circular Template",
+            value=False,
+            on_change=self.on_change_handler,
         )
 
         self.primers_list = ft.ListView(expand=True, spacing=2)
@@ -93,6 +97,11 @@ class InputView(ft.Column):  # type: ignore[misc]
             self.bottom_container,
         ]
 
+    def on_change_handler(self, e: ft.ControlEvent) -> None:
+        """Handle change in input fields."""
+        if self.on_change:
+            self.on_change(e)
+
     def add_primer_clicked(self, e: ft.ControlEvent) -> None:
         """Handle adding a new primer."""
         if self.primer_name_input.value and self.primer_seq_input.value:
@@ -102,7 +111,9 @@ class InputView(ft.Column):  # type: ignore[misc]
                 ft.ListTile(
                     dense=True,
                     content_padding=ft.padding.all(0),
-                    leading=ft.Checkbox(value=True),
+                    leading=ft.Checkbox(
+                        value=True, on_change=self.on_change_handler
+                    ),
                     title=ft.Text(f"{name_val}, {seq_val}"),
                     data={"name": name_val, "seq": seq_val},
                     trailing=ft.IconButton(
@@ -116,6 +127,8 @@ class InputView(ft.Column):  # type: ignore[misc]
             self.primer_name_input.value = ""
             self.primer_seq_input.value = ""
             self.app_page.update()
+            if self.on_change:
+                self.on_change(e)
 
     def remove_primer(self, e: ft.ControlEvent, name: str, seq: str) -> None:
         """Handle removing a primer."""
@@ -128,6 +141,8 @@ class InputView(ft.Column):  # type: ignore[misc]
             ):
                 self.primers_list.controls.remove(control)
         self.app_page.update()
+        if self.on_change:
+            self.on_change(e)
 
     def on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom container via the divider."""
@@ -243,7 +258,9 @@ class InputView(ft.Column):  # type: ignore[misc]
                     ft.ListTile(
                         dense=True,
                         content_padding=ft.padding.all(0),
-                        leading=ft.Checkbox(value=is_active),
+                        leading=ft.Checkbox(
+                            value=is_active, on_change=self.on_change_handler
+                        ),
                         title=ft.Text(f"{p['name']}, {seq_str}"),
                         data={"name": p["name"], "seq": seq_str},
                         trailing=ft.IconButton(

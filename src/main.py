@@ -54,8 +54,52 @@ def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
+    results_outdated = [False]
+    has_run_pcr = [False]
+    results_button_ref = ft.Ref[ft.TextButton]()
 
-    input_view = InputView(page)
+    def on_results_click(e: ft.ControlEvent) -> None:
+        """Handle results button click: switch view and run PCR."""
+        switch_view(e, result_view)
+        result_view.run_pcr()
+        has_run_pcr[0] = True
+        results_outdated[0] = False
+        if results_button_ref.current:
+            results_button_ref.current.content = ft.Text("Results")
+        page.update()
+
+    results_button = ft.TextButton(
+        "Results",
+        ref=results_button_ref,
+        on_click=on_results_click,
+        disabled=True,
+    )
+
+    def update_results_button_state() -> None:
+        """Enable results button only if input is valid."""
+        has_template = bool(input_view.get_template().strip())
+        has_primers = len(input_view.get_primers()) > 0
+        is_enabled = has_template and has_primers
+
+        btn = results_button_ref.current
+        if not btn:
+            return
+
+        btn.disabled = not is_enabled
+
+        # Set outdated if enabled and inputs change AFTER a first run
+        if is_enabled and has_run_pcr[0]:
+            results_outdated[0] = True
+
+        label = (
+            "Results *" if (results_outdated[0] and is_enabled) else "Results"
+        )
+        btn.content = ft.Text(label)
+        page.update()
+
+    input_view = InputView(
+        page, on_change=lambda e: update_results_button_state()
+    )
     settings_view = SettingsView(page)
     result_view = ResultView(page, input_view, settings_view)
 
@@ -137,6 +181,7 @@ def main(page: ft.Page) -> None:
                     parsed_state = yaml.safe_load(content)
                     input_view.set_state(parsed_state)
                     settings_view.set_state(parsed_state)
+                    update_results_button_state()
                     show_snackbar("State loaded successfully!")
                 except Exception as ex:
                     show_snackbar(f"Error parsing state: {ex}")
@@ -190,6 +235,7 @@ def main(page: ft.Page) -> None:
 
             input_view.set_state(parsed_state)
             settings_view.set_state(parsed_state)
+            update_results_button_state()
             show_snackbar("State loaded successfully!")
         except FileNotFoundError:
             show_snackbar("No saved state found.")
@@ -212,9 +258,7 @@ def main(page: ft.Page) -> None:
             ft.TextButton(
                 "Input", on_click=lambda e: switch_view(e, input_view)
             ),
-            ft.TextButton(
-                "Results", on_click=lambda e: switch_view(e, result_view)
-            ),
+            results_button,
             ft.TextButton(
                 "Settings", on_click=lambda e: switch_view(e, settings_view)
             ),
