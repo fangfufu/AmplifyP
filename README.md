@@ -52,12 +52,18 @@ You can run AmplifyP directly in your browser without any installation! Visit
 the live static web app here:
 [https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)
 
-To deploy a web server and run the web version locally, use the Flet
-command-line tool. To avoid port collision, it is recommended to use port 23455:
+To test the static site build locally:
 
 ```bash
-flet run --web --port 23455 src/main.py
+./build_static.sh
+python -m http.server 23455 -d src/dist
 ```
+
+Then open <http://localhost:23455> in your browser.
+
+> **Note:** The static site runs Python entirely in the browser via Pyodide.
+> File save/load uses a custom `file_handler.js` that bridges the Pyodide Web
+> Worker with the main thread for DOM-based file operations.
 
 ### Graphical User Interface (Local)
 

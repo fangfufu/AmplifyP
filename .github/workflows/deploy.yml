@@ -39,10 +39,10 @@ jobs:
       - name: Install Flet
         run: pip install flet
 
-      - name: Publish Flet app
-        # Provide base-url based on the repo name for correct relative path mapping in Pyodide.
-        run: flet publish src/main.py --base-url /${{ github.event.repository.name }}/
-
+      - name: Build static site
+        run: |
+          flet publish src/main.py --base-url /${{ github.event.repository.name }}/
+          python patch_flet_web.py ./src/dist
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
