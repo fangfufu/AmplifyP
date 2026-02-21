@@ -2,9 +2,9 @@ name: Deploy Flet App to GitHub Pages
 
 on:
   push:
-    branches: ["stable", "dev"]
+    branches: ["stable"]
   pull_request:
-    branches: ["stable", "dev"]
+    branches: ["stable"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,8 +22,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,14 +51,6 @@ jobs:
         with:
           path: './src/dist'
 
-  deploy:
-    needs: build
-    if: github.ref == 'refs/heads/stable'
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
