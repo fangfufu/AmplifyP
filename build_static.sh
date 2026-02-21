@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DIST_DIR="${SCRIPT_DIR}/src/dist"
 
 echo "==> Building static site..."
-flet publish "${SCRIPT_DIR}/src/main.py"
+flet publish "${SCRIPT_DIR}/src/main.py" "$@"
 
 echo "==> Patching Flet static site for FilePicker support..."
 python "${SCRIPT_DIR}/patch_flet_web.py" "${DIST_DIR}"

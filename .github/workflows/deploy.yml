@@ -40,9 +40,7 @@ jobs:
         run: pip install flet
 
       - name: Build static site
-        run: |
-          flet publish src/main.py --base-url /${{ github.event.repository.name }}/
-          python patch_flet_web.py ./src/dist
+        run: ./build_static.sh --base-url /${{ github.event.repository.name }}/
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
