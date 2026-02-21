@@ -46,12 +46,25 @@ pip install .
 
 ## Usage
 
-### Graphical User Interface
+### Web Version
 
-To launch the GUI:
+You can run AmplifyP directly in your browser without any installation! Visit
+the live static web app here:
+[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)
+
+To deploy a web server and run the web version locally, use the Flet
+command-line tool. To avoid port collision, it is recommended to use port 23455:
 
 ```bash
-python -m amplifyp.gui
+flet run --web --port 23455 src/main.py
+```
+
+### Graphical User Interface (Local)
+
+To launch the GUI locally as a desktop app:
+
+```bash
+python src/main.py
 ```
 
 The GUI allows you to:

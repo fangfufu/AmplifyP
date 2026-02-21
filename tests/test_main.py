@@ -13,8 +13,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""GUI module for AmplifyP."""
+"""Tests for the GUI app."""
 
-from .gui import AmplifyPApp, Primer, PrimerStatsDialog, settings
+from unittest.mock import MagicMock
 
-__all__ = ["AmplifyPApp", "Primer", "PrimerStatsDialog", "settings"]
+import flet as ft
+
+from main import main
+
+
+def test_gui_main() -> None:
+    """Test the main function of the GUI app."""
+    mock_page = MagicMock(spec=ft.Page)
+
+    main(mock_page)
+
+    assert mock_page.title == "AmplifyP"
+    assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
+    mock_page.add.assert_called()

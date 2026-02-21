@@ -30,7 +30,7 @@ repos:
         -   --strict
         -   --ignore-missing-imports
         -   --explicit-package-bases
-        additional_dependencies: [tokenize-rt==3.2.0]
+        additional_dependencies: [tokenize-rt==3.2.0, "types-PyYAML"]
 
 -   repo: local
     hooks:
@@ -38,7 +38,7 @@ repos:
         name: pytest
         entry: pytest
         language: python
-        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "customtkinter", "flet"]
+        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "flet", "pyyaml"]
         pass_filenames: false
         always_run: true
 
