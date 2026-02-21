@@ -265,6 +265,21 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                             f"{amp.q_score:.2f} - "
                                             f"{amp.q_score_report_str()}"
                                         ),
+                                        ft.Text(
+                                            "Amplified Sequence:",
+                                            weight=ft.FontWeight.BOLD,
+                                        ),
+                                        ft.TextField(
+                                            value=str(amp.product.seq),
+                                            read_only=True,
+                                            multiline=True,
+                                            min_lines=3,
+                                            max_lines=8,
+                                            expand=True,
+                                            text_style=ft.TextStyle(
+                                                font_family="monospace"
+                                            ),
+                                        ),
                                     ]
                                 ),
                             )
