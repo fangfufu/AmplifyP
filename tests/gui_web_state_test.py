@@ -15,6 +15,7 @@
 
 """Tests for GUI state saving and loading in Web (Pyodide) environment."""
 
+import json
 import sys
 from collections.abc import Generator
 from unittest.mock import MagicMock, patch
@@ -42,7 +43,7 @@ def mock_web_modules() -> Generator[tuple[MagicMock, MagicMock], None, None]:
         yield mock_js, mock_pyodide
 
 
-@pytest.mark.anyio  # type: ignore[untyped-decorator]
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_state_save_load(
     mock_web_modules: tuple[MagicMock, MagicMock],
 ) -> None:
@@ -61,7 +62,7 @@ async def test_web_state_save_load(
     # The container content is initially input_view.
 
     # Run main logic
-    with patch("main._is_pyodide", return_value=True):
+    with patch("amplifyp.gui.app._is_pyodide", return_value=True):
         main(mock_page)
 
         # Extract the container added to the page
@@ -117,7 +118,7 @@ async def test_web_state_save_load(
 
         # Verify js.postMessage called
         assert mock_js.postMessage.called
-        call_args = mock_js.postMessage.call_args[0][0]
+        call_args = json.loads(mock_js.postMessage.call_args[0][0])
 
         assert call_args["type"] == "save_file"
         assert call_args["filename"] == "amplify_gui_state.yaml"
@@ -163,7 +164,7 @@ settings:
         mock_js.postMessage.reset_mock()
         await save_btn.on_click(MagicMock(spec=ft.ControlEvent))
 
-        save_args = mock_js.postMessage.call_args[0][0]
+        save_args = json.loads(mock_js.postMessage.call_args[0][0])
         assert (
             "primability_cutoff: '0.5'" in save_args["content"]
             or "primability_cutoff: 0.5" in save_args["content"]

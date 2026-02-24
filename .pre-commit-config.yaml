@@ -38,7 +38,7 @@ repos:
         name: pytest
         entry: pytest
         language: python
-        additional_dependencies: [pytest, pytest-cov, pytest-testmon, ".", "flet", "pyyaml"]
+        additional_dependencies: [pytest, pytest-cov, pytest-testmon, "pytest-asyncio", ".", "flet", "pyyaml"]
         pass_filenames: false
         always_run: true
 
