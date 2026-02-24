@@ -127,17 +127,17 @@ def main(page: ft.Page) -> None:
         yaml_str = _serialize_state(state)
 
         if _is_pyodide():
+            import json
+
             import js
-            from pyodide.ffi import to_js
 
             js.postMessage(
-                to_js(
+                json.dumps(
                     {
                         "type": "save_file",
                         "filename": STATE_FILE,
                         "content": yaml_str,
-                    },
-                    dict_converter=js.Object.fromEntries,
+                    }
                 )
             )
             show_snackbar("State ready for download!")
