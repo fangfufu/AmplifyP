@@ -26,6 +26,9 @@ optional-dependencies.tests = [
   "pytest",
   "pytest-cov",
   "pytest-testmon",
+  "pytest-playwright",
+  "pytesseract",
+  "pillow",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
