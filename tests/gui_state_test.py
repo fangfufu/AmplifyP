@@ -44,7 +44,8 @@ def test_gui_state_save_load() -> None:
     input_view.primer_name_input.value = "Primer2"
     input_view.primer_seq_input.value = "CGTA"
     # Simulate unchecked primer
-    # We can't easily simulate UI interaction to uncheck, so we modify the control directly
+    # We can't easily simulate UI interaction to uncheck, so we modify
+    # the control directly.
     # add_primer_clicked adds a checked primer by default.
     input_view.add_primer_clicked(MagicMock())
 
@@ -98,10 +99,11 @@ def test_gui_state_save_load() -> None:
     assert (
         new_input_view.template_sequence.value.replace("\n", "") == template_seq
     )
-    assert new_input_view.template_circular.value == True
+    assert new_input_view.template_circular.value
 
     # Verify Primers
-    # get_primers() only returns active primers, so we should check controls directly or get_all_primers_state
+    # get_primers() only returns active primers, so we should check controls
+    # directly or get_all_primers_state.
     # But let's check what get_primers returns first
     active_primers = new_input_view.get_primers()
     assert len(active_primers) == 1
@@ -114,15 +116,15 @@ def test_gui_state_save_load() -> None:
 
     p1 = next(p for p in all_primers if p["name"] == "Primer1")
     assert p1["seq"].replace("\n", "") == "ATGC"
-    assert p1["active"] == True
+    assert p1["active"]
 
     p2 = next(p for p in all_primers if p["name"] == "Primer2")
     assert p2["seq"].replace("\n", "") == "CGTA"
-    assert p2["active"] == False
+    assert not p2["active"]
 
     # Verify SettingsView
     assert new_settings_view.set_primability_cutoff.value == "0.9"
-    assert new_settings_view.set_amp4_compat.value == True
+    assert new_settings_view.set_amp4_compat.value
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
