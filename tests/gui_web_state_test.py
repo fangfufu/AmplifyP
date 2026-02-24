@@ -16,30 +16,43 @@
 """Tests for GUI state saving and loading in Web (Pyodide) environment."""
 
 import sys
+from collections.abc import Generator
 from unittest.mock import MagicMock, patch
 
 import flet as ft
 import pytest
 
-# Mock js and pyodide modules before importing main
-mock_js = MagicMock()
-mock_pyodide = MagicMock()
-mock_pyodide.ffi.to_js = lambda x, **kwargs: x  # Identity function for to_js
-mock_pyodide.ffi.create_proxy = lambda x: (
-    x
-)  # Identity function for create_proxy
 
-sys.modules["js"] = mock_js
-sys.modules["pyodide"] = mock_pyodide
-sys.modules["pyodide.ffi"] = mock_pyodide.ffi
+@pytest.fixture  # type: ignore[untyped-decorator]
+def mock_web_modules() -> Generator[tuple[MagicMock, MagicMock], None, None]:
+    """Mock js and pyodide modules."""
+    mock_js = MagicMock()
+    mock_pyodide = MagicMock()
+    mock_pyodide.ffi.to_js = lambda x, **kwargs: x
+    mock_pyodide.ffi.create_proxy = lambda x: x
 
-from amplifyp.gui.views import InputView  # noqa: E402
-from main import main  # noqa: E402
+    with patch.dict(
+        sys.modules,
+        {
+            "js": mock_js,
+            "pyodide": mock_pyodide,
+            "pyodide.ffi": mock_pyodide.ffi,
+        },
+    ):
+        yield mock_js, mock_pyodide
 
 
 @pytest.mark.anyio  # type: ignore[untyped-decorator]
-async def test_web_state_save_load() -> None:
+async def test_web_state_save_load(
+    mock_web_modules: tuple[MagicMock, MagicMock],
+) -> None:
     """Test saving and loading state in a mock Pyodide environment."""
+    mock_js, _ = mock_web_modules
+
+    # Import main inside the patched environment
+    from amplifyp.gui.views import InputView
+    from main import main
+
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = True
 
