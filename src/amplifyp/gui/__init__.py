@@ -14,3 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """GUI package for AmplifyP."""
+
+from .app import main
+
+__all__ = ["main"]

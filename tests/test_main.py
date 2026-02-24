@@ -31,3 +31,16 @@ def test_gui_main() -> None:
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
     mock_page.add.assert_called()
+
+
+def test_gui_app_main() -> None:
+    """Test the main function imported directly from amplifyp.gui.app."""
+    from amplifyp.gui.app import main as gui_main
+
+    mock_page = MagicMock(spec=ft.Page)
+
+    gui_main(mock_page)
+
+    assert mock_page.title == "AmplifyP"
+    assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
+    mock_page.add.assert_called()

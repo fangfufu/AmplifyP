@@ -29,7 +29,10 @@ jobs:
       run: python --version
     - name: Install dependencies
       run: |
-        pip install .[tests] pre-commit
+        pip install .[tests,e2e] pre-commit
+    - name: Install Playwright Chromium
+      run: |
+        playwright install --with-deps chromium
     - name: Set TCL/TK env vars (Windows)
       if: runner.os == 'Windows'
       shell: powershell
@@ -62,17 +65,20 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y xvfb python3-tk
+        sudo apt-get install -y xvfb python3-tk tesseract-ocr libtesseract-dev
     - name: Run pre-commit
       shell: bash
       run: |
+        SKIP=pytest pre-commit run --all-files --show-diff-on-failure
+    - name: Run tests
+      shell: bash
+      run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          xvfb-run -a pre-commit run --all-files --show-diff-on-failure
+          xvfb-run -a pytest -v
         elif [ "$RUNNER_OS" == "Windows" ]; then
-          export PYTEST_ADDOPTS="--ignore=tests/gui"
-          pre-commit run --all-files --show-diff-on-failure
+          pytest -v --ignore=tests/gui
         else
-          pre-commit run --all-files --show-diff-on-failure
+          pytest -v
         fi
     - name: Build Flet app
       run: |

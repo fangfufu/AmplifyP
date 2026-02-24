@@ -13,6 +13,10 @@ requires-python = ">=3.12"
 dependencies = [
   "flet",
   "pyyaml",
+  "pytesseract",
+  "pillow",
+  "requests",
+  "pytest-playwright",
 ]
 
 classifiers = [
@@ -24,8 +28,13 @@ classifiers = [
 ]
 optional-dependencies.tests = [
   "pytest",
+  "pytest-asyncio",
   "pytest-cov",
   "pytest-testmon",
+  "pytest-playwright",
+]
+optional-dependencies.e2e = [
+  "pytest-playwright",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
@@ -65,6 +74,9 @@ addopts = [
   "--cov=src/amplifyp",
   "--cov-report=xml",
 ]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 
 [tool.coverage.run]
 omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
