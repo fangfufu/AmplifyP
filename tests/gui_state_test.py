@@ -15,9 +15,11 @@
 
 """Tests for GUI state saving and loading."""
 
-import yaml
 from unittest.mock import MagicMock
+
 import flet as ft
+import yaml
+
 from amplifyp.gui.views.input_view import InputView
 from amplifyp.gui.views.settings_view import SettingsView
 
@@ -49,7 +51,9 @@ def test_gui_state_save_load() -> None:
     # Find the second primer checkbox and uncheck it
     # accessing the last added primer
     last_tile = input_view.primers_list.controls[-1]
-    if isinstance(last_tile, ft.ListTile) and isinstance(last_tile.leading, ft.Checkbox):
+    if isinstance(last_tile, ft.ListTile) and isinstance(
+        last_tile.leading, ft.Checkbox
+    ):
         last_tile.leading.value = False
 
     # 2. Setup SettingsView with modified settings
@@ -69,7 +73,9 @@ def test_gui_state_save_load() -> None:
     # 4. Serialize (replicating main.py logic)
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         if "\n" in data:
-            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+            return dumper.represent_scalar(
+                "tag:yaml.org,2002:str", data, style="|"
+            )
         return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
     yaml.add_representer(str, multiline_presenter)
@@ -89,7 +95,9 @@ def test_gui_state_save_load() -> None:
 
     # Verify InputView
     # Template sequence should match (ignoring newlines inserted by formatting)
-    assert new_input_view.template_sequence.value.replace("\n", "") == template_seq
+    assert (
+        new_input_view.template_sequence.value.replace("\n", "") == template_seq
+    )
     assert new_input_view.template_circular.value == True
 
     # Verify Primers
