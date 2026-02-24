@@ -52,8 +52,8 @@ if not pytesseract or not Image or not Page:
     )
 
 
-@pytest.fixture(scope="session")
-def build_app() -> None:  # type: ignore[misc]
+@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+def build_app() -> None:
     """Build the Flet static app.
 
     This mimics the logic in `build_static.sh`.
@@ -65,14 +65,14 @@ def build_app() -> None:  # type: ignore[misc]
     print("==> Building static site...")
     # Run flet publish
     subprocess.run(  # noqa: S603
-        ["flet", "publish", "src/main.py", "--distpath", DIST_DIR],
+        ["flet", "publish", "src/main.py", "--distpath", DIST_DIR],  # noqa: S607
         check=True,
         capture_output=True,
     )
 
     print("==> Patching Flet static site...")
     subprocess.run(  # noqa: S603
-        ["python", "patch_flet_web.py", DIST_DIR],
+        ["python", "patch_flet_web.py", DIST_DIR],  # noqa: S607
         check=True,
         capture_output=True,
     )
@@ -80,8 +80,8 @@ def build_app() -> None:  # type: ignore[misc]
     assert os.path.exists(os.path.join(DIST_DIR, "index.html"))
 
 
-@pytest.fixture(scope="session")
-def serve_app(build_app: None) -> Generator[str, None, None]:  # type: ignore[misc]
+@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+def serve_app(build_app: None) -> Generator[str, None, None]:
     """Serve the static app in a background thread."""
     server = HTTPServer(
         ("localhost", SERVER_PORT),
@@ -98,10 +98,14 @@ def serve_app(build_app: None) -> Generator[str, None, None]:  # type: ignore[mi
         try:
             import urllib.request
 
-            if (
-                urllib.request.urlopen(base_url).getcode() == 200  # noqa: S310
-            ):
-                break
+            if base_url.startswith("http"):
+                if (
+                    urllib.request.urlopen(  # noqa: S310
+                        base_url
+                    ).getcode()
+                    == 200
+                ):
+                    break
         except Exception:
             time.sleep(0.5)
 
@@ -135,9 +139,12 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
             print(f"OCR Attempt {i + 1} for '{text_query}'...")
             png_bytes = page.screenshot()
             image = Image.open(io.BytesIO(png_bytes))
-            data = pytesseract.image_to_data(
-                image, output_type=pytesseract.Output.DICT
-            )
+            try:
+                data = pytesseract.image_to_data(
+                    image, output_type=pytesseract.Output.DICT
+                )
+            except pytesseract.TesseractNotFoundError:
+                pytest.skip("Tesseract OCR binary not found.")
 
             # Search for text
             n_boxes = len(data["text"])
