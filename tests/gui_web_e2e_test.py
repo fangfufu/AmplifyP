@@ -113,7 +113,7 @@ def serve_app(build_app: None) -> Generator[str, None, None]:
     # Wait for server to be responsive
     for _ in range(10):
         try:
-            import requests  # type: ignore[import-untyped]
+            import requests
 
             if requests.get(base_url, timeout=1).status_code == 200:
                 break

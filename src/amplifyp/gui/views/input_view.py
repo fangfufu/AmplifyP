@@ -110,7 +110,7 @@ class InputView(ft.Column):  # type: ignore[misc]
             self.primers_list.controls.append(
                 ft.ListTile(
                     dense=True,
-                    content_padding=ft.padding.all(0),
+                    content_padding=ft.Padding(0, 0, 0, 0),
                     leading=ft.Checkbox(
                         value=True, on_change=self.on_change_handler
                     ),
@@ -257,7 +257,7 @@ class InputView(ft.Column):  # type: ignore[misc]
                 self.primers_list.controls.append(
                     ft.ListTile(
                         dense=True,
-                        content_padding=ft.padding.all(0),
+                        content_padding=ft.Padding(0, 0, 0, 0),
                         leading=ft.Checkbox(
                             value=is_active, on_change=self.on_change_handler
                         ),
