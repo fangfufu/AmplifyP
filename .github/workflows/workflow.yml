@@ -1,55 +1,52 @@
+---
 name: AmplifyP post-commit
 
 on:
-  pull_request:
-    branches:
-      - stable
-      - dev
-  push:
-    branches:
-      - stable
-      - dev
+    pull_request:
+        branches: [dev, stable]
+    push:
+        branches: [dev, stable]
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  run:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.12', '3.13', '3.14']
-    steps:
-    - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        pip install .[tests,e2e] pre-commit
-    - name: Run pre-commit
-      shell: bash
-      run: |
-        SKIP=pytest pre-commit run --all-files --show-diff-on-failure
-    - name: Run unit tests
-      shell: bash
-      run: |
-        pytest -v
-    - name: Build Flet app
-      run: |
-        pip install flet
-        flet publish src/main.py --base-url /${{ github.event.repository.name }}/
-    - name: Display coverage report
-      run: |
-        coverage report -m
-    - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v6
-    - name: Run E2E tests
-      if: runner.os == 'Linux'
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
-        playwright install --with-deps chromium
-        xvfb-run -a pytest -v -m e2e
+    run:
+        strategy:
+            matrix:
+                os: [ubuntu-latest, macos-latest, windows-latest]
+                python-version: ['3.12', '3.13', '3.14']
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v6
+            - uses: actions/setup-python@v6
+              with:
+                  python-version: ${{ matrix.python-version }}
+            - name: Install dependencies
+              run: |
+                  pip install .[tests,e2e] pre-commit
+            - name: Run pre-commit
+              shell: bash
+              run: |
+                  SKIP=pytest pre-commit run --all-files --show-diff-on-failure
+            - name: Run unit tests
+              shell: bash
+              run: |
+                  pytest -v
+            - name: Build Flet app
+              run: |
+                  pip install flet
+                  flet publish src/main.py --base-url /${{ github.event.repository.name }}/
+            - name: Display coverage report
+              run: |
+                  coverage report -m
+            - name: Upload Coverage to Codecov
+              uses: codecov/codecov-action@v6
+            - name: Run E2E tests
+              if: runner.os == 'Linux'
+              shell: bash
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
+                  playwright install --with-deps chromium
+                  xvfb-run -a pytest -v -m e2e
