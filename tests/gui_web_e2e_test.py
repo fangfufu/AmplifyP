@@ -150,7 +150,7 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
 
     # Find the Template Sequence textarea/input field
     # (these are populated in the DOM once accessibility semantics is enabled)
-    template_input = page.locator("textarea, input").first
+    template_input = page.get_by_label("Template Sequence").first
     template_input.click()
     template_input.fill("ATGCATGC")
 
