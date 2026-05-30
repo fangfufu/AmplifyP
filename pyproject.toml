@@ -73,6 +73,10 @@ addopts = [
   "--import-mode=importlib",
   "--cov=src/amplifyp",
   "--cov-report=xml",
+  "-m", "not e2e",
+]
+markers = [
+  "e2e: slow end-to-end web browser tests",
 ]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "session"
