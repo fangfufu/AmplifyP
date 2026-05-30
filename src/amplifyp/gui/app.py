@@ -15,25 +15,12 @@
 
 """Main Flet application logic."""
 
-import asyncio
-import os
-
 import flet as ft
 import yaml
 
 from amplifyp.gui.views import InputView, ResultView, SettingsView
 
 STATE_FILE = "amplify_gui_state.yaml"
-
-
-def _is_pyodide() -> bool:
-    """Check if running in a Pyodide environment."""
-    try:
-        import pyodide  # noqa: F401
-
-        return True
-    except ImportError:
-        return False
 
 
 def _serialize_state(state: dict[str, object]) -> str:
@@ -108,137 +95,60 @@ def main(page: ft.Page) -> None:
         page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
         page.update()
 
-    # State File Picker
-    upload_complete = asyncio.Event()
-    upload_error: list[str | None] = [None]
-
-    def on_upload(e: ft.FilePickerUploadEvent) -> None:
-        if e.error:
-            upload_error[0] = e.error
-            upload_complete.set()
-        elif e.progress == 1.0:
-            upload_complete.set()
-
-    file_picker = ft.FilePicker(on_upload=on_upload)
-
     async def save_state(e: ft.ControlEvent) -> None:
         state = input_view.get_state()
         state["settings"] = settings_view.get_state()
         yaml_str = _serialize_state(state)
 
-        if _is_pyodide():
-            import json
-
-            import js
-
-            js.postMessage(
-                json.dumps(
-                    {
-                        "type": "save_file",
-                        "filename": STATE_FILE,
-                        "content": yaml_str,
-                    }
-                )
-            )
-            show_snackbar("State ready for download!")
-            return
-
-        if page.web:
-            import base64
-
-            # For web, trigger immediate download using a native HTML5 data url
-            b64_content = base64.b64encode(yaml_str.encode()).decode()
-            data_url = f"data:text/yaml;base64,{b64_content}"
-            # Launch URL internally acts as a download trigger in Flet Web
-            await page.launch_url(
-                data_url,
-                web_popup_window_name=STATE_FILE,
-                web_popup_window=True,
-            )
-            show_snackbar("State ready for download!")
-        else:
-            file_path = await file_picker.save_file(
+        try:
+            file_path = await ft.FilePicker().save_file(
                 dialog_title="Save State",
                 file_name=STATE_FILE,
                 allowed_extensions=["yaml", "yml"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                src_bytes=yaml_str.encode("utf-8"),
             )
-            if file_path is None:
-                return
-            try:
-                with open(file_path, "w") as f:
+            if page.web:
+                show_snackbar("State ready for download!")
+            else:
+                if file_path is None:
+                    return
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(yaml_str)
                 show_snackbar("State saved successfully!")
-            except Exception as ex:
-                show_snackbar(f"Error saving state: {ex}")
+        except Exception as ex:
+            show_snackbar(f"Error saving state: {ex}")
 
     async def load_state(e: ft.ControlEvent) -> None:
-        if _is_pyodide():
-            import js
-            from pyodide.ffi import create_proxy
-
-            def on_file_content(content: str) -> None:
-                try:
-                    parsed_state = yaml.safe_load(content)
-                    input_view.set_state(parsed_state)
-                    settings_view.set_state(parsed_state)
-                    update_results_button_state()
-                    show_snackbar("State loaded successfully!")
-                except Exception as ex:
-                    show_snackbar(f"Error parsing state: {ex}")
-
-            js.self.custom_file_callback = create_proxy(on_file_content)
-            js.postMessage("open_file_picker")
-            return
-
         try:
-            files = await file_picker.pick_files(
+            files = await ft.FilePicker().pick_files(
                 dialog_title="Load State",
                 allowed_extensions=["yaml", "yml"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                with_data=True,
             )
             if not files:
                 return
 
             file = files[0]
-            if page.web:
-                # Read via upload pipeline for server-backed web apps
-                upload_name = file.name
-                upload_url = page.get_upload_url(upload_name, 60)
-
-                upload_complete.clear()
-                upload_error[0] = None
-
-                await file_picker.upload(
-                    [
-                        ft.FilePickerUploadFile(
-                            name=upload_name,
-                            upload_url=upload_url,
-                        )
-                    ]
-                )
-                await upload_complete.wait()
-                if upload_error[0]:
-                    show_snackbar(
-                        f"Error uploading file for read: {upload_error[0]}"
-                    )
-                    return
-
-                file_path_str = os.path.join("uploads", upload_name)
+            if file.bytes is not None:
+                content = file.bytes.decode("utf-8")
+                parsed_state = yaml.safe_load(content)
             else:
-                # Read via absolute path for Desktop
-                file_path_str = file.path
-                if not file_path_str:
-                    show_snackbar("Error: Could not locate the file.")
+                if not file.path:
+                    show_snackbar("Error: Could not read file content.")
                     return
+                with open(file.path, encoding="utf-8") as f:
+                    parsed_state = yaml.safe_load(f)
 
-            with open(file_path_str) as f:
-                parsed_state = yaml.safe_load(f)
+            if not isinstance(parsed_state, dict):
+                show_snackbar("Error: Invalid state file format.")
+                return
 
             input_view.set_state(parsed_state)
             settings_view.set_state(parsed_state)
             update_results_button_state()
             show_snackbar("State loaded successfully!")
-        except FileNotFoundError:
-            show_snackbar("No saved state found.")
         except Exception as ex:
             import traceback
 

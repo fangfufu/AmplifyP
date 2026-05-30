@@ -13,56 +13,34 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for GUI state saving and loading in Web (Pyodide) environment."""
+"""Tests for GUI state saving and loading in Web environment."""
 
-import json
-import sys
-from collections.abc import Generator
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
 import pytest
 
 
-@pytest.fixture  # type: ignore[untyped-decorator]
-def mock_web_modules() -> Generator[tuple[MagicMock, MagicMock], None, None]:
-    """Mock js and pyodide modules."""
-    mock_js = MagicMock()
-    mock_pyodide = MagicMock()
-    mock_pyodide.ffi.to_js = lambda x, **kwargs: x
-    mock_pyodide.ffi.create_proxy = lambda x: x
-
-    with patch.dict(
-        sys.modules,
-        {
-            "js": mock_js,
-            "pyodide": mock_pyodide,
-            "pyodide.ffi": mock_pyodide.ffi,
-        },
-    ):
-        yield mock_js, mock_pyodide
-
-
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_web_state_save_load(
-    mock_web_modules: tuple[MagicMock, MagicMock],
-) -> None:
-    """Test saving and loading state in a mock Pyodide environment."""
-    mock_js, _ = mock_web_modules
-
-    # Import main inside the patched environment
+async def test_web_state_save_load() -> None:
+    """Test saving and loading state using native FilePicker on Web."""
+    # Import main inside the test
     from amplifyp.gui.views import InputView
     from main import main
 
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = True
 
-    # We need to capture the views created in main
-    # main() creates views and calls page.add(container)
-    # The container content is initially input_view.
+    # Mock FilePicker class
+    mock_file_picker_instance = MagicMock(spec=ft.FilePicker)
+    mock_file_picker_instance.save_file = AsyncMock(
+        return_value="amplify_gui_state.yaml"
+    )
 
-    # Run main logic
-    with patch("amplifyp.gui.app._is_pyodide", return_value=True):
+    with patch(
+        "amplifyp.gui.app.ft.FilePicker", return_value=mock_file_picker_instance
+    ):
+        # Run main logic
         main(mock_page)
 
         # Extract the container added to the page
@@ -70,15 +48,7 @@ async def test_web_state_save_load(
         container = mock_page.add.call_args[0][0]
         assert isinstance(container, ft.Container)
 
-        # Extract views.
-        # main.py defines:
-        # input_view = InputView(...)
-        # settings_view = SettingsView(page)
-        # result_view = ResultView(page, input_view, settings_view)
-        # It doesn't expose them directly, but we can access them through the
-        # closures of the event handlers or by inspecting the container content.
-
-        # Initially, view_container.content = input_view
+        # Extract input_view
         input_view = container.content
         assert isinstance(input_view, InputView)
 
@@ -103,46 +73,27 @@ async def test_web_state_save_load(
         assert load_btn
 
         # --- TEST SAVE ---
-
         # Set some state
         input_view.template_sequence.value = "ACGT"
         input_view.template_circular.value = True
 
-        # To get the settings_view instance, we can look at save_state closure
-        # if we could, but simpler is to simulate the save and see what it
-        # grabs.
-        # main.py: state["settings"] = settings_view.get_state()
-
         # Trigger Save
         await save_btn.on_click(MagicMock(spec=ft.ControlEvent))
 
-        # Verify js.postMessage called
-        assert mock_js.postMessage.called
-        call_args = json.loads(mock_js.postMessage.call_args[0][0])
+        # Verify save_file called with the correct parameters
+        mock_file_picker_instance.save_file.assert_called_once()
+        kwargs = mock_file_picker_instance.save_file.call_args[1]
+        assert kwargs["file_name"] == "amplify_gui_state.yaml"
+        assert kwargs["file_type"] == ft.FilePickerFileType.CUSTOM
+        assert kwargs["allowed_extensions"] == ["yaml", "yml"]
 
-        assert call_args["type"] == "save_file"
-        assert call_args["filename"] == "amplify_gui_state.yaml"
-        assert "ACGT" in call_args["content"]
-        assert "template_circular: true" in call_args["content"]
+        # Verify src_bytes content
+        src_bytes = kwargs["src_bytes"]
+        assert b"ACGT" in src_bytes
+        assert b"template_circular: true" in src_bytes
 
         # --- TEST LOAD ---
-
-        # Reset Mock
-        mock_js.postMessage.reset_mock()
-
-        # Trigger Load
-        await load_btn.on_click(MagicMock(spec=ft.ControlEvent))
-
-        # Verify it asked to open file picker
-        mock_js.postMessage.assert_called_with("open_file_picker")
-
-        # Verify callback was registered
-        # main.py: js.self.custom_file_callback = create_proxy(on_file_content)
-        # Note: js.self is mock_js.self
-        assert mock_js.self.custom_file_callback
-        callback = mock_js.self.custom_file_callback
-
-        # Create mocked YAML content to load
+        # Create a mock FilePickerFile with yaml content
         yaml_content = """
 template: GGGCCC
 template_circular: false
@@ -150,22 +101,27 @@ primers: []
 settings:
   primability_cutoff: 0.5
 """
-        # Execute callback
-        callback(yaml_content)
+        mock_file = MagicMock(spec=ft.FilePickerFile)
+        mock_file.name = "amplify_gui_state.yaml"
+        mock_file.bytes = yaml_content.encode("utf-8")
+        mock_file.path = None
 
-        # Verify state updated
-        # We need to access the input_view and settings_view to verify.
-        # input_view we already have.
+        # Mock pick_files to return the mock file
+        mock_file_picker_instance.pick_files = AsyncMock(
+            return_value=[mock_file]
+        )
+
+        # Trigger Load
+        await load_btn.on_click(MagicMock(spec=ft.ControlEvent))
+
+        # Verify pick_files was called
+        mock_file_picker_instance.pick_files.assert_called_once_with(
+            dialog_title="Load State",
+            allowed_extensions=["yaml", "yml"],
+            file_type=ft.FilePickerFileType.CUSTOM,
+            with_data=True,
+        )
+
+        # Verify state updated in input_view
         assert input_view.template_sequence.value == "GGGCCC"
         assert not input_view.template_circular.value
-
-        # To verify settings_view, we can try to save again and check the
-        # output.
-        mock_js.postMessage.reset_mock()
-        await save_btn.on_click(MagicMock(spec=ft.ControlEvent))
-
-        save_args = json.loads(mock_js.postMessage.call_args[0][0])
-        assert (
-            "primability_cutoff: '0.5'" in save_args["content"]
-            or "primability_cutoff: 0.5" in save_args["content"]
-        )
