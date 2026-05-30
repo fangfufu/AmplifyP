@@ -1,0 +1,6 @@
+# CodeRabbit AI Configuration
+reviews:
+  auto_review:
+    base_branches:
+      - "dev"
+      - "stable"
