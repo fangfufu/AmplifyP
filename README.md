@@ -1,5 +1,5 @@
 [![AmplifyP post-commit](https://github.com/fangfufu/AmplifyP/actions/workflows/workflow.yml/badge.svg)](https://github.com/fangfufu/AmplifyP/actions/workflows/workflow.yml)
-[![CodeQL](https://github.com/fangfufu/AmplifyP/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/fangfufu/AmplifyP/actions/workflows/github-code-scanning/codeql)
+[![CodeQL](https://github.com/fangfufu/AmplifyP/actions/workflows/codeql.yml/badge.svg)](https://github.com/fangfufu/AmplifyP/actions/workflows/codeql.yml)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/fangfufu/AmplifyP/stable.svg)](https://results.pre-commit.ci/latest/github/fangfufu/AmplifyP/stable)
 [![codecov](https://codecov.io/gh/fangfufu/AmplifyP/graph/badge.svg?token=UNEJRZSVPJ)](https://codecov.io/gh/fangfufu/AmplifyP)
 [![CodeFactor](https://www.codefactor.io/repository/github/fangfufu/amplifyp/badge)](https://www.codefactor.io/repository/github/fangfufu/amplifyp)
