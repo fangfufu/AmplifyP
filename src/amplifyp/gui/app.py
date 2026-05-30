@@ -162,6 +162,20 @@ def main(page: ft.Page) -> None:
         view_container.content = view
         page.update()
 
+    save_btn_control = ft.IconButton(
+        ft.Icons.SAVE,
+        tooltip="Save State",
+        on_click=save_state,
+    )
+    save_btn_control.content_description = "Save State"
+
+    load_btn_control = ft.IconButton(
+        ft.Icons.UPLOAD_FILE,
+        tooltip="Load State",
+        on_click=load_state,
+    )
+    load_btn_control.content_description = "Load State"
+
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
         actions=[
@@ -173,14 +187,8 @@ def main(page: ft.Page) -> None:
                 "Settings", on_click=lambda e: switch_view(e, settings_view)
             ),
             ft.VerticalDivider(),
-            ft.IconButton(
-                ft.Icons.SAVE, tooltip="Save State", on_click=save_state
-            ),
-            ft.IconButton(
-                ft.Icons.UPLOAD_FILE,
-                tooltip="Load State",
-                on_click=load_state,
-            ),
+            save_btn_control,
+            load_btn_control,
         ],
     )
 
