@@ -38,18 +38,18 @@ template: |-
   AAAGCCGACGGGACCACCTTATGTTATTTCATCATG
 template_circular: false
 primers:
-- name: 11bp
-  seq: ATTAACCCTTA
-  active: true
-- name: '1701'
-  seq: CGACTGGGCAAAGGAAATCC
-  active: true
-- name: '10289'
-  seq: GCAGCGCGAAACGTCGATGT
-  active: true
-- name: '10290'
-  seq: GTGGGTATCACAAATTTGGG
-  active: true
+  - name: 11bp
+    seq: ATTAACCCTTA
+    active: true
+  - name: '1701'
+    seq: CGACTGGGCAAAGGAAATCC
+    active: true
+  - name: '10289'
+    seq: GCAGCGCGAAACGTCGATGT
+    active: true
+  - name: '10290'
+    seq: GTGGGTATCACAAATTTGGG
+    active: true
 settings:
   primability_cutoff: '0.8'
   stability_cutoff: '0.4'

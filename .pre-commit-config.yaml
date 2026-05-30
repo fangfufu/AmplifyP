@@ -1,59 +1,67 @@
 exclude: ^resources/
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-    -   id: check-added-large-files
-    -   id: check-case-conflict
-    -   id: check-merge-conflict
-    -   id: check-yaml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-
--   repo: https://github.com/astral-sh/ruff-pre-commit
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.16.0
+    hooks:
+      - id: yamlfmt
+  - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.15
     hooks:
-    -   id: ruff-format
-    -   id: ruff
+      - id: ruff-format
+      - id: ruff
         args: [--fix]
-
--   repo: https://github.com/codespell-project/codespell
+  - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2
     hooks:
-    -   id: codespell
-
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v2.1.0'
+      - id: codespell
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.1.0
     hooks:
-    -   id: mypy
+      - id: mypy
         args:
-        -   --strict
-        -   --ignore-missing-imports
-        -   --explicit-package-bases
-        additional_dependencies: [tokenize-rt==3.2.0, "types-PyYAML"]
-
--   repo: local
+          - --strict
+          - --ignore-missing-imports
+          - --explicit-package-bases
+        additional_dependencies: [tokenize-rt==3.2.0, types-PyYAML]
+  - repo: local
     hooks:
-    -   id: pytest
+      - id: pytest
         name: pytest
         entry: pytest
         language: python
-        additional_dependencies: [pytest, pytest-cov, pytest-testmon, "pytest-asyncio", "pytest-playwright", "pytesseract", "pillow", ".", "flet", "pyyaml"]
+        additional_dependencies:
+          - .
+          - pytest
+          - pytest-cov
+          - pytest-testmon
+          - pytest-asyncio
+          - pytest-playwright
+          - pytesseract
+          - pillow
+          - flet
+          - pyyaml
         pass_filenames: false
         always_run: true
-
--   repo: https://github.com/executablebooks/mdformat
+  - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
     hooks:
-    -   id: mdformat
-        args: ["--wrap", "80"]
-
+      - id: mdformat
+        args: [--wrap, '80']
 ci:
-    autofix_commit_msg: |
-        [pre-commit.ci] auto fixes from pre-commit.com hooks
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
 
-        for more information, see https://pre-commit.ci
-    autofix_prs: true
-    autoupdate_branch: ''
-    autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
-    autoupdate_schedule: weekly
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
