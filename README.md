@@ -7,89 +7,109 @@
 
 # AmplifyP
 
-AmplifyP is a Python rewrite of William Engels's
-[Amplify4](https://github.com/wrengels/Amplify4), a tool for simulating
-Polymerase Chain Reaction (PCR). It allows users to predict amplification
-products (amplicons) from a given DNA template and a set of primers, taking into
-account the primability and stability of primer binding sites.
+AmplifyP is a modern, high-performance Python rewrite of William Engels's
+classic [Amplify4](https://github.com/wrengels/Amplify4) tool for simulating
+**Polymerase Chain Reaction (PCR)**. It allows molecular biologists and
+researchers to predict DNA amplification products (amplicons) from a template
+sequence and primer set, accurately factoring in primability, stability, and
+melting properties of primer binding sites.
+
+______________________________________________________________________
 
 ## Features
 
-- **PCR Simulation**: Predict potential amplicons based on primer binding
-  properties.
-- **Scoring System**: Calculates primability and stability scores for primer
-  binding sites using customizable weight tables.
-- **GUI Application**: Includes a Tkinter-based graphical user interface for
-  easy interaction.
-- **Python API**: Provides a flexible API for programmatic access to simulation
-  tools.
+- **PCR Simulation**: Predict potential amplicons, product sequences, and
+  lengths using rigorous primer-template binding models.
+- **Cross-Platform GUI**: Built with [Flet](https://flet.dev/) (a modern
+  Flutter-based UI framework) providing a beautiful, fully responsive app for
+  desktop and web browsers.
+- **Scoring Engine**: Calculates primability and stability scores using highly
+  customizable length-wise and pairwise weight tables.
+- **State Serialization**: Save and load templates, primers, cutoffs, and
+  replication configurations seamlessly using YAML files.
+- **Programmatic Python API**: A developer-friendly, fully typed API to run
+  simulations, dimer analyses, or thermodynamic melting calculations within your
+  pipelines.
+
+______________________________________________________________________
 
 ## Installation
 
-To use AmplifyP, clone the repository and ensure you have a compatible Python
-environment (Python 3.12+).
+AmplifyP requires Python 3.12 or higher.
 
-You probably want to set up your Python virtual environment first:
-
-```
-python -m venv venv
-source venv/bin/activate
-```
-
-Then install AmplifyP:
+First, clone the repository and source your Python virtual environment under
+`.venv` at the root of the repository:
 
 ```bash
 git clone https://github.com/fangfufu/AmplifyP.git
 cd AmplifyP
+
+# Set up and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Install the package and its runtime dependencies:
+
+```bash
 pip install .
 ```
+
+For development dependencies (testing and E2E automation):
+
+```bash
+pip install -e ".[tests,e2e]"
+```
+
+______________________________________________________________________
 
 ## Usage
 
 ### Web Version
 
-You can run AmplifyP directly in your browser without any installation! Visit
-the live static web app here:
-[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)
+Run AmplifyP entirely in your browser without any local installation! Visit the
+live static web app:
+**[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)**
 
-To test the static site build locally:
+To build and test the static site locally using Pyodide:
 
 ```bash
 ./build_static.sh
-python -m http.server 23455 -d src/dist
+python -m http.server 23455 -d dist
 ```
 
-Then open <http://localhost:23455> in your browser.
+Then navigate to <http://localhost:23455> in your web browser.
 
-> **Note:** The static site runs Python entirely in the browser via Pyodide.
-> File save/load uses a custom `file_handler.js` that bridges the Pyodide Web
-> Worker with the main thread for DOM-based file operations.
+______________________________________________________________________
 
-### Graphical User Interface (Local)
+### Graphical User Interface (Local Desktop)
 
-To launch the GUI locally as a desktop app:
+Launch the Flet GUI application locally as a standalone desktop app:
 
 ```bash
 python src/main.py
 ```
 
-The GUI allows you to:
+The GUI offers intuitive workflows to:
 
-1. Input a template DNA sequence.
-1. Add multiple primers.
-1. Configure primability and stability cutoffs.
-1. Simulate PCR to view potential amplicons.
-1. Analyze individual primers to see all potential binding sites.
+1. **Input template DNA sequences** and configure linear/circular topologies.
+1. **Manage multiple primers** with individual sequences and custom names.
+1. **Customize thresholds** for primability and stability cutoffs.
+1. **Simulate PCR** to visualize products, lanes, and details of binding sites.
+1. **Save/Load projects** to resume work easily.
 
-### Python API
+______________________________________________________________________
 
-You can also use AmplifyP as a library in your Python scripts.
+### Python API Example
+
+Integrate AmplifyP into your custom bioinformatics workflows using the Python
+API:
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType
 from amplifyp.repliconf import Repliconf
 from amplifyp.amplicon import AmpliconGenerator
-from amplifyp.settings import DEFAULT_SETTINGS
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 # 1. Define your DNA template and primers
 template_seq = "AGCT..."  # Replace with your actual sequence
@@ -103,8 +123,8 @@ generator = AmpliconGenerator(template)
 
 # 3. Create Replication Configurations for each primer
 # This step calculates potential binding sites on the template
-conf_fwd = Repliconf(template, primer_fwd, DEFAULT_SETTINGS)
-conf_rev = Repliconf(template, primer_rev, DEFAULT_SETTINGS)
+conf_fwd = Repliconf(template, primer_fwd, GLOBAL_REPLICATION_SETTINGS)
+conf_rev = Repliconf(template, primer_rev, GLOBAL_REPLICATION_SETTINGS)
 
 # 4. Search for origins (binding sites)
 conf_fwd.search()
@@ -125,24 +145,27 @@ for amp in amplicons:
     print("-" * 20)
 ```
 
-## Development
+______________________________________________________________________
 
-### Running Tests
+## Development & Testing
 
-To run the unit tests, install `pytest` and run it from the root of the
-repository:
+Run the test suite using `pytest` to verify correctness:
 
 ```bash
-pip install pytest pytest-cov
+# Run unit and integration tests
 pytest
 ```
 
+______________________________________________________________________
+
 ## Attribution
 
-This project is based on the logic and methodology of
-[Amplify4](https://github.com/wrengels/Amplify4) by William Engels. We aim to
-preserve the accuracy of the original simulations while providing a modern
-Python implementation.
+This project is built upon the logic and methodology of the original
+[Amplify4](https://github.com/wrengels/Amplify4) software by William Engels. We
+preserve the simulation models and algorithms of the original while offering a
+modern, robust, and accessible cross-platform implementation.
+
+______________________________________________________________________
 
 ## License
 
