@@ -16,7 +16,7 @@
 """Result View for the Flet application."""
 
 import traceback
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 import flet.canvas as cv
@@ -25,8 +25,7 @@ from amplifyp.dna import DNA, DNAType, Primer
 from amplifyp.pcr import PCR
 
 if TYPE_CHECKING:
-    from .input_view import InputView
-    from .settings_view import SettingsView
+    pass
 
 
 class ResultView(ft.Column):  # type: ignore[misc]
@@ -35,14 +34,30 @@ class ResultView(ft.Column):  # type: ignore[misc]
     def __init__(
         self,
         page: ft.Page,
-        input_view: "InputView",
-        settings_view: "SettingsView",
+        state_or_input: Any = None,
+        settings_view: Any = None,
     ) -> None:
         """Initialize the ResultView."""
         super().__init__(expand=True)
         self.app_page = page
-        self.input_view = input_view
-        self.settings_view = settings_view
+
+        # Flexible initialization for decoupling and compatibility
+        from amplifyp.gui.state import GUIState
+
+        from .input_view import InputView
+
+        if isinstance(state_or_input, GUIState):
+            self.state = state_or_input
+            self.input_view = None
+            self.settings_view = settings_view
+        elif isinstance(state_or_input, InputView):
+            self.input_view = state_or_input
+            self.settings_view = settings_view
+            self.state = state_or_input.state
+        else:
+            self.state = GUIState()
+            self.input_view = None
+            self.settings_view = None
 
         self.result_list = ft.ListView(expand=True, spacing=10)
         self.diagram_canvas = cv.Canvas(
@@ -70,36 +85,24 @@ class ResultView(ft.Column):  # type: ignore[misc]
         self.diagram_canvas.shapes.clear()
         self.diagram_container.visible = False
         try:
-            template_val = self.input_view.get_template()
-            # Remove literal escaped whitespace characters if any
-            clean_template = (
-                template_val.replace("\\n", "")
-                .replace("\\t", "")
-                .replace("\\r", "")
-            )
-            clean_template = "".join(clean_template.split()).upper()
+            from amplifyp.gui.util import clean_sequence
+
+            # Read parameters directly from the central state
+            clean_template = clean_sequence(self.state.template)
             t_type = (
                 DNAType.CIRCULAR
-                if self.input_view.is_circular()
+                if self.state.template_circular
                 else DNAType.LINEAR
             )
             template_dna = DNA(clean_template, dna_type=t_type)
 
-            rep_settings = self.settings_view.get_replication_settings()
+            rep_settings = self.state.get_replication_settings()
             pcr = PCR(template_dna, settings=rep_settings)
 
-            primers = self.input_view.get_primers()
+            primers = self.state.get_active_primers()
             for p in primers:
                 name = p["name"]
-                seq_val = p["seq"]
-
-                # Remove literal escaped whitespace characters
-                seq_val = (
-                    seq_val.replace("\\n", "")
-                    .replace("\\t", "")
-                    .replace("\\r", "")
-                )
-                seq = "".join(seq_val.split()).upper()
+                seq = clean_sequence(p["seq"])
                 pcr.add_primer(Primer(sequence=seq, name=name))
 
             num_amplicons = pcr.predict_amplicons()
@@ -110,9 +113,6 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 self.diagram_container.visible = True
 
                 # Canvas drawing constants based on Amplify4's `makePlot`
-                # Assuming standard canvas setup since it lacks dynamic width
-                # Use a fixed conceptual width/height and allow expansion
-
                 # Drawing configuration
                 v_target = 50.0  # Y position of target baseline
                 h_margin = 20.0  # X padding
@@ -148,8 +148,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         )
                     )
 
-                    # Ticks every 100bp (scale for large sequences if needed)
-                    # For simplicity, just drawing start, middle, end ticks.
+                    # Ticks every 100bp
                     tick_paint = ft.Paint(
                         style=ft.PaintingStyle.STROKE, stroke_width=1.0
                     )
@@ -237,8 +236,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         )
                     )
 
-                    # Match Amplify4 style: Length, Forward, Reverse, Score
-                    # Add circular indication if relevant
+                    # Card Details
                     self.result_list.controls.append(
                         ft.Card(
                             content=ft.Container(

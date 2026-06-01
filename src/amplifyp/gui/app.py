@@ -18,39 +18,28 @@
 import flet as ft
 import yaml
 
+from amplifyp.gui.state import GUIState
+from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import InputView, ResultView, SettingsView
 
 STATE_FILE = "amplify_gui_state.yaml"
-
-
-def _serialize_state(state: dict[str, object]) -> str:
-    """Serialize state dict to YAML string."""
-
-    def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
-        if "\n" in data:
-            return dumper.represent_scalar(
-                "tag:yaml.org,2002:str", data, style="|"
-            )
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-    yaml.add_representer(str, multiline_presenter)
-    return yaml.dump(state, sort_keys=False)
 
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
-    results_outdated = [False]
-    has_run_pcr = [False]
+
+    # Centralize state storage
+    state = GUIState()
     results_button_ref = ft.Ref[ft.TextButton]()
 
     def on_results_click(e: ft.ControlEvent) -> None:
         """Handle results button click: switch view and run PCR."""
         switch_view(e, result_view)
         result_view.run_pcr()
-        has_run_pcr[0] = True
-        results_outdated[0] = False
+        state.has_run_pcr = True
+        state.results_outdated = False
         if results_button_ref.current:
             results_button_ref.current.content = ft.Text("Results")
         page.update()
@@ -64,8 +53,9 @@ def main(page: ft.Page) -> None:
 
     def update_results_button_state() -> None:
         """Enable results button only if input is valid."""
-        has_template = bool(input_view.get_template().strip())
-        has_primers = len(input_view.get_primers()) > 0
+        input_view.sync_to_state()
+        has_template = bool(state.template.strip())
+        has_primers = len(state.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
         btn = results_button_ref.current
@@ -75,20 +65,22 @@ def main(page: ft.Page) -> None:
         btn.disabled = not is_enabled
 
         # Set outdated if enabled and inputs change AFTER a first run
-        if is_enabled and has_run_pcr[0]:
-            results_outdated[0] = True
+        if is_enabled and state.has_run_pcr:
+            state.results_outdated = True
 
         label = (
-            "Results *" if (results_outdated[0] and is_enabled) else "Results"
+            "Results *"
+            if (state.results_outdated and is_enabled)
+            else "Results"
         )
         btn.content = ft.Text(label)
         page.update()
 
     input_view = InputView(
-        page, on_change=lambda e: update_results_button_state()
+        page, state, on_change=lambda e: update_results_button_state()
     )
-    settings_view = SettingsView(page)
-    result_view = ResultView(page, input_view, settings_view)
+    settings_view = SettingsView(page, state)
+    result_view = ResultView(page, state)
 
     # Save and Load State
     def show_snackbar(message: str) -> None:
@@ -96,9 +88,9 @@ def main(page: ft.Page) -> None:
         page.update()
 
     async def save_state(e: ft.ControlEvent) -> None:
-        state = input_view.get_state()
-        state["settings"] = settings_view.get_state()
-        yaml_str = _serialize_state(state)
+        input_view.sync_to_state()
+        settings_view.sync_to_state()
+        yaml_str = serialize_state(state.to_dict())
 
         try:
             file_path = await ft.FilePicker().save_file(
@@ -145,8 +137,9 @@ def main(page: ft.Page) -> None:
                 show_snackbar("Error: Invalid state file format.")
                 return
 
-            input_view.set_state(parsed_state)
-            settings_view.set_state(parsed_state)
+            state.from_dict(parsed_state)
+            input_view.update_ui()
+            settings_view.update_ui()
             update_results_button_state()
             show_snackbar("State loaded successfully!")
         except Exception as ex:

@@ -15,8 +15,10 @@
 
 """GUI Views for the Flet application."""
 
+from amplifyp.gui.state import GUIState
+
 from .input_view import InputView
 from .result_view import ResultView
 from .settings_view import SettingsView
 
-__all__ = ["InputView", "ResultView", "SettingsView"]
+__all__ = ["GUIState", "InputView", "ResultView", "SettingsView"]
