@@ -32,7 +32,7 @@ def main(page: ft.Page) -> None:
 
     # Centralize state storage
     state = GUIState()
-    results_button_ref = ft.Ref[ft.TextButton]()
+    results_button_ref = ft.Ref[ft.FilledButton]()
 
     def on_results_click(e: ft.ControlEvent) -> None:
         """Handle results button click: switch view and run PCR."""
@@ -44,11 +44,11 @@ def main(page: ft.Page) -> None:
             results_button_ref.current.content = ft.Text("Results")
         page.update()
 
-    results_button = ft.TextButton(
-        "Results",
+    results_button = ft.FilledButton(
         ref=results_button_ref,
         on_click=on_results_click,
         disabled=True,
+        content=ft.Text("Results"),
     )
 
     def update_results_button_state() -> None:
@@ -155,15 +155,17 @@ def main(page: ft.Page) -> None:
         view_container.content = view
         page.update()
 
-    save_btn_control = ft.IconButton(
-        ft.Icons.SAVE,
+    save_btn_control = ft.FilledButton(
+        "Save State",
+        icon=ft.Icons.SAVE,
         tooltip="Save State",
         on_click=save_state,
     )
     save_btn_control.content_description = "Save State"
 
-    load_btn_control = ft.IconButton(
-        ft.Icons.UPLOAD_FILE,
+    load_btn_control = ft.FilledButton(
+        "Load State",
+        icon=ft.Icons.UPLOAD_FILE,
         tooltip="Load State",
         on_click=load_state,
     )
@@ -172,16 +174,17 @@ def main(page: ft.Page) -> None:
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
         actions=[
-            ft.TextButton(
+            ft.FilledButton(
                 "Input", on_click=lambda e: switch_view(e, input_view)
             ),
             results_button,
-            ft.TextButton(
+            ft.FilledButton(
                 "Settings", on_click=lambda e: switch_view(e, settings_view)
             ),
             ft.VerticalDivider(),
             save_btn_control,
             load_btn_control,
+            ft.Container(width=10),
         ],
     )
 
