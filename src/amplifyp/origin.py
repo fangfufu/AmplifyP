@@ -149,6 +149,19 @@ class ReplicationOrigin:
             stability = trunc(self.stability * 100) / 100
             return (primability + stability - cutoffs) / (2 - cutoffs)
 
+    @property
+    def binding_strength_string(self) -> str:
+        """The binding strength of each base-pair as a string.
+
+        Returns:
+            str: The binding strength of each base-pair as a string using the
+                Watson-Crick display format: '|' for strong/perfect matches,
+                ':' for weaker/wildcard pairings, and ' ' for mismatches.
+        """
+        return DNA(self.primer).binding_strength_string(
+            self.target, self.settings
+        )
+
 
 class Amplify4RevOrigin(ReplicationOrigin):
     """A helper class for creating an Amplify4-style reverse replication origin.

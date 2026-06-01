@@ -195,3 +195,12 @@ def test_dna_direction_str() -> None:
     """Test the string representation of DNADirection."""
     assert str(DNADirection.FWD) == "Forward"
     assert str(DNADirection.REV) == "Reverse"
+
+
+def test_dna_binding_strength_string() -> None:
+    """Test the binding_strength_string method of the DNA class."""
+    dna = DNA("GATCN")
+    # Test perfect match with wildcard
+    assert dna.binding_strength_string("GATCN") == "||||:"
+    # Test matches, mismatches, and invalid bases
+    assert dna.binding_strength_string("GATCX") == "|||| "

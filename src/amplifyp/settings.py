@@ -232,19 +232,20 @@ class BasePairWeightsTbl:
         Returns:
             float: The weight associated with the pair.
         """
-        i, j = key
-        try:
-            r = self.__row_map[ord(i)]
-            c = self.__col_map[ord(j)]
-            if r != -1 and c != -1:
-                return self.__matrix[r][c]
-        except (TypeError, IndexError):
-            pass
+        for i, j in (key, (key[1], key[0])):
+            try:
+                r = self.__row_map[ord(i)]
+                c = self.__col_map[ord(j)]
+                if r != -1 and c != -1:
+                    return self.__matrix[r][c]
+            except (TypeError, IndexError):
+                pass
 
-        # Fallback to dictionary lookup
-        i = i.upper()
-        j = j.upper()
-        return self.__weight[i, j]
+            i_u, j_u = i.upper(), j.upper()
+            if (i_u, j_u) in self.__weight:
+                return self.__weight[i_u, j_u]
+
+        return self.__weight[key[0].upper(), key[1].upper()]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight for a specific nucleotide pair.

@@ -221,3 +221,14 @@ def test_origin_quality() -> None:
     """Test if origin quality is working correctly."""
     for ex in origin_examples:
         assert ex.origin.quality == pytest.approx(ex.quality)
+
+
+def test_origin_binding_strength_string() -> None:
+    """Test if origin binding strength string formats correctly."""
+    # Perfect match with wildcard
+    origin = ReplicationOrigin(target="GATCN", primer="GATCN")
+    assert origin.binding_strength_string == "||||:"
+
+    # Matches, mismatches, and invalid bases
+    origin2 = ReplicationOrigin(target="GATCX", primer="GATCA")
+    assert origin2.binding_strength_string == "|||| "

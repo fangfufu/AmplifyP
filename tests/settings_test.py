@@ -147,3 +147,23 @@ def test_base_pair_weights_tbl_invalid_chars() -> None:
     # Also test completely invalid lookup
     with pytest.raises(KeyError):
         _ = tbl["Z", "Z"]
+
+
+def test_base_pair_weights_tbl_reverse_fallback() -> None:
+    """Test that BasePairWeightsTbl falls back to (j, i) if (i, j) fails."""
+    row = "A"
+    col = "C"
+    weights = [[5.0]]
+    tbl = BasePairWeightsTbl(row, col, weights)
+
+    # Primary key (A, C) should succeed
+    assert tbl["A", "C"] == 5.0
+
+    # Reverse lookup (C, A) is not initially mapped in self.__matrix[r][c]
+    # because 'C' is not in row and 'A' is not in col, so it should fall
+    # back to (A, C)
+    assert tbl["C", "A"] == 5.0
+
+    # Test key error for completely unmapped elements
+    with pytest.raises(KeyError):
+        _ = tbl["Z", "Z"]

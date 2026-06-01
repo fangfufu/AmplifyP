@@ -55,6 +55,14 @@ class Nucleotides(StrEnum):
     ALL_VALID = PRIMER + GAP
 
 
+# Prevent circular imports: settings.py imports Nucleotides from dna.py,
+# so we import settings after Nucleotides is fully defined.
+from .settings import (  # noqa: E402
+    GLOBAL_REPLICATION_SETTINGS,
+    ReplicationSettings,
+)
+
+
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA.
 
@@ -378,6 +386,45 @@ class DNA:
         if len(self) == 0:
             return 0.0
         return self.count_cg() / len(self)
+
+    def binding_strength_string(
+        self,
+        other: str | DNA,
+        settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
+    ) -> str:
+        """Calculate the binding strength of each base-pair.
+
+        Args:
+            other (str | DNA): The other DNA sequence (target template).
+            settings (ReplicationSettings, optional): The replication settings
+                containing the base-pairing scores. Defaults to
+                GLOBAL_REPLICATION_SETTINGS.
+
+        Returns:
+            str: The binding strength of each base-pair as a string using the
+                Watson-Crick display format: '|' for strong/perfect matches,
+                ':' for weaker/wildcard pairings, and ' ' for mismatches.
+        """
+        S = settings.base_pair_scores
+        # Use the maximum score in the entire base pair weights table
+        top_score = max(S.row_max(r) for r in S.row())
+        valid_targets = "GATCN"
+
+        bonds = []
+        other_seq = other.seq if isinstance(other, DNA) else other
+        for p_base, t_base in zip(self.seq, other_seq, strict=False):
+            if t_base.upper() not in valid_targets:
+                bonds.append(" ")
+                continue
+
+            score = S[p_base, t_base]
+            if score == 0:
+                bonds.append(" ")
+            elif score >= top_score:
+                bonds.append("|")
+            else:
+                bonds.append(":")
+        return "".join(bonds)
 
 
 class Primer(DNA):
