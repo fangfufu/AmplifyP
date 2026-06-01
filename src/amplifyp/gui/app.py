@@ -41,14 +41,15 @@ def main(page: ft.Page) -> None:
         state.has_run_pcr = True
         state.results_outdated = False
         if results_button_ref.current:
-            results_button_ref.current.content = ft.Text("Results")
+            results_button_ref.current.text = "Results"
         page.update()
 
     results_button = ft.FilledButton(
+        "Results",
         ref=results_button_ref,
         on_click=on_results_click,
         disabled=True,
-        content=ft.Text("Results"),
+        icon=ft.Icons.ANALYTICS,
     )
 
     def update_results_button_state() -> None:
@@ -73,7 +74,7 @@ def main(page: ft.Page) -> None:
             if (state.results_outdated and is_enabled)
             else "Results"
         )
-        btn.content = ft.Text(label)
+        btn.text = label
         page.update()
 
     input_view = InputView(
@@ -175,16 +176,25 @@ def main(page: ft.Page) -> None:
         title=ft.Text("AmplifyP"),
         actions=[
             ft.FilledButton(
-                "Input", on_click=lambda e: switch_view(e, input_view)
+                "Input",
+                icon=ft.Icons.INPUT,
+                on_click=lambda e: switch_view(e, input_view),
             ),
+            ft.Container(width=8),
             results_button,
+            ft.Container(width=8),
             ft.FilledButton(
-                "Settings", on_click=lambda e: switch_view(e, settings_view)
+                "Settings",
+                icon=ft.Icons.SETTINGS,
+                on_click=lambda e: switch_view(e, settings_view),
             ),
+            ft.Container(width=8),
             ft.VerticalDivider(),
+            ft.Container(width=8),
             save_btn_control,
+            ft.Container(width=8),
             load_btn_control,
-            ft.Container(width=10),
+            ft.Container(width=12),
         ],
     )
 
