@@ -48,7 +48,7 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
     )
 
     bg_color = (
-        ft.Colors.BLUE_ACCENT if d.quality >= 100 else ft.Colors.ORANGE_ACCENT
+        ft.Colors.RED_ACCENT if d.quality >= 100 else ft.Colors.BLUE_ACCENT
     )
     quality_text = f"Quality: {d.quality:.1f}"
 
@@ -65,25 +65,37 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                 size=16,
                                 selectable=True,
                             ),
-                            ft.Container(
-                                content=ft.Text(
-                                    quality_text,
-                                    weight=ft.FontWeight.BOLD,
-                                    color=ft.Colors.WHITE,
-                                    size=12,
-                                ),
-                                bgcolor=bg_color,
-                                padding=ft.Padding(8, 4, 8, 4),
-                                border_radius=4,
+                            ft.Row(
+                                [
+                                    ft.Container(
+                                        content=ft.Text(
+                                            f"Overlap: {d.overlap} bp",
+                                            weight=ft.FontWeight.BOLD,
+                                            color=ft.Colors.ON_SURFACE,
+                                            size=12,
+                                        ),
+                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                        padding=ft.Padding(8, 4, 8, 4),
+                                        border_radius=4,
+                                    ),
+                                    ft.Container(
+                                        content=ft.Text(
+                                            quality_text,
+                                            weight=ft.FontWeight.BOLD,
+                                            color=ft.Colors.WHITE,
+                                            size=12,
+                                        ),
+                                        bgcolor=bg_color,
+                                        padding=ft.Padding(8, 4, 8, 4),
+                                        border_radius=4,
+                                    ),
+                                ],
+                                spacing=8,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    ft.Text(
-                        f"Overlap length: {d.overlap} bp",
-                        size=13,
-                        color=ft.Colors.ON_SURFACE_VARIANT,
-                        selectable=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     ft.Container(height=8),
                     ft.Container(

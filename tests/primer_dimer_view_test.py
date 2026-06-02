@@ -94,7 +94,7 @@ def test_primer_dimer_view_with_dimers() -> None:
     assert "P1" in title_text or "P2" in title_text
 
     # Code block with alignment
-    code_container = col_content.controls[3]
+    code_container = col_content.controls[2]
     assert isinstance(code_container, ft.Container)
     alignment_row = code_container.content
     assert isinstance(alignment_row, ft.Row)
