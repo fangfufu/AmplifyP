@@ -26,11 +26,17 @@ from amplifyp.settings import ReplicationSettings
 class SettingsView(ft.ListView):  # type: ignore[misc]
     """Settings view for configuring PCR replication settings."""
 
-    def __init__(self, page: ft.Page, state: GUIState | None = None) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        state: GUIState | None = None,
+        on_change: Any | None = None,
+    ) -> None:
         """Initialize the SettingsView."""
         super().__init__(expand=True, spacing=20, padding=10)
         self.app_page = page
         self.state = state if state is not None else GUIState()
+        self.on_change = on_change
 
         # Settings State
         # Replication Settings
@@ -156,6 +162,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.sync_to_state()
         if self.state.has_run_pcr:
             self.state.results_outdated = True
+        if self.on_change:
+            self.on_change(e)
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""

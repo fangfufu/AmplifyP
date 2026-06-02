@@ -27,6 +27,8 @@ from amplifyp.gui.views import (
     SettingsView,
 )
 
+DIMERS_LABEL = "Primer Dimers"
+
 STATE_FILE = "amplify_gui_state.yaml"
 
 
@@ -66,14 +68,14 @@ def main(page: ft.Page) -> None:
     )
 
     dimers_button = ft.FilledButton(
-        "Primer Dimers",
+        DIMERS_LABEL,
         ref=dimers_button_ref,
         on_click=on_dimers_click,
         disabled=True,
         icon=ft.Icons.COMPARE_ARROWS,
-        tooltip="Primer Dimers",
+        tooltip=DIMERS_LABEL,
     )
-    dimers_button.content_description = "Primer Dimers"
+    dimers_button.content_description = DIMERS_LABEL
 
     def update_results_button_state() -> None:
         """Enable results and dimers buttons only if input is valid."""
@@ -106,7 +108,9 @@ def main(page: ft.Page) -> None:
     input_view = InputView(
         page, state, on_change=lambda e: update_results_button_state()
     )
-    settings_view = SettingsView(page, state)
+    settings_view = SettingsView(
+        page, state, on_change=lambda e: update_results_button_state()
+    )
     result_view = ResultView(page, state)
     dimers_view = PrimerDimerView(page, state)
 

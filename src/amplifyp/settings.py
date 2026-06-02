@@ -242,10 +242,7 @@ class BasePairWeightsTbl:
             pass
 
         i_u, j_u = i.upper(), j.upper()
-        if (i_u, j_u) in self.__weight:
-            return self.__weight[i_u, j_u]
-
-        return self.__weight[i_u, j_u]
+        return self.__weight[(i_u, j_u)]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight for a specific nucleotide pair.

@@ -52,8 +52,7 @@ def test_primer_dimer_view_no_primers() -> None:
     # result_list should contain a single container showing no dimers
     assert len(view.result_list.controls) == 1
     control = view.result_list.controls[0]
-    if isinstance(control, ft.Text):
-        print("EXCEPTION OCCURRED:", control.value)
+    assert not isinstance(control, ft.Text), getattr(control, "value", "")
     text_control = control.content
     assert "No primer dimers detected" in text_control.value
 

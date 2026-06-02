@@ -16,16 +16,13 @@
 """Result View for the Flet application."""
 
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNAType, Primer
 from amplifyp.pcr import PCR
-
-if TYPE_CHECKING:
-    pass
 
 
 class ResultView(ft.Column):  # type: ignore[misc]

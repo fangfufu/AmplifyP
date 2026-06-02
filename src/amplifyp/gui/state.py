@@ -59,18 +59,26 @@ class GUIState:
         self.results_outdated: bool = False
         self.has_run_pcr: bool = False
 
+    def _safe_float(self, key: str, default: float) -> float:
+        try:
+            return float(self.settings.get(key) or default)
+        except (ValueError, TypeError):
+            return default
+
+    def _safe_int(self, key: str, default: int) -> int:
+        try:
+            return int(self.settings.get(key) or default)
+        except (ValueError, TypeError):
+            return default
+
     def get_replication_settings(self) -> "ReplicationSettings":
         """Get ReplicationSettings from the central state settings."""
         from amplifyp.settings import ReplicationSettings
 
         return ReplicationSettings(
-            primability_cutoff=float(
-                self.settings.get("primability_cutoff") or 0.8
-            ),
-            stability_cutoff=float(
-                self.settings.get("stability_cutoff") or 0.4
-            ),
-            amplify4_compatibility_mode=bool(self.settings.get("amp4_compat")),
+            primability_cutoff=self._safe_float("primability_cutoff", 0.8),
+            stability_cutoff=self._safe_float("stability_cutoff", 0.4),
+            amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
         )
 
     def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
@@ -78,8 +86,8 @@ class GUIState:
         from amplifyp.settings import PrimerDimerSettings
 
         return PrimerDimerSettings(
-            min_overlap=int(self.settings.get("pd_min_overlap") or 3),
-            threshold=float(self.settings.get("pd_threshold") or 60.0),
+            min_overlap=self._safe_int("pd_min_overlap", 3),
+            threshold=self._safe_float("pd_threshold", 60.0),
         )
 
     def get_active_primers(self) -> list[dict[str, Any]]:
@@ -111,25 +119,30 @@ class GUIState:
             self.template = clean_sequence(state_dict["template"])
         if "template_circular" in state_dict:
             self.template_circular = bool(state_dict["template_circular"])
-
         if "primers" in state_dict:
-            self.primers = []
-            for p in state_dict["primers"]:
-                p_seq = p.get("seq", "")
-                seq_str = "".join(p_seq) if isinstance(p_seq, list) else p_seq
-                self.primers.append(
-                    {
-                        "name": str(p.get("name", "")),
-                        "seq": clean_sequence(seq_str),
-                        "active": bool(p.get("active", True)),
-                    }
-                )
-
+            self._load_primers(state_dict["primers"])
         if "settings" in state_dict:
-            for k in self.settings:
-                if k in state_dict["settings"]:
-                    v = state_dict["settings"][k]
-                    if isinstance(self.settings[k], bool):
-                        self.settings[k] = bool(v)
-                    else:
-                        self.settings[k] = str(v)
+            self._load_settings(state_dict["settings"])
+
+    def _load_primers(self, primers: list[dict[str, Any]]) -> None:
+        """Load primer data from a list of primer dicts."""
+        self.primers = []
+        for p in primers:
+            p_seq = p.get("seq", "")
+            seq_str = "".join(p_seq) if isinstance(p_seq, list) else p_seq
+            self.primers.append(
+                {
+                    "name": str(p.get("name", "")),
+                    "seq": clean_sequence(seq_str),
+                    "active": bool(p.get("active", True)),
+                }
+            )
+
+    def _load_settings(self, settings: dict[str, Any]) -> None:
+        """Load settings from a dict, coercing types to match self.settings."""
+        for k in self.settings:
+            if k in settings:
+                v = settings[k]
+                self.settings[k] = (
+                    bool(v) if isinstance(self.settings[k], bool) else str(v)
+                )

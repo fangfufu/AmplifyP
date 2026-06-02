@@ -121,6 +121,7 @@ def fill_field_reliably(field: Any, text: str, delay_ms: int = 100) -> None:
     worker is still starting up, even after an initial sleep.  This helper
     retries up to three times using Select-All + Delete before re-typing.
     """
+    current = ""
     for attempt in range(3):
         field.click()
         field.press("Control+a")
@@ -135,6 +136,10 @@ def fill_field_reliably(field: Any, text: str, delay_ms: int = 100) -> None:
         print("  mismatch - retrying...")
         time.sleep(1)
     print("  Warning: field may still be incomplete after 3 attempts")
+    raise AssertionError(
+        f"fill_field_reliably: expected '{text}', got '{current}' "
+        f"after 3 attempts"
+    )
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
@@ -197,7 +202,9 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
 @pytest.mark.skipif(
     os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
 )  # type: ignore[untyped-decorator]
-def test_e2e_primer_dimer_alignment(page: Any, serve_app: str) -> None:
+def test_e2e_primer_dimer_alignment(
+    page: Any, serve_app: str, tmp_path: Any
+) -> None:
     """Test primer dimer alignment and verify monospace alignment using OCR."""
     # Subscribe to console messages
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
@@ -236,10 +243,7 @@ def test_e2e_primer_dimer_alignment(page: Any, serve_app: str) -> None:
     time.sleep(2)  # Allow focus change and worker processing
 
     # Save a debug screenshot of the input page after clicking Add
-    page.screenshot(
-        path="/home/fangfufu/.gemini/antigravity-ide/brain/"
-        "5b47fb18-c408-427f-8945-41f4fc41b364/debug_after_add.png"
-    )
+    page.screenshot(path=str(tmp_path / "debug_after_add.png"))
 
     # 4. Navigate to Primer Dimers view
     dimers_btn = page.locator("[aria-label*='Primer Dimers']").first
@@ -248,10 +252,7 @@ def test_e2e_primer_dimer_alignment(page: Any, serve_app: str) -> None:
     time.sleep(2)
 
     # Save a debug screenshot after clicking Primer Dimers
-    page.screenshot(
-        path="/home/fangfufu/.gemini/antigravity-ide/brain/"
-        "5b47fb18-c408-427f-8945-41f4fc41b364/debug_after_click_dimers.png"
-    )
+    page.screenshot(path=str(tmp_path / "debug_after_click_dimers.png"))
 
     # The primer dimer analysis runs synchronously in the Flet Python worker.
     # Flutter Web CanvasKit renders text to a <canvas> element, NOT to the DOM,
@@ -260,10 +261,7 @@ def test_e2e_primer_dimer_alignment(page: Any, serve_app: str) -> None:
     time.sleep(8)
 
     # Save a final screenshot for inspection
-    page.screenshot(
-        path="/home/fangfufu/.gemini/antigravity-ide/brain/"
-        "5b47fb18-c408-427f-8945-41f4fc41b364/debug_final.png"
-    )
+    page.screenshot(path=str(tmp_path / "debug_final.png"))
 
     # 5. Take Screenshot for OCR
     screenshot_bytes = page.screenshot()

@@ -46,8 +46,11 @@ def serialize_state(state: dict[str, object]) -> str:
             )
         return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
-    yaml.add_representer(str, multiline_presenter)
-    return yaml.dump(state, sort_keys=False)
+    class _StateDumper(yaml.Dumper):
+        pass
+
+    _StateDumper.add_representer(str, multiline_presenter)
+    return yaml.dump(state, Dumper=_StateDumper, sort_keys=False)
 
 
 def create_overlapped_sequence_view(
