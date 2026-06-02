@@ -18,6 +18,7 @@
 from unittest.mock import MagicMock
 
 import flet as ft
+import pytest
 
 from amplifyp.gui.state import GUIState
 from amplifyp.gui.views.primer_dimer_view import PrimerDimerView
@@ -31,14 +32,14 @@ def test_get_primer_dimer_settings() -> None:
     pd_settings = state.get_primer_dimer_settings()
     assert isinstance(pd_settings, PrimerDimerSettings)
     assert pd_settings.min_overlap == 3
-    assert pd_settings.threshold == 60.0
+    assert pd_settings.threshold == pytest.approx(60.0)
 
     # Modify settings in state
     state.settings["pd_min_overlap"] = "5"
     state.settings["pd_threshold"] = "75.0"
     pd_settings = state.get_primer_dimer_settings()
     assert pd_settings.min_overlap == 5
-    assert pd_settings.threshold == 75.0
+    assert pd_settings.threshold == pytest.approx(75.0)
 
 
 def test_primer_dimer_view_no_primers() -> None:
