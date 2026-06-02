@@ -47,9 +47,9 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
         f"{p1_name} self-dimer" if is_self else f"{p1_name} vs {p2_name}"
     )
 
-    bg_color = (
-        ft.Colors.RED_ACCENT if d.quality >= 100 else ft.Colors.BLUE_ACCENT
-    )
+    # bg_color = (
+    #     ft.Colors.RED_ACCENT if d.quality >= 100 else ft.Colors.BLUE_ACCENT
+    # )
     quality_text = f"Quality: {d.quality:.1f}"
 
     return ft.Card(
@@ -82,10 +82,10 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                         content=ft.Text(
                                             quality_text,
                                             weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.WHITE,
+                                            color=ft.Colors.ON_SURFACE,
                                             size=12,
                                         ),
-                                        bgcolor=bg_color,
+                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
                                         border_radius=4,
                                     ),
