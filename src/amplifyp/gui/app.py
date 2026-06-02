@@ -20,7 +20,12 @@ import yaml
 
 from amplifyp.gui.state import GUIState
 from amplifyp.gui.util import serialize_state
-from amplifyp.gui.views import InputView, ResultView, SettingsView
+from amplifyp.gui.views import (
+    InputView,
+    PrimerDimerView,
+    ResultView,
+    SettingsView,
+)
 
 STATE_FILE = "amplify_gui_state.yaml"
 
@@ -29,10 +34,12 @@ def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
+    page.fonts = {"Roboto Mono": "/fonts/RobotoMono-Regular.ttf"}
 
     # Centralize state storage
     state = GUIState()
     results_button_ref = ft.Ref[ft.FilledButton]()
+    dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def on_results_click(e: ft.ControlEvent) -> None:
         """Handle results button click: switch view and run PCR."""
@@ -44,6 +51,12 @@ def main(page: ft.Page) -> None:
             results_button_ref.current.text = "Results"
         page.update()
 
+    def on_dimers_click(e: ft.ControlEvent) -> None:
+        """Handle dimers button click: switch view and run analysis."""
+        switch_view(e, dimers_view)
+        dimers_view.run_analysis()
+        page.update()
+
     results_button = ft.FilledButton(
         "Results",
         ref=results_button_ref,
@@ -52,29 +65,42 @@ def main(page: ft.Page) -> None:
         icon=ft.Icons.ANALYTICS,
     )
 
+    dimers_button = ft.FilledButton(
+        "Primer Dimers",
+        ref=dimers_button_ref,
+        on_click=on_dimers_click,
+        disabled=True,
+        icon=ft.Icons.COMPARE_ARROWS,
+        tooltip="Primer Dimers",
+    )
+    dimers_button.content_description = "Primer Dimers"
+
     def update_results_button_state() -> None:
-        """Enable results button only if input is valid."""
+        """Enable results and dimers buttons only if input is valid."""
         input_view.sync_to_state()
         has_template = bool(state.template.strip())
         has_primers = len(state.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
         btn = results_button_ref.current
-        if not btn:
-            return
+        if btn:
+            btn.disabled = not is_enabled
 
-        btn.disabled = not is_enabled
+            # Set outdated if enabled and inputs change AFTER a first run
+            if is_enabled and state.has_run_pcr:
+                state.results_outdated = True
 
-        # Set outdated if enabled and inputs change AFTER a first run
-        if is_enabled and state.has_run_pcr:
-            state.results_outdated = True
+            label = (
+                "Results *"
+                if (state.results_outdated and is_enabled)
+                else "Results"
+            )
+            btn.text = label
 
-        label = (
-            "Results *"
-            if (state.results_outdated and is_enabled)
-            else "Results"
-        )
-        btn.text = label
+        dimers_btn = dimers_button_ref.current
+        if dimers_btn:
+            dimers_btn.disabled = not has_primers
+
         page.update()
 
     input_view = InputView(
@@ -82,6 +108,7 @@ def main(page: ft.Page) -> None:
     )
     settings_view = SettingsView(page, state)
     result_view = ResultView(page, state)
+    dimers_view = PrimerDimerView(page, state)
 
     # Save and Load State
     def show_snackbar(message: str) -> None:
@@ -180,21 +207,23 @@ def main(page: ft.Page) -> None:
                 icon=ft.Icons.INPUT,
                 on_click=lambda e: switch_view(e, input_view),
             ),
-            ft.Container(width=8),
+            ft.Container(width=16),
             results_button,
-            ft.Container(width=8),
+            ft.Container(width=16),
+            dimers_button,
+            ft.Container(width=16),
             ft.FilledButton(
                 "Settings",
                 icon=ft.Icons.SETTINGS,
                 on_click=lambda e: switch_view(e, settings_view),
             ),
-            ft.Container(width=8),
+            ft.Container(width=16),
             ft.VerticalDivider(),
-            ft.Container(width=8),
+            ft.Container(width=16),
             save_btn_control,
-            ft.Container(width=8),
+            ft.Container(width=16),
             load_btn_control,
-            ft.Container(width=12),
+            ft.Container(width=20),
         ],
     )
 

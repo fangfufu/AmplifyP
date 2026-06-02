@@ -275,7 +275,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                             max_lines=8,
                                             expand=True,
                                             text_style=ft.TextStyle(
-                                                font_family="monospace"
+                                                font_family="Roboto Mono"
                                             ),
                                         ),
                                     ]

@@ -45,6 +45,7 @@ class InputView(ft.Column):  # type: ignore[misc]
             text_align=ft.TextAlign.LEFT,
             hint_text="Enter DNA sequence here...",
             on_change=self.on_change_handler,
+            text_style=ft.TextStyle(font_family="Roboto Mono"),
         )
         self.template_circular = ft.Checkbox(
             label="Circular Template",
@@ -54,7 +55,11 @@ class InputView(ft.Column):  # type: ignore[misc]
 
         self.primers_list = ft.ListView(expand=True, spacing=2)
         self.primer_name_input = ft.TextField(label="Primer Name", expand=1)
-        self.primer_seq_input = ft.TextField(label="Primer Sequence", expand=3)
+        self.primer_seq_input = ft.TextField(
+            label="Primer Sequence",
+            expand=3,
+            text_style=ft.TextStyle(font_family="Roboto Mono"),
+        )
 
         self.top_container = ft.Container(
             content=ft.Column(
@@ -150,7 +155,10 @@ class InputView(ft.Column):  # type: ignore[misc]
                     leading=ft.Checkbox(
                         value=is_active, on_change=self.on_change_handler
                     ),
-                    title=ft.Text(f"{name_val}, {seq_val}"),
+                    title=ft.Text(
+                        f"{name_val}, {seq_val}",
+                        font_family="Roboto Mono",
+                    ),
                     data={"name": name_val, "seq": seq_val},
                     trailing=ft.IconButton(
                         ft.Icons.DELETE,

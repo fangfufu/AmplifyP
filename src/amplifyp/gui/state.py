@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Any
 from amplifyp.gui.util import clean_sequence, format_sequence
 
 if TYPE_CHECKING:
-    from amplifyp.settings import ReplicationSettings
+    from amplifyp.settings import PrimerDimerSettings, ReplicationSettings
 
 
 class GUIState:
@@ -71,6 +71,15 @@ class GUIState:
                 self.settings.get("stability_cutoff") or 0.4
             ),
             amplify4_compatibility_mode=bool(self.settings.get("amp4_compat")),
+        )
+
+    def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
+        """Get PrimerDimerSettings from the central state settings."""
+        from amplifyp.settings import PrimerDimerSettings
+
+        return PrimerDimerSettings(
+            min_overlap=int(self.settings.get("pd_min_overlap") or 3),
+            threshold=float(self.settings.get("pd_threshold") or 60.0),
         )
 
     def get_active_primers(self) -> list[dict[str, Any]]:

@@ -18,7 +18,14 @@
 from amplifyp.gui.state import GUIState
 
 from .input_view import InputView
+from .primer_dimer_view import PrimerDimerView
 from .result_view import ResultView
 from .settings_view import SettingsView
 
-__all__ = ["GUIState", "InputView", "ResultView", "SettingsView"]
+__all__ = [
+    "GUIState",
+    "InputView",
+    "PrimerDimerView",
+    "ResultView",
+    "SettingsView",
+]
