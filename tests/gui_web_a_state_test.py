@@ -15,6 +15,7 @@
 
 """Tests for GUI state saving and loading in Web environment."""
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -57,12 +58,9 @@ async def test_web_state_save_load() -> None:
         assert actions
 
         # Helper to find button by icon
-        def find_button_by_icon(icon_name: str) -> ft.IconButton | None:
+        def find_button_by_icon(icon_name: str) -> Any:
             for control in actions:
-                if (
-                    isinstance(control, ft.IconButton)
-                    and control.icon == icon_name
-                ):
+                if hasattr(control, "icon") and control.icon == icon_name:
                     return control
             return None
 

@@ -233,3 +233,41 @@ def test_primer_order_swap() -> None:
     # primer_1 should always be the shorter one
     assert res1.primer_1 == p_short
     assert res2.primer_1 == p_short
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    (
+        "p1, p2, expected_overlap, expected_quality, "
+        "expected_p1_pos, expected_strength"
+    ),
+    [
+        (primer_10290, primer_10290, 12, 200.0, 8, "| |||||||| |"),
+        (primer_10290, primer_11bp, 6, 70.0, 14, "|  |||"),
+        (primer_10290, primer_10289, 7, -10.0, 13, " | |  |"),
+        (primer_10290, primer_1701, 2, 60.0, 18, "||"),
+        (primer_11bp, primer_11bp, 9, 60.0, 2, "|||   |||"),
+        (primer_11bp, primer_10289, 11, 30.0, 7, " ||  ||  ||"),
+        (primer_11bp, primer_1701, 11, 10.0, 2, "   |||  || "),
+        (primer_10289, primer_10289, 10, 160.0, 10, "|| |||| ||"),
+        (primer_10289, primer_1701, 6, 50.0, 14, "| ||| "),
+        (primer_1701, primer_1701, 8, 120.0, 12, "|||  |||"),
+    ],
+)
+def test_primer_dimer_binding_strength(
+    p1: Primer,
+    p2: Primer,
+    expected_overlap: int,
+    expected_quality: float,
+    expected_p1_pos: int,
+    expected_strength: str,
+) -> None:
+    """Test binding strength string generation and dimer calculations for
+    specified primers.
+    """
+    generator = PrimerDimerGenerator()
+    dimer = generator.generate_primer_dimer(p1, p2)
+
+    assert dimer.overlap == expected_overlap
+    assert dimer.quality == expected_quality
+    assert dimer.p1_pos == expected_p1_pos
+    assert dimer.binding_strength_str == expected_strength

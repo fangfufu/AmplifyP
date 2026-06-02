@@ -55,6 +55,11 @@ class Nucleotides(StrEnum):
     ALL_VALID = PRIMER + GAP
 
 
+# Other modules (e.g., settings.py) depend on Nucleotides being defined before
+# they are imported. Importing .settings at module load time here would create
+# a circular import because settings.py imports Nucleotides from this module.
+
+
 class DNAType(IntEnum):
     """An enumeration representing the type of DNA.
 

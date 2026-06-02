@@ -84,10 +84,18 @@ ______________________________________________________________________
 
 ### Graphical User Interface (Local Desktop)
 
-Launch the Flet GUI application locally as a standalone desktop app:
+Launch the Flet GUI application locally as a standalone desktop app using
+Python:
 
 ```bash
 python src/main.py
+```
+
+Alternatively, you can run the app using the Flet CLI (which is useful for
+development and includes features like hot-reload):
+
+```bash
+flet run src/main.py
 ```
 
 The GUI offers intuitive workflows to:
@@ -160,10 +168,12 @@ ______________________________________________________________________
 
 ## Attribution
 
-This project is built upon the logic and methodology of the original
-[Amplify4](https://github.com/wrengels/Amplify4) software by William Engels. We
-preserve the simulation models and algorithms of the original while offering a
-modern, robust, and accessible cross-platform implementation.
+- **Amplify4**: This project is built upon the logic and methodology of the
+  original [Amplify4](https://github.com/wrengels/Amplify4) software by William
+  Engels. We preserve the simulation models and algorithms of the original while
+  offering a modern, robust, and accessible cross-platform implementation.
+- **Roboto Mono Font**: Licensed under the Apache License, Version 2.0.
+  Copyright 2015 The Roboto Mono Project Authors.
 
 ______________________________________________________________________
 

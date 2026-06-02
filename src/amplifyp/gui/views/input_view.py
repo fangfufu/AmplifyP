@@ -19,14 +19,23 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.state import GUIState
+from amplifyp.gui.util import clean_sequence, format_sequence
+
 
 class InputView(ft.Column):  # type: ignore[misc]
     """Input view for DNA template and primers."""
 
-    def __init__(self, page: ft.Page, on_change: Any | None = None) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        state: GUIState | None = None,
+        on_change: Any | None = None,
+    ) -> None:
         """Initialize the InputView."""
         super().__init__(expand=True)
         self.app_page = page
+        self.state = state if state is not None else GUIState()
         self.on_change = on_change
 
         self.template_sequence = ft.TextField(
@@ -36,6 +45,7 @@ class InputView(ft.Column):  # type: ignore[misc]
             text_align=ft.TextAlign.LEFT,
             hint_text="Enter DNA sequence here...",
             on_change=self.on_change_handler,
+            text_style=ft.TextStyle(font_family="Roboto Mono"),
         )
         self.template_circular = ft.Checkbox(
             label="Circular Template",
@@ -45,7 +55,11 @@ class InputView(ft.Column):  # type: ignore[misc]
 
         self.primers_list = ft.ListView(expand=True, spacing=2)
         self.primer_name_input = ft.TextField(label="Primer Name", expand=1)
-        self.primer_seq_input = ft.TextField(label="Primer Sequence", expand=3)
+        self.primer_seq_input = ft.TextField(
+            label="Primer Sequence",
+            expand=3,
+            text_style=ft.TextStyle(font_family="Roboto Mono"),
+        )
 
         self.top_container = ft.Container(
             content=ft.Column(
@@ -97,24 +111,54 @@ class InputView(ft.Column):  # type: ignore[misc]
             self.bottom_container,
         ]
 
-    def on_change_handler(self, e: ft.ControlEvent) -> None:
-        """Handle change in input fields."""
-        if self.on_change:
-            self.on_change(e)
+        # Sync initial UI state
+        self.update_ui()
 
-    def add_primer_clicked(self, e: ft.ControlEvent) -> None:
-        """Handle adding a new primer."""
-        if self.primer_name_input.value and self.primer_seq_input.value:
-            name_val = str(self.primer_name_input.value)
-            seq_val = str(self.primer_seq_input.value)
+    def sync_to_state(self) -> None:
+        """Sync current UI controls back to the central state."""
+        self.state.template = clean_sequence(
+            str(self.template_sequence.value or "")
+        )
+        self.state.template_circular = bool(self.template_circular.value)
+
+        primers = []
+        for control in self.primers_list.controls:
+            if isinstance(control, ft.ListTile) and isinstance(
+                control.data, dict
+            ):
+                is_active = True
+                if isinstance(control.leading, ft.Checkbox):
+                    is_active = bool(control.leading.value)
+                primers.append(
+                    {
+                        "name": str(control.data.get("name", "")),
+                        "seq": clean_sequence(str(control.data.get("seq", ""))),
+                        "active": is_active,
+                    }
+                )
+        self.state.primers = primers
+
+    def update_ui(self) -> None:
+        """Update Flet UI controls to match the central state."""
+        self.template_sequence.value = self.state.template
+        self.template_circular.value = self.state.template_circular
+
+        self.primers_list.controls.clear()
+        for p in self.state.primers:
+            name_val = p["name"]
+            seq_val = p["seq"]
+            is_active = p.get("active", True)
             self.primers_list.controls.append(
                 ft.ListTile(
                     dense=True,
                     content_padding=ft.Padding(0, 0, 0, 0),
                     leading=ft.Checkbox(
-                        value=True, on_change=self.on_change_handler
+                        value=is_active, on_change=self.on_change_handler
                     ),
-                    title=ft.Text(f"{name_val}, {seq_val}"),
+                    title=ft.Text(
+                        f"{name_val}, {seq_val}",
+                        font_family="Roboto Mono",
+                    ),
                     data={"name": name_val, "seq": seq_val},
                     trailing=ft.IconButton(
                         ft.Icons.DELETE,
@@ -124,23 +168,45 @@ class InputView(ft.Column):  # type: ignore[misc]
                     ),
                 )
             )
+
+    def on_change_handler(self, e: ft.ControlEvent) -> None:
+        """Handle change in input fields."""
+        self.sync_to_state()
+        if self.on_change:
+            self.on_change(e)
+
+    def add_primer_clicked(self, e: ft.ControlEvent) -> None:
+        """Handle adding a new primer."""
+        self.sync_to_state()  # Sync first to preserve any un-synced edits
+        if self.primer_name_input.value and self.primer_seq_input.value:
+            name_val = str(self.primer_name_input.value)
+            seq_val = clean_sequence(str(self.primer_seq_input.value))
+
+            # Add to state and then update UI
+            self.state.primers.append(
+                {"name": name_val, "seq": seq_val, "active": True}
+            )
+            self.update_ui()
+
             self.primer_name_input.value = ""
             self.primer_seq_input.value = ""
             self.app_page.update()
+
             if self.on_change:
                 self.on_change(e)
 
     def remove_primer(self, e: ft.ControlEvent, name: str, seq: str) -> None:
         """Handle removing a primer."""
-        for control in self.primers_list.controls[:]:
-            if (
-                isinstance(control, ft.ListTile)
-                and isinstance(control.data, dict)
-                and control.data.get("name") == name
-                and control.data.get("seq") == seq
-            ):
-                self.primers_list.controls.remove(control)
+        self.sync_to_state()  # Sync first to preserve any un-synced edits
+        # Update state directly
+        self.state.primers = [
+            p
+            for p in self.state.primers
+            if not (p["name"] == name and p["seq"] == seq)
+        ]
+        self.update_ui()
         self.app_page.update()
+
         if self.on_change:
             self.on_change(e)
 
@@ -154,121 +220,36 @@ class InputView(ft.Column):  # type: ignore[misc]
 
     def get_template(self) -> str:
         """Get the current template sequence."""
-        return str(self.template_sequence.value or "")
+        return self.state.template
 
     def is_circular(self) -> bool:
         """Check if the template is circular."""
-        return bool(self.template_circular.value)
+        return self.state.template_circular
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers."""
-        primers: list[dict[str, Any]] = []
-        for control in self.primers_list.controls:
-            if isinstance(control, ft.ListTile):
-                # If checkbox exists and is unchecked, skip it
-                if (
-                    isinstance(control.leading, ft.Checkbox)
-                    and not control.leading.value
-                ):
-                    continue
-                if not isinstance(control.data, dict):
-                    continue
-                primers.append(
-                    {
-                        "name": str(control.data.get("name", "")),
-                        "seq": str(control.data.get("seq", "")),
-                    }
-                )
-        return primers
+        return self.state.get_active_primers()
 
     def get_all_primers_state(self) -> list[dict[str, Any]]:
         """Get all primers (active and inactive) for serialization."""
-
-        def format_seq(seq_val: str | None) -> str:
-            if not seq_val:
-                return ""
-            # Remove literal escaped whitespace characters
-            clean_seq = (
-                str(seq_val)
-                .replace("\\n", "")
-                .replace("\\t", "")
-                .replace("\\r", "")
-            )
-            clean_seq = "".join(clean_seq.split()).upper()
-            return "\n".join(
-                [clean_seq[i : i + 80] for i in range(0, len(clean_seq), 80)]
-            )
-
         primers: list[dict[str, Any]] = []
-        for c in self.primers_list.controls:
-            if isinstance(c, ft.ListTile) and isinstance(c.data, dict):
-                is_active = True
-                if isinstance(c.leading, ft.Checkbox):
-                    is_active = bool(c.leading.value)
-                primers.append(
-                    {
-                        "name": str(c.data.get("name", "")),
-                        "seq": format_seq(str(c.data.get("seq", ""))),
-                        "active": is_active,
-                    }
-                )
+        for p in self.state.primers:
+            primers.append(
+                {
+                    "name": p["name"],
+                    "seq": format_sequence(p["seq"]),
+                    "active": p.get("active", True),
+                }
+            )
         return primers
 
     def get_state(self) -> dict[str, Any]:
         """Get the current state for serialization."""
-
-        def format_seq(seq_val: str | None) -> str:
-            if not seq_val:
-                return ""
-            # Remove literal escaped whitespace characters
-            clean_seq = (
-                str(seq_val)
-                .replace("\\n", "")
-                .replace("\\t", "")
-                .replace("\\r", "")
-            )
-            clean_seq = "".join(clean_seq.split()).upper()
-            return "\n".join(
-                [clean_seq[i : i + 80] for i in range(0, len(clean_seq), 80)]
-            )
-
-        return {
-            "template": format_seq(self.template_sequence.value),
-            "template_circular": self.template_circular.value,
-            "primers": self.get_all_primers_state(),
-        }
+        self.sync_to_state()
+        return self.state.to_dict()
 
     def set_state(self, state: dict[str, Any]) -> None:
         """Set the current state from deserialized data."""
-        if "template" in state:
-            self.template_sequence.value = state["template"].replace("\n", "")
-
-        if "template_circular" in state:
-            self.template_circular.value = state["template_circular"]
-
-        if "primers" in state:
-            self.primers_list.controls.clear()
-            for p in state["primers"]:
-                p_seq = p.get("seq", "")
-                seq_str = (
-                    "".join(p_seq) if isinstance(p_seq, list) else p_seq
-                ).replace("\n", "")
-                is_active = p.get("active", True)
-                self.primers_list.controls.append(
-                    ft.ListTile(
-                        dense=True,
-                        content_padding=ft.Padding(0, 0, 0, 0),
-                        leading=ft.Checkbox(
-                            value=is_active, on_change=self.on_change_handler
-                        ),
-                        title=ft.Text(f"{p['name']}, {seq_str}"),
-                        data={"name": p["name"], "seq": seq_str},
-                        trailing=ft.IconButton(
-                            ft.Icons.DELETE,
-                            on_click=lambda e, n=p["name"], s=seq_str: (
-                                self.remove_primer(e, n, s)
-                            ),
-                        ),
-                    )
-                )
+        self.state.from_dict(state)
+        self.update_ui()
         self.app_page.update()

@@ -18,77 +18,101 @@
 import flet as ft
 import yaml
 
-from amplifyp.gui.views import InputView, ResultView, SettingsView
+from amplifyp.gui.state import GUIState
+from amplifyp.gui.util import serialize_state
+from amplifyp.gui.views import (
+    InputView,
+    PrimerDimerView,
+    ResultView,
+    SettingsView,
+)
+
+DIMERS_LABEL = "Primer Dimers"
 
 STATE_FILE = "amplify_gui_state.yaml"
-
-
-def _serialize_state(state: dict[str, object]) -> str:
-    """Serialize state dict to YAML string."""
-
-    def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
-        if "\n" in data:
-            return dumper.represent_scalar(
-                "tag:yaml.org,2002:str", data, style="|"
-            )
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-    yaml.add_representer(str, multiline_presenter)
-    return yaml.dump(state, sort_keys=False)
 
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
-    results_outdated = [False]
-    has_run_pcr = [False]
-    results_button_ref = ft.Ref[ft.TextButton]()
+    page.fonts = {"Roboto Mono": "/fonts/RobotoMono-Regular.ttf"}
+
+    # Centralize state storage
+    state = GUIState()
+    results_button_ref = ft.Ref[ft.FilledButton]()
+    dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def on_results_click(e: ft.ControlEvent) -> None:
         """Handle results button click: switch view and run PCR."""
         switch_view(e, result_view)
         result_view.run_pcr()
-        has_run_pcr[0] = True
-        results_outdated[0] = False
+        state.has_run_pcr = True
+        state.results_outdated = False
         if results_button_ref.current:
-            results_button_ref.current.content = ft.Text("Results")
+            results_button_ref.current.text = "Results"
         page.update()
 
-    results_button = ft.TextButton(
+    def on_dimers_click(e: ft.ControlEvent) -> None:
+        """Handle dimers button click: switch view and run analysis."""
+        switch_view(e, dimers_view)
+        dimers_view.run_analysis()
+        page.update()
+
+    results_button = ft.FilledButton(
         "Results",
         ref=results_button_ref,
         on_click=on_results_click,
         disabled=True,
+        icon=ft.Icons.ANALYTICS,
     )
 
+    dimers_button = ft.FilledButton(
+        DIMERS_LABEL,
+        ref=dimers_button_ref,
+        on_click=on_dimers_click,
+        disabled=True,
+        icon=ft.Icons.COMPARE_ARROWS,
+        tooltip=DIMERS_LABEL,
+    )
+    dimers_button.content_description = DIMERS_LABEL
+
     def update_results_button_state() -> None:
-        """Enable results button only if input is valid."""
-        has_template = bool(input_view.get_template().strip())
-        has_primers = len(input_view.get_primers()) > 0
+        """Enable results and dimers buttons only if input is valid."""
+        input_view.sync_to_state()
+        has_template = bool(state.template.strip())
+        has_primers = len(state.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
         btn = results_button_ref.current
-        if not btn:
-            return
+        if btn:
+            btn.disabled = not is_enabled
 
-        btn.disabled = not is_enabled
+            # Set outdated if enabled and inputs change AFTER a first run
+            if is_enabled and state.has_run_pcr:
+                state.results_outdated = True
 
-        # Set outdated if enabled and inputs change AFTER a first run
-        if is_enabled and has_run_pcr[0]:
-            results_outdated[0] = True
+            label = (
+                "Results *"
+                if (state.results_outdated and is_enabled)
+                else "Results"
+            )
+            btn.text = label
 
-        label = (
-            "Results *" if (results_outdated[0] and is_enabled) else "Results"
-        )
-        btn.content = ft.Text(label)
+        dimers_btn = dimers_button_ref.current
+        if dimers_btn:
+            dimers_btn.disabled = not has_primers
+
         page.update()
 
     input_view = InputView(
-        page, on_change=lambda e: update_results_button_state()
+        page, state, on_change=lambda e: update_results_button_state()
     )
-    settings_view = SettingsView(page)
-    result_view = ResultView(page, input_view, settings_view)
+    settings_view = SettingsView(
+        page, state, on_change=lambda e: update_results_button_state()
+    )
+    result_view = ResultView(page, state)
+    dimers_view = PrimerDimerView(page, state)
 
     # Save and Load State
     def show_snackbar(message: str) -> None:
@@ -96,9 +120,9 @@ def main(page: ft.Page) -> None:
         page.update()
 
     async def save_state(e: ft.ControlEvent) -> None:
-        state = input_view.get_state()
-        state["settings"] = settings_view.get_state()
-        yaml_str = _serialize_state(state)
+        input_view.sync_to_state()
+        settings_view.sync_to_state()
+        yaml_str = serialize_state(state.to_dict())
 
         try:
             file_path = await ft.FilePicker().save_file(
@@ -145,8 +169,9 @@ def main(page: ft.Page) -> None:
                 show_snackbar("Error: Invalid state file format.")
                 return
 
-            input_view.set_state(parsed_state)
-            settings_view.set_state(parsed_state)
+            state.from_dict(parsed_state)
+            input_view.update_ui()
+            settings_view.update_ui()
             update_results_button_state()
             show_snackbar("State loaded successfully!")
         except Exception as ex:
@@ -162,15 +187,17 @@ def main(page: ft.Page) -> None:
         view_container.content = view
         page.update()
 
-    save_btn_control = ft.IconButton(
-        ft.Icons.SAVE,
+    save_btn_control = ft.FilledButton(
+        "Save State",
+        icon=ft.Icons.SAVE,
         tooltip="Save State",
         on_click=save_state,
     )
     save_btn_control.content_description = "Save State"
 
-    load_btn_control = ft.IconButton(
-        ft.Icons.UPLOAD_FILE,
+    load_btn_control = ft.FilledButton(
+        "Load State",
+        icon=ft.Icons.UPLOAD_FILE,
         tooltip="Load State",
         on_click=load_state,
     )
@@ -179,16 +206,28 @@ def main(page: ft.Page) -> None:
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
         actions=[
-            ft.TextButton(
-                "Input", on_click=lambda e: switch_view(e, input_view)
+            ft.FilledButton(
+                "Input",
+                icon=ft.Icons.INPUT,
+                on_click=lambda e: switch_view(e, input_view),
             ),
+            ft.Container(width=16),
             results_button,
-            ft.TextButton(
-                "Settings", on_click=lambda e: switch_view(e, settings_view)
+            ft.Container(width=16),
+            dimers_button,
+            ft.Container(width=16),
+            ft.FilledButton(
+                "Settings",
+                icon=ft.Icons.SETTINGS,
+                on_click=lambda e: switch_view(e, settings_view),
             ),
+            ft.Container(width=16),
             ft.VerticalDivider(),
+            ft.Container(width=16),
             save_btn_control,
+            ft.Container(width=16),
             load_btn_control,
+            ft.Container(width=20),
         ],
     )
 
