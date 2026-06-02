@@ -150,7 +150,7 @@ class ReplicationOrigin:
             return (primability + stability - cutoffs) / (2 - cutoffs)
 
     @property
-    def binding_strength_string(self) -> str:
+    def binding_strength_str(self) -> str:
         """The binding strength of each base-pair as a string.
 
         Returns:
@@ -158,9 +158,30 @@ class ReplicationOrigin:
                 Watson-Crick display format: '|' for strong/perfect matches,
                 ':' for weaker/wildcard pairings, and ' ' for mismatches.
         """
-        return DNA(self.primer).binding_strength_string(
-            self.target, self.settings
-        )
+        S = self.settings.base_pair_scores
+        print(f"Matrix S: {S}")
+        print(f"primer: {self.primer}, target: {self.target}")
+        # Use the maximum score in the entire base pair weights table
+        top_score = max(S.row_max(r) for r in S.row())
+        bonds = []
+        for p_base, t_base in zip(self.primer, self.target, strict=False):
+            try:
+                score = S[p_base, t_base]
+            except KeyError:
+                score = 0.0
+
+            if score == 0:
+                symbol = " "
+            elif score >= top_score:
+                symbol = "|"
+            else:
+                symbol = ":"
+            print(
+                f"p_base: {p_base}, t_base: {t_base}, "
+                f"symbol: {symbol}, score: {score}"
+            )
+            bonds.append(symbol)
+        return "".join(bonds)
 
 
 class Amplify4RevOrigin(ReplicationOrigin):

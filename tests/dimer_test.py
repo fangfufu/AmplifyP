@@ -233,3 +233,14 @@ def test_primer_order_swap() -> None:
     # primer_1 should always be the shorter one
     assert res1.primer_1 == p_short
     assert res2.primer_1 == p_short
+
+
+def test_primer_dimer_binding_strength() -> None:
+    """Test binding strength string generation for 11bp vs 10290."""
+    generator = PrimerDimerGenerator()
+    dimer = generator.generate_primer_dimer(primer_10290, primer_11bp)
+
+    assert dimer.overlap == 6
+    assert dimer.p1_pos == 14
+
+    assert dimer.binding_strength_str == "|  |||"

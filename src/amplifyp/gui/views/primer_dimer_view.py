@@ -21,9 +21,8 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dimer import PrimerDimerGenerator
-from amplifyp.dna import DNA, Primer
+from amplifyp.dna import Primer
 from amplifyp.gui.state import GUIState
-from amplifyp.settings import ReplicationSettings
 
 
 class PrimerDimerView(ft.Column):  # type: ignore[misc]
@@ -71,21 +70,13 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     )
                 )
             else:
-                rep_settings = ReplicationSettings(
-                    base_pair_scores=pd_settings.weights
-                )
-
                 for d in dimers:
                     p1_name = d.primer_1.name
                     p2_name = d.primer_2.name
                     seq1 = d.primer_1.seq.upper()
                     seq2 = d.primer_2.seq.upper()
 
-                    p1_segment = DNA(seq1[::-1][: d.overlap])
-                    middle_str = p1_segment.binding_strength_string(
-                        seq2[d.p1_pos : d.p1_pos + d.overlap],
-                        settings=rep_settings,
-                    )
+                    middle_str = d.binding_strength_str
 
                     # Build visually aligned lines.
                     # Both primers share a common grid where position 0
