@@ -84,10 +84,18 @@ ______________________________________________________________________
 
 ### Graphical User Interface (Local Desktop)
 
-Launch the Flet GUI application locally as a standalone desktop app:
+Launch the Flet GUI application locally as a standalone desktop app using
+Python:
 
 ```bash
 python src/main.py
+```
+
+Alternatively, you can run the app using the Flet CLI (which is useful for
+development and includes features like hot-reload):
+
+```bash
+flet run src/main.py
 ```
 
 The GUI offers intuitive workflows to:

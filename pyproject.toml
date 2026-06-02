@@ -11,9 +11,9 @@ description = "Python rewrite of Amplify 4"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "flet",
-  "pyyaml",
-  "requests",
+  "flet>=0.85.2",
+  "pyyaml>=6.0.3",
+  "requests>=2.34.2",
 ]
 
 classifiers = [
@@ -24,14 +24,14 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 optional-dependencies.tests = [
-  "pytest",
-  "pytest-asyncio",
-  "pytest-cov",
-  "pytest-testmon",
-  "pytest-playwright",
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.4.0",
+  "pytest-cov>=7.1.0",
+  "pytest-testmon>=2.2.0",
+  "pytest-playwright>=0.8.0",
 ]
 optional-dependencies.e2e = [
-  "pytest-playwright",
+  "pytest-playwright>=0.8.0",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
