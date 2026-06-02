@@ -18,11 +18,89 @@
 import traceback
 
 import flet as ft
-import flet.canvas as cv
 
-from amplifyp.dimer import PrimerDimerGenerator
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.state import GUIState
+from amplifyp.gui.util import create_overlapped_sequence_view
+
+
+def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
+    """Create a Flet Card showing visually aligned primer dimer results."""
+    p1_name = d.primer_1.name
+    p2_name = d.primer_2.name
+    seq1 = d.primer_1.seq.upper()
+    seq2 = d.primer_2.seq.upper()
+
+    middle_str = d.binding_strength_str
+
+    # Build visually aligned lines.
+    p2_line = f"5'-{seq2}-3'"
+    mid_line = " " * (3 + d.p1_pos) + middle_str
+    p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
+
+    # Create visual alignment stack using generic helper
+    diagram_stack = create_overlapped_sequence_view(p2_line, mid_line, p1_line)
+
+    is_self = p1_name == p2_name and seq1 == seq2
+    dimer_title = (
+        f"{p1_name} self-dimer" if is_self else f"{p1_name} vs {p2_name}"
+    )
+
+    bg_color = (
+        ft.Colors.BLUE_ACCENT if d.quality >= 100 else ft.Colors.ORANGE_ACCENT
+    )
+    quality_text = f"Quality: {d.quality:.1f}"
+
+    return ft.Card(
+        content=ft.Container(
+            padding=15,
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            ft.Text(
+                                dimer_title,
+                                weight=ft.FontWeight.BOLD,
+                                size=16,
+                                selectable=True,
+                            ),
+                            ft.Container(
+                                content=ft.Text(
+                                    quality_text,
+                                    weight=ft.FontWeight.BOLD,
+                                    color=ft.Colors.WHITE,
+                                    size=12,
+                                ),
+                                bgcolor=bg_color,
+                                padding=ft.Padding(8, 4, 8, 4),
+                                border_radius=4,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    ft.Text(
+                        f"Overlap length: {d.overlap} bp",
+                        size=13,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                        selectable=True,
+                    ),
+                    ft.Container(height=8),
+                    ft.Container(
+                        content=ft.Row(
+                            [diagram_stack],
+                            scroll=ft.ScrollMode.AUTO,
+                        ),
+                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                        padding=12,
+                        border_radius=6,
+                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                        height=110,
+                    ),
+                ]
+            ),
+        )
+    )
 
 
 class PrimerDimerView(ft.Column):  # type: ignore[misc]
@@ -71,183 +149,8 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                 )
             else:
                 for d in dimers:
-                    p1_name = d.primer_1.name
-                    p2_name = d.primer_2.name
-                    seq1 = d.primer_1.seq.upper()
-                    seq2 = d.primer_2.seq.upper()
-
-                    middle_str = d.binding_strength_str
-
-                    # Build visually aligned lines.
-                    p2_line = f"5'-{seq2}-3'"
-                    mid_line = " " * (3 + d.p1_pos) + middle_str
-                    p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
-
-                    # Ensure all three lines have the same total width so that
-                    # the overlap region aligns vertically across all lines.
-                    target_width = max(
-                        len(p2_line), len(mid_line), len(p1_line)
-                    )
-                    p2_line = p2_line.ljust(target_width)
-                    mid_line = mid_line.ljust(target_width)
-                    p1_line = p1_line.ljust(target_width)
-
-                    is_self = p1_name == p2_name and seq1 == seq2
-                    dimer_title = (
-                        f"{p1_name} self-dimer"
-                        if is_self
-                        else f"{p1_name} vs {p2_name}"
-                    )
-
-                    bg_color = (
-                        ft.Colors.BLUE_ACCENT
-                        if d.quality >= 100
-                        else ft.Colors.ORANGE_ACCENT
-                    )
-                    quality_text = f"Quality: {d.quality:.1f}"
-
-                    # Build Flet Canvas shapes for robust character alignment
-                    shapes = []
-                    char_width = 11.5  # Width of each character cell in pixels
-                    x_offset = 12  # Left margin padding
-                    y_p2 = 12  # Y coord for top primer line
-                    y_mid = 38  # Y coord for middle bonds line
-                    y_p1 = 64  # Y coord for bottom primer line
-
-                    # Draw each line character-by-character
-                    for idx, char in enumerate(p2_line):
-                        if char != " ":
-                            shapes.append(
-                                cv.Text(
-                                    x_offset + idx * char_width,
-                                    y_p2,
-                                    char,
-                                    style=ft.TextStyle(
-                                        font_family="Roboto Mono",
-                                        size=14,
-                                        weight=ft.FontWeight.BOLD,
-                                        color=ft.Colors.ON_SURFACE,
-                                    ),
-                                )
-                            )
-
-                    for idx, char in enumerate(mid_line):
-                        if char != " ":
-                            shapes.append(
-                                cv.Text(
-                                    x_offset + idx * char_width,
-                                    y_mid,
-                                    char,
-                                    style=ft.TextStyle(
-                                        font_family="Roboto Mono",
-                                        size=14,
-                                        weight=ft.FontWeight.BOLD,
-                                        color=ft.Colors.GREEN_400,
-                                    ),
-                                )
-                            )
-
-                    for idx, char in enumerate(p1_line):
-                        if char != " ":
-                            shapes.append(
-                                cv.Text(
-                                    x_offset + idx * char_width,
-                                    y_p1,
-                                    char,
-                                    style=ft.TextStyle(
-                                        font_family="Roboto Mono",
-                                        size=14,
-                                        weight=ft.FontWeight.BOLD,
-                                        color=ft.Colors.ON_SURFACE,
-                                    ),
-                                )
-                            )
-
-                    # Dynamic width based on the number of characters
-                    canvas_width = target_width * char_width + x_offset * 2
-                    diagram_canvas = cv.Canvas(
-                        shapes=shapes,
-                        height=90,
-                        width=canvas_width,
-                    )
-                    diagram_canvas.pointer_events = "none"
-
-                    # Create a selectable text layer behind the canvas
-                    # that perfectly matches the character spacing
-                    selectable_text = ft.Text(
-                        f"{p2_line}\n{mid_line}\n{p1_line}",
-                        font_family="Roboto Mono",
-                        size=14,
-                        selectable=True,
-                        color=ft.Colors.TRANSPARENT,
-                    )
-                    selectable_text.line_height = 1.85
-                    selectable_text.left = x_offset - 2
-
-                    diagram_stack = ft.Stack(
-                        [
-                            diagram_canvas,
-                            selectable_text,
-                        ],
-                        width=canvas_width,
-                        height=90,
-                    )
-
-                    self.result_list.controls.append(
-                        ft.Card(
-                            content=ft.Container(
-                                padding=15,
-                                content=ft.Column(
-                                    [
-                                        ft.Row(
-                                            [
-                                                ft.Text(
-                                                    dimer_title,
-                                                    weight=ft.FontWeight.BOLD,
-                                                    size=16,
-                                                    selectable=True,
-                                                ),
-                                                ft.Container(
-                                                    content=ft.Text(
-                                                        quality_text,
-                                                        weight=ft.FontWeight.BOLD,
-                                                        color=ft.Colors.WHITE,
-                                                        size=12,
-                                                    ),
-                                                    bgcolor=bg_color,
-                                                    padding=ft.Padding(
-                                                        8, 4, 8, 4
-                                                    ),
-                                                    border_radius=4,
-                                                ),
-                                            ],
-                                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                                        ),
-                                        ft.Text(
-                                            f"Overlap length: {d.overlap} bp",
-                                            size=13,
-                                            color=ft.Colors.ON_SURFACE_VARIANT,
-                                            selectable=True,
-                                        ),
-                                        ft.Container(height=8),
-                                        ft.Container(
-                                            content=ft.Row(
-                                                [diagram_stack],
-                                                scroll=ft.ScrollMode.AUTO,
-                                            ),
-                                            bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-                                            padding=12,
-                                            border_radius=6,
-                                            border=ft.Border.all(
-                                                1, ft.Colors.OUTLINE_VARIANT
-                                            ),
-                                            height=110,
-                                        ),
-                                    ]
-                                ),
-                            )
-                        )
-                    )
+                    card = create_primer_dimer_card(d)
+                    self.result_list.controls.append(card)
         except Exception as ex:
             self.result_list.controls.append(
                 ft.Text(
