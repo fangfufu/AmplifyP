@@ -98,20 +98,11 @@ def test_primer_dimer_view_with_dimers() -> None:
     alignment_row = code_container.content
     assert isinstance(alignment_row, ft.Row)
 
-    diagram_stack = alignment_row.controls[0]
-    assert isinstance(diagram_stack, ft.Stack)
+    diagram_text = alignment_row.controls[0]
+    assert isinstance(diagram_text, ft.Text)
 
-    diagram_canvas = diagram_stack.controls[0]
-    import flet.canvas as cv
-
-    assert isinstance(diagram_canvas, cv.Canvas)
-
-    # We should have cv.Text shapes representing our characters
-    text_shapes = [s for s in diagram_canvas.shapes if isinstance(s, cv.Text)]
-    assert len(text_shapes) >= 10
-
-    # Check that sequence indicators are present in the text shapes
-    text_values = "".join(s.value for s in text_shapes)
+    # Check that sequence indicators are present in the text spans
+    text_values = "".join(span.text for span in diagram_text.spans)
     assert "5'-" in text_values
     assert "3'-" in text_values
     # Mid line should contain bond characters like '|' or ':'

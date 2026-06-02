@@ -159,8 +159,6 @@ class ReplicationOrigin:
                 ':' for weaker/wildcard pairings, and ' ' for mismatches.
         """
         S = self.settings.base_pair_scores
-        print(f"Matrix S: {S}")
-        print(f"primer: {self.primer}, target: {self.target}")
         # Use the maximum score in the entire base pair weights table
         top_score = max(S.row_max(r) for r in S.row())
         bonds = []
@@ -176,10 +174,6 @@ class ReplicationOrigin:
                 symbol = "|"
             else:
                 symbol = ":"
-            print(
-                f"p_base: {p_base}, t_base: {t_base}, "
-                f"symbol: {symbol}, score: {score}"
-            )
             bonds.append(symbol)
         return "".join(bonds)
 

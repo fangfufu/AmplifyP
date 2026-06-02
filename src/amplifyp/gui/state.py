@@ -60,14 +60,20 @@ class GUIState:
         self.has_run_pcr: bool = False
 
     def _safe_float(self, key: str, default: float) -> float:
+        val = self.settings.get(key)
+        if val is None or val == "":
+            return default
         try:
-            return float(self.settings.get(key) or default)
+            return float(val)
         except (ValueError, TypeError):
             return default
 
     def _safe_int(self, key: str, default: int) -> int:
+        val = self.settings.get(key)
+        if val is None or val == "":
+            return default
         try:
-            return int(self.settings.get(key) or default)
+            return int(val)
         except (ValueError, TypeError):
             return default
 
