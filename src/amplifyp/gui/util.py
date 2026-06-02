@@ -66,7 +66,6 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    font_family="Roboto Mono",
                     color=ft.Colors.ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
@@ -74,7 +73,6 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    font_family="Roboto Mono",
                     color=ft.Colors.GREEN_400,
                     weight=ft.FontWeight.BOLD,
                 ),
@@ -82,7 +80,6 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 bottom_line,
                 style=ft.TextStyle(
-                    font_family="Roboto Mono",
                     color=ft.Colors.ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
