@@ -79,16 +79,9 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     middle_str = d.binding_strength_str
 
                     # Build visually aligned lines.
-                    # Both primers share a common grid where position 0
-                    # corresponds to the 5' end of the longer primer (seq2).
-                    # The overlap on p2 starts at index p1_pos, and p1's
-                    # 3' end must align with that same grid position.
-                    grid_width = max(len(seq2), d.p1_pos + len(seq1))
-                    p2_line = f"5'-{seq2:<{grid_width}}-3'"
+                    p2_line = f"5'-{seq2}-3'"
                     mid_line = " " * (3 + d.p1_pos) + middle_str
-                    p1_line = (
-                        f"{' ' * d.p1_pos}3'-{seq1[::-1]:<{grid_width}}-5'"
-                    )
+                    p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
 
                     # Ensure all three lines have the same total width so that
                     # the overlap region aligns vertically across all lines.
