@@ -99,7 +99,10 @@ def test_primer_dimer_view_with_dimers() -> None:
     alignment_row = code_container.content
     assert isinstance(alignment_row, ft.Row)
 
-    diagram_canvas = alignment_row.controls[0]
+    diagram_stack = alignment_row.controls[0]
+    assert isinstance(diagram_stack, ft.Stack)
+
+    diagram_canvas = diagram_stack.controls[0]
     import flet.canvas as cv
 
     assert isinstance(diagram_canvas, cv.Canvas)

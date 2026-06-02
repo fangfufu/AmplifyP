@@ -104,11 +104,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 name = p["name"]
                 seq = clean_sequence(p["seq"])
                 pcr.add_primer(Primer(sequence=seq, name=name))
-
             num_amplicons = pcr.predict_amplicons()
 
             if num_amplicons == 0:
-                self.result_list.controls.append(ft.Text("No amplicons found."))
+                self.result_list.controls.append(
+                    ft.Text("No amplicons found.", selectable=True)
+                )
             else:
                 self.diagram_container.visible = True
 
@@ -247,25 +248,30 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                             f"Length: {len(amp.product)} bp",
                                             weight=ft.FontWeight.BOLD,
                                             size=16,
+                                            selectable=True,
                                         ),
                                         ft.Text(
                                             "Forward Primer: "
                                             f"{amp.fwd_origin.name} "
-                                            f"(Start: {amp.start.index})"
+                                            f"(Start: {amp.start.index})",
+                                            selectable=True,
                                         ),
                                         ft.Text(
                                             "Reverse Primer: "
                                             f"{amp.rev_origin.name} "
-                                            f"(End: {amp.end.index})"
+                                            f"(End: {amp.end.index})",
+                                            selectable=True,
                                         ),
                                         ft.Text(
                                             "Quality Score: "
                                             f"{amp.q_score:.2f} - "
-                                            f"{amp.q_score_report_str()}"
+                                            f"{amp.q_score_report_str()}",
+                                            selectable=True,
                                         ),
                                         ft.Text(
                                             "Amplified Sequence:",
                                             weight=ft.FontWeight.BOLD,
+                                            selectable=True,
                                         ),
                                         ft.TextField(
                                             value=str(amp.product.seq),

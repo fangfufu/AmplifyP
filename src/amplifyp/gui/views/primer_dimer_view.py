@@ -177,6 +177,28 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                         height=90,
                         width=canvas_width,
                     )
+                    diagram_canvas.pointer_events = "none"
+
+                    # Create a selectable text layer behind the canvas
+                    # that perfectly matches the character spacing
+                    selectable_text = ft.Text(
+                        f"{p2_line}\n{mid_line}\n{p1_line}",
+                        font_family="Roboto Mono",
+                        size=14,
+                        selectable=True,
+                        color=ft.Colors.TRANSPARENT,
+                    )
+                    selectable_text.line_height = 1.85
+                    selectable_text.left = x_offset - 2
+
+                    diagram_stack = ft.Stack(
+                        [
+                            diagram_canvas,
+                            selectable_text,
+                        ],
+                        width=canvas_width,
+                        height=90,
+                    )
 
                     self.result_list.controls.append(
                         ft.Card(
@@ -217,7 +239,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                                         ft.Container(height=8),
                                         ft.Container(
                                             content=ft.Row(
-                                                [diagram_canvas],
+                                                [diagram_stack],
                                                 scroll=ft.ScrollMode.AUTO,
                                             ),
                                             bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
