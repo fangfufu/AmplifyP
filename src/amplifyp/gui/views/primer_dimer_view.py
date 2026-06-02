@@ -47,9 +47,9 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
         f"{p1_name} self-dimer" if is_self else f"{p1_name} vs {p2_name}"
     )
 
-    # bg_color = (
-    #     ft.Colors.RED_ACCENT if d.quality >= 100 else ft.Colors.BLUE_ACCENT
-    # )
+    # Note: If conditional styling is desired later, quality score badge color
+    # could be set based on d.quality (e.g. RED_ACCENT if >= 100,
+    # else BLUE_ACCENT).
     quality_text = f"Quality: {d.quality:.1f}"
 
     return ft.Card(
