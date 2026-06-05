@@ -111,22 +111,6 @@ class InputView(ft.Row):  # type: ignore[misc]
             border=ft.Border(bottom=ft.BorderSide(4, GUIColors.DIVIDER_GREY)),
             height=40,
         )
-        self.primer_name_input = ft.TextField(
-            hint_text="New Primer Name",
-            expand=1,
-            dense=True,
-            on_focus=self.handle_field_focus,
-            on_blur=self.handle_field_blur,
-        )
-        self.primer_seq_input = ft.TextField(
-            hint_text="New Primer Sequence",
-            expand=2,
-            dense=True,
-            text_style=ft.TextStyle(font_family=font_family),
-            on_focus=self.handle_field_focus,
-            on_blur=self.handle_field_blur,
-            on_submit=self.add_primer_clicked,
-        )
 
         self.top_container = ft.Container(
             content=ft.Column(
@@ -414,7 +398,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family
         )
-        self.primer_seq_input.text_style = ft.TextStyle(font_family=font_family)
         self.template_sequence.value = self.state.template
         self.template_circular.value = self.state.template_circular
 
@@ -551,28 +534,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.sync_to_state()
         if self.on_change:
             self.on_change(e)
-
-    def add_primer_clicked(self, e: ft.ControlEvent) -> None:
-        """Handle adding a new primer."""
-        self.sync_to_state()  # Sync first to preserve any un-synced edits
-        if self.primer_name_input.value and self.primer_seq_input.value:
-            name_val = str(self.primer_name_input.value)
-            seq_val = clean_sequence(str(self.primer_seq_input.value))
-
-            # Add to state and then update UI
-            self.state.primers.append(
-                {"name": name_val, "seq": seq_val, "active": True}
-            )
-            self.update_ui()
-
-            self.primer_name_input.value = ""
-            self.primer_seq_input.value = ""
-            self.app_page.update()
-
-            if self.on_change:
-                self.on_change(e)
-            if self.on_stop_editing_callback:
-                self.on_stop_editing_callback()
 
     def remove_primer(self, e: ft.ControlEvent, name: str, seq: str) -> None:
         """Handle removing a primer."""

@@ -33,33 +33,15 @@ def test_gui_state_save_load() -> None:
 
     # Set template sequence (long enough to trigger multiline formatting)
     template_seq = "ATGC" * 30
-    input_view.template_sequence.value = template_seq
-    input_view.template_circular.value = True
+    input_view.state.template = template_seq
+    input_view.state.template_circular = True
 
     # Add primers
-    input_view.primer_name_input.value = "Primer1"
-    input_view.primer_seq_input.value = "ATGC"
-    input_view.add_primer_clicked(MagicMock())
-
-    input_view.primer_name_input.value = "Primer2"
-    input_view.primer_seq_input.value = "CGTA"
-    # Simulate unchecked primer
-    # We can't easily simulate UI interaction to uncheck, so we modify
-    # the control directly.
-    # add_primer_clicked adds a checked primer by default.
-    input_view.add_primer_clicked(MagicMock())
-
-    # Find the second primer checkbox and uncheck it
-    last_container = input_view.primers_list.controls[1]
-    last_row = last_container.content
-    cb_control = last_row.controls[0]
-    checkbox = (
-        cb_control.content
-        if isinstance(cb_control, ft.Container)
-        else cb_control
-    )
-    if isinstance(checkbox, ft.Checkbox):
-        checkbox.value = False
+    input_view.state.primers = [
+        {"name": "Primer1", "seq": "ATGC", "active": True},
+        {"name": "Primer2", "seq": "CGTA", "active": False},
+    ]
+    input_view.update_ui()
 
     # 2. Setup SettingsView with modified settings
     settings_view = SettingsView(mock_page)
