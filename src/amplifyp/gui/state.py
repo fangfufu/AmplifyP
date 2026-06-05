@@ -98,7 +98,13 @@ class GUIState:
 
     def get_active_primers(self) -> list[dict[str, Any]]:
         """Get the active primers."""
-        return [p for p in self.primers if p.get("active", True)]
+        return [
+            p
+            for p in self.primers
+            if p.get("active", True)
+            and str(p.get("name", "")).strip()
+            and clean_sequence(str(p.get("seq", ""))).strip()
+        ]
 
     def to_dict(self) -> dict[str, Any]:
         """Convert state to a dictionary for serialization."""

@@ -16,6 +16,7 @@
 """Primer Dimer View for the Flet application."""
 
 import traceback
+from typing import Any
 
 import flet as ft
 
@@ -101,9 +102,8 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                     ft.Container(
                         content=ft.Row(
                             [diagram_stack],
-                            scroll=ft.ScrollMode.AUTO,
+                            scroll=ft.ScrollMode.ALWAYS,
                         ),
-                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
                         padding=12,
                         border_radius=6,
                         border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
@@ -124,7 +124,9 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
         self.app_page = page
         self.state = state if state is not None else GUIState()
 
-        self.result_list = ft.ListView(expand=True, spacing=10)
+        self.result_list = ft.ListView(
+            expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
+        )
         self.controls = [
             ft.Container(content=self.result_list, expand=True),
         ]
@@ -170,4 +172,22 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     color=ft.Colors.RED,
                 )
             )
+            self.show_error_dialog("Error running analysis", str(ex))
+        self.app_page.update()
+
+    def show_error_dialog(self, title: str, message: str) -> None:
+        """Show an error dialog popup."""
+
+        def close_dlg(e: Any) -> None:
+            dialog.open = False
+            self.app_page.update()
+
+        dialog = ft.AlertDialog(
+            title=ft.Text(title, color=ft.Colors.RED),
+            content=ft.Text(message),
+            actions=[ft.TextButton("OK", on_click=close_dlg)],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        self.app_page.overlay.append(dialog)
+        dialog.open = True
         self.app_page.update()
