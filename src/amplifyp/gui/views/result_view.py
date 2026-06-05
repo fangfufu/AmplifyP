@@ -249,10 +249,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
                     # Ticks dynamically scaled
                     tick_interval = 100
-                    if target_length > 5000:
-                        tick_interval = 500
-                    elif target_length > 10000:
+                    if target_length > 10000:
                         tick_interval = 1000
+                    elif target_length > 5000:
+                        tick_interval = 500
 
                     tick_paint = ft.Paint(
                         color=ft.Colors.BLACK,
@@ -279,7 +279,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         (
                             c
                             for c in pcr.amplicon_generator.repliconfs
-                            if c.primer == amp.fwd_origin
+                            if c.primer is amp.fwd_origin
                         ),
                         None,
                     )
@@ -287,7 +287,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         (
                             c
                             for c in pcr.amplicon_generator.repliconfs
-                            if c.primer == amp.rev_origin
+                            if c.primer is amp.rev_origin
                         ),
                         None,
                     )
@@ -929,6 +929,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
         def close_dlg(e: Any) -> None:
             dialog.open = False
+            if dialog in self.app_page.overlay:
+                self.app_page.overlay.remove(dialog)
             self.app_page.update()
 
         dialog = ft.AlertDialog(
