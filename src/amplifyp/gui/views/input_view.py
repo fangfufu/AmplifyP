@@ -117,12 +117,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear Template",
             on_click=self.clear_template,
+            height=32,
         )
         self.clear_primers_button = ft.OutlinedButton(
             "Clear All",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear All Primers",
             on_click=self.clear_primers,
+            height=32,
         )
 
         self.top_container = ft.Container(
@@ -143,7 +145,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        height=30,
+                        height=40,
                     ),
                     ft.Container(
                         content=ft.ListView(
@@ -174,7 +176,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             self.clear_primers_button,
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        height=30,
+                        height=40,
                     ),
                     ft.Container(
                         content=ft.Column(
@@ -192,6 +194,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     ),
                 ],
                 expand=True,
+                spacing=5,
             ),
             expand=4,
         )
