@@ -65,13 +65,13 @@ ______________________________________________________________________
 
 ## Usage
 
-### Web Version
+### Web Version (Static)
 
 Run AmplifyP entirely in your browser without any local installation! Visit the
 live static web app:
 **[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)**
 
-To build and test the static site locally using Pyodide:
+To build and test the static web app locally using Pyodide:
 
 ```bash
 ./build_static.sh
@@ -82,21 +82,45 @@ Then navigate to <http://localhost:23455> in your web browser.
 
 ______________________________________________________________________
 
-### Graphical User Interface (Local Desktop)
+### Local Graphical User Interface (GUI)
 
-Launch the Flet GUI application locally as a standalone desktop app using
-Python:
+You can launch the Flet GUI application locally either as a standalone desktop
+app or as a dynamic local web app. Using the **Flet CLI** (`flet run`) enables
+**hot-reload** for both environments, which automatically updates the app
+interface in real-time as you modify the source files.
 
-```bash
-python src/main.py
-```
+#### 1. Launching the App
 
-Alternatively, you can run the app using the Flet CLI (which is useful for
-development and includes features like hot-reload):
+- **Desktop Application (via Python)** (standard run without hot-reload):
+  ```bash
+  python src/main.py
+  ```
+- **Desktop Application with Hot-Reload (via Flet CLI)**:
+  ```bash
+  flet run -r src/main.py
+  ```
+- **Dynamic Web Application with Hot-Reload (via Flet CLI)**: To run the app as
+  a dynamic local website in your web browser with hot-reloading:
+  ```bash
+  flet run -w -r src/main.py
+  ```
+  To specify a custom port (e.g., port `43425`):
+  ```bash
+  flet run -w -r -p 43425 src/main.py
+  ```
 
-```bash
-flet run src/main.py
-```
+#### 2. How Hot-Reload Works
+
+When launching the application using the Flet CLI (`flet run`):
+
+- **File Watcher**: The CLI monitors the files in the directory containing
+  `main.py` for any changes.
+- **Live Updates**: Saving changes to your code automatically updates the active
+  application window or browser tab without needing to manually restart the
+  process.
+- **Recursive Watching**: Because the project's core source files are located in
+  the `src/amplifyp` sub-directory, you must include the `-r` (or `--recursive`)
+  flag to ensure changes to files in sub-directories are also detected.
 
 The GUI offers intuitive workflows to:
 
