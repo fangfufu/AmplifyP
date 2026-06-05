@@ -213,14 +213,25 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Handle blur on input fields to trigger results page after a delay."""
         if self._focus_timer is not None:
             self._focus_timer.cancel()
+            self._focus_timer = None
 
         def timer_callback() -> None:
+            if not self.page:
+                return
             self.sync_to_state()
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback()
 
         self._focus_timer = threading.Timer(0.15, timer_callback)
-        self._focus_timer.start()
+        self._focus_timer.daemon = True
+        try:
+            self._focus_timer.start()
+        except RuntimeError:
+            # Pyodide (WebAssembly) may not support starting OS threads when
+            # SharedArrayBuffer / cross-origin isolation is unavailable.
+            # Fall back to a direct synchronous invocation of the callback.
+            self._focus_timer = None
+            timer_callback()
 
     def handle_field_submit(self, e: ft.ControlEvent) -> None:
         """Handle submission (Enter key) to immediately trigger results."""
@@ -231,16 +242,16 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
 
-    def sync_to_state(self) -> None:
-        """Sync current UI controls back to the central state."""
-        self.template_sequence.value = self.template_sequence.value or ""
-        self.state.template = clean_sequence(str(self.template_sequence.value))
-        self.state.template_circular = bool(self.template_circular.value)
+    def will_unmount(self) -> None:
+        """Clean up when the view is unmounted."""
+        if self._focus_timer is not None:
+            self._focus_timer.cancel()
+            self._focus_timer = None
 
+    def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
+        """Extract primer data from UI controls."""
         ui_primers = []
-        should_rebuild = False
-
-        for i, container in enumerate(self.primers_list.controls):
+        for container in self.primers_list.controls:
             if not isinstance(container, ft.Container):
                 continue
             row = container.content
@@ -259,6 +270,33 @@ class InputView(ft.Row):  # type: ignore[misc]
             name_val = str(name_tf.value or "").strip()
             seq_val = clean_sequence(str(seq_tf.value or ""))
             is_active = bool(checkbox.value)
+
+            ui_primers.append(
+                {
+                    "name": name_val,
+                    "seq": seq_val,
+                    "active": is_active,
+                    "container": container,
+                    "checkbox": checkbox,
+                }
+            )
+        return ui_primers
+
+    def _apply_activation_rules(
+        self, ui_primers: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], bool]:
+        """Apply auto-activation and auto-inactivation and deletion rules.
+
+        Returns (filtered_ui_primers, rebuild_needed).
+        """
+        filtered_primers = []
+        should_rebuild = False
+
+        for i, p in enumerate(ui_primers):
+            name_val = p["name"]
+            seq_val = p["seq"]
+            is_active = p["active"]
+            checkbox = p["checkbox"]
 
             # Deletion rule: if both are empty, delete it
             if not name_val and not seq_val:
@@ -290,15 +328,18 @@ class InputView(ft.Row):  # type: ignore[misc]
                     checkbox.value = False
                     should_rebuild = True
 
-            ui_primers.append(
-                {
-                    "name": name_val,
-                    "seq": seq_val,
-                    "active": is_active,
-                    "container": container,
-                }
-            )
-        # Detect duplicates
+            p["active"] = is_active
+            filtered_primers.append(p)
+
+        return filtered_primers, should_rebuild
+
+    def _detect_and_mark_duplicates(
+        self, ui_primers: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, Any]], bool]:
+        """Detect duplicates and mark container colors.
+
+        Returns (primers_list_for_state, rebuild_needed).
+        """
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
         for p in ui_primers:
@@ -310,6 +351,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
         primers = []
+        should_rebuild = False
         for p in ui_primers:
             container = p["container"]
             n_lower = p["name"].lower()
@@ -333,6 +375,22 @@ class InputView(ft.Row):  # type: ignore[misc]
                     "active": p["active"],
                 }
             )
+        return primers, should_rebuild
+
+    def sync_to_state(self) -> None:
+        """Sync current UI controls back to the central state."""
+        self.template_sequence.value = self.template_sequence.value or ""
+        self.state.template = clean_sequence(str(self.template_sequence.value))
+        self.state.template_circular = bool(self.template_circular.value)
+
+        ui_primers = self._extract_primer_data_from_ui()
+        filtered_ui_primers, should_rebuild = self._apply_activation_rules(
+            ui_primers
+        )
+        primers, dup_rebuild = self._detect_and_mark_duplicates(
+            filtered_ui_primers
+        )
+        should_rebuild = should_rebuild or dup_rebuild
 
         # If the number of non-empty primers changed, we rebuild
         if len(primers) != len(
@@ -403,6 +461,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             name_edit = ft.TextField(
                 value=name_val,
+                hint_text="Primer Name",
                 dense=True,
                 content_padding=ft.Padding(5, 0, 0, 0),
                 height=30,
@@ -414,6 +473,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             seq_edit = ft.TextField(
                 value=seq_val,
+                hint_text="Primer Sequence",
                 dense=True,
                 expand=True,
                 content_padding=ft.Padding(5, 0, 0, 0),
