@@ -31,12 +31,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         page: ft.Page,
         state: GUIState | None = None,
         on_change: Any | None = None,
+        on_apply: Any | None = None,
+        on_reset: Any | None = None,
     ) -> None:
         """Initialize the SettingsView."""
         super().__init__(expand=True, spacing=20, padding=10)
         self.app_page = page
         self.state = state if state is not None else GUIState()
         self.on_change = on_change
+        self.on_apply = on_apply
+        self.on_reset = on_reset
 
         # Settings State
         # Replication Settings
@@ -101,6 +105,18 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             label="Threshold", value="60.0", on_change=self.on_change_handler
         )
 
+        # Appearance Settings
+        self.set_font_family = ft.Dropdown(
+            label="Font Family",
+            options=[
+                ft.dropdown.Option("Roboto Mono"),
+                ft.dropdown.Option("Courier New"),
+                ft.dropdown.Option("Consolas"),
+                ft.dropdown.Option("monospace"),
+            ],
+        )
+        self.set_font_family.on_change = self.on_change_handler
+
         self.settings_map = {
             "primability_cutoff": self.set_primability_cutoff,
             "stability_cutoff": self.set_stability_cutoff,
@@ -114,6 +130,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "amp4tm_mono_salt": self.set_amp4tm_mono_salt,
             "pd_min_overlap": self.set_pd_min_overlap,
             "pd_threshold": self.set_pd_threshold,
+            "font_family": self.set_font_family,
         }
 
         self.controls = [
@@ -138,6 +155,25 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             ),
             self.set_pd_min_overlap,
             self.set_pd_threshold,
+            ft.Divider(),
+            ft.Text("Appearance Settings", weight=ft.FontWeight.BOLD, size=18),
+            self.set_font_family,
+            ft.Divider(),
+            ft.Row(
+                [
+                    ft.FilledButton(
+                        "Apply",
+                        icon=ft.Icons.DONE,
+                        on_click=self.on_apply_handler,
+                    ),
+                    ft.OutlinedButton(
+                        "Reset to Default",
+                        icon=ft.Icons.RESTORE,
+                        on_click=self.on_reset_handler,
+                    ),
+                ],
+                spacing=10,
+            ),
         ]
 
         # Sync initial UI state
@@ -164,6 +200,45 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.state.results_outdated = True
         if self.on_change:
             self.on_change(e)
+
+    def on_apply_handler(self, e: ft.ControlEvent) -> None:
+        """Handle apply button click."""
+        self.sync_to_state()
+        if self.on_apply:
+            self.on_apply(e)
+
+    def on_reset_handler(self, e: ft.ControlEvent) -> None:
+        """Handle reset to default button click."""
+        from amplifyp.settings import (
+            DEFAULT_PRIMABILITY_CUTOFF,
+            DEFAULT_PRIMER_DIMER_OVERLAP,
+            DEFAULT_PRIMER_DIMER_THRESHOLD,
+            DEFAULT_STABILITY_CUTOFF,
+            GLOBAL_AMPLIFY4_TM_SETTINGS,
+            GLOBAL_TM_SETTINGS,
+        )
+
+        self.state.settings = {
+            "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
+            "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
+            "amp4_compat": False,
+            "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
+            "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
+            "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
+            "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
+            "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
+            "amp4tm_dna_conc": str(GLOBAL_AMPLIFY4_TM_SETTINGS.dna_conc),
+            "amp4tm_mono_salt": str(
+                GLOBAL_AMPLIFY4_TM_SETTINGS.monovalent_salt_conc
+            ),
+            "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
+            "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
+            "font_family": "Roboto Mono",
+        }
+        self.update_ui()
+        self.app_page.update()
+        if self.on_reset:
+            self.on_reset(e)
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""

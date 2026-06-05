@@ -105,6 +105,16 @@ def main(page: ft.Page) -> None:
 
         page.update()
 
+    def run_results_tab(e: ft.ControlEvent) -> None:
+        switch_view(e, result_view)
+        result_view.run_pcr()
+        dimers_view.run_analysis()
+        state.has_run_pcr = True
+        state.results_outdated = False
+        if results_button_ref.current:
+            results_button_ref.current.text = "Results"
+        page.update()
+
     input_view = InputView(
         page,
         state,
@@ -112,7 +122,11 @@ def main(page: ft.Page) -> None:
         on_stop_editing=update_results_button_state,
     )
     settings_view = SettingsView(
-        page, state, on_change=lambda e: update_results_button_state()
+        page,
+        state,
+        on_change=lambda e: update_results_button_state(),
+        on_apply=run_results_tab,
+        on_reset=run_results_tab,
     )
     result_view = ResultView(page, state)
     dimers_view = PrimerDimerView(page, state)

@@ -66,6 +66,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_primability_cutoff.value = "0.9"
     settings_view.set_amp4_compat.value = True
     settings_view.set_tm_dna_conc.value = "100.0"
+    settings_view.set_font_family.value = "Courier New"
 
     # 3. Capture State
     input_state = input_view.get_state()
@@ -130,5 +131,57 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_primability_cutoff.value == "0.9"
     assert new_settings_view.set_amp4_compat.value
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
+    assert new_settings_view.set_font_family.value == "Courier New"
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
+
+
+def test_settings_view_buttons() -> None:
+    """Test Apply and Reset to Default buttons in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+
+    apply_called = False
+    reset_called = False
+
+    def on_apply_callback(e: ft.ControlEvent) -> None:
+        nonlocal apply_called
+        apply_called = True
+
+    def on_reset_callback(e: ft.ControlEvent) -> None:
+        nonlocal reset_called
+        reset_called = True
+
+    settings_view = SettingsView(
+        mock_page,
+        on_apply=on_apply_callback,
+        on_reset=on_reset_callback,
+    )
+
+    # Change some values
+    settings_view.set_primability_cutoff.value = "0.95"
+    settings_view.set_amp4_compat.value = True
+
+    # Find the Row containing the Apply and Reset buttons
+    buttons_row = settings_view.controls[-1]
+    assert isinstance(buttons_row, ft.Row)
+    apply_btn = buttons_row.controls[0]
+    reset_btn = buttons_row.controls[1]
+
+    assert apply_btn.content == "Apply"
+    assert reset_btn.content == "Reset to Default"
+
+    # Trigger Apply
+    apply_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert apply_called
+    assert settings_view.state.settings["primability_cutoff"] == "0.95"
+    assert settings_view.state.settings["amp4_compat"] is True
+
+    # Trigger Reset
+    reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert reset_called
+    # Settings should be back to default
+    assert settings_view.state.settings["primability_cutoff"] == "0.8"
+    assert settings_view.state.settings["amp4_compat"] is False
+    # Controls should be updated too
+    assert settings_view.set_primability_cutoff.value == "0.8"
+    assert settings_view.set_amp4_compat.value is False
