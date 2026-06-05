@@ -110,7 +110,7 @@ def test_pcr_add_primer_duplicates() -> None:
         pcr.add_primer(primer_same_name)
 
     # Different name, same sequence
-    primer_same_seq = Primer(primer_11bp.seq, name="AnotherName")
+    primer_same_seq = Primer(primer_11bp.seq.swapcase(), name="AnotherName")
     with pytest.raises(DuplicatedSequenceError):
         pcr.add_primer(primer_same_seq)
 
