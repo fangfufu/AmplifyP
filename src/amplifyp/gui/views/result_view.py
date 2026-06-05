@@ -276,15 +276,23 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 rev_bindings = {}
                 for amp in pcr.amplicons:
                     fwd_conf = next(
-                        c
-                        for c in pcr.amplicon_generator.repliconfs
-                        if c.primer == amp.fwd_origin
+                        (
+                            c
+                            for c in pcr.amplicon_generator.repliconfs
+                            if c.primer == amp.fwd_origin
+                        ),
+                        None,
                     )
                     rev_conf = next(
-                        c
-                        for c in pcr.amplicon_generator.repliconfs
-                        if c.primer == amp.rev_origin
+                        (
+                            c
+                            for c in pcr.amplicon_generator.repliconfs
+                            if c.primer == amp.rev_origin
+                        ),
+                        None,
                     )
+                    if fwd_conf is None or rev_conf is None:
+                        continue
                     fwd_quality = fwd_conf.origin(amp.start).quality
                     rev_quality = rev_conf.origin(amp.end).quality
 
@@ -639,6 +647,21 @@ class ResultView(ft.Column):  # type: ignore[misc]
         from amplifyp.dna import DNAType
         from amplifyp.gui.util import create_overlapped_sequence_view
 
+        def get_template_substring(
+            template: DNA, start: int, length: int
+        ) -> str:
+            N_len = len(template)
+            if template.type == DNAType.CIRCULAR:
+                return "".join(
+                    template.seq[i % N_len]
+                    for i in range(start, start + length)
+                ).upper()
+            else:
+                return "".join(
+                    template.seq[i] if 0 <= i < N_len else "-"
+                    for i in range(start, start + length)
+                ).upper()
+
         # Calculate genomic start index (0-indexed)
         if var.direction == DNADirection.FWD:
             start_genomic = (padded_idx - L) % N
@@ -673,21 +696,6 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
             # Combined top line:
             top_line = f"{top_line}\n{arrow_line}"
-
-            def get_template_substring(
-                template: DNA, start: int, length: int
-            ) -> str:
-                N_len = len(template)
-                if template.type == DNAType.CIRCULAR:
-                    return "".join(
-                        template.seq[i % N_len]
-                        for i in range(start, start + length)
-                    ).upper()
-                else:
-                    return "".join(
-                        template.seq[i] if 0 <= i < N_len else "-"
-                        for i in range(start, start + length)
-                    ).upper()
 
             upstream_seq = get_template_substring(
                 conf.template, start_genomic - 20, 20
@@ -739,21 +747,6 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
             # Combined top line:
             top_line = f"{top_line}\n{arrow_line}"
-
-            def get_template_substring(
-                template: DNA, start: int, length: int
-            ) -> str:
-                N_len = len(template)
-                if template.type == DNAType.CIRCULAR:
-                    return "".join(
-                        template.seq[i % N_len]
-                        for i in range(start, start + length)
-                    ).upper()
-                else:
-                    return "".join(
-                        template.seq[i] if 0 <= i < N_len else "-"
-                        for i in range(start, start + length)
-                    ).upper()
 
             upstream_seq = get_template_substring(
                 conf.template, start_genomic - 20, 20

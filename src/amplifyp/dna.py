@@ -260,7 +260,7 @@ class DNA:
         """Check if two DNA objects are equal.
 
         Equality is determined by case-insensitive sequence comparison
-        or matching name.
+        along with direction and type.
 
         Args:
             other (object): The object to compare with.
@@ -270,7 +270,11 @@ class DNA:
         """
         if not isinstance(other, DNA):
             return NotImplemented
-        return self._seq_upper == other._seq_upper or self.name == other.name
+        return (
+            self._seq_upper == other._seq_upper
+            and self.direction == other.direction
+            and self.type == other.type
+        )
 
     def __hash__(self) -> int:
         """Return a hash value for the DNA object.
