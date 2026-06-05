@@ -221,3 +221,31 @@ def test_input_view_trailing_row_activation() -> None:
     assert state.primers[1]["name"] == ""
     assert state.primers[1]["seq"] == ""
     assert state.primers[1]["active"] is False
+
+
+def test_input_view_clear_buttons() -> None:
+    """Test that clear template and clear primers buttons work correctly."""
+    mock_page = MagicMock(spec=ft.Page)
+    state = GUIState()
+    state.template = "ATGATGC"
+    state.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    view = InputView(mock_page, state)
+    view.update_ui()
+
+    assert view.template_sequence.value == "ATGATGC"
+    assert len(state.primers) == 3  # 2 loaded + 1 trailing empty
+
+    # 1. Trigger clear template button
+    view.clear_template(MagicMock(spec=ft.ControlEvent))
+    assert view.template_sequence.value == ""
+    assert state.template == ""
+
+    # 2. Trigger clear primers button
+    view.clear_primers(MagicMock(spec=ft.ControlEvent))
+    assert len(state.primers) == 1  # only trailing empty remaining
+    assert state.primers[0]["name"] == ""
+    assert state.primers[0]["seq"] == ""

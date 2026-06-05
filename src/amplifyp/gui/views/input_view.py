@@ -112,6 +112,19 @@ class InputView(ft.Row):  # type: ignore[misc]
             height=40,
         )
 
+        self.clear_template_button = ft.IconButton(
+            icon=ft.Icons.DELETE_OUTLINE,
+            tooltip="Clear Template",
+            on_click=self.clear_template,
+            icon_size=20,
+        )
+        self.clear_primers_button = ft.IconButton(
+            icon=ft.Icons.DELETE_OUTLINE,
+            tooltip="Clear All Primers",
+            on_click=self.clear_primers,
+            icon_size=20,
+        )
+
         self.top_container = ft.Container(
             content=ft.Column(
                 [
@@ -120,7 +133,14 @@ class InputView(ft.Row):  # type: ignore[misc]
                             ft.Text(
                                 "Template Sequence", weight=ft.FontWeight.BOLD
                             ),
-                            self.template_circular,
+                            ft.Row(
+                                [
+                                    self.template_circular,
+                                    self.clear_template_button,
+                                ],
+                                spacing=5,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         height=30,
@@ -148,7 +168,14 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.bottom_container = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text("Primers", weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        [
+                            ft.Text("Primers", weight=ft.FontWeight.BOLD),
+                            self.clear_primers_button,
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        height=30,
+                    ),
                     ft.Container(
                         content=ft.Column(
                             [
@@ -450,7 +477,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             name_edit = ft.TextField(
                 value=name_val,
-                hint_text="Primer Name",
+                hint_text="New Primer Name",
                 dense=True,
                 content_padding=ft.Padding(5, 0, 0, 0),
                 height=30,
@@ -462,7 +489,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             seq_edit = ft.TextField(
                 value=seq_val,
-                hint_text="Primer Sequence",
+                hint_text="New Primer Sequence",
                 dense=True,
                 expand=True,
                 content_padding=ft.Padding(5, 0, 0, 0),
@@ -534,6 +561,24 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.sync_to_state()
         if self.on_change:
             self.on_change(e)
+
+    def clear_template(self, e: ft.ControlEvent) -> None:
+        """Clear the template sequence."""
+        self.template_sequence.value = ""
+        self.sync_to_state()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def clear_primers(self, e: ft.ControlEvent) -> None:
+        """Clear all primers."""
+        self.state.primers = []
+        self.update_ui()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
 
     def remove_primer(self, e: ft.ControlEvent, name: str, seq: str) -> None:
         """Handle removing a primer."""
