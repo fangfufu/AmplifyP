@@ -15,7 +15,12 @@
 
 import pytest
 
-from amplifyp.errors import DuplicatedPrimerError, PrimerNotFoundError
+from amplifyp.dna import Primer
+from amplifyp.errors import (
+    DuplicatedNameError,
+    DuplicatedSequenceError,
+    PrimerNotFoundError,
+)
 from amplifyp.pcr import PCR
 from tests.examples.amplify4_examples import (
     amplify4_circular_example,
@@ -91,12 +96,23 @@ def test_pcr_linear() -> None:
 
 
 def test_pcr_add_primer_duplicates() -> None:
-    """Test that adding a duplicate primer raises DuplicatedPrimerError."""
+    """Test that duplicate primers raise the correct error.
+
+    DuplicatedNameError is raised for a matching name, and
+    DuplicatedSequenceError is raised for a matching sequence.
+    """
     pcr = PCR(amplify4_linear_example)
     pcr.add_primer(primer_11bp)
 
-    with pytest.raises(DuplicatedPrimerError):
-        pcr.add_primer(primer_11bp)
+    # Same name, different sequence
+    primer_same_name = Primer("GGTTCCAA", name=primer_11bp.name)
+    with pytest.raises(DuplicatedNameError):
+        pcr.add_primer(primer_same_name)
+
+    # Different name, same sequence
+    primer_same_seq = Primer(primer_11bp.seq.swapcase(), name="AnotherName")
+    with pytest.raises(DuplicatedSequenceError):
+        pcr.add_primer(primer_same_seq)
 
 
 def test_pcr_remove_primer() -> None:

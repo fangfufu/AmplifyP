@@ -50,12 +50,16 @@ def test_gui_state_save_load() -> None:
     input_view.add_primer_clicked(MagicMock())
 
     # Find the second primer checkbox and uncheck it
-    # accessing the last added primer
-    last_tile = input_view.primers_list.controls[-1]
-    if isinstance(last_tile, ft.ListTile) and isinstance(
-        last_tile.leading, ft.Checkbox
-    ):
-        last_tile.leading.value = False
+    last_container = input_view.primers_list.controls[1]
+    last_row = last_container.content
+    cb_control = last_row.controls[0]
+    checkbox = (
+        cb_control.content
+        if isinstance(cb_control, ft.Container)
+        else cb_control
+    )
+    if isinstance(checkbox, ft.Checkbox):
+        checkbox.value = False
 
     # 2. Setup SettingsView with modified settings
     settings_view = SettingsView(mock_page)

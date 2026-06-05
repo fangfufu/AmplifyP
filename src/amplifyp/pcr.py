@@ -17,7 +17,11 @@
 
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import DNA, Primer
-from amplifyp.errors import DuplicatedPrimerError, PrimerNotFoundError
+from amplifyp.errors import (
+    DuplicatedNameError,
+    DuplicatedSequenceError,
+    PrimerNotFoundError,
+)
 from amplifyp.repliconf import Repliconf
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
@@ -52,10 +56,20 @@ class PCR:
             primer (Primer): The primer to add.
 
         Raises:
-            DuplicatedPrimerError: If the primer is already added.
+            DuplicatedNameError: If a primer with the same name is
+                already added.
+            DuplicatedSequenceError: If a primer with the same sequence
+                is already added.
         """
-        if primer in self.__primers:
-            raise DuplicatedPrimerError(f"Primer {primer} already added")
+        for p in self.__primers:
+            if p.name == primer.name:
+                raise DuplicatedNameError(
+                    f"Primer name '{primer.name}' already added"
+                )
+            if p.seq.upper() == primer.seq.upper():
+                raise DuplicatedSequenceError(
+                    f"Primer sequence '{primer.seq}' already added"
+                )
         self.__primers.append(primer)
         repliconf = Repliconf(self.template, primer)
         self.amplicon_generator.add_repliconf(repliconf)

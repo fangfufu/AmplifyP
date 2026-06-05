@@ -106,7 +106,10 @@ def main(page: ft.Page) -> None:
         page.update()
 
     input_view = InputView(
-        page, state, on_change=lambda e: update_results_button_state()
+        page,
+        state,
+        on_change=lambda e: update_results_button_state(),
+        on_stop_editing=update_results_button_state,
     )
     settings_view = SettingsView(
         page, state, on_change=lambda e: update_results_button_state()

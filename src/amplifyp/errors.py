@@ -29,5 +29,9 @@ class PrimerNotFoundError(ValueError):
     """Exception raised when a primer is not found."""
 
 
-class DuplicatedPrimerError(ValueError):
-    """Exception raised when a primer is already added."""
+class DuplicatedNameError(ValueError):
+    """Exception raised when a primer name is already added."""
+
+
+class DuplicatedSequenceError(ValueError):
+    """Exception raised when a primer sequence is already added."""
