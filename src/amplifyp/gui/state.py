@@ -102,8 +102,8 @@ class GUIState:
             p
             for p in self.primers
             if p.get("active", True)
-            and str(p.get("name", "")).strip()
-            and clean_sequence(str(p.get("seq", ""))).strip()
+            and str(p.get("name") or "").strip()
+            and clean_sequence(str(p.get("seq") or "")).strip()
         ]
 
     def to_dict(self) -> dict[str, Any]:
