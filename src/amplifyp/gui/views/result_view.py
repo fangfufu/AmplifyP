@@ -646,7 +646,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
         origin = conf.origin(var)
         if origin is None:
-            return ft.Card(content=ft.Text("Error: Replication origin not found"))
+            return ft.Card(
+                content=ft.Text("Error: Replication origin not found")
+            )
         L = len(conf.primer)
         N = len(conf.template)
 
