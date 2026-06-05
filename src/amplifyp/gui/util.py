@@ -56,36 +56,39 @@ def create_overlapped_sequence_view(
     top_line: str,
     mid_line: str,
     bottom_line: str,
+    font_family: str = "Roboto Mono",
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
     Uses TextSpans for the visual representation.
     """
+    from amplifyp.gui.state import GUIColors
+
     return ft.Text(
         spans=[
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    color=ft.Colors.ON_SURFACE,
+                    color=GUIColors.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=ft.Colors.GREEN_400,
+                    color=GUIColors.SUCCESS_GREEN,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 bottom_line,
                 style=ft.TextStyle(
-                    color=ft.Colors.ON_SURFACE,
+                    color=GUIColors.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
         ],
-        font_family="Roboto Mono",
+        font_family=font_family,
         size=14,
         selectable=True,
     )

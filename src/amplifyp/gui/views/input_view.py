@@ -12,7 +12,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.state import GUIColors, GUIState
 from amplifyp.gui.util import clean_sequence, format_sequence
 
 
@@ -36,6 +36,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.on_stop_editing_callback = on_stop_editing
         self._focus_timer: threading.Timer | None = None
 
+        font_family = self.state.settings.get("font_family", "Roboto Mono")
+
         self.template_sequence = ft.TextField(
             multiline=True,
             max_lines=None,
@@ -47,7 +49,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             on_focus=self.handle_field_focus,
             on_blur=self.handle_field_blur,
             on_submit=self.handle_field_submit,
-            text_style=ft.TextStyle(font_family="Roboto Mono"),
+            text_style=ft.TextStyle(font_family=font_family),
         )
         self.template_circular = ft.Checkbox(
             label="Circular Template",
@@ -70,7 +72,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 ),
                 ft.Container(
                     width=4,
-                    bgcolor=ft.Colors.GREY_400,
+                    bgcolor=GUIColors.DIVIDER_GREY,
                     margin=0,
                     height=36,
                 ),
@@ -84,7 +86,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     on_pan_update=self.on_primer_divider_pan,
                     content=ft.Container(
                         width=4,
-                        bgcolor=ft.Colors.GREY_400,
+                        bgcolor=GUIColors.DIVIDER_GREY,
                         margin=0,
                         height=36,
                     ),
@@ -106,21 +108,21 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.primers_header_container = ft.Container(
             content=self.primers_header,
             padding=0,
-            border=ft.Border(bottom=ft.BorderSide(4, ft.Colors.GREY_400)),
+            border=ft.Border(bottom=ft.BorderSide(4, GUIColors.DIVIDER_GREY)),
             height=40,
         )
         self.primer_name_input = ft.TextField(
-            hint_text="Primer Name",
+            hint_text="New Primer Name",
             expand=1,
             dense=True,
             on_focus=self.handle_field_focus,
             on_blur=self.handle_field_blur,
         )
         self.primer_seq_input = ft.TextField(
-            hint_text="Primer Sequence",
+            hint_text="New Primer Sequence",
             expand=2,
             dense=True,
-            text_style=ft.TextStyle(font_family="Roboto Mono"),
+            text_style=ft.TextStyle(font_family=font_family),
             on_focus=self.handle_field_focus,
             on_blur=self.handle_field_blur,
             on_submit=self.add_primer_clicked,
@@ -146,7 +148,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             scroll=ft.ScrollMode.ALWAYS,
                         ),
                         expand=True,
-                        border=ft.Border.all(1, ft.Colors.OUTLINE),
+                        border=ft.Border.all(1, GUIColors.OUTLINE),
                         border_radius=5,
                         padding=0,
                     ),
@@ -173,7 +175,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             spacing=0,
                         ),
                         expand=True,
-                        border=ft.Border.all(1, ft.Colors.OUTLINE),
+                        border=ft.Border.all(1, GUIColors.OUTLINE),
                         border_radius=5,
                         padding=0,
                     ),
@@ -187,7 +189,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             on_pan_update=self.on_pan_update,
             content=ft.Container(
                 width=5,
-                bgcolor=ft.Colors.GREY_400,
+                bgcolor=GUIColors.DIVIDER_GREY,
                 border_radius=5,
                 margin=ft.Margin.symmetric(horizontal=5),
             ),
@@ -363,7 +365,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             if s_lower and seqs_count.get(s_lower, 0) > 1:
                 is_dup = True
 
-            new_color = ft.Colors.RED_100 if is_dup else None
+            new_color = GUIColors.DUPLICATE_BG if is_dup else None
             if container.bgcolor != new_color:
                 container.bgcolor = new_color
 
@@ -408,6 +410,11 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
+        font_family = self.state.settings.get("font_family", "Roboto Mono")
+        self.template_sequence.text_style = ft.TextStyle(
+            font_family=font_family
+        )
+        self.primer_seq_input.text_style = ft.TextStyle(font_family=font_family)
         self.template_sequence.value = self.state.template
         self.template_circular.value = self.state.template_circular
 
@@ -478,7 +485,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 content_padding=ft.Padding(5, 0, 0, 0),
                 height=30,
                 border=ft.InputBorder.NONE,
-                text_style=ft.TextStyle(font_family="Roboto Mono"),
+                text_style=ft.TextStyle(font_family=font_family),
                 on_focus=self.handle_field_focus,
                 on_blur=self.handle_field_blur,
                 on_submit=self.handle_field_submit,
@@ -487,7 +494,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 on_pan_update=self.on_primer_divider_pan,
                 content=ft.Container(
                     width=4,
-                    bgcolor=ft.Colors.GREY_400,
+                    bgcolor=GUIColors.DIVIDER_GREY,
                     margin=0,
                     height=30,
                 ),
@@ -496,7 +503,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             active_divider = ft.Container(
                 width=4,
-                bgcolor=ft.Colors.GREY_400,
+                bgcolor=GUIColors.DIVIDER_GREY,
                 margin=0,
                 height=30,
             )
@@ -515,7 +522,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             row_container = ft.Container(
                 content=row,
-                bgcolor=ft.Colors.RED_100 if is_dup else None,
+                bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
                 padding=0,
                 height=30,
             )

@@ -22,11 +22,13 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.state import GUIColors, GUIState
 from amplifyp.gui.util import create_overlapped_sequence_view
 
 
-def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
+def create_primer_dimer_card(
+    d: PrimerDimer, font_family: str = "Roboto Mono"
+) -> ft.Card:
     """Create a Flet Card showing visually aligned primer dimer results."""
     p1_name = d.primer_1.name
     p2_name = d.primer_2.name
@@ -41,7 +43,9 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
     p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
 
     # Create visual alignment stack using generic helper
-    diagram_stack = create_overlapped_sequence_view(p2_line, mid_line, p1_line)
+    diagram_stack = create_overlapped_sequence_view(
+        p2_line, mid_line, p1_line, font_family=font_family
+    )
 
     is_self = p1_name == p2_name and seq1 == seq2
     dimer_title = (
@@ -72,10 +76,10 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                         content=ft.Text(
                                             f"Overlap: {d.overlap} bp",
                                             weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.ON_SURFACE,
+                                            color=GUIColors.TEXT_ON_SURFACE,
                                             size=12,
                                         ),
-                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
                                         border_radius=4,
                                     ),
@@ -83,10 +87,10 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                         content=ft.Text(
                                             quality_text,
                                             weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.ON_SURFACE,
+                                            color=GUIColors.TEXT_ON_SURFACE,
                                             size=12,
                                         ),
-                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
                                         border_radius=4,
                                     ),
@@ -106,7 +110,7 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                         ),
                         padding=12,
                         border_radius=6,
-                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                        border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                         height=110,
                     ),
                 ]
@@ -162,14 +166,17 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     )
                 )
             else:
+                font_family = self.state.settings.get(
+                    "font_family", "Roboto Mono"
+                )
                 for d in dimers:
-                    card = create_primer_dimer_card(d)
+                    card = create_primer_dimer_card(d, font_family=font_family)
                     self.result_list.controls.append(card)
         except Exception as ex:
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",
-                    color=ft.Colors.RED,
+                    color=GUIColors.ERROR_RED,
                 )
             )
             self.show_error_dialog("Error running analysis", str(ex))
@@ -183,7 +190,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
             self.app_page.update()
 
         dialog = ft.AlertDialog(
-            title=ft.Text(title, color=ft.Colors.RED),
+            title=ft.Text(title, color=GUIColors.ERROR_RED),
             content=ft.Text(message),
             actions=[ft.TextButton("OK", on_click=close_dlg)],
             actions_alignment=ft.MainAxisAlignment.END,

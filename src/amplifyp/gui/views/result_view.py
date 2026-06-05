@@ -22,6 +22,7 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.gui.state import GUIColors
 from amplifyp.pcr import PCR
 
 
@@ -70,7 +71,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         self.diagram_container = ft.Container(
             content=self.diagram_stack,
             visible=False,
-            border=ft.Border.all(1, ft.Colors.OUTLINE),
+            border=ft.Border.all(1, GUIColors.OUTLINE),
             border_radius=5,
             padding=10,
             height=300,
@@ -79,7 +80,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             on_pan_update=self.on_pan_update,
             content=ft.Container(
                 height=5,
-                bgcolor=ft.Colors.GREY_400,
+                bgcolor=GUIColors.DIVIDER_GREY,
                 border_radius=5,
                 margin=ft.Margin.symmetric(vertical=5),
             ),
@@ -180,7 +181,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 if target_length > 0:
                     # Draw vertical boundary lines at start and end of template
                     boundary_paint = ft.Paint(
-                        color=ft.Colors.BLACK,
+                        color=GUIColors.DIAGRAM_BLACK,
                         style=ft.PaintingStyle.STROKE,
                         stroke_width=1.0,
                     )
@@ -214,7 +215,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             style=ft.TextStyle(
                                 size=14,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                             ),
                         )
                     )
@@ -226,7 +227,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             style=ft.TextStyle(
                                 size=14,
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                             ),
                             text_align=ft.TextAlign.RIGHT,
                         )
@@ -240,7 +241,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(c_width - h_margin, v_target),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=2.5,
                             ),
@@ -255,7 +256,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         tick_interval = 500
 
                     tick_paint = ft.Paint(
-                        color=ft.Colors.BLACK,
+                        color=GUIColors.DIAGRAM_BLACK,
                         style=ft.PaintingStyle.STROKE,
                         stroke_width=1.0,
                     )
@@ -337,7 +338,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(x_pos, v_target - 25),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLUE_800,
+                                color=GUIColors.FWD_PRIMER,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=1.0,
                             ),
@@ -360,7 +361,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.Close(),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLUE_800,
+                                color=GUIColors.FWD_PRIMER,
                                 style=ft.PaintingStyle.FILL,
                             ),
                         )
@@ -369,7 +370,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                     self.diagram_stack.controls.append(
                         ft.Text(
                             name,
-                            color=ft.Colors.BLUE_800,
+                            color=GUIColors.FWD_PRIMER,
                             size=11,
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
@@ -393,7 +394,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             mouse_cursor=ft.MouseCursor.CLICK,
                             on_tap=fwd_tap,
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=20,
                                 height=25 + S,
                             ),
@@ -422,7 +423,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(x_pos, v_target + 25),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.RED_ACCENT_700,
+                                color=GUIColors.REV_PRIMER,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=1.0,
                             ),
@@ -445,7 +446,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.Close(),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.RED_ACCENT_700,
+                                color=GUIColors.REV_PRIMER,
                                 style=ft.PaintingStyle.FILL,
                             ),
                         )
@@ -454,7 +455,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                     self.diagram_stack.controls.append(
                         ft.Text(
                             name,
-                            color=ft.Colors.RED_800,
+                            color=GUIColors.REV_LABEL,
                             size=11,
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
@@ -478,7 +479,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             mouse_cursor=ft.MouseCursor.CLICK,
                             on_tap=rev_tap,
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=20,
                                 height=25 + S,
                             ),
@@ -523,7 +524,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
                     # Amplicon Bar (Black, filling path)
                     amp_paint = ft.Paint(
-                        color=ft.Colors.BLACK, style=ft.PaintingStyle.FILL
+                        color=GUIColors.DIAGRAM_BLACK,
+                        style=ft.PaintingStyle.FILL,
                     )
                     if amp.circular:
                         self.diagram_canvas.shapes.append(
@@ -565,7 +567,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             label_x,
                             y_pos + bar_height + 5,
                             str(len(amp.product)),
-                            style=ft.TextStyle(size=11, color=ft.Colors.BLACK),
+                            style=ft.TextStyle(
+                                size=11, color=GUIColors.DIAGRAM_BLACK
+                            ),
                             text_align=ft.TextAlign.CENTER,
                         )
                     )
@@ -585,7 +589,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 a
                             ),
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=amp_width,
                                 height=20 + bar_height,
                             ),
@@ -599,7 +603,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",
-                    color=ft.Colors.RED,
+                    color=GUIColors.ERROR_RED,
                 )
             )
             self.show_error_dialog("Error running PCR", str(ex))
@@ -773,10 +777,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 f"{binding_seq}{downstream_seq}-3'"
             )
 
+        font_family = self.state.settings.get("font_family", "Roboto Mono")
         diagram_text = create_overlapped_sequence_view(
             top_line=top_line,
             mid_line=primer_line,
             bottom_line=bottom_line,
+            font_family=font_family,
         )
 
         return ft.Card(
@@ -808,7 +814,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             ),
                             padding=12,
                             border_radius=6,
-                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                         ),
                     ],
                     tight=True,
@@ -842,30 +848,31 @@ class ResultView(ft.Column):  # type: ignore[misc]
             mid_part = ""
             rev_part = ""
 
+        font_family = self.state.settings.get("font_family", "Roboto Mono")
         sequence_text = ft.Text(
             spans=[
                 ft.TextSpan(
                     fwd_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.BLUE_800,
+                        color=GUIColors.FWD_PRIMER,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
                 ft.TextSpan(
                     mid_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.ON_SURFACE,
+                        color=GUIColors.TEXT_ON_SURFACE,
                     ),
                 ),
                 ft.TextSpan(
                     rev_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.RED_800,
+                        color=GUIColors.REV_LABEL,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
             ],
-            font_family="Roboto Mono",
+            font_family=font_family,
             size=13,
             selectable=True,
         )
@@ -924,7 +931,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             ),
                             padding=12,
                             border_radius=6,
-                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                             height=150,
                         ),
                     ]
@@ -942,7 +949,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             self.app_page.update()
 
         dialog = ft.AlertDialog(
-            title=ft.Text(title, color=ft.Colors.RED),
+            title=ft.Text(title, color=GUIColors.ERROR_RED),
             content=ft.Text(message),
             actions=[ft.TextButton("OK", on_click=close_dlg)],
             actions_alignment=ft.MainAxisAlignment.END,
