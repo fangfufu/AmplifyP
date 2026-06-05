@@ -16,14 +16,13 @@
 """Primer Dimer View for the Flet application."""
 
 import traceback
-from typing import Any
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.state import GUIColors, GUIState
-from amplifyp.gui.util import create_overlapped_sequence_view
+from amplifyp.gui.util import create_overlapped_sequence_view, show_error_dialog
 
 
 def create_primer_dimer_card(
@@ -184,17 +183,4 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
 
     def show_error_dialog(self, title: str, message: str) -> None:
         """Show an error dialog popup."""
-
-        def close_dlg(e: Any) -> None:
-            dialog.open = False
-            self.app_page.update()
-
-        dialog = ft.AlertDialog(
-            title=ft.Text(title, color=GUIColors.ERROR_RED),
-            content=ft.Text(message),
-            actions=[ft.TextButton("OK", on_click=close_dlg)],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        self.app_page.overlay.append(dialog)
-        dialog.open = True
-        self.app_page.update()
+        show_error_dialog(self.app_page, title, message)

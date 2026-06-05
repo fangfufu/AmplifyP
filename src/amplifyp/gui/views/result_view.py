@@ -941,22 +941,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
     def show_error_dialog(self, title: str, message: str) -> None:
         """Show an error dialog popup."""
+        from amplifyp.gui.util import show_error_dialog
 
-        def close_dlg(e: Any) -> None:
-            dialog.open = False
-            if dialog in self.app_page.overlay:
-                self.app_page.overlay.remove(dialog)
-            self.app_page.update()
-
-        dialog = ft.AlertDialog(
-            title=ft.Text(title, color=GUIColors.ERROR_RED),
-            content=ft.Text(message),
-            actions=[ft.TextButton("OK", on_click=close_dlg)],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        self.app_page.overlay.append(dialog)
-        dialog.open = True
-        self.app_page.update()
+        show_error_dialog(self.app_page, title, message)
 
     def show_amplicon_dialog(self, amp: Any) -> None:
         """Show details card of the selected amplicon below the overview map."""

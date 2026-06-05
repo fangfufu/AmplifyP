@@ -92,3 +92,26 @@ def create_overlapped_sequence_view(
         size=14,
         selectable=True,
     )
+
+
+def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
+    """Show an error dialog popup."""
+    from typing import Any
+
+    from amplifyp.gui.state import GUIColors
+
+    def close_dlg(e: Any) -> None:
+        dialog.open = False
+        if dialog in page.overlay:
+            page.overlay.remove(dialog)
+        page.update()
+
+    dialog = ft.AlertDialog(
+        title=ft.Text(title, color=GUIColors.ERROR_RED),
+        content=ft.Text(message),
+        actions=[ft.TextButton("OK", on_click=close_dlg)],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.overlay.append(dialog)
+    dialog.open = True
+    page.update()
