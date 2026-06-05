@@ -647,11 +647,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (9 chars + spaces + 5' ) = 12 characters prefix
-            # Spaces (20) to align with Context upstream
+            # prefix (12 characters)
+            # Spaces (17) to align 5'- next to the primer sequence
             primer_display_seq = conf.primer.seq
             primer_line = (
-                f"{primer_name:<9} 5' {' ' * 20}{primer_display_seq} 3'"
+                f"{primer_name:<12}{' ' * 17}5'-{primer_display_seq}-3'"
             )
 
             # Construct strength line:
@@ -699,11 +699,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 conf.template, start_genomic + L, 20
             )
 
-            context_line_prefix = "Context     "
+            context_line_prefix = "Context  "
             bottom_line = (
                 f"{bonds_line}\n"
-                f"{context_line_prefix}{upstream_seq}"
-                f"{binding_seq}{downstream_seq}"
+                f"{context_line_prefix}5'-{upstream_seq}"
+                f"{binding_seq}{downstream_seq}-3'"
             )
 
         else:  # DNADirection.REV
@@ -713,11 +713,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (9 chars + spaces + 3' ) = 12 characters prefix
-            # Spaces (20) to align with Context upstream
+            # prefix (12 characters)
+            # Spaces (17) to align 3'- next to the primer sequence
             primer_display_seq = conf.primer.seq[::-1]
             primer_line = (
-                f"{primer_name:<9} 3' {' ' * 20}{primer_display_seq} 5'"
+                f"{primer_name:<12}{' ' * 17}3'-{primer_display_seq}-5'"
             )
 
             # Construct strength line:
@@ -765,11 +765,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 conf.template, start_genomic + L, 20
             )
 
-            context_line_prefix = "Context     "
+            context_line_prefix = "Context  "
             bottom_line = (
                 f"{bonds_line}\n"
-                f"{context_line_prefix}{upstream_seq}"
-                f"{binding_seq}{downstream_seq}"
+                f"{context_line_prefix}5'-{upstream_seq}"
+                f"{binding_seq}{downstream_seq}-3'"
             )
 
         diagram_text = create_overlapped_sequence_view(
@@ -800,9 +800,14 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             ],
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
-                        ft.Row(
-                            [diagram_text],
-                            scroll=ft.ScrollMode.ALWAYS,
+                        ft.Container(
+                            content=ft.Row(
+                                [diagram_text],
+                                scroll=ft.ScrollMode.ALWAYS,
+                            ),
+                            padding=12,
+                            border_radius=6,
+                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
                         ),
                     ],
                     tight=True,
@@ -822,6 +827,47 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 self.result_list.controls.remove(card_ref.current)
                 self.update_cards_header_visibility()
                 self.app_page.update()
+
+        full_seq = str(amp.product.seq)
+        fwd_len = len(amp.fwd_origin.seq)
+        rev_len = len(amp.rev_origin.seq)
+
+        if len(full_seq) >= fwd_len + rev_len:
+            fwd_part = full_seq[:fwd_len]
+            mid_part = full_seq[fwd_len:-rev_len]
+            rev_part = full_seq[-rev_len:]
+        else:
+            fwd_part = full_seq
+            mid_part = ""
+            rev_part = ""
+
+        sequence_text = ft.Text(
+            spans=[
+                ft.TextSpan(
+                    fwd_part,
+                    style=ft.TextStyle(
+                        color=ft.Colors.BLUE_800,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ),
+                ft.TextSpan(
+                    mid_part,
+                    style=ft.TextStyle(
+                        color=ft.Colors.ON_SURFACE,
+                    ),
+                ),
+                ft.TextSpan(
+                    rev_part,
+                    style=ft.TextStyle(
+                        color=ft.Colors.RED_800,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                ),
+            ],
+            font_family="Roboto Mono",
+            size=13,
+            selectable=True,
+        )
 
         return ft.Card(
             ref=card_ref,
@@ -869,14 +915,16 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             weight=ft.FontWeight.BOLD,
                             selectable=True,
                         ),
-                        ft.TextField(
-                            value=str(amp.product.seq),
-                            read_only=True,
-                            multiline=True,
-                            min_lines=3,
-                            max_lines=8,
-                            expand=True,
-                            text_style=ft.TextStyle(font_family="Roboto Mono"),
+                        ft.Container(
+                            content=ft.Column(
+                                [sequence_text],
+                                scroll=ft.ScrollMode.ALWAYS,
+                                expand=True,
+                            ),
+                            padding=12,
+                            border_radius=6,
+                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                            height=150,
                         ),
                     ]
                 ),

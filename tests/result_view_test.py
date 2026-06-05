@@ -65,7 +65,7 @@ def test_result_view_click_context_map() -> None:
     assert "10290" in title_text
 
     # Extract diagram_text
-    diagram_text = card.content.content.controls[1].controls[0]
+    diagram_text = card.content.content.controls[1].content.controls[0]
     assert isinstance(diagram_text, ft.Text)
 
     # Check spans content
