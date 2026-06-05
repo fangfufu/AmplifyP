@@ -366,7 +366,6 @@ class InputView(ft.Row):  # type: ignore[misc]
             new_color = ft.Colors.RED_100 if is_dup else None
             if container.bgcolor != new_color:
                 container.bgcolor = new_color
-                should_rebuild = True
 
             primers.append(
                 {
