@@ -112,17 +112,17 @@ class InputView(ft.Row):  # type: ignore[misc]
             height=40,
         )
 
-        self.clear_template_button = ft.IconButton(
+        self.clear_template_button = ft.TextButton(
+            "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear Template",
             on_click=self.clear_template,
-            icon_size=20,
         )
-        self.clear_primers_button = ft.IconButton(
+        self.clear_primers_button = ft.TextButton(
+            "Clear All",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear All Primers",
             on_click=self.clear_primers,
-            icon_size=20,
         )
 
         self.top_container = ft.Container(
