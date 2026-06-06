@@ -28,10 +28,6 @@ from amplifyp.gui.views import (
     SettingsView,
 )
 
-DIMERS_LABEL = "Primer Dimers"
-
-STATE_FILE = "amplify_gui_state.yaml"
-
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
@@ -75,14 +71,14 @@ def main(page: ft.Page) -> None:
     )
 
     dimers_button = ft.FilledButton(
-        DIMERS_LABEL,
+        "Primer Dimers",
         ref=dimers_button_ref,
         on_click=on_dimers_click,
         disabled=True,
         icon=ft.Icons.COMPARE_ARROWS,
-        tooltip=DIMERS_LABEL,
+        tooltip="Primer Dimers",
     )
-    dimers_button.content_description = DIMERS_LABEL
+    dimers_button.content_description = "Primer Dimers"
 
     def update_results_button_state() -> None:
         """Enable results and dimers buttons only if input is valid."""
@@ -158,7 +154,7 @@ def main(page: ft.Page) -> None:
         try:
             file_path = await ft.FilePicker().save_file(
                 dialog_title="Save",
-                file_name=STATE_FILE,
+                file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 src_bytes=yaml_str.encode("utf-8"),
