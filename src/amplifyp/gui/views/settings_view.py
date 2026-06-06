@@ -174,7 +174,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 content=ft.Text(
                     "Primer / Template",
                     weight=ft.FontWeight.BOLD,
-                    size=15,
+                    size=11,
                 ),
                 width=120,
                 alignment=ft.Alignment(-1, 0),
