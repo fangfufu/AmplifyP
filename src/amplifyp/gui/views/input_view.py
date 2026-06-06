@@ -148,6 +148,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 weight=ft.FontWeight.BOLD,
                 size=self.settings.get("font_size_default", 14),
                 color=GUIColors.DIAGRAM_BLACK,
+                selectable=True,
             ),
             bgcolor=GUIColors.INFO_HEADER_BG,
             padding=ft.Padding(10, 5, 10, 5),
@@ -158,23 +159,28 @@ class InputView(ft.Row):  # type: ignore[misc]
             "",
             font_family=font_family,
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_tm_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_pairs_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_redundancy_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_dimer_text = ft.Text(
             "",
             color=GUIColors.ERROR_RED,
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
 
         self.primer_info_panel = ft.Container(
