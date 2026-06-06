@@ -120,13 +120,6 @@ class InputView(ft.Row):  # type: ignore[misc]
             height=40,
         )
 
-        self.clear_template_button = ft.OutlinedButton(
-            "Clear",
-            icon=ft.Icons.DELETE_OUTLINE,
-            tooltip="Clear Template",
-            on_click=self.clear_template,
-            height=32,
-        )
         self.clear_primers_button = ft.OutlinedButton(
             "Clear All",
             icon=ft.Icons.DELETE_OUTLINE,
@@ -143,14 +136,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             ft.Text(
                                 "Template Sequence", weight=ft.FontWeight.BOLD
                             ),
-                            ft.Row(
-                                [
-                                    self.circular_container,
-                                    self.clear_template_button,
-                                ],
-                                spacing=15,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
+                            self.circular_container,
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         height=40,
@@ -572,15 +558,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.sync_to_state()
         if self.on_change:
             self.on_change(e)
-
-    def clear_template(self, e: ft.ControlEvent) -> None:
-        """Clear the template sequence."""
-        self.template_sequence.value = ""
-        self.sync_to_state()
-        if self.on_change:
-            self.on_change(e)
-        if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
 
     def clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
