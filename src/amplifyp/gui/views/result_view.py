@@ -687,12 +687,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (12 characters)
-            # Spaces (17) to align 5'- next to the primer sequence
+            # prefix (29 chars to align 5'- next to primer seq)
             primer_display_seq = conf.primer.seq
-            primer_line = (
-                f"{primer_name:<12}{' ' * 17}5'-{primer_display_seq}-3'"
-            )
+            primer_label = f"{primer_name} (Forward)"
+            primer_line = f"{primer_label:<29}5'-{primer_display_seq}-3'"
 
             # Construct strength line:
             strength_display = origin.binding_strength_str[::-1]
@@ -738,12 +736,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (12 characters)
-            # Spaces (17) to align 3'- next to the primer sequence
+            # prefix (29 chars to align 3'- next to primer seq)
             primer_display_seq = conf.primer.seq[::-1]
-            primer_line = (
-                f"{primer_name:<12}{' ' * 17}3'-{primer_display_seq}-5'"
-            )
+            primer_label = f"{primer_name} (Reverse)"
+            primer_line = f"{primer_label:<29}3'-{primer_display_seq}-5'"
 
             # Construct strength line:
             strength_display = origin.binding_strength_str
