@@ -47,7 +47,7 @@ def main(page: ft.Page) -> None:
                 });
             """)
     else:
-        page.window_prevent_close = True
+        page.window.prevent_close = True
 
         def confirm_dismiss(e: ft.ControlEvent) -> None:
             confirm_dialog.open = False
@@ -76,7 +76,7 @@ def main(page: ft.Page) -> None:
                 confirm_dialog.open = True
                 page.update()
 
-        page.on_window_event = on_window_event
+        page.window.on_event = on_window_event
 
     # Centralize state storage
     input_data = GUIInput()
