@@ -234,8 +234,8 @@ def test_e2e_primer_dimer_alignment(
     # Wait for the primer name input to appear — confirms Pyodide is fully
     # initialized and the semantics tree is ready. Much more reliable than
     # a fixed sleep.
-    NAME_SEL = 'input[aria-label="Primer Name"]'
-    SEQ_SEL = 'input[aria-label="Primer Sequence"]'
+    NAME_SEL = 'input[aria-label="New Primer Name"]'
+    SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
     page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
 
     # 2. Enter Primer Details - with retry to handle dropped first keystrokes
