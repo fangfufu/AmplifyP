@@ -56,6 +56,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             value=False,
             on_change=self.on_change_handler,
         )
+        self.circular_container = ft.Container(
+            content=self.template_circular,
+            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border_radius=5,
+            padding=ft.Padding(10, 0, 10, 0),
+            height=32,
+            alignment=ft.Alignment(0, 0),
+        )
 
         self.name_column_width = 150.0
         self.primers_list = ft.ListView(
@@ -137,10 +145,10 @@ class InputView(ft.Row):  # type: ignore[misc]
                             ),
                             ft.Row(
                                 [
-                                    self.template_circular,
+                                    self.circular_container,
                                     self.clear_template_button,
                                 ],
-                                spacing=5,
+                                spacing=15,
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
                         ],
