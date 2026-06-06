@@ -291,3 +291,45 @@ def test_input_view_primer_info_panel() -> None:
     assert view.info_header.content.value == "Primer: P2"
     assert "2 redundant bases" in view.info_redundancy_text.value
     assert "redundancy fold = 4" in view.info_redundancy_text.value
+
+
+def test_input_view_sequence_validation() -> None:
+    """Test that invalid sequence characters trigger validation errors."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    container = view.primers_list.controls[0]
+    row = container.content
+    seq_field = row.controls[4]
+
+    # Verify no error initially
+    assert seq_field.error is None
+    assert container.height == 30
+
+    # Put an invalid character (X) in sequence
+    seq_field.value = "GCATGCATGX"
+    view.sync_to_state()
+
+    # Re-fetch elements since view rebuilt
+    container = view.primers_list.controls[0]
+    row = container.content
+    seq_field = row.controls[4]
+
+    assert seq_field.error is not None
+    assert "contains invalid characters" in seq_field.error
+    assert container.height is None  # Row container expanded/autosized
+
+    # Fix the sequence
+    seq_field.value = "GCATGCATGC"
+    view.sync_to_state()
+
+    container = view.primers_list.controls[0]
+    row = container.content
+    seq_field = row.controls[4]
+
+    assert seq_field.error is None
+    assert container.height == 30

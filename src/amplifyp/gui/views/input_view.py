@@ -39,6 +39,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.on_stop_editing_callback = on_stop_editing
         self._focus_timer: threading.Timer | None = None
         self.focused_primer_index: int | None = None
+        self.validation_errors: list[str | None] = []
 
         font_family = self.settings.get("font_family", "Roboto Mono")
 
@@ -299,6 +300,8 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
+        self.sync_to_state()
+
         if self._focus_timer is not None:
             self._focus_timer.cancel()
             self._focus_timer = None
@@ -306,7 +309,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         def timer_callback() -> None:
             if not self.page:
                 return
-            self.sync_to_state()
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback()
 
@@ -483,6 +485,24 @@ class InputView(ft.Row):  # type: ignore[misc]
         )
         should_rebuild = should_rebuild or dup_rebuild
 
+        # Run background primer construction/validation
+        new_validation_errors = []
+        for p in primers:
+            name_val = p["name"]
+            seq_val = p["seq"]
+            error_message = None
+            if seq_val:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError as ex:
+                    error_message = str(ex)
+            new_validation_errors.append(error_message)
+
+        if getattr(self, "validation_errors", []) != new_validation_errors:
+            should_rebuild = True
+
         # If the number of non-empty primers changed, we rebuild
         if len(primers) != len(
             [
@@ -532,10 +552,21 @@ class InputView(ft.Row):  # type: ignore[misc]
             if s_lower:
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
+        self.validation_errors = []
         for idx, p in enumerate(self.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
+
+            error_message = None
+            if seq_val:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError as ex:
+                    error_message = str(ex)
+            self.validation_errors.append(error_message)
 
             n_lower = name_val.strip().lower()
             s_lower = seq_val.lower()
@@ -573,7 +604,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 dense=True,
                 expand=True,
                 content_padding=ft.Padding(5, 0, 0, 0),
-                height=30,
+                height=30 if not error_message else None,
                 border=ft.InputBorder.NONE,
                 text_style=ft.TextStyle(font_family=font_family),
                 data=idx,
@@ -581,6 +612,8 @@ class InputView(ft.Row):  # type: ignore[misc]
                 on_blur=self.handle_field_blur,
                 on_submit=self.handle_field_submit,
             )
+            if error_message:
+                seq_edit.error = error_message
             divider = ft.GestureDetector(
                 on_pan_update=self.on_primer_divider_pan,
                 content=ft.Container(
@@ -615,7 +648,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 content=row,
                 bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
                 padding=0,
-                height=30,
+                height=30 if not error_message else None,
             )
             self.primers_list.controls.append(row_container)
 
