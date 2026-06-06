@@ -181,96 +181,85 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 )
 
         # Build Base Pair Scores Styled Table (matching primer table)
-        header_controls = [
-            ft.Stack(
-                [
-                    ft.canvas.Canvas(
-                        [
-                            ft.canvas.Line(
-                                0,
-                                0,
-                                70,
-                                36,
-                                paint=ft.Paint(
-                                    color=GUIColors.DIVIDER_GREY, stroke_width=1
-                                ),
-                            )
-                        ],
-                        width=70,
-                        height=36,
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            "Template",
-                            weight=ft.FontWeight.BOLD,
-                            size=font_size_micro,
+        bp_columns = [
+            ft.DataColumn(
+                ft.Stack(
+                    [
+                        ft.canvas.Canvas(
+                            [
+                                ft.canvas.Line(
+                                    0,
+                                    8,
+                                    70,
+                                    34,
+                                    paint=ft.Paint(
+                                        color=GUIColors.DIVIDER_GREY,
+                                        stroke_width=1,
+                                    ),
+                                )
+                            ],
+                            width=70,
+                            height=36,
                         ),
-                        alignment=ft.Alignment(1, -1),
-                        padding=ft.Padding(0, 2, 5, 0),
-                        width=70,
-                        height=36,
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            "Primer",
-                            weight=ft.FontWeight.BOLD,
-                            size=font_size_micro,
+                        ft.Container(
+                            content=ft.Text(
+                                "Template",
+                                weight=ft.FontWeight.BOLD,
+                                size=font_size_micro,
+                            ),
+                            alignment=ft.Alignment(1, -1),
+                            padding=ft.Padding(0, 2, 5, 0),
+                            width=70,
+                            height=36,
                         ),
-                        alignment=ft.Alignment(-1, 1),
-                        padding=ft.Padding(5, 0, 0, 2),
-                        width=70,
-                        height=36,
-                    ),
-                ],
-                width=70,
-                height=36,
+                        ft.Container(
+                            content=ft.Text(
+                                "Primer",
+                                weight=ft.FontWeight.BOLD,
+                                size=font_size_micro,
+                            ),
+                            alignment=ft.Alignment(-1, 1),
+                            padding=ft.Padding(5, 0, 0, 2),
+                            width=70,
+                            height=36,
+                        ),
+                    ],
+                    width=70,
+                    height=36,
+                )
             )
         ]
 
         for c_char in Nucleotides.TEMPLATE:
             if c_char == Nucleotides.GAP:
                 continue
-            header_controls.append(
-                ft.Container(
-                    width=1,
-                    bgcolor=GUIColors.DIVIDER_GREY,
-                    height=36,
-                )
-            )
-            header_controls.append(
-                ft.Container(
-                    content=ft.Text(
-                        c_char,
-                        weight=ft.FontWeight.BOLD,
-                        size=font_size_table_header,
-                    ),
-                    width=48,
-                    alignment=ft.Alignment(0, 0),
+            bp_columns.append(
+                ft.DataColumn(
+                    ft.Container(
+                        content=ft.Text(
+                            c_char,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_table_header,
+                        ),
+                        width=48,
+                        alignment=ft.Alignment(0, 0),
+                    )
                 )
             )
 
-        header_row = ft.Container(
-            content=ft.Row(
-                header_controls,
-                spacing=0,
-                alignment=ft.MainAxisAlignment.START,
-            ),
-            border=ft.Border(bottom=ft.BorderSide(2, GUIColors.DIVIDER_GREY)),
-            height=36,
-        )
-
-        row_controls = [header_row]
+        bp_rows = []
         for r_char in Nucleotides.PRIMER:
             cells = [
-                ft.Container(
-                    content=ft.Text(
-                        r_char,
-                        weight=ft.FontWeight.BOLD,
-                        size=font_size_table_header,
-                    ),
-                    width=70,
-                    alignment=ft.Alignment(1, 0),
-                    padding=ft.Padding(0, 0, 15, 0),
+                ft.DataCell(
+                    ft.Container(
+                        content=ft.Text(
+                            r_char,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_table_header,
+                        ),
+                        width=70,
+                        alignment=ft.Alignment(0, 0),
+                    )
                 )
             ]
             for c_char in Nucleotides.TEMPLATE:
@@ -285,33 +274,30 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 self.settings_map[key].content_padding = 0
 
                 cells.append(
-                    ft.Container(
-                        width=1,
-                        bgcolor=GUIColors.DIVIDER_GREY,
-                        height=30,
-                    )
-                )
-                cells.append(
-                    ft.Container(
-                        content=self.settings_map[key],
-                        width=48,
-                        alignment=ft.Alignment(0, 0),
+                    ft.DataCell(
+                        ft.Container(
+                            content=self.settings_map[key],
+                            width=48,
+                            alignment=ft.Alignment(0, 0),
+                        )
                     )
                 )
 
-            row_controls.append(
-                ft.Container(
-                    content=ft.Row(
-                        cells,
-                        spacing=0,
-                        alignment=ft.MainAxisAlignment.START,
-                    ),
-                    border=ft.Border(
-                        bottom=ft.BorderSide(1, GUIColors.DIVIDER_GREY)
-                    ),
-                    height=30,
-                )
-            )
+            bp_rows.append(ft.DataRow(cells=cells))
+
+        bp_table = ft.DataTable(
+            border=ft.Border.all(1, GUIColors.TRANSPARENT),
+            vertical_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
+            horizontal_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
+            column_spacing=10,
+            horizontal_margin=10,
+            heading_row_color=GUIColors.INFO_HEADER_BG,
+            heading_row_height=40,
+            data_row_min_height=36,
+            data_row_max_height=36,
+            columns=bp_columns,
+            rows=bp_rows,
+        )
 
         bp_table_container = ft.Column(
             [
@@ -323,10 +309,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.Row(
                     [
                         ft.Container(
-                            content=ft.Column(
-                                row_controls,
-                                spacing=0,
-                            ),
+                            content=bp_table,
                             border=ft.Border.all(1, GUIColors.OUTLINE),
                             border_radius=5,
                             padding=0,
@@ -341,94 +324,83 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         )
 
         # Build Primer Dimer Scores Styled Table
-        pd_header_controls = [
-            ft.Stack(
-                [
-                    ft.canvas.Canvas(
-                        [
-                            ft.canvas.Line(
-                                0,
-                                0,
-                                70,
-                                36,
-                                paint=ft.Paint(
-                                    color=GUIColors.DIVIDER_GREY, stroke_width=1
-                                ),
-                            )
-                        ],
-                        width=70,
-                        height=36,
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            "Primer",
-                            weight=ft.FontWeight.BOLD,
-                            size=font_size_micro,
+        pd_columns = [
+            ft.DataColumn(
+                ft.Stack(
+                    [
+                        ft.canvas.Canvas(
+                            [
+                                ft.canvas.Line(
+                                    0,
+                                    8,
+                                    70,
+                                    34,
+                                    paint=ft.Paint(
+                                        color=GUIColors.DIVIDER_GREY,
+                                        stroke_width=1,
+                                    ),
+                                )
+                            ],
+                            width=70,
+                            height=36,
                         ),
-                        alignment=ft.Alignment(1, -1),
-                        padding=ft.Padding(0, 2, 5, 0),
-                        width=70,
-                        height=36,
-                    ),
-                    ft.Container(
-                        content=ft.Text(
-                            "Primer",
-                            weight=ft.FontWeight.BOLD,
-                            size=font_size_micro,
+                        ft.Container(
+                            content=ft.Text(
+                                "Primer",
+                                weight=ft.FontWeight.BOLD,
+                                size=font_size_micro,
+                            ),
+                            alignment=ft.Alignment(1, -1),
+                            padding=ft.Padding(0, 2, 5, 0),
+                            width=70,
+                            height=36,
                         ),
-                        alignment=ft.Alignment(-1, 1),
-                        padding=ft.Padding(5, 0, 0, 2),
-                        width=70,
-                        height=36,
-                    ),
-                ],
-                width=70,
-                height=36,
+                        ft.Container(
+                            content=ft.Text(
+                                "Primer",
+                                weight=ft.FontWeight.BOLD,
+                                size=font_size_micro,
+                            ),
+                            alignment=ft.Alignment(-1, 1),
+                            padding=ft.Padding(5, 0, 0, 2),
+                            width=70,
+                            height=36,
+                        ),
+                    ],
+                    width=70,
+                    height=36,
+                )
             )
         ]
 
         for c_char in Nucleotides.PRIMER:
-            pd_header_controls.append(
-                ft.Container(
-                    width=1,
-                    bgcolor=GUIColors.DIVIDER_GREY,
-                    height=36,
-                )
-            )
-            pd_header_controls.append(
-                ft.Container(
-                    content=ft.Text(
-                        c_char,
-                        weight=ft.FontWeight.BOLD,
-                        size=font_size_table_header,
-                    ),
-                    width=48,
-                    alignment=ft.Alignment(0, 0),
+            pd_columns.append(
+                ft.DataColumn(
+                    ft.Container(
+                        content=ft.Text(
+                            c_char,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_table_header,
+                        ),
+                        width=48,
+                        alignment=ft.Alignment(0, 0),
+                    )
                 )
             )
 
-        pd_header_row = ft.Container(
-            content=ft.Row(
-                pd_header_controls,
-                spacing=0,
-                alignment=ft.MainAxisAlignment.START,
-            ),
-            border=ft.Border(bottom=ft.BorderSide(2, GUIColors.DIVIDER_GREY)),
-            height=36,
-        )
-
-        pd_row_controls = [pd_header_row]
+        pd_rows = []
         for r_char in Nucleotides.PRIMER:
             cells = [
-                ft.Container(
-                    content=ft.Text(
-                        r_char,
-                        weight=ft.FontWeight.BOLD,
-                        size=font_size_table_header,
-                    ),
-                    width=70,
-                    alignment=ft.Alignment(1, 0),
-                    padding=ft.Padding(0, 0, 15, 0),
+                ft.DataCell(
+                    ft.Container(
+                        content=ft.Text(
+                            r_char,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_table_header,
+                        ),
+                        width=70,
+                        alignment=ft.Alignment(0, 0),
+                    )
                 )
             ]
             for c_char in Nucleotides.PRIMER:
@@ -441,33 +413,30 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 self.settings_map[key].content_padding = 0
 
                 cells.append(
-                    ft.Container(
-                        width=1,
-                        bgcolor=GUIColors.DIVIDER_GREY,
-                        height=30,
-                    )
-                )
-                cells.append(
-                    ft.Container(
-                        content=self.settings_map[key],
-                        width=48,
-                        alignment=ft.Alignment(0, 0),
+                    ft.DataCell(
+                        ft.Container(
+                            content=self.settings_map[key],
+                            width=48,
+                            alignment=ft.Alignment(0, 0),
+                        )
                     )
                 )
 
-            pd_row_controls.append(
-                ft.Container(
-                    content=ft.Row(
-                        cells,
-                        spacing=0,
-                        alignment=ft.MainAxisAlignment.START,
-                    ),
-                    border=ft.Border(
-                        bottom=ft.BorderSide(1, GUIColors.DIVIDER_GREY)
-                    ),
-                    height=30,
-                )
-            )
+            pd_rows.append(ft.DataRow(cells=cells))
+
+        pd_table = ft.DataTable(
+            border=ft.Border.all(1, GUIColors.TRANSPARENT),
+            vertical_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
+            horizontal_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
+            column_spacing=10,
+            horizontal_margin=10,
+            heading_row_color=GUIColors.INFO_HEADER_BG,
+            heading_row_height=40,
+            data_row_min_height=36,
+            data_row_max_height=36,
+            columns=pd_columns,
+            rows=pd_rows,
+        )
 
         pd_table_container = ft.Column(
             [
@@ -479,10 +448,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.Row(
                     [
                         ft.Container(
-                            content=ft.Column(
-                                pd_row_controls,
-                                spacing=0,
-                            ),
+                            content=pd_table,
                             border=ft.Border.all(1, GUIColors.OUTLINE),
                             border_radius=5,
                             padding=0,
