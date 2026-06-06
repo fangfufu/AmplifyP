@@ -15,12 +15,9 @@
 
 """Centralized GUI state and user data orchestrator."""
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from amplifyp.gui.util import clean_sequence, format_sequence
-
-if TYPE_CHECKING:
-    pass
 
 
 class GUIInput:
