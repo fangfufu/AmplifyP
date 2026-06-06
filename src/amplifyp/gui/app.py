@@ -90,21 +90,21 @@ def main(page: ft.Page) -> None:
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def on_pcr_click(e: ft.ControlEvent) -> None:
-        """Handle PCR button click: switch view and run PCR."""
+        """Handle PCR click: run PCR and switch view if successful."""
         nonlocal has_run_pcr, pcr_outdated
-        switch_view(e, result_view)
-        result_view.run_pcr()
-        has_run_pcr = True
-        pcr_outdated = False
-        if pcr_button_ref.current:
-            pcr_button_ref.current.text = "PCR"
-        page.update()
+        if result_view.run_pcr():
+            switch_view(e, result_view)
+            has_run_pcr = True
+            pcr_outdated = False
+            if pcr_button_ref.current:
+                pcr_button_ref.current.text = "PCR"
+            page.update()
 
     def on_dimers_click(e: ft.ControlEvent) -> None:
-        """Handle dimers button click: switch view and run analysis."""
-        switch_view(e, dimers_view)
-        dimers_view.run_analysis()
-        page.update()
+        """Handle dimers click: run analysis and switch view if successful."""
+        if dimers_view.run_analysis():
+            switch_view(e, dimers_view)
+            page.update()
 
     def update_pcr_button_state() -> None:
         """Enable PCR and dimers buttons only if input is valid."""

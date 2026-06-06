@@ -166,9 +166,10 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
             )
         )
 
-    def run_analysis(self) -> None:
+    def run_analysis(self) -> bool:
         """Run primer dimer analysis and populate the UI."""
         self.result_list.controls.clear()
+        success = True
         try:
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
@@ -212,4 +213,6 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                 )
             )
             show_error_dialog(self.app_page, "Error running analysis", str(ex))
+            success = False
         self.app_page.update()
+        return success

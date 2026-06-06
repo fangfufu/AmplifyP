@@ -119,9 +119,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         self.app_page.update()
 
-    def run_pcr(self, keep_cards: bool = False) -> None:
+    def run_pcr(self, keep_cards: bool = False) -> bool:
         """Execute the PCR simulation and update the UI."""
         saved_cards = self._reset_pcr_ui(keep_cards)
+        success = True
         try:
             pcr = self._execute_pcr_simulation()
             num_amplicons = len(pcr.amplicons)
@@ -176,12 +177,14 @@ class ResultView(ft.Column):  # type: ignore[misc]
             from amplifyp.gui.util import show_error_dialog
 
             show_error_dialog(self.app_page, "Error running PCR", str(ex))
+            success = False
 
         if keep_cards:
             self.result_list.controls.extend(saved_cards)
             self._update_cards_header_visibility()
 
         self.app_page.update()
+        return success
 
     def _reset_pcr_ui(self, keep_cards: bool) -> list[Any]:
         """Reset the result view UI controls and canvas shapes."""
