@@ -162,6 +162,7 @@ class GUISettings:
                 "font_size_body": 13,
                 "font_size_small": 12,
                 "font_size_default": 14,
+                "tm_method": "Amplify P Default",
             }
             for k, v in defaults.items():
                 if k not in self._settings:
@@ -180,6 +181,7 @@ class GUISettings:
                 "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
                 "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
                 "amp4_compat": False,
+                "tm_method": "Amplify P Default",
                 "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
                 "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
                 "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),

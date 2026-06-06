@@ -84,6 +84,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             value="0.0",
             on_change=self.on_change_handler,
         )
+        self.set_tm_method = ft.Dropdown(
+            label="Tm Calculation Method",
+            options=[
+                ft.dropdown.Option("Amplify P Default"),
+                ft.dropdown.Option("Amplify 4"),
+            ],
+        )
+        self.set_tm_method.on_change = self.on_change_handler
 
         # Amplify4 TM Settings
         self.set_amp4tm_dna_conc = ft.TextField(
@@ -132,6 +140,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "tm_mono_salt": self.set_tm_mono_salt,
             "tm_div_salt": self.set_tm_div_salt,
             "tm_dNTP_conc": self.set_tm_dNTP_conc,
+            "tm_method": self.set_tm_method,
             "amp4tm_dna_conc": self.set_amp4tm_dna_conc,
             "amp4tm_mono_salt": self.set_amp4tm_mono_salt,
             "pd_min_overlap": self.set_pd_min_overlap,
@@ -175,6 +184,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Column(
                             [
+                                self.set_tm_method,
                                 self.set_tm_dna_conc,
                                 self.set_tm_dnap_conc,
                                 self.set_tm_mono_salt,
@@ -315,6 +325,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
             "amp4_compat": False,
+            "tm_method": "Amplify P Default",
             "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
             "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),

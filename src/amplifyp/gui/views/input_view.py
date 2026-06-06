@@ -751,13 +751,12 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
 
             # Melting temperature
-            amp4_compat = self.state.settings.get("amp4_compat", False)
-            if isinstance(amp4_compat, str):
-                amp4_compat = amp4_compat.lower() in ("true", "1", "yes")
-            elif isinstance(amp4_compat, (int, float)):
-                amp4_compat = int(amp4_compat) != 0
+            tm_method = self.state.settings.get(
+                "tm_method", "Amplify P Default"
+            )
+            use_amp4_tm = str(tm_method) == "Amplify 4"
 
-            if amp4_compat:
+            if use_amp4_tm:
                 from amplifyp.settings import Amplify4TMSettings
 
                 amp4_settings = Amplify4TMSettings(
