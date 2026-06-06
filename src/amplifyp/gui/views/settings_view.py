@@ -60,7 +60,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             on_change=self.on_change_handler,
         )
 
-        # TM Settings
+        # Primer Melting Temperature (Tm) Settings
         self.set_tm_dna_conc = ft.TextField(
             label="DNA Conc (nM)",
             value="50.0",
@@ -166,7 +166,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             ),
             ft.ExpansionTile(
                 title=ft.Text(
-                    "TM Settings",
+                    "Primer Melting Temperature (Tm) Settings",
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
