@@ -152,6 +152,20 @@ class GUISettings:
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
                 GUIColors.color_deficient_mode = bool(val)
+            # Populate default font sizes if missing
+            defaults = {
+                "font_size_map_baseline": 16,
+                "font_size_map_primer": 13,
+                "font_size_map_amplicon": 13,
+                "font_size_header": 18,
+                "font_size_subheader": 16,
+                "font_size_body": 13,
+                "font_size_small": 12,
+                "font_size_default": 14,
+            }
+            for k, v in defaults.items():
+                if k not in self._settings:
+                    self._settings[k] = v
         else:
             from amplifyp.settings import (
                 DEFAULT_PRIMABILITY_CUTOFF,
@@ -179,6 +193,14 @@ class GUISettings:
                 "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
                 "font_family": "Roboto Mono",
                 "color_deficient": False,
+                "font_size_map_baseline": 16,
+                "font_size_map_primer": 13,
+                "font_size_map_amplicon": 13,
+                "font_size_header": 18,
+                "font_size_subheader": 16,
+                "font_size_body": 13,
+                "font_size_small": 12,
+                "font_size_default": 14,
             }
 
     def __getitem__(self, key: str) -> Any:

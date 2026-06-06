@@ -97,7 +97,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         self.cards_header = ft.Row(
             [
-                ft.Text("Details", weight=ft.FontWeight.BOLD, size=18),
+                ft.Text(
+                    "Details",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.state.settings.get("font_size_header", 18),
+                ),
                 self.clear_button,
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -213,7 +217,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             "1",
                             style=ft.TextStyle(
-                                size=16,
+                                size=self.state.settings.get(
+                                    "font_size_map_baseline", 16
+                                ),
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.DIAGRAM_BLACK,
                             ),
@@ -225,7 +231,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             str(target_length),
                             style=ft.TextStyle(
-                                size=16,
+                                size=self.state.settings.get(
+                                    "font_size_map_baseline", 16
+                                ),
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.DIAGRAM_BLACK,
                             ),
@@ -371,7 +379,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.FWD_PRIMER,
-                            size=13,
+                            size=self.state.settings.get(
+                                "font_size_map_primer", 13
+                            ),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target - 25 - S - 38,
@@ -456,7 +466,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.REV_LABEL,
-                            size=13,
+                            size=self.state.settings.get(
+                                "font_size_map_primer", 13
+                            ),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target + 25 + S + 10,
@@ -568,7 +580,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             y_pos + bar_height + 5,
                             str(len(amp.product)),
                             style=ft.TextStyle(
-                                size=13, color=GUIColors.DIAGRAM_BLACK
+                                size=self.state.settings.get(
+                                    "font_size_map_amplicon", 13
+                                ),
+                                color=GUIColors.DIAGRAM_BLACK,
                             ),
                             alignment=ft.Alignment(0.0, -1.0),
                         )
@@ -788,11 +803,13 @@ class ResultView(ft.Column):  # type: ignore[misc]
             )
 
         font_family = self.state.settings.get("font_family", "Roboto Mono")
+        font_size = self.state.settings.get("font_size_default", 14)
         diagram_text = create_overlapped_sequence_view(
             top_line=top_line,
             mid_line=primer_line,
             bottom_line=bottom_line,
             font_family=font_family,
+            font_size=font_size,
         )
 
         card = ft.Card(
@@ -807,7 +824,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                     f"Context Map - {primer_name} "
                                     f"({primer_type}) Binding Site",
                                     weight=ft.FontWeight.BOLD,
-                                    size=16,
+                                    size=self.state.settings.get(
+                                        "font_size_subheader", 16
+                                    ),
                                 ),
                                 ft.IconButton(
                                     icon=ft.Icons.CLOSE,
@@ -886,7 +905,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 ),
             ],
             font_family=font_family,
-            size=13,
+            size=self.state.settings.get("font_size_body", 13),
             selectable=True,
         )
 
@@ -901,7 +920,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ft.Text(
                                     f"Amplicon: {len(amp.product)} bp",
                                     weight=ft.FontWeight.BOLD,
-                                    size=16,
+                                    size=self.state.settings.get(
+                                        "font_size_subheader", 16
+                                    ),
                                     selectable=True,
                                 ),
                                 ft.IconButton(
@@ -939,7 +960,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ),
                             ],
                             selectable=True,
-                            size=13,
+                            size=self.state.settings.get("font_size_body", 13),
                         ),
                         ft.Text(
                             "Amplified Sequence:",

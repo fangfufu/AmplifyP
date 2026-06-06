@@ -74,7 +74,9 @@ class InputView(ft.Row):  # type: ignore[misc]
             [
                 ft.Container(
                     content=ft.Text(
-                        "Active", weight=ft.FontWeight.BOLD, size=12
+                        "Active",
+                        weight=ft.FontWeight.BOLD,
+                        size=self.state.settings.get("font_size_small", 12),
                     ),
                     width=55,
                     alignment=ft.Alignment(0, 0),
@@ -86,7 +88,11 @@ class InputView(ft.Row):  # type: ignore[misc]
                     height=36,
                 ),
                 ft.Container(
-                    content=ft.Text("Name", weight=ft.FontWeight.BOLD, size=12),
+                    content=ft.Text(
+                        "Name",
+                        weight=ft.FontWeight.BOLD,
+                        size=self.state.settings.get("font_size_small", 12),
+                    ),
                     width=self.name_column_width,
                     padding=ft.Padding(5, 0, 0, 0),
                     alignment=ft.Alignment(-1, 0),
@@ -103,7 +109,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 ),
                 ft.Container(
                     content=ft.Text(
-                        "Sequence", weight=ft.FontWeight.BOLD, size=12
+                        "Sequence",
+                        weight=ft.FontWeight.BOLD,
+                        size=self.state.settings.get("font_size_small", 12),
                     ),
                     expand=True,
                     padding=ft.Padding(5, 0, 0, 0),
@@ -134,7 +142,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             content=ft.Text(
                 "Primer: -",
                 weight=ft.FontWeight.BOLD,
-                size=14,
+                size=self.state.settings.get("font_size_default", 14),
                 color=ft.Colors.BLACK,
             ),
             bgcolor=ft.Colors.GREY_200,
@@ -142,11 +150,28 @@ class InputView(ft.Row):  # type: ignore[misc]
             alignment=ft.Alignment(-1, 0),
         )
 
-        self.info_seq_text = ft.Text("", font_family=font_family, size=13)
-        self.info_tm_text = ft.Text("", size=13)
-        self.info_pairs_text = ft.Text("", size=13)
-        self.info_redundancy_text = ft.Text("", size=13)
-        self.info_dimer_text = ft.Text("", color=ft.Colors.RED_800, size=13)
+        self.info_seq_text = ft.Text(
+            "",
+            font_family=font_family,
+            size=self.state.settings.get("font_size_body", 13),
+        )
+        self.info_tm_text = ft.Text(
+            "",
+            size=self.state.settings.get("font_size_body", 13),
+        )
+        self.info_pairs_text = ft.Text(
+            "",
+            size=self.state.settings.get("font_size_body", 13),
+        )
+        self.info_redundancy_text = ft.Text(
+            "",
+            size=self.state.settings.get("font_size_body", 13),
+        )
+        self.info_dimer_text = ft.Text(
+            "",
+            color=ft.Colors.RED_800,
+            size=self.state.settings.get("font_size_body", 13),
+        )
 
         self.primer_info_panel = ft.Container(
             content=ft.Column(

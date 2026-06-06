@@ -16,6 +16,7 @@
 """Primer Dimer View for the Flet application."""
 
 import traceback
+from typing import Any
 
 import flet as ft
 
@@ -26,7 +27,7 @@ from amplifyp.gui.util import create_overlapped_sequence_view, show_error_dialog
 
 
 def create_primer_dimer_card(
-    d: PrimerDimer, font_family: str = "Roboto Mono"
+    d: PrimerDimer, font_family: str = "Roboto Mono", settings: Any = None
 ) -> ft.Card:
     """Create a Flet Card showing visually aligned primer dimer results."""
     p1_name = d.primer_1.name
@@ -41,9 +42,23 @@ def create_primer_dimer_card(
     mid_line = " " * (3 + d.p1_pos) + middle_str
     p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
 
+    # Fetch font sizes from settings, fallback to defaults
+    if settings is not None:
+        font_size_subheader = settings.get("font_size_subheader", 16)
+        font_size_small = settings.get("font_size_small", 12)
+        font_size_default = settings.get("font_size_default", 14)
+    else:
+        font_size_subheader = 16
+        font_size_small = 12
+        font_size_default = 14
+
     # Create visual alignment stack using generic helper
     diagram_stack = create_overlapped_sequence_view(
-        p2_line, mid_line, p1_line, font_family=font_family
+        p2_line,
+        mid_line,
+        p1_line,
+        font_family=font_family,
+        font_size=font_size_default,
     )
 
     is_self = p1_name == p2_name and seq1 == seq2
@@ -66,7 +81,7 @@ def create_primer_dimer_card(
                             ft.Text(
                                 dimer_title,
                                 weight=ft.FontWeight.BOLD,
-                                size=16,
+                                size=font_size_subheader,
                                 selectable=True,
                             ),
                             ft.Row(
@@ -76,7 +91,7 @@ def create_primer_dimer_card(
                                             f"Overlap: {d.overlap} bp",
                                             weight=ft.FontWeight.BOLD,
                                             color=GUIColors.TEXT_ON_SURFACE,
-                                            size=12,
+                                            size=font_size_small,
                                         ),
                                         bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
@@ -87,7 +102,7 @@ def create_primer_dimer_card(
                                             quality_text,
                                             weight=ft.FontWeight.BOLD,
                                             color=GUIColors.TEXT_ON_SURFACE,
-                                            size=12,
+                                            size=font_size_small,
                                         ),
                                         bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
@@ -156,7 +171,9 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Text(
                             "No primer dimers detected above threshold.",
-                            size=16,
+                            size=self.state.settings.get(
+                                "font_size_subheader", 16
+                            ),
                             italic=True,
                             text_align=ft.TextAlign.CENTER,
                         ),
@@ -169,7 +186,11 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     "font_family", "Roboto Mono"
                 )
                 for d in dimers:
-                    card = create_primer_dimer_card(d, font_family=font_family)
+                    card = create_primer_dimer_card(
+                        d,
+                        font_family=font_family,
+                        settings=self.state.settings,
+                    )
                     self.result_list.controls.append(card)
         except Exception as ex:
             self.result_list.controls.append(

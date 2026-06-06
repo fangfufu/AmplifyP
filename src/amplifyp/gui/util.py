@@ -57,6 +57,7 @@ def create_overlapped_sequence_view(
     mid_line: str,
     bottom_line: str,
     font_family: str = "Roboto Mono",
+    font_size: int = 14,
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
@@ -89,7 +90,7 @@ def create_overlapped_sequence_view(
             ),
         ],
         font_family=font_family,
-        size=14,
+        size=font_size,
         selectable=True,
     )
 
