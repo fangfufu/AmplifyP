@@ -149,11 +149,74 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "color_deficient": self.set_color_deficient,
         }
 
+        # Dynamic Base Pair Scores settings mapping
+        from amplifyp.dna import Nucleotides
+
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.TEMPLATE:
+                if c_char == Nucleotides.GAP:
+                    continue
+                key = f"bp_score_{r_char}_{c_char}"
+                self.settings_map[key] = ft.TextField(
+                    value="0",
+                    on_change=self.on_change_handler,
+                    text_align=ft.TextAlign.CENTER,
+                    dense=True,
+                    width=60,
+                    height=36,
+                    content_padding=4,
+                )
+
+        # Build Base Pair Scores DataTable
+        columns = [
+            ft.DataColumn(
+                ft.Text("Primer / Template", weight=ft.FontWeight.BOLD)
+            ),
+        ]
+        for c_char in Nucleotides.TEMPLATE:
+            if c_char == Nucleotides.GAP:
+                continue
+            columns.append(
+                ft.DataColumn(ft.Text(c_char, weight=ft.FontWeight.BOLD))
+            )
+
+        rows = []
+        for r_char in Nucleotides.PRIMER:
+            cells = [
+                ft.DataCell(ft.Text(r_char, weight=ft.FontWeight.BOLD)),
+            ]
+            for c_char in Nucleotides.TEMPLATE:
+                if c_char == Nucleotides.GAP:
+                    continue
+                key = f"bp_score_{r_char}_{c_char}"
+                cells.append(ft.DataCell(self.settings_map[key]))
+            rows.append(ft.DataRow(cells=cells))
+
+        bp_table = ft.DataTable(
+            columns=columns,
+            rows=rows,
+            column_spacing=15,
+            border=ft.Border.all(0.5, ft.Colors.OUTLINE),
+        )
+
+        bp_table_container = ft.Column(
+            [
+                ft.Text(
+                    "Base Pair Weights", weight=ft.FontWeight.BOLD, size=14
+                ),
+                ft.Row(
+                    [bp_table],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                ),
+            ],
+            spacing=10,
+        )
+
         header_size = self.state.settings.get("font_size_header", 18)
         self.controls = [
             ft.ExpansionTile(
                 title=ft.Text(
-                    "Replication Settings",
+                    "Origin of Replication Settings",
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
@@ -165,6 +228,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                 self.set_primability_cutoff,
                                 self.set_stability_cutoff,
                                 self.set_amp4_compat,
+                                ft.Divider(),
+                                bp_table_container,
                             ],
                             spacing=15,
                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -326,7 +391,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def on_reset_handler(self, e: ft.ControlEvent) -> None:
         """Handle reset to default button click."""
+        from amplifyp.dna import Nucleotides
         from amplifyp.settings import (
+            DEFAULT_BASE_PAIR_WEIGHTS,
             DEFAULT_PRIMABILITY_CUTOFF,
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
@@ -335,7 +402,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             GLOBAL_TM_SETTINGS,
         )
 
-        self.state.settings = {
+        reset_dict = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
             "amp4_compat": False,
@@ -354,6 +421,15 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "font_family": "Roboto Mono",
             "color_deficient": False,
         }
+
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.TEMPLATE:
+                if c_char == Nucleotides.GAP:
+                    continue
+                key = f"bp_score_{r_char}_{c_char}"
+                reset_dict[key] = str(DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char])
+
+        self.state.settings = reset_dict
         self.update_ui()
         self.app_page.update()
         if self.on_reset:

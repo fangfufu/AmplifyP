@@ -145,7 +145,9 @@ class GUISettings:
 
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
         """Initialize GUISettings with optional dictionary or defaults."""
+        from amplifyp.dna import Nucleotides
         from amplifyp.settings import (
+            DEFAULT_BASE_PAIR_WEIGHTS,
             DEFAULT_PRIMABILITY_CUTOFF,
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
@@ -181,6 +183,16 @@ class GUISettings:
             "font_size_small": 12,
             "font_size_default": 14,
         }
+
+        # Initialize base-pair weights
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.TEMPLATE:
+                if c_char == Nucleotides.GAP:
+                    continue
+                key = f"bp_score_{r_char}_{c_char}"
+                self._settings[key] = str(
+                    DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char]
+                )
 
         if settings_dict is not None:
             self._settings.update(settings_dict)
@@ -243,12 +255,31 @@ class GUISettings:
 
     def get_replication_settings(self) -> "ReplicationSettings":
         """Get ReplicationSettings from the central settings."""
-        from amplifyp.settings import ReplicationSettings
+        from amplifyp.dna import Nucleotides
+        from amplifyp.settings import BasePairWeightsTbl, ReplicationSettings
+
+        bp_weights = []
+        for r_char in Nucleotides.PRIMER:
+            row_vals = []
+            for c_char in Nucleotides.TEMPLATE:
+                if c_char == Nucleotides.GAP:
+                    continue
+                key = f"bp_score_{r_char}_{c_char}"
+                val = self._safe_float(key, 0.0)
+                row_vals.append(val)
+            bp_weights.append(row_vals)
+
+        base_pair_scores = BasePairWeightsTbl(
+            row=Nucleotides.PRIMER,
+            col=Nucleotides.TEMPLATE,
+            weight=bp_weights,
+        )
 
         return ReplicationSettings(
             primability_cutoff=self._safe_float("primability_cutoff", 0.8),
             stability_cutoff=self._safe_float("stability_cutoff", 0.4),
             amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
+            base_pair_scores=base_pair_scores,
         )
 
     def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
