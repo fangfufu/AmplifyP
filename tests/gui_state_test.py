@@ -168,11 +168,11 @@ def test_settings_view_buttons() -> None:
     # Settings should be back to default
     assert settings_view.state.settings["primability_cutoff"] == "0.8"
     assert settings_view.state.settings["amp4_compat"] is False
-    assert settings_view.state.settings["tm_method"] == "Amplify P Default"
+    assert settings_view.state.settings["tm_method"] == "Amplify P (Default)"
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
-    assert settings_view.set_tm_method.value == "Amplify P Default"
+    assert settings_view.set_tm_method.value == "Amplify P (Default)"
 
 
 def test_color_deficient_mode_switching() -> None:

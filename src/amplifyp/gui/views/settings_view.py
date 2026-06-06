@@ -87,7 +87,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.set_tm_method = ft.Dropdown(
             label="Tm Calculation Method",
             options=[
-                ft.dropdown.Option("Amplify P Default"),
+                ft.dropdown.Option("Amplify P (Default)"),
                 ft.dropdown.Option("Amplify 4"),
             ],
         )
@@ -95,12 +95,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         # Amplify4 TM Settings
         self.set_amp4tm_dna_conc = ft.TextField(
-            label="Amplify4 DNA Conc (nM)",
+            label="DNA Conc (nM)",
             value="50.0",
             on_change=self.on_change_handler,
         )
         self.set_amp4tm_mono_salt = ft.TextField(
-            label="Amplify4 Monovalent Salt Conc (mM)",
+            label="Monovalent Salt Conc (mM)",
             value="50.0",
             on_change=self.on_change_handler,
         )
@@ -185,32 +185,46 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=ft.Column(
                             [
                                 self.set_tm_method,
-                                self.set_tm_dna_conc,
-                                self.set_tm_dnap_conc,
-                                self.set_tm_mono_salt,
-                                self.set_tm_div_salt,
-                                self.set_tm_dNTP_conc,
-                            ],
-                            spacing=15,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                        ),
-                        padding=ft.Padding(0, 20, 0, 10),
-                    )
-                ],
-            ),
-            ft.ExpansionTile(
-                title=ft.Text(
-                    "Amplify4 TM Settings",
-                    weight=ft.FontWeight.BOLD,
-                    size=header_size,
-                ),
-                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-                controls=[
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                self.set_amp4tm_dna_conc,
-                                self.set_amp4tm_mono_salt,
+                                ft.Row(
+                                    [
+                                        ft.Container(
+                                            content=ft.Column(
+                                                [
+                                                    ft.Text(
+                                                        "Amplify P",
+                                                        weight=ft.FontWeight.BOLD,
+                                                    ),
+                                                    self.set_tm_dna_conc,
+                                                    self.set_tm_dnap_conc,
+                                                    self.set_tm_mono_salt,
+                                                    self.set_tm_div_salt,
+                                                    self.set_tm_dNTP_conc,
+                                                ],
+                                                spacing=15,
+                                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                            ),
+                                            expand=True,
+                                        ),
+                                        ft.VerticalDivider(),
+                                        ft.Container(
+                                            content=ft.Column(
+                                                [
+                                                    ft.Text(
+                                                        "Amplify 4",
+                                                        weight=ft.FontWeight.BOLD,
+                                                    ),
+                                                    self.set_amp4tm_dna_conc,
+                                                    self.set_amp4tm_mono_salt,
+                                                ],
+                                                spacing=15,
+                                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                            ),
+                                            expand=True,
+                                        ),
+                                    ],
+                                    vertical_alignment=ft.CrossAxisAlignment.START,
+                                    expand=True,
+                                ),
                             ],
                             spacing=15,
                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -325,7 +339,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
             "amp4_compat": False,
-            "tm_method": "Amplify P Default",
+            "tm_method": "Amplify P (Default)",
             "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
             "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),

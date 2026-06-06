@@ -752,7 +752,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             # Melting temperature
             tm_method = self.state.settings.get(
-                "tm_method", "Amplify P Default"
+                "tm_method", "Amplify P (Default)"
             )
             use_amp4_tm = str(tm_method) == "Amplify 4"
 
