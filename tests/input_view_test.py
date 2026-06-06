@@ -226,7 +226,7 @@ def test_input_view_trailing_row_activation() -> None:
 
 
 def test_input_view_clear_buttons() -> None:
-    """Test that clear primers button works correctly."""
+    """Test that clear primers and template buttons work correctly."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.template = "ATGATGC"
@@ -240,8 +240,15 @@ def test_input_view_clear_buttons() -> None:
 
     assert view.template_sequence.value == "ATGATGC"
     assert len(input_data.primers) == 3  # 2 loaded + 1 trailing empty
+    assert view.clear_primers_button.content == "Clear"
+    assert view.clear_template_button.content == "Clear"
 
-    # 1. Trigger clear primers button
+    # 1. Trigger clear template button
+    view.clear_template(MagicMock(spec=ft.ControlEvent))
+    assert view.template_sequence.value == ""
+    assert input_data.template == ""
+
+    # 2. Trigger clear primers button
     view.clear_primers(MagicMock(spec=ft.ControlEvent))
     assert len(input_data.primers) == 1  # only trailing empty remaining
     assert input_data.primers[0]["name"] == ""
