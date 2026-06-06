@@ -213,7 +213,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             "1",
                             style=ft.TextStyle(
-                                size=14,
+                                size=16,
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.DIAGRAM_BLACK,
                             ),
@@ -225,7 +225,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             str(target_length),
                             style=ft.TextStyle(
-                                size=14,
+                                size=16,
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.DIAGRAM_BLACK,
                             ),
@@ -371,7 +371,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.FWD_PRIMER,
-                            size=11,
+                            size=13,
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target - 25 - S - 38,
@@ -456,7 +456,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.REV_LABEL,
-                            size=11,
+                            size=13,
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target + 25 + S + 10,
@@ -568,7 +568,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             y_pos + bar_height + 5,
                             str(len(amp.product)),
                             style=ft.TextStyle(
-                                size=11, color=GUIColors.DIAGRAM_BLACK
+                                size=13, color=GUIColors.DIAGRAM_BLACK
                             ),
                             alignment=ft.Alignment(0.0, -1.0),
                         )
