@@ -66,10 +66,14 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         self.diagram_stack = ft.Stack(
             controls=[self.diagram_canvas],
-            expand=True,
+        )
+        self.diagram_scrollable = ft.Column(
+            controls=[self.diagram_stack],
+            scroll=ft.ScrollMode.ALWAYS,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
         self.diagram_container = ft.Container(
-            content=self.diagram_stack,
+            content=self.diagram_scrollable,
             visible=False,
             border=ft.Border.all(1, GUIColors.OUTLINE),
             border_radius=5,
@@ -181,6 +185,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 self.diagram_canvas.width = c_width
                 t_width = c_width - (2.0 * h_margin)
                 target_length = len(template_dna)
+
+                # Calculate vertical size based on number of amplicons
+                v_frag_start = v_target + 40
+                v_frag_step = 35
+                canvas_height = (
+                    v_frag_start + len(pcr.amplicons) * v_frag_step + 30.0
+                )
+                self.diagram_canvas.height = canvas_height
+                self.diagram_stack.height = canvas_height
 
                 if target_length > 0:
                     # Draw vertical boundary lines at start and end of template
