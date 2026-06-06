@@ -156,10 +156,10 @@ class InputView(ft.Row):  # type: ignore[misc]
                 expand=True,
                 spacing=5,
             ),
-            expand=6,
+            expand=5,
         )
 
-        self.right_fraction = 0.4
+        self.right_fraction = 0.5
 
         self.bottom_container = ft.Container(
             content=ft.Column(
@@ -190,7 +190,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 expand=True,
                 spacing=5,
             ),
-            expand=4,
+            expand=5,
         )
 
         self.divider = ft.GestureDetector(
