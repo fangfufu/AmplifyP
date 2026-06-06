@@ -54,7 +54,7 @@ def main(page: ft.Page) -> None:
             page.update()
 
         def confirm_exit(e: ft.ControlEvent) -> None:
-            page.window_destroy()
+            page.run_task(page.window.destroy)
 
         confirm_dialog = ft.AlertDialog(
             modal=True,
