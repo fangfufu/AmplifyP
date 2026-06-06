@@ -54,7 +54,7 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 }
 
 
-def calculate_tm(
+def calculate_tm_santalucia_1998_owczarzy_2008(
     primer: Primer, settings: TMSettings = GLOBAL_TM_SETTINGS
 ) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
@@ -230,9 +230,7 @@ def calculate_tm(
         # coeffs or eq. But Eq 16 is often used generally for Mg presence in
         # simplified implementations. Since exact mixed mode coeffs are
         # complex/variable, we stick to Eq 16 which accounts for Mg effects
-        # well. Note also Von Ahsen et al (2001) suggests Na_eq = Mon +
-        # 3.8*sqrt(Mg) for mixed. But we use the Owczarzy Eq 16 which is
-        # specific for Mg.
+        # well.
 
         tm_inv = (1.0 / tm_1m_K) + corr
         tm_final_K = 1.0 / tm_inv
@@ -240,7 +238,7 @@ def calculate_tm(
     return tm_final_K - 273.15
 
 
-def calculate_tm_amplify4(
+def calculate_tm_lander_amplify4(
     primer: Primer,
     settings: TMSettings = GLOBAL_TM_SETTINGS,
 ) -> float:

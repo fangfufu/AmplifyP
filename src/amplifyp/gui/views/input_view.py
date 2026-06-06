@@ -735,7 +735,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             from amplifyp.dimer import PrimerDimerGenerator
             from amplifyp.dna import Primer
-            from amplifyp.melting import calculate_tm, calculate_tm_amplify4
+            from amplifyp.melting import (
+                calculate_tm_lander_amplify4,
+                calculate_tm_santalucia_1998_owczarzy_2008,
+            )
 
             primer_obj = Primer(sequence=seq_val, name=name_val)
 
@@ -752,9 +755,9 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             # Melting temperature
             tm_method = self.state.settings.get(
-                "tm_method", "Amplify P (Default)"
+                "tm_method", "SantaLucia 1998 / Owczarzy 2008"
             )
-            use_amp4_tm = str(tm_method) == "Amplify 4"
+            use_amp4_tm = str(tm_method) == "Lander / Amplify 4"
 
             if use_amp4_tm:
                 from amplifyp.settings import TMSettings
@@ -767,7 +770,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                         "tm_mono_salt", 50.0
                     ),
                 )
-                tm = calculate_tm_amplify4(primer_obj, amp4_settings)
+                tm = calculate_tm_lander_amplify4(primer_obj, amp4_settings)
             else:
                 from amplifyp.settings import TMSettings
 
@@ -788,7 +791,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                         "tm_dNTP_conc", 0.0
                     ),
                 )
-                tm = calculate_tm(primer_obj, standard_settings)
+                tm = calculate_tm_santalucia_1998_owczarzy_2008(
+                    primer_obj, standard_settings
+                )
 
             self.info_tm_text.value = f"Tm = {tm:.2f}°C"
 

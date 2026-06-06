@@ -160,7 +160,7 @@ class GUISettings:
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
             "amp4_compat": False,
-            "tm_method": "Amplify P (Default)",
+            "tm_method": "SantaLucia 1998 / Owczarzy 2008",
             "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
             "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
