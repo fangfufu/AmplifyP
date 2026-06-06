@@ -24,7 +24,7 @@ def clean_sequence(seq: str) -> str:
     if not seq:
         return ""
     clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
-    return "".join(clean.split()).upper()
+    return "".join(clean.split())
 
 
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
@@ -103,15 +103,19 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
 
     def close_dlg(e: Any) -> None:
         dialog.open = False
+        page.update()
+
+    def on_dismiss(e: Any) -> None:
         if dialog in page.overlay:
             page.overlay.remove(dialog)
-        page.update()
+            page.update()
 
     dialog = ft.AlertDialog(
         title=ft.Text(title, color=GUIColors.ERROR_RED),
         content=ft.Text(message),
         actions=[ft.TextButton("OK", on_click=close_dlg)],
         actions_alignment=ft.MainAxisAlignment.END,
+        on_dismiss=on_dismiss,
     )
     page.overlay.append(dialog)
     dialog.open = True

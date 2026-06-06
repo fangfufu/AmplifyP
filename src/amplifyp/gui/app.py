@@ -28,79 +28,101 @@ from amplifyp.gui.views import (
     SettingsView,
 )
 
-DIMERS_LABEL = "Primer Dimers"
-
-STATE_FILE = "amplify_gui_state.yaml"
-
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
+    page.padding = 0
+    page.spacing = 0
+
+    # Handle close / reload warnings
+    if page.web:
+        if hasattr(page, "run_javascript"):
+            page.run_javascript("""
+                window.addEventListener('beforeunload', (event) => {
+                    event.preventDefault();
+                    event.returnValue = '';
+                });
+            """)
+    else:
+        page.window.prevent_close = True
+
+        def confirm_dismiss(e: ft.ControlEvent) -> None:
+            confirm_dialog.open = False
+            page.update()
+
+        def confirm_exit(e: ft.ControlEvent) -> None:
+            page.run_task(page.window.destroy)
+
+        confirm_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirm Exit"),
+            content=ft.Text(
+                "Are you sure you want to close AmplifyP? "
+                "Unsaved changes will be lost."
+            ),
+            actions=[
+                ft.TextButton("Yes", on_click=confirm_exit),
+                ft.TextButton("No", on_click=confirm_dismiss),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.overlay.append(confirm_dialog)
+
+        def on_window_event(e: ft.WindowEvent) -> None:
+            if (
+                e.data == "close"
+                or getattr(e, "type", None) == ft.WindowEventType.CLOSE
+            ):
+                confirm_dialog.open = True
+                page.update()
+
+        page.window.on_event = on_window_event
 
     # Centralize state storage
     input_data = GUIInput()
     settings = GUISettings()
     has_run_pcr = False
-    results_outdated = False
-    results_button_ref = ft.Ref[ft.FilledButton]()
+    pcr_outdated = False
+    pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
-    def on_results_click(e: ft.ControlEvent) -> None:
-        """Handle results button click: switch view and run PCR."""
-        nonlocal has_run_pcr, results_outdated
-        switch_view(e, result_view)
-        result_view.run_pcr()
-        has_run_pcr = True
-        results_outdated = False
-        if results_button_ref.current:
-            results_button_ref.current.text = "Results"
-        page.update()
+    def on_pcr_click(e: ft.ControlEvent) -> None:
+        """Handle PCR click: run PCR and switch view if successful."""
+        nonlocal has_run_pcr, pcr_outdated
+        if result_view.run_pcr():
+            switch_view(e, result_view)
+            has_run_pcr = True
+            pcr_outdated = False
+            if pcr_button_ref.current:
+                pcr_button_ref.current.text = "PCR"
+            page.update()
 
     def on_dimers_click(e: ft.ControlEvent) -> None:
-        """Handle dimers button click: switch view and run analysis."""
-        switch_view(e, dimers_view)
-        dimers_view.run_analysis()
-        page.update()
+        """Handle dimers click: run analysis and switch view if successful."""
+        if dimers_view.run_analysis():
+            switch_view(e, dimers_view)
+            page.update()
 
-    results_button = ft.FilledButton(
-        "Results",
-        ref=results_button_ref,
-        on_click=on_results_click,
-        disabled=True,
-        icon=ft.Icons.ANALYTICS,
-    )
-
-    dimers_button = ft.FilledButton(
-        DIMERS_LABEL,
-        ref=dimers_button_ref,
-        on_click=on_dimers_click,
-        disabled=True,
-        icon=ft.Icons.COMPARE_ARROWS,
-        tooltip=DIMERS_LABEL,
-    )
-    dimers_button.content_description = DIMERS_LABEL
-
-    def update_results_button_state() -> None:
-        """Enable results and dimers buttons only if input is valid."""
-        nonlocal results_outdated
+    def update_pcr_button_state() -> None:
+        """Enable PCR and dimers buttons only if input is valid."""
+        nonlocal pcr_outdated
         input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
         has_primers = len(input_data.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
-        btn = results_button_ref.current
+        btn = pcr_button_ref.current
         if btn:
             btn.disabled = not is_enabled
 
             # Set outdated if enabled and inputs change AFTER a first run
             if is_enabled and has_run_pcr:
-                results_outdated = True
+                pcr_outdated = True
 
-            label = (
-                "Results *" if (results_outdated and is_enabled) else "Results"
-            )
+            label = "PCR *" if (pcr_outdated and is_enabled) else "PCR"
             btn.text = label
 
         dimers_btn = dimers_button_ref.current
@@ -110,13 +132,13 @@ def main(page: ft.Page) -> None:
         page.update()
 
     def run_analysis_in_background() -> None:
-        nonlocal has_run_pcr, results_outdated
+        nonlocal has_run_pcr, pcr_outdated
         result_view.run_pcr()
         dimers_view.run_analysis()
         has_run_pcr = True
-        results_outdated = False
-        if results_button_ref.current:
-            results_button_ref.current.text = "Results"
+        pcr_outdated = False
+        if pcr_button_ref.current:
+            pcr_button_ref.current.text = "PCR"
         page.update()
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
@@ -126,13 +148,13 @@ def main(page: ft.Page) -> None:
         page,
         input_data,
         settings,
-        on_change=lambda e: update_results_button_state(),
-        on_stop_editing=update_results_button_state,
+        on_change=lambda e: update_pcr_button_state(),
+        on_stop_editing=update_pcr_button_state,
     )
     settings_view = SettingsView(
         page,
         settings,
-        on_change=lambda e: update_results_button_state(),
+        on_change=lambda e: update_pcr_button_state(),
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
@@ -155,8 +177,8 @@ def main(page: ft.Page) -> None:
 
         try:
             file_path = await ft.FilePicker().save_file(
-                dialog_title="Save State",
-                file_name=STATE_FILE,
+                dialog_title="Save",
+                file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 src_bytes=yaml_str.encode("utf-8"),
@@ -175,7 +197,7 @@ def main(page: ft.Page) -> None:
     async def load_state(e: ft.ControlEvent) -> None:
         try:
             files = await ft.FilePicker().pick_files(
-                dialog_title="Load State",
+                dialog_title="Load",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 with_data=True,
@@ -207,7 +229,7 @@ def main(page: ft.Page) -> None:
                 settings.from_dict(parsed_state["settings"])
             input_view.update_ui()
             settings_view.update_ui()
-            update_results_button_state()
+            update_pcr_button_state()
             show_snackbar("State loaded successfully!")
         except Exception as ex:
             import traceback
@@ -216,47 +238,76 @@ def main(page: ft.Page) -> None:
             print("LOAD STATE ERROR:", tb)
             show_snackbar(f"Error loading state: {ex}")
 
-    view_container = ft.Container(content=input_view, expand=True)
+    view_container = ft.Container(content=input_view, expand=True, padding=10)
 
     def switch_view(e: ft.ControlEvent, view: ft.Control) -> None:
         view_container.content = view
         page.update()
 
+    # AppBar buttons
+    input_button = ft.FilledButton(
+        "Input",
+        icon=ft.Icons.INPUT,
+        on_click=lambda e: switch_view(e, input_view),
+        tooltip="Input",
+    )
+    input_button.content_description = "Input"
+
+    pcr_button = ft.FilledButton(
+        "PCR",
+        ref=pcr_button_ref,
+        on_click=on_pcr_click,
+        disabled=True,
+        icon=ft.Icons.ANALYTICS,
+        tooltip="PCR",
+    )
+    pcr_button.content_description = "PCR"
+
+    dimers_button = ft.FilledButton(
+        "Primer Dimers",
+        ref=dimers_button_ref,
+        on_click=on_dimers_click,
+        disabled=True,
+        icon=ft.Icons.COMPARE_ARROWS,
+        tooltip="Primer Dimers",
+    )
+    dimers_button.content_description = "Primer Dimers"
+
+    settings_button = ft.FilledButton(
+        "Settings",
+        icon=ft.Icons.SETTINGS,
+        on_click=lambda e: switch_view(e, settings_view),
+        tooltip="Settings",
+    )
+    settings_button.content_description = "Settings"
+
     save_btn_control = ft.FilledButton(
-        "Save State",
+        "Save",
         icon=ft.Icons.SAVE,
-        tooltip="Save State",
+        tooltip="Save",
         on_click=save_state,
     )
-    save_btn_control.content_description = "Save State"
+    save_btn_control.content_description = "Save"
 
     load_btn_control = ft.FilledButton(
-        "Load State",
+        "Load",
         icon=ft.Icons.UPLOAD_FILE,
-        tooltip="Load State",
+        tooltip="Load",
         on_click=load_state,
     )
-    load_btn_control.content_description = "Load State"
+    load_btn_control.content_description = "Load"
 
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
         elevation_on_scroll=0,
         actions=[
-            ft.FilledButton(
-                "Input",
-                icon=ft.Icons.INPUT,
-                on_click=lambda e: switch_view(e, input_view),
-            ),
+            input_button,
             ft.Container(width=16),
-            results_button,
+            pcr_button,
             ft.Container(width=16),
             dimers_button,
             ft.Container(width=16),
-            ft.FilledButton(
-                "Settings",
-                icon=ft.Icons.SETTINGS,
-                on_click=lambda e: switch_view(e, settings_view),
-            ),
+            settings_button,
             ft.Container(width=16),
             ft.VerticalDivider(),
             ft.Container(width=16),
@@ -267,4 +318,7 @@ def main(page: ft.Page) -> None:
         ],
     )
 
-    page.add(view_container)
+    page.add(
+        ft.Divider(height=1, thickness=1),
+        view_container,
+    )

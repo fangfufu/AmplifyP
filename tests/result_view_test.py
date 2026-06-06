@@ -24,12 +24,12 @@ def test_result_view_click_context_map() -> None:
 
     input_data = GUIInput()
     input_data.template = (
-        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
     input_data.template_circular = False
     input_data.primers = [
-        {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
-        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
     ]
 
     view = ResultView(mock_page, input_data)
@@ -89,7 +89,9 @@ def test_result_view_click_context_map() -> None:
     assert (
         "--------------------" in full_text
     )  # Upstream region (gaps because index 0 is at boundary)
-    assert "TTCCACTGCGAATCATTAAA" in full_text  # Binding region
+    assert (
+        "tTccACTGCGAATCATTAAA" in full_text
+    )  # Binding region - must preserve mixed case
 
 
 def test_result_view_click_amplicon() -> None:
@@ -103,12 +105,12 @@ def test_result_view_click_amplicon() -> None:
 
     input_data = GUIInput()
     input_data.template = (
-        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
     input_data.template_circular = False
     input_data.primers = [
-        {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
-        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
     ]
 
     view = ResultView(mock_page, input_data)
@@ -187,7 +189,7 @@ def test_result_view_resize_preserves_cards() -> None:
     assert isinstance(view.result_list.controls[0], ft.Card)
 
     # Trigger resize event
-    view.handle_resize(MagicMock(spec=ft.ControlEvent))
+    view._handle_resize(MagicMock(spec=ft.ControlEvent))
 
     # Verify that the card is still present
     assert len(view.result_list.controls) == 1

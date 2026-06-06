@@ -193,8 +193,8 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
     page.keyboard.press("Tab")
 
     # 4. Save State
-    # Find the Save button via its tooltip "Save State"
-    save_btn = page.locator("[aria-label*='Save State']").first
+    # Find the Save button via its tooltip "Save"
+    save_btn = page.locator("[aria-label*='Save']").first
 
     with page.expect_download(timeout=20000) as download_info:
         save_btn.click()

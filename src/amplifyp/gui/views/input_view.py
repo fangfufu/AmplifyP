@@ -17,29 +17,23 @@ from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, format_sequence
 
 
-class InputView(ft.Row):  # type: ignore[misc]
-    """Input view for DNA template and primers."""
+class TemplateInput(ft.Container):  # type: ignore[misc]
+    """Input component for DNA template sequence."""
 
     def __init__(
         self,
-        page: ft.Page,
-        input_data: GUIInput | None = None,
-        settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_stop_editing: Any | None = None,
+        settings: GUISettings,
+        input_data: GUIInput,
+        on_change_handler: Any,
+        handle_field_focus: Any,
+        handle_field_blur: Any,
+        handle_field_submit: Any,
+        clear_template_callback: Any,
     ) -> None:
-        """Initialize the InputView."""
-        super().__init__(
-            expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
-        )
-        self.app_page = page
-        self.input_data = input_data if input_data is not None else GUIInput()
-        self.settings = settings if settings is not None else GUISettings()
-        self.on_change = on_change
-        self.on_stop_editing_callback = on_stop_editing
-        self._focus_timer: threading.Timer | None = None
-        self.focused_primer_index: int | None = None
-
+        """Initialize the TemplateInput component."""
+        super().__init__(expand=5)
+        self.settings = settings
+        self.input_data = input_data
         font_family = self.settings.get("font_family", "Roboto Mono")
 
         self.template_sequence = ft.TextField(
@@ -49,16 +43,16 @@ class InputView(ft.Row):  # type: ignore[misc]
             text_align=ft.TextAlign.LEFT,
             hint_text="Enter DNA sequence here...",
             content_padding=0,
-            on_change=self.on_change_handler,
-            on_focus=self.handle_field_focus,
-            on_blur=self.handle_field_blur,
-            on_submit=self.handle_field_submit,
+            on_change=on_change_handler,
+            on_focus=handle_field_focus,
+            on_blur=handle_field_blur,
+            on_submit=handle_field_submit,
             text_style=ft.TextStyle(font_family=font_family),
         )
         self.template_circular = ft.Checkbox(
             label="Circular Template",
             value=False,
-            on_change=self.on_change_handler,
+            on_change=on_change_handler,
         )
         self.circular_container = ft.Container(
             content=self.template_circular,
@@ -69,6 +63,93 @@ class InputView(ft.Row):  # type: ignore[misc]
             alignment=ft.Alignment(0, 0),
         )
 
+        self.clear_template_button = ft.OutlinedButton(
+            "Clear",
+            icon=ft.Icons.DELETE_OUTLINE,
+            tooltip="Clear Template",
+            on_click=clear_template_callback,
+            height=32,
+        )
+
+        self.content = ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text("Template Sequence", weight=ft.FontWeight.BOLD),
+                        ft.Row(
+                            [
+                                self.circular_container,
+                                self.clear_template_button,
+                            ],
+                            spacing=10,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    height=40,
+                ),
+                ft.Container(
+                    content=ft.ListView(
+                        [self.template_sequence],
+                        expand=True,
+                        scroll=ft.ScrollMode.ALWAYS,
+                    ),
+                    expand=True,
+                    border=ft.Border.all(1, GUIColors.OUTLINE),
+                    border_radius=5,
+                    padding=0,
+                ),
+            ],
+            expand=True,
+            spacing=5,
+        )
+
+    def sync_to_state(self) -> None:
+        """Sync template text field to the central state."""
+        self.template_sequence.value = self.template_sequence.value or ""
+        self.input_data.template = clean_sequence(
+            str(self.template_sequence.value)
+        )
+        self.input_data.template_circular = bool(self.template_circular.value)
+
+    def update_ui(self) -> None:
+        """Update template UI elements to match central state."""
+        font_family = self.settings.get("font_family", "Roboto Mono")
+        self.template_sequence.text_style = ft.TextStyle(
+            font_family=font_family
+        )
+        self.template_sequence.value = self.input_data.template
+        self.template_circular.value = self.input_data.template_circular
+
+
+class PrimerInput(ft.Container):  # type: ignore[misc]
+    """Input component for DNA primers list and details."""
+
+    def __init__(
+        self,
+        page: ft.Page,
+        settings: GUISettings,
+        input_data: GUIInput,
+        on_change_handler: Any,
+        handle_field_focus: Any,
+        handle_field_blur: Any,
+        handle_field_submit: Any,
+        clear_primers_callback: Any,
+    ) -> None:
+        """Initialize the PrimerInput component."""
+        super().__init__(expand=5)
+        self.app_page = page
+        self.settings = settings
+        self.input_data = input_data
+        self.on_change_handler = on_change_handler
+        self.handle_field_focus = handle_field_focus
+        self.handle_field_blur = handle_field_blur
+        self.handle_field_submit = handle_field_submit
+        self.clear_primers_callback = clear_primers_callback
+
+        self.focused_primer_index: int | None = None
+        self.validation_errors: list[str | None] = []
+
+        font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
         self.primers_list = ft.ListView(
             expand=True, spacing=0, padding=0, scroll=ft.ScrollMode.ALWAYS
@@ -101,7 +182,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     alignment=ft.Alignment(-1, 0),
                 ),
                 ft.GestureDetector(
-                    on_pan_update=self.on_primer_divider_pan,
+                    on_pan_update=self._on_primer_divider_pan,
                     content=ft.Container(
                         width=4,
                         bgcolor=GUIColors.DIVIDER_GREY,
@@ -133,10 +214,10 @@ class InputView(ft.Row):  # type: ignore[misc]
         )
 
         self.clear_primers_button = ft.OutlinedButton(
-            "Clear All",
+            "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear All Primers",
-            on_click=self.clear_primers,
+            on_click=self.clear_primers_callback,
             height=32,
         )
 
@@ -147,6 +228,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 weight=ft.FontWeight.BOLD,
                 size=self.settings.get("font_size_default", 14),
                 color=GUIColors.DIAGRAM_BLACK,
+                selectable=True,
             ),
             bgcolor=GUIColors.INFO_HEADER_BG,
             padding=ft.Padding(10, 5, 10, 5),
@@ -157,23 +239,28 @@ class InputView(ft.Row):  # type: ignore[misc]
             "",
             font_family=font_family,
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_tm_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_pairs_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_redundancy_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
         self.info_dimer_text = ft.Text(
             "",
             color=GUIColors.ERROR_RED,
             size=self.settings.get("font_size_body", 13),
+            selectable=True,
         )
 
         self.primer_info_panel = ft.Container(
@@ -201,140 +288,73 @@ class InputView(ft.Row):  # type: ignore[misc]
             visible=False,
         )
 
-        self.top_container = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
+        self.content = ft.Column(
+            [
+                ft.Row(
+                    [
+                        ft.Text("Primers", weight=ft.FontWeight.BOLD),
+                        self.clear_primers_button,
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    height=40,
+                ),
+                ft.Container(
+                    content=ft.Column(
                         [
-                            ft.Text(
-                                "Template Sequence", weight=ft.FontWeight.BOLD
-                            ),
-                            self.circular_container,
+                            self.primers_header_container,
+                            self.primers_list,
                         ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        height=40,
-                    ),
-                    ft.Container(
-                        content=ft.ListView(
-                            [self.template_sequence],
-                            expand=True,
-                            scroll=ft.ScrollMode.ALWAYS,
-                        ),
                         expand=True,
-                        border=ft.Border.all(1, GUIColors.OUTLINE),
-                        border_radius=5,
-                        padding=0,
+                        spacing=0,
                     ),
-                ],
-                expand=True,
-                spacing=5,
-            ),
-            expand=5,
+                    expand=True,
+                    border=ft.Border.all(1, GUIColors.OUTLINE),
+                    border_radius=5,
+                    padding=0,
+                ),
+                self.primer_info_panel,
+            ],
+            expand=True,
+            spacing=5,
         )
 
-        self.right_fraction = 0.5
+    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+        """Handle clicking on the row container.
 
-        self.bottom_container = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Text("Primers", weight=ft.FontWeight.BOLD),
-                            self.clear_primers_button,
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        height=40,
-                    ),
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                self.primers_header_container,
-                                self.primers_list,
-                            ],
-                            expand=True,
-                            spacing=0,
-                        ),
-                        expand=True,
-                        border=ft.Border.all(1, GUIColors.OUTLINE),
-                        border_radius=5,
-                        padding=0,
-                    ),
-                    self.primer_info_panel,
-                ],
-                expand=True,
-                spacing=5,
-            ),
-            expand=5,
-        )
+        Selects the row and focuses the name field.
+        """
+        self.focused_primer_index = idx
+        self._update_row_highlights()
+        self._update_primer_info_panel()
+        name_edit.focus()
 
-        self.divider = ft.GestureDetector(
-            on_pan_update=self.on_pan_update,
-            content=ft.Container(
-                width=5,
-                bgcolor=GUIColors.DIVIDER_GREY,
-                border_radius=5,
-                margin=ft.Margin.symmetric(horizontal=5),
-            ),
-            mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
-        )
+    def _move_primer(self, idx: int, direction: int) -> None:
+        """Move primer at idx up (direction=-1) or down (direction=1)."""
+        parent_view = getattr(self.on_change_handler, "__self__", None)
+        if parent_view is not None:
+            if getattr(parent_view, "_focus_timer", None) is not None:
+                parent_view._focus_timer.cancel()
+                parent_view._focus_timer = None
+            parent_view._skip_blur_timer = True
 
-        self.controls = [
-            self.top_container,
-            self.divider,
-            self.bottom_container,
-        ]
+        self.sync_to_state(rebuild_if_needed=False)
+        primers = self.input_data.primers
+        target_idx = idx + direction
 
-        # Sync initial UI state
-        self.update_ui()
+        # Swap only if both indices are valid filled primers.
+        if 0 <= idx < len(primers) and 0 <= target_idx < len(primers):
+            primers[idx], primers[target_idx] = (
+                primers[target_idx],
+                primers[idx],
+            )
+            if self.focused_primer_index == idx:
+                self.focused_primer_index = target_idx
+            elif self.focused_primer_index == target_idx:
+                self.focused_primer_index = idx
 
-    def handle_field_focus(self, e: ft.ControlEvent) -> None:
-        """Handle focus on input fields to cancel auto-trigger timer."""
-        if self._focus_timer is not None:
-            self._focus_timer.cancel()
-            self._focus_timer = None
-
-        if e.control.data is not None:
-            self.focused_primer_index = e.control.data
-            self.update_primer_info_panel()
-
-    def handle_field_blur(self, e: ft.ControlEvent) -> None:
-        """Handle blur on input fields to trigger results page after a delay."""
-        if self._focus_timer is not None:
-            self._focus_timer.cancel()
-            self._focus_timer = None
-
-        def timer_callback() -> None:
-            if not self.page:
-                return
-            self.sync_to_state()
-            if self.on_stop_editing_callback:
-                self.on_stop_editing_callback()
-
-        self._focus_timer = threading.Timer(0.15, timer_callback)
-        self._focus_timer.daemon = True
-        try:
-            self._focus_timer.start()
-        except RuntimeError:
-            # Pyodide (WebAssembly) may not support starting OS threads when
-            # SharedArrayBuffer / cross-origin isolation is unavailable.
-            # Fall back to a direct synchronous invocation of the callback.
-            self._focus_timer = None
-            timer_callback()
-
-    def handle_field_submit(self, e: ft.ControlEvent) -> None:
-        """Handle submission (Enter key) to immediately trigger results."""
-        if self._focus_timer is not None:
-            self._focus_timer.cancel()
-            self._focus_timer = None
-        self.sync_to_state()
-        if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
-
-    def will_unmount(self) -> None:
-        """Clean up when the view is unmounted."""
-        if self._focus_timer is not None:
-            self._focus_timer.cancel()
-            self._focus_timer = None
+            self.update_ui()
+            if self.on_change_handler:
+                self.on_change_handler(None)
 
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
         """Extract primer data from UI controls."""
@@ -353,7 +373,12 @@ class InputView(ft.Row):  # type: ignore[misc]
                 else checkbox_control
             )
             name_tf = row.controls[2]
-            seq_tf = row.controls[4]
+            seq_ctrl = row.controls[4]
+            seq_tf = (
+                seq_ctrl.controls[0]
+                if isinstance(seq_ctrl, ft.Stack) and seq_ctrl.controls
+                else seq_ctrl
+            )
 
             name_val = str(name_tf.value or "").strip()
             seq_val = clean_sequence(str(seq_tf.value or ""))
@@ -373,7 +398,7 @@ class InputView(ft.Row):  # type: ignore[misc]
     def _apply_activation_rules(
         self, ui_primers: list[dict[str, Any]]
     ) -> tuple[list[dict[str, Any]], bool]:
-        """Apply auto-activation and auto-inactivation and deletion rules.
+        """Apply auto-activation, auto-inactivation and deletion rules.
 
         Returns (filtered_ui_primers, rebuild_needed).
         """
@@ -425,10 +450,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _detect_and_mark_duplicates(
         self, ui_primers: list[dict[str, Any]]
-    ) -> tuple[list[dict[str, Any]], bool]:
+    ) -> list[dict[str, Any]]:
         """Detect duplicates and mark container colors.
 
-        Returns (primers_list_for_state, rebuild_needed).
+        Returns primers_list for state.
         """
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
@@ -441,17 +466,14 @@ class InputView(ft.Row):  # type: ignore[misc]
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
         primers = []
-        should_rebuild = False
         for p in ui_primers:
             container = p["container"]
             n_lower = p["name"].lower()
             s_lower = p["seq"].lower()
 
-            is_dup = False
-            if n_lower and names_count.get(n_lower, 0) > 1:
-                is_dup = True
-            if s_lower and seqs_count.get(s_lower, 0) > 1:
-                is_dup = True
+            is_dup = (n_lower and names_count.get(n_lower, 0) > 1) or (
+                s_lower and seqs_count.get(s_lower, 0) > 1
+            )
 
             new_color = GUIColors.DUPLICATE_BG if is_dup else None
             if container.bgcolor != new_color:
@@ -464,24 +486,36 @@ class InputView(ft.Row):  # type: ignore[misc]
                     "active": p["active"],
                 }
             )
-        return primers, should_rebuild
+        return primers
 
-    def sync_to_state(self) -> None:
-        """Sync current UI controls back to the central state."""
-        self.template_sequence.value = self.template_sequence.value or ""
-        self.input_data.template = clean_sequence(
-            str(self.template_sequence.value)
-        )
-        self.input_data.template_circular = bool(self.template_circular.value)
+    def sync_to_state(self, rebuild_if_needed: bool = True) -> bool:
+        """Sync current UI controls back to the central state.
 
+        Returns True if a UI rebuild is needed.
+        """
         ui_primers = self._extract_primer_data_from_ui()
         filtered_ui_primers, should_rebuild = self._apply_activation_rules(
             ui_primers
         )
-        primers, dup_rebuild = self._detect_and_mark_duplicates(
-            filtered_ui_primers
-        )
-        should_rebuild = should_rebuild or dup_rebuild
+        primers = self._detect_and_mark_duplicates(filtered_ui_primers)
+
+        # Run background primer construction/validation
+        new_validation_errors = []
+        for p in primers:
+            name_val = p["name"]
+            seq_val = p["seq"]
+            error_message = None
+            if seq_val:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError as ex:
+                    error_message = str(ex)
+            new_validation_errors.append(error_message)
+
+        if getattr(self, "validation_errors", []) != new_validation_errors:
+            should_rebuild = True
 
         # If the number of non-empty primers changed, we rebuild
         if len(primers) != len(
@@ -494,19 +528,16 @@ class InputView(ft.Row):  # type: ignore[misc]
             should_rebuild = True
 
         self.input_data.primers = primers
+        self.validation_errors = new_validation_errors
 
-        if should_rebuild:
+        if should_rebuild and rebuild_if_needed:
             self.update_ui()
+
+        return should_rebuild
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
         font_family = self.settings.get("font_family", "Roboto Mono")
-        self.template_sequence.text_style = ft.TextStyle(
-            font_family=font_family
-        )
-        self.template_sequence.value = self.input_data.template
-        self.template_circular.value = self.input_data.template_circular
-
         self.primers_list.controls.clear()
 
         # Filter out all empty primers from state first
@@ -521,29 +552,25 @@ class InputView(ft.Row):  # type: ignore[misc]
         clean_primers.append({"name": "", "seq": "", "active": False})
         self.input_data.primers = clean_primers
 
-        # Check for duplicates to highlight them on load/update
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in self.input_data.primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+        dup_indices = self._get_duplicate_indices()
 
+        self.validation_errors = []
         for idx, p in enumerate(self.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
 
-            n_lower = name_val.strip().lower()
-            s_lower = seq_val.lower()
-            is_dup = False
-            if n_lower and names_count.get(n_lower, 0) > 1:
-                is_dup = True
-            if s_lower and seqs_count.get(s_lower, 0) > 1:
-                is_dup = True
+            error_message = None
+            if seq_val:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError as ex:
+                    error_message = str(ex)
+            self.validation_errors.append(error_message)
+
+            is_dup = idx in dup_indices
 
             checkbox = ft.Checkbox(
                 value=is_active,
@@ -552,6 +579,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             checkbox_container = ft.Container(
                 content=checkbox,
                 width=55,
+                height=30,
                 alignment=ft.Alignment(0, 0),
             )
             name_edit = ft.TextField(
@@ -571,9 +599,18 @@ class InputView(ft.Row):  # type: ignore[misc]
                 value=seq_val,
                 hint_text="New Primer Sequence",
                 dense=True,
-                expand=True,
-                content_padding=ft.Padding(5, 0, 0, 0),
-                height=30,
+                left=0,
+                right=0,
+                content_padding=ft.Padding(
+                    5,
+                    0,
+                    60
+                    if idx == self.focused_primer_index
+                    and idx < len(self.input_data.primers) - 1
+                    else 0,
+                    0,
+                ),
+                height=30 if not error_message else None,
                 border=ft.InputBorder.NONE,
                 text_style=ft.TextStyle(font_family=font_family),
                 data=idx,
@@ -581,8 +618,10 @@ class InputView(ft.Row):  # type: ignore[misc]
                 on_blur=self.handle_field_blur,
                 on_submit=self.handle_field_submit,
             )
+            if error_message:
+                seq_edit.error = error_message
             divider = ft.GestureDetector(
-                on_pan_update=self.on_primer_divider_pan,
+                on_pan_update=self._on_primer_divider_pan,
                 content=ft.Container(
                     width=4,
                     bgcolor=GUIColors.DIVIDER_GREY,
@@ -599,29 +638,75 @@ class InputView(ft.Row):  # type: ignore[misc]
                 height=30,
             )
 
+            seq_stack = ft.Stack(
+                [
+                    seq_edit,
+                ],
+                expand=True,
+            )
+
+            if idx < len(self.input_data.primers) - 1:
+                up_button = ft.IconButton(
+                    icon=ft.Icons.ARROW_UPWARD,
+                    icon_size=16,
+                    width=24,
+                    height=24,
+                    padding=0,
+                    tooltip="Move Up",
+                    disabled=(idx == 0),
+                    on_click=lambda e, idx=idx: self._move_primer(idx, -1),
+                )
+                down_button = ft.IconButton(
+                    icon=ft.Icons.ARROW_DOWNWARD,
+                    icon_size=16,
+                    width=24,
+                    height=24,
+                    padding=0,
+                    tooltip="Move Down",
+                    disabled=(idx == len(self.input_data.primers) - 2),
+                    on_click=lambda e, idx=idx: self._move_primer(idx, 1),
+                )
+                reorder_controls = ft.Row(
+                    [up_button, down_button],
+                    spacing=2,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                )
+                reorder_container = ft.Container(
+                    content=reorder_controls,
+                    right=10,
+                    top=3,
+                    visible=(idx == self.focused_primer_index),
+                )
+                seq_stack.controls.append(reorder_container)
+
             row = ft.Row(
                 [
                     checkbox_container,
                     active_divider,
                     name_edit,
                     divider,
-                    seq_edit,
+                    seq_stack,
                 ],
-                expand=True,
                 spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.START,
             )
 
             row_container = ft.Container(
                 content=row,
                 bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
                 padding=0,
-                height=30,
+                height=30 if not error_message else None,
+                data=idx,
+                on_click=lambda e, idx=idx, name_edit=name_edit: (
+                    self._handle_row_click(idx, name_edit)
+                ),
             )
             self.primers_list.controls.append(row_container)
 
-        self.update_primer_info_panel()
+        self._update_row_highlights()
+        self._update_primer_info_panel()
 
-    def on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
+    def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the vertical divider between Name and Sequence."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
         self.name_column_width = max(
@@ -639,24 +724,455 @@ class InputView(ft.Row):  # type: ignore[misc]
                         name_tf.width = self.name_column_width
         self.app_page.update()
 
-    def on_change_handler(self, e: ft.ControlEvent) -> None:
+    def _get_duplicate_indices(self) -> set[int]:
+        """Find indices of primers with duplicate names or sequences."""
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in self.input_data.primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+
+        dup_indices = set()
+        for idx, p in enumerate(self.input_data.primers):
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if (n_lower and names_count.get(n_lower, 0) > 1) or (
+                s_lower and seqs_count.get(s_lower, 0) > 1
+            ):
+                dup_indices.add(idx)
+        return dup_indices
+
+    def _update_row_highlights(self) -> None:
+        """Update background colors of all row containers.
+
+        Highlights rows based on selection and duplicates.
+        """
+        dup_indices = self._get_duplicate_indices()
+
+        for container in self.primers_list.controls:
+            if (
+                isinstance(container, ft.Container)
+                and container.data is not None
+            ):
+                c_idx = container.data
+                is_dup = c_idx in dup_indices
+
+                if c_idx == self.focused_primer_index:
+                    container.bgcolor = GUIColors.SELECTED_ROW_BG
+                elif is_dup:
+                    container.bgcolor = GUIColors.DUPLICATE_BG
+                else:
+                    container.bgcolor = None
+
+                # Update reorder container visibility and text padding
+                # dynamically.
+                row = container.content
+                if isinstance(row, ft.Row) and len(row.controls) >= 5:
+                    seq_stack = row.controls[4]
+                    if (
+                        isinstance(seq_stack, ft.Stack)
+                        and len(seq_stack.controls) > 1
+                    ):
+                        reorder_container = seq_stack.controls[1]
+                        seq_edit = seq_stack.controls[0]
+                        is_focused = c_idx == self.focused_primer_index
+                        reorder_container.visible = is_focused
+                        if isinstance(seq_edit, ft.TextField):
+                            seq_edit.content_padding = ft.Padding(
+                                5, 0, 60 if is_focused else 0, 0
+                            )
+
+    def _update_primer_info_panel(self) -> None:
+        """Update the primer information panel based on the focused primer."""
+        if self.focused_primer_index is None:
+            self.primer_info_panel.visible = False
+            self._update_row_highlights()
+            self.app_page.update()
+            return
+
+        try:
+            primers = self.input_data.primers
+            if (
+                self.focused_primer_index < 0
+                or self.focused_primer_index >= len(primers)
+            ):
+                self.primer_info_panel.visible = False
+                self.app_page.update()
+                return
+
+            p_data = primers[self.focused_primer_index]
+            name_val = p_data.get("name", "").strip()
+            seq_val = clean_sequence(p_data.get("seq", ""))
+
+            if not seq_val:
+                self.primer_info_panel.visible = False
+                self.app_page.update()
+                return
+
+            from amplifyp.dimer import PrimerDimerGenerator
+            from amplifyp.dna import Primer
+
+            primer_obj = Primer(sequence=seq_val, name=name_val)
+
+            # Header
+            header_text = (
+                f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
+            )
+            self.info_header.content.value = header_text
+
+            # Sequence details
+            self.info_seq_text.value = (
+                f"{len(primer_obj)} bp:   {primer_obj.seq}"
+            )
+
+            # Melting temperature
+            tm = self.settings.calculate_primer_tm(primer_obj)
+            self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+
+            # Base counts / percentage
+            self.info_pairs_text.value = (
+                f"{primer_obj.count_at()} AT Pairs, "
+                f"{primer_obj.count_cg()} GC Pairs, "
+                f"{primer_obj.ratio_at() * 100:.1f}% AT"
+            )
+
+            # Redundancy
+            if primer_obj.redundant_base_count == 0:
+                self.info_redundancy_text.value = "No redundant bases."
+            else:
+                self.info_redundancy_text.value = (
+                    f"{primer_obj.redundant_base_count} redundant bases "
+                    f"(redundancy fold = {primer_obj.redundancy_fold})."
+                )
+
+            # Dimer potential check
+            pd_settings = self.settings.get_primer_dimer_settings()
+            generator = PrimerDimerGenerator(settings=pd_settings)
+
+            # Check self-dimer and cross-dimer potential
+            # against all active primers
+            active_primers = self.input_data.get_active_primers()
+            max_dimer = None
+
+            # Always check self-dimer
+            res_self = generator.generate_primer_dimer(primer_obj, primer_obj)
+            if (
+                res_self.overlap > pd_settings.min_overlap
+                and res_self.quality > pd_settings.threshold
+            ):
+                max_dimer = res_self
+
+            for ap in active_primers:
+                ap_name = ap.get("name", "").strip()
+                ap_seq = clean_sequence(ap.get("seq", ""))
+                if not ap_seq:
+                    continue
+                try:
+                    ap_obj = Primer(sequence=ap_seq, name=ap_name)
+                    res = generator.generate_primer_dimer(primer_obj, ap_obj)
+                    if (
+                        res.overlap > pd_settings.min_overlap
+                        and res.quality > pd_settings.threshold
+                    ):
+                        if max_dimer is None or res.quality > max_dimer.quality:
+                            max_dimer = res
+                except ValueError:
+                    continue
+
+            if max_dimer is not None:
+                self.info_dimer_text.value = (
+                    "Potential Primer Dimer with quality = "
+                    f"{max_dimer.quality:.1f} "
+                    f"and overlap = {max_dimer.overlap}"
+                )
+                self.info_dimer_text.visible = True
+            else:
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+
+            self.primer_info_panel.visible = True
+
+        except Exception:
+            self.primer_info_panel.visible = False
+
+        self.app_page.update()
+
+
+class InputView(ft.Row):  # type: ignore[misc]
+    """Input view composing DNA Template input and Primer inputs."""
+
+    def __init__(
+        self,
+        page: ft.Page,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
+        on_change: Any | None = None,
+        on_stop_editing: Any | None = None,
+    ) -> None:
+        """Initialize the InputView."""
+        super().__init__(
+            expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
+        )
+        self.app_page = page
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
+        self.on_change = on_change
+        self.on_stop_editing_callback = on_stop_editing
+        self._focus_timer: threading.Timer | None = None
+
+        self.template_input = TemplateInput(
+            settings=self.settings,
+            input_data=self.input_data,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_template_callback=self._clear_template,
+        )
+
+        self.primer_input = PrimerInput(
+            page=self.app_page,
+            settings=self.settings,
+            input_data=self.input_data,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_primers_callback=self._clear_primers,
+        )
+
+        self.right_fraction = 0.5
+
+        self.divider = ft.GestureDetector(
+            on_pan_update=self._on_pan_update,
+            content=ft.Container(
+                width=5,
+                bgcolor=GUIColors.DIVIDER_GREY,
+                border_radius=5,
+                margin=ft.Margin.symmetric(horizontal=5),
+            ),
+            mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
+        )
+
+        self.controls = [
+            self.template_input,
+            self.divider,
+            self.primer_input,
+        ]
+
+        # Sync initial UI state
+        self.update_ui()
+
+    # Properties/Delegates for backward compatibility and test access
+    @property
+    def template_sequence(self) -> ft.TextField:
+        """Get the template sequence text field."""
+        return self.template_input.template_sequence
+
+    @property
+    def template_circular(self) -> ft.Checkbox:
+        """Get the circular template checkbox."""
+        return self.template_input.template_circular
+
+    @property
+    def clear_template_button(self) -> ft.OutlinedButton:
+        """Get the clear template button."""
+        return self.template_input.clear_template_button
+
+    @property
+    def primers_list(self) -> ft.ListView:
+        """Get the list of primers view."""
+        return self.primer_input.primers_list
+
+    @property
+    def clear_primers_button(self) -> ft.OutlinedButton:
+        """Get the clear primers button."""
+        return self.primer_input.clear_primers_button
+
+    @property
+    def primer_info_panel(self) -> ft.Container:
+        """Get the primer info panel."""
+        return self.primer_input.primer_info_panel
+
+    @property
+    def info_header(self) -> ft.Container:
+        """Get the primer info header container."""
+        return self.primer_input.info_header
+
+    @property
+    def info_seq_text(self) -> ft.Text:
+        """Get the primer info sequence text control."""
+        return self.primer_input.info_seq_text
+
+    @property
+    def info_tm_text(self) -> ft.Text:
+        """Get the primer info Tm text control."""
+        return self.primer_input.info_tm_text
+
+    @property
+    def info_pairs_text(self) -> ft.Text:
+        """Get the primer info AT/GC pairs text control."""
+        return self.primer_input.info_pairs_text
+
+    @property
+    def info_redundancy_text(self) -> ft.Text:
+        """Get the primer info redundancy text control."""
+        return self.primer_input.info_redundancy_text
+
+    @property
+    def info_dimer_text(self) -> ft.Text:
+        """Get the primer info dimer text control."""
+        return self.primer_input.info_dimer_text
+
+    @property
+    def validation_errors(self) -> list[str | None]:
+        """Get the list of validation errors."""
+        return self.primer_input.validation_errors
+
+    @validation_errors.setter
+    def validation_errors(self, val: list[str | None]) -> None:
+        """Set the list of validation errors."""
+        self.primer_input.validation_errors = val
+
+    @property
+    def focused_primer_index(self) -> int | None:
+        """Get the currently focused primer index."""
+        return self.primer_input.focused_primer_index
+
+    @focused_primer_index.setter
+    def focused_primer_index(self, val: int | None) -> None:
+        """Set the currently focused primer index."""
+        self.primer_input.focused_primer_index = val
+
+    # Control layout compatibility properties
+    @property
+    def top_container(self) -> ft.Container:
+        """Get the template input container (layout backward compatibility)."""
+        return self.template_input
+
+    @property
+    def bottom_container(self) -> ft.Container:
+        """Get the primer input container (layout backward compatibility)."""
+        return self.primer_input
+
+    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+        """Delegate row click handling to PrimerInput."""
+        self.primer_input._handle_row_click(idx, name_edit)
+
+    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+        """Handle focus on input fields to cancel auto-trigger timer."""
+        if self._focus_timer is not None:
+            self._focus_timer.cancel()
+            self._focus_timer = None
+
+        if e.control.data is not None:
+            self.primer_input.focused_primer_index = e.control.data
+            self.primer_input._update_row_highlights()
+            self.primer_input._update_primer_info_panel()
+
+    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+        """Handle blur on input fields to trigger results page after a delay."""
+        if getattr(self, "_skip_blur_timer", False):
+            self._skip_blur_timer = False
+            return
+
+        self.sync_to_state(rebuild_if_needed=False)
+
+        # If the control that blurred has a validation error,
+        # update its display immediately.
+        if isinstance(e.control, ft.TextField) and e.control.data is not None:
+            idx = e.control.data
+            if idx < len(self.primer_input.validation_errors):
+                err = self.primer_input.validation_errors[idx]
+                e.control.error = err
+                e.control.height = 30 if not err else None
+                for container in self.primer_input.primers_list.controls:
+                    if (
+                        isinstance(container, ft.Container)
+                        and container.data == idx
+                    ):
+                        container.height = 30 if not err else None
+                        break
+                self.app_page.update()
+
+        if self._focus_timer is not None:
+            self._focus_timer.cancel()
+            self._focus_timer = None
+
+        def timer_callback() -> None:
+            if not self.page:
+                return
+            self.sync_to_state(rebuild_if_needed=True)
+            if self.on_stop_editing_callback:
+                self.on_stop_editing_callback()
+
+        self._focus_timer = threading.Timer(0.15, timer_callback)
+        self._focus_timer.daemon = True
+        try:
+            self._focus_timer.start()
+        except RuntimeError:
+            # Pyodide (WebAssembly) may not support starting OS threads when
+            # SharedArrayBuffer / cross-origin isolation is unavailable.
+            # Fall back to a direct synchronous invocation of the callback.
+            self._focus_timer = None
+            timer_callback()
+
+    def _handle_field_submit(self, e: ft.ControlEvent) -> None:
+        """Handle submission (Enter key) to immediately trigger results."""
+        if self._focus_timer is not None:
+            self._focus_timer.cancel()
+            self._focus_timer = None
+        self.sync_to_state()
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def will_unmount(self) -> None:
+        """Clean up when the view is unmounted."""
+        if self._focus_timer is not None:
+            self._focus_timer.cancel()
+            self._focus_timer = None
+
+    def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
+        """Sync current UI controls back to the central state."""
+        self.template_input.sync_to_state()
+        self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
+
+    def update_ui(self) -> None:
+        """Update Flet UI controls to match the central state."""
+        self.template_input.update_ui()
+        self.primer_input.update_ui()
+
+    def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in input fields."""
         self.sync_to_state()
-        self.update_primer_info_panel()
+        self.primer_input._update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
 
-    def clear_primers(self, e: ft.ControlEvent) -> None:
+    def _clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
         self.input_data.primers = []
-        self.focused_primer_index = None
+        self.primer_input.focused_primer_index = None
         self.update_ui()
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
 
-    def on_pan_update(self, e: ft.DragUpdateEvent) -> None:
+    def _clear_template(self, e: ft.ControlEvent) -> None:
+        """Clear the DNA template."""
+        self.template_input.template_sequence.value = ""
+        self.sync_to_state()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom (right) container via the divider."""
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
@@ -669,8 +1185,8 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             # Recalculate fractions and set relative expand weights
             self.right_fraction = new_width / page_width
-            self.bottom_container.expand = int(self.right_fraction * 1000)
-            self.top_container.expand = int((1.0 - self.right_fraction) * 1000)
+            self.primer_input.expand = int(self.right_fraction * 1000)
+            self.template_input.expand = int((1.0 - self.right_fraction) * 1000)
             self.app_page.update()
 
     def get_template(self) -> str:
@@ -714,150 +1230,10 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
 
-    def update_primer_info_panel(self) -> None:
+    def _update_row_highlights(self) -> None:
+        """Update background colors of all row containers."""
+        self.primer_input._update_row_highlights()
+
+    def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
-        if self.focused_primer_index is None:
-            self.primer_info_panel.visible = False
-            self.app_page.update()
-            return
-
-        try:
-            primers = self.input_data.primers
-            if (
-                self.focused_primer_index < 0
-                or self.focused_primer_index >= len(primers)
-            ):
-                self.primer_info_panel.visible = False
-                self.app_page.update()
-                return
-
-            p_data = primers[self.focused_primer_index]
-            name_val = p_data.get("name", "").strip()
-            seq_val = clean_sequence(p_data.get("seq", ""))
-
-            if not seq_val:
-                self.primer_info_panel.visible = False
-                self.app_page.update()
-                return
-
-            from amplifyp.dimer import PrimerDimerGenerator
-            from amplifyp.dna import Primer
-            from amplifyp.melting import (
-                calculate_tm_lander_amplify4,
-                calculate_tm_santalucia_1998_owczarzy_2008,
-            )
-
-            primer_obj = Primer(sequence=seq_val, name=name_val)
-
-            # Header
-            header_text = (
-                f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
-            )
-            self.info_header.content.value = header_text
-
-            # Sequence details
-            self.info_seq_text.value = (
-                f"{len(primer_obj)} bp:   {primer_obj.seq.upper()}"
-            )
-
-            # Melting temperature
-            tm_method = self.settings.get(
-                "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
-            )
-            if tm_method == "Lander / Amplify 4":
-                from amplifyp.settings import TMSettings
-
-                tm_settings = TMSettings(
-                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
-                    monovalent_salt_conc=self.settings._safe_float(
-                        "tm_mono_salt", 50.0
-                    ),
-                )
-                tm = calculate_tm_lander_amplify4(primer_obj, tm_settings)
-            else:
-                from amplifyp.settings import TMSettings
-
-                tm_settings = TMSettings(
-                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
-                    dnap_conc=self.settings._safe_float("tm_dnap_conc", 0.0),
-                    monovalent_salt_conc=self.settings._safe_float(
-                        "tm_mono_salt", 50.0
-                    ),
-                    divalent_salt_conc=self.settings._safe_float(
-                        "tm_div_salt", 0.0
-                    ),
-                    dnTP_conc=self.settings._safe_float("tm_dNTP_conc", 0.0),
-                )
-                tm = calculate_tm_santalucia_1998_owczarzy_2008(
-                    primer_obj, tm_settings
-                )
-
-            self.info_tm_text.value = f"Tm = {tm:.2f}°C"
-
-            # Base counts / percentage
-            self.info_pairs_text.value = (
-                f"{primer_obj.count_at()} AT Pairs, "
-                f"{primer_obj.count_cg()} GC Pairs, "
-                f"{primer_obj.ratio_at() * 100:.1f}% AT"
-            )
-
-            # Redundancy
-            if primer_obj.redundant_base_count == 0:
-                self.info_redundancy_text.value = "No redundant bases."
-            else:
-                self.info_redundancy_text.value = (
-                    f"{primer_obj.redundant_base_count} redundant bases "
-                    f"(redundancy fold = {primer_obj.redundancy_fold})."
-                )
-
-            # Dimer potential check
-            pd_settings = self.settings.get_primer_dimer_settings()
-            generator = PrimerDimerGenerator(settings=pd_settings)
-
-            # Check self-dimer and cross-dimer potential
-            # against all active primers
-            active_primers = self.input_data.get_active_primers()
-            max_dimer = None
-
-            # Always check self-dimer
-            res_self = generator.generate_primer_dimer(primer_obj, primer_obj)
-            if (
-                res_self.quality > pd_settings.threshold
-                and res_self.overlap > pd_settings.min_overlap
-            ):
-                max_dimer = res_self
-
-            for ap in active_primers:
-                ap_name = ap.get("name", "").strip()
-                ap_seq = clean_sequence(ap.get("seq", ""))
-                if not ap_seq:
-                    continue
-                try:
-                    ap_obj = Primer(sequence=ap_seq, name=ap_name)
-                    res = generator.generate_primer_dimer(primer_obj, ap_obj)
-                    if (
-                        res.quality > pd_settings.threshold
-                        and res.overlap > pd_settings.min_overlap
-                    ):
-                        if max_dimer is None or res.quality > max_dimer.quality:
-                            max_dimer = res
-                except ValueError:
-                    continue
-
-            if max_dimer is not None:
-                self.info_dimer_text.value = (
-                    "Potential Primer Dimer with quality = "
-                    f"{max_dimer.quality:.1f} "
-                    f"and overlap = {max_dimer.overlap}"
-                )
-                self.info_dimer_text.visible = True
-            else:
-                self.info_dimer_text.value = ""
-                self.info_dimer_text.visible = False
-
-            self.primer_info_panel.visible = True
-
-        except Exception:
-            self.primer_info_panel.visible = False
-
-        self.app_page.update()
+        self.primer_input._update_primer_info_panel()

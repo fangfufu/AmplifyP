@@ -46,7 +46,11 @@ async def test_web_state_save_load() -> None:
 
         # Extract the container added to the page
         assert mock_page.add.called
-        container = mock_page.add.call_args[0][0]
+        args = mock_page.add.call_args[0]
+        assert len(args) == 2
+        divider = args[0]
+        container = args[1]
+        assert isinstance(divider, ft.Divider)
         assert isinstance(container, ft.Container)
 
         # Extract input_view
@@ -114,7 +118,7 @@ settings:
 
         # Verify pick_files was called
         mock_file_picker_instance.pick_files.assert_called_once_with(
-            dialog_title="Load State",
+            dialog_title="Load",
             allowed_extensions=["yaml", "yml"],
             file_type=ft.FilePickerFileType.CUSTOM,
             with_data=True,
