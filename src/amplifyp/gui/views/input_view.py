@@ -762,7 +762,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             # Melting temperature
             tm_method = self.settings.get(
-                "tm_method", "SantaLucia 1998 / Owczarzy 2008"
+                "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
             )
             if tm_method == "Lander / Amplify 4":
                 from amplifyp.settings import TMSettings

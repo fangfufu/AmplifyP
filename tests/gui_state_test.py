@@ -176,7 +176,8 @@ def test_settings_view_buttons() -> None:
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
     assert reset_called
     assert (
-        settings_view.settings["tm_method"] == "SantaLucia 1998 / Owczarzy 2008"
+        settings_view.settings["tm_method"]
+        == "SantaLucia 1998 / Owczarzy 2008 (Default)"
     )
     assert settings_view.settings["bp_score_G_G"] == "100"
     assert settings_view.settings["pd_score_G_G"] == "-20"
@@ -184,7 +185,8 @@ def test_settings_view_buttons() -> None:
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
     assert (
-        settings_view.set_tm_method.value == "SantaLucia 1998 / Owczarzy 2008"
+        settings_view.set_tm_method.value
+        == "SantaLucia 1998 / Owczarzy 2008 (Default)"
     )
     assert settings_view.settings_map["bp_score_G_G"].value == "100"
     assert settings_view.settings_map["pd_score_G_G"].value == "-20"
