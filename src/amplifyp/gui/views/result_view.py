@@ -883,6 +883,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         full_seq = str(amp.product.seq)
         fwd_len = len(amp.fwd_origin.seq)
         rev_len = len(amp.rev_origin.seq)
+        mid_len = len(amp.product) - (fwd_len + rev_len)
 
         if len(full_seq) >= fwd_len + rev_len:
             fwd_part = full_seq[:fwd_len]
@@ -957,9 +958,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                         weight=ft.FontWeight.BOLD,
                                     ),
                                 ),
-                                ft.TextSpan(
-                                    f") — {len(amp.product)} bp — (primer: "
-                                ),
+                                ft.TextSpan(f") — {mid_len} bp — (primer: "),
                                 ft.TextSpan(
                                     amp.rev_origin.name,
                                     style=ft.TextStyle(

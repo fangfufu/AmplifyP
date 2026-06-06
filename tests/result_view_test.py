@@ -145,6 +145,11 @@ def test_result_view_click_amplicon() -> None:
     length_text = column.controls[0].controls[0].value
     assert "Amplicon: 60 bp" in length_text
 
+    subtitle_text = column.controls[1]
+    assert isinstance(subtitle_text, ft.Text)
+    spans_content = "".join([span.text for span in subtitle_text.spans])
+    assert "— 20 bp —" in spans_content
+
 
 def test_result_view_resize_preserves_cards() -> None:
     """Test that resizing the window does not discard open cards."""
