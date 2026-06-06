@@ -528,13 +528,21 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
                     ft.Container(
-                        content=ft.Column(
+                        content=ft.Row(
                             [
-                                self.set_font_family,
-                                self.set_color_deficient,
+                                ft.Container(
+                                    content=ft.Column(
+                                        [
+                                            self.set_font_family,
+                                            self.set_color_deficient,
+                                        ],
+                                        spacing=15,
+                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                    ),
+                                    width=300,
+                                ),
                             ],
-                            spacing=15,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
                         padding=ft.Padding(0, 20, 0, 10),
                     )
