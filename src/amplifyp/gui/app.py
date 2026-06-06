@@ -71,8 +71,11 @@ def main(page: ft.Page) -> None:
         )
         page.overlay.append(confirm_dialog)
 
-        def on_window_event(e: ft.ControlEvent) -> None:
-            if e.data == "close":
+        def on_window_event(e: ft.WindowEvent) -> None:
+            if (
+                e.data == "close"
+                or getattr(e, "type", None) == ft.WindowEventType.CLOSE
+            ):
                 confirm_dialog.open = True
                 page.update()
 
