@@ -118,7 +118,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.set_font_family.on_change = self.on_change_handler
 
         self.set_color_deficient = ft.Checkbox(
-            label="Color Deficient Friendly Color Scheme",
+            label="Color Deficient Friendly Colour Scheme",
             value=False,
             on_change=self.on_change_handler,
         )
