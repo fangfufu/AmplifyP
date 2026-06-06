@@ -148,10 +148,17 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
+                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
-                    self.set_primability_cutoff,
-                    self.set_stability_cutoff,
-                    self.set_amp4_compat,
+                    ft.Column(
+                        [
+                            self.set_primability_cutoff,
+                            self.set_stability_cutoff,
+                            self.set_amp4_compat,
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    )
                 ],
             ),
             ft.ExpansionTile(
@@ -160,12 +167,19 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
+                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
-                    self.set_tm_dna_conc,
-                    self.set_tm_dnap_conc,
-                    self.set_tm_mono_salt,
-                    self.set_tm_div_salt,
-                    self.set_tm_dNTP_conc,
+                    ft.Column(
+                        [
+                            self.set_tm_dna_conc,
+                            self.set_tm_dnap_conc,
+                            self.set_tm_mono_salt,
+                            self.set_tm_div_salt,
+                            self.set_tm_dNTP_conc,
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    )
                 ],
             ),
             ft.ExpansionTile(
@@ -174,9 +188,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
+                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
-                    self.set_amp4tm_dna_conc,
-                    self.set_amp4tm_mono_salt,
+                    ft.Column(
+                        [
+                            self.set_amp4tm_dna_conc,
+                            self.set_amp4tm_mono_salt,
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    )
                 ],
             ),
             ft.ExpansionTile(
@@ -185,9 +206,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
+                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
-                    self.set_pd_min_overlap,
-                    self.set_pd_threshold,
+                    ft.Column(
+                        [
+                            self.set_pd_min_overlap,
+                            self.set_pd_threshold,
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    )
                 ],
             ),
             ft.ExpansionTile(
@@ -196,9 +224,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=header_size,
                 ),
+                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
-                    self.set_font_family,
-                    self.set_color_deficient,
+                    ft.Column(
+                        [
+                            self.set_font_family,
+                            self.set_color_deficient,
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    )
                 ],
             ),
             ft.Divider(),
