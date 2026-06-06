@@ -78,8 +78,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         ft.Text("Template Sequence", weight=ft.FontWeight.BOLD),
                         ft.Row(
                             [
-                                self.clear_template_button,
                                 self.circular_container,
+                                self.clear_template_button,
                             ],
                             spacing=10,
                         ),
