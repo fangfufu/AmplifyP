@@ -150,7 +150,22 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     on_change=self.on_change_handler,
                     text_align=ft.TextAlign.CENTER,
                     dense=True,
-                    width=60,
+                    width=48,
+                    height=36,
+                    content_padding=4,
+                    text_style=ft.TextStyle(color=ft.Colors.BLACK, size=14),
+                )
+
+        # Dynamic Primer Dimer Scores settings mapping
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.PRIMER:
+                key = f"pd_score_{r_char}_{c_char}"
+                self.settings_map[key] = ft.TextField(
+                    value="0",
+                    on_change=self.on_change_handler,
+                    text_align=ft.TextAlign.CENTER,
+                    dense=True,
+                    width=48,
                     height=36,
                     content_padding=4,
                     text_style=ft.TextStyle(color=ft.Colors.BLACK, size=14),
@@ -164,7 +179,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=11,
                 ),
-                width=120,
+                width=70,
                 alignment=ft.Alignment(-1, 0),
                 padding=ft.Padding(10, 0, 0, 0),
             )
@@ -183,7 +198,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_controls.append(
                 ft.Container(
                     content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
-                    width=60,
+                    width=48,
                     alignment=ft.Alignment(0, 0),
                 )
             )
@@ -203,7 +218,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             cells = [
                 ft.Container(
                     content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
-                    width=120,
+                    width=70,
                     alignment=ft.Alignment(1, 0),
                     padding=ft.Padding(0, 0, 15, 0),
                 )
@@ -215,7 +230,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
                 # Style TextField to match the borderless style in primer table
                 self.settings_map[key].border = ft.InputBorder.NONE
-                self.settings_map[key].width = 60
+                self.settings_map[key].width = 48
                 self.settings_map[key].height = 30
                 self.settings_map[key].content_padding = 0
 
@@ -229,7 +244,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 cells.append(
                     ft.Container(
                         content=self.settings_map[key],
-                        width=60,
+                        width=48,
                         alignment=ft.Alignment(0, 0),
                     )
                 )
@@ -273,6 +288,119 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
+        # Build Primer Dimer Scores Styled Table
+        pd_header_controls = [
+            ft.Container(
+                content=ft.Text(
+                    "Primer",
+                    weight=ft.FontWeight.BOLD,
+                    size=15,
+                ),
+                width=70,
+                alignment=ft.Alignment(-1, 0),
+                padding=ft.Padding(10, 0, 0, 0),
+            )
+        ]
+
+        for c_char in Nucleotides.PRIMER:
+            pd_header_controls.append(
+                ft.Container(
+                    width=1,
+                    bgcolor=GUIColors.DIVIDER_GREY,
+                    height=36,
+                )
+            )
+            pd_header_controls.append(
+                ft.Container(
+                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
+                    width=48,
+                    alignment=ft.Alignment(0, 0),
+                )
+            )
+
+        pd_header_row = ft.Container(
+            content=ft.Row(
+                pd_header_controls,
+                spacing=0,
+                alignment=ft.MainAxisAlignment.START,
+            ),
+            border=ft.Border(bottom=ft.BorderSide(2, GUIColors.DIVIDER_GREY)),
+            height=36,
+        )
+
+        pd_row_controls = [pd_header_row]
+        for r_char in Nucleotides.PRIMER:
+            cells = [
+                ft.Container(
+                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
+                    width=70,
+                    alignment=ft.Alignment(1, 0),
+                    padding=ft.Padding(0, 0, 15, 0),
+                )
+            ]
+            for c_char in Nucleotides.PRIMER:
+                key = f"pd_score_{r_char}_{c_char}"
+
+                # Style TextField to match the borderless style in primer table
+                self.settings_map[key].border = ft.InputBorder.NONE
+                self.settings_map[key].width = 48
+                self.settings_map[key].height = 30
+                self.settings_map[key].content_padding = 0
+
+                cells.append(
+                    ft.Container(
+                        width=1,
+                        bgcolor=GUIColors.DIVIDER_GREY,
+                        height=30,
+                    )
+                )
+                cells.append(
+                    ft.Container(
+                        content=self.settings_map[key],
+                        width=48,
+                        alignment=ft.Alignment(0, 0),
+                    )
+                )
+
+            pd_row_controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        cells,
+                        spacing=0,
+                        alignment=ft.MainAxisAlignment.START,
+                    ),
+                    border=ft.Border(
+                        bottom=ft.BorderSide(1, GUIColors.DIVIDER_GREY)
+                    ),
+                    height=30,
+                )
+            )
+
+        pd_table_container = ft.Column(
+            [
+                ft.Text(
+                    "Primer Dimer Weights", weight=ft.FontWeight.BOLD, size=14
+                ),
+                ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                pd_row_controls,
+                                spacing=0,
+                            ),
+                            border=ft.Border.all(1, GUIColors.OUTLINE),
+                            border_radius=5,
+                            padding=0,
+                        )
+                    ],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+            ],
+            spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
         header_size = self.state.settings.get("font_size_header", 18)
         self.controls = [
             ft.ExpansionTile(
@@ -286,41 +414,28 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Row(
                             [
-                                ft.Container(
-                                    content=bp_table_container,
-                                    expand=True,
-                                ),
+                                bp_table_container,
                                 ft.VerticalDivider(),
                                 ft.Container(
-                                    content=ft.Row(
+                                    content=ft.Column(
                                         [
-                                            ft.Container(expand=True),
-                                            ft.Container(
-                                                content=ft.Column(
-                                                    [
-                                                        ft.Text(
-                                                            "Parameters",
-                                                            weight=ft.FontWeight.BOLD,
-                                                            size=14,
-                                                        ),
-                                                        self.set_primability_cutoff,
-                                                        self.set_stability_cutoff,
-                                                        self.set_amp4_compat,
-                                                    ],
-                                                    spacing=15,
-                                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                                ),
-                                                expand=2,
+                                            ft.Text(
+                                                "Parameters",
+                                                weight=ft.FontWeight.BOLD,
+                                                size=14,
                                             ),
-                                            ft.Container(expand=True),
+                                            self.set_primability_cutoff,
+                                            self.set_stability_cutoff,
+                                            self.set_amp4_compat,
                                         ],
-                                        vertical_alignment=ft.CrossAxisAlignment.START,
+                                        spacing=15,
+                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                     ),
-                                    expand=True,
+                                    width=220,
                                 ),
                             ],
                             vertical_alignment=ft.CrossAxisAlignment.START,
-                            expand=True,
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
                         padding=ft.Padding(0, 20, 0, 10),
                     )
@@ -376,13 +491,29 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
                     ft.Container(
-                        content=ft.Column(
+                        content=ft.Row(
                             [
-                                self.set_pd_min_overlap,
-                                self.set_pd_threshold,
+                                pd_table_container,
+                                ft.VerticalDivider(),
+                                ft.Container(
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Parameters",
+                                                weight=ft.FontWeight.BOLD,
+                                                size=14,
+                                            ),
+                                            self.set_pd_min_overlap,
+                                            self.set_pd_threshold,
+                                        ],
+                                        spacing=15,
+                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                    ),
+                                    width=220,
+                                ),
                             ],
-                            spacing=15,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            alignment=ft.MainAxisAlignment.CENTER,
                         ),
                         padding=ft.Padding(0, 20, 0, 10),
                     )
@@ -466,6 +597,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             DEFAULT_PRIMABILITY_CUTOFF,
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
+            DEFAULT_PRIMER_DIMER_WEIGHTS,
             DEFAULT_STABILITY_CUTOFF,
             GLOBAL_TM_SETTINGS,
         )
@@ -492,6 +624,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     continue
                 key = f"bp_score_{r_char}_{c_char}"
                 reset_dict[key] = str(DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char])
+
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.PRIMER:
+                key = f"pd_score_{r_char}_{c_char}"
+                reset_dict[key] = str(
+                    DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
+                )
 
         self.state.settings = reset_dict
         self.update_ui()

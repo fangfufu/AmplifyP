@@ -151,6 +151,7 @@ class GUISettings:
             DEFAULT_PRIMABILITY_CUTOFF,
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
+            DEFAULT_PRIMER_DIMER_WEIGHTS,
             DEFAULT_STABILITY_CUTOFF,
             GLOBAL_TM_SETTINGS,
         )
@@ -187,6 +188,14 @@ class GUISettings:
                 key = f"bp_score_{r_char}_{c_char}"
                 self._settings[key] = str(
                     DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char]
+                )
+
+        # Initialize primer-dimer weights
+        for r_char in Nucleotides.PRIMER:
+            for c_char in Nucleotides.PRIMER:
+                key = f"pd_score_{r_char}_{c_char}"
+                self._settings[key] = str(
+                    DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
                 )
 
         if settings_dict is not None:
@@ -279,11 +288,28 @@ class GUISettings:
 
     def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
         """Get PrimerDimerSettings from the central settings."""
-        from amplifyp.settings import PrimerDimerSettings
+        from amplifyp.dna import Nucleotides
+        from amplifyp.settings import BasePairWeightsTbl, PrimerDimerSettings
+
+        pd_weights = []
+        for r_char in Nucleotides.PRIMER:
+            row_vals = []
+            for c_char in Nucleotides.PRIMER:
+                key = f"pd_score_{r_char}_{c_char}"
+                val = self._safe_float(key, 0.0)
+                row_vals.append(val)
+            pd_weights.append(row_vals)
+
+        weights = BasePairWeightsTbl(
+            row=Nucleotides.PRIMER,
+            col=Nucleotides.PRIMER,
+            weight=pd_weights,
+        )
 
         return PrimerDimerSettings(
             min_overlap=self._safe_int("pd_min_overlap", 3),
             threshold=self._safe_float("pd_threshold", 60.0),
+            weights=weights,
         )
 
 
