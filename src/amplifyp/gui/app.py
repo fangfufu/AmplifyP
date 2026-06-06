@@ -228,6 +228,7 @@ def main(page: ft.Page) -> None:
 
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
+        elevation_on_scroll=0,
         actions=[
             ft.FilledButton(
                 "Input",
