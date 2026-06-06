@@ -296,16 +296,33 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
                 controls=[
                     ft.Container(
-                        content=ft.Column(
+                        content=ft.Row(
                             [
-                                self.set_primability_cutoff,
-                                self.set_stability_cutoff,
-                                self.set_amp4_compat,
-                                ft.Divider(),
-                                bp_table_container,
+                                ft.Container(
+                                    content=bp_table_container,
+                                    expand=True,
+                                ),
+                                ft.VerticalDivider(),
+                                ft.Container(
+                                    content=ft.Column(
+                                        [
+                                            ft.Text(
+                                                "Parameters",
+                                                weight=ft.FontWeight.BOLD,
+                                                size=14,
+                                            ),
+                                            self.set_primability_cutoff,
+                                            self.set_stability_cutoff,
+                                            self.set_amp4_compat,
+                                        ],
+                                        spacing=15,
+                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                    ),
+                                    expand=True,
+                                ),
                             ],
-                            spacing=15,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            expand=True,
                         ),
                         padding=ft.Padding(0, 20, 0, 10),
                     )
