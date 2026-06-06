@@ -41,19 +41,19 @@ def main(page: ft.Page) -> None:
     input_data = GUIInput()
     settings = GUISettings()
     has_run_pcr = False
-    results_outdated = False
-    results_button_ref = ft.Ref[ft.FilledButton]()
+    pcr_outdated = False
+    pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
-    def on_results_click(e: ft.ControlEvent) -> None:
-        """Handle results button click: switch view and run PCR."""
-        nonlocal has_run_pcr, results_outdated
+    def on_pcr_click(e: ft.ControlEvent) -> None:
+        """Handle PCR button click: switch view and run PCR."""
+        nonlocal has_run_pcr, pcr_outdated
         switch_view(e, result_view)
         result_view.run_pcr()
         has_run_pcr = True
-        results_outdated = False
-        if results_button_ref.current:
-            results_button_ref.current.text = "Results"
+        pcr_outdated = False
+        if pcr_button_ref.current:
+            pcr_button_ref.current.text = "PCR"
         page.update()
 
     def on_dimers_click(e: ft.ControlEvent) -> None:
@@ -62,10 +62,10 @@ def main(page: ft.Page) -> None:
         dimers_view.run_analysis()
         page.update()
 
-    results_button = ft.FilledButton(
-        "Results",
-        ref=results_button_ref,
-        on_click=on_results_click,
+    pcr_button = ft.FilledButton(
+        "PCR",
+        ref=pcr_button_ref,
+        on_click=on_pcr_click,
         disabled=True,
         icon=ft.Icons.ANALYTICS,
     )
@@ -80,25 +80,23 @@ def main(page: ft.Page) -> None:
     )
     dimers_button.content_description = "Primer Dimers"
 
-    def update_results_button_state() -> None:
-        """Enable results and dimers buttons only if input is valid."""
-        nonlocal results_outdated
+    def update_pcr_button_state() -> None:
+        """Enable PCR and dimers buttons only if input is valid."""
+        nonlocal pcr_outdated
         input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
         has_primers = len(input_data.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
-        btn = results_button_ref.current
+        btn = pcr_button_ref.current
         if btn:
             btn.disabled = not is_enabled
 
             # Set outdated if enabled and inputs change AFTER a first run
             if is_enabled and has_run_pcr:
-                results_outdated = True
+                pcr_outdated = True
 
-            label = (
-                "Results *" if (results_outdated and is_enabled) else "Results"
-            )
+            label = "PCR *" if (pcr_outdated and is_enabled) else "PCR"
             btn.text = label
 
         dimers_btn = dimers_button_ref.current
@@ -108,13 +106,13 @@ def main(page: ft.Page) -> None:
         page.update()
 
     def run_analysis_in_background() -> None:
-        nonlocal has_run_pcr, results_outdated
+        nonlocal has_run_pcr, pcr_outdated
         result_view.run_pcr()
         dimers_view.run_analysis()
         has_run_pcr = True
-        results_outdated = False
-        if results_button_ref.current:
-            results_button_ref.current.text = "Results"
+        pcr_outdated = False
+        if pcr_button_ref.current:
+            pcr_button_ref.current.text = "PCR"
         page.update()
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
@@ -124,13 +122,13 @@ def main(page: ft.Page) -> None:
         page,
         input_data,
         settings,
-        on_change=lambda e: update_results_button_state(),
-        on_stop_editing=update_results_button_state,
+        on_change=lambda e: update_pcr_button_state(),
+        on_stop_editing=update_pcr_button_state,
     )
     settings_view = SettingsView(
         page,
         settings,
-        on_change=lambda e: update_results_button_state(),
+        on_change=lambda e: update_pcr_button_state(),
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
@@ -205,7 +203,7 @@ def main(page: ft.Page) -> None:
                 settings.from_dict(parsed_state["settings"])
             input_view.update_ui()
             settings_view.update_ui()
-            update_results_button_state()
+            update_pcr_button_state()
             show_snackbar("State loaded successfully!")
         except Exception as ex:
             import traceback
@@ -246,7 +244,7 @@ def main(page: ft.Page) -> None:
                 on_click=lambda e: switch_view(e, input_view),
             ),
             ft.Container(width=16),
-            results_button,
+            pcr_button,
             ft.Container(width=16),
             dimers_button,
             ft.Container(width=16),
