@@ -242,6 +242,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=self.settings_map[key],
                         width=60,
                         alignment=ft.Alignment(0, 0),
+                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                     )
                 )
 
