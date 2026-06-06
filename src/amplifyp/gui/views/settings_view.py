@@ -117,6 +117,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         )
         self.set_font_family.on_change = self.on_change_handler
 
+        self.set_color_deficient = ft.Checkbox(
+            label="Color Deficient Friendly Color Scheme",
+            value=False,
+            on_change=self.on_change_handler,
+        )
+
         self.settings_map = {
             "primability_cutoff": self.set_primability_cutoff,
             "stability_cutoff": self.set_stability_cutoff,
@@ -131,6 +137,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_min_overlap": self.set_pd_min_overlap,
             "pd_threshold": self.set_pd_threshold,
             "font_family": self.set_font_family,
+            "color_deficient": self.set_color_deficient,
         }
 
         self.controls = [
@@ -158,6 +165,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             ft.Divider(),
             ft.Text("Appearance Settings", weight=ft.FontWeight.BOLD, size=18),
             self.set_font_family,
+            self.set_color_deficient,
             ft.Divider(),
             ft.Row(
                 [
@@ -234,6 +242,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
+            "color_deficient": False,
         }
         self.update_ui()
         self.app_page.update()

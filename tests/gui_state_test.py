@@ -167,3 +167,33 @@ def test_settings_view_buttons() -> None:
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
+
+
+def test_color_deficient_mode_switching() -> None:
+    """Test toggling color deficient setting shifts GUIColors."""
+    from amplifyp.gui.state import GUIColors, GUIState
+
+    state = GUIState()
+    # 1. Initially false/standard
+    assert state.settings["color_deficient"] is False
+    assert GUIColors.color_deficient_mode is False
+    standard_success = GUIColors.SUCCESS_GREEN
+    standard_error = GUIColors.ERROR_RED
+    standard_fwd = GUIColors.FWD_PRIMER
+    standard_rev = GUIColors.REV_PRIMER
+
+    # 2. Toggle setting to True
+    state.settings["color_deficient"] = True
+    assert GUIColors.color_deficient_mode is True
+    assert GUIColors.SUCCESS_GREEN != standard_success
+    assert GUIColors.ERROR_RED != standard_error
+    assert GUIColors.FWD_PRIMER != standard_fwd
+    assert GUIColors.REV_PRIMER != standard_rev
+
+    # 3. Toggle back
+    state.settings["color_deficient"] = False
+    assert GUIColors.color_deficient_mode is False
+    assert GUIColors.SUCCESS_GREEN == standard_success
+    assert GUIColors.ERROR_RED == standard_error
+    assert GUIColors.FWD_PRIMER == standard_fwd
+    assert GUIColors.REV_PRIMER == standard_rev

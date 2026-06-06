@@ -25,22 +25,119 @@ if TYPE_CHECKING:
     from amplifyp.settings import PrimerDimerSettings, ReplicationSettings
 
 
-class GUIColors:
+class _GUIColorsMeta(type):
+    """Metaclass for GUIColors to support dynamic color shifting."""
+
+    @property
+    def color_deficient_mode(cls) -> bool:
+        """Get color deficient mode status."""
+        return cls._color_deficient_mode
+
+    @color_deficient_mode.setter
+    def color_deficient_mode(cls, value: bool) -> None:
+        """Set color deficient mode status."""
+        cls._color_deficient_mode = value
+
+    @property
+    def TEXT_ON_SURFACE(cls) -> str:
+        """Get standard text color on surface."""
+        return str(ft.Colors.ON_SURFACE.value)
+
+    @property
+    def SUCCESS_GREEN(cls) -> str:
+        """Get color-blind friendly success color."""
+        # Blue is highly distinguishable for most common
+        # red-green color blindness.
+        return (
+            str(ft.Colors.BLUE_400.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.GREEN_400.value)
+        )
+
+    @property
+    def CONTAINER_HIGHEST(cls) -> str:
+        """Get container highest color."""
+        return str(ft.Colors.SURFACE_CONTAINER_HIGHEST.value)
+
+    @property
+    def OUTLINE_VARIANT(cls) -> str:
+        """Get outline variant color."""
+        return str(ft.Colors.OUTLINE_VARIANT.value)
+
+    @property
+    def OUTLINE(cls) -> str:
+        """Get outline color."""
+        return str(ft.Colors.OUTLINE.value)
+
+    @property
+    def ERROR_RED(cls) -> str:
+        """Get color-blind friendly error color."""
+        # Use Orange/Vermilion instead of Red in color deficient mode.
+        return (
+            str(ft.Colors.ORANGE_800.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.RED.value)
+        )
+
+    @property
+    def DIVIDER_GREY(cls) -> str:
+        """Get divider grey color."""
+        return str(ft.Colors.GREY_400.value)
+
+    @property
+    def DUPLICATE_BG(cls) -> str:
+        """Get duplicate warning background color."""
+        return (
+            str(ft.Colors.ORANGE_100.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.RED_100.value)
+        )
+
+    @property
+    def DIAGRAM_BLACK(cls) -> str:
+        """Get diagram black color."""
+        return str(ft.Colors.BLACK.value)
+
+    @property
+    def FWD_PRIMER(cls) -> str:
+        """Get forward primer color."""
+        # Sky blue / clear blue for forward primer in color deficient mode
+        return (
+            str(ft.Colors.BLUE_600.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.BLUE_800.value)
+        )
+
+    @property
+    def REV_PRIMER(cls) -> str:
+        """Get reverse primer color."""
+        # Vermilion / orange-red for reverse primer in color deficient mode
+        # (instead of red-accent)
+        return (
+            str(ft.Colors.ORANGE_700.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.RED_ACCENT_700.value)
+        )
+
+    @property
+    def REV_LABEL(cls) -> str:
+        """Get reverse primer label color."""
+        return (
+            str(ft.Colors.ORANGE_900.value)
+            if cls._color_deficient_mode
+            else str(ft.Colors.RED_800.value)
+        )
+
+    @property
+    def TRANSPARENT(cls) -> str:
+        """Get transparent color."""
+        return str(ft.Colors.TRANSPARENT.value)
+
+
+class GUIColors(metaclass=_GUIColorsMeta):
     """Centralized semantic color constants for the GUI."""
 
-    TEXT_ON_SURFACE = ft.Colors.ON_SURFACE
-    SUCCESS_GREEN = ft.Colors.GREEN_400
-    CONTAINER_HIGHEST = ft.Colors.SURFACE_CONTAINER_HIGHEST
-    OUTLINE_VARIANT = ft.Colors.OUTLINE_VARIANT
-    OUTLINE = ft.Colors.OUTLINE
-    ERROR_RED = ft.Colors.RED
-    DIVIDER_GREY = ft.Colors.GREY_400
-    DUPLICATE_BG = ft.Colors.RED_100
-    DIAGRAM_BLACK = ft.Colors.BLACK
-    FWD_PRIMER = ft.Colors.BLUE_800
-    REV_PRIMER = ft.Colors.RED_ACCENT_700
-    REV_LABEL = ft.Colors.RED_800
-    TRANSPARENT = ft.Colors.TRANSPARENT
+    _color_deficient_mode = False
 
 
 class GUISettings:
@@ -50,6 +147,11 @@ class GUISettings:
         """Initialize GUISettings with optional dictionary or defaults."""
         if settings_dict is not None:
             self._settings = dict(settings_dict)
+            if "color_deficient" in self._settings:
+                val = self._settings["color_deficient"]
+                if isinstance(val, str):
+                    val = val.lower() in ("true", "1", "yes")
+                GUIColors.color_deficient_mode = bool(val)
         else:
             from amplifyp.settings import (
                 DEFAULT_PRIMABILITY_CUTOFF,
@@ -76,6 +178,7 @@ class GUISettings:
                 "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
                 "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
                 "font_family": "Roboto Mono",
+                "color_deficient": False,
             }
 
     def __getitem__(self, key: str) -> Any:
@@ -85,6 +188,11 @@ class GUISettings:
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key."""
         self._settings[key] = value
+        if key == "color_deficient":
+            val = value
+            if isinstance(val, str):
+                val = val.lower() in ("true", "1", "yes")
+            GUIColors.color_deficient_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a setting value by key with an optional default."""
@@ -292,3 +400,6 @@ class GUIState:
                     if isinstance(self.settings._settings[k], bool)
                     else str(v)
                 )
+        GUIColors.color_deficient_mode = bool(
+            self.settings._settings.get("color_deficient", False)
+        )
