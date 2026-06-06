@@ -37,7 +37,7 @@ def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
-    page.fonts = {"Roboto Mono": "/fonts/RobotoMono-Regular.ttf"}
+    page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
 
     # Centralize state storage
     input_data = GUIInput()
