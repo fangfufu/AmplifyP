@@ -165,6 +165,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     width=60,
                     height=36,
                     content_padding=4,
+                    text_style=ft.TextStyle(color=ft.Colors.BLUE),
                 )
 
         # Build Base Pair Scores Styled Table (matching primer table)
@@ -242,7 +243,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=self.settings_map[key],
                         width=60,
                         alignment=ft.Alignment(0, 0),
-                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                     )
                 )
 
