@@ -33,8 +33,8 @@ def create_primer_dimer_card(
     """Create a Flet Card showing visually aligned primer dimer results."""
     p1_name = d.primer_1.name
     p2_name = d.primer_2.name
-    seq1 = d.primer_1.seq.upper()
-    seq2 = d.primer_2.seq.upper()
+    seq1 = d.primer_1.seq
+    seq2 = d.primer_2.seq
 
     middle_str = d.binding_strength_str
 

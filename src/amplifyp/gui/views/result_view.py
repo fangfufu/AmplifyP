@@ -692,12 +692,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 return "".join(
                     template.seq[i % N_len]
                     for i in range(start, start + length)
-                ).upper()
+                )
             else:
                 return "".join(
                     template.seq[i] if 0 <= i < N_len else "-"
                     for i in range(start, start + length)
-                ).upper()
+                )
 
         # Calculate genomic start index (0-indexed)
         if var.direction == DNADirection.FWD:
