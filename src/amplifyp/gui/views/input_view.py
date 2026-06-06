@@ -568,23 +568,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
 
-    def remove_primer(self, e: ft.ControlEvent, name: str, seq: str) -> None:
-        """Handle removing a primer."""
-        self.sync_to_state()  # Sync first to preserve any un-synced edits
-        # Update state directly
-        self.state.primers = [
-            p
-            for p in self.state.primers
-            if not (p["name"] == name and p["seq"] == seq)
-        ]
-        self.update_ui()
-        self.app_page.update()
-
-        if self.on_change:
-            self.on_change(e)
-        if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
-
     def on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom (right) container via the divider."""
         page_width = self.app_page.width
