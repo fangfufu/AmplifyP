@@ -198,8 +198,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
                     width=60,
-                    alignment=ft.Alignment(1, 0),
-                    padding=ft.Padding(0, 0, 5, 0),
+                    alignment=ft.Alignment(0, 0),
                 )
             )
 
@@ -219,8 +218,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
                     width=120,
-                    alignment=ft.Alignment(-1, 0),
-                    padding=ft.Padding(10, 0, 0, 0),
+                    alignment=ft.Alignment(1, 0),
+                    padding=ft.Padding(0, 0, 10, 0),
                 )
             ]
             for c_char in Nucleotides.TEMPLATE:
