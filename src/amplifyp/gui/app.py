@@ -109,7 +109,9 @@ def main(page: ft.Page) -> None:
         on_click=on_pcr_click,
         disabled=True,
         icon=ft.Icons.ANALYTICS,
+        tooltip="PCR",
     )
+    pcr_button.content_description = "PCR"
 
     dimers_button = ft.FilledButton(
         "Primer Dimers",
