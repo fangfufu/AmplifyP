@@ -219,7 +219,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
                     width=120,
                     alignment=ft.Alignment(1, 0),
-                    padding=ft.Padding(0, 0, 10, 0),
+                    padding=ft.Padding(0, 0, 15, 0),
                 )
             ]
             for c_char in Nucleotides.TEMPLATE:
