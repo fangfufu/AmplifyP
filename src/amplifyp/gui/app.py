@@ -37,6 +37,47 @@ def main(page: ft.Page) -> None:
     page.padding = 0
     page.spacing = 0
 
+    # Handle close / reload warnings
+    if page.web:
+        if hasattr(page, "run_javascript"):
+            page.run_javascript("""
+                window.addEventListener('beforeunload', (event) => {
+                    event.preventDefault();
+                    event.returnValue = '';
+                });
+            """)
+    else:
+        page.window_prevent_close = True
+
+        def confirm_dismiss(e: ft.ControlEvent) -> None:
+            confirm_dialog.open = False
+            page.update()
+
+        def confirm_exit(e: ft.ControlEvent) -> None:
+            page.window_destroy()
+
+        confirm_dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Confirm Exit"),
+            content=ft.Text(
+                "Are you sure you want to close AmplifyP? "
+                "Unsaved changes will be lost."
+            ),
+            actions=[
+                ft.TextButton("Yes", on_click=confirm_exit),
+                ft.TextButton("No", on_click=confirm_dismiss),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.overlay.append(confirm_dialog)
+
+        def on_window_event(e: ft.ControlEvent) -> None:
+            if e.data == "close":
+                confirm_dialog.open = True
+                page.update()
+
+        page.on_window_event = on_window_event
+
     # Centralize state storage
     input_data = GUIInput()
     settings = GUISettings()
