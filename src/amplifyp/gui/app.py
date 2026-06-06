@@ -38,6 +38,8 @@ def main(page: ft.Page) -> None:
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
+    page.padding = 0
+    page.spacing = 0
 
     # Centralize state storage
     input_data = GUIInput()
@@ -155,7 +157,7 @@ def main(page: ft.Page) -> None:
 
         try:
             file_path = await ft.FilePicker().save_file(
-                dialog_title="Save State",
+                dialog_title="Save",
                 file_name=STATE_FILE,
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
@@ -175,7 +177,7 @@ def main(page: ft.Page) -> None:
     async def load_state(e: ft.ControlEvent) -> None:
         try:
             files = await ft.FilePicker().pick_files(
-                dialog_title="Load State",
+                dialog_title="Load",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 with_data=True,
@@ -216,27 +218,27 @@ def main(page: ft.Page) -> None:
             print("LOAD STATE ERROR:", tb)
             show_snackbar(f"Error loading state: {ex}")
 
-    view_container = ft.Container(content=input_view, expand=True)
+    view_container = ft.Container(content=input_view, expand=True, padding=10)
 
     def switch_view(e: ft.ControlEvent, view: ft.Control) -> None:
         view_container.content = view
         page.update()
 
     save_btn_control = ft.FilledButton(
-        "Save State",
+        "Save",
         icon=ft.Icons.SAVE,
-        tooltip="Save State",
+        tooltip="Save",
         on_click=save_state,
     )
-    save_btn_control.content_description = "Save State"
+    save_btn_control.content_description = "Save"
 
     load_btn_control = ft.FilledButton(
-        "Load State",
+        "Load",
         icon=ft.Icons.UPLOAD_FILE,
-        tooltip="Load State",
+        tooltip="Load",
         on_click=load_state,
     )
-    load_btn_control.content_description = "Load State"
+    load_btn_control.content_description = "Load"
 
     page.appbar = ft.AppBar(
         title=ft.Text("AmplifyP"),
@@ -267,4 +269,7 @@ def main(page: ft.Page) -> None:
         ],
     )
 
-    page.add(view_container)
+    page.add(
+        ft.Divider(height=1, thickness=1),
+        view_container,
+    )

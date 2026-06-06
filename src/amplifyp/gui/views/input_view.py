@@ -462,10 +462,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _detect_and_mark_duplicates(
         self, ui_primers: list[dict[str, Any]]
-    ) -> tuple[list[dict[str, Any]], bool]:
+    ) -> list[dict[str, Any]]:
         """Detect duplicates and mark container colors.
 
-        Returns (primers_list_for_state, rebuild_needed).
+        Returns primers_list_for_state.
         """
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
@@ -478,17 +478,14 @@ class InputView(ft.Row):  # type: ignore[misc]
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
         primers = []
-        should_rebuild = False
         for p in ui_primers:
             container = p["container"]
             n_lower = p["name"].lower()
             s_lower = p["seq"].lower()
 
-            is_dup = False
-            if n_lower and names_count.get(n_lower, 0) > 1:
-                is_dup = True
-            if s_lower and seqs_count.get(s_lower, 0) > 1:
-                is_dup = True
+            is_dup = (n_lower and names_count.get(n_lower, 0) > 1) or (
+                s_lower and seqs_count.get(s_lower, 0) > 1
+            )
 
             new_color = GUIColors.DUPLICATE_BG if is_dup else None
             if container.bgcolor != new_color:
@@ -501,7 +498,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     "active": p["active"],
                 }
             )
-        return primers, should_rebuild
+        return primers
 
     def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
         """Sync current UI controls back to the central state."""
@@ -515,10 +512,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         filtered_ui_primers, should_rebuild = self._apply_activation_rules(
             ui_primers
         )
-        primers, dup_rebuild = self._detect_and_mark_duplicates(
-            filtered_ui_primers
-        )
-        should_rebuild = should_rebuild or dup_rebuild
+        primers = self._detect_and_mark_duplicates(filtered_ui_primers)
 
         # Run background primer construction/validation
         new_validation_errors = []
@@ -576,16 +570,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         clean_primers.append({"name": "", "seq": "", "active": False})
         self.input_data.primers = clean_primers
 
-        # Check for duplicates to highlight them on load/update
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in self.input_data.primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+        dup_indices = self._get_duplicate_indices()
 
         self.validation_errors = []
         for idx, p in enumerate(self.input_data.primers):
@@ -603,13 +588,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     error_message = str(ex)
             self.validation_errors.append(error_message)
 
-            n_lower = name_val.strip().lower()
-            s_lower = seq_val.lower()
-            is_dup = False
-            if n_lower and names_count.get(n_lower, 0) > 1:
-                is_dup = True
-            if s_lower and seqs_count.get(s_lower, 0) > 1:
-                is_dup = True
+            is_dup = idx in dup_indices
 
             checkbox = ft.Checkbox(
                 value=is_active,
@@ -787,12 +766,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
 
-    def update_row_highlights(self) -> None:
-        """Update background colors of all row containers.
-
-        Highlights rows based on selection and duplicates.
-        """
-        # Calculate duplicates first
+    def _get_duplicate_indices(self) -> set[int]:
+        """Find indices of primers with duplicate names or sequences."""
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
         for p in self.input_data.primers:
@@ -803,27 +778,30 @@ class InputView(ft.Row):  # type: ignore[misc]
             if s_lower:
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
+        dup_indices = set()
+        for idx, p in enumerate(self.input_data.primers):
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if (n_lower and names_count.get(n_lower, 0) > 1) or (
+                s_lower and seqs_count.get(s_lower, 0) > 1
+            ):
+                dup_indices.add(idx)
+        return dup_indices
+
+    def update_row_highlights(self) -> None:
+        """Update background colors of all row containers.
+
+        Highlights rows based on selection and duplicates.
+        """
+        dup_indices = self._get_duplicate_indices()
+
         for container in self.primers_list.controls:
             if (
                 isinstance(container, ft.Container)
                 and container.data is not None
             ):
                 c_idx = container.data
-                primer_dict: dict[str, Any] | None = (
-                    self.input_data.primers[c_idx]
-                    if c_idx < len(self.input_data.primers)
-                    else None
-                )
-                is_dup = False
-                if primer_dict:
-                    n_lower = str(primer_dict.get("name", "")).strip().lower()
-                    s_lower = clean_sequence(
-                        str(primer_dict.get("seq", ""))
-                    ).lower()
-                    if n_lower and names_count.get(n_lower, 0) > 1:
-                        is_dup = True
-                    if s_lower and seqs_count.get(s_lower, 0) > 1:
-                        is_dup = True
+                is_dup = c_idx in dup_indices
 
                 if c_idx == self.focused_primer_index:
                     container.bgcolor = GUIColors.SELECTED_ROW_BG
@@ -861,10 +839,6 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             from amplifyp.dimer import PrimerDimerGenerator
             from amplifyp.dna import Primer
-            from amplifyp.melting import (
-                calculate_tm_lander_amplify4,
-                calculate_tm_santalucia_1998_owczarzy_2008,
-            )
 
             primer_obj = Primer(sequence=seq_val, name=name_val)
 
@@ -880,37 +854,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
 
             # Melting temperature
-            tm_method = self.settings.get(
-                "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
-            )
-            if tm_method == "Lander / Amplify 4":
-                from amplifyp.settings import TMSettings
-
-                tm_settings = TMSettings(
-                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
-                    monovalent_salt_conc=self.settings._safe_float(
-                        "tm_mono_salt", 50.0
-                    ),
-                )
-                tm = calculate_tm_lander_amplify4(primer_obj, tm_settings)
-            else:
-                from amplifyp.settings import TMSettings
-
-                tm_settings = TMSettings(
-                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
-                    dnap_conc=self.settings._safe_float("tm_dnap_conc", 0.0),
-                    monovalent_salt_conc=self.settings._safe_float(
-                        "tm_mono_salt", 50.0
-                    ),
-                    divalent_salt_conc=self.settings._safe_float(
-                        "tm_div_salt", 0.0
-                    ),
-                    dnTP_conc=self.settings._safe_float("tm_dNTP_conc", 0.0),
-                )
-                tm = calculate_tm_santalucia_1998_owczarzy_2008(
-                    primer_obj, tm_settings
-                )
-
+            tm = self.settings.calculate_primer_tm(primer_obj)
             self.info_tm_text.value = f"Tm = {tm:.2f}°C"
 
             # Base counts / percentage

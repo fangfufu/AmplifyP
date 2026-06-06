@@ -19,8 +19,22 @@ from typing import TYPE_CHECKING, Any, cast
 
 import flet as ft
 
+from amplifyp.settings import (
+    DEFAULT_BASE_PAIR_WEIGHTS,
+    DEFAULT_PRIMABILITY_CUTOFF,
+    DEFAULT_PRIMER_DIMER_OVERLAP,
+    DEFAULT_PRIMER_DIMER_THRESHOLD,
+    DEFAULT_PRIMER_DIMER_WEIGHTS,
+    DEFAULT_STABILITY_CUTOFF,
+    GLOBAL_TM_SETTINGS,
+)
+
 if TYPE_CHECKING:
-    from amplifyp.settings import PrimerDimerSettings, ReplicationSettings
+    from amplifyp.settings import (
+        PrimerDimerSettings,
+        ReplicationSettings,
+        TMSettings,
+    )
 
 
 class _GUIColorsMeta(type):
@@ -160,15 +174,6 @@ class GUISettings:
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
         """Initialize GUISettings with optional dictionary or defaults."""
         from amplifyp.dna import Nucleotides
-        from amplifyp.settings import (
-            DEFAULT_BASE_PAIR_WEIGHTS,
-            DEFAULT_PRIMABILITY_CUTOFF,
-            DEFAULT_PRIMER_DIMER_OVERLAP,
-            DEFAULT_PRIMER_DIMER_THRESHOLD,
-            DEFAULT_PRIMER_DIMER_WEIGHTS,
-            DEFAULT_STABILITY_CUTOFF,
-            GLOBAL_TM_SETTINGS,
-        )
 
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
@@ -296,8 +301,12 @@ class GUISettings:
         )
 
         return ReplicationSettings(
-            primability_cutoff=self._safe_float("primability_cutoff", 0.8),
-            stability_cutoff=self._safe_float("stability_cutoff", 0.4),
+            primability_cutoff=self._safe_float(
+                "primability_cutoff", DEFAULT_PRIMABILITY_CUTOFF
+            ),
+            stability_cutoff=self._safe_float(
+                "stability_cutoff", DEFAULT_STABILITY_CUTOFF
+            ),
             amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
             base_pair_scores=base_pair_scores,
         )
@@ -323,10 +332,51 @@ class GUISettings:
         )
 
         return PrimerDimerSettings(
-            min_overlap=self._safe_int("pd_min_overlap", 3),
-            threshold=self._safe_float("pd_threshold", 60.0),
+            min_overlap=self._safe_int(
+                "pd_min_overlap", DEFAULT_PRIMER_DIMER_OVERLAP
+            ),
+            threshold=self._safe_float(
+                "pd_threshold", DEFAULT_PRIMER_DIMER_THRESHOLD
+            ),
             weights=weights,
         )
+
+    def get_tm_settings(self) -> "TMSettings":
+        """Get TMSettings from the central settings."""
+        from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
+
+        return TMSettings(
+            dna_conc=self._safe_float(
+                "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
+            ),
+            dnap_conc=self._safe_float(
+                "tm_dnap_conc", GLOBAL_TM_SETTINGS.dnap_conc
+            ),
+            monovalent_salt_conc=self._safe_float(
+                "tm_mono_salt", GLOBAL_TM_SETTINGS.monovalent_salt_conc
+            ),
+            divalent_salt_conc=self._safe_float(
+                "tm_div_salt", GLOBAL_TM_SETTINGS.divalent_salt_conc
+            ),
+            dnTP_conc=self._safe_float(
+                "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
+            ),
+        )
+
+    def calculate_primer_tm(self, primer: Any) -> float:
+        """Calculate the melting temperature of a primer based on settings."""
+        from amplifyp.melting import (
+            calculate_tm_lander_amplify4,
+            calculate_tm_santalucia_1998_owczarzy_2008,
+        )
+
+        tm_method = self.get(
+            "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
+        )
+        tm_settings = self.get_tm_settings()
+        if tm_method == "Lander / Amplify 4":
+            return calculate_tm_lander_amplify4(primer, tm_settings)
+        return calculate_tm_santalucia_1998_owczarzy_2008(primer, tm_settings)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert settings to a dictionary for serialization."""

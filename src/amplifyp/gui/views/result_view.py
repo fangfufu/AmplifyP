@@ -615,7 +615,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                     color=GUIColors.ERROR_RED,
                 )
             )
-            self.show_error_dialog("Error running PCR", str(ex))
+            from amplifyp.gui.util import show_error_dialog
+
+            show_error_dialog(self.app_page, "Error running PCR", str(ex))
 
         if keep_cards:
             self.result_list.controls.extend(saved_cards)
@@ -976,12 +978,6 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         card._card_id = card_id
         return card
-
-    def show_error_dialog(self, title: str, message: str) -> None:
-        """Show an error dialog popup."""
-        from amplifyp.gui.util import show_error_dialog
-
-        show_error_dialog(self.app_page, title, message)
 
     def show_amplicon_dialog(self, amp: Any) -> None:
         """Show details card of the selected amplicon below the overview map."""

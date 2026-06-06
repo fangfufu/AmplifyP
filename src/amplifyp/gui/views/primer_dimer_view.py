@@ -202,9 +202,5 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     color=GUIColors.ERROR_RED,
                 )
             )
-            self.show_error_dialog("Error running analysis", str(ex))
+            show_error_dialog(self.app_page, "Error running analysis", str(ex))
         self.app_page.update()
-
-    def show_error_dialog(self, title: str, message: str) -> None:
-        """Show an error dialog popup."""
-        show_error_dialog(self.app_page, title, message)
