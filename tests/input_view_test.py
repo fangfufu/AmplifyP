@@ -244,3 +244,48 @@ def test_input_view_clear_buttons() -> None:
     assert len(state.primers) == 1  # only trailing empty remaining
     assert state.primers[0]["name"] == ""
     assert state.primers[0]["seq"] == ""
+
+
+def test_input_view_primer_info_panel() -> None:
+    """Test that the primer info panel displays correct information.
+
+    Verifies behavior when a primer is focused.
+    """
+    mock_page = MagicMock(spec=ft.Page)
+    state = GUIState()
+    state.primers = [
+        {"name": "P1", "seq": "ATCGGTACTTGTGACGCTAC", "active": True},
+        {"name": "P2", "seq": "RACGGTACGTACGTACGTY", "active": True},
+    ]
+
+    view = InputView(mock_page, state)
+    view.update_ui()
+
+    # Initially not visible because focused_primer_index is None
+    assert view.primer_info_panel.visible is False
+
+    # Simulate focusing on first primer (index 0)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_control = MagicMock()
+    mock_control.data = 0
+    mock_event.control = mock_control
+
+    view.handle_field_focus(mock_event)
+
+    assert view.focused_primer_index == 0
+    assert view.primer_info_panel.visible is True
+    assert view.info_header.content.value == "Primer: P1"
+    assert view.info_seq_text.value == "20 bp:   ATCGGTACTTGTGACGCTAC"
+    assert "Tm =" in view.info_tm_text.value
+    assert "10 AT Pairs, 10 GC Pairs, 50.0% AT" in view.info_pairs_text.value
+    assert view.info_redundancy_text.value == "No redundant bases."
+
+    # Simulate focusing on second primer (index 1) which has redundant bases
+    mock_control.data = 1
+    view.handle_field_focus(mock_event)
+
+    assert view.focused_primer_index == 1
+    assert view.primer_info_panel.visible is True
+    assert view.info_header.content.value == "Primer: P2"
+    assert "2 redundant bases" in view.info_redundancy_text.value
+    assert "redundancy fold = 4" in view.info_redundancy_text.value

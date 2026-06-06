@@ -35,6 +35,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.on_change = on_change
         self.on_stop_editing_callback = on_stop_editing
         self._focus_timer: threading.Timer | None = None
+        self.focused_primer_index: int | None = None
 
         font_family = self.state.settings.get("font_family", "Roboto Mono")
 
@@ -128,6 +129,50 @@ class InputView(ft.Row):  # type: ignore[misc]
             height=32,
         )
 
+        # Primer Info Panel UI Components
+        self.info_header = ft.Container(
+            content=ft.Text(
+                "Primer: -",
+                weight=ft.FontWeight.BOLD,
+                size=14,
+                color=ft.Colors.BLACK,
+            ),
+            bgcolor=ft.Colors.GREY_200,
+            padding=ft.Padding(10, 5, 10, 5),
+            alignment=ft.Alignment(-1, 0),
+        )
+
+        self.info_seq_text = ft.Text("", font_family=font_family, size=13)
+        self.info_tm_text = ft.Text("", size=13)
+        self.info_pairs_text = ft.Text("", size=13)
+        self.info_redundancy_text = ft.Text("", size=13)
+        self.info_dimer_text = ft.Text("", color=ft.Colors.RED_800, size=13)
+
+        self.primer_info_panel = ft.Container(
+            content=ft.Column(
+                [
+                    self.info_header,
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                self.info_seq_text,
+                                self.info_tm_text,
+                                self.info_pairs_text,
+                                self.info_redundancy_text,
+                                self.info_dimer_text,
+                            ],
+                            spacing=3,
+                        ),
+                        padding=ft.Padding(10, 5, 10, 10),
+                    ),
+                ],
+                spacing=0,
+            ),
+            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border_radius=5,
+            visible=False,
+        )
+
         self.top_container = ft.Container(
             content=ft.Column(
                 [
@@ -186,6 +231,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                         border_radius=5,
                         padding=0,
                     ),
+                    self.primer_info_panel,
                 ],
                 expand=True,
                 spacing=5,
@@ -218,6 +264,10 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self._focus_timer is not None:
             self._focus_timer.cancel()
             self._focus_timer = None
+
+        if e.control.data is not None:
+            self.focused_primer_index = e.control.data
+            self.update_primer_info_panel()
 
     def handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
@@ -450,7 +500,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             if s_lower:
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
-        for p in self.state.primers:
+        for idx, p in enumerate(self.state.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
@@ -480,6 +530,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 height=30,
                 width=self.name_column_width,
                 border=ft.InputBorder.NONE,
+                data=idx,
                 on_focus=self.handle_field_focus,
                 on_blur=self.handle_field_blur,
                 on_submit=self.handle_field_submit,
@@ -493,6 +544,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 height=30,
                 border=ft.InputBorder.NONE,
                 text_style=ft.TextStyle(font_family=font_family),
+                data=idx,
                 on_focus=self.handle_field_focus,
                 on_blur=self.handle_field_blur,
                 on_submit=self.handle_field_submit,
@@ -535,6 +587,8 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             self.primers_list.controls.append(row_container)
 
+        self.update_primer_info_panel()
+
     def on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the vertical divider between Name and Sequence."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
@@ -556,12 +610,14 @@ class InputView(ft.Row):  # type: ignore[misc]
     def on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in input fields."""
         self.sync_to_state()
+        self.update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
 
     def clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
         self.state.primers = []
+        self.focused_primer_index = None
         self.update_ui()
         if self.on_change:
             self.on_change(e)
@@ -624,4 +680,158 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the current state from deserialized data."""
         self.state.from_dict(state)
         self.update_ui()
+        self.app_page.update()
+
+    def update_primer_info_panel(self) -> None:
+        """Update the primer information panel based on the focused primer."""
+        if self.focused_primer_index is None:
+            self.primer_info_panel.visible = False
+            self.app_page.update()
+            return
+
+        try:
+            primers = self.state.primers
+            if (
+                self.focused_primer_index < 0
+                or self.focused_primer_index >= len(primers)
+            ):
+                self.primer_info_panel.visible = False
+                self.app_page.update()
+                return
+
+            p_data = primers[self.focused_primer_index]
+            name_val = p_data.get("name", "").strip()
+            seq_val = clean_sequence(p_data.get("seq", ""))
+
+            if not seq_val:
+                self.primer_info_panel.visible = False
+                self.app_page.update()
+                return
+
+            from amplifyp.dimer import PrimerDimerGenerator
+            from amplifyp.dna import Primer
+            from amplifyp.melting import calculate_tm, calculate_tm_amplify4
+
+            primer_obj = Primer(sequence=seq_val, name=name_val)
+
+            # Header
+            header_text = (
+                f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
+            )
+            self.info_header.content.value = header_text
+
+            # Sequence details
+            self.info_seq_text.value = (
+                f"{len(primer_obj)} bp:   {primer_obj.seq.upper()}"
+            )
+
+            # Melting temperature
+            amp4_compat = self.state.settings.get("amp4_compat", False)
+            if isinstance(amp4_compat, str):
+                amp4_compat = amp4_compat.lower() in ("true", "1", "yes")
+            elif isinstance(amp4_compat, (int, float)):
+                amp4_compat = int(amp4_compat) != 0
+
+            if amp4_compat:
+                from amplifyp.settings import Amplify4TMSettings
+
+                amp4_settings = Amplify4TMSettings(
+                    dna_conc=self.state.settings._safe_float(
+                        "amp4tm_dna_conc", 50.0
+                    ),
+                    monovalent_salt_conc=self.state.settings._safe_float(
+                        "amp4tm_mono_salt", 50.0
+                    ),
+                )
+                tm = calculate_tm_amplify4(primer_obj, amp4_settings)
+            else:
+                from amplifyp.settings import TMSettings
+
+                standard_settings = TMSettings(
+                    dna_conc=self.state.settings._safe_float(
+                        "tm_dna_conc", 50.0
+                    ),
+                    dnap_conc=self.state.settings._safe_float(
+                        "tm_dnap_conc", 0.0
+                    ),
+                    monovalent_salt_conc=self.state.settings._safe_float(
+                        "tm_mono_salt", 50.0
+                    ),
+                    divalent_salt_conc=self.state.settings._safe_float(
+                        "tm_div_salt", 1.5
+                    ),
+                    dnTP_conc=self.state.settings._safe_float(
+                        "tm_dNTP_conc", 0.0
+                    ),
+                )
+                tm = calculate_tm(primer_obj, standard_settings)
+
+            self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+
+            # Base counts / percentage
+            self.info_pairs_text.value = (
+                f"{primer_obj.count_at()} AT Pairs, "
+                f"{primer_obj.count_cg()} GC Pairs, "
+                f"{primer_obj.ratio_at() * 100:.1f}% AT"
+            )
+
+            # Redundancy
+            if primer_obj.redundant_base_count == 0:
+                self.info_redundancy_text.value = "No redundant bases."
+            else:
+                self.info_redundancy_text.value = (
+                    f"{primer_obj.redundant_base_count} redundant bases "
+                    f"(redundancy fold = {primer_obj.redundancy_fold})."
+                )
+
+            # Dimer potential check
+            pd_settings = self.state.get_primer_dimer_settings()
+            generator = PrimerDimerGenerator(settings=pd_settings)
+
+            # Check self-dimer and cross-dimer potential
+            # against all active primers
+            active_primers = self.state.get_active_primers()
+            max_dimer = None
+
+            # Always check self-dimer
+            res_self = generator.generate_primer_dimer(primer_obj, primer_obj)
+            if (
+                res_self.quality > pd_settings.threshold
+                and res_self.overlap > pd_settings.min_overlap
+            ):
+                max_dimer = res_self
+
+            for ap in active_primers:
+                ap_name = ap.get("name", "").strip()
+                ap_seq = clean_sequence(ap.get("seq", ""))
+                if not ap_seq:
+                    continue
+                try:
+                    ap_obj = Primer(sequence=ap_seq, name=ap_name)
+                    res = generator.generate_primer_dimer(primer_obj, ap_obj)
+                    if (
+                        res.quality > pd_settings.threshold
+                        and res.overlap > pd_settings.min_overlap
+                    ):
+                        if max_dimer is None or res.quality > max_dimer.quality:
+                            max_dimer = res
+                except ValueError:
+                    continue
+
+            if max_dimer is not None:
+                self.info_dimer_text.value = (
+                    "Potential Primer Dimer with quality = "
+                    f"{max_dimer.quality:.1f} "
+                    f"and overlap = {max_dimer.overlap}"
+                )
+                self.info_dimer_text.visible = True
+            else:
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+
+            self.primer_info_panel.visible = True
+
+        except Exception:
+            self.primer_info_panel.visible = False
+
         self.app_page.update()
