@@ -229,7 +229,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.DIAGRAM_BLACK,
                             ),
-                            text_align=ft.TextAlign.RIGHT,
+                            alignment=ft.Alignment(1.0, -1.0),
                         )
                     )
 
@@ -570,7 +570,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             style=ft.TextStyle(
                                 size=11, color=GUIColors.DIAGRAM_BLACK
                             ),
-                            text_align=ft.TextAlign.CENTER,
+                            alignment=ft.Alignment(0.0, -1.0),
                         )
                     )
 
