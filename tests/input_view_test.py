@@ -61,7 +61,7 @@ def test_input_view_row_boxes_editing() -> None:
     seq_field.value = "AAAAAAAAAA"
 
     assert not stop_editing_called
-    view.handle_field_submit(MagicMock())
+    view._handle_field_submit(MagicMock())
 
     assert stop_editing_called
     assert input_data.primers[0]["name"] == "P1-Modified"
@@ -244,12 +244,12 @@ def test_input_view_clear_buttons() -> None:
     assert view.clear_template_button.content == "Clear"
 
     # 1. Trigger clear template button
-    view.clear_template(MagicMock(spec=ft.ControlEvent))
+    view._clear_template(MagicMock(spec=ft.ControlEvent))
     assert view.template_sequence.value == ""
     assert input_data.template == ""
 
     # 2. Trigger clear primers button
-    view.clear_primers(MagicMock(spec=ft.ControlEvent))
+    view._clear_primers(MagicMock(spec=ft.ControlEvent))
     assert len(input_data.primers) == 1  # only trailing empty remaining
     assert input_data.primers[0]["name"] == ""
     assert input_data.primers[0]["seq"] == ""
@@ -279,7 +279,7 @@ def test_input_view_primer_info_panel() -> None:
     mock_control.data = 0
     mock_event.control = mock_control
 
-    view.handle_field_focus(mock_event)
+    view._handle_field_focus(mock_event)
 
     assert view.focused_primer_index == 0
     assert view.primer_info_panel.visible is True
@@ -291,7 +291,7 @@ def test_input_view_primer_info_panel() -> None:
 
     # Simulate focusing on second primer (index 1) which has redundant bases
     mock_control.data = 1
-    view.handle_field_focus(mock_event)
+    view._handle_field_focus(mock_event)
 
     assert view.focused_primer_index == 1
     assert view.primer_info_panel.visible is True
@@ -364,14 +364,14 @@ def test_input_view_row_highlighting() -> None:
     mock_event = MagicMock()
     mock_event.control = MagicMock()
     mock_event.control.data = 0
-    view.handle_field_focus(mock_event)
+    view._handle_field_focus(mock_event)
 
     assert view.primers_list.controls[0].bgcolor == GUIColors.SELECTED_ROW_BG
     assert view.primers_list.controls[1].bgcolor is None
 
     # Focus on the second primer row (index 1)
     mock_event.control.data = 1
-    view.handle_field_focus(mock_event)
+    view._handle_field_focus(mock_event)
 
     assert view.primers_list.controls[0].bgcolor is None
     assert view.primers_list.controls[1].bgcolor == GUIColors.SELECTED_ROW_BG

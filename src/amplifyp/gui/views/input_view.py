@@ -182,7 +182,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     alignment=ft.Alignment(-1, 0),
                 ),
                 ft.GestureDetector(
-                    on_pan_update=self.on_primer_divider_pan,
+                    on_pan_update=self._on_primer_divider_pan,
                     content=ft.Container(
                         width=4,
                         bgcolor=GUIColors.DIVIDER_GREY,
@@ -318,14 +318,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             spacing=5,
         )
 
-    def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle clicking on the row container.
 
         Selects the row and focuses the name field.
         """
         self.focused_primer_index = idx
-        self.update_row_highlights()
-        self.update_primer_info_panel()
+        self._update_row_highlights()
+        self._update_primer_info_panel()
         name_edit.focus()
 
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
@@ -578,7 +578,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if error_message:
                 seq_edit.error = error_message
             divider = ft.GestureDetector(
-                on_pan_update=self.on_primer_divider_pan,
+                on_pan_update=self._on_primer_divider_pan,
                 content=ft.Container(
                     width=4,
                     bgcolor=GUIColors.DIVIDER_GREY,
@@ -614,15 +614,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 height=30 if not error_message else None,
                 data=idx,
                 on_click=lambda e, idx=idx, name_edit=name_edit: (
-                    self.handle_row_click(idx, name_edit)
+                    self._handle_row_click(idx, name_edit)
                 ),
             )
             self.primers_list.controls.append(row_container)
 
-        self.update_row_highlights()
-        self.update_primer_info_panel()
+        self._update_row_highlights()
+        self._update_primer_info_panel()
 
-    def on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
+    def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the vertical divider between Name and Sequence."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
         self.name_column_width = max(
@@ -662,7 +662,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 dup_indices.add(idx)
         return dup_indices
 
-    def update_row_highlights(self) -> None:
+    def _update_row_highlights(self) -> None:
         """Update background colors of all row containers.
 
         Highlights rows based on selection and duplicates.
@@ -684,11 +684,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 else:
                     container.bgcolor = None
 
-    def update_primer_info_panel(self) -> None:
+    def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
         if self.focused_primer_index is None:
             self.primer_info_panel.visible = False
-            self.update_row_highlights()
+            self._update_row_highlights()
             self.app_page.update()
             return
 
@@ -825,28 +825,28 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.template_input = TemplateInput(
             settings=self.settings,
             input_data=self.input_data,
-            on_change_handler=self.on_change_handler,
-            handle_field_focus=self.handle_field_focus,
-            handle_field_blur=self.handle_field_blur,
-            handle_field_submit=self.handle_field_submit,
-            clear_template_callback=self.clear_template,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_template_callback=self._clear_template,
         )
 
         self.primer_input = PrimerInput(
             page=self.app_page,
             settings=self.settings,
             input_data=self.input_data,
-            on_change_handler=self.on_change_handler,
-            handle_field_focus=self.handle_field_focus,
-            handle_field_blur=self.handle_field_blur,
-            handle_field_submit=self.handle_field_submit,
-            clear_primers_callback=self.clear_primers,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_primers_callback=self._clear_primers,
         )
 
         self.right_fraction = 0.5
 
         self.divider = ft.GestureDetector(
-            on_pan_update=self.on_pan_update,
+            on_pan_update=self._on_pan_update,
             content=ft.Container(
                 width=5,
                 bgcolor=GUIColors.DIVIDER_GREY,
@@ -957,11 +957,11 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Get the primer input container (layout backward compatibility)."""
         return self.primer_input
 
-    def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Delegate row click handling to PrimerInput."""
-        self.primer_input.handle_row_click(idx, name_edit)
+        self.primer_input._handle_row_click(idx, name_edit)
 
-    def handle_field_focus(self, e: ft.ControlEvent) -> None:
+    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
         """Handle focus on input fields to cancel auto-trigger timer."""
         if self._focus_timer is not None:
             self._focus_timer.cancel()
@@ -969,10 +969,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         if e.control.data is not None:
             self.primer_input.focused_primer_index = e.control.data
-            self.primer_input.update_row_highlights()
-            self.primer_input.update_primer_info_panel()
+            self.primer_input._update_row_highlights()
+            self.primer_input._update_primer_info_panel()
 
-    def handle_field_blur(self, e: ft.ControlEvent) -> None:
+    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
         self.sync_to_state(rebuild_if_needed=False)
 
@@ -1015,7 +1015,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self._focus_timer = None
             timer_callback()
 
-    def handle_field_submit(self, e: ft.ControlEvent) -> None:
+    def _handle_field_submit(self, e: ft.ControlEvent) -> None:
         """Handle submission (Enter key) to immediately trigger results."""
         if self._focus_timer is not None:
             self._focus_timer.cancel()
@@ -1040,14 +1040,14 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.template_input.update_ui()
         self.primer_input.update_ui()
 
-    def on_change_handler(self, e: ft.ControlEvent) -> None:
+    def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in input fields."""
         self.sync_to_state()
-        self.primer_input.update_primer_info_panel()
+        self.primer_input._update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
 
-    def clear_primers(self, e: ft.ControlEvent) -> None:
+    def _clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
         self.input_data.primers = []
         self.primer_input.focused_primer_index = None
@@ -1057,7 +1057,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
 
-    def clear_template(self, e: ft.ControlEvent) -> None:
+    def _clear_template(self, e: ft.ControlEvent) -> None:
         """Clear the DNA template."""
         self.template_input.template_sequence.value = ""
         self.sync_to_state()
@@ -1066,7 +1066,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
 
-    def on_pan_update(self, e: ft.DragUpdateEvent) -> None:
+    def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom (right) container via the divider."""
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
@@ -1124,10 +1124,10 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
 
-    def update_row_highlights(self) -> None:
+    def _update_row_highlights(self) -> None:
         """Update background colors of all row containers."""
-        self.primer_input.update_row_highlights()
+        self.primer_input._update_row_highlights()
 
-    def update_primer_info_panel(self) -> None:
+    def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
-        self.primer_input.update_primer_info_panel()
+        self.primer_input._update_primer_info_panel()

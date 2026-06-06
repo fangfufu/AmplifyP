@@ -189,7 +189,7 @@ def test_result_view_resize_preserves_cards() -> None:
     assert isinstance(view.result_list.controls[0], ft.Card)
 
     # Trigger resize event
-    view.handle_resize(MagicMock(spec=ft.ControlEvent))
+    view._handle_resize(MagicMock(spec=ft.ControlEvent))
 
     # Verify that the card is still present
     assert len(view.result_list.controls) == 1

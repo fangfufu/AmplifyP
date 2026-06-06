@@ -67,7 +67,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             height=300,
         )
         self.divider = ft.GestureDetector(
-            on_pan_update=self.on_pan_update,
+            on_pan_update=self._on_pan_update,
             content=ft.Container(
                 height=5,
                 bgcolor=GUIColors.DIVIDER_GREY,
@@ -82,7 +82,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             "Clear",
             icon=ft.Icons.DELETE_SWEEP,
             tooltip="Clear All Cards",
-            on_click=self.clear_all_cards,
+            on_click=self._clear_all_cards,
             visible=False,
         )
         self.cards_header = ft.Row(
@@ -104,14 +104,14 @@ class ResultView(ft.Column):  # type: ignore[misc]
             self.cards_header,
             ft.Container(content=self.result_list, expand=True),
         ]
-        self.app_page.on_resize = self.handle_resize
+        self.app_page.on_resize = self._handle_resize
 
-    def handle_resize(self, e: ft.ControlEvent) -> None:
+    def _handle_resize(self, e: ft.ControlEvent) -> None:
         """Handle window resizing by redrawing the PCR diagram."""
         if self.diagram_container.visible:
             self.run_pcr(keep_cards=True)
 
-    def on_pan_update(self, e: ft.DragUpdateEvent) -> None:
+    def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle vertical resizing of the diagram container."""
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
         self.diagram_container.height = max(
@@ -121,34 +121,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
     def run_pcr(self, keep_cards: bool = False) -> None:
         """Execute the PCR simulation and update the UI."""
-        saved_cards = list(self.result_list.controls) if keep_cards else []
-        self.result_list.controls.clear()
-        self.update_cards_header_visibility()
-        self.diagram_canvas.shapes.clear()
-        self.diagram_stack.controls.clear()
-        self.diagram_stack.controls.append(self.diagram_canvas)
-        self.diagram_container.visible = False
-        self.divider.visible = False
+        saved_cards = self._reset_pcr_ui(keep_cards)
         try:
-            from amplifyp.gui.util import clean_sequence
-
-            clean_template = clean_sequence(self.input_data.template)
-            t_type = (
-                DNAType.CIRCULAR
-                if self.input_data.template_circular
-                else DNAType.LINEAR
-            )
-            template_dna = DNA(clean_template, dna_type=t_type)
-
-            rep_settings = self.settings.get_replication_settings()
-            pcr = PCR(template_dna, settings=rep_settings)
-
-            primers = self.input_data.get_active_primers()
-            for p in primers:
-                name = p["name"]
-                seq = clean_sequence(p["seq"])
-                pcr.add_primer(Primer(sequence=seq, name=name))
-            num_amplicons = pcr.predict_amplicons()
+            pcr = self._execute_pcr_simulation()
+            num_amplicons = len(pcr.amplicons)
 
             if num_amplicons == 0:
                 self.result_list.controls.append(
@@ -158,456 +134,38 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 self.diagram_container.visible = True
                 self.divider.visible = True
 
-                # Canvas drawing constants based on Amplify4's `makePlot`
-                # Drawing configuration
-                v_target = 100.0  # Y position of target baseline
-                h_margin = 20.0  # X padding
-                c_width = (
-                    max(600.0, self.app_page.width - 80.0)
-                    if self.app_page.width
-                    else 800.0
+                target_length = len(pcr.template)
+                v_target, h_margin, c_width, t_width = (
+                    self._calculate_canvas_dimensions(
+                        target_length, num_amplicons
+                    )
                 )
-                self.diagram_canvas.width = c_width
-                t_width = c_width - (2.0 * h_margin)
-                target_length = len(template_dna)
-
-                # Calculate vertical size based on number of amplicons
-                v_frag_start = v_target + 40
-                v_frag_step = 35
-                canvas_height = (
-                    v_frag_start + len(pcr.amplicons) * v_frag_step + 30.0
-                )
-                self.diagram_canvas.height = canvas_height
-                self.diagram_stack.height = canvas_height
 
                 if target_length > 0:
-                    # Draw vertical boundary lines at start and end of template
-                    boundary_paint = ft.Paint(
-                        color=GUIColors.DIAGRAM_BLACK,
-                        style=ft.PaintingStyle.STROKE,
-                        stroke_width=1.0,
-                    )
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(h_margin, v_target),
-                                cv.Path.LineTo(h_margin, v_target - 65),
-                            ],
-                            paint=boundary_paint,
-                        )
-                    )
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(c_width - h_margin, v_target),
-                                cv.Path.LineTo(
-                                    c_width - h_margin, v_target - 65
-                                ),
-                            ],
-                            paint=boundary_paint,
-                        )
+                    self._draw_template_baseline(
+                        v_target, h_margin, c_width, t_width, target_length
                     )
 
-                    # Draw 1 and target_length text
-                    self.diagram_canvas.shapes.append(
-                        cv.Text(
-                            h_margin,
-                            v_target - 85,
-                            "1",
-                            style=ft.TextStyle(
-                                size=self.settings.get(
-                                    "font_size_map_baseline", 16
-                                ),
-                                weight=ft.FontWeight.BOLD,
-                                color=GUIColors.DIAGRAM_BLACK,
-                            ),
-                        )
-                    )
-                    self.diagram_canvas.shapes.append(
-                        cv.Text(
-                            c_width - h_margin,
-                            v_target - 85,
-                            str(target_length),
-                            style=ft.TextStyle(
-                                size=self.settings.get(
-                                    "font_size_map_baseline", 16
-                                ),
-                                weight=ft.FontWeight.BOLD,
-                                color=GUIColors.DIAGRAM_BLACK,
-                            ),
-                            alignment=ft.Alignment(1.0, -1.0),
-                        )
-                    )
+                fwd_bindings, rev_bindings = self._collect_primer_bindings(pcr)
 
-                    # Target Baseline
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(h_margin, v_target),
-                                cv.Path.LineTo(c_width - h_margin, v_target),
-                            ],
-                            paint=ft.Paint(
-                                color=GUIColors.DIAGRAM_BLACK,
-                                style=ft.PaintingStyle.STROKE,
-                                stroke_width=2.5,
-                            ),
-                        )
-                    )
+                self._draw_primers(
+                    fwd_bindings,
+                    rev_bindings,
+                    target_length,
+                    t_width,
+                    h_margin,
+                    v_target,
+                )
 
-                    # Ticks dynamically scaled
-                    tick_interval = 100
-                    if target_length > 10000:
-                        tick_interval = 1000
-                    elif target_length > 5000:
-                        tick_interval = 500
+                self._draw_amplicons(
+                    pcr,
+                    target_length,
+                    t_width,
+                    h_margin,
+                    v_target,
+                    c_width,
+                )
 
-                    tick_paint = ft.Paint(
-                        color=GUIColors.DIAGRAM_BLACK,
-                        style=ft.PaintingStyle.STROKE,
-                        stroke_width=1.0,
-                    )
-                    for bp in range(0, target_length + 1, tick_interval):
-                        x_pos = h_margin + (bp / target_length * t_width)
-                        self.diagram_canvas.shapes.append(
-                            cv.Path(
-                                [
-                                    cv.Path.MoveTo(x_pos, v_target - 3),
-                                    cv.Path.LineTo(x_pos, v_target + 3),
-                                ],
-                                paint=tick_paint,
-                            )
-                        )
-
-                # Draw unique primer binding sites
-                fwd_bindings = {}
-                rev_bindings = {}
-                for amp in pcr.amplicons:
-                    fwd_conf = next(
-                        (
-                            c
-                            for c in pcr.amplicon_generator.repliconfs
-                            if c.primer is amp.fwd_origin
-                        ),
-                        None,
-                    )
-                    rev_conf = next(
-                        (
-                            c
-                            for c in pcr.amplicon_generator.repliconfs
-                            if c.primer is amp.rev_origin
-                        ),
-                        None,
-                    )
-                    if fwd_conf is None or rev_conf is None:
-                        continue
-                    fwd_origin_point = fwd_conf.origin(amp.start)
-                    rev_origin_point = rev_conf.origin(amp.end)
-                    if fwd_origin_point is None or rev_origin_point is None:
-                        continue
-                    fwd_quality = fwd_origin_point.quality
-                    rev_quality = rev_origin_point.quality
-
-                    # Scale triangle size S based on quality score
-                    fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
-                    rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
-
-                    fwd_bindings[amp.start.index] = (
-                        amp.fwd_origin.name,
-                        fwd_s,
-                        fwd_conf,
-                        amp.start,
-                    )
-                    rev_bindings[amp.end.index] = (
-                        amp.rev_origin.name,
-                        rev_s,
-                        rev_conf,
-                        amp.end,
-                    )
-
-                # Draw FWD primers (blue, float above baseline, pointing down)
-                for start_idx, (
-                    name,
-                    S,
-                    fwd_conf,
-                    fwd_var,
-                ) in fwd_bindings.items():
-                    x_pos = (
-                        h_margin + (start_idx / target_length * t_width)
-                        if target_length
-                        else h_margin
-                    )
-                    # Connector line from baseline to floating tip
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(x_pos, v_target),
-                                cv.Path.LineTo(x_pos, v_target - 25),
-                            ],
-                            paint=ft.Paint(
-                                color=GUIColors.FWD_PRIMER,
-                                style=ft.PaintingStyle.STROKE,
-                                stroke_width=1.0,
-                            ),
-                        )
-                    )
-                    # Down-pointing triangle of size S:
-                    # Tip: (x_pos, v_target - 25)
-                    # Top-Left: (x_pos - S/2, v_target - 25 - S)
-                    # Top-Right: (x_pos + S/2, v_target - 25 - S)
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(x_pos, v_target - 25),
-                                cv.Path.LineTo(
-                                    x_pos - S / 2, v_target - 25 - S
-                                ),
-                                cv.Path.LineTo(
-                                    x_pos + S / 2, v_target - 25 - S
-                                ),
-                                cv.Path.Close(),
-                            ],
-                            paint=ft.Paint(
-                                color=GUIColors.FWD_PRIMER,
-                                style=ft.PaintingStyle.FILL,
-                            ),
-                        )
-                    )
-                    # Add rotated label in the stack
-                    self.diagram_stack.controls.append(
-                        ft.Text(
-                            name,
-                            color=GUIColors.FWD_PRIMER,
-                            size=self.settings.get("font_size_map_primer", 13),
-                            weight=ft.FontWeight.BOLD,
-                            left=x_pos - 15,
-                            top=v_target - 25 - S - 38,
-                            rotate=ft.Rotate(-1.5708),
-                        )
-                    )
-
-                    def fwd_tap(
-                        _: Any,
-                        n: str = name,
-                        i: int = start_idx,
-                        c: Any = fwd_conf,
-                        v: Any = fwd_var,
-                    ) -> None:
-                        self.show_context_map(n, i, c, v)
-
-                    # Click overlay
-                    self.diagram_stack.controls.append(
-                        ft.GestureDetector(
-                            mouse_cursor=ft.MouseCursor.CLICK,
-                            on_tap=fwd_tap,
-                            content=ft.Container(
-                                bgcolor=GUIColors.TRANSPARENT,
-                                width=20,
-                                height=25 + S,
-                            ),
-                            left=x_pos - 10,
-                            top=v_target - 25 - S,
-                        )
-                    )
-
-                # Draw REV primers (red, float below baseline, pointing up)
-                for end_idx, (
-                    name,
-                    S,
-                    rev_conf,
-                    rev_var,
-                ) in rev_bindings.items():
-                    x_pos = (
-                        h_margin + (end_idx / target_length * t_width)
-                        if target_length
-                        else h_margin
-                    )
-                    # Connector line from baseline to floating tip
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(x_pos, v_target),
-                                cv.Path.LineTo(x_pos, v_target + 25),
-                            ],
-                            paint=ft.Paint(
-                                color=GUIColors.REV_PRIMER,
-                                style=ft.PaintingStyle.STROKE,
-                                stroke_width=1.0,
-                            ),
-                        )
-                    )
-                    # Up-pointing triangle of size S:
-                    # Tip: (x_pos, v_target + 25)
-                    # Bottom-Left: (x_pos - S/2, v_target + 25 + S)
-                    # Bottom-Right: (x_pos + S/2, v_target + 25 + S)
-                    self.diagram_canvas.shapes.append(
-                        cv.Path(
-                            [
-                                cv.Path.MoveTo(x_pos, v_target + 25),
-                                cv.Path.LineTo(
-                                    x_pos - S / 2, v_target + 25 + S
-                                ),
-                                cv.Path.LineTo(
-                                    x_pos + S / 2, v_target + 25 + S
-                                ),
-                                cv.Path.Close(),
-                            ],
-                            paint=ft.Paint(
-                                color=GUIColors.REV_PRIMER,
-                                style=ft.PaintingStyle.FILL,
-                            ),
-                        )
-                    )
-                    # Add rotated label in the stack
-                    self.diagram_stack.controls.append(
-                        ft.Text(
-                            name,
-                            color=GUIColors.REV_LABEL,
-                            size=self.settings.get("font_size_map_primer", 13),
-                            weight=ft.FontWeight.BOLD,
-                            left=x_pos - 15,
-                            top=v_target + 25 + S + 10,
-                            rotate=ft.Rotate(-1.5708),
-                        )
-                    )
-
-                    def rev_tap(
-                        _: Any,
-                        n: str = name,
-                        i: int = end_idx,
-                        c: Any = rev_conf,
-                        v: Any = rev_var,
-                    ) -> None:
-                        self.show_context_map(n, i, c, v)
-
-                    # Click overlay
-                    self.diagram_stack.controls.append(
-                        ft.GestureDetector(
-                            mouse_cursor=ft.MouseCursor.CLICK,
-                            on_tap=rev_tap,
-                            content=ft.Container(
-                                bgcolor=GUIColors.TRANSPARENT,
-                                width=20,
-                                height=25 + S,
-                            ),
-                            left=x_pos - 10,
-                            top=v_target,
-                        )
-                    )
-
-                # Draw amplicons
-                v_frag_start = v_target + 40
-                v_frag_step = 35
-
-                for idx, amp in enumerate(pcr.amplicons):
-                    start_idx = amp.start.index
-                    end_idx = amp.end.index
-
-                    # X coords
-                    x_start = (
-                        h_margin + (start_idx / target_length * t_width)
-                        if target_length
-                        else h_margin
-                    )
-                    x_end = (
-                        h_margin + (end_idx / target_length * t_width)
-                        if target_length
-                        else (c_width - h_margin)
-                    )
-
-                    y_pos = v_frag_start + (idx * v_frag_step)
-
-                    # Dynamic thickness based on the quality score
-                    if amp.q_score < 300:
-                        bar_height = 8.0
-                    elif amp.q_score < 700:
-                        bar_height = 5.5
-                    elif amp.q_score < 1500:
-                        bar_height = 3.5
-                    elif amp.q_score < 4000:
-                        bar_height = 2.0
-                    else:
-                        bar_height = 1.0
-
-                    # Amplicon Bar (Black, filling path)
-                    amp_paint = ft.Paint(
-                        color=GUIColors.DIAGRAM_BLACK,
-                        style=ft.PaintingStyle.FILL,
-                    )
-                    if amp.circular:
-                        self.diagram_canvas.shapes.append(
-                            cv.Path(
-                                [
-                                    cv.Path.MoveTo(h_margin, y_pos),
-                                    cv.Path.LineTo(c_width - h_margin, y_pos),
-                                    cv.Path.LineTo(
-                                        c_width - h_margin,
-                                        y_pos + bar_height,
-                                    ),
-                                    cv.Path.LineTo(
-                                        h_margin, y_pos + bar_height
-                                    ),
-                                    cv.Path.Close(),
-                                ],
-                                paint=amp_paint,
-                            )
-                        )
-                        label_x = h_margin + (t_width / 2.0)
-                    else:
-                        self.diagram_canvas.shapes.append(
-                            cv.Path(
-                                [
-                                    cv.Path.MoveTo(x_start, y_pos),
-                                    cv.Path.LineTo(x_end, y_pos),
-                                    cv.Path.LineTo(x_end, y_pos + bar_height),
-                                    cv.Path.LineTo(x_start, y_pos + bar_height),
-                                    cv.Path.Close(),
-                                ],
-                                paint=amp_paint,
-                            )
-                        )
-                        label_x = x_start + ((x_end - x_start) / 2.0)
-
-                    # Amplicon Length Text (just number, black, centered)
-                    self.diagram_canvas.shapes.append(
-                        cv.Text(
-                            label_x,
-                            y_pos + bar_height + 5,
-                            str(len(amp.product)),
-                            style=ft.TextStyle(
-                                size=self.settings.get(
-                                    "font_size_map_amplicon", 13
-                                ),
-                                color=GUIColors.DIAGRAM_BLACK,
-                            ),
-                            alignment=ft.Alignment(0.0, -1.0),
-                        )
-                    )
-
-                    # Click overlay for the amplicon
-                    amp_width = max(
-                        10.0,
-                        (x_end - x_start)
-                        if not amp.circular
-                        else (c_width - 2 * h_margin),
-                    )
-                    amp_left = x_start if not amp.circular else h_margin
-                    self.diagram_stack.controls.append(
-                        ft.GestureDetector(
-                            mouse_cursor=ft.MouseCursor.CLICK,
-                            on_tap=lambda _, a=amp: self.show_amplicon_dialog(
-                                a
-                            ),
-                            content=ft.Container(
-                                bgcolor=GUIColors.TRANSPARENT,
-                                width=amp_width,
-                                height=20 + bar_height,
-                            ),
-                            left=amp_left,
-                            top=y_pos - 3,
-                        )
-                    )
-
-                    # Cards are not shown initially; they are added when clicked
         except Exception as ex:
             self.result_list.controls.append(
                 ft.Text(
@@ -621,11 +179,500 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
         if keep_cards:
             self.result_list.controls.extend(saved_cards)
-            self.update_cards_header_visibility()
+            self._update_cards_header_visibility()
 
         self.app_page.update()
 
-    def show_context_map(
+    def _reset_pcr_ui(self, keep_cards: bool) -> list[Any]:
+        """Reset the result view UI controls and canvas shapes."""
+        saved_cards = list(self.result_list.controls) if keep_cards else []
+        self.result_list.controls.clear()
+        self._update_cards_header_visibility()
+        self.diagram_canvas.shapes.clear()
+        self.diagram_stack.controls.clear()
+        self.diagram_stack.controls.append(self.diagram_canvas)
+        self.diagram_container.visible = False
+        self.divider.visible = False
+        return saved_cards
+
+    def _execute_pcr_simulation(self) -> PCR:
+        """Clean sequences, build DNA and PCR objects, and run simulation."""
+        from amplifyp.gui.util import clean_sequence
+
+        clean_template = clean_sequence(self.input_data.template)
+        t_type = (
+            DNAType.CIRCULAR
+            if self.input_data.template_circular
+            else DNAType.LINEAR
+        )
+        template_dna = DNA(clean_template, dna_type=t_type)
+
+        rep_settings = self.settings.get_replication_settings()
+        pcr = PCR(template_dna, settings=rep_settings)
+
+        primers = self.input_data.get_active_primers()
+        for p in primers:
+            name = p["name"]
+            seq = clean_sequence(p["seq"])
+            pcr.add_primer(Primer(sequence=seq, name=name))
+        pcr.predict_amplicons()
+        return pcr
+
+    def _calculate_canvas_dimensions(
+        self, target_length: int, num_amplicons: int
+    ) -> tuple[float, float, float, float]:
+        """Calculate drawing coordinates and set canvas/stack heights."""
+        v_target = 100.0  # Y position of target baseline
+        h_margin = 20.0  # X padding
+        c_width = (
+            max(600.0, self.app_page.width - 80.0)
+            if self.app_page.width
+            else 800.0
+        )
+        self.diagram_canvas.width = c_width
+        t_width = c_width - (2.0 * h_margin)
+
+        # Calculate vertical size based on number of amplicons
+        v_frag_start = v_target + 40
+        v_frag_step = 35
+        canvas_height = v_frag_start + num_amplicons * v_frag_step + 30.0
+        self.diagram_canvas.height = canvas_height
+        self.diagram_stack.height = canvas_height
+
+        return v_target, h_margin, c_width, t_width
+
+    def _draw_template_baseline(
+        self,
+        v_target: float,
+        h_margin: float,
+        c_width: float,
+        t_width: float,
+        target_length: int,
+    ) -> None:
+        """Draw boundary lines, baseline, ticks, and texts."""
+        # Draw vertical boundary lines at start and end of template
+        boundary_paint = ft.Paint(
+            color=GUIColors.DIAGRAM_BLACK,
+            style=ft.PaintingStyle.STROKE,
+            stroke_width=1.0,
+        )
+        self.diagram_canvas.shapes.append(
+            cv.Path(
+                [
+                    cv.Path.MoveTo(h_margin, v_target),
+                    cv.Path.LineTo(h_margin, v_target - 65),
+                ],
+                paint=boundary_paint,
+            )
+        )
+        self.diagram_canvas.shapes.append(
+            cv.Path(
+                [
+                    cv.Path.MoveTo(c_width - h_margin, v_target),
+                    cv.Path.LineTo(c_width - h_margin, v_target - 65),
+                ],
+                paint=boundary_paint,
+            )
+        )
+
+        # Draw 1 and target_length text
+        self.diagram_canvas.shapes.append(
+            cv.Text(
+                h_margin,
+                v_target - 85,
+                "1",
+                style=ft.TextStyle(
+                    size=self.settings.get("font_size_map_baseline", 16),
+                    weight=ft.FontWeight.BOLD,
+                    color=GUIColors.DIAGRAM_BLACK,
+                ),
+            )
+        )
+        self.diagram_canvas.shapes.append(
+            cv.Text(
+                c_width - h_margin,
+                v_target - 85,
+                str(target_length),
+                style=ft.TextStyle(
+                    size=self.settings.get("font_size_map_baseline", 16),
+                    weight=ft.FontWeight.BOLD,
+                    color=GUIColors.DIAGRAM_BLACK,
+                ),
+                alignment=ft.Alignment(1.0, -1.0),
+            )
+        )
+
+        # Target Baseline
+        self.diagram_canvas.shapes.append(
+            cv.Path(
+                [
+                    cv.Path.MoveTo(h_margin, v_target),
+                    cv.Path.LineTo(c_width - h_margin, v_target),
+                ],
+                paint=ft.Paint(
+                    color=GUIColors.DIAGRAM_BLACK,
+                    style=ft.PaintingStyle.STROKE,
+                    stroke_width=2.5,
+                ),
+            )
+        )
+
+        # Ticks dynamically scaled
+        tick_interval = 100
+        if target_length > 10000:
+            tick_interval = 1000
+        elif target_length > 5000:
+            tick_interval = 500
+
+        tick_paint = ft.Paint(
+            color=GUIColors.DIAGRAM_BLACK,
+            style=ft.PaintingStyle.STROKE,
+            stroke_width=1.0,
+        )
+        for bp in range(0, target_length + 1, tick_interval):
+            x_pos = h_margin + (bp / target_length * t_width)
+            self.diagram_canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(x_pos, v_target - 3),
+                        cv.Path.LineTo(x_pos, v_target + 3),
+                    ],
+                    paint=tick_paint,
+                )
+            )
+
+    def _collect_primer_bindings(
+        self, pcr: PCR
+    ) -> tuple[
+        dict[int, tuple[str, float, Any, Any]],
+        dict[int, tuple[str, float, Any, Any]],
+    ]:
+        """Collect and group unique forward and reverse primer binding sites."""
+        fwd_bindings = {}
+        rev_bindings = {}
+        for amp in pcr.amplicons:
+            fwd_conf = next(
+                (
+                    c
+                    for c in pcr.amplicon_generator.repliconfs
+                    if c.primer is amp.fwd_origin
+                ),
+                None,
+            )
+            rev_conf = next(
+                (
+                    c
+                    for c in pcr.amplicon_generator.repliconfs
+                    if c.primer is amp.rev_origin
+                ),
+                None,
+            )
+            if fwd_conf is None or rev_conf is None:
+                continue
+            fwd_origin_point = fwd_conf.origin(amp.start)
+            rev_origin_point = rev_conf.origin(amp.end)
+            if fwd_origin_point is None or rev_origin_point is None:
+                continue
+            fwd_quality = fwd_origin_point.quality
+            rev_quality = rev_origin_point.quality
+
+            # Scale triangle size S based on quality score
+            fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
+            rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
+
+            fwd_bindings[amp.start.index] = (
+                amp.fwd_origin.name,
+                fwd_s,
+                fwd_conf,
+                amp.start,
+            )
+            rev_bindings[amp.end.index] = (
+                amp.rev_origin.name,
+                rev_s,
+                rev_conf,
+                amp.end,
+            )
+        return fwd_bindings, rev_bindings
+
+    def _draw_primers(
+        self,
+        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
+        rev_bindings: dict[int, tuple[str, float, Any, Any]],
+        target_length: int,
+        t_width: float,
+        h_margin: float,
+        v_target: float,
+    ) -> None:
+        """Draw forward and reverse primers, labels, and detectors."""
+        # Draw FWD primers (blue, float above baseline, pointing down)
+        for start_idx, (name, S, fwd_conf, fwd_var) in fwd_bindings.items():
+            x_pos = (
+                h_margin + (start_idx / target_length * t_width)
+                if target_length
+                else h_margin
+            )
+            # Connector line from baseline to floating tip
+            self.diagram_canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(x_pos, v_target),
+                        cv.Path.LineTo(x_pos, v_target - 25),
+                    ],
+                    paint=ft.Paint(
+                        color=GUIColors.FWD_PRIMER,
+                        style=ft.PaintingStyle.STROKE,
+                        stroke_width=1.0,
+                    ),
+                )
+            )
+            # Down-pointing triangle of size S:
+            # Tip: (x_pos, v_target - 25)
+            # Top-Left: (x_pos - S/2, v_target - 25 - S)
+            # Top-Right: (x_pos + S/2, v_target - 25 - S)
+            self.diagram_canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(x_pos, v_target - 25),
+                        cv.Path.LineTo(x_pos - S / 2, v_target - 25 - S),
+                        cv.Path.LineTo(x_pos + S / 2, v_target - 25 - S),
+                        cv.Path.Close(),
+                    ],
+                    paint=ft.Paint(
+                        color=GUIColors.FWD_PRIMER,
+                        style=ft.PaintingStyle.FILL,
+                    ),
+                )
+            )
+            # Add rotated label in the stack
+            self.diagram_stack.controls.append(
+                ft.Text(
+                    name,
+                    color=GUIColors.FWD_PRIMER,
+                    size=self.settings.get("font_size_map_primer", 13),
+                    weight=ft.FontWeight.BOLD,
+                    left=x_pos - 15,
+                    top=v_target - 25 - S - 38,
+                    rotate=ft.Rotate(-1.5708),
+                )
+            )
+
+            def fwd_tap(
+                _: Any,
+                n: str = name,
+                i: int = start_idx,
+                c: Any = fwd_conf,
+                v: Any = fwd_var,
+            ) -> None:
+                self._show_context_map(n, i, c, v)
+
+            # Click overlay
+            self.diagram_stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=fwd_tap,
+                    content=ft.Container(
+                        bgcolor=GUIColors.TRANSPARENT,
+                        width=20,
+                        height=25 + S,
+                    ),
+                    left=x_pos - 10,
+                    top=v_target - 25 - S,
+                )
+            )
+
+        # Draw REV primers (red, float below baseline, pointing up)
+        for end_idx, (name, S, rev_conf, rev_var) in rev_bindings.items():
+            x_pos = (
+                h_margin + (end_idx / target_length * t_width)
+                if target_length
+                else h_margin
+            )
+            # Connector line from baseline to floating tip
+            self.diagram_canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(x_pos, v_target),
+                        cv.Path.LineTo(x_pos, v_target + 25),
+                    ],
+                    paint=ft.Paint(
+                        color=GUIColors.REV_PRIMER,
+                        style=ft.PaintingStyle.STROKE,
+                        stroke_width=1.0,
+                    ),
+                )
+            )
+            # Up-pointing triangle of size S:
+            # Tip: (x_pos, v_target + 25)
+            # Bottom-Left: (x_pos - S/2, v_target + 25 + S)
+            # Bottom-Right: (x_pos + S/2, v_target + 25 + S)
+            self.diagram_canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(x_pos, v_target + 25),
+                        cv.Path.LineTo(x_pos - S / 2, v_target + 25 + S),
+                        cv.Path.LineTo(x_pos + S / 2, v_target + 25 + S),
+                        cv.Path.Close(),
+                    ],
+                    paint=ft.Paint(
+                        color=GUIColors.REV_PRIMER,
+                        style=ft.PaintingStyle.FILL,
+                    ),
+                )
+            )
+            # Add rotated label in the stack
+            self.diagram_stack.controls.append(
+                ft.Text(
+                    name,
+                    color=GUIColors.REV_LABEL,
+                    size=self.settings.get("font_size_map_primer", 13),
+                    weight=ft.FontWeight.BOLD,
+                    left=x_pos - 15,
+                    top=v_target + 25 + S + 10,
+                    rotate=ft.Rotate(-1.5708),
+                )
+            )
+
+            def rev_tap(
+                _: Any,
+                n: str = name,
+                i: int = end_idx,
+                c: Any = rev_conf,
+                v: Any = rev_var,
+            ) -> None:
+                self._show_context_map(n, i, c, v)
+
+            # Click overlay
+            self.diagram_stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=rev_tap,
+                    content=ft.Container(
+                        bgcolor=GUIColors.TRANSPARENT,
+                        width=20,
+                        height=25 + S,
+                    ),
+                    left=x_pos - 10,
+                    top=v_target,
+                )
+            )
+
+    def _draw_amplicons(
+        self,
+        pcr: PCR,
+        target_length: int,
+        t_width: float,
+        h_margin: float,
+        v_target: float,
+        c_width: float,
+    ) -> None:
+        """Draw amplicons, text labels, and detectors."""
+        v_frag_start = v_target + 40
+        v_frag_step = 35
+
+        for idx, amp in enumerate(pcr.amplicons):
+            start_idx = amp.start.index
+            end_idx = amp.end.index
+
+            # X coords
+            x_start = (
+                h_margin + (start_idx / target_length * t_width)
+                if target_length
+                else h_margin
+            )
+            x_end = (
+                h_margin + (end_idx / target_length * t_width)
+                if target_length
+                else (c_width - h_margin)
+            )
+
+            y_pos = v_frag_start + (idx * v_frag_step)
+
+            # Dynamic thickness based on the quality score
+            if amp.q_score < 300:
+                bar_height = 8.0
+            elif amp.q_score < 700:
+                bar_height = 5.5
+            elif amp.q_score < 1500:
+                bar_height = 3.5
+            elif amp.q_score < 4000:
+                bar_height = 2.0
+            else:
+                bar_height = 1.0
+
+            # Amplicon Bar (Black, filling path)
+            amp_paint = ft.Paint(
+                color=GUIColors.DIAGRAM_BLACK,
+                style=ft.PaintingStyle.FILL,
+            )
+            if amp.circular:
+                self.diagram_canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(h_margin, y_pos),
+                            cv.Path.LineTo(c_width - h_margin, y_pos),
+                            cv.Path.LineTo(
+                                c_width - h_margin,
+                                y_pos + bar_height,
+                            ),
+                            cv.Path.LineTo(h_margin, y_pos + bar_height),
+                            cv.Path.Close(),
+                        ],
+                        paint=amp_paint,
+                    )
+                )
+                label_x = h_margin + (t_width / 2.0)
+            else:
+                self.diagram_canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(x_start, y_pos),
+                            cv.Path.LineTo(x_end, y_pos),
+                            cv.Path.LineTo(x_end, y_pos + bar_height),
+                            cv.Path.LineTo(x_start, y_pos + bar_height),
+                            cv.Path.Close(),
+                        ],
+                        paint=amp_paint,
+                    )
+                )
+                label_x = x_start + ((x_end - x_start) / 2.0)
+
+            # Amplicon Length Text (just number, black, centered)
+            self.diagram_canvas.shapes.append(
+                cv.Text(
+                    label_x,
+                    y_pos + bar_height + 5,
+                    str(len(amp.product)),
+                    style=ft.TextStyle(
+                        size=self.settings.get("font_size_map_amplicon", 13),
+                        color=GUIColors.DIAGRAM_BLACK,
+                    ),
+                    alignment=ft.Alignment(0.0, -1.0),
+                )
+            )
+
+            # Click overlay for the amplicon
+            amp_width = max(
+                10.0,
+                (x_end - x_start)
+                if not amp.circular
+                else (c_width - 2 * h_margin),
+            )
+            amp_left = x_start if not amp.circular else h_margin
+            self.diagram_stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _, a=amp: self._show_amplicon_dialog(a),
+                    content=ft.Container(
+                        bgcolor=GUIColors.TRANSPARENT,
+                        width=amp_width,
+                        height=20 + bar_height,
+                    ),
+                    left=amp_left,
+                    top=y_pos - 3,
+                )
+            )
+
+    def _show_context_map(
         self,
         primer_name: str,
         padded_idx: int,
@@ -638,7 +685,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             if getattr(ctrl, "_card_id", None) == card_id:
                 self.result_list.controls.remove(ctrl)
                 self.result_list.controls.insert(0, ctrl)
-                self.update_cards_header_visibility()
+                self._update_cards_header_visibility()
                 self.app_page.update()
                 return
 
@@ -646,8 +693,95 @@ class ResultView(ft.Column):  # type: ignore[misc]
             primer_name, padded_idx, conf, var
         )
         self.result_list.controls.insert(0, context_card)
-        self.update_cards_header_visibility()
+        self._update_cards_header_visibility()
         self.app_page.update()
+
+    def _get_template_substring(
+        self, template: DNA, start: int, length: int
+    ) -> str:
+        """Get substring of template DNA, supporting circular wrapping."""
+        N_len = len(template)
+        if template.type == DNAType.CIRCULAR:
+            return "".join(
+                template.seq[i % N_len] for i in range(start, start + length)
+            )
+        else:
+            return "".join(
+                template.seq[i] if 0 <= i < N_len else "-"
+                for i in range(start, start + length)
+            )
+
+    def _format_context_lines(
+        self,
+        primer_name: str,
+        padded_idx: int,
+        conf: Any,
+        origin: Any,
+        L: int,
+        N: int,
+        direction: DNADirection,
+    ) -> tuple[str, str, str]:
+        """Format context alignment lines for binding site context map."""
+        if direction == DNADirection.FWD:
+            start_genomic = (padded_idx - L) % N
+            primer_display_seq = conf.primer.seq
+            primer_label = f"{primer_name} (Forward)"
+            primer_ends = ("5'", "3'")
+            strength_display = origin.binding_strength_str[::-1]
+        else:
+            start_genomic = padded_idx % N
+            primer_display_seq = conf.primer.seq[::-1]
+            primer_label = f"{primer_name} (Reverse)"
+            primer_ends = ("3'", "5'")
+            strength_display = origin.binding_strength_str
+
+        end_genomic = start_genomic + L
+        start_num_str = str(((start_genomic) % N) + 1)
+        end_num_str = str(((end_genomic - 1) % N) + 1)
+
+        # Construct primer line:
+        primer_line = (
+            f"{primer_label:<29}"
+            f"{primer_ends[0]}-{primer_display_seq}-{primer_ends[1]}"
+        )
+
+        # Construct strength line:
+        bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
+
+        # Construct arrows:
+        arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
+
+        # Construct numbers:
+        num_line_chars = [" "] * (12 + 20 + L + 20)
+        col1 = 12 + 20 - len(start_num_str) // 2
+        for idx, char in enumerate(start_num_str):
+            num_line_chars[col1 + idx] = char
+        col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
+        for idx, char in enumerate(end_num_str):
+            num_line_chars[col2 + idx] = char
+        top_line = "".join(num_line_chars).rstrip()
+
+        # Combined top line:
+        top_line = f"{top_line}\n{arrow_line}"
+
+        upstream_seq = self._get_template_substring(
+            conf.template, start_genomic - 20, 20
+        )
+        binding_seq = self._get_template_substring(
+            conf.template, start_genomic, L
+        )
+        downstream_seq = self._get_template_substring(
+            conf.template, start_genomic + L, 20
+        )
+
+        context_line_prefix = "Context  "
+        bottom_line = (
+            f"{bonds_line}\n"
+            f"{context_line_prefix}5'-{upstream_seq}"
+            f"{binding_seq}{downstream_seq}-3'"
+        )
+
+        return top_line, primer_line, bottom_line
 
     def _create_context_card(
         self,
@@ -665,7 +799,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         def remove_card(e: Any) -> None:
             if card_ref.current in self.result_list.controls:
                 self.result_list.controls.remove(card_ref.current)
-                self.update_cards_header_visibility()
+                self._update_cards_header_visibility()
                 self.app_page.update()
 
         origin = conf.origin(var)
@@ -681,122 +815,17 @@ class ResultView(ft.Column):  # type: ignore[misc]
         L = len(conf.primer)
         N = len(conf.template)
 
-        from amplifyp.dna import DNAType
         from amplifyp.gui.util import create_overlapped_sequence_view
 
-        def get_template_substring(
-            template: DNA, start: int, length: int
-        ) -> str:
-            N_len = len(template)
-            if template.type == DNAType.CIRCULAR:
-                return "".join(
-                    template.seq[i % N_len]
-                    for i in range(start, start + length)
-                )
-            else:
-                return "".join(
-                    template.seq[i] if 0 <= i < N_len else "-"
-                    for i in range(start, start + length)
-                )
-
-        # Calculate genomic start index (0-indexed)
-        if var.direction == DNADirection.FWD:
-            start_genomic = (padded_idx - L) % N
-            end_genomic = start_genomic + L
-            start_num_str = str(((start_genomic) % N) + 1)
-            end_num_str = str(((end_genomic - 1) % N) + 1)
-
-            # Construct primer line:
-            # prefix (29 chars to align 5'- next to primer seq)
-            primer_display_seq = conf.primer.seq
-            primer_label = f"{primer_name} (Forward)"
-            primer_line = f"{primer_label:<29}5'-{primer_display_seq}-3'"
-
-            # Construct strength line:
-            strength_display = origin.binding_strength_str[::-1]
-            bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
-
-            # Construct arrows:
-            arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
-
-            # Construct numbers:
-            num_line_chars = [" "] * (12 + 20 + L + 20)
-            col1 = 12 + 20 - len(start_num_str) // 2
-            for idx, char in enumerate(start_num_str):
-                num_line_chars[col1 + idx] = char
-            col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
-            for idx, char in enumerate(end_num_str):
-                num_line_chars[col2 + idx] = char
-            top_line = "".join(num_line_chars).rstrip()
-
-            # Combined top line:
-            top_line = f"{top_line}\n{arrow_line}"
-
-            upstream_seq = get_template_substring(
-                conf.template, start_genomic - 20, 20
-            )
-            binding_seq = get_template_substring(
-                conf.template, start_genomic, L
-            )
-            downstream_seq = get_template_substring(
-                conf.template, start_genomic + L, 20
-            )
-
-            context_line_prefix = "Context  "
-            bottom_line = (
-                f"{bonds_line}\n"
-                f"{context_line_prefix}5'-{upstream_seq}"
-                f"{binding_seq}{downstream_seq}-3'"
-            )
-
-        else:  # DNADirection.REV
-            start_genomic = padded_idx % N
-            end_genomic = start_genomic + L
-            start_num_str = str(((start_genomic) % N) + 1)
-            end_num_str = str(((end_genomic - 1) % N) + 1)
-
-            # Construct primer line:
-            # prefix (29 chars to align 3'- next to primer seq)
-            primer_display_seq = conf.primer.seq[::-1]
-            primer_label = f"{primer_name} (Reverse)"
-            primer_line = f"{primer_label:<29}3'-{primer_display_seq}-5'"
-
-            # Construct strength line:
-            strength_display = origin.binding_strength_str
-            bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
-
-            # Construct arrows:
-            arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
-
-            # Construct numbers:
-            num_line_chars = [" "] * (12 + 20 + L + 20)
-            col1 = 12 + 20 - len(start_num_str) // 2
-            for idx, char in enumerate(start_num_str):
-                num_line_chars[col1 + idx] = char
-            col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
-            for idx, char in enumerate(end_num_str):
-                num_line_chars[col2 + idx] = char
-            top_line = "".join(num_line_chars).rstrip()
-
-            # Combined top line:
-            top_line = f"{top_line}\n{arrow_line}"
-
-            upstream_seq = get_template_substring(
-                conf.template, start_genomic - 20, 20
-            )
-            binding_seq = get_template_substring(
-                conf.template, start_genomic, L
-            )
-            downstream_seq = get_template_substring(
-                conf.template, start_genomic + L, 20
-            )
-
-            context_line_prefix = "Context  "
-            bottom_line = (
-                f"{bonds_line}\n"
-                f"{context_line_prefix}5'-{upstream_seq}"
-                f"{binding_seq}{downstream_seq}-3'"
-            )
+        top_line, primer_line, bottom_line = self._format_context_lines(
+            primer_name=primer_name,
+            padded_idx=padded_idx,
+            conf=conf,
+            origin=origin,
+            L=L,
+            N=N,
+            direction=var.direction,
+        )
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         font_size = self.settings.get("font_size_default", 14)
@@ -860,7 +889,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         def remove_card(e: Any) -> None:
             if card_ref.current in self.result_list.controls:
                 self.result_list.controls.remove(card_ref.current)
-                self.update_cards_header_visibility()
+                self._update_cards_header_visibility()
                 self.app_page.update()
 
         full_seq = str(amp.product.seq)
@@ -979,7 +1008,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         card._card_id = card_id
         return card
 
-    def show_amplicon_dialog(self, amp: Any) -> None:
+    def _show_amplicon_dialog(self, amp: Any) -> None:
         """Show details card of the selected amplicon below the overview map."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
@@ -989,23 +1018,23 @@ class ResultView(ft.Column):  # type: ignore[misc]
             if getattr(ctrl, "_card_id", None) == card_id:
                 self.result_list.controls.remove(ctrl)
                 self.result_list.controls.insert(0, ctrl)
-                self.update_cards_header_visibility()
+                self._update_cards_header_visibility()
                 self.app_page.update()
                 return
 
         amplicon_card = self._create_amplicon_card(amp)
         self.result_list.controls.insert(0, amplicon_card)
-        self.update_cards_header_visibility()
+        self._update_cards_header_visibility()
         self.app_page.update()
 
-    def update_cards_header_visibility(self) -> None:
+    def _update_cards_header_visibility(self) -> None:
         """Toggle header visibility based on list content."""
         has_cards = len(self.result_list.controls) > 0
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
-    def clear_all_cards(self, e: Any) -> None:
+    def _clear_all_cards(self, e: Any) -> None:
         """Clear all detail cards below the overview map."""
         self.result_list.controls.clear()
-        self.update_cards_header_visibility()
+        self._update_cards_header_visibility()
         self.app_page.update()
