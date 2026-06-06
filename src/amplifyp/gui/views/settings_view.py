@@ -92,6 +92,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.dropdown.Option("SantaLucia 1998 / Owczarzy 2008"),
                 ft.dropdown.Option("Lander / Amplify 4"),
             ],
+            expand=True,
         )
         self.set_tm_method.on_change = self.on_change_handler
 
@@ -524,7 +525,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                         ft.Container(
                                             content=ft.Column(
                                                 [
-                                                    self.set_tm_method,
+                                                    ft.Row(
+                                                        [self.set_tm_method]
+                                                    ),
                                                     self.set_tm_dna_conc,
                                                     self.set_tm_dnap_conc,
                                                     self.set_tm_mono_salt,
