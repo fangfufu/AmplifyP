@@ -198,7 +198,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
                     width=60,
-                    alignment=ft.Alignment(0, 0),
+                    alignment=ft.Alignment(1, 0),
+                    padding=ft.Padding(0, 0, 5, 0),
                 )
             )
 
