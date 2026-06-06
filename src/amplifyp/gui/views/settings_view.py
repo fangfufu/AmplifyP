@@ -173,15 +173,48 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         # Build Base Pair Scores Styled Table (matching primer table)
         header_controls = [
-            ft.Container(
-                content=ft.Text(
-                    "Primer / Template",
-                    weight=ft.FontWeight.BOLD,
-                    size=11,
-                ),
+            ft.Stack(
+                [
+                    ft.canvas.Canvas(
+                        [
+                            ft.canvas.Line(
+                                0,
+                                0,
+                                70,
+                                36,
+                                paint=ft.Paint(
+                                    color=GUIColors.DIVIDER_GREY, stroke_width=1
+                                ),
+                            )
+                        ],
+                        width=70,
+                        height=36,
+                    ),
+                    ft.Container(
+                        content=ft.Text(
+                            "Template",
+                            weight=ft.FontWeight.BOLD,
+                            size=10,
+                        ),
+                        alignment=ft.Alignment(1, -1),
+                        padding=ft.Padding(0, 2, 5, 0),
+                        width=70,
+                        height=36,
+                    ),
+                    ft.Container(
+                        content=ft.Text(
+                            "Primer",
+                            weight=ft.FontWeight.BOLD,
+                            size=10,
+                        ),
+                        alignment=ft.Alignment(-1, 1),
+                        padding=ft.Padding(5, 0, 0, 2),
+                        width=70,
+                        height=36,
+                    ),
+                ],
                 width=70,
-                alignment=ft.Alignment(-1, 0),
-                padding=ft.Padding(10, 0, 0, 0),
+                height=36,
             )
         ]
 
@@ -290,15 +323,48 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         # Build Primer Dimer Scores Styled Table
         pd_header_controls = [
-            ft.Container(
-                content=ft.Text(
-                    "Primer",
-                    weight=ft.FontWeight.BOLD,
-                    size=15,
-                ),
+            ft.Stack(
+                [
+                    ft.canvas.Canvas(
+                        [
+                            ft.canvas.Line(
+                                0,
+                                0,
+                                70,
+                                36,
+                                paint=ft.Paint(
+                                    color=GUIColors.DIVIDER_GREY, stroke_width=1
+                                ),
+                            )
+                        ],
+                        width=70,
+                        height=36,
+                    ),
+                    ft.Container(
+                        content=ft.Text(
+                            "Primer",
+                            weight=ft.FontWeight.BOLD,
+                            size=10,
+                        ),
+                        alignment=ft.Alignment(1, -1),
+                        padding=ft.Padding(0, 2, 5, 0),
+                        width=70,
+                        height=36,
+                    ),
+                    ft.Container(
+                        content=ft.Text(
+                            "Primer",
+                            weight=ft.FontWeight.BOLD,
+                            size=10,
+                        ),
+                        alignment=ft.Alignment(-1, 1),
+                        padding=ft.Padding(5, 0, 0, 2),
+                        width=70,
+                        height=36,
+                    ),
+                ],
                 width=70,
-                alignment=ft.Alignment(-1, 0),
-                padding=ft.Padding(10, 0, 0, 0),
+                height=36,
             )
         ]
 
