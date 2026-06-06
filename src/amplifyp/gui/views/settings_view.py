@@ -19,7 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.state import GUIColors, GUIState
 from amplifyp.settings import ReplicationSettings
 
 
@@ -167,37 +167,97 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     content_padding=4,
                 )
 
-        # Build Base Pair Scores DataTable
-        columns = [
-            ft.DataColumn(
-                ft.Text("Primer / Template", weight=ft.FontWeight.BOLD)
-            ),
+        # Build Base Pair Scores Styled Table (matching primer table)
+        header_controls = [
+            ft.Container(
+                content=ft.Text(
+                    "Primer / Template",
+                    weight=ft.FontWeight.BOLD,
+                    size=12,
+                ),
+                width=120,
+                alignment=ft.Alignment(-1, 0),
+                padding=ft.Padding(10, 0, 0, 0),
+            )
         ]
+
         for c_char in Nucleotides.TEMPLATE:
             if c_char == Nucleotides.GAP:
                 continue
-            columns.append(
-                ft.DataColumn(ft.Text(c_char, weight=ft.FontWeight.BOLD))
+            header_controls.append(
+                ft.Container(
+                    width=1,
+                    bgcolor=GUIColors.DIVIDER_GREY,
+                    height=36,
+                )
+            )
+            header_controls.append(
+                ft.Container(
+                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=12),
+                    width=60,
+                    alignment=ft.Alignment(0, 0),
+                )
             )
 
-        rows = []
+        header_row = ft.Container(
+            content=ft.Row(
+                header_controls,
+                spacing=0,
+                alignment=ft.MainAxisAlignment.START,
+            ),
+            border=ft.Border(bottom=ft.BorderSide(2, GUIColors.DIVIDER_GREY)),
+            height=36,
+        )
+
+        row_controls = [header_row]
         for r_char in Nucleotides.PRIMER:
             cells = [
-                ft.DataCell(ft.Text(r_char, weight=ft.FontWeight.BOLD)),
+                ft.Container(
+                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=12),
+                    width=120,
+                    alignment=ft.Alignment(-1, 0),
+                    padding=ft.Padding(10, 0, 0, 0),
+                )
             ]
             for c_char in Nucleotides.TEMPLATE:
                 if c_char == Nucleotides.GAP:
                     continue
                 key = f"bp_score_{r_char}_{c_char}"
-                cells.append(ft.DataCell(self.settings_map[key]))
-            rows.append(ft.DataRow(cells=cells))
 
-        bp_table = ft.DataTable(
-            columns=columns,
-            rows=rows,
-            column_spacing=15,
-            border=ft.Border.all(0.5, ft.Colors.OUTLINE),
-        )
+                # Style TextField to match the borderless style in primer table
+                self.settings_map[key].border = ft.InputBorder.NONE
+                self.settings_map[key].width = 60
+                self.settings_map[key].height = 30
+                self.settings_map[key].content_padding = 0
+
+                cells.append(
+                    ft.Container(
+                        width=1,
+                        bgcolor=GUIColors.DIVIDER_GREY,
+                        height=30,
+                    )
+                )
+                cells.append(
+                    ft.Container(
+                        content=self.settings_map[key],
+                        width=60,
+                        alignment=ft.Alignment(0, 0),
+                    )
+                )
+
+            row_controls.append(
+                ft.Container(
+                    content=ft.Row(
+                        cells,
+                        spacing=0,
+                        alignment=ft.MainAxisAlignment.START,
+                    ),
+                    border=ft.Border(
+                        bottom=ft.BorderSide(1, GUIColors.DIVIDER_GREY)
+                    ),
+                    height=30,
+                )
+            )
 
         bp_table_container = ft.Column(
             [
@@ -205,7 +265,17 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     "Base Pair Weights", weight=ft.FontWeight.BOLD, size=14
                 ),
                 ft.Row(
-                    [bp_table],
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                row_controls,
+                                spacing=0,
+                            ),
+                            border=ft.Border.all(1, GUIColors.OUTLINE),
+                            border_radius=5,
+                            padding=0,
+                        )
+                    ],
                     scroll=ft.ScrollMode.ADAPTIVE,
                 ),
             ],
