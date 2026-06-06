@@ -302,6 +302,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         if e.control.data is not None:
             self.focused_primer_index = e.control.data
+            self.update_row_highlights()
             self.update_primer_info_panel()
 
     def handle_field_blur(self, e: ft.ControlEvent) -> None:
@@ -655,9 +656,11 @@ class InputView(ft.Row):  # type: ignore[misc]
                 bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
                 padding=0,
                 height=30 if not error_message else None,
+                data=idx,
             )
             self.primers_list.controls.append(row_container)
 
+        self.update_row_highlights()
         self.update_primer_info_panel()
 
     def on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
@@ -753,10 +756,56 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
 
+    def update_row_highlights(self) -> None:
+        """Update background colors of all row containers.
+
+        Highlights rows based on selection and duplicates.
+        """
+        # Calculate duplicates first
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in self.input_data.primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+
+        for container in self.primers_list.controls:
+            if (
+                isinstance(container, ft.Container)
+                and container.data is not None
+            ):
+                c_idx = container.data
+                primer_dict: dict[str, Any] | None = (
+                    self.input_data.primers[c_idx]
+                    if c_idx < len(self.input_data.primers)
+                    else None
+                )
+                is_dup = False
+                if primer_dict:
+                    n_lower = str(primer_dict.get("name", "")).strip().lower()
+                    s_lower = clean_sequence(
+                        str(primer_dict.get("seq", ""))
+                    ).lower()
+                    if n_lower and names_count.get(n_lower, 0) > 1:
+                        is_dup = True
+                    if s_lower and seqs_count.get(s_lower, 0) > 1:
+                        is_dup = True
+
+                if c_idx == self.focused_primer_index:
+                    container.bgcolor = GUIColors.SELECTED_ROW_BG
+                elif is_dup:
+                    container.bgcolor = GUIColors.DUPLICATE_BG
+                else:
+                    container.bgcolor = None
+
     def update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
         if self.focused_primer_index is None:
             self.primer_info_panel.visible = False
+            self.update_row_highlights()
             self.app_page.update()
             return
 

@@ -333,3 +333,38 @@ def test_input_view_sequence_validation() -> None:
 
     assert seq_field.error is None
     assert container.height == 30
+
+
+def test_input_view_row_highlighting() -> None:
+    """Test focusing a primer row updates the background color."""
+    from amplifyp.gui.settings import GUIColors
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Initially, no highlights
+    assert view.primers_list.controls[0].bgcolor is None
+    assert view.primers_list.controls[1].bgcolor is None
+
+    # Focus on the first primer row (index 0)
+    mock_event = MagicMock()
+    mock_event.control = MagicMock()
+    mock_event.control.data = 0
+    view.handle_field_focus(mock_event)
+
+    assert view.primers_list.controls[0].bgcolor == GUIColors.SELECTED_ROW_BG
+    assert view.primers_list.controls[1].bgcolor is None
+
+    # Focus on the second primer row (index 1)
+    mock_event.control.data = 1
+    view.handle_field_focus(mock_event)
+
+    assert view.primers_list.controls[0].bgcolor is None
+    assert view.primers_list.controls[1].bgcolor == GUIColors.SELECTED_ROW_BG

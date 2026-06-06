@@ -95,6 +95,11 @@ class _GUIColorsMeta(type):
         )
 
     @property
+    def SELECTED_ROW_BG(cls) -> str:
+        """Get selected/focused row background color."""
+        return cast(str, ft.Colors.BLUE_50)
+
+    @property
     def DIAGRAM_BLACK(cls) -> str:
         """Get diagram black color."""
         return cast(str, ft.Colors.BLACK)
