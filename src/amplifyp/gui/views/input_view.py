@@ -294,6 +294,16 @@ class InputView(ft.Row):  # type: ignore[misc]
         # Sync initial UI state
         self.update_ui()
 
+    def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+        """Handle clicking on the row container.
+
+        Selects the row and focuses the name field.
+        """
+        self.focused_primer_index = idx
+        self.update_row_highlights()
+        self.update_primer_info_panel()
+        name_edit.focus()
+
     def handle_field_focus(self, e: ft.ControlEvent) -> None:
         """Handle focus on input fields to cancel auto-trigger timer."""
         if self._focus_timer is not None:
@@ -657,6 +667,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 padding=0,
                 height=30 if not error_message else None,
                 data=idx,
+                on_click=lambda e, idx=idx, name_edit=name_edit: (
+                    self.handle_row_click(idx, name_edit)
+                ),
             )
             self.primers_list.controls.append(row_container)
 

@@ -368,3 +368,28 @@ def test_input_view_row_highlighting() -> None:
 
     assert view.primers_list.controls[0].bgcolor is None
     assert view.primers_list.controls[1].bgcolor == GUIColors.SELECTED_ROW_BG
+
+
+def test_input_view_row_single_click() -> None:
+    """Test that a single click on the row container focuses it."""
+    from amplifyp.gui.settings import GUIColors
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    container = view.primers_list.controls[0]
+    name_field = container.content.controls[2]
+
+    # Mock focus method on TextField
+    name_field.focus = MagicMock()
+
+    # Trigger row container click
+    container.on_click(MagicMock())
+
+    assert view.focused_primer_index == 0
+    assert container.bgcolor == GUIColors.SELECTED_ROW_BG
+    name_field.focus.assert_called_once()
