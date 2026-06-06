@@ -796,7 +796,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             # Sequence details
             self.info_seq_text.value = (
-                f"{len(primer_obj)} bp:   {primer_obj.seq.upper()}"
+                f"{len(primer_obj)} bp:   {primer_obj.seq}"
             )
 
             # Melting temperature
