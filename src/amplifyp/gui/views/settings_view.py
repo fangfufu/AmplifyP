@@ -506,178 +506,202 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     ) -> None:
         """Construct self.controls layout list with ExpansionTiles."""
         self.controls = [
-            ft.ExpansionTile(
-                title=ft.Text(
-                    "Origin of Replication Settings",
-                    weight=ft.FontWeight.BOLD,
-                    size=header_size,
-                ),
-                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-                controls=[
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                bp_table_container,
-                                ft.VerticalDivider(),
-                                ft.Container(
-                                    content=ft.Column(
-                                        [
-                                            ft.Text(
-                                                "Parameters",
-                                                weight=ft.FontWeight.BOLD,
-                                                size=self.settings.get(
-                                                    "font_size_default", 14
-                                                ),
-                                            ),
-                                            self.set_primability_cutoff,
-                                            self.set_stability_cutoff,
-                                            self.set_amp4_compat,
-                                        ],
-                                        spacing=15,
-                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                    ),
-                                    width=220,
-                                ),
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.START,
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                        padding=ft.Padding(0, 20, 0, 10),
-                    )
-                ],
+            self._build_origin_replication_tile(
+                bp_table_container, header_size
             ),
-            ft.ExpansionTile(
-                title=ft.Text(
-                    "Primer Melting Temperature (Tm) Settings",
-                    weight=ft.FontWeight.BOLD,
-                    size=header_size,
-                ),
-                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-                controls=[
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.Row(
-                                    [
-                                        ft.Container(expand=True),
-                                        ft.Container(
-                                            content=ft.Column(
-                                                [
-                                                    ft.Row(
-                                                        [self.set_tm_method]
-                                                    ),
-                                                    self.set_tm_dna_conc,
-                                                    self.set_tm_dnap_conc,
-                                                    self.set_tm_mono_salt,
-                                                    self.set_tm_div_salt,
-                                                    self.set_tm_dNTP_conc,
-                                                ],
-                                                spacing=15,
-                                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                            ),
-                                            expand=2,
-                                        ),
-                                        ft.Container(expand=True),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                            ],
-                            spacing=15,
-                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                        ),
-                        padding=ft.Padding(0, 20, 0, 10),
-                    )
-                ],
-            ),
-            ft.ExpansionTile(
-                title=ft.Text(
-                    "Primer Dimer Settings",
-                    weight=ft.FontWeight.BOLD,
-                    size=header_size,
-                ),
-                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-                controls=[
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                pd_table_container,
-                                ft.VerticalDivider(),
-                                ft.Container(
-                                    content=ft.Column(
-                                        [
-                                            ft.Text(
-                                                "Parameters",
-                                                weight=ft.FontWeight.BOLD,
-                                                size=self.settings.get(
-                                                    "font_size_default", 14
-                                                ),
-                                            ),
-                                            self.set_pd_min_overlap,
-                                            self.set_pd_threshold,
-                                        ],
-                                        spacing=15,
-                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                    ),
-                                    width=220,
-                                ),
-                            ],
-                            vertical_alignment=ft.CrossAxisAlignment.START,
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                        padding=ft.Padding(0, 20, 0, 10),
-                    )
-                ],
-            ),
-            ft.ExpansionTile(
-                title=ft.Text(
-                    "Appearance Settings",
-                    weight=ft.FontWeight.BOLD,
-                    size=header_size,
-                ),
-                expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-                controls=[
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Container(
-                                    content=ft.Column(
-                                        [
-                                            self.set_font_family,
-                                            self.set_color_deficient,
-                                        ],
-                                        spacing=15,
-                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                    ),
-                                    width=300,
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                        padding=ft.Padding(0, 20, 0, 10),
-                    )
-                ],
-            ),
+            self._build_tm_settings_tile(header_size),
+            self._build_primer_dimer_tile(pd_table_container, header_size),
+            self._build_appearance_tile(header_size),
             ft.Divider(),
-            ft.Row(
-                [
-                    ft.FilledButton(
-                        "Apply",
-                        icon=ft.Icons.DONE,
-                        on_click=self._on_apply_handler,
-                    ),
-                    ft.OutlinedButton(
-                        "Reset to Default",
-                        icon=ft.Icons.RESTORE,
-                        on_click=self._on_reset_handler,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.END,
-                spacing=10,
-            ),
+            self._build_action_buttons(),
         ]
 
         # Sync initial UI state
         self.update_ui()
+
+    def _build_origin_replication_tile(
+        self, bp_table_container: ft.Column, header_size: int
+    ) -> ft.ExpansionTile:
+        """Build the ExpansionTile for Origin of Replication settings."""
+        return ft.ExpansionTile(
+            title=ft.Text(
+                "Origin of Replication Settings",
+                weight=ft.FontWeight.BOLD,
+                size=header_size,
+            ),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            controls=[
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            bp_table_container,
+                            ft.VerticalDivider(),
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Text(
+                                            "Parameters",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=self.settings.get(
+                                                "font_size_default", 14
+                                            ),
+                                        ),
+                                        self.set_primability_cutoff,
+                                        self.set_stability_cutoff,
+                                        self.set_amp4_compat,
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=220,
+                            ),
+                        ],
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    padding=ft.Padding(0, 20, 0, 10),
+                )
+            ],
+        )
+
+    def _build_tm_settings_tile(self, header_size: int) -> ft.ExpansionTile:
+        """Build the ExpansionTile for Primer Melting Temperature settings."""
+        return ft.ExpansionTile(
+            title=ft.Text(
+                "Primer Melting Temperature (Tm) Settings",
+                weight=ft.FontWeight.BOLD,
+                size=header_size,
+            ),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            controls=[
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Container(expand=True),
+                                    ft.Container(
+                                        content=ft.Column(
+                                            [
+                                                ft.Row([self.set_tm_method]),
+                                                self.set_tm_dna_conc,
+                                                self.set_tm_dnap_conc,
+                                                self.set_tm_mono_salt,
+                                                self.set_tm_div_salt,
+                                                self.set_tm_dNTP_conc,
+                                            ],
+                                            spacing=15,
+                                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                        ),
+                                        expand=2,
+                                    ),
+                                    ft.Container(expand=True),
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                            ),
+                        ],
+                        spacing=15,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                    ),
+                    padding=ft.Padding(0, 20, 0, 10),
+                )
+            ],
+        )
+
+    def _build_primer_dimer_tile(
+        self, pd_table_container: ft.Column, header_size: int
+    ) -> ft.ExpansionTile:
+        """Build the ExpansionTile for Primer Dimer settings."""
+        return ft.ExpansionTile(
+            title=ft.Text(
+                "Primer Dimer Settings",
+                weight=ft.FontWeight.BOLD,
+                size=header_size,
+            ),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            controls=[
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            pd_table_container,
+                            ft.VerticalDivider(),
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Text(
+                                            "Parameters",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=self.settings.get(
+                                                "font_size_default", 14
+                                            ),
+                                        ),
+                                        self.set_pd_min_overlap,
+                                        self.set_pd_threshold,
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=220,
+                            ),
+                        ],
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    padding=ft.Padding(0, 20, 0, 10),
+                )
+            ],
+        )
+
+    def _build_appearance_tile(self, header_size: int) -> ft.ExpansionTile:
+        """Build the ExpansionTile for Appearance settings."""
+        return ft.ExpansionTile(
+            title=ft.Text(
+                "Appearance Settings",
+                weight=ft.FontWeight.BOLD,
+                size=header_size,
+            ),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            controls=[
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        self.set_font_family,
+                                        self.set_color_deficient,
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=300,
+                            ),
+                        ],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    padding=ft.Padding(0, 20, 0, 10),
+                )
+            ],
+        )
+
+    def _build_action_buttons(self) -> ft.Row:
+        """Build the Action buttons Row (Apply & Reset)."""
+        return ft.Row(
+            [
+                ft.FilledButton(
+                    "Apply",
+                    icon=ft.Icons.DONE,
+                    on_click=self._on_apply_handler,
+                ),
+                ft.OutlinedButton(
+                    "Reset to Default",
+                    icon=ft.Icons.RESTORE,
+                    on_click=self._on_reset_handler,
+                ),
+            ],
+            alignment=ft.MainAxisAlignment.END,
+            spacing=10,
+        )
 
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
