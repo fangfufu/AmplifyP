@@ -317,7 +317,24 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
-        self.sync_to_state()
+        self.sync_to_state(rebuild_if_needed=False)
+
+        # If the control that blurred has a validation error,
+        # update its display immediately.
+        if isinstance(e.control, ft.TextField) and e.control.data is not None:
+            idx = e.control.data
+            if idx < len(self.validation_errors):
+                err = self.validation_errors[idx]
+                e.control.error = err
+                e.control.height = 30 if not err else None
+                for container in self.primers_list.controls:
+                    if (
+                        isinstance(container, ft.Container)
+                        and container.data == idx
+                    ):
+                        container.height = 30 if not err else None
+                        break
+                self.app_page.update()
 
         if self._focus_timer is not None:
             self._focus_timer.cancel()
@@ -326,6 +343,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         def timer_callback() -> None:
             if not self.page:
                 return
+            self.sync_to_state(rebuild_if_needed=True)
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback()
 
@@ -485,7 +503,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
         return primers, should_rebuild
 
-    def sync_to_state(self) -> None:
+    def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
         """Sync current UI controls back to the central state."""
         self.template_sequence.value = self.template_sequence.value or ""
         self.input_data.template = clean_sequence(
@@ -532,7 +550,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.input_data.primers = primers
 
-        if should_rebuild:
+        if should_rebuild and rebuild_if_needed:
             self.update_ui()
 
     def update_ui(self) -> None:
