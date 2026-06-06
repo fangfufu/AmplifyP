@@ -901,22 +901,32 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                         ft.Text(
-                            "Forward Primer: "
-                            f"{amp.fwd_origin.name} "
-                            f"(Start: {amp.start.index})",
+                            spans=[
+                                ft.TextSpan("▶(primer: "),
+                                ft.TextSpan(
+                                    amp.fwd_origin.name,
+                                    style=ft.TextStyle(
+                                        color=GUIColors.FWD_PRIMER,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ),
+                                ft.TextSpan(
+                                    f") — {len(amp.product)} bp — (primer: "
+                                ),
+                                ft.TextSpan(
+                                    amp.rev_origin.name,
+                                    style=ft.TextStyle(
+                                        color=GUIColors.REV_LABEL,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ),
+                                ft.TextSpan(
+                                    f")◀      Q = {amp.q_score:.1f} "
+                                    f"({amp.q_score_report_str()})"
+                                ),
+                            ],
                             selectable=True,
-                        ),
-                        ft.Text(
-                            "Reverse Primer: "
-                            f"{amp.rev_origin.name} "
-                            f"(End: {amp.end.index})",
-                            selectable=True,
-                        ),
-                        ft.Text(
-                            "Quality Score: "
-                            f"{amp.q_score:.2f} - "
-                            f"{amp.q_score_report_str()}",
-                            selectable=True,
+                            size=13,
                         ),
                         ft.Text(
                             "Amplified Sequence:",
@@ -924,15 +934,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             selectable=True,
                         ),
                         ft.Container(
-                            content=ft.Column(
-                                [sequence_text],
-                                scroll=ft.ScrollMode.ALWAYS,
-                                expand=True,
-                            ),
+                            content=sequence_text,
                             padding=12,
                             border_radius=6,
                             border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
-                            height=150,
                         ),
                     ]
                 ),
