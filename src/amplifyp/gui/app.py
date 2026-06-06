@@ -103,26 +103,6 @@ def main(page: ft.Page) -> None:
         dimers_view.run_analysis()
         page.update()
 
-    pcr_button = ft.FilledButton(
-        "PCR",
-        ref=pcr_button_ref,
-        on_click=on_pcr_click,
-        disabled=True,
-        icon=ft.Icons.ANALYTICS,
-        tooltip="PCR",
-    )
-    pcr_button.content_description = "PCR"
-
-    dimers_button = ft.FilledButton(
-        "Primer Dimers",
-        ref=dimers_button_ref,
-        on_click=on_dimers_click,
-        disabled=True,
-        icon=ft.Icons.COMPARE_ARROWS,
-        tooltip="Primer Dimers",
-    )
-    dimers_button.content_description = "Primer Dimers"
-
     def update_pcr_button_state() -> None:
         """Enable PCR and dimers buttons only if input is valid."""
         nonlocal pcr_outdated
@@ -261,6 +241,43 @@ def main(page: ft.Page) -> None:
         view_container.content = view
         page.update()
 
+    # AppBar buttons
+    input_button = ft.FilledButton(
+        "Input",
+        icon=ft.Icons.INPUT,
+        on_click=lambda e: switch_view(e, input_view),
+        tooltip="Input",
+    )
+    input_button.content_description = "Input"
+
+    pcr_button = ft.FilledButton(
+        "PCR",
+        ref=pcr_button_ref,
+        on_click=on_pcr_click,
+        disabled=True,
+        icon=ft.Icons.ANALYTICS,
+        tooltip="PCR",
+    )
+    pcr_button.content_description = "PCR"
+
+    dimers_button = ft.FilledButton(
+        "Primer Dimers",
+        ref=dimers_button_ref,
+        on_click=on_dimers_click,
+        disabled=True,
+        icon=ft.Icons.COMPARE_ARROWS,
+        tooltip="Primer Dimers",
+    )
+    dimers_button.content_description = "Primer Dimers"
+
+    settings_button = ft.FilledButton(
+        "Settings",
+        icon=ft.Icons.SETTINGS,
+        on_click=lambda e: switch_view(e, settings_view),
+        tooltip="Settings",
+    )
+    settings_button.content_description = "Settings"
+
     save_btn_control = ft.FilledButton(
         "Save",
         icon=ft.Icons.SAVE,
@@ -281,21 +298,13 @@ def main(page: ft.Page) -> None:
         title=ft.Text("AmplifyP"),
         elevation_on_scroll=0,
         actions=[
-            ft.FilledButton(
-                "Input",
-                icon=ft.Icons.INPUT,
-                on_click=lambda e: switch_view(e, input_view),
-            ),
+            input_button,
             ft.Container(width=16),
             pcr_button,
             ft.Container(width=16),
             dimers_button,
             ft.Container(width=16),
-            ft.FilledButton(
-                "Settings",
-                icon=ft.Icons.SETTINGS,
-                on_click=lambda e: switch_view(e, settings_view),
-            ),
+            settings_button,
             ft.Container(width=16),
             ft.VerticalDivider(),
             ft.Container(width=16),
