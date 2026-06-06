@@ -35,7 +35,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         on_reset: Any | None = None,
     ) -> None:
         """Initialize the SettingsView."""
-        super().__init__(expand=True, spacing=20, padding=10)
+        super().__init__(
+            expand=True, spacing=20, padding=10, scroll=ft.ScrollMode.ALWAYS
+        )
         self.app_page = page
         self.state = state if state is not None else GUIState()
         self.on_change = on_change
