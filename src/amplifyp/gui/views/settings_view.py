@@ -280,9 +280,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         )
                     ],
                     scroll=ft.ScrollMode.ADAPTIVE,
+                    alignment=ft.MainAxisAlignment.CENTER,
                 ),
             ],
             spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
         header_size = self.state.settings.get("font_size_header", 18)
