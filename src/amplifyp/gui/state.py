@@ -145,65 +145,50 @@ class GUISettings:
 
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
         """Initialize GUISettings with optional dictionary or defaults."""
+        from amplifyp.settings import (
+            DEFAULT_PRIMABILITY_CUTOFF,
+            DEFAULT_PRIMER_DIMER_OVERLAP,
+            DEFAULT_PRIMER_DIMER_THRESHOLD,
+            DEFAULT_STABILITY_CUTOFF,
+            GLOBAL_AMPLIFY4_TM_SETTINGS,
+            GLOBAL_TM_SETTINGS,
+        )
+
+        self._settings: dict[str, Any] = {
+            "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
+            "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
+            "amp4_compat": False,
+            "tm_method": "Amplify P (Default)",
+            "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
+            "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
+            "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
+            "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
+            "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
+            "amp4tm_dna_conc": str(GLOBAL_AMPLIFY4_TM_SETTINGS.dna_conc),
+            "amp4tm_mono_salt": str(
+                GLOBAL_AMPLIFY4_TM_SETTINGS.monovalent_salt_conc
+            ),
+            "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
+            "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
+            "font_family": "Roboto Mono",
+            "color_deficient": False,
+            "font_size_map_baseline": 16,
+            "font_size_map_primer": 13,
+            "font_size_map_amplicon": 13,
+            "font_size_header": 18,
+            "font_size_subheader": 16,
+            "font_size_body": 13,
+            "font_size_small": 12,
+            "font_size_default": 14,
+        }
+
         if settings_dict is not None:
-            self._settings = dict(settings_dict)
-            if "color_deficient" in self._settings:
-                val = self._settings["color_deficient"]
+            self._settings.update(settings_dict)
+            if "color_deficient" in settings_dict:
+                val = settings_dict["color_deficient"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
                 GUIColors.color_deficient_mode = bool(val)
-            # Populate default font sizes if missing
-            defaults = {
-                "font_size_map_baseline": 16,
-                "font_size_map_primer": 13,
-                "font_size_map_amplicon": 13,
-                "font_size_header": 18,
-                "font_size_subheader": 16,
-                "font_size_body": 13,
-                "font_size_small": 12,
-                "font_size_default": 14,
-                "tm_method": "Amplify P Default",
-            }
-            for k, v in defaults.items():
-                if k not in self._settings:
-                    self._settings[k] = v
-        else:
-            from amplifyp.settings import (
-                DEFAULT_PRIMABILITY_CUTOFF,
-                DEFAULT_PRIMER_DIMER_OVERLAP,
-                DEFAULT_PRIMER_DIMER_THRESHOLD,
-                DEFAULT_STABILITY_CUTOFF,
-                GLOBAL_AMPLIFY4_TM_SETTINGS,
-                GLOBAL_TM_SETTINGS,
-            )
-
-            self._settings = {
-                "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
-                "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
-                "amp4_compat": False,
-                "tm_method": "Amplify P Default",
-                "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
-                "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
-                "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
-                "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
-                "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
-                "amp4tm_dna_conc": str(GLOBAL_AMPLIFY4_TM_SETTINGS.dna_conc),
-                "amp4tm_mono_salt": str(
-                    GLOBAL_AMPLIFY4_TM_SETTINGS.monovalent_salt_conc
-                ),
-                "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
-                "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
-                "font_family": "Roboto Mono",
-                "color_deficient": False,
-                "font_size_map_baseline": 16,
-                "font_size_map_primer": 13,
-                "font_size_map_amplicon": 13,
-                "font_size_header": 18,
-                "font_size_subheader": 16,
-                "font_size_body": 13,
-                "font_size_small": 12,
-                "font_size_default": 14,
-            }
 
     def __getitem__(self, key: str) -> Any:
         """Get a setting value by key."""
