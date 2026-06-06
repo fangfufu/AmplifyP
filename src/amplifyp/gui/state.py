@@ -15,7 +15,7 @@
 
 """Centralized GUI state store class."""
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import flet as ft
 
@@ -41,71 +41,80 @@ class _GUIColorsMeta(type):
     @property
     def TEXT_ON_SURFACE(cls) -> str:
         """Get standard text color on surface."""
-        return str(ft.Colors.ON_SURFACE.value)
+        return cast(str, ft.Colors.ON_SURFACE)
 
     @property
     def SUCCESS_GREEN(cls) -> str:
         """Get color-blind friendly success color."""
         # Blue is highly distinguishable for most common
         # red-green color blindness.
-        return (
-            str(ft.Colors.BLUE_400.value)
+        return cast(
+            str,
+            ft.Colors.BLUE_400
             if cls._color_deficient_mode
-            else str(ft.Colors.GREEN_400.value)
+            else ft.Colors.GREEN_400,
         )
 
     @property
     def CONTAINER_HIGHEST(cls) -> str:
         """Get container highest color."""
-        return str(ft.Colors.SURFACE_CONTAINER_HIGHEST.value)
+        return cast(str, ft.Colors.SURFACE_CONTAINER_HIGHEST)
 
     @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant color."""
-        return str(ft.Colors.OUTLINE_VARIANT.value)
+        return cast(str, ft.Colors.OUTLINE_VARIANT)
 
     @property
     def OUTLINE(cls) -> str:
         """Get outline color."""
-        return str(ft.Colors.OUTLINE.value)
+        return cast(str, ft.Colors.OUTLINE)
 
     @property
     def ERROR_RED(cls) -> str:
         """Get color-blind friendly error color."""
         # Use Orange/Vermilion instead of Red in color deficient mode.
-        return (
-            str(ft.Colors.ORANGE_800.value)
+        return cast(
+            str,
+            ft.Colors.ORANGE_800
             if cls._color_deficient_mode
-            else str(ft.Colors.RED.value)
+            else ft.Colors.RED,
         )
 
     @property
     def DIVIDER_GREY(cls) -> str:
         """Get divider grey color."""
-        return str(ft.Colors.GREY_400.value)
+        return cast(str, ft.Colors.GREY_400)
 
     @property
     def DUPLICATE_BG(cls) -> str:
         """Get duplicate warning background color."""
-        return (
-            str(ft.Colors.ORANGE_100.value)
+        return cast(
+            str,
+            ft.Colors.ORANGE_100
             if cls._color_deficient_mode
-            else str(ft.Colors.RED_100.value)
+            else ft.Colors.RED_100,
         )
 
     @property
     def DIAGRAM_BLACK(cls) -> str:
         """Get diagram black color."""
-        return str(ft.Colors.BLACK.value)
+        return cast(str, ft.Colors.BLACK)
+
+    @property
+    def INFO_HEADER_BG(cls) -> str:
+        """Get background color for info header."""
+        return cast(str, ft.Colors.GREY_200)
 
     @property
     def FWD_PRIMER(cls) -> str:
         """Get forward primer color."""
         # Sky blue / clear blue for forward primer in color deficient mode
-        return (
-            str(ft.Colors.BLUE_600.value)
+        return cast(
+            str,
+            ft.Colors.BLUE_600
             if cls._color_deficient_mode
-            else str(ft.Colors.BLUE_800.value)
+            else ft.Colors.BLUE_800,
         )
 
     @property
@@ -113,25 +122,27 @@ class _GUIColorsMeta(type):
         """Get reverse primer color."""
         # Vermilion / orange-red for reverse primer in color deficient mode
         # (instead of red-accent)
-        return (
-            str(ft.Colors.ORANGE_700.value)
+        return cast(
+            str,
+            ft.Colors.ORANGE_700
             if cls._color_deficient_mode
-            else str(ft.Colors.RED_ACCENT_700.value)
+            else ft.Colors.RED_ACCENT_700,
         )
 
     @property
     def REV_LABEL(cls) -> str:
         """Get reverse primer label color."""
-        return (
-            str(ft.Colors.ORANGE_900.value)
+        return cast(
+            str,
+            ft.Colors.ORANGE_900
             if cls._color_deficient_mode
-            else str(ft.Colors.RED_800.value)
+            else ft.Colors.RED_800,
         )
 
     @property
     def TRANSPARENT(cls) -> str:
         """Get transparent color."""
-        return str(ft.Colors.TRANSPARENT.value)
+        return cast(str, ft.Colors.TRANSPARENT)
 
 
 class GUIColors(metaclass=_GUIColorsMeta):
@@ -178,6 +189,8 @@ class GUISettings:
             "font_size_body": 13,
             "font_size_small": 12,
             "font_size_default": 14,
+            "font_size_micro": 10,
+            "font_size_table_header": 15,
         }
 
         # Initialize base-pair weights

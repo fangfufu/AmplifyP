@@ -143,9 +143,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 "Primer: -",
                 weight=ft.FontWeight.BOLD,
                 size=self.state.settings.get("font_size_default", 14),
-                color=ft.Colors.BLACK,
+                color=GUIColors.DIAGRAM_BLACK,
             ),
-            bgcolor=ft.Colors.GREY_200,
+            bgcolor=GUIColors.INFO_HEADER_BG,
             padding=ft.Padding(10, 5, 10, 5),
             alignment=ft.Alignment(-1, 0),
         )
@@ -169,7 +169,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         )
         self.info_dimer_text = ft.Text(
             "",
-            color=ft.Colors.RED_800,
+            color=GUIColors.ERROR_RED,
             size=self.state.settings.get("font_size_body", 13),
         )
 

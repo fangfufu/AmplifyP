@@ -141,6 +141,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         # Dynamic Base Pair Scores settings mapping
         from amplifyp.dna import Nucleotides
 
+        font_size_default = self.state.settings.get("font_size_default", 14)
+        font_size_micro = self.state.settings.get("font_size_micro", 10)
+        font_size_table_header = self.state.settings.get(
+            "font_size_table_header", 15
+        )
+
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.TEMPLATE:
                 if c_char == Nucleotides.GAP:
@@ -154,7 +160,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     width=48,
                     height=36,
                     content_padding=4,
-                    text_style=ft.TextStyle(color=ft.Colors.BLACK, size=14),
+                    text_style=ft.TextStyle(
+                        color=GUIColors.DIAGRAM_BLACK, size=font_size_default
+                    ),
                 )
 
         # Dynamic Primer Dimer Scores settings mapping
@@ -169,7 +177,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     width=48,
                     height=36,
                     content_padding=4,
-                    text_style=ft.TextStyle(color=ft.Colors.BLACK, size=14),
+                    text_style=ft.TextStyle(
+                        color=GUIColors.DIAGRAM_BLACK, size=font_size_default
+                    ),
                 )
 
         # Build Base Pair Scores Styled Table (matching primer table)
@@ -195,7 +205,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=ft.Text(
                             "Template",
                             weight=ft.FontWeight.BOLD,
-                            size=10,
+                            size=font_size_micro,
                         ),
                         alignment=ft.Alignment(1, -1),
                         padding=ft.Padding(0, 2, 5, 0),
@@ -206,7 +216,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=ft.Text(
                             "Primer",
                             weight=ft.FontWeight.BOLD,
-                            size=10,
+                            size=font_size_micro,
                         ),
                         alignment=ft.Alignment(-1, 1),
                         padding=ft.Padding(5, 0, 0, 2),
@@ -231,7 +241,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             )
             header_controls.append(
                 ft.Container(
-                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
+                    content=ft.Text(
+                        c_char,
+                        weight=ft.FontWeight.BOLD,
+                        size=font_size_table_header,
+                    ),
                     width=48,
                     alignment=ft.Alignment(0, 0),
                 )
@@ -251,7 +265,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         for r_char in Nucleotides.PRIMER:
             cells = [
                 ft.Container(
-                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
+                    content=ft.Text(
+                        r_char,
+                        weight=ft.FontWeight.BOLD,
+                        size=font_size_table_header,
+                    ),
                     width=70,
                     alignment=ft.Alignment(1, 0),
                     padding=ft.Padding(0, 0, 15, 0),
@@ -300,7 +318,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         bp_table_container = ft.Column(
             [
                 ft.Text(
-                    "Base Pair Weights", weight=ft.FontWeight.BOLD, size=14
+                    "Base Pair Weights",
+                    weight=ft.FontWeight.BOLD,
+                    size=font_size_default,
                 ),
                 ft.Row(
                     [
@@ -345,7 +365,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=ft.Text(
                             "Primer",
                             weight=ft.FontWeight.BOLD,
-                            size=10,
+                            size=font_size_micro,
                         ),
                         alignment=ft.Alignment(1, -1),
                         padding=ft.Padding(0, 2, 5, 0),
@@ -356,7 +376,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         content=ft.Text(
                             "Primer",
                             weight=ft.FontWeight.BOLD,
-                            size=10,
+                            size=font_size_micro,
                         ),
                         alignment=ft.Alignment(-1, 1),
                         padding=ft.Padding(5, 0, 0, 2),
@@ -379,7 +399,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             )
             pd_header_controls.append(
                 ft.Container(
-                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
+                    content=ft.Text(
+                        c_char,
+                        weight=ft.FontWeight.BOLD,
+                        size=font_size_table_header,
+                    ),
                     width=48,
                     alignment=ft.Alignment(0, 0),
                 )
@@ -399,7 +423,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         for r_char in Nucleotides.PRIMER:
             cells = [
                 ft.Container(
-                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
+                    content=ft.Text(
+                        r_char,
+                        weight=ft.FontWeight.BOLD,
+                        size=font_size_table_header,
+                    ),
                     width=70,
                     alignment=ft.Alignment(1, 0),
                     padding=ft.Padding(0, 0, 15, 0),
@@ -446,7 +474,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         pd_table_container = ft.Column(
             [
                 ft.Text(
-                    "Primer Dimer Weights", weight=ft.FontWeight.BOLD, size=14
+                    "Primer Dimer Weights",
+                    weight=ft.FontWeight.BOLD,
+                    size=font_size_default,
                 ),
                 ft.Row(
                     [
@@ -489,7 +519,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                             ft.Text(
                                                 "Parameters",
                                                 weight=ft.FontWeight.BOLD,
-                                                size=14,
+                                                size=self.state.settings.get(
+                                                    "font_size_default", 14
+                                                ),
                                             ),
                                             self.set_primability_cutoff,
                                             self.set_stability_cutoff,
@@ -570,7 +602,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                             ft.Text(
                                                 "Parameters",
                                                 weight=ft.FontWeight.BOLD,
-                                                size=14,
+                                                size=self.state.settings.get(
+                                                    "font_size_default", 14
+                                                ),
                                             ),
                                             self.set_pd_min_overlap,
                                             self.set_pd_threshold,
