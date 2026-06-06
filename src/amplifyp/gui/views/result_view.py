@@ -622,6 +622,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
         var: Any,
     ) -> None:
         """Create and show context map card below the overview map."""
+        card_id = f"context_{primer_name}_{padded_idx}"
+        for ctrl in self.result_list.controls:
+            if getattr(ctrl, "_card_id", None) == card_id:
+                self.result_list.controls.remove(ctrl)
+                self.result_list.controls.insert(0, ctrl)
+                self.update_cards_header_visibility()
+                self.app_page.update()
+                return
+
         context_card = self._create_context_card(
             primer_name, padded_idx, conf, var
         )
@@ -786,7 +795,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             font_family=font_family,
         )
 
-        return ft.Card(
+        card = ft.Card(
             ref=card_ref,
             content=ft.Container(
                 padding=10,
@@ -823,6 +832,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 ),
             ),
         )
+        card._card_id = f"context_{primer_name}_{padded_idx}"
+        return card
 
     def _create_amplicon_card(self, amp: Any) -> ft.Card:
         """Create a Flet Card for displaying details of a single amplicon.
@@ -879,7 +890,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             selectable=True,
         )
 
-        return ft.Card(
+        card = ft.Card(
             ref=card_ref,
             content=ft.Container(
                 padding=10,
@@ -945,6 +956,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 ),
             ),
         )
+        card_id = (
+            f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
+            f"{amp.start.index}_{amp.end.index}"
+        )
+        card._card_id = card_id
+        return card
 
     def show_error_dialog(self, title: str, message: str) -> None:
         """Show an error dialog popup."""
@@ -954,6 +971,18 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
     def show_amplicon_dialog(self, amp: Any) -> None:
         """Show details card of the selected amplicon below the overview map."""
+        card_id = (
+            f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
+            f"{amp.start.index}_{amp.end.index}"
+        )
+        for ctrl in self.result_list.controls:
+            if getattr(ctrl, "_card_id", None) == card_id:
+                self.result_list.controls.remove(ctrl)
+                self.result_list.controls.insert(0, ctrl)
+                self.update_cards_header_visibility()
+                self.app_page.update()
+                return
+
         amplicon_card = self._create_amplicon_card(amp)
         self.result_list.controls.insert(0, amplicon_card)
         self.update_cards_header_visibility()

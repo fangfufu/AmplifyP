@@ -187,3 +187,60 @@ def test_result_view_resize_preserves_cards() -> None:
     # Verify that the card is still present
     assert len(view.result_list.controls) == 1
     assert isinstance(view.result_list.controls[0], ft.Card)
+
+
+def test_result_view_no_duplicate_cards() -> None:
+    """Test that clicking an element twice does not duplicate its card
+
+    but instead brings the existing card to the top of the list.
+    """
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    state = GUIState()
+    state.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    state.template_circular = False
+    state.primers = [
+        {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = ResultView(mock_page, state)
+    view.run_pcr()
+
+    # Find the gesture detectors: 2 context maps, 1 amplicon
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) == 3
+
+    # Click first context map (forward binding site)
+    gesture_detectors[0].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 1
+    card1 = view.result_list.controls[0]
+
+    # Click second context map (reverse binding site)
+    gesture_detectors[1].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 2
+    assert view.result_list.controls[0] != card1
+
+    # Click first context map again
+    gesture_detectors[0].on_tap(MagicMock())
+    # Should still be 2 cards total, and card1 should be moved back to the top
+    assert len(view.result_list.controls) == 2
+    assert view.result_list.controls[0] == card1
+
+    # Click amplicon
+    gesture_detectors[2].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 3
+    amp_card = view.result_list.controls[0]
+
+    # Click amplicon again
+    gesture_detectors[2].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 3
+    assert view.result_list.controls[0] == amp_card
