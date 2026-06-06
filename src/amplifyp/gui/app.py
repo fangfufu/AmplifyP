@@ -105,8 +105,7 @@ def main(page: ft.Page) -> None:
 
         page.update()
 
-    def run_results_tab(e: ft.ControlEvent) -> None:
-        switch_view(e, result_view)
+    def run_analysis_in_background() -> None:
         result_view.run_pcr()
         dimers_view.run_analysis()
         state.has_run_pcr = True
@@ -114,6 +113,13 @@ def main(page: ft.Page) -> None:
         if results_button_ref.current:
             results_button_ref.current.text = "Results"
         page.update()
+
+    def run_results_tab(e: ft.ControlEvent) -> None:
+        switch_view(e, result_view)
+        run_analysis_in_background()
+
+    def run_apply_settings(e: ft.ControlEvent) -> None:
+        run_analysis_in_background()
 
     input_view = InputView(
         page,
@@ -125,8 +131,8 @@ def main(page: ft.Page) -> None:
         page,
         state,
         on_change=lambda e: update_results_button_state(),
-        on_apply=run_results_tab,
-        on_reset=run_results_tab,
+        on_apply=run_apply_settings,
+        on_reset=run_apply_settings,
     )
     result_view = ResultView(page, state)
     dimers_view = PrimerDimerView(page, state)
