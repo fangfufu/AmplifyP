@@ -15,7 +15,8 @@
 
 """GUI Views for the Flet application."""
 
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.user_data import GUIInput
 
 from .input_view import InputView
 from .primer_dimer_view import PrimerDimerView
@@ -23,7 +24,8 @@ from .result_view import ResultView
 from .settings_view import SettingsView
 
 __all__ = [
-    "GUIState",
+    "GUIInput",
+    "GUISettings",
     "InputView",
     "PrimerDimerView",
     "ResultView",

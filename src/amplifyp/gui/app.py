@@ -18,7 +18,8 @@
 import flet as ft
 import yaml
 
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
     InputView,
@@ -39,16 +40,20 @@ def main(page: ft.Page) -> None:
     page.fonts = {"Roboto Mono": "/fonts/RobotoMono-Regular.ttf"}
 
     # Centralize state storage
-    state = GUIState()
+    input_data = GUIInput()
+    settings = GUISettings()
+    has_run_pcr = False
+    results_outdated = False
     results_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def on_results_click(e: ft.ControlEvent) -> None:
         """Handle results button click: switch view and run PCR."""
+        nonlocal has_run_pcr, results_outdated
         switch_view(e, result_view)
         result_view.run_pcr()
-        state.has_run_pcr = True
-        state.results_outdated = False
+        has_run_pcr = True
+        results_outdated = False
         if results_button_ref.current:
             results_button_ref.current.text = "Results"
         page.update()
@@ -79,9 +84,10 @@ def main(page: ft.Page) -> None:
 
     def update_results_button_state() -> None:
         """Enable results and dimers buttons only if input is valid."""
+        nonlocal has_run_pcr, results_outdated
         input_view.sync_to_state()
-        has_template = bool(state.template.strip())
-        has_primers = len(state.get_active_primers()) > 0
+        has_template = bool(input_data.template.strip())
+        has_primers = len(input_data.get_active_primers()) > 0
         is_enabled = has_template and has_primers
 
         btn = results_button_ref.current
@@ -89,13 +95,11 @@ def main(page: ft.Page) -> None:
             btn.disabled = not is_enabled
 
             # Set outdated if enabled and inputs change AFTER a first run
-            if is_enabled and state.has_run_pcr:
-                state.results_outdated = True
+            if is_enabled and has_run_pcr:
+                results_outdated = True
 
             label = (
-                "Results *"
-                if (state.results_outdated and is_enabled)
-                else "Results"
+                "Results *" if (results_outdated and is_enabled) else "Results"
             )
             btn.text = label
 
@@ -106,10 +110,11 @@ def main(page: ft.Page) -> None:
         page.update()
 
     def run_analysis_in_background() -> None:
+        nonlocal has_run_pcr, results_outdated
         result_view.run_pcr()
         dimers_view.run_analysis()
-        state.has_run_pcr = True
-        state.results_outdated = False
+        has_run_pcr = True
+        results_outdated = False
         if results_button_ref.current:
             results_button_ref.current.text = "Results"
         page.update()
@@ -123,19 +128,20 @@ def main(page: ft.Page) -> None:
 
     input_view = InputView(
         page,
-        state,
+        input_data,
+        settings,
         on_change=lambda e: update_results_button_state(),
         on_stop_editing=update_results_button_state,
     )
     settings_view = SettingsView(
         page,
-        state,
+        settings,
         on_change=lambda e: update_results_button_state(),
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
-    result_view = ResultView(page, state)
-    dimers_view = PrimerDimerView(page, state)
+    result_view = ResultView(page, input_data, settings)
+    dimers_view = PrimerDimerView(page, input_data, settings)
 
     # Save and Load State
     def show_snackbar(message: str) -> None:
@@ -145,7 +151,11 @@ def main(page: ft.Page) -> None:
     async def save_state(e: ft.ControlEvent) -> None:
         input_view.sync_to_state()
         settings_view.sync_to_state()
-        yaml_str = serialize_state(state.to_dict())
+        combined: dict[str, object] = {
+            "input": input_data.to_dict(),
+            "settings": settings.to_dict(),
+        }
+        yaml_str = serialize_state(combined)
 
         try:
             file_path = await ft.FilePicker().save_file(
@@ -192,7 +202,13 @@ def main(page: ft.Page) -> None:
                 show_snackbar("Error: Invalid state file format.")
                 return
 
-            state.from_dict(parsed_state)
+            if "input" in parsed_state:
+                input_data.from_dict(parsed_state["input"])
+            else:
+                # Legacy format: input data at top level
+                input_data.from_dict(parsed_state)
+            if "settings" in parsed_state:
+                settings.from_dict(parsed_state["settings"])
             input_view.update_ui()
             settings_view.update_ui()
             update_results_button_state()

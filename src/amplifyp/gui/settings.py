@@ -322,3 +322,19 @@ class GUISettings:
             threshold=self._safe_float("pd_threshold", 60.0),
             weights=weights,
         )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert settings to a dictionary for serialization."""
+        return dict(self._settings)
+
+    def from_dict(self, settings_dict: dict[str, Any]) -> None:
+        """Update settings from a dictionary."""
+        for k in self._settings:
+            if k in settings_dict:
+                v = settings_dict[k]
+                self._settings[k] = (
+                    bool(v) if isinstance(self._settings[k], bool) else str(v)
+                )
+        GUIColors.color_deficient_mode = bool(
+            self._settings.get("color_deficient", False)
+        )

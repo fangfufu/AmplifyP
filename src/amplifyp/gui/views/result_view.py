@@ -22,7 +22,8 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 
 
@@ -32,30 +33,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
     def __init__(
         self,
         page: ft.Page,
-        state_or_input: Any = None,
-        settings_view: Any = None,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
     ) -> None:
         """Initialize the ResultView."""
         super().__init__(expand=True)
         self.app_page = page
 
-        # Flexible initialization for decoupling and compatibility
-        from amplifyp.gui.user_data import GUIState
-
-        from .input_view import InputView
-
-        if isinstance(state_or_input, GUIState):
-            self.state = state_or_input
-            self.input_view = None
-            self.settings_view = settings_view
-        elif isinstance(state_or_input, InputView):
-            self.input_view = state_or_input
-            self.settings_view = settings_view
-            self.state = state_or_input.state
-        else:
-            self.state = GUIState()
-            self.input_view = None
-            self.settings_view = None
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -104,7 +90,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 ft.Text(
                     "Details",
                     weight=ft.FontWeight.BOLD,
-                    size=self.state.settings.get("font_size_header", 18),
+                    size=self.settings.get("font_size_header", 18),
                 ),
                 self.clear_button,
             ],
@@ -146,19 +132,18 @@ class ResultView(ft.Column):  # type: ignore[misc]
         try:
             from amplifyp.gui.util import clean_sequence
 
-            # Read parameters directly from the central state
-            clean_template = clean_sequence(self.state.template)
+            clean_template = clean_sequence(self.input_data.template)
             t_type = (
                 DNAType.CIRCULAR
-                if self.state.template_circular
+                if self.input_data.template_circular
                 else DNAType.LINEAR
             )
             template_dna = DNA(clean_template, dna_type=t_type)
 
-            rep_settings = self.state.get_replication_settings()
+            rep_settings = self.settings.get_replication_settings()
             pcr = PCR(template_dna, settings=rep_settings)
 
-            primers = self.state.get_active_primers()
+            primers = self.input_data.get_active_primers()
             for p in primers:
                 name = p["name"]
                 seq = clean_sequence(p["seq"])
@@ -230,7 +215,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             "1",
                             style=ft.TextStyle(
-                                size=self.state.settings.get(
+                                size=self.settings.get(
                                     "font_size_map_baseline", 16
                                 ),
                                 weight=ft.FontWeight.BOLD,
@@ -244,7 +229,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             str(target_length),
                             style=ft.TextStyle(
-                                size=self.state.settings.get(
+                                size=self.settings.get(
                                     "font_size_map_baseline", 16
                                 ),
                                 weight=ft.FontWeight.BOLD,
@@ -392,9 +377,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.FWD_PRIMER,
-                            size=self.state.settings.get(
-                                "font_size_map_primer", 13
-                            ),
+                            size=self.settings.get("font_size_map_primer", 13),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target - 25 - S - 38,
@@ -479,9 +462,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Text(
                             name,
                             color=GUIColors.REV_LABEL,
-                            size=self.state.settings.get(
-                                "font_size_map_primer", 13
-                            ),
+                            size=self.settings.get("font_size_map_primer", 13),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target + 25 + S + 10,
@@ -593,7 +574,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             y_pos + bar_height + 5,
                             str(len(amp.product)),
                             style=ft.TextStyle(
-                                size=self.state.settings.get(
+                                size=self.settings.get(
                                     "font_size_map_amplicon", 13
                                 ),
                                 color=GUIColors.DIAGRAM_BLACK,
@@ -815,8 +796,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 f"{binding_seq}{downstream_seq}-3'"
             )
 
-        font_family = self.state.settings.get("font_family", "Roboto Mono")
-        font_size = self.state.settings.get("font_size_default", 14)
+        font_family = self.settings.get("font_family", "Roboto Mono")
+        font_size = self.settings.get("font_size_default", 14)
         diagram_text = create_overlapped_sequence_view(
             top_line=top_line,
             mid_line=primer_line,
@@ -837,7 +818,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                     f"Context Map - {primer_name} "
                                     f"({primer_type}) Binding Site",
                                     weight=ft.FontWeight.BOLD,
-                                    size=self.state.settings.get(
+                                    size=self.settings.get(
                                         "font_size_subheader", 16
                                     ),
                                 ),
@@ -894,7 +875,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             mid_part = ""
             rev_part = ""
 
-        font_family = self.state.settings.get("font_family", "Roboto Mono")
+        font_family = self.settings.get("font_family", "Roboto Mono")
         sequence_text = ft.Text(
             spans=[
                 ft.TextSpan(
@@ -919,7 +900,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 ),
             ],
             font_family=font_family,
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
 
@@ -934,7 +915,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ft.Text(
                                     f"Amplicon: {len(amp.product)} bp",
                                     weight=ft.FontWeight.BOLD,
-                                    size=self.state.settings.get(
+                                    size=self.settings.get(
                                         "font_size_subheader", 16
                                     ),
                                     selectable=True,
@@ -972,7 +953,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ),
                             ],
                             selectable=True,
-                            size=self.state.settings.get("font_size_body", 13),
+                            size=self.settings.get("font_size_body", 13),
                         ),
                         ft.Text(
                             "Amplified Sequence:",

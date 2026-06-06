@@ -22,8 +22,8 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.settings import GUIColors
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import create_overlapped_sequence_view, show_error_dialog
 
 
@@ -137,11 +137,17 @@ def create_primer_dimer_card(
 class PrimerDimerView(ft.Column):  # type: ignore[misc]
     """View to show calculated primer dimer results."""
 
-    def __init__(self, page: ft.Page, state: GUIState | None = None) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
+    ) -> None:
         """Initialize the PrimerDimerView."""
         super().__init__(expand=True)
         self.app_page = page
-        self.state = state if state is not None else GUIState()
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -154,10 +160,10 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
         """Run primer dimer analysis and populate the UI."""
         self.result_list.controls.clear()
         try:
-            pd_settings = self.state.get_primer_dimer_settings()
+            pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
-            primers = self.state.get_active_primers()
+            primers = self.input_data.get_active_primers()
             for p in primers:
                 name = p["name"]
                 seq = p["seq"]
@@ -172,9 +178,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Text(
                             "No primer dimers detected above threshold.",
-                            size=self.state.settings.get(
-                                "font_size_subheader", 16
-                            ),
+                            size=self.settings.get("font_size_subheader", 16),
                             italic=True,
                             text_align=ft.TextAlign.CENTER,
                         ),
@@ -183,14 +187,12 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     )
                 )
             else:
-                font_family = self.state.settings.get(
-                    "font_family", "Roboto Mono"
-                )
+                font_family = self.settings.get("font_family", "Roboto Mono")
                 for d in dimers:
                     card = create_primer_dimer_card(
                         d,
                         font_family=font_family,
-                        settings=self.state.settings,
+                        settings=self.settings,
                     )
                     self.result_list.controls.append(card)
         except Exception as ex:

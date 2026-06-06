@@ -33,11 +33,11 @@ def test_gui_state_save_load() -> None:
 
     # Set template sequence (long enough to trigger multiline formatting)
     template_seq = "ATGC" * 30
-    input_view.state.template = template_seq
-    input_view.state.template_circular = True
+    input_view.input_data.template = template_seq
+    input_view.input_data.template_circular = True
 
     # Add primers
-    input_view.state.primers = [
+    input_view.input_data.primers = [
         {"name": "Primer1", "seq": "ATGC", "active": True},
         {"name": "Primer2", "seq": "CGTA", "active": False},
     ]
@@ -53,13 +53,15 @@ def test_gui_state_save_load() -> None:
     settings_view.settings_map["bp_score_G_G"].value = "99.0"
     settings_view.settings_map["pd_score_G_G"].value = "99.0"
 
-    # 3. Capture State
+    # 3. Capture State - now as separate input + settings dicts
     input_state = input_view.get_state()
     settings_state = settings_view.get_state()
 
-    # Combine state as main.py does
-    full_state = input_state.copy()
-    full_state["settings"] = settings_state
+    # Combine state as app.py does: {"input": ..., "settings": ...}
+    full_state = {
+        "input": input_state,
+        "settings": settings_state,
+    }
 
     # 4. Serialize (replicating main.py logic)
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
@@ -79,8 +81,8 @@ def test_gui_state_save_load() -> None:
     new_input_view = InputView(mock_page)
     new_settings_view = SettingsView(mock_page)
 
-    new_input_view.set_state(loaded_state)
-    new_settings_view.set_state(loaded_state)
+    new_input_view.set_state(loaded_state["input"])
+    new_settings_view.set_state(loaded_state["settings"])
 
     # 7. Assertions
 
@@ -164,21 +166,20 @@ def test_settings_view_buttons() -> None:
     # Trigger Apply
     apply_btn.on_click(MagicMock(spec=ft.ControlEvent))
     assert apply_called
-    assert settings_view.state.settings["primability_cutoff"] == "0.95"
-    assert settings_view.state.settings["amp4_compat"] is True
-    assert settings_view.state.settings["tm_method"] == "Lander / Amplify 4"
-    assert settings_view.state.settings["bp_score_G_G"] == "50.0"
-    assert settings_view.state.settings["pd_score_G_G"] == "50.0"
+    assert settings_view.settings["primability_cutoff"] == "0.95"
+    assert settings_view.settings["amp4_compat"] is True
+    assert settings_view.settings["tm_method"] == "Lander / Amplify 4"
+    assert settings_view.settings["bp_score_G_G"] == "50.0"
+    assert settings_view.settings["pd_score_G_G"] == "50.0"
 
     # Trigger Reset
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
     assert reset_called
     assert (
-        settings_view.state.settings["tm_method"]
-        == "SantaLucia 1998 / Owczarzy 2008"
+        settings_view.settings["tm_method"] == "SantaLucia 1998 / Owczarzy 2008"
     )
-    assert settings_view.state.settings["bp_score_G_G"] == "100"
-    assert settings_view.state.settings["pd_score_G_G"] == "-20"
+    assert settings_view.settings["bp_score_G_G"] == "100"
+    assert settings_view.settings["pd_score_G_G"] == "-20"
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
@@ -191,12 +192,11 @@ def test_settings_view_buttons() -> None:
 
 def test_color_deficient_mode_switching() -> None:
     """Test toggling color deficient setting shifts GUIColors."""
-    from amplifyp.gui.settings import GUIColors
-    from amplifyp.gui.user_data import GUIState
+    from amplifyp.gui.settings import GUIColors, GUISettings
 
-    state = GUIState()
+    settings = GUISettings()
     # 1. Initially false/standard
-    assert state.settings["color_deficient"] is False
+    assert settings["color_deficient"] is False
     assert GUIColors.color_deficient_mode is False
     standard_success = GUIColors.SUCCESS_GREEN
     standard_error = GUIColors.ERROR_RED
@@ -204,7 +204,7 @@ def test_color_deficient_mode_switching() -> None:
     standard_rev = GUIColors.REV_PRIMER
 
     # 2. Toggle setting to True
-    state.settings["color_deficient"] = True
+    settings["color_deficient"] = True
     assert GUIColors.color_deficient_mode is True
     assert GUIColors.SUCCESS_GREEN != standard_success
     assert GUIColors.ERROR_RED != standard_error
@@ -212,7 +212,7 @@ def test_color_deficient_mode_switching() -> None:
     assert GUIColors.REV_PRIMER != standard_rev
 
     # 3. Toggle back
-    state.settings["color_deficient"] = False
+    settings["color_deficient"] = False
     assert GUIColors.color_deficient_mode is False
     assert GUIColors.SUCCESS_GREEN == standard_success
     assert GUIColors.ERROR_RED == standard_error

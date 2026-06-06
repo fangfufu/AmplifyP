@@ -19,8 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.settings import ReplicationSettings
 
 
@@ -30,7 +29,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def __init__(
         self,
         page: ft.Page,
-        state: GUIState | None = None,
+        settings: GUISettings | None = None,
         on_change: Any | None = None,
         on_apply: Any | None = None,
         on_reset: Any | None = None,
@@ -40,7 +39,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             expand=True, spacing=20, padding=10, scroll=ft.ScrollMode.ALWAYS
         )
         self.app_page = page
-        self.state = state if state is not None else GUIState()
+        self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
         self.on_apply = on_apply
         self.on_reset = on_reset
@@ -142,11 +141,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         # Dynamic Base Pair Scores settings mapping
         from amplifyp.dna import Nucleotides
 
-        font_size_default = self.state.settings.get("font_size_default", 14)
-        font_size_micro = self.state.settings.get("font_size_micro", 10)
-        font_size_table_header = self.state.settings.get(
-            "font_size_table_header", 15
-        )
+        font_size_default = self.settings.get("font_size_default", 14)
+        font_size_micro = self.settings.get("font_size_micro", 10)
+        font_size_table_header = self.settings.get("font_size_table_header", 15)
 
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.TEMPLATE:
@@ -499,7 +496,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-        header_size = self.state.settings.get("font_size_header", 18)
+        header_size = self.settings.get("font_size_header", 18)
         self.controls = [
             ft.ExpansionTile(
                 title=ft.Text(
@@ -520,7 +517,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                             ft.Text(
                                                 "Parameters",
                                                 weight=ft.FontWeight.BOLD,
-                                                size=self.state.settings.get(
+                                                size=self.settings.get(
                                                     "font_size_default", 14
                                                 ),
                                             ),
@@ -603,7 +600,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                             ft.Text(
                                                 "Parameters",
                                                 weight=ft.FontWeight.BOLD,
-                                                size=self.state.settings.get(
+                                                size=self.settings.get(
                                                     "font_size_default", 14
                                                 ),
                                             ),
@@ -677,11 +674,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
         for k, v in self.settings_map.items():
-            self.state.settings[k] = v.value
+            self.settings[k] = v.value
 
     def update_ui(self) -> None:
-        """Update Flet UI controls to match the central state."""
-        for k, v in self.state.settings.items():
+        """Update Flet UI controls to match the central settings."""
+        for k, v in self.settings.items():
             if k in self.settings_map:
                 if isinstance(self.settings_map[k], ft.Checkbox):
                     self.settings_map[k].value = bool(v)
@@ -691,8 +688,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
         self.sync_to_state()
-        if self.state.has_run_pcr:
-            self.state.results_outdated = True
         if self.on_change:
             self.on_change(e)
 
@@ -745,7 +740,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
                 )
 
-        self.state.settings = reset_dict
+        self.settings.from_dict(reset_dict)
         self.update_ui()
         self.app_page.update()
         if self.on_reset:
@@ -754,15 +749,15 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""
         self.sync_to_state()
-        return self.state.get_replication_settings()
+        return self.settings.get_replication_settings()
 
     def get_state(self) -> dict[str, Any]:
-        """Get the current state for serialization."""
+        """Get the current settings for serialization."""
         self.sync_to_state()
-        return dict(self.state.settings)
+        return self.settings.to_dict()
 
     def set_state(self, state: dict[str, Any]) -> None:
-        """Set the current state from deserialized data."""
-        self.state.from_dict(state)
+        """Set the current settings from deserialized data."""
+        self.settings.from_dict(state)
         self.update_ui()
         self.app_page.update()

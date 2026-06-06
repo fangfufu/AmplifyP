@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.result_view import ResultView
 
 
@@ -22,17 +22,17 @@ def test_result_view_click_context_map() -> None:
     mock_page.dialog = None
     mock_page.width = 800
 
-    state = GUIState()
-    state.template = (
+    input_data = GUIInput()
+    input_data.template = (
         "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
-    state.template_circular = False
-    state.primers = [
+    input_data.template_circular = False
+    input_data.primers = [
         {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, state)
+    view = ResultView(mock_page, input_data)
     view.run_pcr()
 
     # The diagram_stack controls should contain some ft.GestureDetectors
@@ -101,17 +101,17 @@ def test_result_view_click_amplicon() -> None:
     mock_page.dialog = None
     mock_page.width = 800
 
-    state = GUIState()
-    state.template = (
+    input_data = GUIInput()
+    input_data.template = (
         "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
-    state.template_circular = False
-    state.primers = [
+    input_data.template_circular = False
+    input_data.primers = [
         {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, state)
+    view = ResultView(mock_page, input_data)
     view.run_pcr()
 
     # Verify no cards initially
@@ -157,17 +157,17 @@ def test_result_view_resize_preserves_cards() -> None:
     mock_page.dialog = None
     mock_page.width = 800
 
-    state = GUIState()
-    state.template = (
+    input_data = GUIInput()
+    input_data.template = (
         "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
-    state.template_circular = False
-    state.primers = [
+    input_data.template_circular = False
+    input_data.primers = [
         {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, state)
+    view = ResultView(mock_page, input_data)
     view.run_pcr()
 
     # The diagram_stack controls should contain some ft.GestureDetectors
@@ -203,17 +203,17 @@ def test_result_view_no_duplicate_cards() -> None:
     mock_page.dialog = None
     mock_page.width = 800
 
-    state = GUIState()
-    state.template = (
+    input_data = GUIInput()
+    input_data.template = (
         "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
-    state.template_circular = False
-    state.primers = [
+    input_data.template_circular = False
+    input_data.primers = [
         {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, state)
+    view = ResultView(mock_page, input_data)
     view.run_pcr()
 
     # Find the gesture detectors: 2 context maps, 1 amplicon

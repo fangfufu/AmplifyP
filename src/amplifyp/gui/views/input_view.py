@@ -12,8 +12,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
-from amplifyp.gui.user_data import GUIState
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, format_sequence
 
 
@@ -23,7 +23,8 @@ class InputView(ft.Row):  # type: ignore[misc]
     def __init__(
         self,
         page: ft.Page,
-        state: GUIState | None = None,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
         on_change: Any | None = None,
         on_stop_editing: Any | None = None,
     ) -> None:
@@ -32,13 +33,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
         )
         self.app_page = page
-        self.state = state if state is not None else GUIState()
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
         self.on_stop_editing_callback = on_stop_editing
         self._focus_timer: threading.Timer | None = None
         self.focused_primer_index: int | None = None
 
-        font_family = self.state.settings.get("font_family", "Roboto Mono")
+        font_family = self.settings.get("font_family", "Roboto Mono")
 
         self.template_sequence = ft.TextField(
             multiline=True,
@@ -77,7 +79,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     content=ft.Text(
                         "Active",
                         weight=ft.FontWeight.BOLD,
-                        size=self.state.settings.get("font_size_small", 12),
+                        size=self.settings.get("font_size_small", 12),
                     ),
                     width=55,
                     alignment=ft.Alignment(0, 0),
@@ -92,7 +94,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     content=ft.Text(
                         "Name",
                         weight=ft.FontWeight.BOLD,
-                        size=self.state.settings.get("font_size_small", 12),
+                        size=self.settings.get("font_size_small", 12),
                     ),
                     width=self.name_column_width,
                     padding=ft.Padding(5, 0, 0, 0),
@@ -112,7 +114,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                     content=ft.Text(
                         "Sequence",
                         weight=ft.FontWeight.BOLD,
-                        size=self.state.settings.get("font_size_small", 12),
+                        size=self.settings.get("font_size_small", 12),
                     ),
                     expand=True,
                     padding=ft.Padding(5, 0, 0, 0),
@@ -143,7 +145,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             content=ft.Text(
                 "Primer: -",
                 weight=ft.FontWeight.BOLD,
-                size=self.state.settings.get("font_size_default", 14),
+                size=self.settings.get("font_size_default", 14),
                 color=GUIColors.DIAGRAM_BLACK,
             ),
             bgcolor=GUIColors.INFO_HEADER_BG,
@@ -154,24 +156,24 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.info_seq_text = ft.Text(
             "",
             font_family=font_family,
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
         )
         self.info_tm_text = ft.Text(
             "",
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
         )
         self.info_pairs_text = ft.Text(
             "",
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
         )
         self.info_redundancy_text = ft.Text(
             "",
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
         )
         self.info_dimer_text = ft.Text(
             "",
             color=GUIColors.ERROR_RED,
-            size=self.state.settings.get("font_size_body", 13),
+            size=self.settings.get("font_size_body", 13),
         )
 
         self.primer_info_panel = ft.Container(
@@ -390,7 +392,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 continue
 
             prev_primer = (
-                self.state.primers[i] if i < len(self.state.primers) else None
+                self.input_data.primers[i]
+                if i < len(self.input_data.primers)
+                else None
             )
             prev_name = (
                 str(prev_primer.get("name", "")).strip() if prev_primer else ""
@@ -465,8 +469,10 @@ class InputView(ft.Row):  # type: ignore[misc]
     def sync_to_state(self) -> None:
         """Sync current UI controls back to the central state."""
         self.template_sequence.value = self.template_sequence.value or ""
-        self.state.template = clean_sequence(str(self.template_sequence.value))
-        self.state.template_circular = bool(self.template_circular.value)
+        self.input_data.template = clean_sequence(
+            str(self.template_sequence.value)
+        )
+        self.input_data.template_circular = bool(self.template_circular.value)
 
         ui_primers = self._extract_primer_data_from_ui()
         filtered_ui_primers, should_rebuild = self._apply_activation_rules(
@@ -481,44 +487,44 @@ class InputView(ft.Row):  # type: ignore[misc]
         if len(primers) != len(
             [
                 p
-                for p in self.state.primers
+                for p in self.input_data.primers
                 if p.get("name", "").strip() or p.get("seq", "").strip()
             ]
         ):
             should_rebuild = True
 
-        self.state.primers = primers
+        self.input_data.primers = primers
 
         if should_rebuild:
             self.update_ui()
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
-        font_family = self.state.settings.get("font_family", "Roboto Mono")
+        font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family
         )
-        self.template_sequence.value = self.state.template
-        self.template_circular.value = self.state.template_circular
+        self.template_sequence.value = self.input_data.template
+        self.template_circular.value = self.input_data.template_circular
 
         self.primers_list.controls.clear()
 
         # Filter out all empty primers from state first
         clean_primers = [
             p
-            for p in self.state.primers
+            for p in self.input_data.primers
             if str(p.get("name", "")).strip()
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
 
         # Always append one trailing empty row
         clean_primers.append({"name": "", "seq": "", "active": False})
-        self.state.primers = clean_primers
+        self.input_data.primers = clean_primers
 
         # Check for duplicates to highlight them on load/update
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
-        for p in self.state.primers:
+        for p in self.input_data.primers:
             n_lower = str(p.get("name", "")).strip().lower()
             s_lower = clean_sequence(str(p.get("seq", ""))).lower()
             if n_lower:
@@ -526,7 +532,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             if s_lower:
                 seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
-        for idx, p in enumerate(self.state.primers):
+        for idx, p in enumerate(self.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
@@ -642,7 +648,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
-        self.state.primers = []
+        self.input_data.primers = []
         self.focused_primer_index = None
         self.update_ui()
         if self.on_change:
@@ -669,20 +675,20 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def get_template(self) -> str:
         """Get the current template sequence."""
-        return self.state.template
+        return self.input_data.template
 
     def is_circular(self) -> bool:
         """Check if the template is circular."""
-        return self.state.template_circular
+        return self.input_data.template_circular
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers."""
-        return self.state.get_active_primers()
+        return self.input_data.get_active_primers()
 
     def get_all_primers_state(self) -> list[dict[str, Any]]:
         """Get all primers (active and inactive) for serialization."""
         primers: list[dict[str, Any]] = []
-        for p in self.state.primers:
+        for p in self.input_data.primers:
             if (
                 not str(p.get("name", "")).strip()
                 and not clean_sequence(str(p.get("seq", ""))).strip()
@@ -698,13 +704,13 @@ class InputView(ft.Row):  # type: ignore[misc]
         return primers
 
     def get_state(self) -> dict[str, Any]:
-        """Get the current state for serialization."""
+        """Get the current input data state for serialization."""
         self.sync_to_state()
-        return self.state.to_dict()
+        return self.input_data.to_dict()
 
     def set_state(self, state: dict[str, Any]) -> None:
-        """Set the current state from deserialized data."""
-        self.state.from_dict(state)
+        """Set the current input data from deserialized data."""
+        self.input_data.from_dict(state)
         self.update_ui()
         self.app_page.update()
 
@@ -716,7 +722,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             return
 
         try:
-            primers = self.state.primers
+            primers = self.input_data.primers
             if (
                 self.focused_primer_index < 0
                 or self.focused_primer_index >= len(primers)
@@ -755,45 +761,35 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
 
             # Melting temperature
-            tm_method = self.state.settings.get(
+            tm_method = self.settings.get(
                 "tm_method", "SantaLucia 1998 / Owczarzy 2008"
             )
-            use_amp4_tm = str(tm_method) == "Lander / Amplify 4"
-
-            if use_amp4_tm:
+            if tm_method == "Lander / Amplify 4":
                 from amplifyp.settings import TMSettings
 
-                amp4_settings = TMSettings(
-                    dna_conc=self.state.settings._safe_float(
-                        "tm_dna_conc", 50.0
-                    ),
-                    monovalent_salt_conc=self.state.settings._safe_float(
+                tm_settings = TMSettings(
+                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
+                    monovalent_salt_conc=self.settings._safe_float(
                         "tm_mono_salt", 50.0
                     ),
                 )
-                tm = calculate_tm_lander_amplify4(primer_obj, amp4_settings)
+                tm = calculate_tm_lander_amplify4(primer_obj, tm_settings)
             else:
                 from amplifyp.settings import TMSettings
 
-                standard_settings = TMSettings(
-                    dna_conc=self.state.settings._safe_float(
-                        "tm_dna_conc", 50.0
-                    ),
-                    dnap_conc=self.state.settings._safe_float(
-                        "tm_dnap_conc", 0.0
-                    ),
-                    monovalent_salt_conc=self.state.settings._safe_float(
+                tm_settings = TMSettings(
+                    dna_conc=self.settings._safe_float("tm_dna_conc", 50.0),
+                    dnap_conc=self.settings._safe_float("tm_dnap_conc", 0.0),
+                    monovalent_salt_conc=self.settings._safe_float(
                         "tm_mono_salt", 50.0
                     ),
-                    divalent_salt_conc=self.state.settings._safe_float(
-                        "tm_div_salt", 1.5
+                    divalent_salt_conc=self.settings._safe_float(
+                        "tm_div_salt", 0.0
                     ),
-                    dnTP_conc=self.state.settings._safe_float(
-                        "tm_dNTP_conc", 0.0
-                    ),
+                    dnTP_conc=self.settings._safe_float("tm_dNTP_conc", 0.0),
                 )
                 tm = calculate_tm_santalucia_1998_owczarzy_2008(
-                    primer_obj, standard_settings
+                    primer_obj, tm_settings
                 )
 
             self.info_tm_text.value = f"Tm = {tm:.2f}°C"
@@ -815,12 +811,12 @@ class InputView(ft.Row):  # type: ignore[misc]
                 )
 
             # Dimer potential check
-            pd_settings = self.state.get_primer_dimer_settings()
+            pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
             # Check self-dimer and cross-dimer potential
             # against all active primers
-            active_primers = self.state.get_active_primers()
+            active_primers = self.input_data.get_active_primers()
             max_dimer = None
 
             # Always check self-dimer
