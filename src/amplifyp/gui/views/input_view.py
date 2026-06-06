@@ -757,14 +757,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             use_amp4_tm = str(tm_method) == "Amplify 4"
 
             if use_amp4_tm:
-                from amplifyp.settings import Amplify4TMSettings
+                from amplifyp.settings import TMSettings
 
-                amp4_settings = Amplify4TMSettings(
+                amp4_settings = TMSettings(
                     dna_conc=self.state.settings._safe_float(
-                        "amp4tm_dna_conc", 50.0
+                        "tm_dna_conc", 50.0
                     ),
                     monovalent_salt_conc=self.state.settings._safe_float(
-                        "amp4tm_mono_salt", 50.0
+                        "tm_mono_salt", 50.0
                     ),
                 )
                 tm = calculate_tm_amplify4(primer_obj, amp4_settings)

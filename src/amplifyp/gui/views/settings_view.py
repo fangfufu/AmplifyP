@@ -95,18 +95,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         )
         self.set_tm_method.on_change = self.on_change_handler
 
-        # Amplify4 TM Settings
-        self.set_amp4tm_dna_conc = ft.TextField(
-            label="DNA Conc (nM)",
-            value="50.0",
-            on_change=self.on_change_handler,
-        )
-        self.set_amp4tm_mono_salt = ft.TextField(
-            label="Monovalent Salt Conc (mM)",
-            value="50.0",
-            on_change=self.on_change_handler,
-        )
-
         # Primer Dimer Settings
         self.set_pd_min_overlap = ft.TextField(
             label="Min Overlap", value="3", on_change=self.on_change_handler
@@ -143,8 +131,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "tm_div_salt": self.set_tm_div_salt,
             "tm_dNTP_conc": self.set_tm_dNTP_conc,
             "tm_method": self.set_tm_method,
-            "amp4tm_dna_conc": self.set_amp4tm_dna_conc,
-            "amp4tm_mono_salt": self.set_amp4tm_mono_salt,
             "pd_min_overlap": self.set_pd_min_overlap,
             "pd_threshold": self.set_pd_threshold,
             "font_family": self.set_font_family,
@@ -306,19 +292,29 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                 ),
                                 ft.VerticalDivider(),
                                 ft.Container(
-                                    content=ft.Column(
+                                    content=ft.Row(
                                         [
-                                            ft.Text(
-                                                "Parameters",
-                                                weight=ft.FontWeight.BOLD,
-                                                size=14,
+                                            ft.Container(expand=True),
+                                            ft.Container(
+                                                content=ft.Column(
+                                                    [
+                                                        ft.Text(
+                                                            "Parameters",
+                                                            weight=ft.FontWeight.BOLD,
+                                                            size=14,
+                                                        ),
+                                                        self.set_primability_cutoff,
+                                                        self.set_stability_cutoff,
+                                                        self.set_amp4_compat,
+                                                    ],
+                                                    spacing=15,
+                                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                                ),
+                                                expand=2,
                                             ),
-                                            self.set_primability_cutoff,
-                                            self.set_stability_cutoff,
-                                            self.set_amp4_compat,
+                                            ft.Container(expand=True),
                                         ],
-                                        spacing=15,
-                                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                        vertical_alignment=ft.CrossAxisAlignment.START,
                                     ),
                                     expand=True,
                                 ),
@@ -341,16 +337,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Column(
                             [
-                                self.set_tm_method,
                                 ft.Row(
                                     [
+                                        ft.Container(expand=True),
                                         ft.Container(
                                             content=ft.Column(
                                                 [
-                                                    ft.Text(
-                                                        "Amplify P",
-                                                        weight=ft.FontWeight.BOLD,
-                                                    ),
+                                                    self.set_tm_method,
                                                     self.set_tm_dna_conc,
                                                     self.set_tm_dnap_conc,
                                                     self.set_tm_mono_salt,
@@ -360,27 +353,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                                                 spacing=15,
                                                 horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                             ),
-                                            expand=True,
+                                            expand=2,
                                         ),
-                                        ft.VerticalDivider(),
-                                        ft.Container(
-                                            content=ft.Column(
-                                                [
-                                                    ft.Text(
-                                                        "Amplify 4",
-                                                        weight=ft.FontWeight.BOLD,
-                                                    ),
-                                                    self.set_amp4tm_dna_conc,
-                                                    self.set_amp4tm_mono_salt,
-                                                ],
-                                                spacing=15,
-                                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                            ),
-                                            expand=True,
-                                        ),
+                                        ft.Container(expand=True),
                                     ],
-                                    vertical_alignment=ft.CrossAxisAlignment.START,
-                                    expand=True,
+                                    alignment=ft.MainAxisAlignment.CENTER,
                                 ),
                             ],
                             spacing=15,
@@ -490,7 +467,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
             DEFAULT_STABILITY_CUTOFF,
-            GLOBAL_AMPLIFY4_TM_SETTINGS,
             GLOBAL_TM_SETTINGS,
         )
 
@@ -504,10 +480,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
             "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
             "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
-            "amp4tm_dna_conc": str(GLOBAL_AMPLIFY4_TM_SETTINGS.dna_conc),
-            "amp4tm_mono_salt": str(
-                GLOBAL_AMPLIFY4_TM_SETTINGS.monovalent_salt_conc
-            ),
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",

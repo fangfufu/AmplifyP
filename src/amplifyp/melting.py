@@ -24,9 +24,7 @@ from typing import Final
 
 from .dna import Primer
 from .settings import (
-    GLOBAL_AMPLIFY4_TM_SETTINGS,
     GLOBAL_TM_SETTINGS,
-    Amplify4TMSettings,
     TMSettings,
 )
 
@@ -244,7 +242,7 @@ def calculate_tm(
 
 def calculate_tm_amplify4(
     primer: Primer,
-    amplify4_settings: Amplify4TMSettings = GLOBAL_AMPLIFY4_TM_SETTINGS,
+    settings: TMSettings = GLOBAL_TM_SETTINGS,
 ) -> float:
     """Calculate Tm using the original Amplify4 algorithm.
 
@@ -254,7 +252,7 @@ def calculate_tm_amplify4(
 
     Args:
         primer: The primer object containing the sequence.
-        amplify4_settings: Amplify4-specific settings (tables, etc.).
+        settings: Melting settings containing concentrations and matrices.
 
     Returns:
         The melting temperature in degrees Celsius. Returns 0.0 if the
@@ -265,8 +263,8 @@ def calculate_tm_amplify4(
     if seq_len < 1:
         return 0.0
 
-    entropy = amplify4_settings.entropy
-    enthalpy = amplify4_settings.enthalpy
+    entropy = settings.entropy
+    enthalpy = settings.enthalpy
 
     entr: float = 108.0
     enth: float = 0.0
@@ -290,12 +288,12 @@ def calculate_tm_amplify4(
     # If DNAConc=50, 50/4e9 = 1.25e-8 => 12.5 nM concentration assumption?
     # Or maybe it treats input as raw number?
     # We use settings.DNAConc exactly as Swift does.
-    dna_conc_val = amplify4_settings.dna_conc
+    dna_conc_val = settings.dna_conc
     log_dna = 1.987 * math.log(dna_conc_val / 4.0e9)
 
     # Salt: 16.6 * log(saltConc/1000) / log(10.0)
     # saltConc is typically mM (default 50).
-    salt_conc_val = amplify4_settings.monovalent_salt_conc
+    salt_conc_val = settings.monovalent_salt_conc
     if salt_conc_val <= 0:
         salt_conc_val = 50.0  # prevent log error if 0
 

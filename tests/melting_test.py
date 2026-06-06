@@ -21,7 +21,7 @@ import pytest
 
 from amplifyp.dna import Primer
 from amplifyp.melting import calculate_tm, calculate_tm_amplify4
-from amplifyp.settings import GLOBAL_AMPLIFY4_TM_SETTINGS, GLOBAL_TM_SETTINGS
+from amplifyp.settings import GLOBAL_TM_SETTINGS
 from tests.examples.amplify4_examples import (
     primer_11bp,
     primer_1701,
@@ -138,16 +138,16 @@ def test_invalid_chars_handling() -> None:
 def test_amplify4_tm_calculation() -> None:
     """Test Tm calculation using Amplify4 algorithm."""
     assert calculate_tm_amplify4(
-        primer_11bp, GLOBAL_AMPLIFY4_TM_SETTINGS
+        primer_11bp, GLOBAL_TM_SETTINGS
     ) == pytest.approx(19.48, abs=0.01)
     assert calculate_tm_amplify4(
-        primer_1701, GLOBAL_AMPLIFY4_TM_SETTINGS
+        primer_1701, GLOBAL_TM_SETTINGS
     ) == pytest.approx(64.01, abs=0.01)
     assert calculate_tm_amplify4(
-        primer_10289, GLOBAL_AMPLIFY4_TM_SETTINGS
+        primer_10289, GLOBAL_TM_SETTINGS
     ) == pytest.approx(69.04, abs=0.01)
     assert calculate_tm_amplify4(
-        primer_10290, GLOBAL_AMPLIFY4_TM_SETTINGS
+        primer_10290, GLOBAL_TM_SETTINGS
     ) == pytest.approx(57.64, abs=0.01)
 
 
@@ -191,13 +191,11 @@ def test_calculate_tm_no_monovalent() -> None:
 def test_calculate_tm_amplify4_edge_cases() -> None:
     """Test Tm calculation (Amplify4) with edge cases."""
     # Empty primer
-    assert calculate_tm_amplify4(Primer(""), GLOBAL_AMPLIFY4_TM_SETTINGS) == 0.0
+    assert calculate_tm_amplify4(Primer(""), GLOBAL_TM_SETTINGS) == 0.0
 
     # Zero/negative salt
     # Should fallback to 50mM
-    neg_salt_settings = replace(
-        GLOBAL_AMPLIFY4_TM_SETTINGS, monovalent_salt_conc=-10.0
-    )
+    neg_salt_settings = replace(GLOBAL_TM_SETTINGS, monovalent_salt_conc=-10.0)
     tm = calculate_tm_amplify4(primer_11bp, neg_salt_settings)
     assert tm > 0.0
 

@@ -152,7 +152,6 @@ class GUISettings:
             DEFAULT_PRIMER_DIMER_OVERLAP,
             DEFAULT_PRIMER_DIMER_THRESHOLD,
             DEFAULT_STABILITY_CUTOFF,
-            GLOBAL_AMPLIFY4_TM_SETTINGS,
             GLOBAL_TM_SETTINGS,
         )
 
@@ -166,10 +165,6 @@ class GUISettings:
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
             "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
             "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
-            "amp4tm_dna_conc": str(GLOBAL_AMPLIFY4_TM_SETTINGS.dna_conc),
-            "amp4tm_mono_salt": str(
-                GLOBAL_AMPLIFY4_TM_SETTINGS.monovalent_salt_conc
-            ),
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
