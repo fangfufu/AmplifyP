@@ -165,7 +165,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     width=60,
                     height=36,
                     content_padding=4,
-                    text_style=ft.TextStyle(color=ft.Colors.BLUE),
+                    text_style=ft.TextStyle(color=ft.Colors.BLACK, size=14),
                 )
 
         # Build Base Pair Scores Styled Table (matching primer table)
@@ -174,7 +174,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 content=ft.Text(
                     "Primer / Template",
                     weight=ft.FontWeight.BOLD,
-                    size=12,
+                    size=15,
                 ),
                 width=120,
                 alignment=ft.Alignment(-1, 0),
@@ -194,7 +194,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             )
             header_controls.append(
                 ft.Container(
-                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=12),
+                    content=ft.Text(c_char, weight=ft.FontWeight.BOLD, size=15),
                     width=60,
                     alignment=ft.Alignment(0, 0),
                 )
@@ -214,7 +214,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         for r_char in Nucleotides.PRIMER:
             cells = [
                 ft.Container(
-                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=12),
+                    content=ft.Text(r_char, weight=ft.FontWeight.BOLD, size=15),
                     width=120,
                     alignment=ft.Alignment(-1, 0),
                     padding=ft.Padding(10, 0, 0, 0),
