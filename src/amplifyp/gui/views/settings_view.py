@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.state import GUIColors, GUIState
+from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.user_data import GUIState
 from amplifyp.settings import ReplicationSettings
 
 

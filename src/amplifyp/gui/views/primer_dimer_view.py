@@ -22,7 +22,8 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.state import GUIColors, GUIState
+from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.user_data import GUIState
 from amplifyp.gui.util import create_overlapped_sequence_view, show_error_dialog
 
 

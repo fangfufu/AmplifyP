@@ -191,7 +191,8 @@ def test_settings_view_buttons() -> None:
 
 def test_color_deficient_mode_switching() -> None:
     """Test toggling color deficient setting shifts GUIColors."""
-    from amplifyp.gui.state import GUIColors, GUIState
+    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.user_data import GUIState
 
     state = GUIState()
     # 1. Initially false/standard

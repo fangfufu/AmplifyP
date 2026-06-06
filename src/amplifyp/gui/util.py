@@ -63,7 +63,7 @@ def create_overlapped_sequence_view(
 
     Uses TextSpans for the visual representation.
     """
-    from amplifyp.gui.state import GUIColors
+    from amplifyp.gui.settings import GUIColors
 
     return ft.Text(
         spans=[
@@ -99,7 +99,7 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     """Show an error dialog popup."""
     from typing import Any
 
-    from amplifyp.gui.state import GUIColors
+    from amplifyp.gui.settings import GUIColors
 
     def close_dlg(e: Any) -> None:
         dialog.open = False

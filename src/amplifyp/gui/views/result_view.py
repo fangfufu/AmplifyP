@@ -22,7 +22,7 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.gui.state import GUIColors
+from amplifyp.gui.settings import GUIColors
 from amplifyp.pcr import PCR
 
 
@@ -40,7 +40,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         self.app_page = page
 
         # Flexible initialization for decoupling and compatibility
-        from amplifyp.gui.state import GUIState
+        from amplifyp.gui.user_data import GUIState
 
         from .input_view import InputView
 

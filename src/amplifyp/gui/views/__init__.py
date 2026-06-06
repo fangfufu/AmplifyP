@@ -15,7 +15,7 @@
 
 """GUI Views for the Flet application."""
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.user_data import GUIState
 
 from .input_view import InputView
 from .primer_dimer_view import PrimerDimerView

@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 import flet as ft
 import pytest
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.user_data import GUIState
 from amplifyp.gui.views.primer_dimer_view import PrimerDimerView
 from amplifyp.settings import PrimerDimerSettings
 

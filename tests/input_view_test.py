@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.user_data import GUIState
 from amplifyp.gui.views.input_view import InputView
 
 

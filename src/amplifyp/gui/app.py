@@ -18,7 +18,7 @@
 import flet as ft
 import yaml
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.user_data import GUIState
 from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
     InputView,
