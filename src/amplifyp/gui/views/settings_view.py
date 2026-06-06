@@ -142,45 +142,65 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         header_size = self.state.settings.get("font_size_header", 18)
         self.controls = [
-            ft.Text(
-                "Replication Settings",
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "Replication Settings",
+                    weight=ft.FontWeight.BOLD,
+                    size=header_size,
+                ),
+                controls=[
+                    self.set_primability_cutoff,
+                    self.set_stability_cutoff,
+                    self.set_amp4_compat,
+                ],
             ),
-            self.set_primability_cutoff,
-            self.set_stability_cutoff,
-            self.set_amp4_compat,
-            ft.Divider(),
-            ft.Text("TM Settings", weight=ft.FontWeight.BOLD, size=header_size),
-            self.set_tm_dna_conc,
-            self.set_tm_dnap_conc,
-            self.set_tm_mono_salt,
-            self.set_tm_div_salt,
-            self.set_tm_dNTP_conc,
-            ft.Divider(),
-            ft.Text(
-                "Amplify4 TM Settings",
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "TM Settings",
+                    weight=ft.FontWeight.BOLD,
+                    size=header_size,
+                ),
+                controls=[
+                    self.set_tm_dna_conc,
+                    self.set_tm_dnap_conc,
+                    self.set_tm_mono_salt,
+                    self.set_tm_div_salt,
+                    self.set_tm_dNTP_conc,
+                ],
             ),
-            self.set_amp4tm_dna_conc,
-            self.set_amp4tm_mono_salt,
-            ft.Divider(),
-            ft.Text(
-                "Primer Dimer Settings",
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "Amplify4 TM Settings",
+                    weight=ft.FontWeight.BOLD,
+                    size=header_size,
+                ),
+                controls=[
+                    self.set_amp4tm_dna_conc,
+                    self.set_amp4tm_mono_salt,
+                ],
             ),
-            self.set_pd_min_overlap,
-            self.set_pd_threshold,
-            ft.Divider(),
-            ft.Text(
-                "Appearance Settings",
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "Primer Dimer Settings",
+                    weight=ft.FontWeight.BOLD,
+                    size=header_size,
+                ),
+                controls=[
+                    self.set_pd_min_overlap,
+                    self.set_pd_threshold,
+                ],
             ),
-            self.set_font_family,
-            self.set_color_deficient,
+            ft.ExpansionTile(
+                title=ft.Text(
+                    "Appearance Settings",
+                    weight=ft.FontWeight.BOLD,
+                    size=header_size,
+                ),
+                controls=[
+                    self.set_font_family,
+                    self.set_color_deficient,
+                ],
+            ),
             ft.Divider(),
             ft.Row(
                 [

@@ -968,7 +968,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ),
                                 ft.TextSpan(
                                     f")◀      Q = {amp.q_score:.1f} "
-                                    f"({amp.q_score_report_str()})"
+                                    f"({amp.q_score_report_str(verbose=True)})"
                                 ),
                             ],
                             selectable=True,
