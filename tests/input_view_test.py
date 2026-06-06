@@ -12,15 +12,15 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.input_view import InputView
 
 
 def test_input_view_row_boxes_editing() -> None:
     """Test that primers in InputView render in Row boxes and sync."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
-    state.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
 
     stop_editing_called = False
 
@@ -28,7 +28,7 @@ def test_input_view_row_boxes_editing() -> None:
         nonlocal stop_editing_called
         stop_editing_called = True
 
-    view = InputView(mock_page, state, on_stop_editing=on_stop_editing)
+    view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
 
     # 1. Verify primer list has correct Row controls (1 + 1 empty)
     assert len(view.primers_list.controls) == 2
@@ -64,17 +64,17 @@ def test_input_view_row_boxes_editing() -> None:
     view.handle_field_submit(MagicMock())
 
     assert stop_editing_called
-    assert state.primers[0]["name"] == "P1-Modified"
-    assert state.primers[0]["seq"] == "AAAAAAAAAA"
+    assert input_data.primers[0]["name"] == "P1-Modified"
+    assert input_data.primers[0]["seq"] == "AAAAAAAAAA"
 
 
 def test_input_view_auto_inactivation_rules() -> None:
     """Test primer becomes inactive if name or sequence is cleared."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
-    state.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
 
-    view = InputView(mock_page, state)
+    view = InputView(mock_page, input_data)
 
     # Clear only the name
     container = view.primers_list.controls[0]
@@ -91,11 +91,11 @@ def test_input_view_auto_inactivation_rules() -> None:
     view.sync_to_state()
 
     # Verify it is now inactive in the state and checkbox updated
-    assert state.primers[0]["active"] is False
+    assert input_data.primers[0]["active"] is False
     assert checkbox.value is False
 
     # Restore name, clear sequence
-    state.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
     view.update_ui()
 
     container = view.primers_list.controls[0]
@@ -111,17 +111,17 @@ def test_input_view_auto_inactivation_rules() -> None:
     seq_field.value = ""
     view.sync_to_state()
 
-    assert state.primers[0]["active"] is False
+    assert input_data.primers[0]["active"] is False
     assert checkbox2.value is False
 
 
 def test_input_view_deletion_rules() -> None:
     """Test that a primer is deleted if both name and sequence are cleared."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
-    state.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
 
-    view = InputView(mock_page, state)
+    view = InputView(mock_page, input_data)
 
     container = view.primers_list.controls[0]
     row = container.content
@@ -134,22 +134,22 @@ def test_input_view_deletion_rules() -> None:
     view.sync_to_state()
 
     # Verify that the primer is deleted (excluding the trailing empty row)
-    assert len(state.primers) == 1  # 1 trailing empty row
-    assert state.primers[0]["name"] == ""
-    assert state.primers[0]["seq"] == ""
+    assert len(input_data.primers) == 1  # 1 trailing empty row
+    assert input_data.primers[0]["name"] == ""
+    assert input_data.primers[0]["seq"] == ""
     assert len(view.primers_list.controls) == 1
 
 
 def test_input_view_duplicate_warning() -> None:
     """Test that rows with duplicate names or sequences are colored red."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
-    state.primers = [
+    input_data = GUIInput()
+    input_data.primers = [
         {"name": "P1", "seq": "GCATGCATGC", "active": True},
         {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
     ]
 
-    view = InputView(mock_page, state)
+    view = InputView(mock_page, input_data)
 
     # Verify no duplicate highlights initially
     assert view.primers_list.controls[0].bgcolor is None
@@ -179,9 +179,9 @@ def test_input_view_trailing_row_activation() -> None:
     It should become active once both fields are filled.
     """
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
+    input_data = GUIInput()
     # Initially has no primers, so we should get exactly 1 trailing empty row
-    view = InputView(mock_page, state)
+    view = InputView(mock_page, input_data)
 
     assert len(view.primers_list.controls) == 1
     container = view.primers_list.controls[0]
@@ -212,12 +212,82 @@ def test_input_view_trailing_row_activation() -> None:
 
     # The active status transitions from False to True, and a new
     # trailing empty row will be added
-    assert len(state.primers) == 2  # The filled one + a new trailing empty one
-    assert state.primers[0]["name"] == "NewPrimer"
-    assert state.primers[0]["seq"] == "ATGATGATG"
-    assert state.primers[0]["active"] is True
+    assert (
+        len(input_data.primers) == 2
+    )  # The filled one + a new trailing empty one
+    assert input_data.primers[0]["name"] == "NewPrimer"
+    assert input_data.primers[0]["seq"] == "ATGATGATG"
+    assert input_data.primers[0]["active"] is True
 
     # The new trailing row should be inactive
-    assert state.primers[1]["name"] == ""
-    assert state.primers[1]["seq"] == ""
-    assert state.primers[1]["active"] is False
+    assert input_data.primers[1]["name"] == ""
+    assert input_data.primers[1]["seq"] == ""
+    assert input_data.primers[1]["active"] is False
+
+
+def test_input_view_clear_buttons() -> None:
+    """Test that clear primers button works correctly."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGATGC"
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    assert view.template_sequence.value == "ATGATGC"
+    assert len(input_data.primers) == 3  # 2 loaded + 1 trailing empty
+
+    # 1. Trigger clear primers button
+    view.clear_primers(MagicMock(spec=ft.ControlEvent))
+    assert len(input_data.primers) == 1  # only trailing empty remaining
+    assert input_data.primers[0]["name"] == ""
+    assert input_data.primers[0]["seq"] == ""
+
+
+def test_input_view_primer_info_panel() -> None:
+    """Test that the primer info panel displays correct information.
+
+    Verifies behavior when a primer is focused.
+    """
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "ATCGGTACTTGTGACGCTAC", "active": True},
+        {"name": "P2", "seq": "RACGGTACGTACGTACGTY", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Initially not visible because focused_primer_index is None
+    assert view.primer_info_panel.visible is False
+
+    # Simulate focusing on first primer (index 0)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_control = MagicMock()
+    mock_control.data = 0
+    mock_event.control = mock_control
+
+    view.handle_field_focus(mock_event)
+
+    assert view.focused_primer_index == 0
+    assert view.primer_info_panel.visible is True
+    assert view.info_header.content.value == "Primer: P1"
+    assert view.info_seq_text.value == "20 bp:   ATCGGTACTTGTGACGCTAC"
+    assert "Tm =" in view.info_tm_text.value
+    assert "10 AT Pairs, 10 GC Pairs, 50.0% AT" in view.info_pairs_text.value
+    assert view.info_redundancy_text.value == "No redundant bases."
+
+    # Simulate focusing on second primer (index 1) which has redundant bases
+    mock_control.data = 1
+    view.handle_field_focus(mock_event)
+
+    assert view.focused_primer_index == 1
+    assert view.primer_info_panel.visible is True
+    assert view.info_header.content.value == "Primer: P2"
+    assert "2 redundant bases" in view.info_redundancy_text.value
+    assert "redundancy fold = 4" in view.info_redundancy_text.value

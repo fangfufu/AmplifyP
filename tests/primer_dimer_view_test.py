@@ -20,24 +20,25 @@ from unittest.mock import MagicMock
 import flet as ft
 import pytest
 
-from amplifyp.gui.state import GUIState
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.primer_dimer_view import PrimerDimerView
 from amplifyp.settings import PrimerDimerSettings
 
 
 def test_get_primer_dimer_settings() -> None:
     """Test getting primer dimer settings from GUI state."""
-    state = GUIState()
+    settings = GUISettings()
     # Check defaults
-    pd_settings = state.get_primer_dimer_settings()
+    pd_settings = settings.get_primer_dimer_settings()
     assert isinstance(pd_settings, PrimerDimerSettings)
     assert pd_settings.min_overlap == 3
     assert pd_settings.threshold == pytest.approx(60.0)
 
     # Modify settings in state
-    state.settings["pd_min_overlap"] = "5"
-    state.settings["pd_threshold"] = "75.0"
-    pd_settings = state.get_primer_dimer_settings()
+    settings["pd_min_overlap"] = "5"
+    settings["pd_threshold"] = "75.0"
+    pd_settings = settings.get_primer_dimer_settings()
     assert pd_settings.min_overlap == 5
     assert pd_settings.threshold == pytest.approx(75.0)
 
@@ -45,8 +46,9 @@ def test_get_primer_dimer_settings() -> None:
 def test_primer_dimer_view_no_primers() -> None:
     """Test PrimerDimerView when no primers are active."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
-    view = PrimerDimerView(mock_page, state)
+    input_data = GUIInput()
+    settings = GUISettings()
+    view = PrimerDimerView(mock_page, input_data, settings)
 
     view.run_analysis()
 
@@ -61,18 +63,19 @@ def test_primer_dimer_view_no_primers() -> None:
 def test_primer_dimer_view_with_dimers() -> None:
     """Test PrimerDimerView runs analysis and populates UI with alignments."""
     mock_page = MagicMock(spec=ft.Page)
-    state = GUIState()
+    input_data = GUIInput()
+    settings = GUISettings()
 
     # Add two active primers known to dimerize
-    state.primers = [
+    input_data.primers = [
         {"name": "P1", "seq": "GCATGCATGC", "active": True},
         {"name": "P2", "seq": "GCATGCATGC", "active": True},
     ]
     # Set overlap and threshold to pass the dimer check
-    state.settings["pd_min_overlap"] = "3"
-    state.settings["pd_threshold"] = "30.0"
+    settings["pd_min_overlap"] = "3"
+    settings["pd_threshold"] = "30.0"
 
-    view = PrimerDimerView(mock_page, state)
+    view = PrimerDimerView(mock_page, input_data, settings)
     view.run_analysis()
 
     # result_list should contain cards representing matches

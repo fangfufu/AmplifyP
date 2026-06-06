@@ -22,11 +22,14 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.state import GUIState
-from amplifyp.gui.util import create_overlapped_sequence_view
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.util import create_overlapped_sequence_view, show_error_dialog
 
 
-def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
+def create_primer_dimer_card(
+    d: PrimerDimer, font_family: str = "Roboto Mono", settings: Any = None
+) -> ft.Card:
     """Create a Flet Card showing visually aligned primer dimer results."""
     p1_name = d.primer_1.name
     p2_name = d.primer_2.name
@@ -40,8 +43,24 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
     mid_line = " " * (3 + d.p1_pos) + middle_str
     p1_line = f"{' ' * d.p1_pos}3'-{seq1[::-1]}-5'"
 
+    # Fetch font sizes from settings, fallback to defaults
+    if settings is not None:
+        font_size_subheader = settings.get("font_size_subheader", 16)
+        font_size_small = settings.get("font_size_small", 12)
+        font_size_default = settings.get("font_size_default", 14)
+    else:
+        font_size_subheader = 16
+        font_size_small = 12
+        font_size_default = 14
+
     # Create visual alignment stack using generic helper
-    diagram_stack = create_overlapped_sequence_view(p2_line, mid_line, p1_line)
+    diagram_stack = create_overlapped_sequence_view(
+        p2_line,
+        mid_line,
+        p1_line,
+        font_family=font_family,
+        font_size=font_size_default,
+    )
 
     is_self = p1_name == p2_name and seq1 == seq2
     dimer_title = (
@@ -63,7 +82,7 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                             ft.Text(
                                 dimer_title,
                                 weight=ft.FontWeight.BOLD,
-                                size=16,
+                                size=font_size_subheader,
                                 selectable=True,
                             ),
                             ft.Row(
@@ -72,10 +91,10 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                         content=ft.Text(
                                             f"Overlap: {d.overlap} bp",
                                             weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.ON_SURFACE,
-                                            size=12,
+                                            color=GUIColors.TEXT_ON_SURFACE,
+                                            size=font_size_small,
                                         ),
-                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
                                         border_radius=4,
                                     ),
@@ -83,10 +102,10 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                                         content=ft.Text(
                                             quality_text,
                                             weight=ft.FontWeight.BOLD,
-                                            color=ft.Colors.ON_SURFACE,
-                                            size=12,
+                                            color=GUIColors.TEXT_ON_SURFACE,
+                                            size=font_size_small,
                                         ),
-                                        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
+                                        bgcolor=GUIColors.CONTAINER_HIGHEST,
                                         padding=ft.Padding(8, 4, 8, 4),
                                         border_radius=4,
                                     ),
@@ -106,7 +125,7 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
                         ),
                         padding=12,
                         border_radius=6,
-                        border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                        border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                         height=110,
                     ),
                 ]
@@ -118,11 +137,17 @@ def create_primer_dimer_card(d: PrimerDimer) -> ft.Card:
 class PrimerDimerView(ft.Column):  # type: ignore[misc]
     """View to show calculated primer dimer results."""
 
-    def __init__(self, page: ft.Page, state: GUIState | None = None) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
+    ) -> None:
         """Initialize the PrimerDimerView."""
         super().__init__(expand=True)
         self.app_page = page
-        self.state = state if state is not None else GUIState()
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -135,10 +160,10 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
         """Run primer dimer analysis and populate the UI."""
         self.result_list.controls.clear()
         try:
-            pd_settings = self.state.get_primer_dimer_settings()
+            pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
-            primers = self.state.get_active_primers()
+            primers = self.input_data.get_active_primers()
             for p in primers:
                 name = p["name"]
                 seq = p["seq"]
@@ -153,7 +178,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     ft.Container(
                         content=ft.Text(
                             "No primer dimers detected above threshold.",
-                            size=16,
+                            size=self.settings.get("font_size_subheader", 16),
                             italic=True,
                             text_align=ft.TextAlign.CENTER,
                         ),
@@ -162,14 +187,19 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     )
                 )
             else:
+                font_family = self.settings.get("font_family", "Roboto Mono")
                 for d in dimers:
-                    card = create_primer_dimer_card(d)
+                    card = create_primer_dimer_card(
+                        d,
+                        font_family=font_family,
+                        settings=self.settings,
+                    )
                     self.result_list.controls.append(card)
         except Exception as ex:
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",
-                    color=ft.Colors.RED,
+                    color=GUIColors.ERROR_RED,
                 )
             )
             self.show_error_dialog("Error running analysis", str(ex))
@@ -177,17 +207,4 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
 
     def show_error_dialog(self, title: str, message: str) -> None:
         """Show an error dialog popup."""
-
-        def close_dlg(e: Any) -> None:
-            dialog.open = False
-            self.app_page.update()
-
-        dialog = ft.AlertDialog(
-            title=ft.Text(title, color=ft.Colors.RED),
-            content=ft.Text(message),
-            actions=[ft.TextButton("OK", on_click=close_dlg)],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        self.app_page.overlay.append(dialog)
-        dialog.open = True
-        self.app_page.update()
+        show_error_dialog(self.app_page, title, message)

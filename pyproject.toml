@@ -84,3 +84,7 @@ omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 
 [tool.mypy]
 mypy_path = "src"
+
+[tool.vulture]
+paths = ["src/"]
+min_confidence = 80

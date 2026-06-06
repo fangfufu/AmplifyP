@@ -33,47 +33,35 @@ def test_gui_state_save_load() -> None:
 
     # Set template sequence (long enough to trigger multiline formatting)
     template_seq = "ATGC" * 30
-    input_view.template_sequence.value = template_seq
-    input_view.template_circular.value = True
+    input_view.input_data.template = template_seq
+    input_view.input_data.template_circular = True
 
     # Add primers
-    input_view.primer_name_input.value = "Primer1"
-    input_view.primer_seq_input.value = "ATGC"
-    input_view.add_primer_clicked(MagicMock())
-
-    input_view.primer_name_input.value = "Primer2"
-    input_view.primer_seq_input.value = "CGTA"
-    # Simulate unchecked primer
-    # We can't easily simulate UI interaction to uncheck, so we modify
-    # the control directly.
-    # add_primer_clicked adds a checked primer by default.
-    input_view.add_primer_clicked(MagicMock())
-
-    # Find the second primer checkbox and uncheck it
-    last_container = input_view.primers_list.controls[1]
-    last_row = last_container.content
-    cb_control = last_row.controls[0]
-    checkbox = (
-        cb_control.content
-        if isinstance(cb_control, ft.Container)
-        else cb_control
-    )
-    if isinstance(checkbox, ft.Checkbox):
-        checkbox.value = False
+    input_view.input_data.primers = [
+        {"name": "Primer1", "seq": "ATGC", "active": True},
+        {"name": "Primer2", "seq": "CGTA", "active": False},
+    ]
+    input_view.update_ui()
 
     # 2. Setup SettingsView with modified settings
     settings_view = SettingsView(mock_page)
     settings_view.set_primability_cutoff.value = "0.9"
     settings_view.set_amp4_compat.value = True
     settings_view.set_tm_dna_conc.value = "100.0"
+    settings_view.set_tm_method.value = "Lander / Amplify 4"
+    settings_view.set_font_family.value = "Courier New"
+    settings_view.settings_map["bp_score_G_G"].value = "99.0"
+    settings_view.settings_map["pd_score_G_G"].value = "99.0"
 
-    # 3. Capture State
+    # 3. Capture State - now as separate input + settings dicts
     input_state = input_view.get_state()
     settings_state = settings_view.get_state()
 
-    # Combine state as main.py does
-    full_state = input_state.copy()
-    full_state["settings"] = settings_state
+    # Combine state as app.py does: {"input": ..., "settings": ...}
+    full_state = {
+        "input": input_state,
+        "settings": settings_state,
+    }
 
     # 4. Serialize (replicating main.py logic)
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
@@ -93,8 +81,8 @@ def test_gui_state_save_load() -> None:
     new_input_view = InputView(mock_page)
     new_settings_view = SettingsView(mock_page)
 
-    new_input_view.set_state(loaded_state)
-    new_settings_view.set_state(loaded_state)
+    new_input_view.set_state(loaded_state["input"])
+    new_settings_view.set_state(loaded_state["settings"])
 
     # 7. Assertions
 
@@ -130,5 +118,105 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_primability_cutoff.value == "0.9"
     assert new_settings_view.set_amp4_compat.value
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
+    assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
+    assert new_settings_view.set_font_family.value == "Courier New"
+    assert new_settings_view.settings_map["bp_score_G_G"].value == "99.0"
+    assert new_settings_view.settings_map["pd_score_G_G"].value == "99.0"
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
+
+
+def test_settings_view_buttons() -> None:
+    """Test Apply and Reset to Default buttons in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+
+    apply_called = False
+    reset_called = False
+
+    def on_apply_callback(e: ft.ControlEvent) -> None:
+        nonlocal apply_called
+        apply_called = True
+
+    def on_reset_callback(e: ft.ControlEvent) -> None:
+        nonlocal reset_called
+        reset_called = True
+
+    settings_view = SettingsView(
+        mock_page,
+        on_apply=on_apply_callback,
+        on_reset=on_reset_callback,
+    )
+
+    # Change some values
+    settings_view.set_primability_cutoff.value = "0.95"
+    settings_view.set_amp4_compat.value = True
+    settings_view.set_tm_method.value = "Lander / Amplify 4"
+    settings_view.settings_map["bp_score_G_G"].value = "50.0"
+    settings_view.settings_map["pd_score_G_G"].value = "50.0"
+
+    # Find the Row containing the Apply and Reset buttons
+    buttons_row = settings_view.controls[-1]
+    assert isinstance(buttons_row, ft.Row)
+    apply_btn = buttons_row.controls[0]
+    reset_btn = buttons_row.controls[1]
+
+    assert apply_btn.content == "Apply"
+    assert reset_btn.content == "Reset to Default"
+
+    # Trigger Apply
+    apply_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert apply_called
+    assert settings_view.settings["primability_cutoff"] == "0.95"
+    assert settings_view.settings["amp4_compat"] is True
+    assert settings_view.settings["tm_method"] == "Lander / Amplify 4"
+    assert settings_view.settings["bp_score_G_G"] == "50.0"
+    assert settings_view.settings["pd_score_G_G"] == "50.0"
+
+    # Trigger Reset
+    reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert reset_called
+    assert (
+        settings_view.settings["tm_method"]
+        == "SantaLucia 1998 / Owczarzy 2008 (Default)"
+    )
+    assert settings_view.settings["bp_score_G_G"] == "100"
+    assert settings_view.settings["pd_score_G_G"] == "-20"
+    # Controls should be updated too
+    assert settings_view.set_primability_cutoff.value == "0.8"
+    assert settings_view.set_amp4_compat.value is False
+    assert (
+        settings_view.set_tm_method.value
+        == "SantaLucia 1998 / Owczarzy 2008 (Default)"
+    )
+    assert settings_view.settings_map["bp_score_G_G"].value == "100"
+    assert settings_view.settings_map["pd_score_G_G"].value == "-20"
+
+
+def test_color_deficient_mode_switching() -> None:
+    """Test toggling color deficient setting shifts GUIColors."""
+    from amplifyp.gui.settings import GUIColors, GUISettings
+
+    settings = GUISettings()
+    # 1. Initially false/standard
+    assert settings["color_deficient"] is False
+    assert GUIColors.color_deficient_mode is False
+    standard_success = GUIColors.SUCCESS_GREEN
+    standard_error = GUIColors.ERROR_RED
+    standard_fwd = GUIColors.FWD_PRIMER
+    standard_rev = GUIColors.REV_PRIMER
+
+    # 2. Toggle setting to True
+    settings["color_deficient"] = True
+    assert GUIColors.color_deficient_mode is True
+    assert GUIColors.SUCCESS_GREEN != standard_success
+    assert GUIColors.ERROR_RED != standard_error
+    assert GUIColors.FWD_PRIMER != standard_fwd
+    assert GUIColors.REV_PRIMER != standard_rev
+
+    # 3. Toggle back
+    settings["color_deficient"] = False
+    assert GUIColors.color_deficient_mode is False
+    assert GUIColors.SUCCESS_GREEN == standard_success
+    assert GUIColors.ERROR_RED == standard_error
+    assert GUIColors.FWD_PRIMER == standard_fwd
+    assert GUIColors.REV_PRIMER == standard_rev

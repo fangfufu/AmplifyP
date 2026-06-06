@@ -56,36 +56,63 @@ def create_overlapped_sequence_view(
     top_line: str,
     mid_line: str,
     bottom_line: str,
+    font_family: str = "Roboto Mono",
+    font_size: int = 14,
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
     Uses TextSpans for the visual representation.
     """
+    from amplifyp.gui.settings import GUIColors
+
     return ft.Text(
         spans=[
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    color=ft.Colors.ON_SURFACE,
+                    color=GUIColors.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=ft.Colors.GREEN_400,
+                    color=GUIColors.SUCCESS_GREEN,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 bottom_line,
                 style=ft.TextStyle(
-                    color=ft.Colors.ON_SURFACE,
+                    color=GUIColors.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
         ],
-        font_family="Roboto Mono",
-        size=14,
+        font_family=font_family,
+        size=font_size,
         selectable=True,
     )
+
+
+def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
+    """Show an error dialog popup."""
+    from typing import Any
+
+    from amplifyp.gui.settings import GUIColors
+
+    def close_dlg(e: Any) -> None:
+        dialog.open = False
+        if dialog in page.overlay:
+            page.overlay.remove(dialog)
+        page.update()
+
+    dialog = ft.AlertDialog(
+        title=ft.Text(title, color=GUIColors.ERROR_RED),
+        content=ft.Text(message),
+        actions=[ft.TextButton("OK", on_click=close_dlg)],
+        actions_alignment=ft.MainAxisAlignment.END,
+    )
+    page.overlay.append(dialog)
+    dialog.open = True
+    page.update()

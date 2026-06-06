@@ -22,6 +22,8 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 
 
@@ -31,30 +33,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
     def __init__(
         self,
         page: ft.Page,
-        state_or_input: Any = None,
-        settings_view: Any = None,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
     ) -> None:
         """Initialize the ResultView."""
         super().__init__(expand=True)
         self.app_page = page
 
-        # Flexible initialization for decoupling and compatibility
-        from amplifyp.gui.state import GUIState
-
-        from .input_view import InputView
-
-        if isinstance(state_or_input, GUIState):
-            self.state = state_or_input
-            self.input_view = None
-            self.settings_view = settings_view
-        elif isinstance(state_or_input, InputView):
-            self.input_view = state_or_input
-            self.settings_view = settings_view
-            self.state = state_or_input.state
-        else:
-            self.state = GUIState()
-            self.input_view = None
-            self.settings_view = None
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -65,12 +52,16 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         self.diagram_stack = ft.Stack(
             controls=[self.diagram_canvas],
-            expand=True,
+        )
+        self.diagram_scrollable = ft.Column(
+            controls=[self.diagram_stack],
+            scroll=ft.ScrollMode.ALWAYS,
+            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
         )
         self.diagram_container = ft.Container(
-            content=self.diagram_stack,
+            content=self.diagram_scrollable,
             visible=False,
-            border=ft.Border.all(1, ft.Colors.OUTLINE),
+            border=ft.Border.all(1, GUIColors.OUTLINE),
             border_radius=5,
             padding=10,
             height=300,
@@ -79,7 +70,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             on_pan_update=self.on_pan_update,
             content=ft.Container(
                 height=5,
-                bgcolor=ft.Colors.GREY_400,
+                bgcolor=GUIColors.DIVIDER_GREY,
                 border_radius=5,
                 margin=ft.Margin.symmetric(vertical=5),
             ),
@@ -96,7 +87,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
         )
         self.cards_header = ft.Row(
             [
-                ft.Text("Details", weight=ft.FontWeight.BOLD, size=18),
+                ft.Text(
+                    "Details",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_header", 18),
+                ),
                 self.clear_button,
             ],
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
@@ -137,19 +132,18 @@ class ResultView(ft.Column):  # type: ignore[misc]
         try:
             from amplifyp.gui.util import clean_sequence
 
-            # Read parameters directly from the central state
-            clean_template = clean_sequence(self.state.template)
+            clean_template = clean_sequence(self.input_data.template)
             t_type = (
                 DNAType.CIRCULAR
-                if self.state.template_circular
+                if self.input_data.template_circular
                 else DNAType.LINEAR
             )
             template_dna = DNA(clean_template, dna_type=t_type)
 
-            rep_settings = self.state.get_replication_settings()
+            rep_settings = self.settings.get_replication_settings()
             pcr = PCR(template_dna, settings=rep_settings)
 
-            primers = self.state.get_active_primers()
+            primers = self.input_data.get_active_primers()
             for p in primers:
                 name = p["name"]
                 seq = clean_sequence(p["seq"])
@@ -177,10 +171,19 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 t_width = c_width - (2.0 * h_margin)
                 target_length = len(template_dna)
 
+                # Calculate vertical size based on number of amplicons
+                v_frag_start = v_target + 40
+                v_frag_step = 35
+                canvas_height = (
+                    v_frag_start + len(pcr.amplicons) * v_frag_step + 30.0
+                )
+                self.diagram_canvas.height = canvas_height
+                self.diagram_stack.height = canvas_height
+
                 if target_length > 0:
                     # Draw vertical boundary lines at start and end of template
                     boundary_paint = ft.Paint(
-                        color=ft.Colors.BLACK,
+                        color=GUIColors.DIAGRAM_BLACK,
                         style=ft.PaintingStyle.STROKE,
                         stroke_width=1.0,
                     )
@@ -212,9 +215,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             "1",
                             style=ft.TextStyle(
-                                size=14,
+                                size=self.settings.get(
+                                    "font_size_map_baseline", 16
+                                ),
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                             ),
                         )
                     )
@@ -224,11 +229,13 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             v_target - 85,
                             str(target_length),
                             style=ft.TextStyle(
-                                size=14,
+                                size=self.settings.get(
+                                    "font_size_map_baseline", 16
+                                ),
                                 weight=ft.FontWeight.BOLD,
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                             ),
-                            text_align=ft.TextAlign.RIGHT,
+                            alignment=ft.Alignment(1.0, -1.0),
                         )
                     )
 
@@ -240,7 +247,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(c_width - h_margin, v_target),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLACK,
+                                color=GUIColors.DIAGRAM_BLACK,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=2.5,
                             ),
@@ -255,7 +262,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         tick_interval = 500
 
                     tick_paint = ft.Paint(
-                        color=ft.Colors.BLACK,
+                        color=GUIColors.DIAGRAM_BLACK,
                         style=ft.PaintingStyle.STROKE,
                         stroke_width=1.0,
                     )
@@ -337,7 +344,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(x_pos, v_target - 25),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLUE_800,
+                                color=GUIColors.FWD_PRIMER,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=1.0,
                             ),
@@ -360,7 +367,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.Close(),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.BLUE_800,
+                                color=GUIColors.FWD_PRIMER,
                                 style=ft.PaintingStyle.FILL,
                             ),
                         )
@@ -369,8 +376,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
                     self.diagram_stack.controls.append(
                         ft.Text(
                             name,
-                            color=ft.Colors.BLUE_800,
-                            size=11,
+                            color=GUIColors.FWD_PRIMER,
+                            size=self.settings.get("font_size_map_primer", 13),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target - 25 - S - 38,
@@ -393,7 +400,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             mouse_cursor=ft.MouseCursor.CLICK,
                             on_tap=fwd_tap,
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=20,
                                 height=25 + S,
                             ),
@@ -422,7 +429,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.LineTo(x_pos, v_target + 25),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.RED_ACCENT_700,
+                                color=GUIColors.REV_PRIMER,
                                 style=ft.PaintingStyle.STROKE,
                                 stroke_width=1.0,
                             ),
@@ -445,7 +452,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 cv.Path.Close(),
                             ],
                             paint=ft.Paint(
-                                color=ft.Colors.RED_ACCENT_700,
+                                color=GUIColors.REV_PRIMER,
                                 style=ft.PaintingStyle.FILL,
                             ),
                         )
@@ -454,8 +461,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
                     self.diagram_stack.controls.append(
                         ft.Text(
                             name,
-                            color=ft.Colors.RED_800,
-                            size=11,
+                            color=GUIColors.REV_LABEL,
+                            size=self.settings.get("font_size_map_primer", 13),
                             weight=ft.FontWeight.BOLD,
                             left=x_pos - 15,
                             top=v_target + 25 + S + 10,
@@ -478,7 +485,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             mouse_cursor=ft.MouseCursor.CLICK,
                             on_tap=rev_tap,
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=20,
                                 height=25 + S,
                             ),
@@ -523,7 +530,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
                     # Amplicon Bar (Black, filling path)
                     amp_paint = ft.Paint(
-                        color=ft.Colors.BLACK, style=ft.PaintingStyle.FILL
+                        color=GUIColors.DIAGRAM_BLACK,
+                        style=ft.PaintingStyle.FILL,
                     )
                     if amp.circular:
                         self.diagram_canvas.shapes.append(
@@ -565,8 +573,13 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             label_x,
                             y_pos + bar_height + 5,
                             str(len(amp.product)),
-                            style=ft.TextStyle(size=11, color=ft.Colors.BLACK),
-                            text_align=ft.TextAlign.CENTER,
+                            style=ft.TextStyle(
+                                size=self.settings.get(
+                                    "font_size_map_amplicon", 13
+                                ),
+                                color=GUIColors.DIAGRAM_BLACK,
+                            ),
+                            alignment=ft.Alignment(0.0, -1.0),
                         )
                     )
 
@@ -585,7 +598,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 a
                             ),
                             content=ft.Container(
-                                bgcolor=ft.Colors.TRANSPARENT,
+                                bgcolor=GUIColors.TRANSPARENT,
                                 width=amp_width,
                                 height=20 + bar_height,
                             ),
@@ -599,7 +612,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",
-                    color=ft.Colors.RED,
+                    color=GUIColors.ERROR_RED,
                 )
             )
             self.show_error_dialog("Error running PCR", str(ex))
@@ -618,6 +631,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
         var: Any,
     ) -> None:
         """Create and show context map card below the overview map."""
+        card_id = f"context_{primer_name}_{padded_idx}"
+        for ctrl in self.result_list.controls:
+            if getattr(ctrl, "_card_id", None) == card_id:
+                self.result_list.controls.remove(ctrl)
+                self.result_list.controls.insert(0, ctrl)
+                self.update_cards_header_visibility()
+                self.app_page.update()
+                return
+
         context_card = self._create_context_card(
             primer_name, padded_idx, conf, var
         )
@@ -649,6 +671,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
             return ft.Card(
                 content=ft.Text("Error: Replication origin not found")
             )
+        primer_type = (
+            "Forward Primer"
+            if var.direction == DNADirection.FWD
+            else "Reverse Primer"
+        )
         L = len(conf.primer)
         N = len(conf.template)
 
@@ -678,12 +705,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (12 characters)
-            # Spaces (17) to align 5'- next to the primer sequence
+            # prefix (29 chars to align 5'- next to primer seq)
             primer_display_seq = conf.primer.seq
-            primer_line = (
-                f"{primer_name:<12}{' ' * 17}5'-{primer_display_seq}-3'"
-            )
+            primer_label = f"{primer_name} (Forward)"
+            primer_line = f"{primer_label:<29}5'-{primer_display_seq}-3'"
 
             # Construct strength line:
             strength_display = origin.binding_strength_str[::-1]
@@ -729,12 +754,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
             end_num_str = str(((end_genomic - 1) % N) + 1)
 
             # Construct primer line:
-            # prefix (12 characters)
-            # Spaces (17) to align 3'- next to the primer sequence
+            # prefix (29 chars to align 3'- next to primer seq)
             primer_display_seq = conf.primer.seq[::-1]
-            primer_line = (
-                f"{primer_name:<12}{' ' * 17}3'-{primer_display_seq}-5'"
-            )
+            primer_label = f"{primer_name} (Reverse)"
+            primer_line = f"{primer_label:<29}3'-{primer_display_seq}-5'"
 
             # Construct strength line:
             strength_display = origin.binding_strength_str
@@ -773,13 +796,17 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 f"{binding_seq}{downstream_seq}-3'"
             )
 
+        font_family = self.settings.get("font_family", "Roboto Mono")
+        font_size = self.settings.get("font_size_default", 14)
         diagram_text = create_overlapped_sequence_view(
             top_line=top_line,
             mid_line=primer_line,
             bottom_line=bottom_line,
+            font_family=font_family,
+            font_size=font_size,
         )
 
-        return ft.Card(
+        card = ft.Card(
             ref=card_ref,
             content=ft.Container(
                 padding=10,
@@ -788,9 +815,12 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Row(
                             [
                                 ft.Text(
-                                    f"Context Map - {primer_name} Binding Site",
+                                    f"Context Map - {primer_name} "
+                                    f"({primer_type}) Binding Site",
                                     weight=ft.FontWeight.BOLD,
-                                    size=16,
+                                    size=self.settings.get(
+                                        "font_size_subheader", 16
+                                    ),
                                 ),
                                 ft.IconButton(
                                     icon=ft.Icons.CLOSE,
@@ -808,13 +838,15 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             ),
                             padding=12,
                             border_radius=6,
-                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                         ),
                     ],
                     tight=True,
                 ),
             ),
         )
+        card._card_id = f"context_{primer_name}_{padded_idx}"
+        return card
 
     def _create_amplicon_card(self, amp: Any) -> ft.Card:
         """Create a Flet Card for displaying details of a single amplicon.
@@ -832,6 +864,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         full_seq = str(amp.product.seq)
         fwd_len = len(amp.fwd_origin.seq)
         rev_len = len(amp.rev_origin.seq)
+        mid_len = len(amp.product) - (fwd_len + rev_len)
 
         if len(full_seq) >= fwd_len + rev_len:
             fwd_part = full_seq[:fwd_len]
@@ -842,35 +875,36 @@ class ResultView(ft.Column):  # type: ignore[misc]
             mid_part = ""
             rev_part = ""
 
+        font_family = self.settings.get("font_family", "Roboto Mono")
         sequence_text = ft.Text(
             spans=[
                 ft.TextSpan(
                     fwd_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.BLUE_800,
+                        color=GUIColors.FWD_PRIMER,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
                 ft.TextSpan(
                     mid_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.ON_SURFACE,
+                        color=GUIColors.TEXT_ON_SURFACE,
                     ),
                 ),
                 ft.TextSpan(
                     rev_part,
                     style=ft.TextStyle(
-                        color=ft.Colors.RED_800,
+                        color=GUIColors.REV_LABEL,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
             ],
-            font_family="Roboto Mono",
-            size=13,
+            font_family=font_family,
+            size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
 
-        return ft.Card(
+        card = ft.Card(
             ref=card_ref,
             content=ft.Container(
                 padding=10,
@@ -881,7 +915,9 @@ class ResultView(ft.Column):  # type: ignore[misc]
                                 ft.Text(
                                     f"Amplicon: {len(amp.product)} bp",
                                     weight=ft.FontWeight.BOLD,
-                                    size=16,
+                                    size=self.settings.get(
+                                        "font_size_subheader", 16
+                                    ),
                                     selectable=True,
                                 ),
                                 ft.IconButton(
@@ -894,22 +930,30 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         ),
                         ft.Text(
-                            "Forward Primer: "
-                            f"{amp.fwd_origin.name} "
-                            f"(Start: {amp.start.index})",
+                            spans=[
+                                ft.TextSpan("▶(primer: "),
+                                ft.TextSpan(
+                                    amp.fwd_origin.name,
+                                    style=ft.TextStyle(
+                                        color=GUIColors.FWD_PRIMER,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ),
+                                ft.TextSpan(f") — {mid_len} bp — (primer: "),
+                                ft.TextSpan(
+                                    amp.rev_origin.name,
+                                    style=ft.TextStyle(
+                                        color=GUIColors.REV_LABEL,
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                ),
+                                ft.TextSpan(
+                                    f")◀      Q = {amp.q_score:.1f} "
+                                    f"({amp.q_score_report_str(verbose=True)})"
+                                ),
+                            ],
                             selectable=True,
-                        ),
-                        ft.Text(
-                            "Reverse Primer: "
-                            f"{amp.rev_origin.name} "
-                            f"(End: {amp.end.index})",
-                            selectable=True,
-                        ),
-                        ft.Text(
-                            "Quality Score: "
-                            f"{amp.q_score:.2f} - "
-                            f"{amp.q_score_report_str()}",
-                            selectable=True,
+                            size=self.settings.get("font_size_body", 13),
                         ),
                         ft.Text(
                             "Amplified Sequence:",
@@ -917,42 +961,42 @@ class ResultView(ft.Column):  # type: ignore[misc]
                             selectable=True,
                         ),
                         ft.Container(
-                            content=ft.Column(
-                                [sequence_text],
-                                scroll=ft.ScrollMode.ALWAYS,
-                                expand=True,
-                            ),
+                            content=sequence_text,
                             padding=12,
                             border_radius=6,
-                            border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
-                            height=150,
+                            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
                         ),
                     ]
                 ),
             ),
         )
+        card_id = (
+            f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
+            f"{amp.start.index}_{amp.end.index}"
+        )
+        card._card_id = card_id
+        return card
 
     def show_error_dialog(self, title: str, message: str) -> None:
         """Show an error dialog popup."""
+        from amplifyp.gui.util import show_error_dialog
 
-        def close_dlg(e: Any) -> None:
-            dialog.open = False
-            if dialog in self.app_page.overlay:
-                self.app_page.overlay.remove(dialog)
-            self.app_page.update()
-
-        dialog = ft.AlertDialog(
-            title=ft.Text(title, color=ft.Colors.RED),
-            content=ft.Text(message),
-            actions=[ft.TextButton("OK", on_click=close_dlg)],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        self.app_page.overlay.append(dialog)
-        dialog.open = True
-        self.app_page.update()
+        show_error_dialog(self.app_page, title, message)
 
     def show_amplicon_dialog(self, amp: Any) -> None:
         """Show details card of the selected amplicon below the overview map."""
+        card_id = (
+            f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
+            f"{amp.start.index}_{amp.end.index}"
+        )
+        for ctrl in self.result_list.controls:
+            if getattr(ctrl, "_card_id", None) == card_id:
+                self.result_list.controls.remove(ctrl)
+                self.result_list.controls.insert(0, ctrl)
+                self.update_cards_header_visibility()
+                self.app_page.update()
+                return
+
         amplicon_card = self._create_amplicon_card(amp)
         self.result_list.controls.insert(0, amplicon_card)
         self.update_cards_header_visibility()
