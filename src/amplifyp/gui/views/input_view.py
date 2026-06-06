@@ -579,6 +579,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             checkbox_container = ft.Container(
                 content=checkbox,
                 width=55,
+                height=30,
                 alignment=ft.Alignment(0, 0),
             )
             name_edit = ft.TextField(
@@ -688,6 +689,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 ],
                 expand=True,
                 spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.START,
             )
 
             row_container = ft.Container(
