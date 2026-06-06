@@ -24,7 +24,7 @@ def clean_sequence(seq: str) -> str:
     if not seq:
         return ""
     clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
-    return "".join(clean.split()).upper()
+    return "".join(clean.split())
 
 
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
