@@ -631,6 +631,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                         on_click=self.on_reset_handler,
                     ),
                 ],
+                alignment=ft.MainAxisAlignment.END,
                 spacing=10,
             ),
         ]
