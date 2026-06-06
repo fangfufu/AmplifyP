@@ -653,6 +653,11 @@ class ResultView(ft.Column):  # type: ignore[misc]
             return ft.Card(
                 content=ft.Text("Error: Replication origin not found")
             )
+        primer_type = (
+            "Forward Primer"
+            if var.direction == DNADirection.FWD
+            else "Reverse Primer"
+        )
         L = len(conf.primer)
         N = len(conf.template)
 
@@ -794,7 +799,8 @@ class ResultView(ft.Column):  # type: ignore[misc]
                         ft.Row(
                             [
                                 ft.Text(
-                                    f"Context Map - {primer_name} Binding Site",
+                                    f"Context Map - {primer_name} "
+                                    f"({primer_type}) Binding Site",
                                     weight=ft.FontWeight.BOLD,
                                     size=16,
                                 ),
