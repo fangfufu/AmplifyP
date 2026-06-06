@@ -687,7 +687,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     divider,
                     seq_stack,
                 ],
-                expand=True,
                 spacing=0,
                 vertical_alignment=ft.CrossAxisAlignment.START,
             )
