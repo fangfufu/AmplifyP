@@ -328,6 +328,34 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self._update_primer_info_panel()
         name_edit.focus()
 
+    def _move_primer(self, idx: int, direction: int) -> None:
+        """Move primer at idx up (direction=-1) or down (direction=1)."""
+        parent_view = getattr(self.on_change_handler, "__self__", None)
+        if parent_view is not None:
+            if getattr(parent_view, "_focus_timer", None) is not None:
+                parent_view._focus_timer.cancel()
+                parent_view._focus_timer = None
+            parent_view._skip_blur_timer = True
+
+        self.sync_to_state(rebuild_if_needed=False)
+        primers = self.input_data.primers
+        target_idx = idx + direction
+
+        # Swap only if both indices are valid filled primers.
+        if 0 <= idx < len(primers) and 0 <= target_idx < len(primers):
+            primers[idx], primers[target_idx] = (
+                primers[target_idx],
+                primers[idx],
+            )
+            if self.focused_primer_index == idx:
+                self.focused_primer_index = target_idx
+            elif self.focused_primer_index == target_idx:
+                self.focused_primer_index = idx
+
+            self.update_ui()
+            if self.on_change_handler:
+                self.on_change_handler(None)
+
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
         """Extract primer data from UI controls."""
         ui_primers = []
@@ -345,7 +373,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 else checkbox_control
             )
             name_tf = row.controls[2]
-            seq_tf = row.controls[4]
+            seq_ctrl = row.controls[4]
+            seq_tf = (
+                seq_ctrl.controls[0]
+                if isinstance(seq_ctrl, ft.Stack) and seq_ctrl.controls
+                else seq_ctrl
+            )
 
             name_val = str(name_tf.value or "").strip()
             seq_val = clean_sequence(str(seq_tf.value or ""))
@@ -565,8 +598,17 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 value=seq_val,
                 hint_text="New Primer Sequence",
                 dense=True,
-                expand=True,
-                content_padding=ft.Padding(5, 0, 0, 0),
+                left=0,
+                right=0,
+                content_padding=ft.Padding(
+                    5,
+                    0,
+                    60
+                    if idx == self.focused_primer_index
+                    and idx < len(self.input_data.primers) - 1
+                    else 0,
+                    0,
+                ),
                 height=30 if not error_message else None,
                 border=ft.InputBorder.NONE,
                 text_style=ft.TextStyle(font_family=font_family),
@@ -595,13 +637,54 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 height=30,
             )
 
+            seq_stack = ft.Stack(
+                [
+                    seq_edit,
+                ],
+                expand=True,
+            )
+
+            if idx < len(self.input_data.primers) - 1:
+                up_button = ft.IconButton(
+                    icon=ft.Icons.ARROW_UPWARD,
+                    icon_size=16,
+                    width=24,
+                    height=24,
+                    padding=0,
+                    tooltip="Move Up",
+                    disabled=(idx == 0),
+                    on_click=lambda e, idx=idx: self._move_primer(idx, -1),
+                )
+                down_button = ft.IconButton(
+                    icon=ft.Icons.ARROW_DOWNWARD,
+                    icon_size=16,
+                    width=24,
+                    height=24,
+                    padding=0,
+                    tooltip="Move Down",
+                    disabled=(idx == len(self.input_data.primers) - 2),
+                    on_click=lambda e, idx=idx: self._move_primer(idx, 1),
+                )
+                reorder_controls = ft.Row(
+                    [up_button, down_button],
+                    spacing=2,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                )
+                reorder_container = ft.Container(
+                    content=reorder_controls,
+                    right=10,
+                    top=3,
+                    visible=(idx == self.focused_primer_index),
+                )
+                seq_stack.controls.append(reorder_container)
+
             row = ft.Row(
                 [
                     checkbox_container,
                     active_divider,
                     name_edit,
                     divider,
-                    seq_edit,
+                    seq_stack,
                 ],
                 expand=True,
                 spacing=0,
@@ -683,6 +766,24 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     container.bgcolor = GUIColors.DUPLICATE_BG
                 else:
                     container.bgcolor = None
+
+                # Update reorder container visibility and text padding
+                # dynamically.
+                row = container.content
+                if isinstance(row, ft.Row) and len(row.controls) >= 5:
+                    seq_stack = row.controls[4]
+                    if (
+                        isinstance(seq_stack, ft.Stack)
+                        and len(seq_stack.controls) > 1
+                    ):
+                        reorder_container = seq_stack.controls[1]
+                        seq_edit = seq_stack.controls[0]
+                        is_focused = c_idx == self.focused_primer_index
+                        reorder_container.visible = is_focused
+                        if isinstance(seq_edit, ft.TextField):
+                            seq_edit.content_padding = ft.Padding(
+                                5, 0, 60 if is_focused else 0, 0
+                            )
 
     def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
@@ -974,6 +1075,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
+        if getattr(self, "_skip_blur_timer", False):
+            self._skip_blur_timer = False
+            return
+
         self.sync_to_state(rebuild_if_needed=False)
 
         # If the control that blurred has a validation error,
