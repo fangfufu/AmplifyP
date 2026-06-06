@@ -23,6 +23,10 @@ repos:
     rev: v2.4.2
     hooks:
       - id: codespell
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v2.1.0
     hooks:

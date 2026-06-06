@@ -84,7 +84,7 @@ def main(page: ft.Page) -> None:
 
     def update_results_button_state() -> None:
         """Enable results and dimers buttons only if input is valid."""
-        nonlocal has_run_pcr, results_outdated
+        nonlocal results_outdated
         input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
         has_primers = len(input_data.get_active_primers()) > 0
@@ -118,10 +118,6 @@ def main(page: ft.Page) -> None:
         if results_button_ref.current:
             results_button_ref.current.text = "Results"
         page.update()
-
-    def run_results_tab(e: ft.ControlEvent) -> None:
-        switch_view(e, result_view)
-        run_analysis_in_background()
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
         run_analysis_in_background()
