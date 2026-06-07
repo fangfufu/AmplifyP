@@ -298,7 +298,15 @@ def main(page: ft.Page) -> None:
     load_btn_control.content_description = "Load"
 
     page.appbar = ft.AppBar(
-        title=ft.Text("AmplifyP"),
+        title=ft.Row(
+            [
+                ft.Image(src="images/favicon.png", height=32, fit="contain"),
+                ft.Text("AmplifyP", size=20, weight=ft.FontWeight.BOLD),
+            ],
+            alignment=ft.MainAxisAlignment.START,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=8,
+        ),
         elevation_on_scroll=0,
         actions=[
             input_button,
