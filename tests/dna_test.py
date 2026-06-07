@@ -29,6 +29,14 @@ def test_dna_init() -> None:
     assert dna.direction == DNADirection.FWD
 
 
+def test_dna_init_empty_name() -> None:
+    """Test empty/whitespace name defaults to sequence."""
+    dna = DNA("ATCG", name="  ")
+    assert dna.name == "ATCG"
+    primer = Primer("ATCG", name="")
+    assert primer.name == "ATCG"
+
+
 def test_dna_name_setter() -> None:
     """Test that the name of a DNA object can be set correctly."""
     dna = DNA("ATCG")

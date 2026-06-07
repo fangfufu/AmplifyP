@@ -490,3 +490,45 @@ def test_input_view_primer_reordering() -> None:
     assert input_data.primers[1]["name"] == "P3"
     assert input_data.primers[2]["name"] == "P2"
     assert view.focused_primer_index == 2
+
+
+def test_input_view_block_invalid_primer() -> None:
+    """Test invalid primer blocks auto-activation and row creation."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # Initially 0 primers, meaning we start with exactly 1 empty trailing row
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    assert len(view.primers_list.controls) == 1
+    row = view.primers_list.controls[0].content
+    checkbox = row.controls[0].content
+    name_field = row.controls[2]
+    seq_field = row.controls[4].controls[0]
+
+    # Fill name and sequence with an invalid character (X)
+    name_field.value = "P1"
+    seq_field.value = "GCATGCATGX"
+
+    view.sync_to_state()
+
+    # Verify that:
+    # 1. The checkbox remains unchecked (not auto-activated)
+    assert checkbox.value is False
+    # 2. No new trailing row is appended (the number of controls is still 1)
+    assert len(view.primers_list.controls) == 1
+
+    # Correct the sequence to be valid (all valid bases)
+    row = view.primers_list.controls[0].content
+    seq_field = row.controls[4].controls[0]
+    seq_field.value = "GCATGCATGC"
+
+    view.sync_to_state()
+
+    # Now verify that:
+    # 1. It is auto-activated (checkbox is checked)
+    # 2. A new trailing empty row is appended
+    assert len(view.primers_list.controls) == 2
+    row0 = view.primers_list.controls[0].content
+    checkbox0 = row0.controls[0].content
+    assert checkbox0.value is True
