@@ -599,8 +599,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 value=seq_val,
                 hint_text="New Primer Sequence",
                 dense=True,
-                left=0,
-                right=0,
                 content_padding=ft.Padding(
                     5,
                     0,
