@@ -25,6 +25,7 @@ from main import main
 def test_gui_main() -> None:
     """Test the main function of the GUI app."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
 
     main(mock_page)
 
@@ -38,6 +39,7 @@ def test_gui_app_main() -> None:
     from amplifyp.gui.app import main as gui_main
 
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
 
     gui_main(mock_page)
 

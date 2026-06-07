@@ -26,6 +26,7 @@ echo "==> Building static site..."
   --app-description "Simulate Polymerase Chain Reaction (PCR) and predict DNA amplification products." \
   --pwa-background-color "#FFFFFF" \
   --pwa-theme-color "#0175C2" \
+  --icon "src/assets/images/icon.png" \
   "$@"
 
 # Clean up temporary root assets files
@@ -47,6 +48,10 @@ echo "==> Copying custom assets to dist..."
 mkdir -p "${DIST_DIR}/images" "${DIST_DIR}/assets/images"
 cp -R "${SCRIPT_DIR}/src/assets/images/"* "${DIST_DIR}/images/" || true
 cp -R "${SCRIPT_DIR}/src/assets/images/"* "${DIST_DIR}/assets/images/" || true
+
+echo "==> Replacing Flet loading animation with app icon..."
+cp "${SCRIPT_DIR}/src/assets/images/icon.png" "${DIST_DIR}/icons/loading-animation.png" || true
+
 echo "==> Build complete: ${DIST_DIR}"
 echo "    To serve locally:"
 echo "    python -m http.server 23455 -d ${DIST_DIR}"
