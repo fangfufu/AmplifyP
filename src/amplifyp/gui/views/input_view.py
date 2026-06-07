@@ -430,11 +430,31 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 else ""
             )
 
-            # Auto-activation rule: if it was previously incomplete
+            prev_seq_invalid = False
+            if prev_seq:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=prev_seq, name=prev_name)
+                except ValueError:
+                    prev_seq_invalid = True
+
+            # Auto-activation rule: if it was previously incomplete or invalid
             # and both fields are now filled
-            if (not prev_name or not prev_seq) and (name_val and seq_val):
-                is_active = True
-                checkbox.value = True
+            if (not prev_name or not prev_seq or prev_seq_invalid) and (
+                name_val and seq_val
+            ):
+                # Verify that the sequence is valid before auto-activating
+                is_valid = True
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError:
+                    is_valid = False
+                if is_valid:
+                    is_active = True
+                    checkbox.value = True
 
             # Auto-inactivation rule: if either is empty, set active to False
             if not name_val or not seq_val:
@@ -548,8 +568,22 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
 
-        # Always append one trailing empty row
-        clean_primers.append({"name": "", "seq": "", "active": False})
+        # Only append a trailing empty row if there are no invalid primers
+        any_invalid = False
+        for p in clean_primers:
+            name_val = p.get("name", "")
+            seq_val = p.get("seq", "")
+            if seq_val:
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError:
+                    any_invalid = True
+                    break
+
+        if not any_invalid:
+            clean_primers.append({"name": "", "seq": "", "active": False})
         self.input_data.primers = clean_primers
 
         dup_indices = self._get_duplicate_indices()

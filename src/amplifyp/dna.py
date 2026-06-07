@@ -165,7 +165,7 @@ class DNA:
 
         self.__type: DNAType = dna_type
 
-        if name is None:
+        if name is None or not name.strip():
             self.__name = seq
         else:
             self.__name = name.strip()
