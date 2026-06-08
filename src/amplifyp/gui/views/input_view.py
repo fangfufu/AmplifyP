@@ -7,6 +7,8 @@
 
 """Input view for DNA template and primers."""
 
+import csv
+import io
 import threading
 from typing import Any
 
@@ -221,6 +223,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.save_primers_button = ft.FilledTonalButton(
+            "Save Primers",
+            icon=ft.Icons.FILE_DOWNLOAD,
+            on_click=self._save_primers_click,
+            tooltip="Save active primers to CSV",
+            height=32,
+        )
         self.load_primers_button = ft.FilledTonalButton(
             "Load Primers",
             icon=ft.Icons.FILE_OPEN,
@@ -303,6 +312,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                         ft.Text("Primers", weight=ft.FontWeight.BOLD),
                         ft.Row(
                             [
+                                self.save_primers_button,
                                 self.load_primers_button,
                                 self.clear_primers_button,
                             ],
@@ -1016,6 +1026,42 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         except Exception as ex:
             self._show_snackbar(f"Error loading file: {ex}")
+
+    async def _save_primers_click(self, e: ft.ControlEvent) -> None:
+        """Save active primers to a CSV file."""
+        active_primers = [
+            p for p in self.input_data.primers if p.get("active", True)
+        ]
+        if not active_primers:
+            self._show_snackbar("No active primers to save.")
+            return
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        for p in active_primers:
+            writer.writerow([p.get("name", ""), p.get("seq", "")])
+
+        csv_content = output.getvalue()
+        output.close()
+
+        try:
+            file_path = await ft.FilePicker().save_file(
+                dialog_title="Save Primers",
+                file_name="primers.csv",
+                allowed_extensions=["csv"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                src_bytes=csv_content.encode("utf-8"),
+            )
+            if self.app_page.web:
+                self._show_snackbar("Primers ready for download!")
+            else:
+                if file_path is None:
+                    return
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(csv_content)
+                self._show_snackbar(f"Saved {len(active_primers)} primer(s).")
+        except Exception as ex:
+            self._show_snackbar(f"Error saving file: {ex}")
 
     def _show_snackbar(self, message: str) -> None:
         """Show a snackbar message."""
