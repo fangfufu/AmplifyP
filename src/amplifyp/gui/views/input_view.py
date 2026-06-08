@@ -480,6 +480,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 if is_valid:
                     is_active = True
                     checkbox.value = True
+                    should_rebuild = True
 
             # Auto-inactivation rule: if either is empty, set active to False
             if not name_val or not seq_val:
