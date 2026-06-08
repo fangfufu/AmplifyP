@@ -156,14 +156,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_list = ft.ListView(
             expand=True, spacing=0, padding=0, scroll=ft.ScrollMode.ALWAYS
         )
+        self.all_primers_checkbox = ft.Checkbox(
+            value=None,
+            tristate=True,
+            on_change=self._on_toggle_all_primers,
+        )
         self.primers_header = ft.Row(
             [
                 ft.Container(
-                    content=ft.Text(
-                        "Active",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_small", 12),
-                    ),
+                    content=self.all_primers_checkbox,
                     width=55,
                     alignment=ft.Alignment(0, 0),
                 ),
@@ -479,6 +480,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 if is_valid:
                     is_active = True
                     checkbox.value = True
+                    should_rebuild = True
 
             # Auto-inactivation rule: if either is empty, set active to False
             if not name_val or not seq_val:
@@ -573,9 +575,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
-
         if should_rebuild and rebuild_if_needed:
             self.update_ui()
+        else:
+            self._update_header_checkbox_state()
 
         return should_rebuild
 
@@ -761,6 +764,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self._update_row_highlights()
         self._update_primer_info_panel()
+        self._update_header_checkbox_state()
 
     def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the vertical divider between Name and Sequence."""
@@ -779,6 +783,47 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     if isinstance(name_tf, ft.TextField):
                         name_tf.width = self.name_column_width
         self.app_page.update()
+
+    def _on_toggle_all_primers(self, e: Any) -> None:
+        """Toggle all primers active/inactive based on tri-state checkbox."""
+        primers = self.input_data.primers
+        if not primers:
+            return
+        non_empty = [
+            p
+            for p in primers
+            if str(p.get("name", "")).strip()
+            or clean_sequence(str(p.get("seq", ""))).strip()
+        ]
+        if not non_empty:
+            return
+        all_active = all(p.get("active", True) for p in non_empty)
+        target_active = not all_active
+        for p in non_empty:
+            p["active"] = target_active
+        self.update_ui()
+        if self.on_change_handler:
+            self.on_change_handler(e)
+
+    def _update_header_checkbox_state(self) -> None:
+        """Update the header checkbox to reflect the current primer states."""
+        primers = self.input_data.primers
+        non_empty = [
+            p
+            for p in primers
+            if str(p.get("name", "")).strip()
+            or clean_sequence(str(p.get("seq", ""))).strip()
+        ]
+        if not non_empty:
+            self.all_primers_checkbox.value = None
+        elif all(p.get("active", True) for p in non_empty):
+            self.all_primers_checkbox.value = True
+        elif all(not p.get("active", True) for p in non_empty):
+            self.all_primers_checkbox.value = False
+        else:
+            self.all_primers_checkbox.value = None
+        if self.app_page:
+            self.app_page.update()
 
     def _get_duplicate_indices(self) -> set[int]:
         """Find indices of primers with duplicate names or sequences."""
