@@ -575,10 +575,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
-        self._update_header_checkbox_state()
-
         if should_rebuild and rebuild_if_needed:
             self.update_ui()
+        else:
+            self._update_header_checkbox_state()
 
         return should_rebuild
 
