@@ -26,7 +26,6 @@ echo "==> Building static site..."
   --app-description "Simulate Polymerase Chain Reaction (PCR) and predict DNA amplification products." \
   --pwa-background-color "#FFFFFF" \
   --pwa-theme-color "#0175C2" \
-  --icon "${SCRIPT_DIR}/src/assets/images/icon.png" \
   "$@"
 
 # Clean up temporary root assets files
