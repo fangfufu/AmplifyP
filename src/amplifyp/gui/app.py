@@ -36,6 +36,7 @@ def main(page: ft.Page) -> None:
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
     page.padding = 0
     page.spacing = 0
+    page.window.icon = "images/icon.png"
 
     # Handle close / reload warnings
     if page.web:

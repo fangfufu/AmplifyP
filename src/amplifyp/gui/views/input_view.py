@@ -7,6 +7,8 @@
 
 """Input view for DNA template and primers."""
 
+import csv
+import io
 import threading
 from typing import Any
 
@@ -221,6 +223,21 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.save_primers_button = ft.FilledTonalButton(
+            "Save Primers",
+            icon=ft.Icons.FILE_DOWNLOAD,
+            on_click=self._save_primers_click,
+            tooltip="Save active primers to CSV",
+            height=32,
+        )
+        self.load_primers_button = ft.FilledTonalButton(
+            "Load Primers",
+            icon=ft.Icons.FILE_OPEN,
+            on_click=self._load_primers_click,
+            tooltip="Load primers from CSV/TSV",
+            height=32,
+        )
+
         # Primer Info Panel UI Components
         self.info_header = ft.Container(
             content=ft.Text(
@@ -293,7 +310,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 ft.Row(
                     [
                         ft.Text("Primers", weight=ft.FontWeight.BOLD),
-                        self.clear_primers_button,
+                        ft.Row(
+                            [
+                                self.save_primers_button,
+                                self.load_primers_button,
+                                self.clear_primers_button,
+                            ],
+                            spacing=8,
+                        ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     height=40,
@@ -931,6 +955,117 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         except Exception:
             self.primer_info_panel.visible = False
 
+        self.app_page.update()
+
+    async def _load_primers_click(self, e: ft.ControlEvent) -> None:
+        """Open file picker to load primers from CSV/TSV file."""
+        try:
+            files = await ft.FilePicker().pick_files(
+                dialog_title="Load Primers",
+                allowed_extensions=["csv", "tsv", "txt"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                with_data=True,
+            )
+            if not files:
+                return
+
+            file = files[0]
+            if file.bytes is not None:
+                content = file.bytes.decode("utf-8")
+            else:
+                if not file.path:
+                    self._show_snackbar("Error: Could not read file content.")
+                    return
+                with open(file.path, encoding="utf-8") as f:
+                    content = f.read()
+
+            loaded_count = 0
+            for line in content.strip().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                if "\t" in line:
+                    delimiter = "\t"
+                else:
+                    delimiter = ","
+
+                parts = line.split(delimiter, 1)
+                if len(parts) != 2:
+                    continue
+
+                name = parts[0].strip()
+                seq = parts[1].strip()
+
+                if not name or not seq:
+                    continue
+
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq, name=name)
+                except ValueError:
+                    continue
+
+                self.input_data.primers.append(
+                    {
+                        "name": name,
+                        "seq": seq,
+                        "active": True,
+                    }
+                )
+                loaded_count += 1
+
+            if loaded_count > 0:
+                self.update_ui()
+                if self.on_change_handler:
+                    self.on_change_handler(None)
+                self._show_snackbar(f"Loaded {loaded_count} primer(s).")
+            else:
+                self._show_snackbar("No valid primers found in file.")
+
+        except Exception as ex:
+            self._show_snackbar(f"Error loading file: {ex}")
+
+    async def _save_primers_click(self, e: ft.ControlEvent) -> None:
+        """Save active primers to a CSV file."""
+        active_primers = [
+            p for p in self.input_data.primers if p.get("active", True)
+        ]
+        if not active_primers:
+            self._show_snackbar("No active primers to save.")
+            return
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        for p in active_primers:
+            writer.writerow([p.get("name", ""), p.get("seq", "")])
+
+        csv_content = output.getvalue()
+        output.close()
+
+        try:
+            file_path = await ft.FilePicker().save_file(
+                dialog_title="Save Primers",
+                file_name="primers.csv",
+                allowed_extensions=["csv"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                src_bytes=csv_content.encode("utf-8"),
+            )
+            if self.app_page.web:
+                self._show_snackbar("Primers ready for download!")
+            else:
+                if file_path is None:
+                    return
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(csv_content)
+                self._show_snackbar(f"Saved {len(active_primers)} primer(s).")
+        except Exception as ex:
+            self._show_snackbar(f"Error saving file: {ex}")
+
+    def _show_snackbar(self, message: str) -> None:
+        """Show a snackbar message."""
+        self.app_page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
         self.app_page.update()
 
 

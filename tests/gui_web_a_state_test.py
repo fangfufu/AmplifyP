@@ -31,6 +31,7 @@ async def test_web_state_save_load() -> None:
 
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = True
+    mock_page.window = MagicMock()
 
     # Mock FilePicker class
     mock_file_picker_instance = MagicMock(spec=ft.FilePicker)
