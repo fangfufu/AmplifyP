@@ -802,6 +802,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         for p in non_empty:
             p["active"] = target_active
         self.update_ui()
+        if self.on_change_handler:
+            self.on_change_handler(e)
 
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states."""
