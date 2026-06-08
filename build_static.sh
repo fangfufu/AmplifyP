@@ -50,7 +50,8 @@ cp -R "${SCRIPT_DIR}/src/assets/images/"* "${DIST_DIR}/images/" || true
 cp -R "${SCRIPT_DIR}/src/assets/images/"* "${DIST_DIR}/assets/images/" || true
 
 echo "==> Replacing Flet loading animation with app icon..."
-cp "${SCRIPT_DIR}/src/assets/images/icon.png" "${DIST_DIR}/icons/loading-animation.png" || true
+mkdir -p "${DIST_DIR}/icons"
+cp "${SCRIPT_DIR}/src/assets/images/icon.png" "${DIST_DIR}/icons/loading-animation.png"
 
 echo "==> Build complete: ${DIST_DIR}"
 echo "    To serve locally:"
