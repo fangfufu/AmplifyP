@@ -221,6 +221,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.load_primers_button = ft.FilledTonalButton(
+            "Load Primers",
+            icon=ft.Icons.FILE_OPEN,
+            on_click=self._load_primers_click,
+            tooltip="Load primers from CSV/TSV",
+            height=32,
+        )
+
         # Primer Info Panel UI Components
         self.info_header = ft.Container(
             content=ft.Text(
@@ -293,7 +301,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 ft.Row(
                     [
                         ft.Text("Primers", weight=ft.FontWeight.BOLD),
-                        self.clear_primers_button,
+                        ft.Row(
+                            [
+                                self.load_primers_button,
+                                self.clear_primers_button,
+                            ],
+                            spacing=8,
+                        ),
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     height=40,
@@ -931,6 +945,81 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         except Exception:
             self.primer_info_panel.visible = False
 
+        self.app_page.update()
+
+    async def _load_primers_click(self, e: ft.ControlEvent) -> None:
+        """Open file picker to load primers from CSV/TSV file."""
+        try:
+            files = await ft.FilePicker().pick_files(
+                dialog_title="Load Primers",
+                allowed_extensions=["csv", "tsv", "txt"],
+                file_type=ft.FilePickerFileType.CUSTOM,
+                with_data=True,
+            )
+            if not files:
+                return
+
+            file = files[0]
+            if file.bytes is not None:
+                content = file.bytes.decode("utf-8")
+            else:
+                if not file.path:
+                    self._show_snackbar("Error: Could not read file content.")
+                    return
+                with open(file.path, encoding="utf-8") as f:
+                    content = f.read()
+
+            loaded_count = 0
+            for line in content.strip().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+
+                if "\t" in line:
+                    delimiter = "\t"
+                else:
+                    delimiter = ","
+
+                parts = line.split(delimiter, 1)
+                if len(parts) != 2:
+                    continue
+
+                name = parts[0].strip()
+                seq = parts[1].strip()
+
+                if not name or not seq:
+                    continue
+
+                try:
+                    from amplifyp.dna import Primer
+
+                    Primer(sequence=seq, name=name)
+                except ValueError:
+                    continue
+
+                self.input_data.primers.append(
+                    {
+                        "name": name,
+                        "seq": seq,
+                        "active": True,
+                    }
+                )
+                loaded_count += 1
+
+            if loaded_count > 0:
+                self.update_ui()
+                if self.on_change_handler:
+                    self.on_change_handler(None)
+                self._show_snackbar(f"Loaded {loaded_count} primer(s).")
+            else:
+                self._show_snackbar("No valid primers found in file.")
+
+        except Exception as ex:
+            self._show_snackbar(f"Error loading file: {ex}")
+
+    def _show_snackbar(self, message: str) -> None:
+        """Show a snackbar message."""
+        self.app_page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
         self.app_page.update()
 
 
