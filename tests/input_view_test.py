@@ -532,3 +532,126 @@ def test_input_view_block_invalid_primer() -> None:
     row0 = view.primers_list.controls[0].content
     checkbox0 = row0.controls[0].content
     assert checkbox0.value is True
+
+
+def test_header_checkbox_indeterminate_empty() -> None:
+    """Test header checkbox is indeterminate when primer list is empty."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+
+    assert view.primer_input.all_primers_checkbox.value is None
+
+
+def test_header_checkbox_all_active() -> None:
+    """Test header checkbox is checked when all primers are active."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is True
+
+
+def test_header_checkbox_all_inactive() -> None:
+    """Test header checkbox is unchecked when all primers are inactive."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": False},
+        {"name": "P2", "seq": "TTTTT", "active": False},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is False
+
+
+def test_header_checkbox_mixed() -> None:
+    """Test header checkbox is indeterminate when some primers are active."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": False},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is None
+
+
+def test_header_checkbox_click_all_active() -> None:
+    """Test clicking header checkbox when all active deselects all."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is True
+
+    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
+
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
+    assert all(not p["active"] for p in non_empty)
+    assert view.primer_input.all_primers_checkbox.value is False
+
+
+def test_header_checkbox_click_partial() -> None:
+    """Test clicking header checkbox when not all active selects all."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": False},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is None
+
+    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
+
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
+    assert all(p["active"] for p in non_empty)
+    assert view.primer_input.all_primers_checkbox.value is True
+
+
+def test_header_checkbox_click_all_inactive() -> None:
+    """Test clicking header checkbox when all inactive selects all."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": False},
+        {"name": "P2", "seq": "TTTTT", "active": False},
+    ]
+    view = InputView(mock_page, input_data)
+    view.sync_to_state()
+
+    assert view.primer_input.all_primers_checkbox.value is False
+
+    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
+
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
+    assert all(p["active"] for p in non_empty)
+    assert view.primer_input.all_primers_checkbox.value is True
