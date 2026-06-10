@@ -32,6 +32,8 @@ optional-dependencies.tests = [
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
   "requests>=2.34.2",
+  "pytesseract>=0.3.13",
+  "pillow>=10.4.0",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
