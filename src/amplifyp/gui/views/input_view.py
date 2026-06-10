@@ -595,12 +595,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
 
-        # Only append a trailing empty row if there are no invalid primers
+        # Only append a trailing empty row if there are no invalid primers.
+        # Only consider primers with both name and sequence filled as "invalid"
+        # for this purpose, so that incomplete rows don't block adding new
+        # primers.
         any_invalid = False
         for p in clean_primers:
             name_val = p.get("name", "")
             seq_val = p.get("seq", "")
-            if seq_val:
+            if name_val and seq_val:
                 try:
                     from amplifyp.dna import Primer
 
