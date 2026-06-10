@@ -69,11 +69,12 @@ def build_app() -> None:
 
     print("==> Building static site...")
     # Run flet publish
-    flet_path = shutil.which("flet")
-    if not flet_path:
-        # Fallback to venv path if not in PATH
-        flet_bin = "flet.exe" if os.name == "nt" else "flet"
-        flet_path = os.path.join(os.path.dirname(sys.executable), flet_bin)
+    flet_bin = "flet.exe" if os.name == "nt" else "flet"
+    venv_flet = os.path.join(os.path.dirname(sys.executable), flet_bin)
+    if os.path.exists(venv_flet):
+        flet_path = venv_flet
+    else:
+        flet_path = shutil.which("flet") or venv_flet
 
     subprocess.run(  # noqa: S603
         [flet_path, "publish", "src/main.py", "--distpath", DIST_DIR],

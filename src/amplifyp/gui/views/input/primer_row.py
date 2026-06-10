@@ -9,6 +9,7 @@
 """A single row representing a primer in the list."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors
@@ -38,6 +39,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         is_last_row: bool,
         is_penultimate_row: bool,
     ) -> None:
+        """Initialize the PrimerRow."""
         super().__init__(
             data=idx,
             bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
@@ -162,14 +164,16 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.on_click = lambda e: on_row_click(idx, self.name_field)
 
-    def update_highlight_and_reorder(self, is_focused: bool, is_dup: bool) -> None:
+    def update_highlight_and_reorder(
+        self, is_focused: bool, is_dup: bool
+    ) -> None:
         """Update the background color and reorder buttons layout."""
         if is_focused:
             self.bgcolor = GUIColors.SELECTED_ROW_BG
         elif is_dup:
             self.bgcolor = GUIColors.DUPLICATE_BG
         else:
-            self.bgcolor = None
+            self.bgcolor = None  # type: ignore[assignment]
 
         if self.reorder_container is not None:
             self.reorder_container.visible = is_focused
@@ -178,20 +182,26 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             )
 
     def set_error(self, err: str | None) -> None:
-        """Set or clear the error message on the sequence field and adjust height."""
+        """Set or clear the error message.
+
+        Also adjusts the sequence field and container height.
+        """
         self.seq_field.error = err
         self.seq_field.height = 30 if not err else None
         self.height = 30 if not err else None
 
     @staticmethod
     def validate(name: str, seq: str) -> str | None:
-        """Validate a primer sequence and name, returning an error message if invalid."""
+        """Validate a primer sequence and name.
+
+        Returns an error message if the primer is invalid.
+        """
         if not seq:
             return None
         try:
             from amplifyp.dna import Primer
+
             Primer(sequence=seq, name=name)
             return None
         except ValueError as ex:
             return str(ex)
-

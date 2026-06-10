@@ -29,7 +29,10 @@ from .primer_drawing import DrawnPrimer
 
 
 class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
-    """Custom control encapsulating the PCR diagram canvas, stack, and resizer."""
+    """Custom control encapsulating the PCR diagram canvas, stack, and resizer.
+
+    This wraps the Canvas and GestureDetector elements.
+    """
 
     def __init__(
         self,
@@ -106,7 +109,10 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
         self.divider.visible = False
 
     def render_diagram(self, pcr: PCR) -> None:
-        """Perform coordinates calculations and render baseline, primers, amplicons."""
+        """Perform coordinates calculations and render diagram elements.
+
+        This draws baseline, primers, and amplicons.
+        """
         num_amplicons = len(pcr.amplicons)
         if num_amplicons == 0:
             self.reset_ui()
@@ -343,7 +349,7 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=start_idx, c=fwd_conf, v=fwd_var: (
+                on_click=lambda n=name, idx=start_idx, c=fwd_conf, v=fwd_var: (  # type: ignore[misc]
                     self.on_primer_click(n, idx, c, v)
                 ),
             )
@@ -361,7 +367,7 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=end_idx, c=rev_conf, v=rev_var: (
+                on_click=lambda n=name, idx=end_idx, c=rev_conf, v=rev_var: (  # type: ignore[misc]
                     self.on_primer_click(n, idx, c, v)
                 ),
             )
@@ -387,6 +393,6 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
                 v_target=v_target,
                 c_width=c_width,
                 settings=self.settings,
-                on_click=lambda a=amp: self.on_amplicon_click(a),
+                on_click=lambda a=amp: self.on_amplicon_click(a),  # type: ignore[misc]
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)

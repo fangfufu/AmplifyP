@@ -15,6 +15,10 @@
 
 """Utility functions for sequence handling and state serialization."""
 
+import threading
+from collections.abc import Callable
+from typing import Any
+
 import flet as ft
 import yaml
 
@@ -120,3 +124,61 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     page.overlay.append(dialog)
     dialog.open = True
     page.update()
+
+
+class Debouncer:
+    """A thread-based debounce helper for delaying UI actions."""
+
+    def __init__(self, delay_seconds: float = 0.15) -> None:
+        """Initialize the Debouncer."""
+        self.delay_seconds = delay_seconds
+        self._timer: threading.Timer | None = None
+
+    def trigger(self, callback: Callable[[], None]) -> None:
+        """Trigger the callback after the specified delay.
+
+        Any pending callback is cancelled.
+        """
+        self.cancel()
+
+        self._timer = threading.Timer(self.delay_seconds, callback)
+        self._timer.daemon = True
+        try:
+            self._timer.start()
+        except RuntimeError:
+            self._timer = None
+            callback()
+
+    def cancel(self) -> None:
+        """Cancel any pending callback execution."""
+        if self._timer is not None:
+            self._timer.cancel()
+            self._timer = None
+
+
+def initialize_score_fields(
+    settings_map: dict[str, Any],
+    prefix: str,
+    row_headers: list[str],
+    col_headers: list[str],
+    on_change_handler: Any,
+    font_size: int,
+) -> None:
+    """Initialize a grid of text fields for a score table in settings_map."""
+    from amplifyp.gui.settings import GUIColors
+
+    for r_char in row_headers:
+        for c_char in col_headers:
+            key = f"{prefix}_{r_char}_{c_char}"
+            settings_map[key] = ft.TextField(
+                value="0",
+                on_change=on_change_handler,
+                text_align=ft.TextAlign.CENTER,
+                dense=True,
+                width=48,
+                height=36,
+                content_padding=4,
+                text_style=ft.TextStyle(
+                    color=GUIColors.DIAGRAM_BLACK, size=font_size
+                ),
+            )

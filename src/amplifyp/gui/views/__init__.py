@@ -18,9 +18,9 @@
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 
-from .input_view import InputView
-from .primer_dimer_view import PrimerDimerView
-from .result_view import ResultView
+from .input import InputView
+from .primer_dimer import PrimerDimerView
+from .result import ResultView
 from .settings_view import SettingsView
 
 __all__ = [
