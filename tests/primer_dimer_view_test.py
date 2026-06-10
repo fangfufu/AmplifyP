@@ -22,7 +22,7 @@ import pytest
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.primer_dimer_view import PrimerDimerView
+from amplifyp.gui.views.primer_dimer import PrimerDimerView
 from amplifyp.settings import PrimerDimerSettings
 
 
