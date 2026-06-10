@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.result_view import ResultView
+from amplifyp.gui.views.result import ResultView
 
 
 def test_result_view_click_context_map() -> None:
