@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.input_view import InputView
+from amplifyp.gui.views.input import InputView
 
 
 def test_input_view_row_boxes_editing() -> None:

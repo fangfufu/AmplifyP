@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 import flet as ft
 import yaml
 
-from amplifyp.gui.views.input_view import InputView
+from amplifyp.gui.views.input import InputView
 from amplifyp.gui.views.settings_view import SettingsView
 
 
