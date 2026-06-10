@@ -180,7 +180,7 @@ def main(page: ft.Page) -> None:
 
         try:
             file_path = await ft.FilePicker().save_file(
-                dialog_title="Save",
+                dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
@@ -200,7 +200,7 @@ def main(page: ft.Page) -> None:
     async def load_state(e: ft.ControlEvent) -> None:
         try:
             files = await ft.FilePicker().pick_files(
-                dialog_title="Load",
+                dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 with_data=True,
@@ -285,20 +285,20 @@ def main(page: ft.Page) -> None:
     settings_button.content_description = "Settings"
 
     save_btn_control = ft.FilledButton(
-        "Save",
+        "Save all",
         icon=ft.Icons.SAVE,
-        tooltip="Save",
+        tooltip="Save all",
         on_click=save_state,
     )
-    save_btn_control.content_description = "Save"
+    save_btn_control.content_description = "Save all"
 
     load_btn_control = ft.FilledButton(
-        "Load",
+        "Load all",
         icon=ft.Icons.UPLOAD_FILE,
-        tooltip="Load",
+        tooltip="Load all",
         on_click=load_state,
     )
-    load_btn_control.content_description = "Load"
+    load_btn_control.content_description = "Load all"
 
     page.appbar = ft.AppBar(
         title=ft.Row(
