@@ -236,16 +236,22 @@ def main(page: ft.Page) -> None:
         on_tap=on_version_click,
     )
 
-    async def save_state(e: ft.ControlEvent) -> None:
-        input_view.sync_to_state()
-        settings_view.sync_to_state()
-        combined: dict[str, object] = {
-            "input": input_data.to_dict(),
-            "settings": settings.to_dict(),
-        }
-        yaml_str = serialize_state(combined)
+    filepicker_open = False
 
+    async def save_state(e: ft.ControlEvent) -> None:
+        nonlocal filepicker_open
+        if filepicker_open:
+            return
+        filepicker_open = True
         try:
+            input_view.sync_to_state()
+            settings_view.sync_to_state()
+            combined: dict[str, object] = {
+                "input": input_data.to_dict(),
+                "settings": settings.to_dict(),
+            }
+            yaml_str = serialize_state(combined)
+
             file_path = await ft.FilePicker().save_file(
                 dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
@@ -263,8 +269,14 @@ def main(page: ft.Page) -> None:
                 show_snackbar("State saved successfully!")
         except Exception as ex:
             show_snackbar(f"Error saving state: {ex}")
+        finally:
+            filepicker_open = False
 
     async def load_state(e: ft.ControlEvent) -> None:
+        nonlocal filepicker_open
+        if filepicker_open:
+            return
+        filepicker_open = True
         try:
             files = await ft.FilePicker().pick_files(
                 dialog_title="Load all",
@@ -308,6 +320,8 @@ def main(page: ft.Page) -> None:
             tb = traceback.format_exc()
             print("LOAD STATE ERROR:", tb)
             show_snackbar(f"Error loading state: {ex}")
+        finally:
+            filepicker_open = False
 
     view_container = ft.Container(content=input_view, expand=True, padding=10)
 
