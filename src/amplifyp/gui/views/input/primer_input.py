@@ -169,7 +169,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         res = name_edit.focus()
         if inspect.iscoroutine(res):
             if self.app_page:
-                self.app_page.run_task(lambda: res)
+                self.app_page.run_task(res)
 
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
