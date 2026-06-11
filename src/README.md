@@ -65,3 +65,13 @@ Run the test suite using `pytest` to verify correctness:
 # Run unit and integration tests
 pytest
 ```
+
+## Updating the Version Number
+
+When releasing a new version of AmplifyP, you must update the version string in
+two locations:
+
+1. **`pyproject.toml`**: Update the `version` field under `[project]` (e.g.,
+   `version = "v0.6.7"`).
+1. **`src/amplifyp/__init__.py`**: Update the `__version__` variable (e.g.,
+   `__version__ = "v0.6.7"`).
