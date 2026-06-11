@@ -90,6 +90,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
+            self._build_version_info_tile(),
             ft.Divider(),
             self._build_action_buttons(),
         ]
@@ -275,3 +276,51 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.settings.from_dict(state)
         self.update_ui()
         self.app_page.update()
+
+    def _build_version_info_tile(self) -> ft.ExpansionTile:
+        """Build a tile showing the version string and full Git SHA."""
+        from amplifyp.gui.util import get_full_sha, get_version
+
+        full_sha = get_full_sha()
+        app_version = get_version()
+        header_size = self.settings.get("font_size_header", 18)
+
+        return ft.ExpansionTile(
+            title=ft.Text(
+                "About AmplifyP",
+                weight=ft.FontWeight.BOLD,
+                size=header_size,
+            ),
+            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
+            controls=[
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Row(
+                                [
+                                    ft.Text(
+                                        "Version: ", weight=ft.FontWeight.BOLD
+                                    ),
+                                    ft.Text(app_version, selectable=True),
+                                ],
+                                alignment=ft.MainAxisAlignment.START,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                            ft.Row(
+                                [
+                                    ft.Text(
+                                        "Full Git SHA: ",
+                                        weight=ft.FontWeight.BOLD,
+                                    ),
+                                    ft.Text(full_sha, selectable=True),
+                                ],
+                                alignment=ft.MainAxisAlignment.START,
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                        ],
+                        spacing=5,
+                    ),
+                    padding=ft.Padding(20, 10, 20, 10),
+                )
+            ],
+        )

@@ -189,6 +189,24 @@ def initialize_score_fields(
 def get_git_sha() -> str:
     """Get the short git commit SHA (7 chars), or 'unknown' if not available."""
     try:
+        from amplifyp.gui.git_sha import GIT_SHA
+
+        if GIT_SHA and GIT_SHA != "unknown":
+            return str(GIT_SHA)
+    except ImportError:
+        pass
+
+    try:
+        import js
+
+        if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
+            sha = str(js.window.__APP_SHA__)
+            if sha and sha != "unknown":
+                return sha
+    except Exception:  # noqa: S110
+        pass
+
+    try:
         result = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],  # noqa: S607
             capture_output=True,
@@ -242,6 +260,24 @@ def get_git_sha() -> str:
 def get_full_sha() -> str:
     """Get the full git commit SHA (40 chars), or 'unknown' if not available."""
     try:
+        from amplifyp.gui.git_sha import GIT_FULL_SHA
+
+        if GIT_FULL_SHA and GIT_FULL_SHA != "unknown":
+            return str(GIT_FULL_SHA)
+    except ImportError:
+        pass
+
+    try:
+        import js
+
+        if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
+            sha = str(js.window.__APP_SHA__)
+            if sha and sha != "unknown":
+                return sha
+    except Exception:  # noqa: S110
+        pass
+
+    try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],  # noqa: S607
             capture_output=True,
@@ -287,11 +323,14 @@ def get_full_sha() -> str:
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
     try:
-        from importlib.metadata import version
-
-        pkg_version = version("amplifyp")
+        from amplifyp import __version__ as pkg_version
     except Exception:
-        pkg_version = "unknown"
+        try:
+            from importlib.metadata import version
+
+            pkg_version = version("amplifyp")
+        except Exception:
+            pkg_version = "unknown"
 
     git_sha = get_git_sha()
     return f"{pkg_version} ({git_sha})"

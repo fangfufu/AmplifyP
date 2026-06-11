@@ -16,9 +16,7 @@
 """End-to-End tests for the static web version of the GUI."""
 
 import os
-import shutil
 import subprocess
-import sys
 import threading
 import time
 from collections.abc import Generator
@@ -52,36 +50,14 @@ if not Page:
 
 @pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
 def build_app() -> None:
-    """Build the Flet static app.
-
-    This mimics the logic in `build_static.sh`.
-    """
-    # Ensure dist dir is clean
-    if os.path.exists(DIST_DIR):
-        shutil.rmtree(DIST_DIR)
-
-    # Clear pyc cache so flet publish packages fresh source, not stale
-    # bytecode from a previous build.
-    for root, dirs, _ in os.walk("src"):
-        for d in dirs:
-            if d == "__pycache__":
-                shutil.rmtree(os.path.join(root, d), ignore_errors=True)
-
-    print("==> Building static site...")
-    # Run flet publish
-    flet_bin = "flet.exe" if os.name == "nt" else "flet"
-    venv_flet = os.path.join(os.path.dirname(sys.executable), flet_bin)
-    if os.path.exists(venv_flet):
-        flet_path = venv_flet
-    else:
-        flet_path = shutil.which("flet") or venv_flet
-
+    """Build the Flet static app using build_static.sh."""
+    print("==> Building static site using build_static.sh...")
+    script_path = os.path.join(os.getcwd(), "build_static.sh")
     subprocess.run(  # noqa: S603
-        [flet_path, "publish", "src/main.py", "--distpath", DIST_DIR],
+        [script_path],
         check=True,
         capture_output=True,
     )
-
     assert os.path.exists(os.path.join(DIST_DIR, "index.html"))
 
 

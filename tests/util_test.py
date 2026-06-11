@@ -53,3 +53,36 @@ def test_show_error_dialog() -> None:
 
     # Verify dialog was cleaned up and removed from overlay
     assert dialog not in mock_page.overlay
+
+
+def test_get_version_and_sha() -> None:
+    """Test get_git_sha, get_full_sha, and get_version."""
+    import sys
+    from unittest.mock import MagicMock, patch
+
+    from amplifyp.gui.util import get_full_sha, get_git_sha, get_version
+
+    # Test under mocked 'amplifyp.gui.git_sha' module
+    mock_git_sha = MagicMock()
+    mock_git_sha.GIT_SHA = "pkgsha"
+    mock_git_sha.GIT_FULL_SHA = "pkgfullsha"
+    with patch.dict(sys.modules, {"amplifyp.gui.git_sha": mock_git_sha}):
+        assert get_git_sha() == "pkgsha"
+        assert get_full_sha() == "pkgfullsha"
+
+    # Test under mocked 'js' module
+    mock_js = MagicMock()
+    mock_js.window = MagicMock()
+    mock_js.window.__APP_SHA__ = "mockedsha"
+
+    # Hide amplifyp.gui.git_sha to test js fallback
+    with patch.dict(sys.modules, {"amplifyp.gui.git_sha": None, "js": mock_js}):
+        # Trigger module reload if needed, or intercept imports
+        assert get_git_sha() == "mockedsha"
+        assert get_full_sha() == "mockedsha"
+
+    # Test get_version uses __version__ defined in __init__.py
+    from amplifyp import __version__
+
+    version_str = get_version()
+    assert __version__ in version_str
