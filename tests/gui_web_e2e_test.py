@@ -496,10 +496,12 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
     fill_field_reliably(page, NAME_SEL, name, use_last=True)
-    page.keyboard.press("Tab")
-    time.sleep(0.5)
+    time.sleep(0.3)
 
     page.wait_for_selector(SEQ_SEL, state="attached", timeout=60000)
     fill_field_reliably(page, SEQ_SEL, seq, use_last=True)
-    page.keyboard.press("Enter")
+    time.sleep(0.3)
+
+    # Submit the sequence field (not the name field) to trigger primer creation
+    page.locator(SEQ_SEL).last.press("Enter")
     time.sleep(5)
