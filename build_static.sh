@@ -31,13 +31,15 @@ echo "==> Building static site..."
 # Clean up temporary root assets files
 rm -f "${SCRIPT_DIR}/src/assets/icon.png" "${SCRIPT_DIR}/src/assets/favicon.png" || true
 
-echo "==> Injecting browser unload warning script..."
+echo "==> Injecting browser unload warning script and git SHA..."
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+echo "${GIT_SHA}" > "${DIST_DIR}/.git-sha"
 "${SCRIPT_DIR}/.venv/bin/python" -c "
 import pathlib
 index_path = pathlib.Path('${DIST_DIR}/index.html')
 if index_path.exists():
     content = index_path.read_text(encoding='utf-8')
-    js_snippet = '<script>\nwindow.addEventListener(\"beforeunload\", (event) => {\n    event.preventDefault();\n    event.returnValue = \"\";\n});\n</script>\n'
+    js_snippet = '<script>\nwindow.addEventListener(\"beforeunload\", (event) => {\n    event.preventDefault();\n    event.returnValue = \"\";\n});\nwindow.__APP_SHA__ = \"${GIT_SHA}\";\n</script>\n'
     if '</head>' in content and js_snippet not in content:
         content = content.replace('</head>', js_snippet + '</head>')
         index_path.write_text(content, encoding='utf-8')

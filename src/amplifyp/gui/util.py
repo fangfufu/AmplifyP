@@ -15,6 +15,8 @@
 
 """Utility functions for sequence handling and state serialization."""
 
+import os
+import subprocess
 import threading
 from collections.abc import Callable
 from typing import Any
@@ -182,3 +184,114 @@ def initialize_score_fields(
                     color=GUIColors.DIAGRAM_BLACK, size=font_size
                 ),
             )
+
+
+def get_git_sha() -> str:
+    """Get the short git commit SHA (7 chars), or 'unknown' if not available."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass
+
+    try:
+        git_dir = os.path.join(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                )
+            ),
+            ".git",
+        )
+        head_path = os.path.join(git_dir, "HEAD")
+        if os.path.exists(head_path):
+            with open(head_path) as f:
+                head_content = f.read().strip()
+            if head_content.startswith("ref: refs/heads/"):
+                ref_path = head_content.replace("ref: refs/heads/", "")
+                ref_file = os.path.join(git_dir, ref_path)
+                if os.path.exists(ref_file):
+                    with open(ref_file) as f:
+                        full_sha = f.read().strip()
+                    return full_sha[:7]
+            else:
+                return head_content[:7]
+    except OSError:
+        pass
+
+    try:
+        dist_sha_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "..", "..", ".git-sha"
+        )
+        dist_sha_path = os.path.normpath(dist_sha_path)
+        if os.path.exists(dist_sha_path):
+            with open(dist_sha_path) as f:
+                return f.read().strip()
+    except OSError:
+        pass
+
+    return "unknown"
+
+
+def get_full_sha() -> str:
+    """Get the full git commit SHA (40 chars), or 'unknown' if not available."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        pass
+
+    try:
+        git_dir = os.path.join(
+            os.path.dirname(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                )
+            ),
+            ".git",
+        )
+        for ref in ("refs/heads/main", "refs/heads/master"):
+            ref_file = os.path.join(git_dir, ref)
+            if os.path.exists(ref_file):
+                with open(ref_file) as f:
+                    return f.read().strip()
+    except OSError:
+        pass
+
+    try:
+        dist_sha_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "..", "..", ".git-sha"
+        )
+        dist_sha_path = os.path.normpath(dist_sha_path)
+        if os.path.exists(dist_sha_path):
+            with open(dist_sha_path) as f:
+                return f.read().strip()
+    except OSError:
+        pass
+
+    return "unknown"
+
+
+def get_version() -> str:
+    """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
+    try:
+        from importlib.metadata import version
+
+        pkg_version = version("amplifyp")
+    except Exception:
+        pkg_version = "unknown"
+
+    git_sha = get_git_sha()
+    return f"{pkg_version} ({git_sha})"
