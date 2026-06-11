@@ -506,5 +506,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _show_snackbar(self, message: str) -> None:
         """Show a snackbar message."""
-        self.app_page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
+        if not hasattr(self, "_snack_bar"):
+            self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
+            self.app_page.overlay.append(self._snack_bar)
+        self._snack_bar.content = ft.Text(message)
+        self._snack_bar.open = True
         self.app_page.update()
