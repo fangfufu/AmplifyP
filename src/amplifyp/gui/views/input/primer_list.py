@@ -46,7 +46,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
 
-        # Always append a trailing empty row
         clean_primers.append({"name": "", "seq": "", "active": False})
         self.primer_input.input_data.primers = clean_primers
 
@@ -103,6 +102,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 handle_field_submit=self.primer_input.handle_field_submit,
                 on_row_click=self.primer_input._handle_row_click,
                 on_move_primer=self.primer_input._move_primer,
+                on_delete_primer=self.primer_input._delete_primer,
                 on_divider_pan=self.primer_input._on_primer_divider_pan,
                 is_focused=is_focused,
                 is_last_row=is_last_row,
@@ -152,5 +152,5 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                         reorder_container.visible = is_focused
                         if isinstance(seq_edit, ft.TextField):
                             seq_edit.content_padding = ft.Padding(
-                                5, 0, 60 if is_focused else 0, 0
+                                5, 0, 90 if is_focused else 0, 0
                             )

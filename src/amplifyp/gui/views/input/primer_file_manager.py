@@ -36,9 +36,7 @@ class PrimerFileManager:
         self.show_snackbar = show_snackbar
 
     def _parse_primers_from_text(self, content: str) -> list[dict[str, Any]]:
-        """Parse primers from CSV/TSV content, validating sequence and name."""
-        from amplifyp.dna import Primer
-
+        """Parse primers from CSV/TSV content."""
         parsed_primers = []
         for line in content.strip().splitlines():
             line = line.strip()
@@ -57,12 +55,7 @@ class PrimerFileManager:
             name = parts[0].strip()
             seq = parts[1].strip()
 
-            if not name or not seq:
-                continue
-
-            try:
-                Primer(sequence=seq, name=name)
-            except ValueError:
+            if not name and not seq:
                 continue
 
             parsed_primers.append(
@@ -75,7 +68,7 @@ class PrimerFileManager:
         return parsed_primers
 
     def _serialize_primers_to_csv(self, primers: list[dict[str, Any]]) -> str:
-        """Serialize active primers list to a CSV string."""
+        """Serialize primers list to a CSV string."""
         output = io.StringIO()
         writer = csv.writer(output)
         for p in primers:
@@ -123,15 +116,17 @@ class PrimerFileManager:
             self.show_snackbar(f"Error loading file: {ex}")
 
     async def save_primers_click(self, e: ft.ControlEvent) -> None:
-        """Save active primers to a CSV file."""
-        active_primers = [
-            p for p in self.input_data.primers if p.get("active", True)
+        """Save primers to a CSV file."""
+        primers_to_save = [
+            p
+            for p in self.input_data.primers
+            if str(p.get("name", "")).strip() or str(p.get("seq", "")).strip()
         ]
-        if not active_primers:
-            self.show_snackbar("No active primers to save.")
+        if not primers_to_save:
+            self.show_snackbar("No primers to save.")
             return
 
-        csv_content = self._serialize_primers_to_csv(active_primers)
+        csv_content = self._serialize_primers_to_csv(primers_to_save)
 
         try:
             file_path = await ft.FilePicker().save_file(
@@ -148,6 +143,6 @@ class PrimerFileManager:
                     return
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(csv_content)
-                self.show_snackbar(f"Saved {len(active_primers)} primer(s).")
+                self.show_snackbar(f"Saved {len(primers_to_save)} primer(s).")
         except Exception as ex:
             self.show_snackbar(f"Error saving file: {ex}")

@@ -202,6 +202,30 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if self.on_change_handler:
                 self.on_change_handler(None)
 
+    def _delete_primer(self, idx: int) -> None:
+        """Delete primer at idx."""
+        parent_view = getattr(self.on_change_handler, "__self__", None)
+        if parent_view is not None:
+            if getattr(parent_view, "_focus_debouncer", None) is not None:
+                parent_view._focus_debouncer.cancel()
+            parent_view._skip_blur_timer = True
+
+        self.sync_to_state(rebuild_if_needed=False)
+        primers = self.input_data.primers
+        if 0 <= idx < len(primers):
+            primers.pop(idx)
+            if self.focused_primer_index == idx:
+                self.focused_primer_index = None
+            elif (
+                self.focused_primer_index is not None
+                and self.focused_primer_index > idx
+            ):
+                self.focused_primer_index -= 1
+
+            self.update_ui()
+            if self.on_change_handler:
+                self.on_change_handler(None)
+
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
         """Extract primer data from UI controls."""
         ui_primers = []
@@ -258,14 +282,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if getattr(self, "validation_errors", []) != new_validation_errors:
             should_rebuild = True
 
-        # If the number of non-empty primers changed, we rebuild
-        if len(primers) != len(
-            [
-                p
-                for p in self.input_data.primers
-                if p.get("name", "").strip() or p.get("seq", "").strip()
-            ]
-        ):
+        # Rebuild if the number of controls in the UI doesn't match the
+        # expected rows (filtered + 1 trailing empty row)
+        expected_rows = len(filtered_ui_primers) + 1
+        if len(self.primers_list.controls) != expected_rows:
             should_rebuild = True
 
         self.input_data.primers = primers

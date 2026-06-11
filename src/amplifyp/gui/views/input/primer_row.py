@@ -35,6 +35,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         handle_field_submit: Any,
         on_row_click: Any,
         on_move_primer: Any,
+        on_delete_primer: Any,
         on_divider_pan: Any,
         is_focused: bool,
         is_last_row: bool,
@@ -80,7 +81,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             content_padding=ft.Padding(
                 5,
                 0,
-                60 if is_focused and not is_last_row else 0,
+                90 if is_focused and not is_last_row else 0,
                 0,
             ),
             height=30 if not seq_error else None,
@@ -143,8 +144,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 disabled=is_penultimate_row,
                 on_click=lambda e: on_move_primer(idx, 1),
             )
+            delete_button = ft.IconButton(
+                icon=ft.Icons.DELETE_OUTLINE,
+                icon_size=16,
+                width=24,
+                height=24,
+                padding=0,
+                tooltip="Delete Primer",
+                on_click=lambda e: on_delete_primer(idx),
+            )
             self.reorder_controls = ft.Row(
-                [up_button, down_button],
+                [delete_button, up_button, down_button],
                 spacing=2,
                 alignment=ft.MainAxisAlignment.CENTER,
             )
@@ -183,7 +193,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         if self.reorder_container is not None:
             self.reorder_container.visible = is_focused
             self.seq_field.content_padding = ft.Padding(
-                5, 0, 60 if is_focused else 0, 0
+                5, 0, 90 if is_focused else 0, 0
             )
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
