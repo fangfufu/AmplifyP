@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Primer Dimer View for the Flet application."""
+"""Dimer View for the Flet application."""
 
 import traceback
 from typing import Any
@@ -25,11 +25,11 @@ from amplifyp.dna import Primer
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import show_error_dialog
-from amplifyp.gui.views.primer_dimer.primer_dimer_card import PrimerDimerCard
+from amplifyp.gui.views.dimer.dimer_card import DimerCard
 
 
-class PrimerDimerView(ft.Column):  # type: ignore[misc]
-    """View to show calculated primer dimer results."""
+class DimerView(ft.Column):  # type: ignore[misc]
+    """View to show calculated dimer results."""
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the PrimerDimerView."""
+        """Initialize the DimerView."""
         super().__init__(expand=True)
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
@@ -55,7 +55,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
         ]
 
     def run_analysis(self) -> bool:
-        """Run primer dimer analysis and populate the UI."""
+        """Run dimer analysis and populate the UI."""
         self.result_list.controls.clear()
         success = True
         try:
@@ -116,7 +116,7 @@ class PrimerDimerView(ft.Column):  # type: ignore[misc]
                     )
                 font_family = self.settings.get("font_family", "Roboto Mono")
                 for d in display_dimers:
-                    card = PrimerDimerCard(
+                    card = DimerCard(
                         d,
                         self.settings,
                         font_family=font_family,

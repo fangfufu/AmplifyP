@@ -22,8 +22,8 @@ from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
+    DimerView,
     InputView,
-    PrimerDimerView,
     ResultView,
     SettingsView,
 )
@@ -124,8 +124,8 @@ def main(page: ft.Page) -> None:
     def on_pcr_click(e: ft.ControlEvent) -> None:
         """Handle PCR click: run PCR and switch view if successful."""
         nonlocal has_run_pcr, pcr_outdated
-        if result_view.run_pcr():
-            switch_view(e, result_view)
+        if pcr_view.run_pcr():
+            switch_view(e, pcr_view)
             has_run_pcr = True
             pcr_outdated = False
             if pcr_button_ref.current:
@@ -165,7 +165,7 @@ def main(page: ft.Page) -> None:
 
     def run_analysis_in_background() -> None:
         nonlocal has_run_pcr, pcr_outdated
-        result_view.run_pcr()
+        pcr_view.run_pcr()
         dimers_view.run_analysis()
         has_run_pcr = True
         pcr_outdated = False
@@ -195,8 +195,8 @@ def main(page: ft.Page) -> None:
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
-    result_view = ResultView(page, input_data, settings)
-    dimers_view = PrimerDimerView(page, input_data, settings)
+    pcr_view = ResultView(page, input_data, settings)
+    dimers_view = DimerView(page, input_data, settings)
 
     # Save and Load State
     snack_bar = ft.SnackBar(ft.Text(""), open=False)

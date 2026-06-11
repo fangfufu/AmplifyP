@@ -15,7 +15,7 @@ import flet as ft
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings import (
     AppearanceTile,
-    PrimerDimerTile,
+    DimerTile,
     ReplicationTile,
     TmTile,
 )
@@ -68,7 +68,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
-        self.primer_dimer_tile = PrimerDimerTile(
+        self.dimer_tile = DimerTile(
             settings=self.settings,
             settings_map=self.settings_map,
             on_change_handler=self._on_change_handler,
@@ -88,7 +88,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.controls = [
             self.replication_tile,
             self.tm_tile,
-            self.primer_dimer_tile,
+            self.dimer_tile,
             self.appearance_tile,
             ft.Divider(),
             self._build_action_buttons(),
@@ -145,13 +145,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     @property
     def set_pd_min_overlap(self) -> ft.TextField:
-        """Get the primer dimer min overlap text field."""
-        return self.primer_dimer_tile.set_pd_min_overlap
+        """Get the dimer min overlap text field."""
+        return self.dimer_tile.set_pd_min_overlap
 
     @property
     def set_pd_threshold(self) -> ft.TextField:
-        """Get the primer dimer threshold text field."""
-        return self.primer_dimer_tile.set_pd_threshold
+        """Get the dimer threshold text field."""
+        return self.dimer_tile.set_pd_threshold
 
     @property
     def set_font_family(self) -> ft.Dropdown:

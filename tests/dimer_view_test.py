@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Tests for Primer Dimer View."""
+"""Tests for Dimer View."""
 
 from unittest.mock import MagicMock
 
@@ -22,7 +22,7 @@ import pytest
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.primer_dimer import PrimerDimerView
+from amplifyp.gui.views.dimer import DimerView
 from amplifyp.settings import PrimerDimerSettings
 
 
@@ -43,12 +43,12 @@ def test_get_primer_dimer_settings() -> None:
     assert pd_settings.threshold == pytest.approx(75.0)
 
 
-def test_primer_dimer_view_no_primers() -> None:
-    """Test PrimerDimerView when no primers are active."""
+def test_dimer_view_no_primers() -> None:
+    """Test DimerView when no primers are active."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     settings = GUISettings()
-    view = PrimerDimerView(mock_page, input_data, settings)
+    view = DimerView(mock_page, input_data, settings)
 
     view.run_analysis()
 
@@ -60,8 +60,8 @@ def test_primer_dimer_view_no_primers() -> None:
     assert "No primer dimers detected" in text_control.value
 
 
-def test_primer_dimer_view_with_dimers() -> None:
-    """Test PrimerDimerView runs analysis and populates UI with alignments."""
+def test_dimer_view_with_dimers() -> None:
+    """Test DimerView runs analysis and populates UI with alignments."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     settings = GUISettings()
@@ -75,7 +75,7 @@ def test_primer_dimer_view_with_dimers() -> None:
     settings["pd_min_overlap"] = "3"
     settings["pd_threshold"] = "30.0"
 
-    view = PrimerDimerView(mock_page, input_data, settings)
+    view = DimerView(mock_page, input_data, settings)
     view.run_analysis()
 
     # result_list should contain cards representing matches

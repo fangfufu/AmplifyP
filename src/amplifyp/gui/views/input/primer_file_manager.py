@@ -11,6 +11,7 @@
 import csv
 import io
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
@@ -37,6 +38,7 @@ class PrimerFileManager:
     def _parse_primers_from_text(self, content: str) -> list[dict[str, Any]]:
         """Parse primers from CSV/TSV content, validating sequence and name."""
         from amplifyp.dna import Primer
+
         parsed_primers = []
         for line in content.strip().splitlines():
             line = line.strip()
@@ -149,4 +151,3 @@ class PrimerFileManager:
                 self.show_snackbar(f"Saved {len(active_primers)} primer(s).")
         except Exception as ex:
             self.show_snackbar(f"Error saving file: {ex}")
-

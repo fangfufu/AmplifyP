@@ -6,20 +6,22 @@
 # (at your option) any later version.
 #
 
-"""A Flet component displaying detailed information about a selected DNA primer."""
+"""Flet component displaying details of a selected DNA primer."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings
-from amplifyp.gui.util import clean_sequence
 from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.util import clean_sequence
 
 
 class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
-    """UI Panel to display specific properties (Tm, redundancy, dimers) of a selected primer."""
+    """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
+        """Initialize the PrimerInfoPanel."""
         self.settings = settings
 
         self.info_header = ft.Container(
@@ -158,7 +160,8 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
-            # Check self-dimer and cross-dimer potential against all active primers
+            # Check self-dimer and cross-dimer potential against active
+            # primers
             active_primers = input_data.get_active_primers()
             max_dimer = None
 

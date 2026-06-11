@@ -8,8 +8,9 @@
 
 """TmTile component for Flet settings view."""
 
-import flet as ft
 from typing import Any
+
+import flet as ft
 
 
 class TmTile(ft.ExpansionTile):  # type: ignore[misc]

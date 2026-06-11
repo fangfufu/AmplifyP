@@ -18,16 +18,16 @@
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 
+from .dimer import DimerView
 from .input import InputView
-from .primer_dimer import PrimerDimerView
 from .result import ResultView
 from .settings_view import SettingsView
 
 __all__ = [
+    "DimerView",
     "GUIInput",
     "GUISettings",
     "InputView",
-    "PrimerDimerView",
     "ResultView",
     "SettingsView",
 ]

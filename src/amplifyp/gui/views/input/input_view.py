@@ -8,16 +8,17 @@
 
 """Input view composing DNA Template input and Primer inputs."""
 
-import threading
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence, format_sequence, Debouncer
-from .template_input import TemplateInput
+from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
+
 from .primer_input import PrimerInput
 from .primer_row import PrimerRow
+from .template_input import TemplateInput
 
 
 class InputView(ft.Row):  # type: ignore[misc]
@@ -198,7 +199,8 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.sync_to_state(rebuild_if_needed=False)
 
-        # If the control that blurred has a validation error, update its display immediately.
+        # If the blurred control has a validation error, update its
+        # display immediately.
         if isinstance(e.control, ft.TextField) and e.control.data is not None:
             idx = e.control.data
             if idx < len(self.primer_input.validation_errors):

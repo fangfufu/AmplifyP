@@ -25,7 +25,7 @@ from amplifyp.gui.settings import GUIColors
 
 
 class DrawnAmplicon:
-    """Class representing an amplicon bar drawn on the PCR result diagram canvas."""
+    """Amplicon bar drawn on the PCR result diagram canvas."""
 
     def __init__(
         self,

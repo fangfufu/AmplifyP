@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Primer Dimer Card component."""
+"""Dimer Card component."""
 
 import flet as ft
 
@@ -22,8 +22,8 @@ from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.util import create_overlapped_sequence_view
 
 
-class PrimerDimerCard(ft.Card):  # type: ignore[misc]
-    """Card representing a single primer dimer with sequence alignment."""
+class DimerCard(ft.Card):  # type: ignore[misc]
+    """Card representing a single dimer with sequence alignment."""
 
     def __init__(
         self,
@@ -31,7 +31,7 @@ class PrimerDimerCard(ft.Card):  # type: ignore[misc]
         settings: GUISettings,
         font_family: str = "Roboto Mono",
     ) -> None:
-        """Initialize the PrimerDimerCard."""
+        """Initialize the DimerCard."""
         super().__init__()
         self.d = d
         self.settings = settings
@@ -57,7 +57,7 @@ class PrimerDimerCard(ft.Card):  # type: ignore[misc]
         )
 
     def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
-        """Build the visual alignment container control for a primer dimer."""
+        """Build the visual alignment container control for a dimer."""
         seq1 = self.d.primer_1.seq
         seq2 = self.d.primer_2.seq
 
@@ -90,7 +90,7 @@ class PrimerDimerCard(ft.Card):  # type: ignore[misc]
     def _build_card_header(
         self, font_size_subheader: int, font_size_small: int
     ) -> ft.Row:
-        """Build the header row of the primer dimer card."""
+        """Build the header row of the dimer card."""
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
         seq1 = self.d.primer_1.seq
@@ -118,7 +118,7 @@ class PrimerDimerCard(ft.Card):  # type: ignore[misc]
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColors.TEXT_ON_SURFACE,
                                 size=font_size_small,
-                             ),
+                            ),
                             bgcolor=GUIColors.CONTAINER_HIGHEST,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,

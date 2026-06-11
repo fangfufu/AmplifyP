@@ -212,10 +212,8 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
 @pytest.mark.skipif(
     os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
 )  # type: ignore[untyped-decorator]
-def test_e2e_primer_dimer_alignment(
-    page: Any, serve_app: str, tmp_path: Any
-) -> None:
-    """Test primer dimer alignment and verify monospace alignment using OCR."""
+def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
+    """Test dimer alignment and verify monospace alignment using OCR."""
     # Subscribe to console messages
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 

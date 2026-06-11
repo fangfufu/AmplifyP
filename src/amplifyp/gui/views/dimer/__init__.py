@@ -13,8 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Primer Dimer View components."""
+"""Dimer View components."""
 
-from .primer_dimer_view import PrimerDimerView
+from .dimer_view import DimerView
 
-__all__ = ["PrimerDimerView"]
+__all__ = ["DimerView"]

@@ -6,7 +6,7 @@
 # (at your option) any later version.
 #
 
-"""PrimerDimerTile component for Flet settings view."""
+"""DimerTile component for Flet settings view."""
 
 from typing import Any
 
@@ -15,8 +15,8 @@ import flet as ft
 from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
-class PrimerDimerTile(ft.ExpansionTile):  # type: ignore[misc]
-    """Expansion tile for Primer Dimer settings."""
+class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
+    """Expansion tile for Dimer settings."""
 
     def __init__(
         self,
@@ -28,7 +28,7 @@ class PrimerDimerTile(ft.ExpansionTile):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialize the PrimerDimerTile."""
+        """Initialize the DimerTile."""
         from amplifyp.dna import Nucleotides
 
         self.settings = settings

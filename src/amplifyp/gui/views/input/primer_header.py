@@ -9,6 +9,7 @@
 """Header component for the primers list showing columns and resizing."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings

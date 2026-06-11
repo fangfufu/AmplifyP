@@ -9,6 +9,7 @@
 """Toolbar containing actions for managing primers (Save, Load, Clear)."""
 
 from typing import Any
+
 import flet as ft
 
 
