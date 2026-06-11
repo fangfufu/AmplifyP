@@ -237,7 +237,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
             "color_deficient": False,
-            "dark_mode": False,
+            "dark_mode": "system",
         }
 
         for r_char in Nucleotides.PRIMER:

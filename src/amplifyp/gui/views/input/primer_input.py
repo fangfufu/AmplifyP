@@ -169,15 +169,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         res = name_edit.focus()
         if inspect.iscoroutine(res):
             if self.app_page:
-                self.app_page.run_task(lambda: res)
+                self.app_page.run_task(res)
 
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
         parent_view = getattr(self.on_change_handler, "__self__", None)
         if parent_view is not None:
-            if getattr(parent_view, "_focus_timer", None) is not None:
-                parent_view._focus_timer.cancel()
-                parent_view._focus_timer = None
+            if getattr(parent_view, "_focus_debouncer", None) is not None:
+                parent_view._focus_debouncer.cancel()
             parent_view._skip_blur_timer = True
 
         self.sync_to_state(rebuild_if_needed=False)
@@ -507,5 +506,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _show_snackbar(self, message: str) -> None:
         """Show a snackbar message."""
-        self.app_page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
+        if not hasattr(self, "_snack_bar"):
+            self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
+            self.app_page.overlay.append(self._snack_bar)
+        self._snack_bar.content = ft.Text(message)
+        self._snack_bar.open = True
         self.app_page.update()
