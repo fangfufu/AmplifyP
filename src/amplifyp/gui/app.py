@@ -36,8 +36,6 @@ def main(page: ft.Page) -> None:
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
     page.padding = 0
     page.spacing = 0
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.bg_color = ft.Colors.WHITE
     page.window.icon = "images/icon.png"
 
     # Handle close / reload warnings
@@ -92,6 +90,19 @@ def main(page: ft.Page) -> None:
     pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
+    def apply_theme() -> None:
+        """Apply theme settings (light/dark mode) to the page."""
+        dark_mode = settings.get("dark_mode", False)
+        if dark_mode:
+            page.theme_mode = ft.ThemeMode.DARK
+            page.bg_color = None
+        else:
+            page.theme_mode = ft.ThemeMode.LIGHT
+            page.bg_color = ft.Colors.WHITE
+
+    # Apply initial theme
+    apply_theme()
+
     def on_pcr_click(e: ft.ControlEvent) -> None:
         """Handle PCR click: run PCR and switch view if successful."""
         nonlocal has_run_pcr, pcr_outdated
@@ -144,7 +155,12 @@ def main(page: ft.Page) -> None:
             pcr_button_ref.current.text = "PCR"
         page.update()
 
+    def on_settings_change(e: ft.ControlEvent) -> None:
+        apply_theme()
+        update_pcr_button_state()
+
     def run_apply_settings(e: ft.ControlEvent) -> None:
+        apply_theme()
         run_analysis_in_background()
 
     input_view = InputView(
@@ -157,7 +173,7 @@ def main(page: ft.Page) -> None:
     settings_view = SettingsView(
         page,
         settings,
-        on_change=lambda e: update_pcr_button_state(),
+        on_change=on_settings_change,
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
@@ -234,6 +250,7 @@ def main(page: ft.Page) -> None:
                 input_data.from_dict(parsed_state)
             if "settings" in parsed_state:
                 settings.from_dict(parsed_state["settings"])
+            apply_theme()
             input_view.update_ui()
             settings_view.update_ui()
             update_pcr_button_state()

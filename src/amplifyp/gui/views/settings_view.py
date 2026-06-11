@@ -13,13 +13,13 @@ from typing import Any
 import flet as ft
 
 from amplifyp.gui.settings import GUISettings
-from amplifyp.settings import ReplicationSettings
 from amplifyp.gui.views.settings import (
+    AppearanceTile,
+    PrimerDimerTile,
     ReplicationTile,
     TmTile,
-    PrimerDimerTile,
-    AppearanceTile,
 )
+from amplifyp.settings import ReplicationSettings
 
 
 class SettingsView(ft.ListView):  # type: ignore[misc]
@@ -186,6 +186,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Sync current settings UI controls back to the central state."""
         for k, v in self.settings_map.items():
             self.settings[k] = v.value
+        self.appearance_tile.sync_color_scheme_to_settings()
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
@@ -195,6 +196,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
+        self.appearance_tile.update_color_scheme_dropdown()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
@@ -235,6 +237,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
             "color_deficient": False,
+            "dark_mode": False,
         }
 
         for r_char in Nucleotides.PRIMER:
