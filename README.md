@@ -9,10 +9,11 @@
 
 AmplifyP is a modern, high-performance Python rewrite of William Engels's
 classic [Amplify4](https://github.com/wrengels/Amplify4) tool for simulating
-**Polymerase Chain Reaction (PCR)**. It allows molecular biologists and
-researchers to predict DNA amplification products (amplicons) from a template
-sequence and primer set, accurately factoring in primability, stability, and
-melting properties of primer binding sites.
+**Polymerase Chain Reaction (PCR)**, with a web version available on
+[GitHub Pages](https://fangfufu.github.io/AmplifyP/). It allows molecular
+biologists and researchers to predict DNA amplification products (amplicons)
+from a template sequence and primer set, accurately factoring in primability,
+stability, and melting properties of primer binding sites.
 
 ______________________________________________________________________
 
