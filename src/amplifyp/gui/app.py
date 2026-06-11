@@ -165,8 +165,12 @@ def main(page: ft.Page) -> None:
     dimers_view = PrimerDimerView(page, input_data, settings)
 
     # Save and Load State
+    snack_bar = ft.SnackBar(ft.Text(""), open=False)
+    page.overlay.append(snack_bar)
+
     def show_snackbar(message: str) -> None:
-        page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
+        snack_bar.content = ft.Text(message)
+        snack_bar.open = True
         page.update()
 
     async def save_state(e: ft.ControlEvent) -> None:

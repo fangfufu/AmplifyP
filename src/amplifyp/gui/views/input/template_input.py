@@ -9,6 +9,7 @@
 """Input component for DNA template sequence."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings
@@ -40,7 +41,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             multiline=True,
             expand=True,
             hint_text="Enter DNA sequence here...",
-            content_padding=0,
+            border=ft.InputBorder.NONE,
+            content_padding=10,
             on_change=on_change_handler,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
