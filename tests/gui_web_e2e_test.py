@@ -116,7 +116,11 @@ def serve_app(build_app: None) -> Generator[str, None, None]:
 
 
 def fill_field_reliably(
-    page: Any, selector: str, text: str, delay_ms: int = 100
+    page: Any,
+    selector: str,
+    text: str,
+    delay_ms: int = 100,
+    use_last: bool = False,
 ) -> None:
     """Focus and type text into a Flutter Web text field.
 
@@ -135,7 +139,10 @@ def fill_field_reliably(
        Verification is therefore left to downstream test assertions (e.g.
        checking the downloaded file contains the expected sequence).
     """
-    field = page.locator(selector).first
+    if use_last:
+        field = page.locator(selector).last
+    else:
+        field = page.locator(selector).first
     # force=True bypasses the visibility check from filter:opacity(0%) on the
     # flt-semantics-host parent.
     field.click(force=True)
@@ -144,68 +151,158 @@ def fill_field_reliably(
     time.sleep(0.2)
     field.press_sequentially(text, delay=delay_ms)
     time.sleep(0.3)
-    print(f"  typed '{text}' into {selector}")
+    print(f"  typed '{text}' into {selector} (use_last={use_last})")
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
 )  # type: ignore[untyped-decorator]
-def test_e2e_save_load(page: Any, serve_app: str) -> None:
-    """Test saving and loading state in the web app via Playwright.
+def test_e2e_primer_lifecycle_and_state(
+    page: Any, serve_app: str, tmp_path: Any
+) -> None:
+    """Test full primer lifecycle and state saving/loading.
 
-    This test enables Flutter Web semantics to interact with the DOM elements
-    directly without relying on pixel OCR.
+    Steps:
+      - Add 2 valid primers.
+      - Add 2 invalid primers.
+      - Try and activate invalid primers and make sure they don't get activated.
+      - Save the primer list.
+      - Clear the primer list.
+      - Load the primer list.
+      - Save the state.
+      - Load the state.
     """
-    # Subscribe to console messages
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
     # 1. Navigate to app with semantics enabled
     page.goto(f"{serve_app}/?enable-semantics=true")
-
-    # 2. Wait for loading (Pyodide initialization)
-    print("Waiting for app to load...")
     expect(page).to_have_title("AmplifyP", timeout=120000)
+    wait_for_semantics(page)
 
-    # Wait for the Flutter web engine to initialize and render semantics
-    print("Waiting for Flutter semantics-host to appear...")
-    page.wait_for_selector(
-        "flt-semantics-host", state="attached", timeout=60000
-    )
+    # 2. Add 2 valid primers
+    print("Adding 2 valid primers...")
+    add_primer_to_trailing_row(page, "V1", "ATGCATGCATGCATGC")
+    add_primer_to_trailing_row(page, "V2", "GCATGCATGCATGCAT")
 
-    # 3. Enter State
-    # Activate Flutter accessibility/semantics overlay
-    print("Activating Flutter Web accessibility semantics...")
-    page.wait_for_selector(
-        "flt-semantics-placeholder", state="attached", timeout=30000
-    )
-    page.locator("flt-semantics-placeholder").first.dispatch_event("click")
+    # 3. Add 2 invalid primers
+    print("Adding 2 invalid primers...")
+    add_primer_to_trailing_row(page, "I1", "XYZXYZXYZXYZ")
+    add_primer_to_trailing_row(page, "I2", "ATGCATGCATGCAT-XYZ")
 
-    # Wait for the template field to appear — this confirms the Pyodide worker
-    # has fully initialized and the semantics tree is populated.
-    # (Much more reliable than a fixed sleep.)
+    # 4. Verify checkboxes and try to activate invalid primers
+    # nth(0) is header checkbox, nth(1)=V1, nth(2)=V2, nth(3)=I1, nth(4)=I2
+    print("Verifying checkbox state and attempting to activate invalid ones...")
+    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
+    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
+    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
+    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
+
+    # Try clicking the disabled ones (force=True to bypass click check)
+    page.get_by_role("checkbox").nth(4).click(force=True)
+    page.get_by_role("checkbox").nth(5).click(force=True)
+    time.sleep(1)
+
+    # Ensure they did not get checked/activated
+    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
+    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+
+    # 5. Save the primer list
+    print("Saving active primer list...")
+    save_primers_btn = page.locator("[aria-label*='Save primers']").first
+    with page.expect_download(timeout=20000) as download_info:
+        save_primers_btn.click()
+    download = download_info.value
+    primers_csv_path = tmp_path / "primers_saved.csv"
+    download.save_as(str(primers_csv_path))
+
+    # Verify that all primers (active/valid and inactive/invalid) were exported
+    with open(primers_csv_path, encoding="utf-8") as f:
+        primer_list_content = f.read()
+    assert "V1" in primer_list_content
+    assert "V2" in primer_list_content
+    assert "I1" in primer_list_content
+    assert "I2" in primer_list_content
+
+    # 6. Clear the primer list
+    print("Clearing the primer list...")
+    clear_primers_btn = page.locator("[aria-label*='Clear All Primers']").first
+    clear_primers_btn.click()
+    time.sleep(2)
+
+    # Verify list is empty by checking if only one row (trailing row) is left
+    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+
+    # 7. Load the primer list
+    print("Loading the primer list...")
+    load_primers_btn = page.locator("[aria-label*='Load primers']").first
+    with page.expect_file_chooser() as fc_info:
+        load_primers_btn.click()
+    file_chooser = fc_info.value
+    file_chooser.set_files(str(primers_csv_path))
+    time.sleep(5)
+
+    # Verify loaded primers: V1/V2 checked; I1/I2 disabled and unchecked
+    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
+    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
+    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
+    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
+    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
+    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+
+    # 8. Save the state
+    print("Saving the full state...")
     TEMPLATE_SEL = 'textarea[aria-label="Enter DNA sequence here..."]'
-    page.wait_for_selector(TEMPLATE_SEL, state="attached", timeout=60000)
-
-    # Find the Template Sequence textarea/input field.
-    # Flutter Web uses the hint_text as the aria-label for text fields.
-    # Use a CSS selector so fill_field_reliably can verify via JS evaluation.
     fill_field_reliably(page, TEMPLATE_SEL, "ATGCATGC")
     page.keyboard.press("Tab")
+    time.sleep(1)
 
-    # 4. Save State
-    # Find the Save button via its tooltip "Save"
-    save_btn = page.locator("[aria-label*='Save']").first
-
+    save_state_btn = page.locator("[aria-label*='Save all']").first
     with page.expect_download(timeout=20000) as download_info:
-        save_btn.click()
-
+        save_state_btn.click()
     download = download_info.value
-    path = download.path()
-    with open(path, encoding="utf-8") as f:
-        content = f.read()
-        print("Downloaded content:", content)
-        assert "ATGCATGC" in content
+    state_yaml_path = tmp_path / "state_saved.yaml"
+    download.save_as(str(state_yaml_path))
+
+    # Verify state file contents (including the invalid ones)
+    with open(state_yaml_path, encoding="utf-8") as f:
+        state_content = f.read()
+    assert "ATGCATGC" in state_content
+    assert "V1" in state_content
+    assert "V2" in state_content
+    assert "I1" in state_content
+    assert "I2" in state_content
+
+    # 9. Load the state
+    print("Refreshing/reloading page to clear state...")
+    page.goto(f"{serve_app}/?enable-semantics=true")
+    wait_for_semantics(page)
+
+    # Assert clean state before load
+    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+
+    print("Loading the saved state...")
+    load_state_btn = page.locator("[aria-label*='Load all']").first
+    with page.expect_file_chooser() as fc_info:
+        load_state_btn.click()
+    file_chooser = fc_info.value
+    file_chooser.set_files(str(state_yaml_path))
+    time.sleep(5)
+
+    # Verify template and primers are restored (we can save and check)
+    with page.expect_download(timeout=20000) as download_info:
+        save_state_btn.click()
+    download = download_info.value
+    final_yaml_path = tmp_path / "final_saved.yaml"
+    download.save_as(str(final_yaml_path))
+
+    with open(final_yaml_path, encoding="utf-8") as f:
+        final_content = f.read()
+    assert "ATGCATGC" in final_content
+    assert "V1" in final_content
+    assert "V2" in final_content
+    assert "I1" in final_content
+    assert "I2" in final_content
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
@@ -365,3 +462,44 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
             )
     except ImportError:
         print("pytesseract/PIL not installed - skipping OCR alignment check.")
+
+
+def wait_for_semantics(page: Any) -> None:
+    """Wait for Flutter Web semantics to be ready."""
+    page.wait_for_selector(
+        "flt-semantics-host", state="attached", timeout=60000
+    )
+    page.wait_for_selector(
+        "flt-semantics-placeholder", state="attached", timeout=30000
+    )
+    page.locator("flt-semantics-placeholder").first.dispatch_event("click")
+
+
+def save_state(page: Any) -> str:
+    """Save state and return the downloaded content."""
+    save_btn = page.locator("[aria-label*='Save']").first
+    expect(save_btn).to_be_enabled(timeout=10000)
+
+    with page.expect_download(timeout=20000) as download_info:
+        save_btn.click()
+
+    download = download_info.value
+    path = download.path()
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
+    """Add a primer by filling the trailing row fields (last row)."""
+    NAME_SEL = 'input[aria-label="New Primer Name"]'
+    SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
+
+    page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
+    fill_field_reliably(page, NAME_SEL, name, use_last=True)
+    page.keyboard.press("Tab")
+    time.sleep(0.5)
+
+    page.wait_for_selector(SEQ_SEL, state="attached", timeout=60000)
+    fill_field_reliably(page, SEQ_SEL, seq, use_last=True)
+    page.keyboard.press("Enter")
+    time.sleep(5)

@@ -440,8 +440,8 @@ def test_input_view_primer_reordering() -> None:
     assert row1_stack.controls[1].visible is True
     row1_btns = row1_stack.controls[1].content
     assert isinstance(row1_btns, ft.Row)
-    assert row1_btns.controls[0].disabled is False  # Up
-    assert row1_btns.controls[1].disabled is False  # Down
+    assert row1_btns.controls[1].disabled is False  # Up
+    assert row1_btns.controls[2].disabled is False  # Down
 
     # Row 0 and Row 2 reorder containers should be invisible
     assert (
@@ -454,7 +454,7 @@ def test_input_view_primer_reordering() -> None:
     )
 
     # Click Up on Row 1 (P2)
-    row1_btns.controls[0].on_click(MagicMock())
+    row1_btns.controls[1].on_click(MagicMock())
 
     # After moving P2 up, the list order should be P2, P1, P3, and focused
     # index should follow P2 (index 0)
@@ -468,11 +468,11 @@ def test_input_view_primer_reordering() -> None:
     row0_stack = view.primers_list.controls[0].content.controls[4]
     assert len(row0_stack.controls) == 2
     row0_btns = row0_stack.controls[1].content
-    assert row0_btns.controls[0].disabled is True  # Up (first row)
-    assert row0_btns.controls[1].disabled is False  # Down
+    assert row0_btns.controls[1].disabled is True  # Up (first row)
+    assert row0_btns.controls[2].disabled is False  # Down
 
     # Click Down on Row 0 (P2)
-    row0_btns.controls[1].on_click(MagicMock())
+    row0_btns.controls[2].on_click(MagicMock())
 
     # P2 should be back at index 1, P1 at index 0, and focused index at 1
     assert input_data.primers[0]["name"] == "P1"
@@ -483,7 +483,7 @@ def test_input_view_primer_reordering() -> None:
     # Now click Down on P2 (index 1) to swap with P3 (index 2)
     row1_stack = view.primers_list.controls[1].content.controls[4]
     row1_btns = row1_stack.controls[1].content
-    row1_btns.controls[1].on_click(MagicMock())
+    row1_btns.controls[2].on_click(MagicMock())
 
     # P2 should now be at index 2, P3 at index 1, and focused index at 2
     assert input_data.primers[0]["name"] == "P1"
