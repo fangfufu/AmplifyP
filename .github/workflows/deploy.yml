@@ -32,7 +32,9 @@ jobs:
           python -m venv .venv
           .venv/bin/pip install flet
       - name: Build static site
-        run: ./build_static.sh --base-url /${{ github.event.repository.name }}/
+        run: |
+          source .venv/bin/activate
+          ./build_static.sh --base-url /${{ github.event.repository.name }}/
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload artifact
