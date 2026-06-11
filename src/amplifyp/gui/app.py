@@ -15,12 +15,14 @@
 
 """Main Flet application logic."""
 
+from typing import Any
+
 import flet as ft
 import yaml
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import serialize_state
+from amplifyp.gui.util import get_full_sha, get_version, serialize_state
 from amplifyp.gui.views import (
     DimerView,
     InputView,
@@ -207,6 +209,33 @@ def main(page: ft.Page) -> None:
         snack_bar.open = True
         page.update()
 
+    full_sha = get_full_sha()
+    app_version = get_version()
+
+    def on_version_click(e: Any) -> None:
+        if page.web and hasattr(page, "run_javascript"):
+            page.run_javascript(
+                f'navigator.clipboard.writeText("{full_sha}").then(function(){{}});'
+            )
+            show_snackbar("SHA copied to clipboard!")
+        else:
+            import pyperclip
+
+            pyperclip.copy(full_sha)
+            show_snackbar("SHA copied to clipboard!")
+
+    version_text = ft.GestureDetector(
+        content=ft.Text(
+            app_version,
+            size=14,
+            color=GUIColors.TEXT_ON_SURFACE,
+            opacity=0.5,
+            weight=ft.FontWeight.W_400,
+        ),
+        tooltip="Click to copy full SHA",
+        on_tap=on_version_click,
+    )
+
     async def save_state(e: ft.ControlEvent) -> None:
         input_view.sync_to_state()
         settings_view.sync_to_state()
@@ -344,6 +373,8 @@ def main(page: ft.Page) -> None:
             [
                 ft.Image(src="images/favicon.png", height=32, fit="contain"),
                 ft.Text("AmplifyP", size=20, weight=ft.FontWeight.BOLD),
+                ft.Container(width=12),
+                version_text,
             ],
             alignment=ft.MainAxisAlignment.START,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
