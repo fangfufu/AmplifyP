@@ -148,12 +148,12 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.primer_input.info_dimer_text
 
     @property
-    def validation_errors(self) -> list[str | None]:
+    def validation_errors(self) -> list[dict[str, str | None]]:
         """Get the list of validation errors."""
         return self.primer_input.validation_errors
 
     @validation_errors.setter
-    def validation_errors(self, val: list[str | None]) -> None:
+    def validation_errors(self, val: list[dict[str, str | None]]) -> None:
         """Set the list of validation errors."""
         self.primer_input.validation_errors = val
 
@@ -199,14 +199,10 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.sync_to_state(rebuild_if_needed=False)
 
-        # If the blurred control has a validation error, update its
-        # display immediately.
         if isinstance(e.control, ft.TextField) and e.control.data is not None:
             idx = e.control.data
             if idx < len(self.primer_input.validation_errors):
                 err = self.primer_input.validation_errors[idx]
-                e.control.error = err
-                e.control.height = 30 if not err else None
                 for row in self.primer_input.primers_list.controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         row.set_error(err)

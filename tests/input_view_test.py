@@ -553,8 +553,8 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     view.update_ui()
 
     # Verify initially valid and active
-    assert view.primer_input.validation_errors[0] is None
-    assert view.primer_input.validation_errors[1] is None
+    assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
+    assert view.primer_input.validation_errors[1] == {"name": None, "seq": None}
     assert (
         view.primers_list.controls[0].content.controls[0].content.disabled
         is False
@@ -569,8 +569,14 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     view.sync_to_state()
 
     # Check both are marked as invalid with "Duplicate primer name"
-    assert view.primer_input.validation_errors[0] == "Duplicate primer name"
-    assert view.primer_input.validation_errors[1] == "Duplicate primer name"
+    assert view.primer_input.validation_errors[0] == {
+        "name": "Duplicate primer name",
+        "seq": None,
+    }
+    assert view.primer_input.validation_errors[1] == {
+        "name": "Duplicate primer name",
+        "seq": None,
+    }
 
     # Both must be inactive (active = False) and checkboxes disabled
     assert input_data.primers[0]["active"] is False
@@ -592,8 +598,14 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     view.sync_to_state()
 
     # Check both are marked invalid with "Duplicate primer sequence"
-    assert view.primer_input.validation_errors[0] == "Duplicate primer sequence"
-    assert view.primer_input.validation_errors[1] == "Duplicate primer sequence"
+    assert view.primer_input.validation_errors[0] == {
+        "name": None,
+        "seq": "Duplicate primer sequence",
+    }
+    assert view.primer_input.validation_errors[1] == {
+        "name": None,
+        "seq": "Duplicate primer sequence",
+    }
     assert input_data.primers[0]["active"] is False
     assert input_data.primers[1]["active"] is False
     assert (

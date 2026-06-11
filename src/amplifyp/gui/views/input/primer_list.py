@@ -50,36 +50,37 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         clean_primers.append({"name": "", "seq": "", "active": False})
         self.primer_input.input_data.primers = clean_primers
 
-        # Precompute duplicate indices & name/seq counts for error reporting
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in self.primer_input.input_data.primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
         dup_indices = self.primer_input._get_duplicate_indices()
 
-        self.primer_input.validation_errors = []
+        self.primer_input.validation_errors = (
+            self.primer_input.validate_primers(
+                self.primer_input.input_data.primers
+            )
+        )
         num_primers = len(self.primer_input.input_data.primers)
         for idx, p in enumerate(self.primer_input.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
-
-            error_message = PrimerRow.validate(name_val, seq_val)
-            if not error_message:
-                n_lower = name_val.strip().lower()
-                s_lower = clean_sequence(seq_val).lower()
-                if n_lower and names_count.get(n_lower, 0) > 1:
-                    error_message = "Duplicate primer name"
-                elif s_lower and seqs_count.get(s_lower, 0) > 1:
-                    error_message = "Duplicate primer sequence"
-
-            self.primer_input.validation_errors.append(error_message)
+            error_message = self.primer_input.validation_errors[idx]
+            name_err = (
+                error_message.get("name")
+                if isinstance(error_message, dict)
+                else (
+                    error_message
+                    if error_message == "Duplicate primer name"
+                    else None
+                )
+            )
+            seq_err = (
+                error_message.get("seq")
+                if isinstance(error_message, dict)
+                else (
+                    None
+                    if error_message == "Duplicate primer name"
+                    else error_message
+                )
+            )
 
             is_dup = idx in dup_indices
             is_focused = idx == self.primer_input.focused_primer_index
@@ -92,7 +93,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 seq=seq_val,
                 is_active=is_active,
                 is_dup=is_dup,
-                error_message=error_message,
+                name_error=name_err,
+                seq_error=seq_err,
                 font_family=font_family,
                 name_column_width=self.primer_input.name_column_width,
                 on_change_handler=self.primer_input.on_change_handler,

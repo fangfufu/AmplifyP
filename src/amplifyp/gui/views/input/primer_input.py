@@ -50,7 +50,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.clear_primers_callback = clear_primers_callback
 
         self.focused_primer_index: int | None = None
-        self.validation_errors: list[str | None] = []
+        self.validation_errors: list[dict[str, str | None]] = []
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
@@ -169,7 +169,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         res = name_edit.focus()
         if inspect.iscoroutine(res):
             if self.app_page:
-                self.app_page.run_task(res)
+
+                async def do_focus() -> None:
+                    await res
+
+                self.app_page.run_task(do_focus)
 
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
@@ -249,27 +253,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
 
         # Run background primer construction/validation
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        new_validation_errors = []
-        for p in primers:
-            err = PrimerRow.validate(p["name"], p["seq"])
-            if not err:
-                n_lower = str(p.get("name", "")).strip().lower()
-                s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-                if n_lower and names_count.get(n_lower, 0) > 1:
-                    err = "Duplicate primer name"
-                elif s_lower and seqs_count.get(s_lower, 0) > 1:
-                    err = "Duplicate primer sequence"
-            new_validation_errors.append(err)
+        new_validation_errors = self.validate_primers(primers)
 
         if getattr(self, "validation_errors", []) != new_validation_errors:
             should_rebuild = True
@@ -292,6 +276,38 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._update_header_checkbox_state()
 
         return should_rebuild
+
+    def validate_primers(
+        self, primers: list[dict[str, Any]]
+    ) -> list[dict[str, str | None]]:
+        """Validate a list of primers, detecting format and duplicate errors."""
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+
+        errors = []
+        for p in primers:
+            name_val = p.get("name", "")
+            seq_val = p.get("seq", "")
+            seq_err = PrimerRow.validate(name_val, seq_val)
+            name_err = None
+
+            n_lower = str(name_val).strip().lower()
+            s_lower = clean_sequence(str(seq_val)).lower()
+
+            if not seq_err and s_lower and seqs_count.get(s_lower, 0) > 1:
+                seq_err = "Duplicate primer sequence"
+            if n_lower and names_count.get(n_lower, 0) > 1:
+                name_err = "Duplicate primer name"
+
+            errors.append({"name": name_err, "seq": seq_err})
+        return errors
 
     def _apply_activation_rules(
         self,
@@ -323,7 +339,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
             # Deletion rule: if both are empty, delete it
             if not name_val and not seq_val:
-                should_rebuild = True
                 continue
 
             prev_primer = prev_primers[i] if i < len(prev_primers) else None
