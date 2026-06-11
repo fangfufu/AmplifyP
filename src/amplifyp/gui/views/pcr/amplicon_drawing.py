@@ -23,6 +23,8 @@ import flet.canvas as cv
 
 from amplifyp.gui.settings import GUIColors
 
+from .dismissible_detail_card import DismissibleDetailCard
+
 
 class DrawnAmplicon:
     """Amplicon bar drawn on the PCR diagram canvas."""
@@ -165,7 +167,7 @@ class DrawnAmplicon:
         )
 
 
-class AmpliconDetailCard(ft.Card):  # type: ignore[misc]
+class AmpliconDetailCard(DismissibleDetailCard):
     """Card displaying details of a single amplicon."""
 
     def __init__(
@@ -175,15 +177,10 @@ class AmpliconDetailCard(ft.Card):  # type: ignore[misc]
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
         """Initialize the AmpliconDetailCard."""
-        super().__init__()
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"
         )
-        self._card_id = card_id
-
-        def remove_card(e: Any) -> None:
-            dismiss_callback(self)
 
         full_seq = str(amp.product.seq)
         fwd_len = len(amp.fwd_origin.seq)
@@ -228,64 +225,50 @@ class AmpliconDetailCard(ft.Card):  # type: ignore[misc]
             selectable=True,
         )
 
-        self.content = ft.Container(
-            padding=10,
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Text(
-                                f"Amplicon: {len(amp.product)} bp",
-                                weight=ft.FontWeight.BOLD,
-                                size=settings.get("font_size_subheader", 16),
-                                selectable=True,
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.CLOSE,
-                                icon_size=18,
-                                tooltip="Dismiss",
-                                on_click=remove_card,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        body_controls = [
+            ft.Text(
+                spans=[
+                    ft.TextSpan("▶(primer: "),
+                    ft.TextSpan(
+                        amp.fwd_origin.name,
+                        style=ft.TextStyle(
+                            color=GUIColors.FWD_PRIMER,
+                            weight=ft.FontWeight.BOLD,
+                        ),
                     ),
-                    ft.Text(
-                        spans=[
-                            ft.TextSpan("▶(primer: "),
-                            ft.TextSpan(
-                                amp.fwd_origin.name,
-                                style=ft.TextStyle(
-                                    color=GUIColors.FWD_PRIMER,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                            ),
-                            ft.TextSpan(f") — {mid_len} bp — (primer: "),
-                            ft.TextSpan(
-                                amp.rev_origin.name,
-                                style=ft.TextStyle(
-                                    color=GUIColors.REV_LABEL,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                            ),
-                            ft.TextSpan(
-                                f")◀      Q = {amp.q_score:.1f} "
-                                f"({amp.q_score_report_str(verbose=True)})"
-                            ),
-                        ],
-                        selectable=True,
-                        size=settings.get("font_size_body", 13),
+                    ft.TextSpan(f") — {mid_len} bp — (primer: "),
+                    ft.TextSpan(
+                        amp.rev_origin.name,
+                        style=ft.TextStyle(
+                            color=GUIColors.REV_LABEL,
+                            weight=ft.FontWeight.BOLD,
+                        ),
                     ),
-                    ft.Text(
-                        "Amplified Sequence:",
-                        weight=ft.FontWeight.BOLD,
-                        selectable=True,
+                    ft.TextSpan(
+                        f")◀      Q = {amp.q_score:.1f} "
+                        f"({amp.q_score_report_str(verbose=True)})"
                     ),
-                    ft.Container(
-                        content=sequence_text,
-                        padding=12,
-                        border_radius=6,
-                        border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
-                    ),
-                ]
+                ],
+                selectable=True,
+                size=settings.get("font_size_body", 13),
             ),
+            ft.Text(
+                "Amplified Sequence:",
+                weight=ft.FontWeight.BOLD,
+                selectable=True,
+            ),
+            ft.Container(
+                content=sequence_text,
+                padding=12,
+                border_radius=6,
+                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+            ),
+        ]
+
+        super().__init__(
+            card_id=card_id,
+            title=f"Amplicon: {len(amp.product)} bp",
+            settings=settings,
+            dismiss_callback=dismiss_callback,
+            body_controls=body_controls,
         )

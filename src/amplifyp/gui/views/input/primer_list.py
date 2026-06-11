@@ -12,7 +12,6 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
 from amplifyp.gui.util import clean_sequence
 
 from .primer_row import PrimerRow
@@ -121,36 +120,11 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         """
         dup_indices = self.primer_input._get_duplicate_indices()
 
-        for container in self.controls:
-            if (
-                isinstance(container, ft.Container)
-                and container.data is not None
-            ):
-                c_idx = container.data
+        for row in self.controls:
+            if isinstance(row, PrimerRow) and row.data is not None:
+                c_idx = row.data
                 is_dup = c_idx in dup_indices
-
-                if c_idx == self.primer_input.focused_primer_index:
-                    container.bgcolor = GUIColors.SELECTED_ROW_BG
-                elif is_dup:
-                    container.bgcolor = GUIColors.DUPLICATE_BG
-                else:
-                    container.bgcolor = None
-
-                # Update reorder container visibility & text padding.
-                row = container.content
-                if isinstance(row, ft.Row) and len(row.controls) >= 5:
-                    seq_stack = row.controls[4]
-                    if (
-                        isinstance(seq_stack, ft.Stack)
-                        and len(seq_stack.controls) > 1
-                    ):
-                        reorder_container = seq_stack.controls[1]
-                        seq_edit = seq_stack.controls[0]
-                        is_focused = (
-                            c_idx == self.primer_input.focused_primer_index
-                        )
-                        reorder_container.visible = is_focused
-                        if isinstance(seq_edit, ft.TextField):
-                            seq_edit.content_padding = ft.Padding(
-                                5, 0, 90 if is_focused else 0, 0
-                            )
+                is_focused = c_idx == self.primer_input.focused_primer_index
+                row.update_highlight_and_reorder(
+                    is_focused=is_focused, is_dup=is_dup
+                )
