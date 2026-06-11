@@ -119,7 +119,7 @@ settings:
 
         # Verify pick_files was called
         mock_file_picker_instance.pick_files.assert_called_once_with(
-            dialog_title="Load",
+            dialog_title="Load all",
             allowed_extensions=["yaml", "yml"],
             file_type=ft.FilePickerFileType.CUSTOM,
             with_data=True,

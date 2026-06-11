@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from enum import Flag, IntEnum, StrEnum
 
+from .errors import InvalidDNASequenceError, InvalidDNATypeError
+
 GLOBAL_COMPLEMENT_TABLE = str.maketrans(
     "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
 )
@@ -142,7 +144,7 @@ class DNA:
             and dna_type != DNAType.CIRCULAR
             and dna_type != DNAType.LINEAR
         ):
-            raise TypeError("Invalid DNA type.")
+            raise InvalidDNATypeError()
 
         self.__seq: str = "".join(seq.split())
         # Optimization: cache the uppercase sequence to avoid repeated
@@ -157,11 +159,7 @@ class DNA:
 
         invalid_chars = set(self._seq_upper) - set(Nucleotides.ALL_VALID)
         if invalid_chars:
-            raise ValueError(
-                f"The DNA sequence contains invalid characters: {
-                    ', '.join(sorted(invalid_chars))
-                }"
-            )
+            raise InvalidDNASequenceError(invalid_chars)
 
         self.__type: DNAType = dna_type
 

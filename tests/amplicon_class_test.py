@@ -19,6 +19,13 @@ import pytest
 
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.errors import (
+    InvalidAmpliconRangeError,
+    InvalidEndDirectionError,
+    InvalidIndexOrderError,
+    InvalidStartDirectionError,
+    TemplateMismatchError,
+)
 from amplifyp.repliconf import DirIdx, Repliconf
 
 
@@ -119,7 +126,9 @@ def test_amplicon_post_init_validation() -> None:
     dummy_primer = Primer("A", name="dummy_primer")
 
     # 1. Invalid start direction (REV instead of FWD)
-    with pytest.raises(ValueError, match="Start direction must be forward"):
+    with pytest.raises(
+        InvalidStartDirectionError, match="Start direction must be forward"
+    ):
         Amplicon(
             product=dummy_dna,
             fwd_origin=dummy_primer,
@@ -131,7 +140,9 @@ def test_amplicon_post_init_validation() -> None:
         )
 
     # 2. Invalid end direction (FWD instead of REV)
-    with pytest.raises(ValueError, match="End direction must be reverse"):
+    with pytest.raises(
+        InvalidEndDirectionError, match="End direction must be reverse"
+    ):
         Amplicon(
             product=dummy_dna,
             fwd_origin=dummy_primer,
@@ -144,7 +155,7 @@ def test_amplicon_post_init_validation() -> None:
 
     # 3. Invalid indices for linear DNA (start > end)
     with pytest.raises(
-        ValueError,
+        InvalidIndexOrderError,
         match="End index must be greater than start index for linear DNA",
     ):
         Amplicon(
@@ -191,7 +202,8 @@ def test_amplicon_generator_add_repliconf_errors() -> None:
     # 1. Different template
     repliconf_diff_template = Repliconf(dna2, primer)
     with pytest.raises(
-        ValueError, match="The Repliconf contains a different template"
+        TemplateMismatchError,
+        match="The Repliconf contains a different template",
     ):
         generator.add_repliconf(repliconf_diff_template)
 
@@ -212,7 +224,7 @@ def test_construct_amplicon_sequence_linear_invalid_order() -> None:
     end_idx = DirIdx(DNADirection.REV, 3)
 
     with pytest.raises(
-        NotImplementedError, match="Attempted to search for an amplicon"
+        InvalidAmpliconRangeError, match="Attempted to search for an amplicon"
     ):
         generator._construct_amplicon_sequence(
             repliconf, repliconf, start_idx, end_idx

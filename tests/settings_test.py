@@ -17,6 +17,7 @@
 
 import pytest
 
+from amplifyp.errors import ColumnLengthMismatchError, RowLengthMismatchError
 from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 
 
@@ -46,10 +47,10 @@ pairwise_weights = [
 
 def test_invalid_tbl_generation() -> None:
     """Test invalid BasePairWeightsTbl creation."""
-    with pytest.raises(ValueError):
+    with pytest.raises(RowLengthMismatchError):
         BasePairWeightsTbl("AB", "ABCD", pairwise_weights)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ColumnLengthMismatchError):
         BasePairWeightsTbl("ABCD", "AB", pairwise_weights)
 
 

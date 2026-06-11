@@ -20,7 +20,7 @@ from unittest.mock import MagicMock
 import flet as ft
 import yaml
 
-from amplifyp.gui.views.input_view import InputView
+from amplifyp.gui.views.input import InputView
 from amplifyp.gui.views.settings_view import SettingsView
 
 
@@ -50,6 +50,9 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
+    settings_view.appearance_tile.set_color_scheme.value = (
+        "Dark (Colour Deficient Friendly)"
+    )
     settings_view.settings_map["bp_score_G_G"].value = "99.0"
     settings_view.settings_map["pd_score_G_G"].value = "99.0"
 
@@ -120,10 +123,22 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
+    assert (
+        new_settings_view.appearance_tile.set_color_scheme.value
+        == "Dark (Colour Deficient Friendly)"
+    )
+    assert new_settings_view.settings["dark_mode"] is True
+    assert new_settings_view.settings["color_deficient"] is True
     assert new_settings_view.settings_map["bp_score_G_G"].value == "99.0"
     assert new_settings_view.settings_map["pd_score_G_G"].value == "99.0"
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
+
+    # Reset GUIColors to avoid test contamination
+    from amplifyp.gui.settings import GUIColors
+
+    GUIColors.color_deficient_mode = False
+    GUIColors.dark_mode = False
 
 
 def test_settings_view_buttons() -> None:
@@ -220,3 +235,82 @@ def test_color_deficient_mode_switching() -> None:
     assert GUIColors.ERROR_RED == standard_error
     assert GUIColors.FWD_PRIMER == standard_fwd
     assert GUIColors.REV_PRIMER == standard_rev
+
+
+def test_dark_mode_switching() -> None:
+    """Test toggling dark mode setting shifts GUIColors."""
+    from amplifyp.gui.settings import GUIColors, GUISettings
+
+    settings = GUISettings()
+    # 1. Initially false/standard
+    assert settings["dark_mode"] == "system"
+    assert GUIColors.dark_mode is False
+    standard_selected_bg = GUIColors.SELECTED_ROW_BG
+    standard_info_header = GUIColors.INFO_HEADER_BG
+    standard_fwd = GUIColors.FWD_PRIMER
+    standard_rev = GUIColors.REV_PRIMER
+
+    # 2. Toggle setting to True
+    settings["dark_mode"] = True
+    assert GUIColors.dark_mode is True
+    assert GUIColors.SELECTED_ROW_BG != standard_selected_bg
+    assert GUIColors.INFO_HEADER_BG != standard_info_header
+    assert GUIColors.FWD_PRIMER != standard_fwd
+    assert GUIColors.REV_PRIMER != standard_rev
+
+    # 3. Toggle back
+    settings["dark_mode"] = False
+    assert GUIColors.dark_mode is False
+    assert GUIColors.SELECTED_ROW_BG == standard_selected_bg
+    assert GUIColors.INFO_HEADER_BG == standard_info_header
+    assert GUIColors.FWD_PRIMER == standard_fwd
+    assert GUIColors.REV_PRIMER == standard_rev
+
+
+def test_system_theme_saving_loading() -> None:
+    """Test saving and loading system theme settings."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings_view = SettingsView(mock_page)
+
+    # 1. Select System dropdown
+    settings_view.appearance_tile.set_color_scheme.value = "System"
+    settings_view.sync_to_state()
+
+    assert settings_view.settings["dark_mode"] == "system"
+    assert settings_view.settings["color_deficient"] is False
+
+    # 2. Serialize / deserialize settings state
+    settings_state = settings_view.get_state()
+    new_settings_view = SettingsView(mock_page)
+    new_settings_view.set_state(settings_state)
+
+    # 3. Assertions
+    assert new_settings_view.appearance_tile.set_color_scheme.value == "System"
+    assert new_settings_view.settings["dark_mode"] == "system"
+    assert new_settings_view.settings["color_deficient"] is False
+
+    # 4. Now with Colour Deficient Friendly System option
+    settings_view.appearance_tile.set_color_scheme.value = (
+        "System (Colour Deficient Friendly)"
+    )
+    settings_view.sync_to_state()
+
+    assert settings_view.settings["dark_mode"] == "system"
+    assert settings_view.settings["color_deficient"] is True
+
+    settings_state_2 = settings_view.get_state()
+    new_settings_view_2 = SettingsView(mock_page)
+    new_settings_view_2.set_state(settings_state_2)
+
+    assert (
+        new_settings_view_2.appearance_tile.set_color_scheme.value
+        == "System (Colour Deficient Friendly)"
+    )
+    assert new_settings_view_2.settings["dark_mode"] == "system"
+    assert new_settings_view_2.settings["color_deficient"] is True
+
+    # Reset GUIColors to avoid test contamination
+    from amplifyp.gui.settings import GUIColors
+
+    GUIColors.color_deficient_mode = False
+    GUIColors.dark_mode = False

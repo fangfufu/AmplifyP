@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.input_view import InputView
+from amplifyp.gui.views.input import InputView
 
 
 def test_input_view_row_boxes_editing() -> None:
@@ -493,7 +493,7 @@ def test_input_view_primer_reordering() -> None:
 
 
 def test_input_view_block_invalid_primer() -> None:
-    """Test invalid primer blocks auto-activation and row creation."""
+    """Test invalid primer doesn't block row creation but disables checkbox."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     # Initially 0 primers, meaning we start with exactly 1 empty trailing row
@@ -512,11 +512,16 @@ def test_input_view_block_invalid_primer() -> None:
 
     view.sync_to_state()
 
+    # Re-fetch elements since view rebuilt
+    row = view.primers_list.controls[0].content
+    checkbox = row.controls[0].content
+
     # Verify that:
-    # 1. The checkbox remains unchecked (not auto-activated)
+    # 1. The checkbox remains unchecked (not auto-activated) and is disabled
     assert checkbox.value is False
-    # 2. No new trailing row is appended (the number of controls is still 1)
-    assert len(view.primers_list.controls) == 1
+    assert checkbox.disabled is True
+    # 2. A new trailing row is still appended (the number of controls is 2)
+    assert len(view.primers_list.controls) == 2
 
     # Correct the sequence to be valid (all valid bases)
     row = view.primers_list.controls[0].content
@@ -526,12 +531,79 @@ def test_input_view_block_invalid_primer() -> None:
     view.sync_to_state()
 
     # Now verify that:
-    # 1. It is auto-activated (checkbox is checked)
-    # 2. A new trailing empty row is appended
-    assert len(view.primers_list.controls) == 2
+    # 1. It is auto-activated (checkbox is checked) and enabled
     row0 = view.primers_list.controls[0].content
     checkbox0 = row0.controls[0].content
     assert checkbox0.value is True
+    assert checkbox0.disabled is False
+    # 2. The number of controls is still 2 (one filled, one empty trailing)
+    assert len(view.primers_list.controls) == 2
+
+
+def test_input_view_duplicate_validation_and_enabling() -> None:
+    """Test duplicate name/sequence is invalid & cannot be enabled."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Verify initially valid and active
+    assert view.primer_input.validation_errors[0] is None
+    assert view.primer_input.validation_errors[1] is None
+    assert (
+        view.primers_list.controls[0].content.controls[0].content.disabled
+        is False
+    )
+    assert (
+        view.primers_list.controls[1].content.controls[0].content.disabled
+        is False
+    )
+
+    # 1. Test Duplicate Name: Make second primer's name "P1"
+    view.primers_list.controls[1].content.controls[2].value = "P1"
+    view.sync_to_state()
+
+    # Check both are marked as invalid with "Duplicate primer name"
+    assert view.primer_input.validation_errors[0] == "Duplicate primer name"
+    assert view.primer_input.validation_errors[1] == "Duplicate primer name"
+
+    # Both must be inactive (active = False) and checkboxes disabled
+    assert input_data.primers[0]["active"] is False
+    assert input_data.primers[1]["active"] is False
+    assert (
+        view.primers_list.controls[0].content.controls[0].content.disabled
+        is True
+    )
+    assert (
+        view.primers_list.controls[1].content.controls[0].content.disabled
+        is True
+    )
+
+    # 2. Resolve duplicate name but introduce duplicate sequence
+    view.primers_list.controls[1].content.controls[2].value = "P2"
+    view.primers_list.controls[1].content.controls[4].controls[
+        0
+    ].value = "gcatgcatgc"
+    view.sync_to_state()
+
+    # Check both are marked invalid with "Duplicate primer sequence"
+    assert view.primer_input.validation_errors[0] == "Duplicate primer sequence"
+    assert view.primer_input.validation_errors[1] == "Duplicate primer sequence"
+    assert input_data.primers[0]["active"] is False
+    assert input_data.primers[1]["active"] is False
+    assert (
+        view.primers_list.controls[0].content.controls[0].content.disabled
+        is True
+    )
+    assert (
+        view.primers_list.controls[1].content.controls[0].content.disabled
+        is True
+    )
 
 
 def test_header_checkbox_indeterminate_empty() -> None:

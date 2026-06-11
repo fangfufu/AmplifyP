@@ -18,13 +18,13 @@
 import flet as ft
 import yaml
 
-from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
+    DimerView,
     InputView,
-    PrimerDimerView,
-    ResultView,
+    PCRView,
     SettingsView,
 )
 
@@ -36,8 +36,6 @@ def main(page: ft.Page) -> None:
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
     page.padding = 0
     page.spacing = 0
-    page.theme_mode = ft.ThemeMode.LIGHT
-    page.bg_color = ft.Colors.WHITE
     page.window.icon = "images/icon.png"
 
     # Handle close / reload warnings
@@ -92,11 +90,42 @@ def main(page: ft.Page) -> None:
     pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
+    def apply_theme() -> None:
+        """Apply theme settings (light/dark/system mode) to the page."""
+        dark_mode_setting = settings.get("dark_mode", False)
+        is_dark = False
+        if str(dark_mode_setting).lower() == "system":
+            page.theme_mode = ft.ThemeMode.SYSTEM
+            page.bg_color = None
+            is_dark = str(page.platform_brightness).lower() == "dark"
+        elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
+            "false",
+            "0",
+            "no",
+        ):
+            page.theme_mode = ft.ThemeMode.DARK
+            page.bg_color = None
+            is_dark = True
+        else:
+            page.theme_mode = ft.ThemeMode.LIGHT
+            page.bg_color = ft.Colors.WHITE
+            is_dark = False
+        GUIColors.dark_mode = is_dark
+
+    def on_platform_brightness_change(e: ft.ControlEvent) -> None:
+        apply_theme()
+        page.update()
+
+    page.on_platform_brightness_change = on_platform_brightness_change
+
+    # Apply initial theme
+    apply_theme()
+
     def on_pcr_click(e: ft.ControlEvent) -> None:
         """Handle PCR click: run PCR and switch view if successful."""
         nonlocal has_run_pcr, pcr_outdated
-        if result_view.run_pcr():
-            switch_view(e, result_view)
+        if pcr_view.run_pcr():
+            switch_view(e, pcr_view)
             has_run_pcr = True
             pcr_outdated = False
             if pcr_button_ref.current:
@@ -136,7 +165,7 @@ def main(page: ft.Page) -> None:
 
     def run_analysis_in_background() -> None:
         nonlocal has_run_pcr, pcr_outdated
-        result_view.run_pcr()
+        pcr_view.run_pcr()
         dimers_view.run_analysis()
         has_run_pcr = True
         pcr_outdated = False
@@ -144,7 +173,12 @@ def main(page: ft.Page) -> None:
             pcr_button_ref.current.text = "PCR"
         page.update()
 
+    def on_settings_change(e: ft.ControlEvent) -> None:
+        apply_theme()
+        update_pcr_button_state()
+
     def run_apply_settings(e: ft.ControlEvent) -> None:
+        apply_theme()
         run_analysis_in_background()
 
     input_view = InputView(
@@ -157,16 +191,20 @@ def main(page: ft.Page) -> None:
     settings_view = SettingsView(
         page,
         settings,
-        on_change=lambda e: update_pcr_button_state(),
+        on_change=on_settings_change,
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
-    result_view = ResultView(page, input_data, settings)
-    dimers_view = PrimerDimerView(page, input_data, settings)
+    pcr_view = PCRView(page, input_data, settings)
+    dimers_view = DimerView(page, input_data, settings)
 
     # Save and Load State
+    snack_bar = ft.SnackBar(ft.Text(""), open=False)
+    page.overlay.append(snack_bar)
+
     def show_snackbar(message: str) -> None:
-        page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
+        snack_bar.content = ft.Text(message)
+        snack_bar.open = True
         page.update()
 
     async def save_state(e: ft.ControlEvent) -> None:
@@ -180,7 +218,7 @@ def main(page: ft.Page) -> None:
 
         try:
             file_path = await ft.FilePicker().save_file(
-                dialog_title="Save",
+                dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
@@ -200,7 +238,7 @@ def main(page: ft.Page) -> None:
     async def load_state(e: ft.ControlEvent) -> None:
         try:
             files = await ft.FilePicker().pick_files(
-                dialog_title="Load",
+                dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 with_data=True,
@@ -230,6 +268,7 @@ def main(page: ft.Page) -> None:
                 input_data.from_dict(parsed_state)
             if "settings" in parsed_state:
                 settings.from_dict(parsed_state["settings"])
+            apply_theme()
             input_view.update_ui()
             settings_view.update_ui()
             update_pcr_button_state()
@@ -285,20 +324,20 @@ def main(page: ft.Page) -> None:
     settings_button.content_description = "Settings"
 
     save_btn_control = ft.FilledButton(
-        "Save",
+        "Save all",
         icon=ft.Icons.SAVE,
-        tooltip="Save",
+        tooltip="Save all",
         on_click=save_state,
     )
-    save_btn_control.content_description = "Save"
+    save_btn_control.content_description = "Save all"
 
     load_btn_control = ft.FilledButton(
-        "Load",
+        "Load all",
         icon=ft.Icons.UPLOAD_FILE,
-        tooltip="Load",
+        tooltip="Load all",
         on_click=load_state,
     )
-    load_btn_control.content_description = "Load"
+    load_btn_control.content_description = "Load all"
 
     page.appbar = ft.AppBar(
         title=ft.Row(

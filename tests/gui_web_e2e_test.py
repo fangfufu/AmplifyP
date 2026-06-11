@@ -69,11 +69,12 @@ def build_app() -> None:
 
     print("==> Building static site...")
     # Run flet publish
-    flet_path = shutil.which("flet")
-    if not flet_path:
-        # Fallback to venv path if not in PATH
-        flet_bin = "flet.exe" if os.name == "nt" else "flet"
-        flet_path = os.path.join(os.path.dirname(sys.executable), flet_bin)
+    flet_bin = "flet.exe" if os.name == "nt" else "flet"
+    venv_flet = os.path.join(os.path.dirname(sys.executable), flet_bin)
+    if os.path.exists(venv_flet):
+        flet_path = venv_flet
+    else:
+        flet_path = shutil.which("flet") or venv_flet
 
     subprocess.run(  # noqa: S603
         [flet_path, "publish", "src/main.py", "--distpath", DIST_DIR],
@@ -211,10 +212,8 @@ def test_e2e_save_load(page: Any, serve_app: str) -> None:
 @pytest.mark.skipif(
     os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
 )  # type: ignore[untyped-decorator]
-def test_e2e_primer_dimer_alignment(
-    page: Any, serve_app: str, tmp_path: Any
-) -> None:
-    """Test primer dimer alignment and verify monospace alignment using OCR."""
+def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
+    """Test dimer alignment and verify monospace alignment using OCR."""
     # Subscribe to console messages
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 

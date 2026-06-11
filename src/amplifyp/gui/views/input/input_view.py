@@ -1,0 +1,336 @@
+# Copyright (C) 2026 Fufu Fang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
+"""Input view composing DNA Template input and Primer inputs."""
+
+from typing import Any
+
+import flet as ft
+
+from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
+
+from .primer_input import PrimerInput
+from .primer_row import PrimerRow
+from .template_input import TemplateInput
+
+
+class InputView(ft.Row):  # type: ignore[misc]
+    """Input view composing DNA Template input and Primer inputs."""
+
+    def __init__(
+        self,
+        page: ft.Page,
+        input_data: GUIInput | None = None,
+        settings: GUISettings | None = None,
+        on_change: Any | None = None,
+        on_stop_editing: Any | None = None,
+    ) -> None:
+        """Initialize the InputView."""
+        super().__init__(
+            expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
+        )
+        self.app_page = page
+        self.input_data = input_data if input_data is not None else GUIInput()
+        self.settings = settings if settings is not None else GUISettings()
+        self.on_change = on_change
+        self.on_stop_editing_callback = on_stop_editing
+        self._focus_debouncer = Debouncer(delay_seconds=0.15)
+
+        self.template_input = TemplateInput(
+            settings=self.settings,
+            input_data=self.input_data,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_template_callback=self._clear_template,
+        )
+
+        self.primer_input = PrimerInput(
+            page=self.app_page,
+            settings=self.settings,
+            input_data=self.input_data,
+            on_change_handler=self._on_change_handler,
+            handle_field_focus=self._handle_field_focus,
+            handle_field_blur=self._handle_field_blur,
+            handle_field_submit=self._handle_field_submit,
+            clear_primers_callback=self._clear_primers,
+        )
+
+        self.right_fraction = 0.5
+
+        self.divider = ft.GestureDetector(
+            on_pan_update=self._on_pan_update,
+            content=ft.Container(
+                width=5,
+                bgcolor=GUIColors.DIVIDER_GREY,
+                border_radius=5,
+                margin=ft.Margin.symmetric(horizontal=5),
+            ),
+            mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
+        )
+
+        self.controls = [
+            self.template_input,
+            self.divider,
+            self.primer_input,
+        ]
+
+        # Sync initial UI state
+        self.update_ui()
+
+    # Properties/Delegates for backward compatibility and test access
+    @property
+    def template_sequence(self) -> ft.TextField:
+        """Get the template sequence text field."""
+        return self.template_input.template_sequence
+
+    @property
+    def template_circular(self) -> ft.Checkbox:
+        """Get the circular template checkbox."""
+        return self.template_input.template_circular
+
+    @property
+    def clear_template_button(self) -> ft.OutlinedButton:
+        """Get the clear template button."""
+        return self.template_input.clear_template_button
+
+    @property
+    def primers_list(self) -> ft.ListView:
+        """Get the list of primers view."""
+        return self.primer_input.primers_list
+
+    @property
+    def clear_primers_button(self) -> ft.OutlinedButton:
+        """Get the clear primers button."""
+        return self.primer_input.clear_primers_button
+
+    @property
+    def primer_info_panel(self) -> ft.Container:
+        """Get the primer info panel."""
+        return self.primer_input.primer_info_panel
+
+    @property
+    def info_header(self) -> ft.Container:
+        """Get the primer info header container."""
+        return self.primer_input.info_header
+
+    @property
+    def info_seq_text(self) -> ft.Text:
+        """Get the primer info sequence text control."""
+        return self.primer_input.info_seq_text
+
+    @property
+    def info_tm_text(self) -> ft.Text:
+        """Get the primer info Tm text control."""
+        return self.primer_input.info_tm_text
+
+    @property
+    def info_pairs_text(self) -> ft.Text:
+        """Get the primer info AT/GC pairs text control."""
+        return self.primer_input.info_pairs_text
+
+    @property
+    def info_redundancy_text(self) -> ft.Text:
+        """Get the primer info redundancy text control."""
+        return self.primer_input.info_redundancy_text
+
+    @property
+    def info_dimer_text(self) -> ft.Text:
+        """Get the primer info dimer text control."""
+        return self.primer_input.info_dimer_text
+
+    @property
+    def validation_errors(self) -> list[str | None]:
+        """Get the list of validation errors."""
+        return self.primer_input.validation_errors
+
+    @validation_errors.setter
+    def validation_errors(self, val: list[str | None]) -> None:
+        """Set the list of validation errors."""
+        self.primer_input.validation_errors = val
+
+    @property
+    def focused_primer_index(self) -> int | None:
+        """Get the currently focused primer index."""
+        return self.primer_input.focused_primer_index
+
+    @focused_primer_index.setter
+    def focused_primer_index(self, val: int | None) -> None:
+        """Set the currently focused primer index."""
+        self.primer_input.focused_primer_index = val
+
+    # Control layout compatibility properties
+    @property
+    def top_container(self) -> ft.Container:
+        """Get the template input container (layout backward compatibility)."""
+        return self.template_input
+
+    @property
+    def bottom_container(self) -> ft.Container:
+        """Get the primer input container (layout backward compatibility)."""
+        return self.primer_input
+
+    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
+        """Delegate row click handling to PrimerInput."""
+        self.primer_input._handle_row_click(idx, name_edit)
+
+    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+        """Handle focus on input fields to cancel auto-trigger timer."""
+        self._focus_debouncer.cancel()
+
+        if e.control.data is not None:
+            self.primer_input.focused_primer_index = e.control.data
+            self.primer_input._update_row_highlights()
+            self.primer_input._update_primer_info_panel()
+
+    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+        """Handle blur on input fields to trigger results page after a delay."""
+        if getattr(self, "_skip_blur_timer", False):
+            self._skip_blur_timer = False
+            return
+
+        self.sync_to_state(rebuild_if_needed=False)
+
+        # If the blurred control has a validation error, update its
+        # display immediately.
+        if isinstance(e.control, ft.TextField) and e.control.data is not None:
+            idx = e.control.data
+            if idx < len(self.primer_input.validation_errors):
+                err = self.primer_input.validation_errors[idx]
+                e.control.error = err
+                e.control.height = 30 if not err else None
+                for row in self.primer_input.primers_list.controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        row.set_error(err)
+                        break
+                self.app_page.update()
+
+        def timer_callback() -> None:
+            if not self.page:
+                return
+            self.sync_to_state(rebuild_if_needed=True)
+            if self.on_stop_editing_callback:
+                self.on_stop_editing_callback()
+
+        self._focus_debouncer.trigger(timer_callback)
+
+    def _handle_field_submit(self, e: ft.ControlEvent) -> None:
+        """Handle submission (Enter key) to immediately trigger results."""
+        self._focus_debouncer.cancel()
+        self.sync_to_state()
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def will_unmount(self) -> None:
+        """Clean up when the view is unmounted."""
+        self._focus_debouncer.cancel()
+
+    def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
+        """Sync current UI controls back to the central state."""
+        self.template_input.sync_to_state()
+        self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
+
+    def update_ui(self) -> None:
+        """Update Flet UI controls to match the central state."""
+        self.template_input.update_ui()
+        self.primer_input.update_ui()
+
+    def _on_change_handler(self, e: ft.ControlEvent) -> None:
+        """Handle change in input fields."""
+        self.sync_to_state()
+        self.primer_input._update_primer_info_panel()
+        if self.on_change:
+            self.on_change(e)
+
+    def _clear_primers(self, e: ft.ControlEvent) -> None:
+        """Clear all primers."""
+        self.input_data.primers = []
+        self.primer_input.focused_primer_index = None
+        self.update_ui()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def _clear_template(self, e: ft.ControlEvent) -> None:
+        """Clear the DNA template."""
+        self.template_input.template_sequence.value = ""
+        self.sync_to_state()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
+        """Handle resizing the bottom (right) container via the divider."""
+        page_width = self.app_page.width
+        if isinstance(page_width, (int, float)) and page_width > 0:
+            delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
+            # Calculate current pixel width of the right container
+            current_width = page_width * self.right_fraction
+            new_width = max(200.0, current_width - delta_x)
+            # Ensure the left container stays at least 200px wide
+            new_width = min(new_width, page_width - 200.0)
+
+            # Recalculate fractions and set relative expand weights
+            self.right_fraction = new_width / page_width
+            self.primer_input.expand = int(self.right_fraction * 1000)
+            self.template_input.expand = int((1.0 - self.right_fraction) * 1000)
+            self.app_page.update()
+
+    def get_template(self) -> str:
+        """Get the current template sequence."""
+        return self.input_data.template
+
+    def is_circular(self) -> bool:
+        """Check if the template is circular."""
+        return self.input_data.template_circular
+
+    def get_primers(self) -> list[dict[str, Any]]:
+        """Get the list of active primers."""
+        return self.input_data.get_active_primers()
+
+    def get_all_primers_state(self) -> list[dict[str, Any]]:
+        """Get all primers (active and inactive) for serialization."""
+        primers: list[dict[str, Any]] = []
+        for p in self.input_data.primers:
+            if (
+                not str(p.get("name", "")).strip()
+                and not clean_sequence(str(p.get("seq", ""))).strip()
+            ):
+                continue
+            primers.append(
+                {
+                    "name": p["name"],
+                    "seq": format_sequence(p["seq"]),
+                    "active": p.get("active", True),
+                }
+            )
+        return primers
+
+    def get_state(self) -> dict[str, Any]:
+        """Get the current input data state for serialization."""
+        self.sync_to_state()
+        return self.input_data.to_dict()
+
+    def set_state(self, state: dict[str, Any]) -> None:
+        """Set the current input data from deserialized data."""
+        self.input_data.from_dict(state)
+        self.update_ui()
+        self.app_page.update()
+
+    def _update_row_highlights(self) -> None:
+        """Update background colors of all row containers."""
+        self.primer_input._update_row_highlights()
+
+    def _update_primer_info_panel(self) -> None:
+        """Update the primer information panel based on the focused primer."""
+        self.primer_input._update_primer_info_panel()
