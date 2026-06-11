@@ -25,7 +25,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq: str,
         is_active: bool,
         is_dup: bool,
-        error_message: str | None,
+        name_error: str | None,
+        seq_error: str | None,
         font_family: str,
         name_column_width: float,
         on_change_handler: Any,
@@ -34,23 +35,25 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         handle_field_submit: Any,
         on_row_click: Any,
         on_move_primer: Any,
+        on_delete_primer: Any,
         on_divider_pan: Any,
         is_focused: bool,
         is_last_row: bool,
         is_penultimate_row: bool,
     ) -> None:
         """Initialize the PrimerRow."""
+        has_err = bool(name_error or seq_error)
         super().__init__(
             data=idx,
             bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
             padding=0,
-            height=30 if not error_message else None,
+            height=30 if not has_err else None,
         )
         self.idx = idx
         self.checkbox = ft.Checkbox(
-            value=is_active if not error_message else False,
+            value=is_active if not has_err else False,
             on_change=on_change_handler,
-            disabled=bool(error_message),
+            disabled=has_err,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
@@ -63,7 +66,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             hint_text="New Primer Name",
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
-            height=30,
+            height=30 if not name_error else None,
             width=name_column_width,
             border=ft.InputBorder.NONE,
             data=idx,
@@ -78,10 +81,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             content_padding=ft.Padding(
                 5,
                 0,
-                60 if is_focused and not is_last_row else 0,
+                90 if is_focused and not is_last_row else 0,
                 0,
             ),
-            height=30 if not error_message else None,
+            height=30 if not seq_error else None,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
             data=idx,
@@ -89,8 +92,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
         )
-        if error_message:
-            self.seq_field.error = error_message
+        if name_error:
+            self.name_field.error = name_error
+        if seq_error:
+            self.seq_field.error = seq_error
 
         self.divider = ft.GestureDetector(
             on_pan_update=on_divider_pan,
@@ -139,8 +144,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 disabled=is_penultimate_row,
                 on_click=lambda e: on_move_primer(idx, 1),
             )
+            delete_button = ft.IconButton(
+                icon=ft.Icons.DELETE_OUTLINE,
+                icon_size=16,
+                width=24,
+                height=24,
+                padding=0,
+                tooltip="Delete Primer",
+                on_click=lambda e: on_delete_primer(idx),
+            )
             self.reorder_controls = ft.Row(
-                [up_button, down_button],
+                [delete_button, up_button, down_button],
                 spacing=2,
                 alignment=ft.MainAxisAlignment.CENTER,
             )
@@ -179,19 +193,35 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         if self.reorder_container is not None:
             self.reorder_container.visible = is_focused
             self.seq_field.content_padding = ft.Padding(
-                5, 0, 60 if is_focused else 0, 0
+                5, 0, 90 if is_focused else 0, 0
             )
 
-    def set_error(self, err: str | None) -> None:
+    def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
 
-        Also adjusts the sequence field and container height.
+        Also adjusts the sequence field, name field and container height.
         """
-        self.seq_field.error = err
-        self.seq_field.height = 30 if not err else None
-        self.height = 30 if not err else None
-        self.checkbox.disabled = bool(err)
-        if err:
+        if isinstance(err, dict):
+            name_error = err.get("name")
+            seq_error = err.get("seq")
+        else:
+            # Compatibility: if string or None is passed
+            if err == "Duplicate primer name":
+                name_error = err
+                seq_error = None
+            else:
+                name_error = None
+                seq_error = err
+
+        self.name_field.error = name_error
+        self.name_field.height = 30 if not name_error else None
+        self.seq_field.error = seq_error
+        self.seq_field.height = 30 if not seq_error else None
+
+        has_err = bool(name_error or seq_error)
+        self.height = 30 if not has_err else None
+        self.checkbox.disabled = has_err
+        if has_err:
             self.checkbox.value = False
 
     @staticmethod

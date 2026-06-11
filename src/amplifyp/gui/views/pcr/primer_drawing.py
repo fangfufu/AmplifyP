@@ -24,6 +24,8 @@ import flet.canvas as cv
 from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.gui.settings import GUIColors
 
+from .dismissible_detail_card import DismissibleDetailCard
+
 
 class DrawnPrimer:
     """Class representing a primer drawn on the PCR diagram canvas."""
@@ -277,7 +279,7 @@ def format_context_lines(
     return top_line, primer_line, bottom_line
 
 
-class ReplicationContextCard(ft.Card):  # type: ignore[misc]
+class ReplicationContextCard(DismissibleDetailCard):
     """Card showing visually aligned replication context map."""
 
     def __init__(
@@ -290,15 +292,18 @@ class ReplicationContextCard(ft.Card):  # type: ignore[misc]
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
         """Initialize the ReplicationContextCard."""
-        super().__init__()
-        self._card_id = f"context_{primer_name}_{padded_idx}"
-
-        def remove_card(e: Any) -> None:
-            dismiss_callback(self)
+        card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
         if origin is None:
-            self.content = ft.Text("Error: Replication origin not found")
+            body_controls = [ft.Text("Error: Replication origin not found")]
+            super().__init__(
+                card_id=card_id,
+                title="Error",
+                settings=settings,
+                dismiss_callback=dismiss_callback,
+                body_controls=body_controls,
+            )
             return
 
         primer_type = (
@@ -331,37 +336,22 @@ class ReplicationContextCard(ft.Card):  # type: ignore[misc]
             font_size=font_size,
         )
 
-        self.content = ft.Container(
-            padding=10,
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Text(
-                                f"Context Map - {primer_name} "
-                                f"({primer_type}) Binding Site",
-                                weight=ft.FontWeight.BOLD,
-                                size=settings.get("font_size_subheader", 16),
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.CLOSE,
-                                icon_size=18,
-                                tooltip="Dismiss",
-                                on_click=remove_card,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    ft.Container(
-                        content=ft.Row(
-                            [diagram_text],
-                            scroll=ft.ScrollMode.ALWAYS,
-                        ),
-                        padding=12,
-                        border_radius=6,
-                        border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
-                    ),
-                ],
-                tight=True,
-            ),
+        body_controls = [
+            ft.Container(
+                content=ft.Row(
+                    [diagram_text],
+                    scroll=ft.ScrollMode.ALWAYS,
+                ),
+                padding=12,
+                border_radius=6,
+                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+            )
+        ]
+
+        super().__init__(
+            card_id=card_id,
+            title=(f"Context Map - {primer_name} ({primer_type}) Binding Site"),
+            settings=settings,
+            dismiss_callback=dismiss_callback,
+            body_controls=body_controls,
         )

@@ -27,7 +27,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             "Save Primers",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=on_save,
-            tooltip="Save active primers to CSV",
+            tooltip="Save primers to CSV",
             height=32,
         )
         self.load_button = ft.FilledTonalButton(

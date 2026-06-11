@@ -18,8 +18,13 @@ find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/nu
 cp "${SCRIPT_DIR}/src/assets/images/icon.png" "${SCRIPT_DIR}/src/assets/icon.png" || true
 cp "${SCRIPT_DIR}/src/assets/images/favicon.png" "${SCRIPT_DIR}/src/assets/favicon.png" || true
 
+GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_FULL_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
+echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
+
 echo "==> Building static site..."
-"${SCRIPT_DIR}/.venv/bin/flet" publish "${SCRIPT_DIR}/src/main.py" \
+flet publish "${SCRIPT_DIR}/src/main.py" \
   --distpath "${DIST_DIR}" \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \
@@ -28,13 +33,15 @@ echo "==> Building static site..."
   --pwa-theme-color "#0175C2" \
   "$@"
 
-# Clean up temporary root assets files
+# Clean up temporary root assets files and git_sha.py
 rm -f "${SCRIPT_DIR}/src/assets/icon.png" "${SCRIPT_DIR}/src/assets/favicon.png" || true
+rm -f "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py" || true
+
 
 echo "==> Injecting browser unload warning script and git SHA..."
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 echo "${GIT_SHA}" > "${DIST_DIR}/.git-sha"
-"${SCRIPT_DIR}/.venv/bin/python" -c "
+python -c "
 import pathlib
 index_path = pathlib.Path('${DIST_DIR}/index.html')
 if index_path.exists():

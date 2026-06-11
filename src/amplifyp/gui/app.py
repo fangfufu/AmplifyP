@@ -15,14 +15,12 @@
 
 """Main Flet application logic."""
 
-from typing import Any
-
 import flet as ft
 import yaml
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import get_full_sha, get_version, serialize_state
+from amplifyp.gui.util import get_version, serialize_state
 from amplifyp.gui.views import (
     DimerView,
     InputView,
@@ -209,43 +207,33 @@ def main(page: ft.Page) -> None:
         snack_bar.open = True
         page.update()
 
-    full_sha = get_full_sha()
     app_version = get_version()
 
-    def on_version_click(e: Any) -> None:
-        if page.web and hasattr(page, "run_javascript"):
-            page.run_javascript(
-                f'navigator.clipboard.writeText("{full_sha}").then(function(){{}});'
-            )
-            show_snackbar("SHA copied to clipboard!")
-        else:
-            import pyperclip
-
-            pyperclip.copy(full_sha)
-            show_snackbar("SHA copied to clipboard!")
-
-    version_text = ft.GestureDetector(
-        content=ft.Text(
-            app_version,
-            size=14,
-            color=GUIColors.TEXT_ON_SURFACE,
-            opacity=0.5,
-            weight=ft.FontWeight.W_400,
-        ),
-        tooltip="Click to copy full SHA",
-        on_tap=on_version_click,
+    version_text = ft.Text(
+        app_version,
+        size=14,
+        color=GUIColors.TEXT_ON_SURFACE,
+        opacity=0.5,
+        weight=ft.FontWeight.W_400,
+        selectable=True,
     )
 
-    async def save_state(e: ft.ControlEvent) -> None:
-        input_view.sync_to_state()
-        settings_view.sync_to_state()
-        combined: dict[str, object] = {
-            "input": input_data.to_dict(),
-            "settings": settings.to_dict(),
-        }
-        yaml_str = serialize_state(combined)
+    filepicker_open = False
 
+    async def save_state(e: ft.ControlEvent) -> None:
+        nonlocal filepicker_open
+        if filepicker_open:
+            return
+        filepicker_open = True
         try:
+            input_view.sync_to_state()
+            settings_view.sync_to_state()
+            combined: dict[str, object] = {
+                "input": input_data.to_dict(),
+                "settings": settings.to_dict(),
+            }
+            yaml_str = serialize_state(combined)
+
             file_path = await ft.FilePicker().save_file(
                 dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
@@ -263,8 +251,14 @@ def main(page: ft.Page) -> None:
                 show_snackbar("State saved successfully!")
         except Exception as ex:
             show_snackbar(f"Error saving state: {ex}")
+        finally:
+            filepicker_open = False
 
     async def load_state(e: ft.ControlEvent) -> None:
+        nonlocal filepicker_open
+        if filepicker_open:
+            return
+        filepicker_open = True
         try:
             files = await ft.FilePicker().pick_files(
                 dialog_title="Load all",
@@ -308,6 +302,8 @@ def main(page: ft.Page) -> None:
             tb = traceback.format_exc()
             print("LOAD STATE ERROR:", tb)
             show_snackbar(f"Error loading state: {ex}")
+        finally:
+            filepicker_open = False
 
     view_container = ft.Container(content=input_view, expand=True, padding=10)
 
