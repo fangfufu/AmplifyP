@@ -175,9 +175,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Move primer at idx up (direction=-1) or down (direction=1)."""
         parent_view = getattr(self.on_change_handler, "__self__", None)
         if parent_view is not None:
-            if getattr(parent_view, "_focus_timer", None) is not None:
-                parent_view._focus_timer.cancel()
-                parent_view._focus_timer = None
+            if getattr(parent_view, "_focus_debouncer", None) is not None:
+                parent_view._focus_debouncer.cancel()
             parent_view._skip_blur_timer = True
 
         self.sync_to_state(rebuild_if_needed=False)
