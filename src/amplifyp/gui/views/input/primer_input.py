@@ -161,10 +161,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         Selects the row and focuses the name field.
         """
+        import inspect
+
         self.focused_primer_index = idx
         self._update_row_highlights()
         self._update_primer_info_panel()
-        name_edit.focus()
+        res = name_edit.focus()
+        if inspect.iscoroutine(res):
+            if self.app_page:
+                self.app_page.run_task(lambda: res)
 
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
