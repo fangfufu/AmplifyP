@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Primer drawing class and context card helpers for the ResultView."""
+"""Primer drawing class and context card helpers for the PCRView."""
 
 from collections.abc import Callable
 from typing import Any
@@ -26,7 +26,7 @@ from amplifyp.gui.settings import GUIColors
 
 
 class DrawnPrimer:
-    """Class representing a primer drawn on the PCR result diagram canvas."""
+    """Class representing a primer drawn on the PCR diagram canvas."""
 
     def __init__(
         self,

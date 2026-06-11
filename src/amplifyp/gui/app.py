@@ -24,7 +24,7 @@ from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
     DimerView,
     InputView,
-    ResultView,
+    PCRView,
     SettingsView,
 )
 
@@ -195,7 +195,7 @@ def main(page: ft.Page) -> None:
         on_apply=run_apply_settings,
         on_reset=run_apply_settings,
     )
-    pcr_view = ResultView(page, input_data, settings)
+    pcr_view = PCRView(page, input_data, settings)
     dimers_view = DimerView(page, input_data, settings)
 
     # Save and Load State

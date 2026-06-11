@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Result View for the Flet application."""
+"""PCR View for the Flet application."""
 
 import traceback
 from typing import Any
@@ -26,12 +26,12 @@ from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 
 from .amplicon_drawing import AmpliconDetailCard
-from .diagram_panel import ResultDiagramPanel
+from .pcr_diagram_panel import PCRDrawingPanel
 from .primer_drawing import ReplicationContextCard
 
 
-class ResultView(ft.Column):  # type: ignore[misc]
-    """Result view for rendering PCR custom execution targets."""
+class PCRView(ft.Column):  # type: ignore[misc]
+    """PCR view for rendering PCR custom execution targets."""
 
     def __init__(
         self,
@@ -39,7 +39,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the ResultView."""
+        """Initialize the PCRView."""
         super().__init__(expand=True)
         self.app_page = page
 
@@ -53,7 +53,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
         )
-        self.diagram_panel = ResultDiagramPanel(
+        self.diagram_panel = PCRDrawingPanel(
             page=self.app_page,
             settings=self.settings,
             on_primer_click=self._show_context_map,
@@ -169,7 +169,7 @@ class ResultView(ft.Column):  # type: ignore[misc]
         return success
 
     def _reset_pcr_ui(self, keep_cards: bool) -> list[Any]:
-        """Reset the result view UI controls and canvas shapes."""
+        """Reset the PCR view UI controls and canvas shapes."""
         saved_cards = list(self.result_list.controls) if keep_cards else []
         self.result_list.controls.clear()
         self._update_cards_header_visibility()

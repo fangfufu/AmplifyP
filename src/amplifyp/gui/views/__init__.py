@@ -20,7 +20,7 @@ from amplifyp.gui.user_data import GUIInput
 
 from .dimer import DimerView
 from .input import InputView
-from .result import ResultView
+from .pcr import PCRView
 from .settings_view import SettingsView
 
 __all__ = [
@@ -28,6 +28,6 @@ __all__ = [
     "GUIInput",
     "GUISettings",
     "InputView",
-    "ResultView",
+    "PCRView",
     "SettingsView",
 ]

@@ -6,17 +6,17 @@
 # (at your option) any later version.
 #
 
-"""Tests for Result View and primer binding site context map popups."""
+"""Tests for PCR View and primer binding site context map popups."""
 
 from unittest.mock import MagicMock
 
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.result import ResultView
+from amplifyp.gui.views.pcr import PCRView
 
 
-def test_result_view_click_context_map() -> None:
+def test_pcr_view_click_context_map() -> None:
     """Test that clicking a primer binding site shows a context map."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.dialog = None
@@ -32,7 +32,7 @@ def test_result_view_click_context_map() -> None:
         {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, input_data)
+    view = PCRView(mock_page, input_data)
     view.run_pcr()
 
     # The diagram_stack controls should contain some ft.GestureDetectors
@@ -94,7 +94,7 @@ def test_result_view_click_context_map() -> None:
     )  # Binding region - must preserve mixed case
 
 
-def test_result_view_click_amplicon() -> None:
+def test_pcr_view_click_amplicon() -> None:
     """Test that clicking on an amplicon bar inserts the amplicon details
 
     card below the map.
@@ -113,7 +113,7 @@ def test_result_view_click_amplicon() -> None:
         {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, input_data)
+    view = PCRView(mock_page, input_data)
     view.run_pcr()
 
     # Verify no cards initially
@@ -153,7 +153,7 @@ def test_result_view_click_amplicon() -> None:
     assert "— 20 bp —" in spans_content
 
 
-def test_result_view_resize_preserves_cards() -> None:
+def test_pcr_view_resize_preserves_cards() -> None:
     """Test that resizing the window does not discard open cards."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.dialog = None
@@ -169,7 +169,7 @@ def test_result_view_resize_preserves_cards() -> None:
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, input_data)
+    view = PCRView(mock_page, input_data)
     view.run_pcr()
 
     # The diagram_stack controls should contain some ft.GestureDetectors
@@ -196,7 +196,7 @@ def test_result_view_resize_preserves_cards() -> None:
     assert isinstance(view.result_list.controls[0], ft.Card)
 
 
-def test_result_view_no_duplicate_cards() -> None:
+def test_pcr_view_no_duplicate_cards() -> None:
     """Test that clicking an element twice does not duplicate its card
 
     but instead brings the existing card to the top of the list.
@@ -215,7 +215,7 @@ def test_result_view_no_duplicate_cards() -> None:
         {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
-    view = ResultView(mock_page, input_data)
+    view = PCRView(mock_page, input_data)
     view.run_pcr()
 
     # Find the gesture detectors: 2 context maps, 1 amplicon

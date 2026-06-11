@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Amplicon drawing class and detail card helpers for the ResultView."""
+"""Amplicon drawing class and detail card helpers for the PCRView."""
 
 from collections.abc import Callable
 from typing import Any
@@ -25,7 +25,7 @@ from amplifyp.gui.settings import GUIColors
 
 
 class DrawnAmplicon:
-    """Amplicon bar drawn on the PCR result diagram canvas."""
+    """Amplicon bar drawn on the PCR diagram canvas."""
 
     def __init__(
         self,

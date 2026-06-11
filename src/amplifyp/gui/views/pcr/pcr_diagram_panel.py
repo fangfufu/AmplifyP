@@ -27,8 +27,10 @@ from amplifyp.pcr import PCR
 from .amplicon_drawing import DrawnAmplicon
 from .primer_drawing import DrawnPrimer
 
+__all__ = ["PCRDrawingPanel"]
 
-class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
+
+class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
     """Custom control encapsulating the PCR diagram canvas, stack, and resizer.
 
     This wraps the Canvas and GestureDetector elements.
@@ -41,7 +43,7 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
         on_primer_click: Callable[[str, int, Any, Any], None],
         on_amplicon_click: Callable[[Any], None],
     ) -> None:
-        """Initialize the ResultDiagramPanel."""
+        """Initialize the PCRDrawingPanel."""
         super().__init__(spacing=0, tight=True)
         self.app_page = page
         self.settings = settings
@@ -97,11 +99,11 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
         """Handle window resizing by redrawing if visible."""
         if self.diagram_container.visible:
             # We don't have direct access to the PCR object, but the parent
-            # ResultView handles calling run_pcr during resize.
+            # PCRView handles calling run_pcr during resize.
             pass
 
     def reset_ui(self) -> None:
-        """Reset the result view diagram canvas shapes and controls."""
+        """Reset the PCR view diagram canvas shapes and controls."""
         self.diagram_canvas.shapes.clear()
         self.diagram_stack.controls.clear()
         self.diagram_stack.controls.append(self.diagram_canvas)
