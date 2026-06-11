@@ -18,7 +18,7 @@
 import flet as ft
 import yaml
 
-from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialize_state
 from amplifyp.gui.views import (
@@ -91,14 +91,32 @@ def main(page: ft.Page) -> None:
     dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def apply_theme() -> None:
-        """Apply theme settings (light/dark mode) to the page."""
-        dark_mode = settings.get("dark_mode", False)
-        if dark_mode:
+        """Apply theme settings (light/dark/system mode) to the page."""
+        dark_mode_setting = settings.get("dark_mode", False)
+        is_dark = False
+        if str(dark_mode_setting).lower() == "system":
+            page.theme_mode = ft.ThemeMode.SYSTEM
+            page.bg_color = None
+            is_dark = str(page.platform_brightness).lower() == "dark"
+        elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
+            "false",
+            "0",
+            "no",
+        ):
             page.theme_mode = ft.ThemeMode.DARK
             page.bg_color = None
+            is_dark = True
         else:
             page.theme_mode = ft.ThemeMode.LIGHT
             page.bg_color = ft.Colors.WHITE
+            is_dark = False
+        GUIColors.dark_mode = is_dark
+
+    def on_platform_brightness_change(e: ft.ControlEvent) -> None:
+        apply_theme()
+        page.update()
+
+    page.on_platform_brightness_change = on_platform_brightness_change
 
     # Apply initial theme
     apply_theme()

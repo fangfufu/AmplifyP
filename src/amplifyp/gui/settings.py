@@ -245,7 +245,7 @@ class GUISettings:
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
             "color_deficient": False,
-            "dark_mode": False,
+            "dark_mode": "system",
             "font_size_map_baseline": 16,
             "font_size_map_primer": 13,
             "font_size_map_amplicon": 13,
@@ -303,9 +303,13 @@ class GUISettings:
             GUIColors.color_deficient_mode = bool(val)
         elif key == "dark_mode":
             val = value
-            if isinstance(val, str):
-                val = val.lower() in ("true", "1", "yes")
-            GUIColors.dark_mode = bool(val)
+            if isinstance(val, str) and val.lower() == "system":
+                # Handled by apply_theme based on brightness
+                pass
+            else:
+                if isinstance(val, str):
+                    val = val.lower() in ("true", "1", "yes")
+                GUIColors.dark_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a setting value by key with an optional default."""
@@ -454,10 +458,27 @@ class GUISettings:
         for k in self._settings:
             if k in settings_dict:
                 v = settings_dict[k]
-                self._settings[k] = (
-                    bool(v) if isinstance(self._settings[k], bool) else str(v)
-                )
+                if k == "dark_mode":
+                    if str(v).lower() == "system":
+                        self._settings[k] = "system"
+                    else:
+                        if isinstance(v, str):
+                            self._settings[k] = v.lower() in (
+                                "true",
+                                "1",
+                                "yes",
+                            )
+                        else:
+                            self._settings[k] = bool(v)
+                else:
+                    self._settings[k] = (
+                        bool(v)
+                        if isinstance(self._settings[k], bool)
+                        else str(v)
+                    )
         GUIColors.color_deficient_mode = bool(
             self._settings.get("color_deficient", False)
         )
-        GUIColors.dark_mode = bool(self._settings.get("dark_mode", False))
+        dark_mode_val = self._settings.get("dark_mode", False)
+        if str(dark_mode_val).lower() != "system":
+            GUIColors.dark_mode = bool(dark_mode_val)

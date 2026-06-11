@@ -46,6 +46,8 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Dark"),
                 ft.dropdown.Option("Light (Colour Deficient Friendly)"),
                 ft.dropdown.Option("Dark (Colour Deficient Friendly)"),
+                ft.dropdown.Option("System"),
+                ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
         )
         self.set_color_scheme.on_change = self._on_color_scheme_change
@@ -99,9 +101,16 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def update_color_scheme_dropdown(self) -> None:
         """Update the color scheme dropdown value based on settings."""
-        dark = bool(self.settings.get("dark_mode", False))
+        dark = self.settings.get("dark_mode", False)
         deficient = bool(self.settings.get("color_deficient", False))
-        if dark:
+        if str(dark).lower() == "system":
+            if deficient:
+                self.set_color_scheme.value = (
+                    "System (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_color_scheme.value = "System"
+        elif bool(dark):
             if deficient:
                 self.set_color_scheme.value = "Dark (Colour Deficient Friendly)"
             else:
@@ -127,6 +136,14 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             self._dummy_color_deficient.value = True
         elif val == "Light (Colour Deficient Friendly)":
             self.settings["dark_mode"] = False
+            self.settings["color_deficient"] = True
+            self._dummy_color_deficient.value = True
+        elif val == "System":
+            self.settings["dark_mode"] = "system"
+            self.settings["color_deficient"] = False
+            self._dummy_color_deficient.value = False
+        elif val == "System (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = "system"
             self.settings["color_deficient"] = True
             self._dummy_color_deficient.value = True
         else:  # Light
