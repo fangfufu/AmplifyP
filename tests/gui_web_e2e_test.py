@@ -300,6 +300,11 @@ def test_e2e_primer_lifecycle_and_state(
     page.goto(f"{serve_app}/?enable-semantics=true")
     wait_for_semantics(page)
 
+    # Wait for app/Pyodide to fully load and the input to appear
+    page.wait_for_selector(
+        'input[aria-label="New Primer Name"]', state="attached", timeout=60000
+    )
+
     # Assert clean state before load
     expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
 
