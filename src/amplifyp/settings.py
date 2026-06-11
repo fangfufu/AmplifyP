@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 from .dna import Nucleotides
+from .errors import ColumnLengthMismatchError, RowLengthMismatchError
 
 
 class LengthWiseWeightTbl:
@@ -168,18 +169,13 @@ class BasePairWeightsTbl:
         exp_col_len = len(col) if Nucleotides.GAP not in col else len(col) - 1
 
         if len(weight) != exp_row_len:
-            raise ValueError(
-                "BasePairWeightsTbl: row length mismatch at initialisation."
-            )
+            raise RowLengthMismatchError()
 
         for i, row_val in enumerate(self.__row):
             if row_val != Nucleotides.GAP:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
-                    raise ValueError(
-                        "BasePairWeightsTbl: column length mismatch at "
-                        "initialisation."
-                    )
+                    raise ColumnLengthMismatchError()
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
                 val: float | int

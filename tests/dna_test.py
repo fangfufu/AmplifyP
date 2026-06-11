@@ -18,6 +18,7 @@
 import pytest
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.errors import InvalidDNASequenceError, InvalidDNATypeError
 
 
 def test_dna_init() -> None:
@@ -105,13 +106,13 @@ def test_primer_init() -> None:
 
 def test_dna_invalid_type() -> None:
     """Test DNA initialised with invalid type."""
-    with pytest.raises(TypeError):
+    with pytest.raises(InvalidDNATypeError):
         DNA("A", 4)  # type: ignore[arg-type]
 
 
 def test_dna_invalid_char() -> None:
     """Test DNA initialised with invalid characters."""
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidDNASequenceError):
         DNA("L")
 
 

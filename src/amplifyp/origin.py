@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from math import trunc
 
 from .dna import DNA, Primer
+from .errors import ReplicationOriginLengthError
 from .settings import (
     GLOBAL_REPLICATION_SETTINGS,
     BasePairWeightsTbl,
@@ -59,9 +60,7 @@ class ReplicationOrigin:
             ValueError: If the lengths of `target` and `primer` do not match.
         """
         if len(self.target) != len(self.primer):
-            raise ValueError(
-                "The target has to have the same length as the primer."
-            )
+            raise ReplicationOriginLengthError()
 
     @property
     def primability(self) -> float:

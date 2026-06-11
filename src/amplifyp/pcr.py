@@ -63,13 +63,9 @@ class PCR:
         """
         for p in self.__primers:
             if p.name == primer.name:
-                raise DuplicatedNameError(
-                    f"Primer name '{primer.name}' already added"
-                )
+                raise DuplicatedNameError(primer.name)
             if p.seq.upper() == primer.seq.upper():
-                raise DuplicatedSequenceError(
-                    f"Primer sequence '{primer.seq}' already added"
-                )
+                raise DuplicatedSequenceError(primer.seq)
         self.__primers.append(primer)
         repliconf = Repliconf(self.template, primer)
         self.amplicon_generator.add_repliconf(repliconf)
@@ -84,7 +80,7 @@ class PCR:
             PrimerNotFoundError: If the primer is not found.
         """
         if primer not in self.__primers:
-            raise PrimerNotFoundError(f"Primer {primer} not found")
+            raise PrimerNotFoundError(primer)
         self.__primers.remove(primer)
         repliconf = Repliconf(self.template, primer)
         self.amplicon_generator.remove_repliconf(repliconf)

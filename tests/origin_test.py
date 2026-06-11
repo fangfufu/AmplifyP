@@ -23,6 +23,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from amplifyp.errors import ReplicationOriginLengthError
 from amplifyp.origin import (
     Amplify4FwdOrigin,
     Amplify4RevOrigin,
@@ -33,7 +34,7 @@ from amplifyp.settings import ReplicationSettings
 
 def test_replication_origin_init() -> None:
     """Test the initialization of a Origin object with invalid parameters."""
-    with pytest.raises(ValueError):
+    with pytest.raises(ReplicationOriginLengthError):
         ReplicationOrigin(
             target="ATCG", primer="ATC", settings=ReplicationSettings()
         )
