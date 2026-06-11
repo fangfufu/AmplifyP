@@ -195,6 +195,38 @@ def test_e2e_primer_lifecycle_and_state(
     add_primer_to_trailing_row(page, "I1", "XYZXYZXYZXYZ")
     add_primer_to_trailing_row(page, "I2", "ATGCATGCATGCAT-XYZ")
 
+    # Add extra valid and invalid primers, then delete them using their delete
+    # buttons.
+    print("Adding extra valid (V3) and invalid (I3) primers...")
+    add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
+    add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
+
+    print("Deleting V3 and I3 using delete buttons...")
+    # There are 6 primers in the list:
+    # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
+    # Since each row has exactly 2 text input fields (Name and Sequence),
+    # the Name input of V3 (index 4) is at global input index 8.
+    page.locator("input").nth(8).click(force=True)
+    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    delete_btn.wait_for(state="attached", timeout=5000)
+    box = delete_btn.bounding_box()
+    assert box is not None
+    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    time.sleep(1)
+
+    # I3 has shifted up to index 4 after V3's deletion, so its Name input is
+    # now at index 8.
+    page.locator("input").nth(8).click(force=True)
+    delete_btn.wait_for(state="attached", timeout=5000)
+    box = delete_btn.bounding_box()
+    assert box is not None
+    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    time.sleep(1)
+
+    # Verify that the count has returned to 5 rows
+    # (4 primers + 1 trailing empty row = 10 inputs).
+    expect(page.locator("input")).to_have_count(10)
+
     # 4. Verify checkboxes and try to activate invalid primers
     # nth(0) is header checkbox, nth(1)=V1, nth(2)=V2, nth(3)=I1, nth(4)=I2
     print("Verifying checkbox state and attempting to activate invalid ones...")
@@ -500,15 +532,13 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
 
     page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
-    target_idx = page.locator(NAME_SEL).count() - 1
-
-    fill_field_reliably(page, NAME_SEL, name, index=target_idx)
+    fill_field_reliably(page, NAME_SEL, name, index=0)
     time.sleep(0.3)
 
     page.wait_for_selector(SEQ_SEL, state="attached", timeout=60000)
-    fill_field_reliably(page, SEQ_SEL, seq, index=target_idx)
+    fill_field_reliably(page, SEQ_SEL, seq, index=0)
     time.sleep(0.3)
 
     # Submit the sequence field (not the name field) to trigger primer creation
-    page.locator(SEQ_SEL).nth(target_idx).press("Enter")
+    page.locator(SEQ_SEL).first.press("Enter")
     time.sleep(5)

@@ -190,6 +190,8 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input.focused_primer_index = e.control.data
             self.primer_input._update_row_highlights()
             self.primer_input._update_primer_info_panel()
+            if self.app_page:
+                self.app_page.update()
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
