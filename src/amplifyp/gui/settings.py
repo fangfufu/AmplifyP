@@ -29,6 +29,14 @@ from amplifyp.settings import (
     GLOBAL_TM_SETTINGS,
 )
 
+# Maximum number of amplicons to draw on the PCR result diagram to
+# prevent UI freeze.
+MAX_AMPLICONS_RENDER = 100
+
+# Maximum number of primer dimer cards to display in the UI to
+# prevent UI freeze.
+MAX_DIMERS_RENDER = 100
+
 if TYPE_CHECKING:
     from amplifyp.settings import (
         PrimerDimerSettings,

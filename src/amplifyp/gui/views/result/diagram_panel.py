@@ -21,7 +21,7 @@ from typing import Any
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
 from amplifyp.pcr import PCR
 
 from .amplicon_drawing import DrawnAmplicon
@@ -113,13 +113,21 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
 
         This draws baseline, primers, and amplicons.
         """
-        num_amplicons = len(pcr.amplicons)
+        amplicons = pcr.amplicons
+        num_amplicons = len(amplicons)
         if num_amplicons == 0:
             self.reset_ui()
             return
 
         self.diagram_container.visible = True
         self.divider.visible = True
+
+        # Limit to top amplicons sorted by q_score (lower is better quality)
+        if num_amplicons > MAX_AMPLICONS_RENDER:
+            amplicons = sorted(amplicons, key=lambda a: a.q_score)[
+                :MAX_AMPLICONS_RENDER
+            ]
+            num_amplicons = MAX_AMPLICONS_RENDER
 
         target_length = len(pcr.template)
         v_target, h_margin, c_width, t_width = (
@@ -131,7 +139,9 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
                 v_target, h_margin, c_width, t_width, target_length
             )
 
-        fwd_bindings, rev_bindings = self._collect_primer_bindings(pcr)
+        fwd_bindings, rev_bindings = self._collect_primer_bindings(
+            pcr, amplicons
+        )
 
         self._draw_primers(
             fwd_bindings,
@@ -149,6 +159,7 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
             h_margin,
             v_target,
             c_width,
+            amplicons=amplicons,
         )
 
     def _calculate_canvas_dimensions(
@@ -275,7 +286,7 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
             )
 
     def _collect_primer_bindings(
-        self, pcr: PCR
+        self, pcr: PCR, amplicons: list[Any] | None = None
     ) -> tuple[
         dict[int, tuple[str, float, Any, Any]],
         dict[int, tuple[str, float, Any, Any]],
@@ -283,7 +294,9 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
         """Collect and group unique forward and reverse primer binding sites."""
         fwd_bindings = {}
         rev_bindings = {}
-        for amp in pcr.amplicons:
+        if amplicons is None:
+            amplicons = pcr.amplicons
+        for amp in amplicons:
             fwd_conf = next(
                 (
                     c
@@ -381,9 +394,12 @@ class ResultDiagramPanel(ft.Column):  # type: ignore[misc]
         h_margin: float,
         v_target: float,
         c_width: float,
+        amplicons: list[Any] | None = None,
     ) -> None:
         """Draw amplicons using DrawnAmplicon instances."""
-        for idx, amp in enumerate(pcr.amplicons):
+        if amplicons is None:
+            amplicons = pcr.amplicons
+        for idx, amp in enumerate(amplicons):
             drawn = DrawnAmplicon(
                 amp=amp,
                 idx=idx,

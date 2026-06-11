@@ -21,7 +21,7 @@ from typing import Any
 import flet as ft
 
 from amplifyp.dna import DNA, DNAType, Primer
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 
@@ -45,6 +45,10 @@ class ResultView(ft.Column):  # type: ignore[misc]
 
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
+        self._cached_pcr: PCR | None = None
+        self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
+            None
+        )
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -108,7 +112,19 @@ class ResultView(ft.Column):  # type: ignore[misc]
         saved_cards = self._reset_pcr_ui(keep_cards)
         success = True
         try:
-            pcr = self._execute_pcr_simulation()
+            current_state_key = (
+                self.input_data.to_dict(),
+                self.settings.to_dict(),
+            )
+            if (
+                self._cached_state_key == current_state_key
+                and self._cached_pcr is not None
+            ):
+                pcr = self._cached_pcr
+            else:
+                pcr = self._execute_pcr_simulation()
+                self._cached_pcr = pcr
+                self._cached_state_key = current_state_key
             num_amplicons = len(pcr.amplicons)
 
             if num_amplicons == 0:
@@ -117,6 +133,21 @@ class ResultView(ft.Column):  # type: ignore[misc]
                 )
             else:
                 self.diagram_panel.render_diagram(pcr)
+                if num_amplicons > MAX_AMPLICONS_RENDER:
+                    self.result_list.controls.append(
+                        ft.Container(
+                            content=ft.Text(
+                                f"Warning: {num_amplicons} amplicons "
+                                "found. Only the top "
+                                f"{MAX_AMPLICONS_RENDER} (sorted by "
+                                "quality score) are displayed to "
+                                "prevent UI freeze.",
+                                color=GUIColors.ERROR_RED,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            padding=10,
+                        )
+                    )
 
         except Exception as ex:
             self.result_list.controls.append(
