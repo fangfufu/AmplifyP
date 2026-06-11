@@ -124,11 +124,13 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container.visible = True
         self.divider.visible = True
 
-        # Limit to top amplicons sorted by q_score (lower is better quality)
+        # Sort amplicons by ascending q_score (lower is better quality)
+        amplicons = sorted(amplicons, key=lambda a: a.q_score)
+        num_amplicons = len(amplicons)
+
+        # Limit to top amplicons if there are too many
         if num_amplicons > MAX_AMPLICONS_RENDER:
-            amplicons = sorted(amplicons, key=lambda a: a.q_score)[
-                :MAX_AMPLICONS_RENDER
-            ]
+            amplicons = amplicons[:MAX_AMPLICONS_RENDER]
             num_amplicons = MAX_AMPLICONS_RENDER
 
         target_length = len(pcr.template)
