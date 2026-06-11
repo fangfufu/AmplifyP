@@ -9,18 +9,19 @@
 """Input component for DNA primers list and details."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
-from .primer_row import PrimerRow
-from .primer_info_panel import PrimerInfoPanel
-from .primer_header import PrimerHeader
-from .primer_toolbar import PrimerToolbar
-from .primer_file_manager import PrimerFileManager
-from .primer_list import PrimerList
 
+from .primer_file_manager import PrimerFileManager
+from .primer_header import PrimerHeader
+from .primer_info_panel import PrimerInfoPanel
+from .primer_list import PrimerList
+from .primer_row import PrimerRow
+from .primer_toolbar import PrimerToolbar
 
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
@@ -244,11 +245,27 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
 
         # Run background primer construction/validation
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+
         new_validation_errors = []
         for p in primers:
-            new_validation_errors.append(
-                PrimerRow.validate(p["name"], p["seq"])
-            )
+            err = PrimerRow.validate(p["name"], p["seq"])
+            if not err:
+                n_lower = str(p.get("name", "")).strip().lower()
+                s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+                if n_lower and names_count.get(n_lower, 0) > 1:
+                    err = "Duplicate primer name"
+                elif s_lower and seqs_count.get(s_lower, 0) > 1:
+                    err = "Duplicate primer sequence"
+            new_validation_errors.append(err)
 
         if getattr(self, "validation_errors", []) != new_validation_errors:
             should_rebuild = True
@@ -278,9 +295,21 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     ) -> tuple[list[dict[str, Any]], bool]:
         """Apply auto-activation, auto-inactivation and deletion rules."""
         from amplifyp.dna import Primer
+
         prev_primers = self.input_data.primers
         filtered_primers = []
         should_rebuild = False
+
+        # Precompute counts for duplicate checks in activation logic
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in ui_primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
         for i, p in enumerate(ui_primers):
             name_val = p["name"]
@@ -310,6 +339,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 except ValueError:
                     prev_seq_invalid = True
 
+            # Check if current primer would be duplicate/invalid
+            n_lower = name_val.strip().lower()
+            s_lower = clean_sequence(seq_val).lower()
+            is_dup = (n_lower and names_count.get(n_lower, 0) > 1) or (
+                s_lower and seqs_count.get(s_lower, 0) > 1
+            )
+
             # Auto-activation rule
             if (not prev_name or not prev_seq or prev_seq_invalid) and (
                 name_val and seq_val
@@ -319,14 +355,23 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     Primer(sequence=seq_val, name=name_val)
                 except ValueError:
                     is_valid = False
-                if is_valid:
+                if is_valid and not is_dup:
                     is_active = True
                     if checkbox is not None:
                         checkbox.value = True
                     should_rebuild = True
 
-            # Auto-inactivation rule
-            if not name_val or not seq_val:
+            # Auto-inactivation rule if fields are cleared or invalid
+            is_valid = True
+            if name_val or seq_val:
+                try:
+                    Primer(sequence=seq_val, name=name_val)
+                except ValueError:
+                    is_valid = False
+                if is_dup:
+                    is_valid = False
+
+            if not name_val or not seq_val or not is_valid:
                 if is_active:
                     is_active = False
                     if checkbox is not None:
@@ -421,7 +466,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 # If the item has a container reference, use container.data,
                 # otherwise use idx
                 c = p.get("container")
-                c_idx = c.data if (c is not None and hasattr(c, "data")) else idx
+                c_idx = (
+                    c.data if (c is not None and hasattr(c, "data")) else idx
+                )
                 dup_indices.add(c_idx)
         return dup_indices
 
@@ -457,5 +504,3 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Show a snackbar message."""
         self.app_page.overlay.append(ft.SnackBar(ft.Text(message), open=True))
         self.app_page.update()
-
-

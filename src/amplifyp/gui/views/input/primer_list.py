@@ -6,18 +6,20 @@
 # (at your option) any later version.
 #
 
-"""Custom ListView class encapsulating rendering, styling, and resizing of primers."""
+"""ListView for rendering, styling, and resizing primers."""
 
 from typing import Any
+
 import flet as ft
 
 from amplifyp.gui.settings import GUIColors
 from amplifyp.gui.util import clean_sequence
+
 from .primer_row import PrimerRow
 
 
 class PrimerList(ft.ListView):  # type: ignore[misc]
-    """Custom ListView class encapsulating rendering, styling, and resizing of primers."""
+    """ListView for rendering, styling, and resizing primers."""
 
     def __init__(
         self,
@@ -31,7 +33,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
 
     def update_list_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
-        font_family = self.primer_input.settings.get("font_family", "Roboto Mono")
+        font_family = self.primer_input.settings.get(
+            "font_family", "Roboto Mono"
+        )
         self.controls.clear()
 
         # Filter out all empty primers from state first
@@ -42,19 +46,20 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
 
-        # Only append a trailing empty row if there are no invalid primers.
-        any_invalid = False
-        for p in clean_primers:
-            name_val = p.get("name", "")
-            seq_val = p.get("seq", "")
-            if name_val and seq_val:
-                if PrimerRow.validate(name_val, seq_val) is not None:
-                    any_invalid = True
-                    break
-
-        if not any_invalid:
-            clean_primers.append({"name": "", "seq": "", "active": False})
+        # Always append a trailing empty row
+        clean_primers.append({"name": "", "seq": "", "active": False})
         self.primer_input.input_data.primers = clean_primers
+
+        # Precompute duplicate indices & name/seq counts for error reporting
+        names_count: dict[str, int] = {}
+        seqs_count: dict[str, int] = {}
+        for p in self.primer_input.input_data.primers:
+            n_lower = str(p.get("name", "")).strip().lower()
+            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+            if n_lower:
+                names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if s_lower:
+                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
 
         dup_indices = self.primer_input._get_duplicate_indices()
 
@@ -66,8 +71,15 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             is_active = p.get("active", True)
 
             error_message = PrimerRow.validate(name_val, seq_val)
-            self.primer_input.validation_errors.append(error_message)
+            if not error_message:
+                n_lower = name_val.strip().lower()
+                s_lower = clean_sequence(seq_val).lower()
+                if n_lower and names_count.get(n_lower, 0) > 1:
+                    error_message = "Duplicate primer name"
+                elif s_lower and seqs_count.get(s_lower, 0) > 1:
+                    error_message = "Duplicate primer sequence"
 
+            self.primer_input.validation_errors.append(error_message)
 
             is_dup = idx in dup_indices
             is_focused = idx == self.primer_input.focused_primer_index
@@ -122,7 +134,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 else:
                     container.bgcolor = None
 
-                # Update reorder container visibility and text padding dynamically.
+                # Update reorder container visibility & text padding.
                 row = container.content
                 if isinstance(row, ft.Row) and len(row.controls) >= 5:
                     seq_stack = row.controls[4]
@@ -132,7 +144,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                     ):
                         reorder_container = seq_stack.controls[1]
                         seq_edit = seq_stack.controls[0]
-                        is_focused = c_idx == self.primer_input.focused_primer_index
+                        is_focused = (
+                            c_idx == self.primer_input.focused_primer_index
+                        )
                         reorder_container.visible = is_focused
                         if isinstance(seq_edit, ft.TextField):
                             seq_edit.content_padding = ft.Padding(

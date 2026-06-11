@@ -48,8 +48,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.idx = idx
         self.checkbox = ft.Checkbox(
-            value=is_active,
+            value=is_active if not error_message else False,
             on_change=on_change_handler,
+            disabled=bool(error_message),
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
@@ -189,6 +190,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.seq_field.error = err
         self.seq_field.height = 30 if not err else None
         self.height = 30 if not err else None
+        self.checkbox.disabled = bool(err)
+        if err:
+            self.checkbox.value = False
 
     @staticmethod
     def validate(name: str, seq: str) -> str | None:
