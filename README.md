@@ -55,11 +55,8 @@ Install the package and its runtime dependencies:
 pip install .
 ```
 
-For development dependencies (testing and E2E automation):
-
-```bash
-pip install -e ".[tests,e2e]"
-```
+For developer setup and running tests, please refer to the
+[Development Guide](src/README.md).
 
 ______________________________________________________________________
 
@@ -71,56 +68,23 @@ Run AmplifyP entirely in your browser without any local installation! Visit the
 live static web app:
 **[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)**
 
-To build and test the static web app locally using Pyodide:
-
-```bash
-./build_static.sh
-python -m http.server 23455 -d dist
-```
-
-Then navigate to <http://localhost:23455> in your web browser.
+To build and test the static web app locally, or to run the application with
+hot-reload for development, see the [Development Guide](src/README.md).
 
 ______________________________________________________________________
 
 ### Local Graphical User Interface (GUI)
 
-You can launch the Flet GUI application locally either as a standalone desktop
-app or as a dynamic local web app. Using the **Flet CLI** (`flet run`) enables
-**hot-reload** for both environments, which automatically updates the app
-interface in real-time as you modify the source files.
+You can launch the Flet GUI application locally as a standalone desktop app.
 
 #### 1. Launching the App
 
-- **Desktop Application (via Python)** (standard run without hot-reload):
+- **Desktop Application (via Python)**:
   ```bash
   python src/main.py
   ```
-- **Desktop Application with Hot-Reload (via Flet CLI)**:
-  ```bash
-  flet run -r src/main.py
-  ```
-- **Dynamic Web Application with Hot-Reload (via Flet CLI)**: To run the app as
-  a dynamic local website in your web browser with hot-reloading:
-  ```bash
-  flet run -w -r src/main.py
-  ```
-  To specify a custom port (e.g., port `43425`):
-  ```bash
-  flet run -w -r -p 43425 src/main.py
-  ```
 
-#### 2. How Hot-Reload Works
-
-When launching the application using the Flet CLI (`flet run`):
-
-- **File Watcher**: The CLI monitors the files in the directory containing
-  `main.py` for any changes.
-- **Live Updates**: Saving changes to your code automatically updates the active
-  application window or browser tab without needing to manually restart the
-  process.
-- **Recursive Watching**: Because the project's core source files are located in
-  the `src/amplifyp` sub-directory, you must include the `-r` (or `--recursive`)
-  flag to ensure changes to files in sub-directories are also detected.
+#### 2. Features and Workflows
 
 The GUI offers intuitive workflows to:
 
@@ -175,17 +139,6 @@ for amp in amplicons:
     print(f"Length: {len(amp.product)}")
     print(f"Quality Score: {amp.q_score}")
     print("-" * 20)
-```
-
-______________________________________________________________________
-
-## Development & Testing
-
-Run the test suite using `pytest` to verify correctness:
-
-```bash
-# Run unit and integration tests
-pytest
 ```
 
 ______________________________________________________________________
