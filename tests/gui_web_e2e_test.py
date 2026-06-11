@@ -195,11 +195,18 @@ def test_e2e_primer_lifecycle_and_state(
     add_primer_to_trailing_row(page, "I1", "XYZXYZXYZXYZ")
     add_primer_to_trailing_row(page, "I2", "ATGCATGCATGCAT-XYZ")
 
-    # Add extra valid and invalid primers, then delete them using their delete
-    # buttons.
-    print("Adding extra valid (V3) and invalid (I3) primers...")
+    # Add extra valid (V3) and invalid (I3) primers.
+    print("Adding extra valid (V3) primer...")
     add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
+    # Verify V3 added: 6 rows (12 inputs) and checkbox is checked.
+    expect(page.locator("input")).to_have_count(12)
+    expect(page.get_by_role("checkbox").nth(6)).to_be_checked()
+
+    print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
+    # Verify I3 added: 7 rows (14 inputs) and checkbox is disabled.
+    expect(page.locator("input")).to_have_count(14)
+    expect(page.get_by_role("checkbox").nth(7)).to_be_disabled()
 
     print("Deleting V3 and I3 using delete buttons...")
     # There are 6 primers in the list:
@@ -214,8 +221,11 @@ def test_e2e_primer_lifecycle_and_state(
     page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
     time.sleep(1)
 
-    # I3 has shifted up to index 4 after V3's deletion, so its Name input is
-    # now at index 8.
+    # Verify V3 deleted: 6 rows (12 inputs) and I3 checkbox is now at index 6.
+    expect(page.locator("input")).to_have_count(12)
+    expect(page.get_by_role("checkbox").nth(6)).to_be_disabled()
+
+    # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
     page.locator("input").nth(8).click(force=True)
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
@@ -223,8 +233,7 @@ def test_e2e_primer_lifecycle_and_state(
     page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
     time.sleep(1)
 
-    # Verify that the count has returned to 5 rows
-    # (4 primers + 1 trailing empty row = 10 inputs).
+    # Verify I3 deleted: count returned to 5 rows (10 inputs).
     expect(page.locator("input")).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
