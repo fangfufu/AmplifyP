@@ -8,9 +8,10 @@
 
 """PrimerDimerTile component for Flet settings view."""
 
-import flet as ft
 from typing import Any
-from amplifyp.gui.settings import GUIColors
+
+import flet as ft
+
 from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
@@ -48,8 +49,9 @@ class PrimerDimerTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["pd_min_overlap"] = self.set_pd_min_overlap
         self.settings_map["pd_threshold"] = self.set_pd_threshold
 
-        # Primer dimer scores weights map initialization (must happen before building ScoreTable)
+        # Map initialization (must happen before building ScoreTable)
         from amplifyp.gui.util import initialize_score_fields
+
         initialize_score_fields(
             settings_map=self.settings_map,
             prefix="pd_score",
@@ -106,6 +108,7 @@ class PrimerDimerTile(ft.ExpansionTile):  # type: ignore[misc]
                         ],
                         vertical_alignment=ft.CrossAxisAlignment.START,
                         alignment=ft.MainAxisAlignment.CENTER,
+                        scroll=ft.ScrollMode.ALWAYS,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )

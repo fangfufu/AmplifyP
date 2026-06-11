@@ -8,9 +8,10 @@
 
 """ReplicationTile component for Flet settings view."""
 
-import flet as ft
 from typing import Any
-from amplifyp.gui.settings import GUIColors
+
+import flet as ft
+
 from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
@@ -56,8 +57,9 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
-        # Base Pair scores weights map initialization (must happen before building ScoreTable)
+        # Map initialization (must happen before building ScoreTable)
         from amplifyp.gui.util import initialize_score_fields
+
         initialize_score_fields(
             settings_map=self.settings_map,
             prefix="bp_score",
@@ -115,6 +117,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                         ],
                         vertical_alignment=ft.CrossAxisAlignment.START,
                         alignment=ft.MainAxisAlignment.CENTER,
+                        scroll=ft.ScrollMode.ALWAYS,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )

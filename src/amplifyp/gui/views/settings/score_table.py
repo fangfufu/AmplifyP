@@ -8,8 +8,10 @@
 
 """ScoreTable component for displaying base pair and primer dimer weights."""
 
-import flet as ft
 from typing import Any
+
+import flet as ft
+
 from amplifyp.gui.settings import GUIColors
 
 
@@ -170,7 +172,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             padding=0,
                         )
                     ],
-                    scroll=ft.ScrollMode.ADAPTIVE,
+                    scroll=ft.ScrollMode.ALWAYS,
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
             ],
