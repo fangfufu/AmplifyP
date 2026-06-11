@@ -121,6 +121,7 @@ def fill_field_reliably(
     text: str,
     delay_ms: int = 100,
     use_last: bool = False,
+    index: int | None = None,
 ) -> None:
     """Focus and type text into a Flutter Web text field.
 
@@ -139,7 +140,9 @@ def fill_field_reliably(
        Verification is therefore left to downstream test assertions (e.g.
        checking the downloaded file contains the expected sequence).
     """
-    if use_last:
+    if index is not None:
+        field = page.locator(selector).nth(index)
+    elif use_last:
         field = page.locator(selector).last
     else:
         field = page.locator(selector).first
@@ -151,7 +154,9 @@ def fill_field_reliably(
     time.sleep(0.2)
     field.press_sequentially(text, delay=delay_ms)
     time.sleep(0.3)
-    print(f"  typed '{text}' into {selector} (use_last={use_last})")
+    print(
+        f"  typed '{text}' into {selector} (index={index}, use_last={use_last})"
+    )
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
@@ -495,13 +500,15 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
 
     page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
-    fill_field_reliably(page, NAME_SEL, name, use_last=True)
+    target_idx = page.locator(NAME_SEL).count() - 1
+
+    fill_field_reliably(page, NAME_SEL, name, index=target_idx)
     time.sleep(0.3)
 
     page.wait_for_selector(SEQ_SEL, state="attached", timeout=60000)
-    fill_field_reliably(page, SEQ_SEL, seq, use_last=True)
+    fill_field_reliably(page, SEQ_SEL, seq, index=target_idx)
     time.sleep(0.3)
 
     # Submit the sequence field (not the name field) to trigger primer creation
-    page.locator(SEQ_SEL).last.press("Enter")
+    page.locator(SEQ_SEL).nth(target_idx).press("Enter")
     time.sleep(5)
