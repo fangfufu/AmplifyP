@@ -24,7 +24,7 @@ echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 
 echo "==> Building static site..."
-"${SCRIPT_DIR}/.venv/bin/flet" publish "${SCRIPT_DIR}/src/main.py" \
+flet publish "${SCRIPT_DIR}/src/main.py" \
   --distpath "${DIST_DIR}" \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \
@@ -41,7 +41,7 @@ rm -f "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py" || true
 echo "==> Injecting browser unload warning script and git SHA..."
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 echo "${GIT_SHA}" > "${DIST_DIR}/.git-sha"
-"${SCRIPT_DIR}/.venv/bin/python" -c "
+python -c "
 import pathlib
 index_path = pathlib.Path('${DIST_DIR}/index.html')
 if index_path.exists():
