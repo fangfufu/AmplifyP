@@ -24,14 +24,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
     ) -> None:
         """Initialize the PrimerToolbar."""
         self.save_button = ft.FilledTonalButton(
-            "Save Primers",
+            "Save",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=on_save,
             tooltip="Save primers to CSV",
             height=32,
         )
         self.load_button = ft.FilledTonalButton(
-            "Load Primers",
+            "Load",
             icon=ft.Icons.FILE_OPEN,
             on_click=on_load,
             tooltip="Load primers from CSV/TSV",
@@ -46,9 +46,11 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         )
         super().__init__(
             [
-                self.save_button,
                 self.load_button,
+                self.save_button,
                 self.clear_button,
             ],
-            spacing=8,
+            spacing=10,
+            tight=True,
+            wrap=True,
         )

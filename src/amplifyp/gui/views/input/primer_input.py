@@ -97,13 +97,23 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self.content = ft.Column(
             [
-                ft.Row(
+                ft.ResponsiveRow(
                     [
-                        ft.Text("Primers", weight=ft.FontWeight.BOLD),
-                        self.primer_toolbar,
+                        ft.Container(
+                            content=ft.Text(
+                                "Primers",
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            width=100,
+                            col={"lg": 2, "md": 12, "sm": 12, "xs": 12},
+                        ),
+                        ft.Container(
+                            content=self.primer_toolbar,
+                            col={"lg": 10, "md": 12, "sm": 12, "xs": 12},
+                            alignment=ft.Alignment(1, 0),
+                        ),
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    height=40,
+                    run_spacing=0,
                 ),
                 ft.Container(
                     content=ft.Column(

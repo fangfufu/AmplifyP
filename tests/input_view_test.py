@@ -739,3 +739,82 @@ def test_header_checkbox_click_all_inactive() -> None:
     ]
     assert all(p["active"] for p in non_empty)
     assert view.primer_input.all_primers_checkbox.value is True
+
+
+def test_template_load_save() -> None:
+    """Test loading and saving template using FilePicker."""
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    from amplifyp.gui.user_data import GUIInput
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = True
+    input_data = GUIInput()
+
+    # Mock FilePicker class
+    mock_file_picker_instance = MagicMock(spec=ft.FilePicker)
+    mock_file_picker_instance.save_file = AsyncMock(return_value="template.txt")
+
+    with patch(
+        "amplifyp.gui.views.input.template_file_manager.ft.FilePicker",
+        return_value=mock_file_picker_instance,
+    ):
+        view = InputView(mock_page, input_data)
+        view.update_ui()
+
+        # Check buttons exist
+        assert hasattr(view.template_input, "save_template_button")
+        assert hasattr(view.template_input, "load_template_button")
+
+        # --- TEST SAVE ---
+        # 1. Save empty template
+        import asyncio
+
+        asyncio.run(
+            view.template_input.save_template_button.on_click(
+                MagicMock(spec=ft.ControlEvent)
+            )
+        )
+        # Verify snackbar was shown (and save_file was not called because
+        # template is empty)
+        mock_file_picker_instance.save_file.assert_not_called()
+
+        # 2. Save non-empty template
+        input_data.template = "ATGCATGC"
+        view.update_ui()
+        asyncio.run(
+            view.template_input.save_template_button.on_click(
+                MagicMock(spec=ft.ControlEvent)
+            )
+        )
+        mock_file_picker_instance.save_file.assert_called_once()
+        kwargs = mock_file_picker_instance.save_file.call_args[1]
+        assert kwargs["file_name"] == "template.txt"
+        assert kwargs["allowed_extensions"] == ["txt"]
+        assert kwargs["src_bytes"] == b"ATGCATGC"
+
+        # --- TEST LOAD ---
+        mock_file = MagicMock(spec=ft.FilePickerFile)
+        mock_file.name = "template.txt"
+        mock_file.bytes = b"GGGCCC"
+        mock_file.path = None
+
+        mock_file_picker_instance.pick_files = AsyncMock(
+            return_value=[mock_file]
+        )
+
+        asyncio.run(
+            view.template_input.load_template_button.on_click(
+                MagicMock(spec=ft.ControlEvent)
+            )
+        )
+
+        mock_file_picker_instance.pick_files.assert_called_once_with(
+            dialog_title="Load",
+            allowed_extensions=["txt"],
+            file_type=ft.FilePickerFileType.CUSTOM,
+            with_data=True,
+        )
+
+        assert input_data.template == "GGGCCC"
+        assert view.template_sequence.value == "GGGCCC"
