@@ -1,0 +1,301 @@
+# Copyright (C) 2026 Fufu Fang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+
+"""Tests for PCR View and primer binding site context map popups."""
+
+from unittest.mock import MagicMock
+
+import flet as ft
+
+from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.views.pcr import PCRView
+
+
+def test_pcr_view_click_context_map() -> None:
+    """Test that clicking a primer binding site shows a context map."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # The diagram_stack controls should contain some ft.GestureDetectors
+    # representing click overlays
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) >= 2
+
+    # Verify no cards initially
+    assert len(view.result_list.controls) == 0
+
+    # Click on the first gesture detector (forward binding site)
+    fwd_detector = gesture_detectors[0]
+    assert fwd_detector.on_tap is not None
+
+    # Trigger click
+    fwd_detector.on_tap(MagicMock())
+
+    # Verify that a card was added below the overview map
+    assert len(view.result_list.controls) == 1
+    card = view.result_list.controls[0]
+    assert isinstance(card, ft.Card)
+
+    # Verify title text inside card
+    title_text = card.content.content.controls[0].controls[0].value
+    assert "Context Map" in title_text
+    assert "10290" in title_text
+
+    # Verify Primeability, Stability and Quality display
+    stats_text = card.content.content.controls[1]
+    assert isinstance(stats_text, ft.Text)
+    stats_spans = "".join([span.text for span in stats_text.spans])
+    assert "Primeability =" in stats_spans
+    assert "Stability =" in stats_spans
+    assert "Quality =" in stats_spans
+
+    # Extract diagram_text
+    diagram_text = card.content.content.controls[2].content.controls[0]
+    assert isinstance(diagram_text, ft.Text)
+
+    # Check spans content
+    text_spans = [span.text for span in diagram_text.spans]
+    full_text = "".join(text_spans)
+
+    # Context map should have:
+    # 1. 1-indexed positions
+    # 2. Down arrows (↓)
+    # 3. Primer name (10290) and 5'/3' markers
+    # 4. Watson-Crick bonds (||||)
+    # 5. Template context sequence
+    assert "1" in full_text
+    assert "20" in full_text
+    assert "↓" in full_text
+    assert "10290" in full_text
+    assert "5'" in full_text
+    assert "3'" in full_text
+    assert "|||" in full_text
+    assert "Context" in full_text
+    assert (
+        "--------------------" in full_text
+    )  # Upstream region (gaps because index 0 is at boundary)
+    assert (
+        "tTccACTGCGAATCATTAAA" in full_text
+    )  # Binding region - must preserve mixed case
+
+
+def test_pcr_view_click_amplicon() -> None:
+    """Test that clicking on an amplicon bar inserts the amplicon details
+
+    card below the map.
+    """
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Verify no cards initially
+    assert len(view.result_list.controls) == 0
+
+    # Find the gesture detectors.
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    # We should have 3 gesture detectors total
+    assert len(gesture_detectors) == 3
+
+    # Click on the third gesture detector (the amplicon)
+    amp_detector = gesture_detectors[2]
+    assert amp_detector.on_tap is not None
+
+    # Trigger click
+    amp_detector.on_tap(MagicMock())
+
+    # Verify that a card was added below the overview map
+    assert len(view.result_list.controls) == 1
+    card = view.result_list.controls[0]
+    assert isinstance(card, ft.Card)
+
+    # Check contents: should have sequence length and labels
+    column = card.content.content
+    assert isinstance(column, ft.Column)
+
+    length_text = column.controls[0].controls[0].value
+    assert "Amplicon: 60 bp" in length_text
+
+    subtitle_text = column.controls[1]
+    assert isinstance(subtitle_text, ft.Text)
+    spans_content = "".join([span.text for span in subtitle_text.spans])
+    assert "— 20 bp —" in spans_content
+
+
+def test_pcr_view_resize_preserves_cards() -> None:
+    """Test that resizing the window does not discard open cards."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # The diagram_stack controls should contain some ft.GestureDetectors
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) >= 2
+
+    # Click on the first gesture detector (forward binding site)
+    fwd_detector = gesture_detectors[0]
+    fwd_detector.on_tap(MagicMock())
+
+    # Verify card is present
+    assert len(view.result_list.controls) == 1
+    assert isinstance(view.result_list.controls[0], ft.Card)
+
+    # Trigger resize event
+    view._handle_resize(MagicMock(spec=ft.ControlEvent))
+
+    # Verify that the card is still present
+    assert len(view.result_list.controls) == 1
+    assert isinstance(view.result_list.controls[0], ft.Card)
+
+
+def test_pcr_view_no_duplicate_cards() -> None:
+    """Test that clicking an element twice does not duplicate its card
+
+    but instead brings the existing card to the top of the list.
+    """
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Find the gesture detectors: 2 context maps, 1 amplicon
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) == 3
+
+    # Click first context map (forward binding site)
+    gesture_detectors[0].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 1
+    card1 = view.result_list.controls[0]
+
+    # Click second context map (reverse binding site)
+    gesture_detectors[1].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 2
+    assert view.result_list.controls[0] != card1
+
+    # Click first context map again
+    gesture_detectors[0].on_tap(MagicMock())
+    # Should still be 2 cards total, and card1 should be moved back to the top
+    assert len(view.result_list.controls) == 2
+    assert view.result_list.controls[0] == card1
+
+    # Click amplicon
+    gesture_detectors[2].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 3
+    amp_card = view.result_list.controls[0]
+
+    # Click amplicon again
+    gesture_detectors[2].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 3
+    assert view.result_list.controls[0] == amp_card
+
+
+def test_pcr_view_primer_label_collision() -> None:
+    """Test that closely spaced primer labels are shifted horizontally."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # Three forward-binding primers close to each other
+    # and one reverse primer to allow amplicon rendering.
+    input_data.primers = [
+        {"name": "P1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "P2", "seq": "TCCACTGCGAATCATTAAAG", "active": True},
+        {"name": "P3", "seq": "CCACTGCGAATCATTAAAGT", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # The stack should have DrawnPrimer text controls.
+    texts = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.Text) and ctrl.color == "blue800"
+    ]
+    # We should have 3 forward primer label texts
+    assert len(texts) == 3
+
+    # Extract their "left" values and sort them
+    lefts = sorted([txt.left for txt in texts])
+
+    # Separated by >= 24.0 pixels due to de-collision logic
+    assert lefts[1] - lefts[0] >= 24.0
+    assert lefts[2] - lefts[1] >= 24.0

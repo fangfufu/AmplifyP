@@ -21,7 +21,14 @@ from amplifyp.dna import DNADirection, DNAType
 from amplifyp.repliconf import DirIdx
 
 from .dna import DNA, Primer
-from .errors import DuplicateRepliconfError
+from .errors import (
+    DuplicateRepliconfError,
+    InvalidAmpliconRangeError,
+    InvalidEndDirectionError,
+    InvalidIndexOrderError,
+    InvalidStartDirectionError,
+    TemplateMismatchError,
+)
 from .repliconf import Repliconf
 
 
@@ -61,13 +68,11 @@ class Amplicon:
                 if `end` index precedes `start` index.
         """
         if self.start.direction != DNADirection.FWD:
-            raise ValueError("Start direction must be forward.")
+            raise InvalidStartDirectionError()
         if self.end.direction != DNADirection.REV:
-            raise ValueError("End direction must be reverse.")
+            raise InvalidEndDirectionError()
         if (self.start.index > self.end.index) and not self.circular:
-            raise ValueError(
-                "End index must be greater than start index for linear DNA."
-            )
+            raise InvalidIndexOrderError()
 
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
@@ -144,17 +149,12 @@ class AmpliconGenerator:
             DuplicateRepliconfError: If the `repliconf` has already been added.
         """
         if self.template != repliconf.template:
-            raise ValueError(
-                "The Repliconf contains a different template to the "
-                "AmpliconGenerator."
-            )
+            raise TemplateMismatchError()
 
         if repliconf not in self.repliconfs:
             self.repliconfs.append(repliconf)
         else:
-            raise DuplicateRepliconfError(
-                "The Repliconf is already in the AmpliconGenerator."
-            )
+            raise DuplicateRepliconfError()
 
     def remove_repliconf(self, repliconf: Repliconf) -> None:
         """Remove a replication configuration from the generator.
@@ -245,12 +245,9 @@ class AmpliconGenerator:
             circular = True
         elif (start > end) and (self.template.type == DNAType.LINEAR):
             # Not possible on linear DNA
-            pass
+            pass  # pragma: no cover
         else:
-            raise NotImplementedError(
-                "Attempted to search for an amplicon with the start index "
-                "bigger than the end index on a linear DNA template."
-            )
+            raise InvalidAmpliconRangeError()  # pragma: no cover
         return seq, circular
 
     def get_amplicons(self) -> list[Amplicon]:
@@ -268,8 +265,8 @@ class AmpliconGenerator:
         amplicons: list[Amplicon] = []
 
         # Ensure all repliconfs are searched and collect origins
-        all_fwd_origins = []
-        all_rev_origins = []
+        all_fwd_origins: list[tuple[Repliconf, DirIdx]] = []
+        all_rev_origins: list[tuple[Repliconf, DirIdx]] = []
 
         for repliconf in self.repliconfs:
             if not repliconf.searched:
@@ -281,13 +278,17 @@ class AmpliconGenerator:
                 all_rev_origins.append((repliconf, end))
 
         # Iterate over combinations
+        is_circular = self.template.type == DNAType.CIRCULAR
         for fwd_conf, start in all_fwd_origins:
             for rev_conf, end in all_rev_origins:
+                if not is_circular and start.index >= end.index:
+                    continue
+
                 seq, circular = self._construct_amplicon_sequence(
                     fwd_conf, rev_conf, start, end
                 )
 
-                if seq is None:
+                if seq is None:  # pragma: no cover
                     continue
 
                 q_score = self.get_amplicon_quality_score(

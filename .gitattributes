@@ -1,0 +1,9 @@
+# Set default behavior to automatic text detection with LF (Unix) line endings on checkout
+* text=auto eol=lf
+
+# Force standard text files to always use LF line endings
+*.yml text eol=lf
+*.yaml text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.sh text eol=lf

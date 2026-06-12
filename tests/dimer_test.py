@@ -1,3 +1,18 @@
+# Copyright (C) 2026 Fufu Fang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import pytest
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
@@ -198,3 +213,61 @@ def test_primer_dimer_attributes() -> None:
     assert pd.quality == pytest.approx(123.4)
     assert pd.overlap == 5
     assert pd.p1_pos == 2
+
+
+def test_primer_order_swap() -> None:
+    """Test that generate_primer_dimer handles primers in any order."""
+    generator = PrimerDimerGenerator()
+    p_long = Primer("AAAAATTTTT", "long")
+    p_short = Primer("AAAAA", "short")
+
+    # Case 1: p1 is shorter (normal)
+    res1 = generator.generate_primer_dimer(p_short, p_long)
+
+    # Case 2: p1 is longer (should swap internally)
+    res2 = generator.generate_primer_dimer(p_long, p_short)
+
+    # Results should be identical in quality and overlap
+    assert res1.quality == res2.quality
+    assert res1.overlap == res2.overlap
+    # primer_1 should always be the shorter one
+    assert res1.primer_1 == p_short
+    assert res2.primer_1 == p_short
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    (
+        "p1, p2, expected_overlap, expected_quality, "
+        "expected_p1_pos, expected_strength"
+    ),
+    [
+        (primer_10290, primer_10290, 12, 200.0, 8, "| |||||||| |"),
+        (primer_10290, primer_11bp, 6, 70.0, 14, "|  |||"),
+        (primer_10290, primer_10289, 7, -10.0, 13, " | |  |"),
+        (primer_10290, primer_1701, 2, 60.0, 18, "||"),
+        (primer_11bp, primer_11bp, 9, 60.0, 2, "|||   |||"),
+        (primer_11bp, primer_10289, 11, 30.0, 7, " ||  ||  ||"),
+        (primer_11bp, primer_1701, 11, 10.0, 2, "   |||  || "),
+        (primer_10289, primer_10289, 10, 160.0, 10, "|| |||| ||"),
+        (primer_10289, primer_1701, 6, 50.0, 14, "| ||| "),
+        (primer_1701, primer_1701, 8, 120.0, 12, "|||  |||"),
+    ],
+)
+def test_primer_dimer_binding_strength(
+    p1: Primer,
+    p2: Primer,
+    expected_overlap: int,
+    expected_quality: float,
+    expected_p1_pos: int,
+    expected_strength: str,
+) -> None:
+    """Test binding strength string generation and dimer calculations for
+    specified primers.
+    """
+    generator = PrimerDimerGenerator()
+    dimer = generator.generate_primer_dimer(p1, p2)
+
+    assert dimer.overlap == expected_overlap
+    assert dimer.quality == expected_quality
+    assert dimer.p1_pos == expected_p1_pos
+    assert dimer.binding_strength_str == expected_strength

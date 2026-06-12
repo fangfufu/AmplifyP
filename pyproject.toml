@@ -6,12 +6,14 @@ requires = [
 
 [project]
 name = "amplifyp"
-version = "v0.0.1"
+version = "v0.6.7"
 description = "Python rewrite of Amplify 4"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "customtkinter",
+  "flet>=0.85.2",
+  "pyperclip>=1.9.0",
+  "pyyaml>=6.0.3",
 ]
 
 classifiers = [
@@ -22,9 +24,17 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
 ]
 optional-dependencies.tests = [
-  "pytest",
-  "pytest-cov",
-  "pytest-testmon",
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.4.0",
+  "pytest-cov>=7.1.0",
+  "pytest-testmon>=2.2.0",
+  "pytest-playwright>=0.8.0",
+]
+optional-dependencies.e2e = [
+  "pytest-playwright>=0.8.0",
+  "requests>=2.34.2",
+  "pytesseract>=0.3.13",
+  "pillow>=10.4.0",
 ]
 urls.Homepage = "https://github.com/fangfufu/AmplifyP"
 urls.Issues = "https://github.com/fangfufu/AmplifyP/issues"
@@ -63,10 +73,21 @@ addopts = [
   "--import-mode=importlib",
   "--cov=src/amplifyp",
   "--cov-report=xml",
+  "-m", "not e2e",
 ]
+markers = [
+  "e2e: slow end-to-end web browser tests",
+]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 
 [tool.coverage.run]
-omit = [ "src/amplifyp/gui.py" ]
+omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 
 [tool.mypy]
 mypy_path = "src"
+
+[tool.vulture]
+paths = ["src/"]
+min_confidence = 80

@@ -20,3 +20,5 @@ experiments. It includes classes for handling DNA sequences, primers,
 replication configurations, and calculating binding statistics such as
 primability and stability.
 """
+
+__version__ = "v0.6.7"
