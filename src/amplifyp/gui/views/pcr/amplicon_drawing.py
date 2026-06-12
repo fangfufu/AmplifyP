@@ -196,7 +196,10 @@ class AmpliconDetailCard(DismissibleDetailCard):
             mid_part = ""
             rev_part = ""
 
+        from amplifyp.gui.util import _resolve_font_family
+
         font_family = settings.get("font_family", "Roboto Mono")
+        resolved = _resolve_font_family(font_family)
         sequence_text = ft.Text(
             spans=[
                 ft.TextSpan(
@@ -220,7 +223,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                     ),
                 ),
             ],
-            font_family=font_family,
+            font_family=resolved,
             size=settings.get("font_size_body", 13),
             selectable=True,
         )

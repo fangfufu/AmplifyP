@@ -24,7 +24,7 @@ from amplifyp.dimer import PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import show_error_dialog
+from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
 
 
@@ -74,7 +74,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
                 primers = self.input_data.get_active_primers()
                 for p in primers:
                     name = p["name"]
-                    seq = p["seq"]
+                    seq = clean_sequence(p["seq"])
                     generator.add_primer(Primer(sequence=seq, name=name))
 
                 generator.analyse_primers()

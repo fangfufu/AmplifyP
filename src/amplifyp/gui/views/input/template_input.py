@@ -16,12 +16,15 @@ from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
 
+from .template_file_manager import TemplateFileManager
+
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
     """Input component for DNA template sequence."""
 
     def __init__(
         self,
+        page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
         on_change_handler: Any,
@@ -32,8 +35,18 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     ) -> None:
         """Initialize the TemplateInput component."""
         super().__init__(expand=5)
+        self.app_page = page
         self.settings = settings
         self.input_data = input_data
+
+        # Template File Manager
+        self.file_manager = TemplateFileManager(
+            page=self.app_page,
+            input_data=self.input_data,
+            on_update_ui=self.update_ui,
+            on_change_handler=on_change_handler,
+            show_snackbar=self._show_snackbar,
+        )
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence = ft.TextField(
@@ -50,7 +63,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             text_style=ft.TextStyle(font_family=font_family),
         )
         self.template_circular = ft.Checkbox(
-            label="Circular Template",
+            label="Circular",
             value=False,
             on_change=on_change_handler,
         )
@@ -58,9 +71,25 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             content=self.template_circular,
             border=ft.Border.all(1, GUIColors.OUTLINE),
             border_radius=5,
-            padding=ft.Padding(10, 0, 10, 0),
+            padding=ft.Padding(0, 0, 10, 0),
             height=32,
-            alignment=ft.Alignment(0, 0),
+            width=110,
+        )
+
+        self.save_template_button = ft.FilledTonalButton(
+            "Save",
+            icon=ft.Icons.FILE_DOWNLOAD,
+            on_click=self._save_template_click,
+            tooltip="Save template to TXT",
+            height=32,
+        )
+
+        self.load_template_button = ft.FilledTonalButton(
+            "Load",
+            icon=ft.Icons.FILE_OPEN,
+            on_click=self._load_template_click,
+            tooltip="Load template from TXT",
+            height=32,
         )
 
         self.clear_template_button = ft.OutlinedButton(
@@ -73,19 +102,51 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         self.content = ft.Column(
             [
-                ft.Row(
+                ft.ResponsiveRow(
                     [
-                        ft.Text("Template Sequence", weight=ft.FontWeight.BOLD),
-                        ft.Row(
-                            [
-                                self.circular_container,
-                                self.clear_template_button,
-                            ],
-                            spacing=10,
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    self.circular_container,
+                                    ft.Text(
+                                        "Template Sequence",
+                                        weight=ft.FontWeight.BOLD,
+                                        no_wrap=True,
+                                    ),
+                                ],
+                                spacing=10,
+                                tight=True,
+                                wrap=True,
+                            ),
+                            col={
+                                "xl": 5,
+                                "lg": 12,
+                                "md": 12,
+                                "sm": 12,
+                                "xs": 12,
+                            },
+                        ),
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    self.load_template_button,
+                                    self.save_template_button,
+                                    self.clear_template_button,
+                                ],
+                                spacing=10,
+                                tight=True,
+                                wrap=True,
+                            ),
+                            col={
+                                "xl": 7,
+                                "lg": 12,
+                                "md": 12,
+                                "sm": 12,
+                                "xs": 12,
+                            },
+                            alignment=ft.Alignment(1, 0),
                         ),
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    height=40,
                 ),
                 ft.Container(
                     content=ft.ListView(
@@ -102,6 +163,23 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             expand=True,
             spacing=5,
         )
+
+    async def _load_template_click(self, e: ft.ControlEvent) -> None:
+        """Open file picker to load template sequence."""
+        await self.file_manager.load_template_click(e)
+
+    async def _save_template_click(self, e: ft.ControlEvent) -> None:
+        """Save template sequence."""
+        await self.file_manager.save_template_click(e)
+
+    def _show_snackbar(self, message: str) -> None:
+        """Show a snackbar message."""
+        if not hasattr(self, "_snack_bar"):
+            self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
+            self.app_page.overlay.append(self._snack_bar)
+        self._snack_bar.content = ft.Text(message)
+        self._snack_bar.open = True
+        self.app_page.update()
 
     def sync_to_state(self) -> None:
         """Sync template text field to the central state."""

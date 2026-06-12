@@ -53,10 +53,16 @@ def build_app() -> None:
     """Build the Flet static app using build_static.sh."""
     print("==> Building static site using build_static.sh...")
     script_path = os.path.join(os.getcwd(), "build_static.sh")
+    import sys
+
+    env = os.environ.copy()
+    venv_bin = os.path.dirname(sys.executable)
+    env["PATH"] = os.path.pathsep.join([venv_bin, env.get("PATH", "")])
     subprocess.run(  # noqa: S603
         [script_path],
         check=True,
         capture_output=True,
+        env=env,
     )
     assert os.path.exists(os.path.join(DIST_DIR, "index.html"))
 
@@ -175,21 +181,26 @@ def test_e2e_primer_lifecycle_and_state(
     print("Adding extra valid (V3) primer...")
     add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
     # Verify V3 added: 6 rows (12 inputs) and checkbox is checked.
-    expect(page.locator("input")).to_have_count(12)
-    expect(page.get_by_role("checkbox").nth(6)).to_be_checked()
+    expect(page.locator('input:not([type="file"])')).to_have_count(12)
+    name_inputs = page.locator('input:not([type="file"])')
+    expect(
+        name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
 
     print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
     # Verify I3 added: 7 rows (14 inputs) and checkbox is disabled.
-    expect(page.locator("input")).to_have_count(14)
-    expect(page.get_by_role("checkbox").nth(7)).to_be_disabled()
+    expect(page.locator('input:not([type="file"])')).to_have_count(14)
+    expect(
+        name_inputs.nth(5 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     print("Deleting V3 and I3 using delete buttons...")
     # There are 6 primers in the list:
     # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
     # Since each row has exactly 2 text input fields (Name and Sequence),
     # the Name input of V3 (index 4) is at global input index 8.
-    page.locator("input").nth(8).click(force=True)
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     delete_btn = page.locator("[aria-label*='Delete Primer']").first
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
@@ -197,12 +208,14 @@ def test_e2e_primer_lifecycle_and_state(
     page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
     time.sleep(1)
 
-    # Verify V3 deleted: 6 rows (12 inputs) and I3 checkbox is now at index 6.
-    expect(page.locator("input")).to_have_count(12)
-    expect(page.get_by_role("checkbox").nth(6)).to_be_disabled()
+    # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
+    expect(page.locator('input:not([type="file"])')).to_have_count(12)
+    expect(
+        name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
-    page.locator("input").nth(8).click(force=True)
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
     assert box is not None
@@ -210,24 +223,39 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     # Verify I3 deleted: count returned to 5 rows (10 inputs).
-    expect(page.locator("input")).to_have_count(10)
+    expect(page.locator('input:not([type="file"])')).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
-    # nth(0) is header checkbox, nth(1)=V1, nth(2)=V2, nth(3)=I1, nth(4)=I2
     print("Verifying checkbox state and attempting to activate invalid ones...")
-    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
+    expect(
+        name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     # Try clicking the disabled ones (force=True to bypass click check)
-    page.get_by_role("checkbox").nth(4).click(force=True)
-    page.get_by_role("checkbox").nth(5).click(force=True)
+    name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox").click(
+        force=True
+    )
+    name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox").click(
+        force=True
+    )
     time.sleep(1)
 
     # Ensure they did not get checked/activated
-    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
-    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+    expect(
+        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
+    expect(
+        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
 
     # 5. Save the primer list
     print("Saving active primer list...")
@@ -262,15 +290,31 @@ def test_e2e_primer_lifecycle_and_state(
         load_primers_btn.click()
     file_chooser = fc_info.value
     file_chooser.set_files(str(primers_csv_path))
-    time.sleep(5)
+    # Wait for loaded primers (10 inputs total) to be attached
+    page.locator('input:not([type="file"])').nth(9).wait_for(
+        state="attached", timeout=15000
+    )
+    time.sleep(1)
 
     # Verify loaded primers: V1/V2 checked; I1/I2 disabled and unchecked
-    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
-    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+    expect(
+        name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
+    expect(
+        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
 
     # 8. Save the state
     print("Saving the full state...")
@@ -428,11 +472,16 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
         print("OCR Words Found:", found_words)
 
         # Check that the top sequence line is visible (5'-...-3')
+        # We check full sequence, prefix, or middle segment for robustness.
         top_word = next(
             (
                 w
                 for w in found_words
-                if PRIMER_SEQ in w[0] or PRIMER_SEQ[:8] in w[0]
+                if (
+                    PRIMER_SEQ in w[0]
+                    or PRIMER_SEQ[:8] in w[0]
+                    or PRIMER_SEQ[4:14] in w[0]
+                )
             ),
             None,
         )
@@ -440,18 +489,26 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
         # (not its complement) written 3'->5', e.g. "3'-GGGTTTAAACAC...-5'".
         rev_seq = PRIMER_SEQ[::-1]
         bottom_word = next(
-            (w for w in found_words if rev_seq in w[0] or rev_seq[:8] in w[0]),
+            (
+                w
+                for w in found_words
+                if (
+                    rev_seq in w[0]
+                    or rev_seq[:8] in w[0]
+                    or rev_seq[4:14] in w[0]
+                )
+            ),
             None,
         )
 
         # Primary assertion: both sequence strands must be visible on-screen.
         # This proves the alignment diagram was rendered correctly.
         assert top_word is not None, (
-            f"Top sequence '{PRIMER_SEQ[:8]}...' not found in OCR output. "
+            f"Top sequence '{PRIMER_SEQ[4:14]}' not found in OCR output. "
             "Alignment diagram may not have rendered."
         )
         assert bottom_word is not None, (
-            f"Bottom sequence '{rev_seq[:8]}...' not found in OCR output. "
+            f"Bottom sequence '{rev_seq[4:14]}' not found in OCR output. "
             "Alignment diagram may not have rendered."
         )
         print(

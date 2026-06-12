@@ -85,10 +85,10 @@ def main(page: ft.Page) -> None:
     # Centralize state storage
     input_data = GUIInput()
     settings = GUISettings()
-    has_run_pcr = False
-    pcr_outdated = False
     pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
+    visible_pcr_button_ref = ft.Ref[ft.FilledButton]()
+    visible_dimers_button_ref = ft.Ref[ft.FilledButton]()
 
     def apply_theme() -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
@@ -123,13 +123,12 @@ def main(page: ft.Page) -> None:
 
     def on_pcr_click(e: ft.ControlEvent) -> None:
         """Handle PCR click: run PCR and switch view if successful."""
-        nonlocal has_run_pcr, pcr_outdated
         if pcr_view.run_pcr():
             switch_view(e, pcr_view)
-            has_run_pcr = True
-            pcr_outdated = False
             if pcr_button_ref.current:
                 pcr_button_ref.current.text = "PCR"
+            if visible_pcr_button_ref.current:
+                visible_pcr_button_ref.current.text = "PCR"
             page.update()
 
     def on_dimers_click(e: ft.ControlEvent) -> None:
@@ -140,37 +139,30 @@ def main(page: ft.Page) -> None:
 
     def update_pcr_button_state() -> None:
         """Enable PCR and dimers buttons only if input is valid."""
-        nonlocal pcr_outdated
         input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
-        has_primers = len(input_data.get_active_primers()) > 0
-        is_enabled = has_template and has_primers
+        active_primers = input_data.get_active_primers()
+        has_enough_primers = len(active_primers) >= 2
+        pcr_is_enabled = has_template and has_enough_primers
 
         btn = pcr_button_ref.current
         if btn:
-            btn.disabled = not is_enabled
+            btn.disabled = not pcr_is_enabled
+            btn.text = "PCR"
 
-            # Set outdated if enabled and inputs change AFTER a first run
-            if is_enabled and has_run_pcr:
-                pcr_outdated = True
-
-            label = "PCR *" if (pcr_outdated and is_enabled) else "PCR"
-            btn.text = label
+        visible_btn = visible_pcr_button_ref.current
+        if visible_btn:
+            visible_btn.disabled = not pcr_is_enabled
+            visible_btn.text = "PCR"
 
         dimers_btn = dimers_button_ref.current
         if dimers_btn:
-            dimers_btn.disabled = not has_primers
+            dimers_btn.disabled = len(active_primers) < 1
 
-        page.update()
+        visible_dimers_btn = visible_dimers_button_ref.current
+        if visible_dimers_btn:
+            visible_dimers_btn.disabled = len(active_primers) < 1
 
-    def run_analysis_in_background() -> None:
-        nonlocal has_run_pcr, pcr_outdated
-        pcr_view.run_pcr()
-        dimers_view.run_analysis()
-        has_run_pcr = True
-        pcr_outdated = False
-        if pcr_button_ref.current:
-            pcr_button_ref.current.text = "PCR"
         page.update()
 
     def on_settings_change(e: ft.ControlEvent) -> None:
@@ -179,7 +171,7 @@ def main(page: ft.Page) -> None:
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
         apply_theme()
-        run_analysis_in_background()
+        update_pcr_button_state()
 
     input_view = InputView(
         page,
@@ -218,6 +210,9 @@ def main(page: ft.Page) -> None:
         selectable=True,
     )
 
+    file_picker = ft.FilePicker()
+    page.file_picker = file_picker
+
     filepicker_open = False
 
     async def save_state(e: ft.ControlEvent) -> None:
@@ -234,21 +229,19 @@ def main(page: ft.Page) -> None:
             }
             yaml_str = serialize_state(combined)
 
-            file_path = await ft.FilePicker().save_file(
+            from amplifyp.gui.util import save_and_write_file
+
+            await save_and_write_file(
+                page=page,
+                file_picker=file_picker,
                 dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                src_bytes=yaml_str.encode("utf-8"),
+                content=yaml_str,
+                show_snackbar=show_snackbar,
+                success_message_desktop="State saved successfully!",
+                success_message_web="State ready for download!",
             )
-            if page.web:
-                show_snackbar("State ready for download!")
-            else:
-                if file_path is None:
-                    return
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(yaml_str)
-                show_snackbar("State saved successfully!")
         except Exception as ex:
             show_snackbar(f"Error saving state: {ex}")
         finally:
@@ -260,25 +253,19 @@ def main(page: ft.Page) -> None:
             return
         filepicker_open = True
         try:
-            files = await ft.FilePicker().pick_files(
+            from amplifyp.gui.util import pick_and_read_file
+
+            content = await pick_and_read_file(
+                page=page,
+                file_picker=file_picker,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                with_data=True,
+                show_snackbar=show_snackbar,
             )
-            if not files:
+            if content is None:
                 return
 
-            file = files[0]
-            if file.bytes is not None:
-                content = file.bytes.decode("utf-8")
-                parsed_state = yaml.safe_load(content)
-            else:
-                if not file.path:
-                    show_snackbar("Error: Could not read file content.")
-                    return
-                with open(file.path, encoding="utf-8") as f:
-                    parsed_state = yaml.safe_load(f)
+            parsed_state = yaml.safe_load(content)
 
             if not isinstance(parsed_state, dict):
                 show_snackbar("Error: Invalid state file format.")
@@ -309,9 +296,13 @@ def main(page: ft.Page) -> None:
 
     def switch_view(e: ft.ControlEvent, view: ft.Control) -> None:
         view_container.content = view
+        is_input = view == input_view
+        visible_save_btn_control.visible = is_input
+        visible_load_btn_control.visible = is_input
+        visible_header_divider.visible = is_input
         page.update()
 
-    # AppBar buttons
+    # AppBar buttons (keep for test compatibility in invisible appbar)
     input_button = ft.FilledButton(
         "Input",
         icon=ft.Icons.INPUT,
@@ -365,37 +356,130 @@ def main(page: ft.Page) -> None:
     load_btn_control.content_description = "Load all"
 
     page.appbar = ft.AppBar(
-        title=ft.Row(
-            [
-                ft.Image(src="images/favicon.png", height=32, fit="contain"),
-                ft.Text("AmplifyP", size=20, weight=ft.FontWeight.BOLD),
-                ft.Container(width=12),
-                version_text,
-            ],
-            alignment=ft.MainAxisAlignment.START,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=8,
-        ),
-        elevation_on_scroll=0,
+        visible=False,
         actions=[
             input_button,
-            ft.Container(width=16),
             pcr_button,
-            ft.Container(width=16),
             dimers_button,
-            ft.Container(width=16),
             settings_button,
-            ft.Container(width=16),
-            ft.VerticalDivider(),
-            ft.Container(width=16),
             save_btn_control,
-            ft.Container(width=16),
             load_btn_control,
-            ft.Container(width=20),
         ],
+    )
+
+    # Visible buttons for the custom responsive header
+    visible_input_button = ft.FilledButton(
+        "Input",
+        icon=ft.Icons.INPUT,
+        on_click=lambda e: switch_view(e, input_view),
+        tooltip="Input",
+    )
+    visible_input_button.content_description = "Input"
+
+    visible_pcr_button = ft.FilledButton(
+        "PCR",
+        ref=visible_pcr_button_ref,
+        on_click=on_pcr_click,
+        disabled=True,
+        icon=ft.Icons.ANALYTICS,
+        tooltip="PCR",
+    )
+    visible_pcr_button.content_description = "PCR"
+
+    visible_dimers_button = ft.FilledButton(
+        "Primer Dimers",
+        ref=visible_dimers_button_ref,
+        on_click=on_dimers_click,
+        disabled=True,
+        icon=ft.Icons.COMPARE_ARROWS,
+        tooltip="Primer Dimers",
+    )
+    visible_dimers_button.content_description = "Primer Dimers"
+
+    visible_settings_button = ft.FilledButton(
+        "Settings",
+        icon=ft.Icons.SETTINGS,
+        on_click=lambda e: switch_view(e, settings_view),
+        tooltip="Settings",
+    )
+    visible_settings_button.content_description = "Settings"
+
+    visible_save_btn_control = ft.FilledButton(
+        "Save all",
+        icon=ft.Icons.SAVE,
+        tooltip="Save all",
+        on_click=save_state,
+    )
+    visible_save_btn_control.content_description = "Save all"
+
+    visible_load_btn_control = ft.FilledButton(
+        "Load all",
+        icon=ft.Icons.UPLOAD_FILE,
+        tooltip="Load all",
+        on_click=load_state,
+    )
+    visible_load_btn_control.content_description = "Load all"
+
+    visible_header_divider = ft.Container(
+        width=1,
+        height=20,
+        bgcolor=ft.Colors.OUTLINE,
+    )
+
+    header_container = ft.Container(
+        content=ft.ResponsiveRow(
+            [
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            ft.Image(
+                                src="images/favicon.png",
+                                height=32,
+                                fit="contain",
+                            ),
+                            ft.Text(
+                                "AmplifyP",
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Container(width=12),
+                            version_text,
+                        ],
+                        spacing=8,
+                        tight=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    col={"lg": 4, "md": 12, "sm": 12, "xs": 12},
+                    alignment=ft.Alignment(-1, 0),
+                ),
+                ft.Container(
+                    content=ft.Row(
+                        [
+                            visible_input_button,
+                            visible_pcr_button,
+                            visible_dimers_button,
+                            visible_settings_button,
+                            visible_header_divider,
+                            visible_save_btn_control,
+                            visible_load_btn_control,
+                        ],
+                        spacing=10,
+                        tight=True,
+                        wrap=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    col={"lg": 8, "md": 12, "sm": 12, "xs": 12},
+                    alignment=ft.Alignment(1, 0),
+                ),
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=ft.Padding(16, 8, 16, 8),
+        bgcolor=ft.Colors.SURFACE,
     )
 
     page.add(
         ft.Divider(height=1, thickness=1),
         view_container,
     )
+    page.controls.insert(0, header_container)

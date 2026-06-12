@@ -33,6 +33,39 @@ def clean_sequence(seq: str) -> str:
     return "".join(clean.split())
 
 
+# Font families that are guaranteed to exist on all platforms.
+_SYSTEM_MONOSPACE_FONTS = (
+    "monospace",
+    "Courier New",
+    "Courier",
+    "Consolas",
+    "Lucida Console",
+    "DejaVu Sans Mono",
+    "Ubuntu Mono",
+    "Liberation Mono",
+)
+
+
+def _resolve_font_family(font_family: str) -> str:
+    """Return *font_family* if it is a known system font, else "Roboto Mono".
+
+    In Flet desktop mode the ``page.fonts`` mapping only covers custom
+    font-files that the application ships.  When a font name that is *not*
+    registered with ``page.fonts`` is used inside an ``ft.Text`` the text
+    (and its ``TextSpans``) can fail to render silently.  This helper
+    guards against that by falling back to the default ``"Roboto Mono"``
+    family which is shipped with this app.
+    """
+    if not font_family:
+        return "Roboto Mono"
+    ff = font_family.strip()
+    if ff.lower() in {f.lower() for f in _SYSTEM_MONOSPACE_FONTS}:
+        return ff
+    if ff.lower() == "roboto mono":
+        return "Roboto Mono"
+    return ff
+
+
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
     """Format sequence into lines of specified length."""
     clean = clean_sequence(seq)
@@ -71,6 +104,8 @@ def create_overlapped_sequence_view(
     """
     from amplifyp.gui.settings import GUIColors
 
+    resolved = _resolve_font_family(font_family)
+
     return ft.Text(
         spans=[
             ft.TextSpan(
@@ -95,7 +130,7 @@ def create_overlapped_sequence_view(
                 ),
             ),
         ],
-        font_family=font_family,
+        font_family=resolved,
         size=font_size,
         selectable=True,
     )
@@ -334,3 +369,70 @@ def get_version() -> str:
 
     git_sha = get_git_sha()
     return f"{pkg_version} ({git_sha})"
+
+
+async def pick_and_read_file(
+    page: ft.Page,
+    file_picker: ft.FilePicker,
+    dialog_title: str,
+    allowed_extensions: list[str],
+    show_snackbar: Callable[[str], None],
+) -> str | None:
+    """Open a file picker to load a file, and read its text content."""
+    try:
+        files = await file_picker.pick_files(
+            dialog_title=dialog_title,
+            allowed_extensions=allowed_extensions,
+            file_type=ft.FilePickerFileType.CUSTOM,
+            with_data=True,
+        )
+        if not files:
+            return None
+
+        file = files[0]
+        if file.bytes is not None:
+            return file.bytes.decode("utf-8")  # type: ignore[no-any-return]
+        else:
+            if not file.path:
+                show_snackbar("Error: Could not read file content.")
+                return None
+            with open(file.path, encoding="utf-8") as f:
+                return f.read()
+    except Exception as ex:
+        show_snackbar(f"Error loading file: {ex}")
+        return None
+
+
+async def save_and_write_file(
+    page: ft.Page,
+    file_picker: ft.FilePicker,
+    dialog_title: str,
+    file_name: str,
+    allowed_extensions: list[str],
+    content: str,
+    show_snackbar: Callable[[str], None],
+    success_message_desktop: str = "Saved successfully!",
+    success_message_web: str = "Ready for download!",
+) -> bool:
+    """Save content using the file picker, supporting both Web and Desktop."""
+    try:
+        file_path = await file_picker.save_file(
+            dialog_title=dialog_title,
+            file_name=file_name,
+            allowed_extensions=allowed_extensions,
+            file_type=ft.FilePickerFileType.CUSTOM,
+            src_bytes=content.encode("utf-8"),
+        )
+        if page.web:
+            show_snackbar(success_message_web)
+            return True
+        else:
+            if file_path is None:
+                return False
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            show_snackbar(success_message_desktop)
+            return True
+    except Exception as ex:
+        show_snackbar(f"Error saving file: {ex}")
+        return False

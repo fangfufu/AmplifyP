@@ -137,5 +137,5 @@ dmypy.json
 # Python package management related
 uv.lock
 
-# Google Antigravity related
-.agent
+# Kilocode related
+.kilo

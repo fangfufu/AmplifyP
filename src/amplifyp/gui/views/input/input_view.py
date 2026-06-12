@@ -44,6 +44,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._focus_debouncer = Debouncer(delay_seconds=0.15)
 
         self.template_input = TemplateInput(
+            page=self.app_page,
             settings=self.settings,
             input_data=self.input_data,
             on_change_handler=self._on_change_handler,

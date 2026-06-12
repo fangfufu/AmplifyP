@@ -51,6 +51,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self.focused_primer_index: int | None = None
         self.validation_errors: list[dict[str, str | None]] = []
+        self._prev_header_checkbox_value: bool | None = None
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
@@ -97,13 +98,23 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self.content = ft.Column(
             [
-                ft.Row(
+                ft.ResponsiveRow(
                     [
-                        ft.Text("Primers", weight=ft.FontWeight.BOLD),
-                        self.primer_toolbar,
+                        ft.Container(
+                            content=ft.Text(
+                                "Primers",
+                                weight=ft.FontWeight.BOLD,
+                                no_wrap=True,
+                            ),
+                            col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
+                        ),
+                        ft.Container(
+                            content=self.primer_toolbar,
+                            col={"lg": 9, "md": 9, "sm": 12, "xs": 12},
+                            alignment=ft.Alignment(1, 0),
+                        ),
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    height=40,
+                    run_spacing=0,
                 ),
                 ft.Container(
                     content=ft.Column(
@@ -453,11 +464,27 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         ]
         if not non_empty:
             return
-        all_active = all(p.get("active", True) for p in non_empty)
-        target_active = not all_active
+
+        cb_value = self.all_primers_checkbox.value
+        prev_value = self._prev_header_checkbox_value
+
+        if cb_value is True:
+            target_active = True
+        elif cb_value is False:
+            target_active = False
+        else:
+            if prev_value is True:
+                target_active = False
+            elif prev_value is False:
+                target_active = True
+            else:
+                target_active = True
+
         for p in non_empty:
             p["active"] = target_active
+
         self.update_ui()
+        self._prev_header_checkbox_value = cb_value
         if self.on_change_handler:
             self.on_change_handler(e)
 
