@@ -46,3 +46,53 @@ def test_gui_app_main() -> None:
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
     mock_page.add.assert_called()
+
+
+def test_window_close_warning_dialog() -> None:
+    """Test setup, trigger, and dismiss of close warning dialog.
+
+    Simulates a hot reload scenario as well.
+    """
+    from amplifyp.gui.app import main as gui_main
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+    mock_page.web = False
+    mock_page._confirm_dialog = None
+
+    # Call main first time (initial startup)
+    gui_main(mock_page)
+    assert mock_page.window.prevent_close is True
+
+    # Call main second time (simulating a hot reload on the same Page instance)
+    gui_main(mock_page)
+
+    # 1. Verify prevent_close is still enabled
+    assert mock_page.window.prevent_close is True
+
+    # 2. Verify event handler is registered
+    assert mock_page.window.on_event is not None
+
+    # 3. Simulate close event
+    mock_event = MagicMock(spec=ft.WindowEvent)
+    mock_event.data = "close"
+    mock_page.window.on_event(mock_event)
+
+    # Verify dialog is created, appended to overlay and opened
+    assert mock_page._confirm_dialog is not None
+    assert mock_page._confirm_dialog in mock_page.overlay
+    assert mock_page._confirm_dialog.open is True
+    mock_page.update.assert_called()
+
+    # Reset update mock for dismissal check
+    mock_page.update.reset_mock()
+
+    # 4. Simulate clicking "No" (confirm_dismiss)
+    # The actions of AlertDialog are: Yes (index 0) and No (index 1)
+    no_button = mock_page._confirm_dialog.actions[1]
+    no_button.on_click(MagicMock())
+
+    # Verify dialog is closed
+    assert mock_page._confirm_dialog.open is False
+    mock_page.update.assert_called_once()

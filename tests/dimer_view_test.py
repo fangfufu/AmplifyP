@@ -113,3 +113,5 @@ def test_dimer_view_with_dimers() -> None:
     assert "3'-" in text_values
     # Mid line should contain bond characters like '|' or ':'
     assert "|" in text_values or ":" in text_values
+    # Check that the primer names are present as labels
+    assert "P1: " in text_values

@@ -14,7 +14,7 @@ import flet as ft
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.util import NotificationHelper, clean_sequence
 
 from .template_file_manager import TemplateFileManager
 
@@ -45,7 +45,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             input_data=self.input_data,
             on_update_ui=self.update_ui,
             on_change_handler=on_change_handler,
-            show_snackbar=self._show_snackbar,
+            show_notification=self._show_notification,
         )
 
         font_family = self.settings.get("font_family", "Roboto Mono")
@@ -172,14 +172,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         """Save template sequence."""
         await self.file_manager.save_template_click(e)
 
-    def _show_snackbar(self, message: str) -> None:
-        """Show a snackbar message."""
-        if not hasattr(self, "_snack_bar"):
-            self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
-            self.app_page.overlay.append(self._snack_bar)
-        self._snack_bar.content = ft.Text(message)
-        self._snack_bar.open = True
-        self.app_page.update()
+    def _show_notification(self, message: str) -> None:
+        """Show a notification message."""
+        if not hasattr(self, "_notification_helper"):
+            self._notification_helper = NotificationHelper(self.app_page)
+        self._notification_helper.show_message(message)
 
     def sync_to_state(self) -> None:
         """Sync template text field to the central state."""

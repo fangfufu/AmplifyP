@@ -20,7 +20,7 @@ import yaml
 
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import get_version, serialize_state
+from amplifyp.gui.util import NotificationHelper, get_version, serialize_state
 from amplifyp.gui.views import (
     DimerView,
     InputView,
@@ -49,30 +49,24 @@ def main(page: ft.Page) -> None:
                 });
             """)
     else:
+        page.window.prevent_close = False
         page.window.prevent_close = True
+        page._confirm_dialog = None
 
         def confirm_dismiss(e: ft.ControlEvent) -> None:
-            confirm_dialog.open = False
-            page.update()
+            dialog = getattr(page, "_confirm_dialog", None)
+            if dialog:
+                dialog.open = False
+                page.update()
+
+        async def confirm_exit_async() -> None:
+            try:
+                await page.window.destroy()
+            except Exception:  # noqa: S110
+                pass
 
         def confirm_exit(e: ft.ControlEvent) -> None:
-            page.run_task(page.window.destroy)
-
-        confirm_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirm Exit"),
-            content=ft.Text(
-                "Are you sure you want to close AmplifyP? "
-                "Unsaved changes will be lost."
-            ),
-            actions=[
-                ft.TextButton("Yes", on_click=confirm_exit),
-                ft.TextButton("No", on_click=confirm_dismiss),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        page._confirm_dialog = confirm_dialog
-        page.overlay.append(confirm_dialog)
+            page.run_task(confirm_exit_async)
 
         def on_window_event(e: ft.WindowEvent) -> None:
             if (
@@ -80,9 +74,26 @@ def main(page: ft.Page) -> None:
                 or getattr(e, "type", None) == ft.WindowEventType.CLOSE
             ):
                 dialog = getattr(page, "_confirm_dialog", None)
-                if dialog:
-                    dialog.open = True
-                    page.update()
+                if not dialog:
+                    dialog = ft.AlertDialog(
+                        modal=True,
+                        title=ft.Text("Confirm Exit"),
+                        content=ft.Text(
+                            "Are you sure you want to close AmplifyP? "
+                            "Unsaved changes will be lost."
+                        ),
+                        actions=[
+                            ft.TextButton("Yes", on_click=confirm_exit),
+                            ft.TextButton("No", on_click=confirm_dismiss),
+                        ],
+                        actions_alignment=ft.MainAxisAlignment.END,
+                    )
+                    page._confirm_dialog = dialog
+
+                if dialog not in page.overlay:
+                    page.overlay.append(dialog)
+                dialog.open = True
+                page.update()
 
         page.window.on_event = on_window_event
 
@@ -198,13 +209,8 @@ def main(page: ft.Page) -> None:
     dimers_view = DimerView(page, input_data, settings)
 
     # Save and Load State
-    snack_bar = ft.SnackBar(ft.Text(""), open=False)
-    page.overlay.append(snack_bar)
-
-    def show_snackbar(message: str) -> None:
-        snack_bar.content = ft.Text(message)
-        snack_bar.open = True
-        page.update()
+    notification_helper = NotificationHelper(page)
+    show_notification = notification_helper.show_message
 
     app_version = get_version()
 
@@ -241,12 +247,12 @@ def main(page: ft.Page) -> None:
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
                 content=yaml_str,
-                show_snackbar=show_snackbar,
+                show_notification=show_notification,
                 success_message_desktop="State saved successfully!",
                 success_message_web="State ready for download!",
             )
         except Exception as ex:
-            show_snackbar(f"Error saving state: {ex}")
+            show_notification(f"Error saving state: {ex}")
         finally:
             filepicker_open = False
 
@@ -262,7 +268,7 @@ def main(page: ft.Page) -> None:
                 page=page,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
-                show_snackbar=show_snackbar,
+                show_notification=show_notification,
             )
             if content is None:
                 return
@@ -270,7 +276,7 @@ def main(page: ft.Page) -> None:
             parsed_state = yaml.safe_load(content)
 
             if not isinstance(parsed_state, dict):
-                show_snackbar("Error: Invalid state file format.")
+                show_notification("Error: Invalid state file format.")
                 return
 
             if "input" in parsed_state:
@@ -284,13 +290,13 @@ def main(page: ft.Page) -> None:
             input_view.update_ui()
             settings_view.update_ui()
             update_pcr_button_state()
-            show_snackbar("State loaded successfully!")
+            show_notification("State loaded successfully!")
         except Exception as ex:
             import traceback
 
             tb = traceback.format_exc()
             print("LOAD STATE ERROR:", tb)
-            show_snackbar(f"Error loading state: {ex}")
+            show_notification(f"Error loading state: {ex}")
         finally:
             filepicker_open = False
 

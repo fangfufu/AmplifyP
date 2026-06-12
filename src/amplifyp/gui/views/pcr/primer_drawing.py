@@ -132,11 +132,15 @@ class DrawnPrimer:
             )
             # Add rotated label in the stack
             stack.controls.append(
-                ft.Text(
-                    self.name,
-                    color=GUIColors.FWD_PRIMER,
-                    size=self.settings.get("font_size_map_primer", 13),
-                    weight=ft.FontWeight.BOLD,
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Text(
+                        self.name,
+                        color=GUIColors.FWD_PRIMER,
+                        size=self.settings.get("font_size_map_primer", 13),
+                        weight=ft.FontWeight.BOLD,
+                    ),
                     left=x_render,
                     top=self.v_target - 25 - self.S - 13,
                     rotate=ft.Rotate(-1.5708, alignment=ft.Alignment(-1, 0)),
@@ -217,11 +221,15 @@ class DrawnPrimer:
             )
             # Add rotated label in the stack
             stack.controls.append(
-                ft.Text(
-                    self.name,
-                    color=GUIColors.REV_LABEL,
-                    size=self.settings.get("font_size_map_primer", 13),
-                    weight=ft.FontWeight.BOLD,
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Text(
+                        self.name,
+                        color=GUIColors.REV_LABEL,
+                        size=self.settings.get("font_size_map_primer", 13),
+                        weight=ft.FontWeight.BOLD,
+                    ),
                     left=x_render,
                     top=self.v_target + 25 + self.S - 3,
                     rotate=ft.Rotate(1.5708, alignment=ft.Alignment(-1, 0)),

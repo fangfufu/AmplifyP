@@ -23,14 +23,14 @@ class TemplateFileManager:
         input_data: GUIInput,
         on_update_ui: Any,
         on_change_handler: Any,
-        show_snackbar: Any,
+        show_notification: Any,
     ) -> None:
         """Initialize the TemplateFileManager."""
         self.app_page = page
         self.input_data = input_data
         self.on_update_ui = on_update_ui
         self.on_change_handler = on_change_handler
-        self.show_snackbar = show_snackbar
+        self.show_notification = show_notification
 
     async def load_template_click(self, e: ft.ControlEvent) -> None:
         """Open file picker to load template sequence from a TXT file."""
@@ -40,7 +40,7 @@ class TemplateFileManager:
             page=self.app_page,
             dialog_title="Load",
             allowed_extensions=["txt"],
-            show_snackbar=self.show_snackbar,
+            show_notification=self.show_notification,
         )
         if content is None:
             return
@@ -49,13 +49,13 @@ class TemplateFileManager:
         self.on_update_ui()
         if self.on_change_handler:
             self.on_change_handler(None)
-        self.show_snackbar("Template loaded successfully.")
+        self.show_notification("Template loaded successfully.")
 
     async def save_template_click(self, e: ft.ControlEvent) -> None:
         """Save template sequence to a TXT file."""
         template_content = self.input_data.template
         if not template_content.strip():
-            self.show_snackbar("No template to save.")
+            self.show_notification("No template to save.")
             return
 
         from amplifyp.gui.util import save_and_write_file
@@ -66,7 +66,7 @@ class TemplateFileManager:
             file_name="template.txt",
             allowed_extensions=["txt"],
             content=template_content,
-            show_snackbar=self.show_snackbar,
+            show_notification=self.show_notification,
             success_message_desktop="Template saved successfully.",
             success_message_web="Template ready for download!",
         )

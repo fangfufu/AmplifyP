@@ -127,13 +127,14 @@ def test_pcr_view_click_amplicon() -> None:
     # Verify no cards initially
     assert len(view.result_list.controls) == 0
 
-    # Find the gesture detectors.
+    # Find the gesture detectors (excluding label detectors which wrap ft.Text).
     gesture_detectors = [
         ctrl
         for ctrl in view.diagram_stack.controls
         if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Container)
     ]
-    # We should have 3 gesture detectors total
+    # We should have 3 gesture detectors total (2 primers + 1 amplicon)
     assert len(gesture_detectors) == 3
 
     # Click on the third gesture detector (the amplicon)
@@ -226,11 +227,12 @@ def test_pcr_view_no_duplicate_cards() -> None:
     view = PCRView(mock_page, input_data)
     view.run_pcr()
 
-    # Find the gesture detectors: 2 context maps, 1 amplicon
+    # Find the gesture detectors: 2 context maps, 1 amplicon (excluding labels)
     gesture_detectors = [
         ctrl
         for ctrl in view.diagram_stack.controls
         if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Container)
     ]
     assert len(gesture_detectors) == 3
 
@@ -284,11 +286,14 @@ def test_pcr_view_primer_label_collision() -> None:
     view = PCRView(mock_page, input_data)
     view.run_pcr()
 
-    # The stack should have DrawnPrimer text controls.
+    # The stack should have DrawnPrimer text controls, which are now
+    # wrapped in GestureDetector.
     texts = [
         ctrl
         for ctrl in view.diagram_stack.controls
-        if isinstance(ctrl, ft.Text) and ctrl.color == "blue800"
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.color == "blue800"
     ]
     # We should have 3 forward primer label texts
     assert len(texts) == 3
