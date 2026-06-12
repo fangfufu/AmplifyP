@@ -64,8 +64,16 @@ def test_pcr_view_click_context_map() -> None:
     assert "Context Map" in title_text
     assert "10290" in title_text
 
+    # Verify Primeability, Stability and Quality display
+    stats_text = card.content.content.controls[1]
+    assert isinstance(stats_text, ft.Text)
+    stats_spans = "".join([span.text for span in stats_text.spans])
+    assert "Primeability =" in stats_spans
+    assert "Stability =" in stats_spans
+    assert "Quality =" in stats_spans
+
     # Extract diagram_text
-    diagram_text = card.content.content.controls[1].content.controls[0]
+    diagram_text = card.content.content.controls[2].content.controls[0]
     assert isinstance(diagram_text, ft.Text)
 
     # Check spans content

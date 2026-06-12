@@ -383,6 +383,27 @@ class ReplicationContextCard(DismissibleDetailCard):
         )
 
         body_controls = [
+            ft.Text(
+                spans=[
+                    ft.TextSpan("Primeability = "),
+                    ft.TextSpan(
+                        f"{origin.primability:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                    ft.TextSpan("      Stability = "),
+                    ft.TextSpan(
+                        f"{origin.stability:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                    ft.TextSpan("      Quality = "),
+                    ft.TextSpan(
+                        f"{origin.quality:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                ],
+                selectable=True,
+                size=settings.get("font_size_body", 13),
+            ),
             ft.Container(
                 content=ft.Row(
                     [diagram_text],
@@ -391,7 +412,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                 padding=12,
                 border_radius=6,
                 border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
-            )
+            ),
         ]
 
         super().__init__(
