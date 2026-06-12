@@ -163,6 +163,9 @@ def main(page: ft.Page) -> None:
         if visible_dimers_btn:
             visible_dimers_btn.disabled = len(active_primers) < 1
 
+        pcr_view.invalidate_cache()
+        dimers_view.invalidate_cache()
+
         page.update()
 
     def on_settings_change(e: ft.ControlEvent) -> None:
