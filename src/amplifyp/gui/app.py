@@ -71,6 +71,7 @@ def main(page: ft.Page) -> None:
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
+        page._confirm_dialog = confirm_dialog
         page.overlay.append(confirm_dialog)
 
         def on_window_event(e: ft.WindowEvent) -> None:
@@ -78,8 +79,10 @@ def main(page: ft.Page) -> None:
                 e.data == "close"
                 or getattr(e, "type", None) == ft.WindowEventType.CLOSE
             ):
-                confirm_dialog.open = True
-                page.update()
+                dialog = getattr(page, "_confirm_dialog", None)
+                if dialog:
+                    dialog.open = True
+                    page.update()
 
         page.window.on_event = on_window_event
 
