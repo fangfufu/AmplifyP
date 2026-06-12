@@ -66,9 +66,16 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         middle_str = self.d.binding_strength_str
 
         # Build visually aligned lines.
-        p2_line = f"5'-{seq2}-3'"
-        mid_line = " " * (3 + self.d.p1_pos) + middle_str
-        p1_line = f"{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
+        p2_label = f"{self.d.primer_2.name}: "
+        p1_label = f"{self.d.primer_1.name}: "
+        label_width = max(len(p2_label), len(p1_label))
+
+        p2_prefix = p2_label.ljust(label_width)
+        p1_prefix = p1_label.ljust(label_width)
+
+        p2_line = f"{p2_prefix}5'-{seq2}-3'"
+        mid_line = f"{' ' * label_width}{' ' * (3 + self.d.p1_pos)}{middle_str}"
+        p1_line = f"{p1_prefix}{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
 
         # Create visual alignment stack using generic helper
         diagram_stack = create_overlapped_sequence_view(
