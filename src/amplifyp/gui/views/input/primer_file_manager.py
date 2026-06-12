@@ -86,26 +86,19 @@ class PrimerFileManager:
 
     async def load_primers_click(self, e: ft.ControlEvent) -> None:
         """Open file picker to load primers from CSV/TSV file."""
+        from amplifyp.gui.util import pick_and_read_file
+
+        content = await pick_and_read_file(
+            page=self.app_page,
+            file_picker=self.app_page.file_picker,
+            dialog_title="Load",
+            allowed_extensions=["csv", "tsv", "txt"],
+            show_snackbar=self.show_snackbar,
+        )
+        if content is None:
+            return
+
         try:
-            files = await ft.FilePicker().pick_files(
-                dialog_title="Load",
-                allowed_extensions=["csv", "tsv", "txt"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                with_data=True,
-            )
-            if not files:
-                return
-
-            file = files[0]
-            if file.bytes is not None:
-                content = file.bytes.decode("utf-8")
-            else:
-                if not file.path:
-                    self.show_snackbar("Error: Could not read file content.")
-                    return
-                with open(file.path, encoding="utf-8") as f:
-                    content = f.read()
-
             parsed = self._parse_primers_from_text(content)
             for p in parsed:
                 self.input_data.primers.append(p)
@@ -117,9 +110,8 @@ class PrimerFileManager:
                 self.show_snackbar(f"Loaded {len(parsed)} primer(s).")
             else:
                 self.show_snackbar("No valid primers found in file.")
-
         except Exception as ex:
-            self.show_snackbar(f"Error loading file: {ex}")
+            self.show_snackbar(f"Error parsing primers: {ex}")
 
     async def save_primers_click(self, e: ft.ControlEvent) -> None:
         """Save primers to a TSV file."""
@@ -134,21 +126,16 @@ class PrimerFileManager:
 
         tsv_content = self._serialize_primers_to_tsv(primers_to_save)
 
-        try:
-            file_path = await ft.FilePicker().save_file(
-                dialog_title="Save",
-                file_name="primers.tsv",
-                allowed_extensions=["tsv"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                src_bytes=tsv_content.encode("utf-8"),
-            )
-            if self.app_page.web:
-                self.show_snackbar("Primers ready for download!")
-            else:
-                if file_path is None:
-                    return
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(tsv_content)
-                self.show_snackbar(f"Saved {len(primers_to_save)} primer(s).")
-        except Exception as ex:
-            self.show_snackbar(f"Error saving file: {ex}")
+        from amplifyp.gui.util import save_and_write_file
+
+        await save_and_write_file(
+            page=self.app_page,
+            file_picker=self.app_page.file_picker,
+            dialog_title="Save",
+            file_name="primers.tsv",
+            allowed_extensions=["tsv"],
+            content=tsv_content,
+            show_snackbar=self.show_snackbar,
+            success_message_desktop=f"Saved {len(primers_to_save)} primer(s).",
+            success_message_web="Primers ready for download!",
+        )

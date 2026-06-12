@@ -836,6 +836,7 @@ def test_template_load_save() -> None:
     # Mock FilePicker class
     mock_file_picker_instance = MagicMock(spec=ft.FilePicker)
     mock_file_picker_instance.save_file = AsyncMock(return_value="template.txt")
+    mock_page.file_picker = mock_file_picker_instance
 
     with patch(
         "amplifyp.gui.views.input.template_file_manager.ft.FilePicker",

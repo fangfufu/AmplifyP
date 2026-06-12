@@ -369,3 +369,70 @@ def get_version() -> str:
 
     git_sha = get_git_sha()
     return f"{pkg_version} ({git_sha})"
+
+
+async def pick_and_read_file(
+    page: ft.Page,
+    file_picker: ft.FilePicker,
+    dialog_title: str,
+    allowed_extensions: list[str],
+    show_snackbar: Callable[[str], None],
+) -> str | None:
+    """Open a file picker to load a file, and read its text content."""
+    try:
+        files = await file_picker.pick_files(
+            dialog_title=dialog_title,
+            allowed_extensions=allowed_extensions,
+            file_type=ft.FilePickerFileType.CUSTOM,
+            with_data=True,
+        )
+        if not files:
+            return None
+
+        file = files[0]
+        if file.bytes is not None:
+            return file.bytes.decode("utf-8")  # type: ignore[no-any-return]
+        else:
+            if not file.path:
+                show_snackbar("Error: Could not read file content.")
+                return None
+            with open(file.path, encoding="utf-8") as f:
+                return f.read()
+    except Exception as ex:
+        show_snackbar(f"Error loading file: {ex}")
+        return None
+
+
+async def save_and_write_file(
+    page: ft.Page,
+    file_picker: ft.FilePicker,
+    dialog_title: str,
+    file_name: str,
+    allowed_extensions: list[str],
+    content: str,
+    show_snackbar: Callable[[str], None],
+    success_message_desktop: str = "Saved successfully!",
+    success_message_web: str = "Ready for download!",
+) -> bool:
+    """Save content using the file picker, supporting both Web and Desktop."""
+    try:
+        file_path = await file_picker.save_file(
+            dialog_title=dialog_title,
+            file_name=file_name,
+            allowed_extensions=allowed_extensions,
+            file_type=ft.FilePickerFileType.CUSTOM,
+            src_bytes=content.encode("utf-8"),
+        )
+        if page.web:
+            show_snackbar(success_message_web)
+            return True
+        else:
+            if file_path is None:
+                return False
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            show_snackbar(success_message_desktop)
+            return True
+    except Exception as ex:
+        show_snackbar(f"Error saving file: {ex}")
+        return False

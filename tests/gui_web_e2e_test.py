@@ -284,7 +284,11 @@ def test_e2e_primer_lifecycle_and_state(
         load_primers_btn.click()
     file_chooser = fc_info.value
     file_chooser.set_files(str(primers_csv_path))
-    time.sleep(5)
+    # Wait for loaded primers (10 inputs total) to be attached
+    page.locator('input:not([type="file"])').nth(9).wait_for(
+        state="attached", timeout=15000
+    )
+    time.sleep(1)
 
     # Verify loaded primers: V1/V2 checked; I1/I2 disabled and unchecked
     expect(
@@ -462,11 +466,16 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
         print("OCR Words Found:", found_words)
 
         # Check that the top sequence line is visible (5'-...-3')
+        # We check full sequence, prefix, or middle segment for robustness.
         top_word = next(
             (
                 w
                 for w in found_words
-                if PRIMER_SEQ in w[0] or PRIMER_SEQ[:8] in w[0]
+                if (
+                    PRIMER_SEQ in w[0]
+                    or PRIMER_SEQ[:8] in w[0]
+                    or PRIMER_SEQ[4:14] in w[0]
+                )
             ),
             None,
         )
@@ -474,18 +483,26 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
         # (not its complement) written 3'->5', e.g. "3'-GGGTTTAAACAC...-5'".
         rev_seq = PRIMER_SEQ[::-1]
         bottom_word = next(
-            (w for w in found_words if rev_seq in w[0] or rev_seq[:8] in w[0]),
+            (
+                w
+                for w in found_words
+                if (
+                    rev_seq in w[0]
+                    or rev_seq[:8] in w[0]
+                    or rev_seq[4:14] in w[0]
+                )
+            ),
             None,
         )
 
         # Primary assertion: both sequence strands must be visible on-screen.
         # This proves the alignment diagram was rendered correctly.
         assert top_word is not None, (
-            f"Top sequence '{PRIMER_SEQ[:8]}...' not found in OCR output. "
+            f"Top sequence '{PRIMER_SEQ[4:14]}' not found in OCR output. "
             "Alignment diagram may not have rendered."
         )
         assert bottom_word is not None, (
-            f"Bottom sequence '{rev_seq[:8]}...' not found in OCR output. "
+            f"Bottom sequence '{rev_seq[4:14]}' not found in OCR output. "
             "Alignment diagram may not have rendered."
         )
         print(

@@ -210,6 +210,9 @@ def main(page: ft.Page) -> None:
         selectable=True,
     )
 
+    file_picker = ft.FilePicker()
+    page.file_picker = file_picker
+
     filepicker_open = False
 
     async def save_state(e: ft.ControlEvent) -> None:
@@ -226,21 +229,19 @@ def main(page: ft.Page) -> None:
             }
             yaml_str = serialize_state(combined)
 
-            file_path = await ft.FilePicker().save_file(
+            from amplifyp.gui.util import save_and_write_file
+
+            await save_and_write_file(
+                page=page,
+                file_picker=file_picker,
                 dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                src_bytes=yaml_str.encode("utf-8"),
+                content=yaml_str,
+                show_snackbar=show_snackbar,
+                success_message_desktop="State saved successfully!",
+                success_message_web="State ready for download!",
             )
-            if page.web:
-                show_snackbar("State ready for download!")
-            else:
-                if file_path is None:
-                    return
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(yaml_str)
-                show_snackbar("State saved successfully!")
         except Exception as ex:
             show_snackbar(f"Error saving state: {ex}")
         finally:
@@ -252,25 +253,19 @@ def main(page: ft.Page) -> None:
             return
         filepicker_open = True
         try:
-            files = await ft.FilePicker().pick_files(
+            from amplifyp.gui.util import pick_and_read_file
+
+            content = await pick_and_read_file(
+                page=page,
+                file_picker=file_picker,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
-                file_type=ft.FilePickerFileType.CUSTOM,
-                with_data=True,
+                show_snackbar=show_snackbar,
             )
-            if not files:
+            if content is None:
                 return
 
-            file = files[0]
-            if file.bytes is not None:
-                content = file.bytes.decode("utf-8")
-                parsed_state = yaml.safe_load(content)
-            else:
-                if not file.path:
-                    show_snackbar("Error: Could not read file content.")
-                    return
-                with open(file.path, encoding="utf-8") as f:
-                    parsed_state = yaml.safe_load(f)
+            parsed_state = yaml.safe_load(content)
 
             if not isinstance(parsed_state, dict):
                 show_snackbar("Error: Invalid state file format.")
