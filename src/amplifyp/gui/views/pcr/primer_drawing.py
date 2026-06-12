@@ -397,7 +397,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                     ),
                     ft.TextSpan("      Quality = "),
                     ft.TextSpan(
-                        f"{origin.quality:.3f}",
+                        f"{origin.quality:.4f}",
                         style=ft.TextStyle(weight=ft.FontWeight.BOLD),
                     ),
                 ],

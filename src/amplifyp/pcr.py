@@ -67,7 +67,7 @@ class PCR:
             if p.seq.upper() == primer.seq.upper():
                 raise DuplicatedSequenceError(primer.seq)
         self.__primers.append(primer)
-        repliconf = Repliconf(self.template, primer)
+        repliconf = Repliconf(self.template, primer, self.settings)
         self.amplicon_generator.add_repliconf(repliconf)
 
     def remove_primer(self, primer: Primer) -> None:
@@ -82,7 +82,7 @@ class PCR:
         if primer not in self.__primers:
             raise PrimerNotFoundError(primer)
         self.__primers.remove(primer)
-        repliconf = Repliconf(self.template, primer)
+        repliconf = Repliconf(self.template, primer, self.settings)
         self.amplicon_generator.remove_repliconf(repliconf)
 
     def add_primers(self, primers: list[Primer]) -> None:
