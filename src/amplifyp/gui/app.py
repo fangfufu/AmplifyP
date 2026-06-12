@@ -49,30 +49,24 @@ def main(page: ft.Page) -> None:
                 });
             """)
     else:
+        page.window.prevent_close = False
         page.window.prevent_close = True
+        page._confirm_dialog = None
 
         def confirm_dismiss(e: ft.ControlEvent) -> None:
-            confirm_dialog.open = False
-            page.update()
+            dialog = getattr(page, "_confirm_dialog", None)
+            if dialog:
+                dialog.open = False
+                page.update()
+
+        async def confirm_exit_async() -> None:
+            try:
+                await page.window.destroy()
+            except Exception:  # noqa: S110
+                pass
 
         def confirm_exit(e: ft.ControlEvent) -> None:
-            page.run_task(page.window.destroy)
-
-        confirm_dialog = ft.AlertDialog(
-            modal=True,
-            title=ft.Text("Confirm Exit"),
-            content=ft.Text(
-                "Are you sure you want to close AmplifyP? "
-                "Unsaved changes will be lost."
-            ),
-            actions=[
-                ft.TextButton("Yes", on_click=confirm_exit),
-                ft.TextButton("No", on_click=confirm_dismiss),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-        )
-        page._confirm_dialog = confirm_dialog
-        page.overlay.append(confirm_dialog)
+            page.run_task(confirm_exit_async)
 
         def on_window_event(e: ft.WindowEvent) -> None:
             if (
@@ -80,9 +74,26 @@ def main(page: ft.Page) -> None:
                 or getattr(e, "type", None) == ft.WindowEventType.CLOSE
             ):
                 dialog = getattr(page, "_confirm_dialog", None)
-                if dialog:
-                    dialog.open = True
-                    page.update()
+                if not dialog:
+                    dialog = ft.AlertDialog(
+                        modal=True,
+                        title=ft.Text("Confirm Exit"),
+                        content=ft.Text(
+                            "Are you sure you want to close AmplifyP? "
+                            "Unsaved changes will be lost."
+                        ),
+                        actions=[
+                            ft.TextButton("Yes", on_click=confirm_exit),
+                            ft.TextButton("No", on_click=confirm_dismiss),
+                        ],
+                        actions_alignment=ft.MainAxisAlignment.END,
+                    )
+                    page._confirm_dialog = dialog
+
+                if dialog not in page.overlay:
+                    page.overlay.append(dialog)
+                dialog.open = True
+                page.update()
 
         page.window.on_event = on_window_event
 
