@@ -43,17 +43,23 @@ class PrimerFileManager:
             if not line or line.startswith("#"):
                 continue
 
-            if "\t" in line:
-                delimiter = "\t"
-            else:
-                delimiter = ","
-
-            parts = line.split(delimiter, 1)
-            if len(parts) != 2:
+            delimiter = "\t" if "\t" in line else ","
+            reader = csv.reader([line], delimiter=delimiter)
+            try:
+                row = next(reader)
+            except (StopIteration, csv.Error):
                 continue
 
-            name = parts[0].strip()
-            seq = parts[1].strip()
+            if not row or len(row) < 2:
+                continue
+
+            seq = row[0].strip()
+            name = row[1].strip()
+
+            if len(row) >= 3:
+                extra = row[2].strip()
+                if extra:
+                    name = f"{name} - {extra}"
 
             if not name and not seq:
                 continue
@@ -62,27 +68,27 @@ class PrimerFileManager:
                 {
                     "name": name,
                     "seq": seq,
-                    "active": True,
+                    "active": False,
                 }
             )
         return parsed_primers
 
-    def _serialize_primers_to_csv(self, primers: list[dict[str, Any]]) -> str:
-        """Serialize primers list to a CSV string."""
+    def _serialize_primers_to_tsv(self, primers: list[dict[str, Any]]) -> str:
+        """Serialize primers list to a TSV string."""
         output = io.StringIO()
-        writer = csv.writer(output)
+        writer = csv.writer(output, delimiter="\t")
         for p in primers:
-            writer.writerow([p.get("name", ""), p.get("seq", "")])
+            writer.writerow([p.get("seq", ""), p.get("name", "")])
 
-        csv_content = output.getvalue()
+        tsv_content = output.getvalue()
         output.close()
-        return csv_content
+        return tsv_content
 
     async def load_primers_click(self, e: ft.ControlEvent) -> None:
         """Open file picker to load primers from CSV/TSV file."""
         try:
             files = await ft.FilePicker().pick_files(
-                dialog_title="Load Primers",
+                dialog_title="Load",
                 allowed_extensions=["csv", "tsv", "txt"],
                 file_type=ft.FilePickerFileType.CUSTOM,
                 with_data=True,
@@ -116,7 +122,7 @@ class PrimerFileManager:
             self.show_snackbar(f"Error loading file: {ex}")
 
     async def save_primers_click(self, e: ft.ControlEvent) -> None:
-        """Save primers to a CSV file."""
+        """Save primers to a TSV file."""
         primers_to_save = [
             p
             for p in self.input_data.primers
@@ -126,15 +132,15 @@ class PrimerFileManager:
             self.show_snackbar("No primers to save.")
             return
 
-        csv_content = self._serialize_primers_to_csv(primers_to_save)
+        tsv_content = self._serialize_primers_to_tsv(primers_to_save)
 
         try:
             file_path = await ft.FilePicker().save_file(
-                dialog_title="Save Primers",
-                file_name="primers.csv",
-                allowed_extensions=["csv"],
+                dialog_title="Save",
+                file_name="primers.tsv",
+                allowed_extensions=["tsv"],
                 file_type=ft.FilePickerFileType.CUSTOM,
-                src_bytes=csv_content.encode("utf-8"),
+                src_bytes=tsv_content.encode("utf-8"),
             )
             if self.app_page.web:
                 self.show_snackbar("Primers ready for download!")
@@ -142,7 +148,7 @@ class PrimerFileManager:
                 if file_path is None:
                     return
                 with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(csv_content)
+                    f.write(tsv_content)
                 self.show_snackbar(f"Saved {len(primers_to_save)} primer(s).")
         except Exception as ex:
             self.show_snackbar(f"Error saving file: {ex}")
