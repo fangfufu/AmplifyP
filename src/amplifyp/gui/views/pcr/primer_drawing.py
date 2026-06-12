@@ -112,9 +112,9 @@ class DrawnPrimer:
                     color=GUIColors.FWD_PRIMER,
                     size=self.settings.get("font_size_map_primer", 13),
                     weight=ft.FontWeight.BOLD,
-                    left=self.x_pos - 15,
-                    top=self.v_target - 25 - self.S - 38,
-                    rotate=ft.Rotate(-1.5708),
+                    left=self.x_pos,
+                    top=self.v_target - 25 - self.S - 13,
+                    rotate=ft.Rotate(-1.5708, alignment=ft.Alignment(-1, 0)),
                 )
             )
             # Click overlay
@@ -176,9 +176,9 @@ class DrawnPrimer:
                     color=GUIColors.REV_LABEL,
                     size=self.settings.get("font_size_map_primer", 13),
                     weight=ft.FontWeight.BOLD,
-                    left=self.x_pos - 15,
-                    top=self.v_target + 25 + self.S + 10,
-                    rotate=ft.Rotate(-1.5708),
+                    left=self.x_pos,
+                    top=self.v_target + 25 + self.S - 3,
+                    rotate=ft.Rotate(1.5708, alignment=ft.Alignment(-1, 0)),
                 )
             )
             # Click overlay

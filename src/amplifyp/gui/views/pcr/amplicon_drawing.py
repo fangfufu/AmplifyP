@@ -40,6 +40,7 @@ class DrawnAmplicon:
         c_width: float,
         settings: Any,
         on_click: Callable[[], None],
+        v_frag_start: float | None = None,
     ) -> None:
         """Initialize the DrawnAmplicon."""
         self.amp = amp
@@ -67,7 +68,8 @@ class DrawnAmplicon:
             else (c_width - h_margin)
         )
 
-        v_frag_start = v_target + 40
+        if v_frag_start is None:
+            v_frag_start = v_target + 40.0
         v_frag_step = 35
         self.y_pos = v_frag_start + (idx * v_frag_step)
 

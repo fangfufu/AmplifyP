@@ -134,18 +134,21 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             num_amplicons = MAX_AMPLICONS_RENDER
 
         target_length = len(pcr.template)
-        v_target, h_margin, c_width, t_width = (
-            self._calculate_canvas_dimensions(target_length, num_amplicons)
+
+        fwd_bindings, rev_bindings = self._collect_primer_bindings(
+            pcr, amplicons
+        )
+
+        v_target, h_margin, c_width, t_width, v_frag_start = (
+            self._calculate_canvas_dimensions(
+                target_length, num_amplicons, fwd_bindings, rev_bindings
+            )
         )
 
         if target_length > 0:
             self._draw_template_baseline(
                 v_target, h_margin, c_width, t_width, target_length
             )
-
-        fwd_bindings, rev_bindings = self._collect_primer_bindings(
-            pcr, amplicons
-        )
 
         self._draw_primers(
             fwd_bindings,
@@ -164,13 +167,29 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             v_target,
             c_width,
             amplicons=amplicons,
+            v_frag_start=v_frag_start,
         )
 
     def _calculate_canvas_dimensions(
-        self, target_length: int, num_amplicons: int
-    ) -> tuple[float, float, float, float]:
+        self,
+        target_length: int,
+        num_amplicons: int,
+        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
+        rev_bindings: dict[int, tuple[str, float, Any, Any]],
+    ) -> tuple[float, float, float, float, float]:
         """Calculate drawing coordinates and set canvas/stack heights."""
-        v_target = 100.0  # Y position of target baseline
+        # Calculate dynamic margins based on label lengths (approx 8px per char)
+        max_fwd_len = max(
+            (len(name) for name, _, _, _ in fwd_bindings.values()), default=0
+        )
+        max_rev_len = max(
+            (len(name) for name, _, _, _ in rev_bindings.values()), default=0
+        )
+
+        fwd_px = max_fwd_len * 8.0
+        rev_px = max_rev_len * 8.0
+
+        v_target = max(100.0, 66.0 + fwd_px)  # Y position of target baseline
         h_margin = 20.0  # X padding
         c_width = (
             max(600.0, self.app_page.width - 80.0)
@@ -181,13 +200,13 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         t_width = c_width - (2.0 * h_margin)
 
         # Calculate vertical size based on number of amplicons
-        v_frag_start = v_target + 40
+        v_frag_start = v_target + 70.0 + rev_px
         v_frag_step = 35
         canvas_height = v_frag_start + num_amplicons * v_frag_step + 30.0
         self.diagram_canvas.height = canvas_height
         self.diagram_stack.height = canvas_height
 
-        return v_target, h_margin, c_width, t_width
+        return v_target, h_margin, c_width, t_width, v_frag_start
 
     def _draw_template_baseline(
         self,
@@ -399,6 +418,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         v_target: float,
         c_width: float,
         amplicons: list[Any] | None = None,
+        v_frag_start: float | None = None,
     ) -> None:
         """Draw amplicons using DrawnAmplicon instances."""
         if amplicons is None:
@@ -414,5 +434,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 c_width=c_width,
                 settings=self.settings,
                 on_click=lambda a=amp: self.on_amplicon_click(a),  # type: ignore[misc]
+                v_frag_start=v_frag_start,
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
