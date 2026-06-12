@@ -33,6 +33,39 @@ def clean_sequence(seq: str) -> str:
     return "".join(clean.split())
 
 
+# Font families that are guaranteed to exist on all platforms.
+_SYSTEM_MONOSPACE_FONTS = (
+    "monospace",
+    "Courier New",
+    "Courier",
+    "Consolas",
+    "Lucida Console",
+    "DejaVu Sans Mono",
+    "Ubuntu Mono",
+    "Liberation Mono",
+)
+
+
+def _resolve_font_family(font_family: str) -> str:
+    """Return *font_family* if it is a known system font, else "Roboto Mono".
+
+    In Flet desktop mode the ``page.fonts`` mapping only covers custom
+    font-files that the application ships.  When a font name that is *not*
+    registered with ``page.fonts`` is used inside an ``ft.Text`` the text
+    (and its ``TextSpans``) can fail to render silently.  This helper
+    guards against that by falling back to the default ``"Roboto Mono"``
+    family which is shipped with this app.
+    """
+    if not font_family:
+        return "Roboto Mono"
+    ff = font_family.strip()
+    if ff.lower() in {f.lower() for f in _SYSTEM_MONOSPACE_FONTS}:
+        return ff
+    if ff.lower() == "roboto mono":
+        return "Roboto Mono"
+    return ff
+
+
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
     """Format sequence into lines of specified length."""
     clean = clean_sequence(seq)
@@ -71,6 +104,8 @@ def create_overlapped_sequence_view(
     """
     from amplifyp.gui.settings import GUIColors
 
+    resolved = _resolve_font_family(font_family)
+
     return ft.Text(
         spans=[
             ft.TextSpan(
@@ -95,7 +130,7 @@ def create_overlapped_sequence_view(
                 ),
             ),
         ],
-        font_family=font_family,
+        font_family=resolved,
         size=font_size,
         selectable=True,
     )
