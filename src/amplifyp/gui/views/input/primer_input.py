@@ -104,13 +104,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                             content=ft.Text(
                                 "Primers",
                                 weight=ft.FontWeight.BOLD,
+                                no_wrap=True,
                             ),
-                            width=100,
-                            col={"lg": 2, "md": 12, "sm": 12, "xs": 12},
+                            col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
                         ),
                         ft.Container(
                             content=self.primer_toolbar,
-                            col={"lg": 10, "md": 12, "sm": 12, "xs": 12},
+                            col={"lg": 9, "md": 9, "sm": 12, "xs": 12},
                             alignment=ft.Alignment(1, 0),
                         ),
                     ],

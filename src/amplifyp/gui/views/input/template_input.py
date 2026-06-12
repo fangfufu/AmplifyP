@@ -111,14 +111,20 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                                     ft.Text(
                                         "Template Sequence",
                                         weight=ft.FontWeight.BOLD,
+                                        no_wrap=True,
                                     ),
                                 ],
                                 spacing=10,
                                 tight=True,
                                 wrap=True,
                             ),
-                            width=160,
-                            col={"lg": 3, "md": 12, "sm": 12, "xs": 12},
+                            col={
+                                "xl": 5,
+                                "lg": 12,
+                                "md": 12,
+                                "sm": 12,
+                                "xs": 12,
+                            },
                         ),
                         ft.Container(
                             content=ft.Row(
@@ -131,7 +137,13 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                                 tight=True,
                                 wrap=True,
                             ),
-                            col={"lg": 9, "md": 12, "sm": 12, "xs": 12},
+                            col={
+                                "xl": 7,
+                                "lg": 12,
+                                "md": 12,
+                                "sm": 12,
+                                "xs": 12,
+                            },
                             alignment=ft.Alignment(1, 0),
                         ),
                     ],
