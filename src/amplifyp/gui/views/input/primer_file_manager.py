@@ -26,14 +26,14 @@ class PrimerFileManager:
         input_data: GUIInput,
         on_update_ui: Any,
         on_change_handler: Any,
-        show_snackbar: Any,
+        show_notification: Any,
     ) -> None:
         """Initialize the PrimerFileManager."""
         self.app_page = page
         self.input_data = input_data
         self.on_update_ui = on_update_ui
         self.on_change_handler = on_change_handler
-        self.show_snackbar = show_snackbar
+        self.show_notification = show_notification
 
     def _parse_primers_from_text(self, content: str) -> list[dict[str, Any]]:
         """Parse primers from CSV/TSV content."""
@@ -92,7 +92,7 @@ class PrimerFileManager:
             page=self.app_page,
             dialog_title="Load",
             allowed_extensions=["csv", "tsv", "txt"],
-            show_snackbar=self.show_snackbar,
+            show_notification=self.show_notification,
         )
         if content is None:
             return
@@ -106,11 +106,11 @@ class PrimerFileManager:
                 self.on_update_ui()
                 if self.on_change_handler:
                     self.on_change_handler(None)
-                self.show_snackbar(f"Loaded {len(parsed)} primer(s).")
+                self.show_notification(f"Loaded {len(parsed)} primer(s).")
             else:
-                self.show_snackbar("No valid primers found in file.")
+                self.show_notification("No valid primers found in file.")
         except Exception as ex:
-            self.show_snackbar(f"Error parsing primers: {ex}")
+            self.show_notification(f"Error parsing primers: {ex}")
 
     async def save_primers_click(self, e: ft.ControlEvent) -> None:
         """Save primers to a TSV file."""
@@ -120,7 +120,7 @@ class PrimerFileManager:
             if str(p.get("name", "")).strip() or str(p.get("seq", "")).strip()
         ]
         if not primers_to_save:
-            self.show_snackbar("No primers to save.")
+            self.show_notification("No primers to save.")
             return
 
         tsv_content = self._serialize_primers_to_tsv(primers_to_save)
@@ -133,7 +133,7 @@ class PrimerFileManager:
             file_name="primers.tsv",
             allowed_extensions=["tsv"],
             content=tsv_content,
-            show_snackbar=self.show_snackbar,
+            show_notification=self.show_notification,
             success_message_desktop=f"Saved {len(primers_to_save)} primer(s).",
             success_message_web="Primers ready for download!",
         )

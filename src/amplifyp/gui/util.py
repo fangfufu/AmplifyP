@@ -375,7 +375,7 @@ async def pick_and_read_file(
     page: ft.Page,
     dialog_title: str,
     allowed_extensions: list[str],
-    show_snackbar: Callable[[str], None],
+    show_notification: Callable[[str], None],
 ) -> str | None:
     """Open a file picker to load a file, and read its text content."""
     try:
@@ -394,12 +394,12 @@ async def pick_and_read_file(
             return file.bytes.decode("utf-8")  # type: ignore[no-any-return]
         else:
             if not file.path:
-                show_snackbar("Error: Could not read file content.")
+                show_notification("Error: Could not read file content.")
                 return None
             with open(file.path, encoding="utf-8") as f:
                 return f.read()
     except Exception as ex:
-        show_snackbar(f"Error loading file: {ex}")
+        show_notification(f"Error loading file: {ex}")
         return None
 
 
@@ -409,7 +409,7 @@ async def save_and_write_file(
     file_name: str,
     allowed_extensions: list[str],
     content: str,
-    show_snackbar: Callable[[str], None],
+    show_notification: Callable[[str], None],
     success_message_desktop: str = "Saved successfully!",
     success_message_web: str = "Ready for download!",
 ) -> bool:
@@ -424,15 +424,35 @@ async def save_and_write_file(
             src_bytes=content.encode("utf-8"),
         )
         if page.web:
-            show_snackbar(success_message_web)
+            show_notification(success_message_web)
             return True
         else:
             if file_path is None:
                 return False
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
-            show_snackbar(success_message_desktop)
+            show_notification(success_message_desktop)
             return True
     except Exception as ex:
-        show_snackbar(f"Error saving file: {ex}")
+        show_notification(f"Error saving file: {ex}")
         return False
+
+
+class NotificationHelper:
+    """Helper class to manage user notifications and messages.
+
+    Wraps flet SnackBar usage to allow easy swapping to dialogs or other
+    components.
+    """
+
+    def __init__(self, page: ft.Page) -> None:
+        """Initialize the NotificationHelper."""
+        self.page = page
+        self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
+        self.page.overlay.append(self._snack_bar)
+
+    def show_message(self, message: str) -> None:
+        """Show a message to the user."""
+        self._snack_bar.content = ft.Text(message)
+        self._snack_bar.open = True
+        self.page.update()
