@@ -43,6 +43,7 @@ class DrawnPrimer:
         v_target: float,
         settings: Any,
         on_click: Callable[[], None],
+        x_shifted: float | None = None,
     ) -> None:
         """Initialize the DrawnPrimer."""
         self.name = name
@@ -56,6 +57,7 @@ class DrawnPrimer:
         self.v_target = v_target
         self.settings = settings
         self.on_click = on_click
+        self.x_shifted = x_shifted
 
         # Calculate coordinates
         self.x_pos = (
@@ -67,35 +69,58 @@ class DrawnPrimer:
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
         """Draw the primer indicator elements onto the canvas and stack."""
+        x_render = self.x_shifted if self.x_shifted is not None else self.x_pos
+
         if self.direction == DNADirection.FWD:
             # Draw FWD primers (blue, float above baseline, pointing down)
-            # Connector line from baseline to floating tip
-            canvas.shapes.append(
-                cv.Path(
-                    [
-                        cv.Path.MoveTo(self.x_pos, self.v_target),
-                        cv.Path.LineTo(self.x_pos, self.v_target - 25),
-                    ],
-                    paint=ft.Paint(
-                        color=GUIColors.FWD_PRIMER,
-                        style=ft.PaintingStyle.STROKE,
-                        stroke_width=1.0,
-                    ),
+            if abs(x_render - self.x_pos) > 0.1:
+                # Bent leader line:
+                # 1. vertical up
+                # 2. diagonal to x_render
+                # 3. vertical up to triangle
+                canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(self.x_pos, self.v_target),
+                            cv.Path.LineTo(self.x_pos, self.v_target - 10),
+                            cv.Path.LineTo(x_render, self.v_target - 20),
+                            cv.Path.LineTo(x_render, self.v_target - 25),
+                        ],
+                        paint=ft.Paint(
+                            color=GUIColors.FWD_PRIMER,
+                            style=ft.PaintingStyle.STROKE,
+                            stroke_width=1.0,
+                        ),
+                    )
                 )
-            )
+            else:
+                # Straight connector line
+                canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(self.x_pos, self.v_target),
+                            cv.Path.LineTo(self.x_pos, self.v_target - 25),
+                        ],
+                        paint=ft.Paint(
+                            color=GUIColors.FWD_PRIMER,
+                            style=ft.PaintingStyle.STROKE,
+                            stroke_width=1.0,
+                        ),
+                    )
+                )
             # Down-pointing triangle of size S:
-            # Tip: (self.x_pos, self.v_target - 25)
-            # Top-Left: (self.x_pos - S/2, self.v_target - 25 - S)
-            # Top-Right: (self.x_pos + S/2, self.v_target - 25 - S)
+            # Tip: (x_render, self.v_target - 25)
+            # Top-Left: (x_render - S/2, self.v_target - 25 - S)
+            # Top-Right: (x_render + S/2, self.v_target - 25 - S)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(self.x_pos, self.v_target - 25),
+                        cv.Path.MoveTo(x_render, self.v_target - 25),
                         cv.Path.LineTo(
-                            self.x_pos - self.S / 2, self.v_target - 25 - self.S
+                            x_render - self.S / 2, self.v_target - 25 - self.S
                         ),
                         cv.Path.LineTo(
-                            self.x_pos + self.S / 2, self.v_target - 25 - self.S
+                            x_render + self.S / 2, self.v_target - 25 - self.S
                         ),
                         cv.Path.Close(),
                     ],
@@ -112,9 +137,9 @@ class DrawnPrimer:
                     color=GUIColors.FWD_PRIMER,
                     size=self.settings.get("font_size_map_primer", 13),
                     weight=ft.FontWeight.BOLD,
-                    left=self.x_pos - 15,
-                    top=self.v_target - 25 - self.S - 38,
-                    rotate=ft.Rotate(-1.5708),
+                    left=x_render,
+                    top=self.v_target - 25 - self.S - 13,
+                    rotate=ft.Rotate(-1.5708, alignment=ft.Alignment(-1, 0)),
                 )
             )
             # Click overlay
@@ -127,39 +152,60 @@ class DrawnPrimer:
                         width=20,
                         height=25 + self.S,
                     ),
-                    left=self.x_pos - 10,
+                    left=x_render - 10,
                     top=self.v_target - 25 - self.S,
                 )
             )
         else:
             # Draw REV primers (red, float below baseline, pointing up)
-            # Connector line from baseline to floating tip
-            canvas.shapes.append(
-                cv.Path(
-                    [
-                        cv.Path.MoveTo(self.x_pos, self.v_target),
-                        cv.Path.LineTo(self.x_pos, self.v_target + 25),
-                    ],
-                    paint=ft.Paint(
-                        color=GUIColors.REV_PRIMER,
-                        style=ft.PaintingStyle.STROKE,
-                        stroke_width=1.0,
-                    ),
+            if abs(x_render - self.x_pos) > 0.1:
+                # Bent leader line:
+                # 1. vertical down
+                # 2. diagonal to x_render
+                # 3. vertical down to triangle
+                canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(self.x_pos, self.v_target),
+                            cv.Path.LineTo(self.x_pos, self.v_target + 10),
+                            cv.Path.LineTo(x_render, self.v_target + 20),
+                            cv.Path.LineTo(x_render, self.v_target + 25),
+                        ],
+                        paint=ft.Paint(
+                            color=GUIColors.REV_PRIMER,
+                            style=ft.PaintingStyle.STROKE,
+                            stroke_width=1.0,
+                        ),
+                    )
                 )
-            )
+            else:
+                # Straight connector line
+                canvas.shapes.append(
+                    cv.Path(
+                        [
+                            cv.Path.MoveTo(self.x_pos, self.v_target),
+                            cv.Path.LineTo(self.x_pos, self.v_target + 25),
+                        ],
+                        paint=ft.Paint(
+                            color=GUIColors.REV_PRIMER,
+                            style=ft.PaintingStyle.STROKE,
+                            stroke_width=1.0,
+                        ),
+                    )
+                )
             # Up-pointing triangle of size S:
-            # Tip: (self.x_pos, self.v_target + 25)
-            # Bottom-Left: (self.x_pos - S/2, self.v_target + 25 + S)
-            # Bottom-Right: (self.x_pos + S/2, self.v_target + 25 + S)
+            # Tip: (x_render, self.v_target + 25)
+            # Bottom-Left: (x_render - S/2, self.v_target + 25 + S)
+            # Bottom-Right: (x_render + S/2, self.v_target + 25 + S)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(self.x_pos, self.v_target + 25),
+                        cv.Path.MoveTo(x_render, self.v_target + 25),
                         cv.Path.LineTo(
-                            self.x_pos - self.S / 2, self.v_target + 25 + self.S
+                            x_render - self.S / 2, self.v_target + 25 + self.S
                         ),
                         cv.Path.LineTo(
-                            self.x_pos + self.S / 2, self.v_target + 25 + self.S
+                            x_render + self.S / 2, self.v_target + 25 + self.S
                         ),
                         cv.Path.Close(),
                     ],
@@ -176,9 +222,9 @@ class DrawnPrimer:
                     color=GUIColors.REV_LABEL,
                     size=self.settings.get("font_size_map_primer", 13),
                     weight=ft.FontWeight.BOLD,
-                    left=self.x_pos - 15,
-                    top=self.v_target + 25 + self.S + 10,
-                    rotate=ft.Rotate(-1.5708),
+                    left=x_render,
+                    top=self.v_target + 25 + self.S - 3,
+                    rotate=ft.Rotate(1.5708, alignment=ft.Alignment(-1, 0)),
                 )
             )
             # Click overlay
@@ -191,7 +237,7 @@ class DrawnPrimer:
                         width=20,
                         height=25 + self.S,
                     ),
-                    left=self.x_pos - 10,
+                    left=x_render - 10,
                     top=self.v_target,
                 )
             )
@@ -337,6 +383,27 @@ class ReplicationContextCard(DismissibleDetailCard):
         )
 
         body_controls = [
+            ft.Text(
+                spans=[
+                    ft.TextSpan("Primeability = "),
+                    ft.TextSpan(
+                        f"{origin.primability:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                    ft.TextSpan("      Stability = "),
+                    ft.TextSpan(
+                        f"{origin.stability:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                    ft.TextSpan("      Quality = "),
+                    ft.TextSpan(
+                        f"{origin.quality:.3f}",
+                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ),
+                ],
+                selectable=True,
+                size=settings.get("font_size_body", 13),
+            ),
             ft.Container(
                 content=ft.Row(
                     [diagram_text],
@@ -345,7 +412,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                 padding=12,
                 border_radius=6,
                 border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
-            )
+            ),
         ]
 
         super().__init__(
