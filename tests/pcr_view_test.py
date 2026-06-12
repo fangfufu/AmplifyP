@@ -251,3 +251,43 @@ def test_pcr_view_no_duplicate_cards() -> None:
     gesture_detectors[2].on_tap(MagicMock())
     assert len(view.result_list.controls) == 3
     assert view.result_list.controls[0] == amp_card
+
+
+def test_pcr_view_primer_label_collision() -> None:
+    """Test that closely spaced primer labels are shifted horizontally."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # Three forward-binding primers close to each other
+    # and one reverse primer to allow amplicon rendering.
+    input_data.primers = [
+        {"name": "P1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "P2", "seq": "TCCACTGCGAATCATTAAAG", "active": True},
+        {"name": "P3", "seq": "CCACTGCGAATCATTAAAGT", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # The stack should have DrawnPrimer text controls.
+    texts = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.Text) and ctrl.color == "blue800"
+    ]
+    # We should have 3 forward primer label texts
+    assert len(texts) == 3
+
+    # Extract their "left" values and sort them
+    lefts = sorted([txt.left for txt in texts])
+
+    # Separated by >= 24.0 pixels due to de-collision logic
+    assert lefts[1] - lefts[0] >= 24.0
+    assert lefts[2] - lefts[1] >= 24.0

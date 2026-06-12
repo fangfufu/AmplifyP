@@ -363,6 +363,74 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             )
         return fwd_bindings, rev_bindings
 
+    def _calculate_shifted_x(
+        self,
+        bindings: dict[int, tuple[str, float, Any, Any]],
+        target_length: int,
+        t_width: float,
+        h_margin: float,
+        min_dist: float = 24.0,
+    ) -> dict[int, float]:
+        """Calculate shifted horizontal pixel positions to prevent overlap."""
+        if not bindings:
+            return {}
+
+        # List of (actual_idx, actual_x) sorted by X position
+        coords = []
+        for idx in bindings.keys():
+            x = (
+                h_margin + (idx / target_length * t_width)
+                if target_length
+                else h_margin
+            )
+            coords.append((idx, x))
+        coords.sort(key=lambda item: item[1])
+
+        # Simple cluster and distribute algorithm
+        n = len(coords)
+        shifted = dict(coords)
+
+        # We find overlapping segments/clusters
+        clusters = []
+        current_cluster = [coords[0]]
+
+        for i in range(1, n):
+            idx, x = coords[i]
+            _, prev_x = coords[i - 1]
+            # Check distance between original X of consecutive elements
+            if x - prev_x < min_dist:
+                current_cluster.append((idx, x))
+            else:
+                clusters.append(current_cluster)
+                current_cluster = [(idx, x)]
+        clusters.append(current_cluster)
+
+        # Now, spread out coordinates within each cluster
+        for cluster in clusters:
+            if len(cluster) <= 1:
+                continue
+            # Average X of the original positions in this cluster
+            avg_x = sum(x for _, x in cluster) / len(cluster)
+
+            # We want to space them evenly around avg_x
+            # Total width needed is (len - 1) * min_dist
+            k = len(cluster)
+            total_width = (k - 1) * min_dist
+            start_x = avg_x - total_width / 2.0
+
+            # Ensure we don't go out of canvas boundaries
+            min_canvas_x = h_margin
+            max_canvas_x = h_margin + t_width
+            if start_x < min_canvas_x:
+                start_x = min_canvas_x
+            elif start_x + total_width > max_canvas_x:
+                start_x = max_canvas_x - total_width
+
+            for idx_in_cluster, (idx, _) in enumerate(cluster):
+                shifted[idx] = start_x + idx_in_cluster * min_dist
+
+        return shifted
+
     def _draw_primers(
         self,
         fwd_bindings: dict[int, tuple[str, float, Any, Any]],
@@ -373,6 +441,13 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         v_target: float,
     ) -> None:
         """Draw forward and reverse primers using DrawnPrimer instances."""
+        fwd_shifted = self._calculate_shifted_x(
+            fwd_bindings, target_length, t_width, h_margin
+        )
+        rev_shifted = self._calculate_shifted_x(
+            rev_bindings, target_length, t_width, h_margin
+        )
+
         for start_idx, (name, S, fwd_conf, fwd_var) in fwd_bindings.items():
             drawn = DrawnPrimer(
                 name=name,
@@ -388,6 +463,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 on_click=lambda n=name, idx=start_idx, c=fwd_conf, v=fwd_var: (  # type: ignore[misc]
                     self.on_primer_click(n, idx, c, v)
                 ),
+                x_shifted=fwd_shifted.get(start_idx),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
@@ -406,6 +482,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 on_click=lambda n=name, idx=end_idx, c=rev_conf, v=rev_var: (  # type: ignore[misc]
                     self.on_primer_click(n, idx, c, v)
                 ),
+                x_shifted=rev_shifted.get(end_idx),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
