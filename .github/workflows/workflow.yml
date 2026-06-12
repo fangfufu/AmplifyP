@@ -32,8 +32,7 @@ jobs:
       - name: Build Flet app
         run: |
           pip install flet
-          flet publish src/main.py \
-            --base-url /${{ github.event.repository.name }}/
+          flet publish src/main.py --base-url /${{ github.event.repository.name }}/
       - name: Display coverage report
         run: |
           coverage report -m
