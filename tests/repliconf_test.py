@@ -15,8 +15,10 @@
 
 """Tests related to repliconf."""
 
+import pytest
+
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
-from amplifyp.repliconf import Repliconf
+from amplifyp.repliconf import DirIdx, Repliconf
 from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 
 
@@ -73,3 +75,63 @@ def test_repliconf_str() -> None:
 def test_repliconf_hash() -> None:
     """Test that the Repliconf hash function generates a hash."""
     assert hash(test_repliconf)
+
+
+def test_dir_idx_methods() -> None:
+    """Test methods of DirIdx."""
+    d1 = DirIdx(DNADirection.FWD, 10)
+    d2 = DirIdx(DNADirection.FWD, 5)  # Same direction
+    d3 = DirIdx(DNADirection.REV, 10)  # Different direction
+
+    # __int__ and __index__
+    assert int(d1) == 10
+    assert list(range(20))[d1] == 10
+
+    # __add__
+    assert (d1 + 5).index == 15
+    assert (d1 + d2).index == 15
+    with pytest.raises(TypeError):
+        _ = d1 + "a"
+
+    # __sub__
+    assert (d1 - 5).index == 5
+    assert (d1 - d2).index == 5
+    with pytest.raises(TypeError):
+        _ = d1 - "a"
+
+    # __eq__
+    assert d1 == 10
+    assert d1 == DirIdx(DNADirection.FWD, 10)
+    assert d1 != d2
+    assert d1 != d3  # diff direction
+    assert d1 != "invalid"
+
+    # Comparisons
+    # lt
+    assert d2 < d1
+    assert d2 < 10
+    with pytest.raises(TypeError):
+        _ = d1 < "a"
+
+    # gt
+    assert d1 > d2
+    assert d1 > 5
+    with pytest.raises(TypeError):
+        _ = d1 > "a"
+
+    # le
+    assert d2 <= d1
+    assert d1 <= d1
+    assert d2 <= 10
+    with pytest.raises(TypeError):
+        _ = d1 <= "a"
+
+    # ge
+    assert d1 >= d2
+    assert d1 >= d1
+    assert d1 >= 5
+    with pytest.raises(TypeError):
+        _ = d1 >= "a"
+
+    # __str__
+    assert str(d1) == "10"

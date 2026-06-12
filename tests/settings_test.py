@@ -17,6 +17,7 @@
 
 import pytest
 
+from amplifyp.errors import ColumnLengthMismatchError, RowLengthMismatchError
 from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
 
 
@@ -46,10 +47,10 @@ pairwise_weights = [
 
 def test_invalid_tbl_generation() -> None:
     """Test invalid BasePairWeightsTbl creation."""
-    with pytest.raises(ValueError):
+    with pytest.raises(RowLengthMismatchError):
         BasePairWeightsTbl("AB", "ABCD", pairwise_weights)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ColumnLengthMismatchError):
         BasePairWeightsTbl("ABCD", "AB", pairwise_weights)
 
 
@@ -121,3 +122,29 @@ def test_base_pair_weights_tbl_case_sensitivity() -> None:
 
     # Check mixed case
     assert tbl["A", "a"] == pytest.approx(1.0)
+
+
+def test_base_pair_weights_tbl_invalid_chars() -> None:
+    """Test BasePairWeightsTbl with invalid characters (code >= 128)."""
+    # The optimized lookup table only supports ASCII (0-127).
+    # Characters outside this range should fall back to dictionary lookup
+    # or handle gracefully (be ignored in map).
+
+    # \u00C0 is À (code 192)
+    weird_char = "\u00c0"
+    row = "A" + weird_char
+    col = "A"
+    weights = [[1.0], [2.0]]
+
+    tbl = BasePairWeightsTbl(row, col, weights)
+
+    # Should work via fallback
+    assert tbl[weird_char, "A"] == 2.0
+
+    # Setter should also work via fallback
+    tbl[weird_char, "A"] = 3.0
+    assert tbl[weird_char, "A"] == 3.0
+
+    # Also test completely invalid lookup
+    with pytest.raises(KeyError):
+        _ = tbl["Z", "Z"]

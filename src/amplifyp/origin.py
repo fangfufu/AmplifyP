@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from math import trunc
 
 from .dna import DNA, Primer
+from .errors import ReplicationOriginLengthError
 from .settings import (
     GLOBAL_REPLICATION_SETTINGS,
     BasePairWeightsTbl,
@@ -59,9 +60,7 @@ class ReplicationOrigin:
             ValueError: If the lengths of `target` and `primer` do not match.
         """
         if len(self.target) != len(self.primer):
-            raise ValueError(
-                "The target has to have the same length as the primer."
-            )
+            raise ReplicationOriginLengthError()
 
     @property
     def primability(self) -> float:
@@ -148,6 +147,34 @@ class ReplicationOrigin:
             primability = trunc(self.primability * 100) / 100
             stability = trunc(self.stability * 100) / 100
             return (primability + stability - cutoffs) / (2 - cutoffs)
+
+    @property
+    def binding_strength_str(self) -> str:
+        """The binding strength of each base-pair as a string.
+
+        Returns:
+            str: The binding strength of each base-pair as a string using the
+                Watson-Crick display format: '|' for strong/perfect matches,
+                ':' for weaker/wildcard pairings, and ' ' for mismatches.
+        """
+        S = self.settings.base_pair_scores
+        # Use the maximum score in the entire base pair weights table
+        top_score = max(S.row_max(r) for r in S.row())
+        bonds = []
+        for p_base, t_base in zip(self.primer, self.target, strict=False):
+            try:
+                score = S[p_base, t_base]
+            except KeyError:
+                score = 0.0
+
+            if score == 0:
+                symbol = " "
+            elif score >= top_score:
+                symbol = "|"
+            else:
+                symbol = ":"
+            bonds.append(symbol)
+        return "".join(bonds)
 
 
 class Amplify4RevOrigin(ReplicationOrigin):

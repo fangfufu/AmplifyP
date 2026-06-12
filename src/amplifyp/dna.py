@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from enum import Flag, IntEnum, StrEnum
 
+from .errors import InvalidDNASequenceError, InvalidDNATypeError
+
 GLOBAL_COMPLEMENT_TABLE = str.maketrans(
     "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
 )
@@ -42,6 +44,7 @@ class Nucleotides(StrEnum):
         GAP: Gap character (-).
         PRIMER: Valid characters for primers (SINGLE + DOUBLE + TRIPLE +
             WILDCARD).
+        ALL_VALID: All valid characters for nucleotides (PRIMER + GAP).
     """
 
     SINGLE = "GATC"
@@ -51,6 +54,12 @@ class Nucleotides(StrEnum):
     GAP = "-"
     TEMPLATE = SINGLE + WILDCARD + GAP
     PRIMER = SINGLE + DOUBLE + TRIPLE + WILDCARD
+    ALL_VALID = PRIMER + GAP
+
+
+# Other modules (e.g., settings.py) depend on Nucleotides being defined before
+# they are imported. Importing .settings at module load time here would create
+# a circular import because settings.py imports Nucleotides from this module.
 
 
 class DNAType(IntEnum):
@@ -127,26 +136,17 @@ class DNA:
                 sequence. Defaults to DNADirection.FWD.
 
         Raises:
-            TypeError: If the provided `dna_type` is invalid.
             ValueError: If the `seq` contains characters invalid for the
                 specified `dna_type`.
         """
+        if (
+            dna_type != DNAType.PRIMER
+            and dna_type != DNAType.CIRCULAR
+            and dna_type != DNAType.LINEAR
+        ):
+            raise InvalidDNATypeError()
+
         self.__seq: str = "".join(seq.split())
-        self.__type: DNAType = dna_type
-
-        if name is None:
-            self.__name = seq
-        else:
-            self.__name = name.strip()
-        self.__direction: bool | DNADirection = direction
-
-        if dna_type == DNAType.LINEAR or dna_type == DNAType.CIRCULAR:
-            check_str = Nucleotides.TEMPLATE
-        elif dna_type == DNAType.PRIMER:
-            check_str = Nucleotides.PRIMER
-        else:
-            raise TypeError("Invalid DNA type.")
-
         # Optimization: cache the uppercase sequence to avoid repeated
         # allocations in _count_bases and other methods.
         seq_upper = self.__seq.upper()
@@ -157,13 +157,17 @@ class DNA:
         else:
             self._seq_upper = seq_upper
 
-        invalid_chars = set(self._seq_upper) - set(check_str)
+        invalid_chars = set(self._seq_upper) - set(Nucleotides.ALL_VALID)
         if invalid_chars:
-            raise ValueError(
-                f"The DNA sequence contains invalid characters: {
-                    ', '.join(sorted(invalid_chars))
-                }"
-            )
+            raise InvalidDNASequenceError(invalid_chars)
+
+        self.__type: DNAType = dna_type
+
+        if name is None or not name.strip():
+            self.__name = seq
+        else:
+            self.__name = name.strip()
+        self.__direction: bool | DNADirection = direction
 
     @property
     def seq(self) -> str:
@@ -253,8 +257,8 @@ class DNA:
     def __eq__(self, other: object) -> bool:
         """Check if two DNA objects are equal.
 
-        Equality is determined by case-insensitive sequence comparison,
-        matching direction, and matching DNA type.
+        Equality is determined by case-insensitive sequence comparison
+        along with direction.
 
         Args:
             other (object): The object to compare with.
@@ -267,18 +271,17 @@ class DNA:
         return (
             self._seq_upper == other._seq_upper
             and self.direction == other.direction
-            and self.type == other.type
         )
 
     def __hash__(self) -> int:
         """Return a hash value for the DNA object.
 
-        The hash is computed from the uppercase sequence, direction, and type.
+        The hash is computed from the uppercase sequence and direction.
 
         Returns:
             int: The hash value.
         """
-        return hash((self._seq_upper, self.direction, self.type))
+        return hash((self._seq_upper, self.direction))
 
     def __len__(self) -> int:
         """Return the length of the DNA sequence.
@@ -400,3 +403,38 @@ class Primer(DNA):
                 None.
         """
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
+
+    @property
+    def redundancy_fold(self) -> int:
+        """Calculate the fold redundancy of the primer.
+
+        Returns:
+            int: The product of the number of possible bases at each position.
+        """
+        fold = 1
+        for base in self.seq.upper():
+            if base in Nucleotides.WILDCARD:
+                fold *= 4
+            elif base in Nucleotides.TRIPLE:
+                fold *= 3
+            elif base in Nucleotides.DOUBLE:
+                fold *= 2
+        return fold
+
+    @property
+    def redundant_base_count(self) -> int:
+        """Count the number of redundant bases in the primer.
+
+        Returns:
+            int: The number of bases that are not single nucleotides (A, C, G,
+                T).
+        """
+        count = 0
+        for base in self.seq.upper():
+            if (
+                base in Nucleotides.WILDCARD
+                or base in Nucleotides.TRIPLE
+                or base in Nucleotides.DOUBLE
+            ):
+                count += 1
+        return count

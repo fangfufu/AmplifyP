@@ -24,9 +24,7 @@ from typing import Final
 
 from .dna import Primer
 from .settings import (
-    GLOBAL_AMPLIFY4_TM_SETTINGS,
     GLOBAL_TM_SETTINGS,
-    Amplify4TMSettings,
     TMSettings,
 )
 
@@ -56,7 +54,7 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
 }
 
 
-def calculate_tm(
+def calculate_tm_santalucia_1998_owczarzy_2008(
     primer: Primer, settings: TMSettings = GLOBAL_TM_SETTINGS
 ) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
@@ -174,7 +172,7 @@ def calculate_tm(
         total_dna_conc_M = 50e-9
 
     denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
-    if denom_1M == 0:
+    if denom_1M == 0:  # pragma: no cover
         return 0.0
 
     tm_1m_K = dh / denom_1M
@@ -232,9 +230,7 @@ def calculate_tm(
         # coeffs or eq. But Eq 16 is often used generally for Mg presence in
         # simplified implementations. Since exact mixed mode coeffs are
         # complex/variable, we stick to Eq 16 which accounts for Mg effects
-        # well. Note also Von Ahsen et al (2001) suggests Na_eq = Mon +
-        # 3.8*sqrt(Mg) for mixed. But we use the Owczarzy Eq 16 which is
-        # specific for Mg.
+        # well.
 
         tm_inv = (1.0 / tm_1m_K) + corr
         tm_final_K = 1.0 / tm_inv
@@ -242,9 +238,9 @@ def calculate_tm(
     return tm_final_K - 273.15
 
 
-def calculate_tm_amplify4(
+def calculate_tm_lander_amplify4(
     primer: Primer,
-    amplify4_settings: Amplify4TMSettings = GLOBAL_AMPLIFY4_TM_SETTINGS,
+    settings: TMSettings = GLOBAL_TM_SETTINGS,
 ) -> float:
     """Calculate Tm using the original Amplify4 algorithm.
 
@@ -254,7 +250,7 @@ def calculate_tm_amplify4(
 
     Args:
         primer: The primer object containing the sequence.
-        amplify4_settings: Amplify4-specific settings (tables, etc.).
+        settings: Melting settings containing concentrations and matrices.
 
     Returns:
         The melting temperature in degrees Celsius. Returns 0.0 if the
@@ -265,8 +261,8 @@ def calculate_tm_amplify4(
     if seq_len < 1:
         return 0.0
 
-    entropy = amplify4_settings.entropy
-    enthalpy = amplify4_settings.enthalpy
+    entropy = settings.entropy
+    enthalpy = settings.enthalpy
 
     entr: float = 108.0
     enth: float = 0.0
@@ -290,12 +286,12 @@ def calculate_tm_amplify4(
     # If DNAConc=50, 50/4e9 = 1.25e-8 => 12.5 nM concentration assumption?
     # Or maybe it treats input as raw number?
     # We use settings.DNAConc exactly as Swift does.
-    dna_conc_val = amplify4_settings.dna_conc
+    dna_conc_val = settings.dna_conc
     log_dna = 1.987 * math.log(dna_conc_val / 4.0e9)
 
     # Salt: 16.6 * log(saltConc/1000) / log(10.0)
     # saltConc is typically mM (default 50).
-    salt_conc_val = amplify4_settings.monovalent_salt_conc
+    salt_conc_val = settings.monovalent_salt_conc
     if salt_conc_val <= 0:
         salt_conc_val = 50.0  # prevent log error if 0
 

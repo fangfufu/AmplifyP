@@ -1,10 +1,32 @@
+# Copyright (C) 2026 Fufu Fang
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 """Tests for the Amplicon class."""
 
 import pytest
 
-from amplifyp.amplicon import Amplicon
-from amplifyp.dna import DNA, DNADirection, Primer
-from amplifyp.repliconf import DirIdx
+from amplifyp.amplicon import Amplicon, AmpliconGenerator
+from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.errors import (
+    InvalidAmpliconRangeError,
+    InvalidEndDirectionError,
+    InvalidIndexOrderError,
+    InvalidStartDirectionError,
+    TemplateMismatchError,
+)
+from amplifyp.repliconf import DirIdx, Repliconf
 
 
 def create_dummy_amplicon(q_score: float, circular: bool = False) -> Amplicon:
@@ -104,7 +126,9 @@ def test_amplicon_post_init_validation() -> None:
     dummy_primer = Primer("A", name="dummy_primer")
 
     # 1. Invalid start direction (REV instead of FWD)
-    with pytest.raises(ValueError, match="Start direction must be forward"):
+    with pytest.raises(
+        InvalidStartDirectionError, match="Start direction must be forward"
+    ):
         Amplicon(
             product=dummy_dna,
             fwd_origin=dummy_primer,
@@ -116,7 +140,9 @@ def test_amplicon_post_init_validation() -> None:
         )
 
     # 2. Invalid end direction (FWD instead of REV)
-    with pytest.raises(ValueError, match="End direction must be reverse"):
+    with pytest.raises(
+        InvalidEndDirectionError, match="End direction must be reverse"
+    ):
         Amplicon(
             product=dummy_dna,
             fwd_origin=dummy_primer,
@@ -129,7 +155,7 @@ def test_amplicon_post_init_validation() -> None:
 
     # 3. Invalid indices for linear DNA (start > end)
     with pytest.raises(
-        ValueError,
+        InvalidIndexOrderError,
         match="End index must be greater than start index for linear DNA",
     ):
         Amplicon(
@@ -163,3 +189,60 @@ def test_amplicon_post_init_validation() -> None:
         q_score=100.0,
         circular=True,
     )
+
+
+def test_amplicon_generator_add_repliconf_errors() -> None:
+    """Test error conditions when adding a Repliconf to AmpliconGenerator."""
+    dna1 = DNA("AAAA", name="dna1")
+    dna2 = DNA("TTTT", name="dna2")
+
+    generator = AmpliconGenerator(dna1)
+    primer = Primer("A")
+
+    # 1. Different template
+    repliconf_diff_template = Repliconf(dna2, primer)
+    with pytest.raises(
+        TemplateMismatchError,
+        match="The Repliconf contains a different template",
+    ):
+        generator.add_repliconf(repliconf_diff_template)
+
+
+def test_construct_amplicon_sequence_linear_invalid_order() -> None:
+    """Test unreachable error in _construct_amplicon_sequence for linear DNA.
+
+    This is hard to reach via public API because get_amplicons checks
+    start < end for linear DNA. We call the private method directly.
+    """
+    dna = DNA("ATGC", DNAType.LINEAR)
+    generator = AmpliconGenerator(dna)
+    primer = Primer("A")
+    repliconf = Repliconf(dna, primer)
+
+    start_idx = DirIdx(DNADirection.FWD, 3)
+    # end == start -> should trigger NotImplementedError/else block
+    end_idx = DirIdx(DNADirection.REV, 3)
+
+    with pytest.raises(
+        InvalidAmpliconRangeError, match="Attempted to search for an amplicon"
+    ):
+        generator._construct_amplicon_sequence(
+            repliconf, repliconf, start_idx, end_idx
+        )
+
+
+def test_construct_amplicon_sequence_linear_start_gt_end() -> None:
+    """Test start > end on linear DNA returns None (pass block)."""
+    dna = DNA("ATGC", DNAType.LINEAR)
+    generator = AmpliconGenerator(dna)
+    primer = Primer("A")
+    repliconf = Repliconf(dna, primer)
+
+    start_idx = DirIdx(DNADirection.FWD, 4)
+    end_idx = DirIdx(DNADirection.REV, 3)
+
+    seq, circular = generator._construct_amplicon_sequence(
+        repliconf, repliconf, start_idx, end_idx
+    )
+    assert seq is None
+    assert circular is False

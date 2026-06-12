@@ -13,6 +13,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+import pytest
+
+from amplifyp.dna import Primer
+from amplifyp.errors import (
+    DuplicatedNameError,
+    DuplicatedSequenceError,
+    PrimerNotFoundError,
+)
 from amplifyp.pcr import PCR
 from tests.examples.amplify4_examples import (
     amplify4_circular_example,
@@ -85,3 +93,48 @@ def test_pcr_linear() -> None:
     expected.sort(key=len)
 
     assert observed == expected
+
+
+def test_pcr_add_primer_duplicates() -> None:
+    """Test that duplicate primers raise the correct error.
+
+    DuplicatedNameError is raised for a matching name, and
+    DuplicatedSequenceError is raised for a matching sequence.
+    """
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+
+    # Same name, different sequence
+    primer_same_name = Primer("GGTTCCAA", name=primer_11bp.name)
+    with pytest.raises(DuplicatedNameError):
+        pcr.add_primer(primer_same_name)
+
+    # Different name, same sequence
+    primer_same_seq = Primer(primer_11bp.seq.swapcase(), name="AnotherName")
+    with pytest.raises(DuplicatedSequenceError):
+        pcr.add_primer(primer_same_seq)
+
+
+def test_pcr_remove_primer() -> None:
+    """Test removing a primer."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+    assert primer_11bp in pcr.primers
+
+    pcr.remove_primer(primer_11bp)
+    assert primer_11bp not in pcr.primers
+
+    # Remove non-existent
+    with pytest.raises(PrimerNotFoundError):
+        pcr.remove_primer(primer_11bp)
+
+
+def test_pcr_add_primers() -> None:
+    """Test adding multiple primers at once."""
+    pcr = PCR(amplify4_linear_example)
+    primers = [primer_11bp, primer_1701]
+    pcr.add_primers(primers)
+
+    assert len(pcr.primers) == 2
+    assert primer_11bp in pcr.primers
+    assert primer_1701 in pcr.primers

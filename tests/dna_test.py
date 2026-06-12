@@ -18,6 +18,7 @@
 import pytest
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.errors import InvalidDNASequenceError, InvalidDNATypeError
 
 
 def test_dna_init() -> None:
@@ -27,6 +28,14 @@ def test_dna_init() -> None:
     assert dna.type == DNAType.LINEAR
     assert dna.name == "ATCG"
     assert dna.direction == DNADirection.FWD
+
+
+def test_dna_init_empty_name() -> None:
+    """Test empty/whitespace name defaults to sequence."""
+    dna = DNA("ATCG", name="  ")
+    assert dna.name == "ATCG"
+    primer = Primer("ATCG", name="")
+    assert primer.name == "ATCG"
 
 
 def test_dna_name_setter() -> None:
@@ -97,13 +106,13 @@ def test_primer_init() -> None:
 
 def test_dna_invalid_type() -> None:
     """Test DNA initialised with invalid type."""
-    with pytest.raises(TypeError):
+    with pytest.raises(InvalidDNATypeError):
         DNA("A", 4)  # type: ignore[arg-type]
 
 
 def test_dna_invalid_char() -> None:
     """Test DNA initialised with invalid characters."""
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidDNASequenceError):
         DNA("L")
 
 
@@ -150,3 +159,48 @@ def test_dna_ratio_cg() -> None:
     assert dna.ratio_cg() == pytest.approx(0.5)
     dna = DNA("")
     assert dna.ratio_cg() == pytest.approx(0.0)
+
+
+def test_primer_redundant_base_count_none() -> None:
+    """Test redundant_base_count for a non-degenerate primer."""
+    primer = Primer("ACGT")
+    assert primer.redundant_base_count == 0
+    assert primer.redundancy_fold == 1
+
+
+def test_primer_redundancy_fold_double() -> None:
+    """Test redundancy_fold for double bases."""
+    # R = A or G (2 fold)
+    primer = Primer("ACGR")
+    assert primer.redundancy_fold == 2
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_fold_triple() -> None:
+    """Test redundancy_fold for triple bases."""
+    # V = A, C, or G (3 fold)
+    primer = Primer("ACGV")
+    assert primer.redundancy_fold == 3
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_fold_wildcard() -> None:
+    """Test redundancy_fold for wildcard bases."""
+    # N = A, C, G, or T (4 fold)
+    primer = Primer("ACGN")
+    assert primer.redundancy_fold == 4
+    assert primer.redundant_base_count == 1
+
+
+def test_primer_redundancy_mixed() -> None:
+    """Test redundancy calculation with mixed degenerate bases."""
+    # R (2) * N (4) * Y (2) = 16
+    primer = Primer("RNY")
+    assert primer.redundancy_fold == 16
+    assert primer.redundant_base_count == 3
+
+
+def test_dna_direction_str() -> None:
+    """Test the string representation of DNADirection."""
+    assert str(DNADirection.FWD) == "Forward"
+    assert str(DNADirection.REV) == "Reverse"

@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import itertools
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .dna import Primer
 from .settings import (
@@ -44,6 +44,41 @@ class PrimerDimer:
     quality: float
     overlap: int
     p1_pos: int
+    settings: PrimerDimerSettings = field(
+        default_factory=lambda: GLOBAL_PRIMER_DIMER_SETTINGS
+    )
+
+    @property
+    def binding_strength_str(self) -> str:
+        """The binding strength of each base-pair as a string."""
+        p1 = self.primer_1
+        p2 = self.primer_2
+        if len(p1) < len(p2):
+            short_p, long_p = p1, p2
+        else:
+            short_p, long_p = p2, p1
+
+        seq1 = short_p.seq.upper()
+        seq2 = long_p.seq.upper()
+        n1 = len(short_p)
+
+        bonds = []
+        for offset in range(self.overlap):
+            c1 = seq1[n1 - 1 - offset]
+            c2 = seq2[self.p1_pos + offset]
+            try:
+                score = self.settings.weights[c1, c2]
+            except KeyError:
+                score = 0.0
+
+            if score < 0:
+                symbol = " "
+            elif score < self.settings.symbol_threshold:
+                symbol = ":"
+            else:
+                symbol = "|"
+            bonds.append(symbol)
+        return "".join(bonds)
 
 
 class PrimerDimerGenerator:
@@ -155,6 +190,7 @@ class PrimerDimerGenerator:
             overlap=overlap_len,
             quality=best_quality,
             p1_pos=best_pos,
+            settings=self.settings,
         )
 
     def analyse_primers(self) -> None:
