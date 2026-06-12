@@ -160,9 +160,7 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
-            # Check self-dimer and cross-dimer potential against active
-            # primers
-            active_primers = input_data.get_active_primers()
+            # Check self-dimer potential
             max_dimer = None
 
             # Always check self-dimer
@@ -172,23 +170,6 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
                 and res_self.quality > pd_settings.threshold
             ):
                 max_dimer = res_self
-
-            for ap in active_primers:
-                ap_name = ap.get("name", "").strip()
-                ap_seq = clean_sequence(ap.get("seq", ""))
-                if not ap_seq:
-                    continue
-                try:
-                    ap_obj = Primer(sequence=ap_seq, name=ap_name)
-                    res = generator.generate_primer_dimer(primer_obj, ap_obj)
-                    if (
-                        res.overlap > pd_settings.min_overlap
-                        and res.quality > pd_settings.threshold
-                    ):
-                        if max_dimer is None or res.quality > max_dimer.quality:
-                            max_dimer = res
-                except ValueError:
-                    continue
 
             if max_dimer is not None:
                 self.info_dimer_text.value = (
