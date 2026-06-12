@@ -31,6 +31,7 @@ from amplifyp.gui.views import (
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
+    page.overlay.clear()
     page.title = "AmplifyP"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
@@ -213,9 +214,6 @@ def main(page: ft.Page) -> None:
         selectable=True,
     )
 
-    file_picker = ft.FilePicker()
-    page.file_picker = file_picker
-
     filepicker_open = False
 
     async def save_state(e: ft.ControlEvent) -> None:
@@ -236,7 +234,6 @@ def main(page: ft.Page) -> None:
 
             await save_and_write_file(
                 page=page,
-                file_picker=file_picker,
                 dialog_title="Save all",
                 file_name="amplify_gui_state.yaml",
                 allowed_extensions=["yaml", "yml"],
@@ -260,7 +257,6 @@ def main(page: ft.Page) -> None:
 
             content = await pick_and_read_file(
                 page=page,
-                file_picker=file_picker,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 show_snackbar=show_snackbar,

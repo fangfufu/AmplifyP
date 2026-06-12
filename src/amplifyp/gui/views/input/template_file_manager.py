@@ -38,7 +38,6 @@ class TemplateFileManager:
 
         content = await pick_and_read_file(
             page=self.app_page,
-            file_picker=self.app_page.file_picker,
             dialog_title="Load",
             allowed_extensions=["txt"],
             show_snackbar=self.show_snackbar,
@@ -63,7 +62,6 @@ class TemplateFileManager:
 
         await save_and_write_file(
             page=self.app_page,
-            file_picker=self.app_page.file_picker,
             dialog_title="Save",
             file_name="template.txt",
             allowed_extensions=["txt"],

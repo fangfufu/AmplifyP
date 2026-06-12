@@ -373,13 +373,13 @@ def get_version() -> str:
 
 async def pick_and_read_file(
     page: ft.Page,
-    file_picker: ft.FilePicker,
     dialog_title: str,
     allowed_extensions: list[str],
     show_snackbar: Callable[[str], None],
 ) -> str | None:
     """Open a file picker to load a file, and read its text content."""
     try:
+        file_picker = ft.FilePicker()
         files = await file_picker.pick_files(
             dialog_title=dialog_title,
             allowed_extensions=allowed_extensions,
@@ -405,7 +405,6 @@ async def pick_and_read_file(
 
 async def save_and_write_file(
     page: ft.Page,
-    file_picker: ft.FilePicker,
     dialog_title: str,
     file_name: str,
     allowed_extensions: list[str],
@@ -416,6 +415,7 @@ async def save_and_write_file(
 ) -> bool:
     """Save content using the file picker, supporting both Web and Desktop."""
     try:
+        file_picker = ft.FilePicker()
         file_path = await file_picker.save_file(
             dialog_title=dialog_title,
             file_name=file_name,
