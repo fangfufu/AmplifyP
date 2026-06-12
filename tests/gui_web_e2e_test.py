@@ -175,8 +175,8 @@ def test_e2e_primer_lifecycle_and_state(
     print("Adding extra valid (V3) primer...")
     add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
     # Verify V3 added: 6 rows (12 inputs) and checkbox is checked.
-    expect(page.locator("input")).to_have_count(12)
-    name_inputs = page.locator("input")
+    expect(page.locator('input:not([type="file"])')).to_have_count(12)
+    name_inputs = page.locator('input:not([type="file"])')
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_checked()
@@ -184,7 +184,7 @@ def test_e2e_primer_lifecycle_and_state(
     print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
     # Verify I3 added: 7 rows (14 inputs) and checkbox is disabled.
-    expect(page.locator("input")).to_have_count(14)
+    expect(page.locator('input:not([type="file"])')).to_have_count(14)
     expect(
         name_inputs.nth(5 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_disabled()
@@ -194,7 +194,7 @@ def test_e2e_primer_lifecycle_and_state(
     # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
     # Since each row has exactly 2 text input fields (Name and Sequence),
     # the Name input of V3 (index 4) is at global input index 8.
-    page.locator("input").nth(8).click(force=True)
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     delete_btn = page.locator("[aria-label*='Delete Primer']").first
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
@@ -203,13 +203,13 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
-    expect(page.locator("input")).to_have_count(12)
+    expect(page.locator('input:not([type="file"])')).to_have_count(12)
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_disabled()
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
-    page.locator("input").nth(8).click(force=True)
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
     assert box is not None
@@ -217,7 +217,7 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     # Verify I3 deleted: count returned to 5 rows (10 inputs).
-    expect(page.locator("input")).to_have_count(10)
+    expect(page.locator('input:not([type="file"])')).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
     print("Verifying checkbox state and attempting to activate invalid ones...")
