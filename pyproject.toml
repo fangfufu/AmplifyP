@@ -68,7 +68,7 @@ lint.pydocstyle.convention = "google"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
-norecursedirs = ["resources"]
+testpaths = ["tests"]
 addopts = [
   "--import-mode=importlib",
   "--cov=src/amplifyp",

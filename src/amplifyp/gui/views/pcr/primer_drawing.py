@@ -382,22 +382,29 @@ class ReplicationContextCard(DismissibleDetailCard):
             font_size=font_size,
         )
 
+        if origin.settings.amplify4_compatibility_mode:
+            prim_str = f"{int(origin.primability * 100)}%"
+            stab_str = f"{int(origin.stability * 100)}%"
+        else:
+            prim_str = f"{origin.primability:.3f}"
+            stab_str = f"{origin.stability:.3f}"
+
         body_controls = [
             ft.Text(
                 spans=[
                     ft.TextSpan("Primeability = "),
                     ft.TextSpan(
-                        f"{origin.primability:.3f}",
+                        prim_str,
                         style=ft.TextStyle(weight=ft.FontWeight.BOLD),
                     ),
                     ft.TextSpan("      Stability = "),
                     ft.TextSpan(
-                        f"{origin.stability:.3f}",
+                        stab_str,
                         style=ft.TextStyle(weight=ft.FontWeight.BOLD),
                     ),
                     ft.TextSpan("      Quality = "),
                     ft.TextSpan(
-                        f"{origin.quality:.3f}",
+                        f"{origin.quality:.4f}",
                         style=ft.TextStyle(weight=ft.FontWeight.BOLD),
                     ),
                 ],

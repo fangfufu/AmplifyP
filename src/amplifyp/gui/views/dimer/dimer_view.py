@@ -133,3 +133,8 @@ class DimerView(ft.Column):  # type: ignore[misc]
             success = False
         self.app_page.update()
         return success
+
+    def invalidate_cache(self) -> None:
+        """Invalidate the cached dimer analysis results."""
+        self._cached_dimers = None
+        self._cached_state_key = None
