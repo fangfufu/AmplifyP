@@ -295,6 +295,23 @@ class GUISettings:
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key."""
+        if key in self._settings:
+            orig_val = self._settings[key]
+            if isinstance(orig_val, bool):
+                if isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes")
+                else:
+                    value = bool(value)
+            elif isinstance(orig_val, int):
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    pass
+            elif isinstance(orig_val, float):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    pass
         self._settings[key] = value
         if key == "color_deficient":
             val = value
@@ -470,12 +487,20 @@ class GUISettings:
                             )
                         else:
                             self._settings[k] = bool(v)
+                elif isinstance(self._settings[k], bool):
+                    self._settings[k] = bool(v)
+                elif isinstance(self._settings[k], int):
+                    try:
+                        self._settings[k] = int(v)
+                    except (ValueError, TypeError):
+                        pass
+                elif isinstance(self._settings[k], float):
+                    try:
+                        self._settings[k] = float(v)
+                    except (ValueError, TypeError):
+                        pass
                 else:
-                    self._settings[k] = (
-                        bool(v)
-                        if isinstance(self._settings[k], bool)
-                        else str(v)
-                    )
+                    self._settings[k] = str(v)
         GUIColors.color_deficient_mode = bool(
             self._settings.get("color_deficient", False)
         )

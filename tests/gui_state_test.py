@@ -314,3 +314,43 @@ def test_system_theme_saving_loading() -> None:
 
     GUIColors.color_deficient_mode = False
     GUIColors.dark_mode = False
+
+
+def test_simple_state_font_sizes_are_integers() -> None:
+    """Test loading simple.yaml parses font sizes as integers."""
+    import os
+
+    from amplifyp.gui.settings import GUISettings
+
+    yaml_path = os.path.join(
+        os.path.dirname(__file__), "examples", "save_states", "simple.yaml"
+    )
+    with open(yaml_path, encoding="utf-8") as f:
+        parsed_state = yaml.safe_load(f)
+
+    settings = GUISettings()
+    settings.from_dict(parsed_state["settings"])
+
+    # Assert that all font size settings are actual integers
+    font_size_keys = [
+        "font_size_map_baseline",
+        "font_size_map_primer",
+        "font_size_map_amplicon",
+        "font_size_header",
+        "font_size_subheader",
+        "font_size_body",
+        "font_size_small",
+        "font_size_default",
+        "font_size_micro",
+        "font_size_table_header",
+    ]
+    for key in font_size_keys:
+        val = settings.get(key)
+        assert isinstance(val, int), (
+            f"{key} should be an int, but got {type(val)}"
+        )
+
+    # Test manual assignment using __setitem__ with string values
+    settings["font_size_map_baseline"] = "20"
+    assert isinstance(settings.get("font_size_map_baseline"), int)
+    assert settings.get("font_size_map_baseline") == 20
