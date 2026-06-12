@@ -107,6 +107,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                                 no_wrap=True,
                             ),
                             col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
+                            height=32,
+                            alignment=ft.Alignment(-1, 0),
                         ),
                         ft.Container(
                             content=self.primer_toolbar,

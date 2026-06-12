@@ -71,9 +71,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             content=self.template_circular,
             border=ft.Border.all(1, GUIColors.OUTLINE),
             border_radius=5,
-            padding=ft.Padding(0, 0, 10, 0),
+            padding=ft.Padding(0, 0, 0, 0),
             height=32,
-            width=110,
+            width=100,
         )
 
         self.save_template_button = ft.FilledTonalButton(
