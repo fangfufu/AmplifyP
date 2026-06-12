@@ -176,13 +176,18 @@ def test_e2e_primer_lifecycle_and_state(
     add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
     # Verify V3 added: 6 rows (12 inputs) and checkbox is checked.
     expect(page.locator("input")).to_have_count(12)
-    expect(page.get_by_role("checkbox").nth(6)).to_be_checked()
+    name_inputs = page.locator('input[aria-label="New Primer Name"]')
+    expect(
+        name_inputs.nth(4).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
 
     print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
     # Verify I3 added: 7 rows (14 inputs) and checkbox is disabled.
     expect(page.locator("input")).to_have_count(14)
-    expect(page.get_by_role("checkbox").nth(7)).to_be_disabled()
+    expect(
+        name_inputs.nth(5).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     print("Deleting V3 and I3 using delete buttons...")
     # There are 6 primers in the list:
@@ -197,9 +202,11 @@ def test_e2e_primer_lifecycle_and_state(
     page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
     time.sleep(1)
 
-    # Verify V3 deleted: 6 rows (12 inputs) and I3 checkbox is now at index 6.
+    # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
     expect(page.locator("input")).to_have_count(12)
-    expect(page.get_by_role("checkbox").nth(6)).to_be_disabled()
+    expect(
+        name_inputs.nth(4).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
     page.locator("input").nth(8).click(force=True)
@@ -213,21 +220,36 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page.locator("input")).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
-    # nth(0) is header checkbox, nth(1)=V1, nth(2)=V2, nth(3)=I1, nth(4)=I2
     print("Verifying checkbox state and attempting to activate invalid ones...")
-    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
+    expect(
+        name_inputs.nth(0).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(1).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(3).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
 
     # Try clicking the disabled ones (force=True to bypass click check)
-    page.get_by_role("checkbox").nth(4).click(force=True)
-    page.get_by_role("checkbox").nth(5).click(force=True)
+    name_inputs.nth(2).locator("xpath=../..").get_by_role("checkbox").click(
+        force=True
+    )
+    name_inputs.nth(3).locator("xpath=../..").get_by_role("checkbox").click(
+        force=True
+    )
     time.sleep(1)
 
     # Ensure they did not get checked/activated
-    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
-    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+    expect(
+        name_inputs.nth(2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
+    expect(
+        name_inputs.nth(3).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
 
     # 5. Save the primer list
     print("Saving active primer list...")
@@ -265,12 +287,24 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(5)
 
     # Verify loaded primers: V1/V2 checked; I1/I2 disabled and unchecked
-    expect(page.get_by_role("checkbox").nth(2)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(3)).to_be_checked()
-    expect(page.get_by_role("checkbox").nth(4)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(5)).to_be_disabled()
-    expect(page.get_by_role("checkbox").nth(4)).not_to_be_checked()
-    expect(page.get_by_role("checkbox").nth(5)).not_to_be_checked()
+    expect(
+        name_inputs.nth(0).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(1).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_checked()
+    expect(
+        name_inputs.nth(2).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(3).locator("xpath=../..").get_by_role("checkbox")
+    ).to_be_disabled()
+    expect(
+        name_inputs.nth(2).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
+    expect(
+        name_inputs.nth(3).locator("xpath=../..").get_by_role("checkbox")
+    ).not_to_be_checked()
 
     # 8. Save the state
     print("Saving the full state...")
