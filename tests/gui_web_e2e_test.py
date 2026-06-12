@@ -53,10 +53,16 @@ def build_app() -> None:
     """Build the Flet static app using build_static.sh."""
     print("==> Building static site using build_static.sh...")
     script_path = os.path.join(os.getcwd(), "build_static.sh")
+    import sys
+
+    env = os.environ.copy()
+    venv_bin = os.path.dirname(sys.executable)
+    env["PATH"] = os.path.pathsep.join([venv_bin, env.get("PATH", "")])
     subprocess.run(  # noqa: S603
         [script_path],
         check=True,
         capture_output=True,
+        env=env,
     )
     assert os.path.exists(os.path.join(DIST_DIR, "index.html"))
 

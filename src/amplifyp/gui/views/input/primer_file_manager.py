@@ -68,7 +68,7 @@ class PrimerFileManager:
                 {
                     "name": name,
                     "seq": seq,
-                    "active": False,
+                    "active": True,
                 }
             )
         return parsed_primers
