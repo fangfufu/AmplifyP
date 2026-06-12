@@ -52,9 +52,9 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             content=ft.Column(
                 [
                     header,
-                    ft.Container(height=8),
                     diagram,
-                ]
+                ],
+                spacing=8,
             ),
         )
 
@@ -91,7 +91,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
 
     def _build_card_header(
         self, font_size_subheader: int, font_size_small: int
-    ) -> ft.Row:
+    ) -> ft.Column:
         """Build the header row of the dimer card."""
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
@@ -104,13 +104,18 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         )
         quality_text = f"Quality: {self.d.quality:.1f}"
 
-        return ft.Row(
+        return ft.Column(
             [
-                ft.Text(
-                    dimer_title,
-                    weight=ft.FontWeight.BOLD,
-                    size=font_size_subheader,
-                    selectable=True,
+                ft.Row(
+                    [
+                        ft.Text(
+                            dimer_title,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_subheader,
+                            selectable=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
                 ),
                 ft.Row(
                     [
@@ -139,8 +144,8 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                     ],
                     spacing=8,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.START,
                 ),
             ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=4,
         )
