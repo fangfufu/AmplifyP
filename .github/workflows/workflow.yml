@@ -37,7 +37,7 @@ jobs:
         run: |
           coverage report -m
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
       - name: Run E2E tests
         if: |
           runner.os == 'Linux' &&
