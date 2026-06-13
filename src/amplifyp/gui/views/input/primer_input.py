@@ -462,6 +462,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._visible_rows_cache = []
             scroll_y = self.primers_list.scroll_pixels
             viewport_h = self.primers_list.viewport_dimension
+            if self.app_page and self.app_page.height:
+                viewport_h = max(viewport_h, float(self.app_page.height))
             current_y = 0.0
             for row in self.primers_list.controls:
                 if isinstance(row, PrimerRow):
