@@ -57,6 +57,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
 
+        # Calculate initial name column ratio
+        page_width = page.width if (page and page.width) else 800.0
+        parent_view = getattr(on_change_handler, "__self__", None)
+        right_fraction = (
+            getattr(parent_view, "right_fraction", 0.5) if parent_view else 0.5
+        )
+        initial_panel_width = page_width * right_fraction
+        self.name_column_ratio = self.name_column_width / initial_panel_width
+
         # Primer List Component
         self.primers_list = PrimerList(self)
 
@@ -449,9 +458,32 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the vertical divider between Name and Sequence."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
-        self.name_column_width = max(
-            80.0, min(300.0, self.name_column_width + delta_x)
+
+        # Calculate dynamic max width based on panel size
+        page_width = (
+            self.app_page.width
+            if (self.app_page and self.app_page.width)
+            else 800.0
         )
+        parent_view = getattr(self.on_change_handler, "__self__", None)
+        right_fraction = (
+            getattr(parent_view, "right_fraction", 0.5) if parent_view else 0.5
+        )
+        panel_width = page_width * right_fraction
+
+        # Subtract space for other UI components in the row:
+        # - Checkbox container (55)
+        # - Two dividers (4 + 4 = 8)
+        # - Control container when focused (82)
+        # - Minimum space to display "Sequence" text and edit cursor (100)
+        max_name_width = max(80.0, panel_width - 245.0)
+
+        target_width = max(
+            80.0, min(max_name_width, self.name_column_width + delta_x)
+        )
+
+        self.name_column_width = target_width
+        self.name_column_ratio = self.name_column_width / panel_width
 
         # Update the width of the Name header control
         self.primers_header.controls[2].width = self.name_column_width
@@ -462,6 +494,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._visible_rows_cache = []
             scroll_y = self.primers_list.scroll_pixels
             viewport_h = self.primers_list.viewport_dimension
+            if self.app_page and self.app_page.height:
+                viewport_h = max(viewport_h, float(self.app_page.height))
             current_y = 0.0
             for row in self.primers_list.controls:
                 if isinstance(row, PrimerRow):
@@ -499,6 +533,66 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if isinstance(row, PrimerRow):
                 row.name_field.width = self.name_column_width
         self.primers_list.update()
+
+    def adjust_name_column_width(
+        self, new_panel_width: float, during_drag: bool = False
+    ) -> None:
+        """Scale name column width proportionally based on panel width."""
+        max_name_width = max(80.0, new_panel_width - 245.0)
+        target_width = max(
+            80.0,
+            min(max_name_width, new_panel_width * self.name_column_ratio),
+        )
+
+        self.name_column_width = target_width
+
+        # Apply the new width to header
+        if (
+            hasattr(self, "primers_header")
+            and self.primers_header
+            and len(self.primers_header.controls) > 2
+        ):
+            self.primers_header.controls[2].width = self.name_column_width
+            self.primer_header.update()
+
+        if during_drag:
+            # Cache visible rows at the start of the drag
+            if self._visible_rows_cache is None:
+                self._visible_rows_cache = []
+                scroll_y = self.primers_list.scroll_pixels
+                viewport_h = self.primers_list.viewport_dimension
+                if self.app_page and self.app_page.height:
+                    viewport_h = max(viewport_h, float(self.app_page.height))
+                current_y = 0.0
+                for row in self.primers_list.controls:
+                    if isinstance(row, PrimerRow):
+                        row_h = (
+                            30.0
+                            if not (row.name_field.error or row.seq_field.error)
+                            else 50.0
+                        )
+                        row_top = current_y
+                        row_bottom = current_y + row_h
+
+                        # Check if row is visible (plus 60px buffer above/below)
+                        if (row_bottom >= scroll_y - 60.0) and (
+                            row_top <= scroll_y + viewport_h + 60.0
+                        ):
+                            self._visible_rows_cache.append(row)
+
+                        current_y += row_h
+
+            # Update/render name fields of visible rows directly
+            for row in self._visible_rows_cache:
+                row.name_field.width = self.name_column_width
+                row.name_field.update()
+        else:
+            # Clear cache and update all rows
+            self._visible_rows_cache = None
+            for row in self.primers_list.controls:
+                if isinstance(row, PrimerRow):
+                    row.name_field.width = self.name_column_width
+            self.primers_list.update()
 
     def _on_toggle_all_primers(self, e: Any) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox."""
