@@ -301,8 +301,9 @@ def format_context_lines(
     # Construct strength line:
     bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
 
-    # Construct arrows:
-    arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
+    # Construct pipes and arrows:
+    pipe_line = f"{' ' * 12}{' ' * 20}|{' ' * (L - 2)}|"
+    arrow_line = f"{' ' * 12}{' ' * 20}V{' ' * (L - 2)}V"
 
     # Construct numbers:
     num_line_chars = [" "] * (12 + 20 + L + 20)
@@ -315,7 +316,7 @@ def format_context_lines(
     top_line = "".join(num_line_chars).rstrip()
 
     # Combined top line:
-    top_line = f"{top_line}\n{arrow_line}"
+    top_line = f"{top_line}\n{pipe_line}\n{arrow_line}"
 
     upstream_seq = get_template_substring(conf.template, start_genomic - 20, 20)
     binding_seq = get_template_substring(conf.template, start_genomic, L)
@@ -397,27 +398,47 @@ class ReplicationContextCard(DismissibleDetailCard):
             prim_str = f"{origin.primability:.3f}"
             stab_str = f"{origin.stability:.3f}"
 
+        font_size_small = settings.get("font_size_small", 12)
         body_controls = [
-            ft.Text(
-                spans=[
-                    ft.TextSpan("Primeability = "),
-                    ft.TextSpan(
-                        prim_str,
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+            ft.Row(
+                [
+                    ft.Container(
+                        content=ft.Text(
+                            f"Primeability: {prim_str}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColors.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
-                    ft.TextSpan("      Stability = "),
-                    ft.TextSpan(
-                        stab_str,
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ft.Container(
+                        content=ft.Text(
+                            f"Stability: {stab_str}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColors.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
-                    ft.TextSpan("      Quality = "),
-                    ft.TextSpan(
-                        f"{origin.quality:.4f}",
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ft.Container(
+                        content=ft.Text(
+                            f"Quality: {origin.quality:.4f}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColors.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
                 ],
-                selectable=True,
-                size=settings.get("font_size_body", 13),
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.START,
             ),
             ft.Container(
                 content=ft.Row(

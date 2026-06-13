@@ -26,4 +26,7 @@ def main(page: ft.Page) -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    ft.run(main, upload_dir="uploads", assets_dir="assets")
+    import os
+
+    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
+    ft.run(main, upload_dir="uploads", assets_dir=assets_dir)

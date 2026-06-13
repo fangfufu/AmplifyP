@@ -26,9 +26,20 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
     ) -> None:
         """Initialize the PrimerList."""
         super().__init__(
-            expand=True, spacing=0, padding=0, scroll=ft.ScrollMode.ALWAYS
+            expand=True,
+            spacing=0,
+            padding=0,
+            scroll=ft.ScrollMode.ALWAYS,
+            on_scroll=self._on_scroll,
         )
         self.primer_input = primer_input
+        self.scroll_pixels = 0.0
+        self.viewport_dimension = 600.0
+
+    def _on_scroll(self, e: ft.OnScrollEvent) -> None:
+        self.scroll_pixels = e.pixels
+        if e.viewport_dimension is not None:
+            self.viewport_dimension = e.viewport_dimension
 
     def update_list_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
@@ -103,6 +114,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 on_move_primer=self.primer_input._move_primer,
                 on_delete_primer=self.primer_input._delete_primer,
                 on_divider_pan=self.primer_input._on_primer_divider_pan,
+                on_divider_pan_end=self.primer_input._on_primer_divider_pan_end,
                 is_focused=is_focused,
                 is_last_row=is_last_row,
                 is_penultimate_row=is_penultimate_row,

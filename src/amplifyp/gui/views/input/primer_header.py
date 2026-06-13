@@ -23,6 +23,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         settings: GUISettings,
         on_toggle_all: Any,
         on_divider_pan: Any,
+        on_divider_pan_end: Any,
         name_column_width: float,
     ) -> None:
         """Initialize the PrimerHeader."""
@@ -57,6 +58,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
                 ),
                 ft.GestureDetector(
                     on_pan_update=on_divider_pan,
+                    on_pan_end=on_divider_pan_end,
                     content=ft.Container(
                         width=4,
                         bgcolor=GUIColors.DIVIDER_GREY,

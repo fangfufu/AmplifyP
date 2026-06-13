@@ -97,6 +97,7 @@ def create_overlapped_sequence_view(
     bottom_line: str,
     font_family: str = "Roboto Mono",
     font_size: int = 14,
+    is_dimer: bool = False,
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
@@ -106,8 +107,8 @@ def create_overlapped_sequence_view(
 
     resolved = _resolve_font_family(font_family)
 
-    return ft.Text(
-        spans=[
+    if is_dimer:
+        spans = [
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
@@ -118,7 +119,7 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.SUCCESS_GREEN,
+                    color=GUIColors.FWD_PRIMER,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
@@ -129,7 +130,56 @@ def create_overlapped_sequence_view(
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
-        ],
+        ]
+    else:
+        # Context Map:
+        # top_line = coordinates / arrows (black)
+        # mid_line = primer row (black)
+        # bottom_line = bonds (blue) + template (black)
+        bottom_parts = bottom_line.split("\n")
+        if len(bottom_parts) >= 2:
+            bonds_line = bottom_parts[0]
+            template_line = "\n".join(bottom_parts[1:])
+        else:
+            bonds_line = bottom_line
+            template_line = ""
+
+        spans = [
+            ft.TextSpan(
+                f"{top_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColors.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                f"{mid_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColors.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                f"{bonds_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColors.FWD_PRIMER,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+        ]
+        if template_line:
+            spans.append(
+                ft.TextSpan(
+                    template_line,
+                    style=ft.TextStyle(
+                        color=GUIColors.TEXT_ON_SURFACE,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                )
+            )
+
+    return ft.Text(
+        spans=spans,
         font_family=resolved,
         size=font_size,
         selectable=True,

@@ -52,6 +52,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.focused_primer_index: int | None = None
         self.validation_errors: list[dict[str, str | None]] = []
         self._prev_header_checkbox_value: bool | None = None
+        self._visible_rows_cache: list[PrimerRow] | None = None
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
@@ -64,6 +65,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             settings=self.settings,
             on_toggle_all=self._on_toggle_all_primers,
             on_divider_pan=self._on_primer_divider_pan,
+            on_divider_pan_end=self._on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
         )
         # Compatibility links
@@ -450,13 +452,53 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.name_column_width = max(
             80.0, min(300.0, self.name_column_width + delta_x)
         )
+
         # Update the width of the Name header control
         self.primers_header.controls[2].width = self.name_column_width
-        # Update the width of all Name TextFields in the list controls
+        self.primer_header.update()
+
+        # Cache visible rows at the start of the drag
+        if self._visible_rows_cache is None:
+            self._visible_rows_cache = []
+            scroll_y = self.primers_list.scroll_pixels
+            viewport_h = self.primers_list.viewport_dimension
+            current_y = 0.0
+            for row in self.primers_list.controls:
+                if isinstance(row, PrimerRow):
+                    row_h = (
+                        30.0
+                        if not (row.name_field.error or row.seq_field.error)
+                        else 50.0
+                    )
+                    row_top = current_y
+                    row_bottom = current_y + row_h
+
+                    # Check if row is visible (plus 60px buffer above/below)
+                    if (row_bottom >= scroll_y - 60.0) and (
+                        row_top <= scroll_y + viewport_h + 60.0
+                    ):
+                        self._visible_rows_cache.append(row)
+
+                    current_y += row_h
+
+        # Update and render only the name fields of the visible rows directly
+        for row in self._visible_rows_cache:
+            row.name_field.width = self.name_column_width
+            row.name_field.update()
+
+    def _on_primer_divider_pan_end(self, e: ft.DragEndEvent) -> None:
+        """Handle finishing the drag of the vertical divider."""
+        # Clear the visible rows cache
+        self._visible_rows_cache = None
+
+        # Ensure the final exact width is applied to header and all rows in sync
+        self.primers_header.controls[2].width = self.name_column_width
+        self.primer_header.update()
+
         for row in self.primers_list.controls:
             if isinstance(row, PrimerRow):
                 row.name_field.width = self.name_column_width
-        self.app_page.update()
+        self.primers_list.update()
 
     def _on_toggle_all_primers(self, e: Any) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox."""
@@ -572,11 +614,19 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
+
+        def on_dismiss() -> None:
+            self.focused_primer_index = None
+            self._update_row_highlights()
+            if self.app_page:
+                self.app_page.update()
+
         self.primer_info_panel.update_panel(
             focused_idx=self.focused_primer_index,
             input_data=self.input_data,
             app_page=self.app_page,
             on_update_highlights=self._update_row_highlights,
+            on_dismiss=on_dismiss,
         )
 
     async def _load_primers_click(self, e: ft.ControlEvent) -> None:
