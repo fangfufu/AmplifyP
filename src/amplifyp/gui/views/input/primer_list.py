@@ -15,6 +15,7 @@ import flet as ft
 from amplifyp.gui.util import clean_sequence
 
 from .primer_row import PrimerRow
+from .primer_validation import validate_primers
 
 
 class PrimerList(ft.ListView):  # type: ignore[misc]
@@ -61,10 +62,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
 
         dup_indices = self.primer_input._get_duplicate_indices()
 
-        self.primer_input.validation_errors = (
-            self.primer_input.validate_primers(
-                self.primer_input.input_data.primers
-            )
+        self.primer_input.validation_errors = validate_primers(
+            self.primer_input.input_data.primers
         )
         num_primers = len(self.primer_input.input_data.primers)
         for idx, p in enumerate(self.primer_input.input_data.primers):
