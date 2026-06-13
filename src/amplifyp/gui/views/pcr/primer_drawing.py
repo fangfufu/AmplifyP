@@ -301,7 +301,8 @@ def format_context_lines(
     # Construct strength line:
     bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
 
-    # Construct arrows:
+    # Construct pipes and arrows:
+    pipe_line = f"{' ' * 12}{' ' * 20}|{' ' * (L - 2)}|"
     arrow_line = f"{' ' * 12}{' ' * 20}v{' ' * (L - 2)}v"
 
     # Construct numbers:
@@ -315,7 +316,7 @@ def format_context_lines(
     top_line = "".join(num_line_chars).rstrip()
 
     # Combined top line:
-    top_line = f"{top_line}\n{arrow_line}"
+    top_line = f"{top_line}\n{pipe_line}\n{arrow_line}"
 
     upstream_seq = get_template_substring(conf.template, start_genomic - 20, 20)
     binding_seq = get_template_substring(conf.template, start_genomic, L)
