@@ -218,19 +218,3 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.checkbox.disabled = has_err
         if has_err:
             self.checkbox.value = False
-
-    @staticmethod
-    def validate(name: str, seq: str) -> str | None:
-        """Validate a primer sequence and name.
-
-        Returns an error message if the primer is invalid.
-        """
-        if not seq:
-            return None
-        try:
-            from amplifyp.dna import Primer
-
-            Primer(sequence=seq, name=name)
-            return None
-        except ValueError as ex:
-            return str(ex)

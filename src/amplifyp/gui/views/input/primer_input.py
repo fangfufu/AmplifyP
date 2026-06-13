@@ -22,6 +22,7 @@ from .primer_info_panel import PrimerInfoPanel
 from .primer_list import PrimerList
 from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
+from .primer_validation import validate_primers
 
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
@@ -295,7 +296,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
 
         # Run background primer construction/validation
-        new_validation_errors = self.validate_primers(primers)
+        new_validation_errors = validate_primers(primers)
 
         # Rebuild if the number of controls in the UI doesn't match the
         # expected rows (filtered + 1 trailing empty row)
@@ -319,38 +320,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._update_header_checkbox_state()
 
         return should_rebuild
-
-    def validate_primers(
-        self, primers: list[dict[str, Any]]
-    ) -> list[dict[str, str | None]]:
-        """Validate a list of primers, detecting format and duplicate errors."""
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        errors = []
-        for p in primers:
-            name_val = p.get("name", "")
-            seq_val = p.get("seq", "")
-            seq_err = PrimerRow.validate(name_val, seq_val)
-            name_err = None
-
-            n_lower = str(name_val).strip().lower()
-            s_lower = clean_sequence(str(seq_val)).lower()
-
-            if not seq_err and s_lower and seqs_count.get(s_lower, 0) > 1:
-                seq_err = "Duplicate primer sequence"
-            if n_lower and names_count.get(n_lower, 0) > 1:
-                name_err = "Duplicate primer name"
-
-            errors.append({"name": name_err, "seq": seq_err})
-        return errors
 
     def _apply_activation_rules(
         self,
