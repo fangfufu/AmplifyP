@@ -299,6 +299,11 @@ def test_input_view_primer_info_panel() -> None:
     assert "2 redundant bases" in view.info_redundancy_text.value
     assert "redundancy fold = 4" in view.info_redundancy_text.value
 
+    # Simulate clicking the close button on the info panel
+    view.primer_info_panel.close_button.on_click(MagicMock())
+    assert view.focused_primer_index is None
+    assert view.primer_info_panel.visible is False
+
 
 def test_input_view_sequence_validation() -> None:
     """Test that invalid sequence characters trigger validation errors."""

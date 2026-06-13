@@ -572,11 +572,19 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer."""
+
+        def on_dismiss() -> None:
+            self.focused_primer_index = None
+            self._update_row_highlights()
+            if self.app_page:
+                self.app_page.update()
+
         self.primer_info_panel.update_panel(
             focused_idx=self.focused_primer_index,
             input_data=self.input_data,
             app_page=self.app_page,
             on_update_highlights=self._update_row_highlights,
+            on_dismiss=on_dismiss,
         )
 
     async def _load_primers_click(self, e: ft.ControlEvent) -> None:

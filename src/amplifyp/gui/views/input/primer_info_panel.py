@@ -17,24 +17,32 @@ from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
 
 
-class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
+class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
         """Initialize the PrimerInfoPanel."""
+        super().__init__()
         self.settings = settings
+        self._on_dismiss_callback: Any = None
 
+        self.info_header_text = ft.Text(
+            "Primer: -",
+            weight=ft.FontWeight.BOLD,
+            size=self.settings.get("font_size_subheader", 16),
+            color=GUIColors.TEXT_ON_SURFACE,
+            selectable=True,
+        )
         self.info_header = ft.Container(
-            content=ft.Text(
-                "Primer: -",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_default", 14),
-                color=GUIColors.DIAGRAM_BLACK,
-                selectable=True,
-            ),
-            bgcolor=GUIColors.INFO_HEADER_BG,
-            padding=ft.Padding(10, 5, 10, 5),
+            content=self.info_header_text,
             alignment=ft.Alignment(-1, 0),
+        )
+
+        self.close_button = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=18,
+            tooltip="Dismiss",
+            on_click=self._on_close_click,
         )
 
         self.info_seq_text = ft.Text(
@@ -65,30 +73,38 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
             selectable=True,
         )
 
-        super().__init__(
+        self.content = ft.Container(
+            padding=10,
             content=ft.Column(
                 [
-                    self.info_header,
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                self.info_seq_text,
-                                self.info_tm_text,
-                                self.info_pairs_text,
-                                self.info_redundancy_text,
-                                self.info_dimer_text,
-                            ],
-                            spacing=3,
-                        ),
-                        padding=ft.Padding(10, 5, 10, 10),
+                    ft.Row(
+                        [
+                            self.info_header,
+                            self.close_button,
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    ft.Column(
+                        [
+                            self.info_seq_text,
+                            self.info_tm_text,
+                            self.info_pairs_text,
+                            self.info_redundancy_text,
+                            self.info_dimer_text,
+                        ],
+                        spacing=3,
                     ),
                 ],
-                spacing=0,
+                spacing=10,
             ),
-            border=ft.Border.all(1, GUIColors.OUTLINE),
-            border_radius=5,
-            visible=False,
         )
+        self.visible = False
+
+    def _on_close_click(self, e: Any) -> None:
+        """Handle close button click: clear focus and hide panel."""
+        self.visible = False
+        if self._on_dismiss_callback:
+            self._on_dismiss_callback()
 
     def update_panel(
         self,
@@ -96,8 +112,10 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
         input_data: GUIInput,
         app_page: ft.Page,
         on_update_highlights: Any,
+        on_dismiss: Any = None,
     ) -> None:
         """Update the primer information panel based on the focused primer."""
+        self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
             self.visible = False
             on_update_highlights()
@@ -129,7 +147,7 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
             header_text = (
                 f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
             )
-            self.info_header.content.value = header_text
+            self.info_header_text.value = header_text
 
             # Sequence details
             self.info_seq_text.value = (
