@@ -54,6 +54,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=is_active if not has_err else False,
             on_change=on_change_handler,
             disabled=has_err,
+            visible=not is_last_row,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
@@ -150,13 +151,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             )
             self.control_container = ft.Container(
                 content=self.reorder_controls,
-                width=82,
+                width=82 if is_focused else 0,
                 height=30,
                 alignment=ft.Alignment(0, 0),
             )
             self.reorder_controls.visible = is_focused
         else:
-            self.control_container = ft.Container(width=82)
+            self.control_container = ft.Container(width=82 if is_focused else 0)
 
         self.content = ft.Row(
             [
@@ -183,10 +184,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         else:
             self.bgcolor = None  # type: ignore[assignment]
 
-        if (
-            self.control_container is not None
-            and self.reorder_controls is not None
-        ):
+        if self.control_container is not None:
+            self.control_container.width = 82 if is_focused else 0
+        if self.reorder_controls is not None:
             self.reorder_controls.visible = is_focused
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
