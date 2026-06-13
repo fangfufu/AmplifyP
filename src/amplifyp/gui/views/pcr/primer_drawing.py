@@ -303,7 +303,7 @@ def format_context_lines(
 
     # Construct pipes and arrows:
     pipe_line = f"{' ' * 12}{' ' * 20}|{' ' * (L - 2)}|"
-    arrow_line = f"{' ' * 12}{' ' * 20}v{' ' * (L - 2)}v"
+    arrow_line = f"{' ' * 12}{' ' * 20}V{' ' * (L - 2)}V"
 
     # Construct numbers:
     num_line_chars = [" "] * (12 + 20 + L + 20)

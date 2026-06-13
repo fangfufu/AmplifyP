@@ -88,7 +88,7 @@ def test_pcr_view_click_context_map() -> None:
     # 5. Template context sequence
     assert "1" in full_text
     assert "20" in full_text
-    assert "v" in full_text
+    assert "V" in full_text
     assert "10290" in full_text
     assert "5'" in full_text
     assert "3'" in full_text
