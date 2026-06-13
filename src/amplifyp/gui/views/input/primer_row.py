@@ -37,6 +37,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         on_move_primer: Any,
         on_delete_primer: Any,
         on_divider_pan: Any,
+        on_divider_pan_end: Any,
         is_focused: bool,
         is_last_row: bool,
         is_penultimate_row: bool,
@@ -96,6 +97,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         self.divider = ft.GestureDetector(
             on_pan_update=on_divider_pan,
+            on_pan_end=on_divider_pan_end,
             content=ft.Container(
                 width=4,
                 bgcolor=GUIColors.DIVIDER_GREY,

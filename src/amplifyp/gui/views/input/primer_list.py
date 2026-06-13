@@ -103,6 +103,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 on_move_primer=self.primer_input._move_primer,
                 on_delete_primer=self.primer_input._delete_primer,
                 on_divider_pan=self.primer_input._on_primer_divider_pan,
+                on_divider_pan_end=self.primer_input._on_primer_divider_pan_end,
                 is_focused=is_focused,
                 is_last_row=is_last_row,
                 is_penultimate_row=is_penultimate_row,

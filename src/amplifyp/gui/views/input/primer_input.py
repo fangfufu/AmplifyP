@@ -64,6 +64,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             settings=self.settings,
             on_toggle_all=self._on_toggle_all_primers,
             on_divider_pan=self._on_primer_divider_pan,
+            on_divider_pan_end=self._on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
         )
         # Compatibility links
@@ -452,6 +453,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
         # Update the width of the Name header control
         self.primers_header.controls[2].width = self.name_column_width
+        self.app_page.update()
+
+    def _on_primer_divider_pan_end(self, e: ft.DragEndEvent) -> None:
+        """Handle finishing the drag of the vertical divider."""
         # Update the width of all Name TextFields in the list controls
         for row in self.primers_list.controls:
             if isinstance(row, PrimerRow):
