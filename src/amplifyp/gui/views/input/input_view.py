@@ -69,6 +69,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.divider = ft.GestureDetector(
             on_pan_update=self._on_pan_update,
+            on_pan_end=self._on_pan_end,
             content=ft.Container(
                 width=5,
                 bgcolor=GUIColors.DIVIDER_GREY,
@@ -86,6 +87,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         # Sync initial UI state
         self.update_ui()
+        self.app_page.on_resize = self._handle_resize
 
     # Properties/Delegates for backward compatibility and test access
     @property
@@ -279,11 +281,44 @@ class InputView(ft.Row):  # type: ignore[misc]
             # Ensure the left container stays at least 200px wide
             new_width = min(new_width, page_width - 200.0)
 
-            # Recalculate fractions and set relative expand weights
+            # Recalculate fractions
             self.right_fraction = new_width / page_width
-            self.primer_input.expand = int(self.right_fraction * 1000)
+
+            # Resize template_input via fixed width to avoid updating
+            # the massive primer_input ListView controls tree.
+            self.template_input.expand = None
+            self.template_input.width = page_width - new_width - 5.0
+            self.template_input.update()
+
+            # Adjust the name column width of only the visible rows and header
+            self.primer_input.adjust_name_column_width(
+                new_width, during_drag=True
+            )
+
+    def _on_pan_end(self, e: ft.DragEndEvent) -> None:
+        """Handle finishing the drag of the main layout divider."""
+        page_width = self.app_page.width
+        if isinstance(page_width, (int, float)) and page_width > 0:
+            panel_width = page_width * self.right_fraction
+
+            # Restore responsive expand weights for both panels
+            self.template_input.width = None
             self.template_input.expand = int((1.0 - self.right_fraction) * 1000)
-            self.app_page.update()
+            self.primer_input.expand = int(self.right_fraction * 1000)
+
+            # Full rebuild to sync everything at the final width
+            self.primer_input.adjust_name_column_width(
+                panel_width, during_drag=False
+            )
+            self.update()
+
+    def _handle_resize(self, e: Any) -> None:
+        """Handle page resize to proportionally scale name column."""
+        page_width = self.app_page.width
+        if isinstance(page_width, (int, float)) and page_width > 0:
+            panel_width = page_width * self.right_fraction
+            self.primer_input.adjust_name_column_width(panel_width)
+            self.update()
 
     def get_template(self) -> str:
         """Get the current template sequence."""

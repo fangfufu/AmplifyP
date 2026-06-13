@@ -308,6 +308,14 @@ def main(page: ft.Page) -> None:
         visible_save_btn_control.visible = is_input
         visible_load_btn_control.visible = is_input
         visible_header_divider.visible = is_input
+
+        if view == input_view:
+            page.on_resize = input_view._handle_resize
+        elif view == pcr_view:
+            page.on_resize = pcr_view._handle_resize
+        else:
+            page.on_resize = None
+
         page.update()
 
     # AppBar buttons (keep for test compatibility in invisible appbar)
@@ -491,3 +499,4 @@ def main(page: ft.Page) -> None:
         view_container,
     )
     page.controls.insert(0, header_container)
+    page.on_resize = input_view._handle_resize
