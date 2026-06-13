@@ -78,16 +78,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=seq,
             hint_text="New Primer Sequence",
             dense=True,
-            content_padding=ft.Padding(
-                5,
-                0,
-                90 if is_focused and not is_last_row else 0,
-                0,
-            ),
+            content_padding=ft.Padding(5, 0, 5, 0),
             height=30 if not seq_error else None,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
             data=idx,
+            expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
@@ -115,14 +111,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30,
         )
 
-        self.seq_stack = ft.Stack(
-            [
-                self.seq_field,
-            ],
-            expand=True,
-        )
-
-        self.reorder_container = None
+        self.reorder_controls = None
+        self.control_container = None
         if not is_last_row:
             up_button = ft.IconButton(
                 icon=ft.Icons.ARROW_UPWARD,
@@ -158,13 +148,15 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 spacing=2,
                 alignment=ft.MainAxisAlignment.CENTER,
             )
-            self.reorder_container = ft.Container(
+            self.control_container = ft.Container(
                 content=self.reorder_controls,
-                right=10,
-                top=3,
-                visible=is_focused,
+                width=82,
+                height=30,
+                alignment=ft.Alignment(0, 0),
             )
-            self.seq_stack.controls.append(self.reorder_container)
+            self.reorder_controls.visible = is_focused
+        else:
+            self.control_container = ft.Container(width=82)
 
         self.content = ft.Row(
             [
@@ -172,7 +164,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 self.active_divider,
                 self.name_field,
                 self.divider,
-                self.seq_stack,
+                self.seq_field,
+                self.control_container,
             ],
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
@@ -190,11 +183,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         else:
             self.bgcolor = None  # type: ignore[assignment]
 
-        if self.reorder_container is not None:
-            self.reorder_container.visible = is_focused
-            self.seq_field.content_padding = ft.Padding(
-                5, 0, 90 if is_focused else 0, 0
-            )
+        if (
+            self.control_container is not None
+            and self.reorder_controls is not None
+        ):
+            self.reorder_controls.visible = is_focused
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.

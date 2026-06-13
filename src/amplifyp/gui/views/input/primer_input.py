@@ -107,6 +107,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                                 no_wrap=True,
                             ),
                             col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
+                            height=32,
+                            alignment=ft.Alignment(-1, 0),
                         ),
                         ft.Container(
                             content=self.primer_toolbar,
@@ -290,9 +292,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         # Run background primer construction/validation
         new_validation_errors = self.validate_primers(primers)
 
-        if getattr(self, "validation_errors", []) != new_validation_errors:
-            should_rebuild = True
-
         # Rebuild if the number of controls in the UI doesn't match the
         # expected rows (filtered + 1 trailing empty row)
         expected_rows = len(filtered_ui_primers) + 1
@@ -304,6 +303,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if should_rebuild and rebuild_if_needed:
             self.update_ui()
         else:
+            # Update error status and duplicate highlights in-place on
+            # existing controls
+            for idx, row in enumerate(self.primers_list.controls):
+                if isinstance(row, PrimerRow) and idx < len(
+                    new_validation_errors
+                ):
+                    row.set_error(new_validation_errors[idx])
+            self._update_row_highlights()
             self._update_header_checkbox_state()
 
         return should_rebuild
@@ -483,8 +490,22 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         for p in non_empty:
             p["active"] = target_active
 
-        self.update_ui()
+        # Update checkbox values in-place on existing controls to avoid
+        # rebuilding the list
+        for row in self.primers_list.controls:
+            if isinstance(row, PrimerRow) and row.data is not None:
+                idx = row.data
+                if idx < len(primers):
+                    p = primers[idx]
+                    is_non_empty = (
+                        str(p.get("name", "")).strip()
+                        or clean_sequence(str(p.get("seq", ""))).strip()
+                    )
+                    if is_non_empty and not row.checkbox.disabled:
+                        row.checkbox.value = target_active
+
         self._prev_header_checkbox_value = cb_value
+        self._update_header_checkbox_state()
         if self.on_change_handler:
             self.on_change_handler(e)
 
