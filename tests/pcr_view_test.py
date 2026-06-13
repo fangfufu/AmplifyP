@@ -65,12 +65,14 @@ def test_pcr_view_click_context_map() -> None:
     assert "10290" in title_text
 
     # Verify Primeability, Stability and Quality display
-    stats_text = card.content.content.controls[1]
-    assert isinstance(stats_text, ft.Text)
-    stats_spans = "".join([span.text for span in stats_text.spans])
-    assert "Primeability =" in stats_spans
-    assert "Stability =" in stats_spans
-    assert "Quality =" in stats_spans
+    stats_row = card.content.content.controls[1]
+    assert isinstance(stats_row, ft.Row)
+    p_text = stats_row.controls[0].content.value
+    s_text = stats_row.controls[1].content.value
+    q_text = stats_row.controls[2].content.value
+    assert "Primeability: 1.000" in p_text
+    assert "Stability: 1.000" in s_text
+    assert "Quality: 1.0000" in q_text
 
     # Extract diagram_text
     diagram_text = card.content.content.controls[2].content.controls[0]

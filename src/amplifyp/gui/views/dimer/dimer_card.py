@@ -84,6 +84,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             p1_line,
             font_family=self.font_family,
             font_size=font_size_default,
+            is_dimer=True,
         )
         return ft.Container(
             content=ft.Row(
@@ -130,10 +131,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 f"Overlap: {self.d.overlap} bp",
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.TEXT_ON_SURFACE,
+                                color=GUIColors.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.CONTAINER_HIGHEST,
+                            bgcolor=GUIColors.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),
@@ -141,10 +142,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 quality_text,
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.TEXT_ON_SURFACE,
+                                color=GUIColors.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.CONTAINER_HIGHEST,
+                            bgcolor=GUIColors.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),
