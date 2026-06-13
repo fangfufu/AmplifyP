@@ -302,7 +302,7 @@ def format_context_lines(
     bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
 
     # Construct arrows:
-    arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
+    arrow_line = f"{' ' * 12}{' ' * 20}v{' ' * (L - 2)}v"
 
     # Construct numbers:
     num_line_chars = [" "] * (12 + 20 + L + 20)
