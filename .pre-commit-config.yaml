@@ -12,6 +12,7 @@ repos:
     rev: v0.21.0
     hooks:
       - id: yamlfmt
+        exclude: ^tests/examples/save_states/
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.16
     hooks:
@@ -24,9 +25,7 @@ repos:
       - id: codespell
         args:
           - --skip
-          - tests/examples/save_states/amplify_4_full_example.yaml
-          - --skip
-          - tests/examples/save_states/amplify_4_all_example_primers.tsv
+          - tests/examples/save_states/*
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.16
     hooks:
