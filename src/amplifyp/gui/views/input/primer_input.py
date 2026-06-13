@@ -58,13 +58,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.name_column_width = 150.0
 
         # Calculate initial name column ratio
-        page_width = page.width if (page and page.width) else 800.0
-        parent_view = getattr(on_change_handler, "__self__", None)
-        right_fraction = (
-            getattr(parent_view, "right_fraction", 0.5) if parent_view else 0.5
-        )
-        initial_panel_width = page_width * right_fraction
-        self.name_column_ratio = self.name_column_width / initial_panel_width
+        self.name_column_ratio = self.name_column_width / self.get_panel_width()
 
         # Primer List Component
         self.primers_list = PrimerList(self)
@@ -455,11 +449,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Update Flet UI controls to match the central state."""
         self.primers_list.update_list_ui()
 
-    def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
-        """Handle dragging the vertical divider between Name and Sequence."""
-        delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
-
-        # Calculate dynamic max width based on panel size
+    def get_panel_width(self) -> float:
+        """Get the current width of the primer input panel."""
         page_width = (
             self.app_page.width
             if (self.app_page and self.app_page.width)
@@ -469,7 +460,41 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         right_fraction = (
             getattr(parent_view, "right_fraction", 0.5) if parent_view else 0.5
         )
-        panel_width = page_width * right_fraction
+        return page_width * right_fraction
+
+    def _cache_visible_rows_if_needed(self) -> None:
+        """Cache the list of visible rows based on viewport scroll state."""
+        if self._visible_rows_cache is not None:
+            return
+
+        self._visible_rows_cache = []
+        scroll_y = self.primers_list.scroll_pixels
+        viewport_h = self.primers_list.viewport_dimension
+        if self.app_page and self.app_page.height:
+            viewport_h = max(viewport_h, float(self.app_page.height))
+        current_y = 0.0
+        for row in self.primers_list.controls:
+            if isinstance(row, PrimerRow):
+                row_h = (
+                    30.0
+                    if not (row.name_field.error or row.seq_field.error)
+                    else 50.0
+                )
+                row_top = current_y
+                row_bottom = current_y + row_h
+
+                # Check if row is visible (plus 60px buffer above/below)
+                if (row_bottom >= scroll_y - 60.0) and (
+                    row_top <= scroll_y + viewport_h + 60.0
+                ):
+                    self._visible_rows_cache.append(row)
+
+                current_y += row_h
+
+    def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
+        """Handle dragging the vertical divider between Name and Sequence."""
+        delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
+        panel_width = self.get_panel_width()
 
         # Subtract space for other UI components in the row:
         # - Checkbox container (55)
@@ -489,34 +514,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header.controls[2].width = self.name_column_width
         self.primer_header.update()
 
-        # Cache visible rows at the start of the drag
-        if self._visible_rows_cache is None:
-            self._visible_rows_cache = []
-            scroll_y = self.primers_list.scroll_pixels
-            viewport_h = self.primers_list.viewport_dimension
-            if self.app_page and self.app_page.height:
-                viewport_h = max(viewport_h, float(self.app_page.height))
-            current_y = 0.0
-            for row in self.primers_list.controls:
-                if isinstance(row, PrimerRow):
-                    row_h = (
-                        30.0
-                        if not (row.name_field.error or row.seq_field.error)
-                        else 50.0
-                    )
-                    row_top = current_y
-                    row_bottom = current_y + row_h
-
-                    # Check if row is visible (plus 60px buffer above/below)
-                    if (row_bottom >= scroll_y - 60.0) and (
-                        row_top <= scroll_y + viewport_h + 60.0
-                    ):
-                        self._visible_rows_cache.append(row)
-
-                    current_y += row_h
+        self._cache_visible_rows_if_needed()
+        visible_rows = self._visible_rows_cache or []
 
         # Update and render only the name fields of the visible rows directly
-        for row in self._visible_rows_cache:
+        for row in visible_rows:
             row.name_field.width = self.name_column_width
             row.name_field.update()
 
@@ -556,34 +558,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.primer_header.update()
 
         if during_drag:
-            # Cache visible rows at the start of the drag
-            if self._visible_rows_cache is None:
-                self._visible_rows_cache = []
-                scroll_y = self.primers_list.scroll_pixels
-                viewport_h = self.primers_list.viewport_dimension
-                if self.app_page and self.app_page.height:
-                    viewport_h = max(viewport_h, float(self.app_page.height))
-                current_y = 0.0
-                for row in self.primers_list.controls:
-                    if isinstance(row, PrimerRow):
-                        row_h = (
-                            30.0
-                            if not (row.name_field.error or row.seq_field.error)
-                            else 50.0
-                        )
-                        row_top = current_y
-                        row_bottom = current_y + row_h
-
-                        # Check if row is visible (plus 60px buffer above/below)
-                        if (row_bottom >= scroll_y - 60.0) and (
-                            row_top <= scroll_y + viewport_h + 60.0
-                        ):
-                            self._visible_rows_cache.append(row)
-
-                        current_y += row_h
+            self._cache_visible_rows_if_needed()
+            visible_rows = self._visible_rows_cache or []
 
             # Update/render name fields of visible rows directly
-            for row in self._visible_rows_cache:
+            for row in visible_rows:
                 row.name_field.width = self.name_column_width
                 row.name_field.update()
         else:
