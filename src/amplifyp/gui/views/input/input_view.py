@@ -42,6 +42,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.on_change = on_change
         self.on_stop_editing_callback = on_stop_editing
         self._focus_debouncer = Debouncer(delay_seconds=0.15)
+        self._currently_focused_control: ft.Control | None = None
 
         self.template_input = TemplateInput(
             page=self.app_page,
@@ -195,6 +196,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input._update_primer_info_panel()
             if self.app_page:
                 self.app_page.update()
+        self._currently_focused_control = e.control
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
@@ -202,6 +204,15 @@ class InputView(ft.Row):  # type: ignore[misc]
             self._skip_blur_timer = False
             return
 
+        # If focus has moved to another input control, just sync state.
+        if (
+            self._currently_focused_control is not None
+            and self._currently_focused_control != e.control
+        ):
+            self.sync_to_state(rebuild_if_needed=False)
+            return
+
+        self._currently_focused_control = None
         self.sync_to_state(rebuild_if_needed=False)
 
         if isinstance(e.control, ft.TextField) and e.control.data is not None:

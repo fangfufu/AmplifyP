@@ -897,3 +897,64 @@ def test_template_load_save() -> None:
 
         assert input_data.template == "GGGCCC"
         assert view.template_sequence.value == "GGGCCC"
+
+
+def test_input_view_focus_preservation_transition() -> None:
+    """Test that focus transitions cancel timer and preserve state."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    stop_editing_called = False
+
+    def on_stop_editing() -> None:
+        nonlocal stop_editing_called
+        stop_editing_called = True
+
+    view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
+    view.update_ui()
+
+    p1_name_field = view.primers_list.controls[0].content.controls[2]
+    p2_name_field = view.primers_list.controls[1].content.controls[2]
+
+    # Focus P1
+    mock_focus_event_p1 = MagicMock(spec=ft.ControlEvent)
+    mock_focus_event_p1.control = p1_name_field
+    p1_name_field.data = 0
+    view._handle_field_focus(mock_focus_event_p1)
+    assert view._currently_focused_control == p1_name_field
+
+    # Focus transitions from P1 to P2
+    # Scenario 1: Focus event on P2 occurs, then Blur event on P1 occurs
+    mock_focus_event_p2 = MagicMock(spec=ft.ControlEvent)
+    mock_focus_event_p2.control = p2_name_field
+    p2_name_field.data = 1
+    view._handle_field_focus(mock_focus_event_p2)
+    assert view._currently_focused_control == p2_name_field
+
+    # Blur event on P1
+    mock_blur_event_p1 = MagicMock(spec=ft.ControlEvent)
+    mock_blur_event_p1.control = p1_name_field
+    p1_name_field.data = 0
+    view._handle_field_blur(mock_blur_event_p1)
+
+    # Verify that the debouncer was NOT scheduled/triggered (timer is None)
+    assert not stop_editing_called
+    assert view._focus_debouncer._timer is None
+    assert view._currently_focused_control == p2_name_field
+
+    # Scenario 2: Blur event on P1 occurs, then Focus event on P2 occurs
+    view._currently_focused_control = p1_name_field
+    # Blur event on P1
+    view._handle_field_blur(mock_blur_event_p1)
+    # The debouncer should be scheduled (timer is not None)
+    assert view._currently_focused_control is None
+    assert view._focus_debouncer._timer is not None
+
+    # Focus event on P2 immediately cancels the debouncer (timer becomes None)
+    view._handle_field_focus(mock_focus_event_p2)
+    assert view._currently_focused_control == p2_name_field
+    assert view._focus_debouncer._timer is None
