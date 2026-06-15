@@ -191,7 +191,26 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._focus_debouncer.cancel()
 
         if e.control.data is not None:
-            self.primer_input.focused_primer_index = e.control.data
+            idx = (
+                e.control.data["idx"]
+                if isinstance(e.control.data, dict)
+                else e.control.data
+            )
+            field = (
+                e.control.data["field"]
+                if isinstance(e.control.data, dict)
+                else None
+            )
+
+            self.primer_input.focused_primer_index = idx
+
+            # Set touched status in state
+            if 0 <= idx < len(self.input_data.primers):
+                if field == "name":
+                    self.input_data.primers[idx]["name_touched"] = True
+                elif field == "seq":
+                    self.input_data.primers[idx]["seq_touched"] = True
+
             self.primer_input._update_row_highlights()
             self.primer_input._update_primer_info_panel()
             if self.app_page:
@@ -200,10 +219,6 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
-        if getattr(self, "_skip_blur_timer", False):
-            self._skip_blur_timer = False
-            return
-
         # If focus has moved to another input control, just sync state.
         if (
             self._currently_focused_control is not None
@@ -213,10 +228,15 @@ class InputView(ft.Row):  # type: ignore[misc]
             return
 
         self._currently_focused_control = None
+
         self.sync_to_state(rebuild_if_needed=False)
 
         if isinstance(e.control, ft.TextField) and e.control.data is not None:
-            idx = e.control.data
+            idx = (
+                e.control.data["idx"]
+                if isinstance(e.control.data, dict)
+                else e.control.data
+            )
             if idx < len(self.primer_input.validation_errors):
                 err = self.primer_input.validation_errors[idx]
                 for row in self.primer_input.primers_list.controls:
@@ -228,7 +248,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         def timer_callback() -> None:
             if not self.page:
                 return
-            self.sync_to_state(rebuild_if_needed=True)
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback()
 
@@ -264,7 +283,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
-        self.input_data.primers = []
+        self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.primer_input.focused_primer_index = None
         self.update_ui()
         if self.on_change:

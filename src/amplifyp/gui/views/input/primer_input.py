@@ -194,14 +194,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
                 self.app_page.run_task(do_focus)
 
+    def _on_add_primer_row(self, idx: int) -> None:
+        """Add a new empty primer row immediately below the row at idx."""
+        self.sync_to_state(rebuild_if_needed=False)
+        self.input_data.primers.insert(
+            idx + 1, {"name": "", "seq": "", "active": False}
+        )
+        self.update_ui()
+        if self.on_change_handler:
+            self.on_change_handler(None)
+
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
-        parent_view = getattr(self.on_change_handler, "__self__", None)
-        if parent_view is not None:
-            if getattr(parent_view, "_focus_debouncer", None) is not None:
-                parent_view._focus_debouncer.cancel()
-            parent_view._skip_blur_timer = True
-
         self.sync_to_state(rebuild_if_needed=False)
         primers = self.input_data.primers
         target_idx = idx + direction
@@ -223,12 +227,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _delete_primer(self, idx: int) -> None:
         """Delete primer at idx."""
-        parent_view = getattr(self.on_change_handler, "__self__", None)
-        if parent_view is not None:
-            if getattr(parent_view, "_focus_debouncer", None) is not None:
-                parent_view._focus_debouncer.cancel()
-            parent_view._skip_blur_timer = True
-
         self.sync_to_state(rebuild_if_needed=False)
         primers = self.input_data.primers
         if 0 <= idx < len(primers):
@@ -273,13 +271,25 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Returns True if a UI rebuild is needed.
         """
         ui_primers = self._extract_primer_data_from_ui()
-        filtered_ui_primers, should_rebuild = self._apply_activation_rules(
-            ui_primers
-        )
-
-        dup_indices = self._get_duplicate_indices_for_list(filtered_ui_primers)
         primers = []
-        for p in filtered_ui_primers:
+        for i, p in enumerate(ui_primers):
+            prev_p = (
+                self.input_data.primers[i]
+                if i < len(self.input_data.primers)
+                else {}
+            )
+            primers.append(
+                {
+                    "name": p["name"],
+                    "seq": p["seq"],
+                    "active": p["active"],
+                    "name_touched": prev_p.get("name_touched", False),
+                    "seq_touched": prev_p.get("seq_touched", False),
+                }
+            )
+
+        dup_indices = self._get_duplicate_indices_for_list(ui_primers)
+        for p in ui_primers:
             container = p["container"]
             c_idx = container.data
             is_dup = c_idx in dup_indices
@@ -287,26 +297,20 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if container.bgcolor != new_color:
                 container.bgcolor = new_color
 
-            primers.append(
-                {
-                    "name": p["name"],
-                    "seq": p["seq"],
-                    "active": p["active"],
-                }
-            )
-
         # Run background primer construction/validation
         new_validation_errors = validate_primers(primers)
 
-        # Rebuild if the number of controls in the UI doesn't match the
-        # expected rows (filtered + 1 trailing empty row)
-        expected_rows = len(filtered_ui_primers) + 1
-        if len(self.primers_list.controls) != expected_rows:
-            should_rebuild = True
+        # Force active = False in state for any primer with errors or
+        # empty fields
+        for idx, p in enumerate(primers):
+            err = new_validation_errors[idx]
+            is_empty = not p["name"].strip() or not p["seq"].strip()
+            if err.get("name") or err.get("seq") or is_empty:
+                p["active"] = False
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
-        if should_rebuild and rebuild_if_needed:
+        if rebuild_if_needed:
             self.update_ui()
         else:
             # Update error status and duplicate highlights in-place on
@@ -319,100 +323,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._update_row_highlights()
             self._update_header_checkbox_state()
 
-        return should_rebuild
-
-    def _apply_activation_rules(
-        self,
-        ui_primers: list[dict[str, Any]],
-    ) -> tuple[list[dict[str, Any]], bool]:
-        """Apply auto-activation, auto-inactivation and deletion rules."""
-        from amplifyp.dna import Primer
-
-        prev_primers = self.input_data.primers
-        filtered_primers = []
-        should_rebuild = False
-
-        # Precompute counts for duplicate checks in activation logic
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in ui_primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        for i, p in enumerate(ui_primers):
-            name_val = p["name"]
-            seq_val = p["seq"]
-            is_active = p["active"]
-            checkbox = p.get("checkbox")
-
-            # Deletion rule: if both are empty, delete it
-            if not name_val and not seq_val:
-                continue
-
-            prev_primer = prev_primers[i] if i < len(prev_primers) else None
-            prev_name = (
-                str(prev_primer.get("name", "")).strip() if prev_primer else ""
-            )
-            prev_seq = (
-                clean_sequence(str(prev_primer.get("seq", "")))
-                if prev_primer
-                else ""
-            )
-
-            prev_seq_invalid = False
-            if prev_seq:
-                try:
-                    Primer(sequence=prev_seq, name=prev_name)
-                except ValueError:
-                    prev_seq_invalid = True
-
-            # Check if current primer would be duplicate/invalid
-            n_lower = name_val.strip().lower()
-            s_lower = clean_sequence(seq_val).lower()
-            is_dup = (n_lower and names_count.get(n_lower, 0) > 1) or (
-                s_lower and seqs_count.get(s_lower, 0) > 1
-            )
-
-            # Auto-activation rule
-            if (not prev_name or not prev_seq or prev_seq_invalid) and (
-                name_val and seq_val
-            ):
-                is_valid = True
-                try:
-                    Primer(sequence=seq_val, name=name_val)
-                except ValueError:
-                    is_valid = False
-                if is_valid and not is_dup:
-                    is_active = True
-                    if checkbox is not None:
-                        checkbox.value = True
-                    should_rebuild = True
-
-            # Auto-inactivation rule if fields are cleared or invalid
-            is_valid = True
-            if name_val or seq_val:
-                try:
-                    Primer(sequence=seq_val, name=name_val)
-                except ValueError:
-                    is_valid = False
-                if is_dup:
-                    is_valid = False
-
-            if not name_val or not seq_val or not is_valid:
-                if is_active:
-                    is_active = False
-                    if checkbox is not None:
-                        checkbox.value = False
-                    should_rebuild = True
-
-            p["active"] = is_active
-            filtered_primers.append(p)
-
-        return filtered_primers, should_rebuild
+        return rebuild_if_needed
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
@@ -468,9 +379,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         # Subtract space for other UI components in the row:
         # - Checkbox container (55)
         # - Two dividers (4 + 4 = 8)
-        # - Control container when focused (82)
+        # - Control container when focused (108)
         # - Minimum space to display "Sequence" text and edit cursor (100)
-        max_name_width = max(80.0, panel_width - 245.0)
+        max_name_width = max(80.0, panel_width - 271.0)
 
         target_width = max(
             80.0, min(max_name_width, self.name_column_width + delta_x)
@@ -509,7 +420,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self, new_panel_width: float, during_drag: bool = False
     ) -> None:
         """Scale name column width proportionally based on panel width."""
-        max_name_width = max(80.0, new_panel_width - 245.0)
+        max_name_width = max(80.0, new_panel_width - 271.0)
         target_width = max(
             80.0,
             min(max_name_width, new_panel_width * self.name_column_ratio),
