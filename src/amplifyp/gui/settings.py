@@ -15,9 +15,13 @@
 
 """Centralized GUI settings and color definitions."""
 
+import os
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import flet as ft
+import yaml
 
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
@@ -507,3 +511,88 @@ class GUISettings:
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
             GUIColors.dark_mode = bool(dark_mode_val)
+
+    def _get_config_path(self) -> Path:
+        """Get the OS-specific path for user settings configuration."""
+        if sys.platform.startswith("win"):
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                return Path(appdata) / "AmplifyP" / "settings.yaml"
+            return (
+                Path.home()
+                / "AppData"
+                / "Roaming"
+                / "AmplifyP"
+                / "settings.yaml"
+            )
+        elif sys.platform.startswith("darwin"):
+            return (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "AmplifyP"
+                / "settings.yaml"
+            )
+        else:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME")
+            if xdg_config:
+                return Path(xdg_config) / "amplifyp" / "settings.yaml"
+            return Path.home() / ".config" / "amplifyp" / "settings.yaml"
+
+    def load_from_local(self, page: ft.Page) -> None:
+        """Load settings from local storage.
+
+        On web platforms, uses page.client_storage.
+        On desktop platforms, reads from OS-specific YAML file.
+        """
+        if getattr(page, "web", False):
+            if (
+                not hasattr(page, "client_storage")
+                or page.client_storage is None
+            ):
+                return
+            # Web browser path
+            settings_dict = {}
+            for k in self._settings.keys():
+                storage_key = f"amplifyp.settings.{k}"
+                if page.client_storage.contains_key(storage_key):
+                    settings_dict[k] = page.client_storage.get(storage_key)
+            if settings_dict:
+                self.from_dict(settings_dict)
+        else:
+            # Desktop path
+            config_path = self._get_config_path()
+            if config_path.exists():
+                try:
+                    with open(config_path, encoding="utf-8") as f:
+                        data = yaml.safe_load(f)
+                    if isinstance(data, dict):
+                        self.from_dict(data)
+                except Exception as e:
+                    print(f"Error loading settings from {config_path}: {e}")
+
+    def save_to_local(self, page: ft.Page) -> None:
+        """Save settings to local storage.
+
+        On web platforms, uses page.client_storage.
+        On desktop platforms, writes to OS-specific YAML file.
+        """
+        if getattr(page, "web", False):
+            if (
+                not hasattr(page, "client_storage")
+                or page.client_storage is None
+            ):
+                return
+            # Web browser path
+            for k, v in self._settings.items():
+                storage_key = f"amplifyp.settings.{k}"
+                page.client_storage.set(storage_key, v)
+        else:
+            # Desktop path
+            config_path = self._get_config_path()
+            try:
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(config_path, "w", encoding="utf-8") as f:
+                    yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
+            except Exception as e:
+                print(f"Error saving settings to {config_path}: {e}")

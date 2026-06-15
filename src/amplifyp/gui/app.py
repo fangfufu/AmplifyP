@@ -100,6 +100,7 @@ def main(page: ft.Page) -> None:
     # Centralize state storage
     input_data = GUIInput()
     settings = GUISettings()
+    settings.load_from_local(page)
     pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
     visible_pcr_button_ref = ft.Ref[ft.FilledButton]()
@@ -183,10 +184,12 @@ def main(page: ft.Page) -> None:
     def on_settings_change(e: ft.ControlEvent) -> None:
         apply_theme()
         update_pcr_button_state()
+        settings.save_to_local(page)
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
         apply_theme()
         update_pcr_button_state()
+        settings.save_to_local(page)
 
     input_view = InputView(
         page,
@@ -283,6 +286,7 @@ def main(page: ft.Page) -> None:
                 input_data.from_dict(parsed_state)
             if "settings" in parsed_state:
                 settings.from_dict(parsed_state["settings"])
+                settings.save_to_local(page)
             apply_theme()
             input_view.update_ui()
             settings_view.update_ui()
