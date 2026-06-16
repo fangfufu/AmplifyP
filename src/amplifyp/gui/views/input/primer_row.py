@@ -53,9 +53,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.idx = idx
         is_empty = not name.strip() or not seq.strip()
         self.checkbox = ft.Checkbox(
-            value=is_active if (not has_err and not is_empty) else False,
+            value=is_active if not is_empty else False,
             on_change=on_change_handler,
-            disabled=bool(has_err or is_empty),
+            disabled=is_empty,
             visible=True,
         )
         self.checkbox_container = ft.Container(
@@ -227,7 +227,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             not self.name_field.value.strip()
             or not self.seq_field.value.strip()
         )
-        self.checkbox.disabled = bool(has_err or is_empty)
+        self.checkbox.disabled = is_empty
         if self.checkbox.disabled:
             self.checkbox.value = False
 

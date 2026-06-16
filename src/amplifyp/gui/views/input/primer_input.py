@@ -101,6 +101,24 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.load_primers_button = self.primer_toolbar.load_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
 
+        # Error Banner for selected invalid primers
+        self.error_message_text = ft.Text(
+            value=(
+                "PCR and Primer Dimer views are disabled because "
+                "one or more selected (active) primers are invalid."
+            ),
+            color=GUIColors.ERROR_RED,
+            weight=ft.FontWeight.BOLD,
+            size=13,
+        )
+        self.error_banner = ft.Container(
+            content=self.error_message_text,
+            padding=ft.Padding(10, 5, 10, 5),
+            bgcolor=GUIColors.DUPLICATE_BG,
+            border_radius=5,
+            visible=False,
+        )
+
         # Primer Info Panel
         self.primer_info_panel = PrimerInfoPanel(
             settings=self.settings, font_family=font_family
@@ -142,6 +160,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     border_radius=5,
                     padding=0,
                 ),
+                self.error_banner,
                 self.primer_info_panel,
             ],
             expand=True,
@@ -286,12 +305,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         # Run background primer construction/validation
         new_validation_errors = validate_primers(primers)
 
-        # Force active = False in state for any primer with errors or
-        # empty fields
-        for idx, p in enumerate(primers):
-            err = new_validation_errors[idx]
+        # Force active = False in state for empty fields
+        for p in primers:
             is_empty = not p["name"].strip() or not p["seq"].strip()
-            if err.get("name") or err.get("seq") or is_empty:
+            if is_empty:
                 p["active"] = False
 
         self.input_data.primers = primers
