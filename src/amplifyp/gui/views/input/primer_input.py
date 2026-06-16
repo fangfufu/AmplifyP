@@ -38,6 +38,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         handle_field_blur: Any,
         handle_field_submit: Any,
         clear_primers_callback: Any,
+        delete_selected_callback: Any,
     ) -> None:
         """Initialize the PrimerInput component."""
         super().__init__(expand=5)
@@ -49,6 +50,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.handle_field_blur = handle_field_blur
         self.handle_field_submit = handle_field_submit
         self.clear_primers_callback = clear_primers_callback
+        self.delete_selected_callback = delete_selected_callback
 
         self.focused_primer_index: int | None = None
         self.validation_errors: list[dict[str, str | None]] = []
@@ -91,11 +93,31 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_save=self._save_primers_click,
             on_load=self._load_primers_click,
             on_clear=self.clear_primers_callback,
+            on_delete_selected=self.delete_selected_callback,
         )
         # Compatibility links
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.save_primers_button = self.primer_toolbar.save_button
         self.load_primers_button = self.primer_toolbar.load_button
+        self.delete_selected_button = self.primer_toolbar.delete_selected_button
+
+        # Error Banner for selected invalid primers
+        self.error_message_text = ft.Text(
+            value=(
+                "PCR and Primer Dimer views are disabled because "
+                "one or more selected (active) primers are invalid."
+            ),
+            color=GUIColors.ERROR_RED,
+            weight=ft.FontWeight.BOLD,
+            size=13,
+        )
+        self.error_banner = ft.Container(
+            content=self.error_message_text,
+            padding=ft.Padding(10, 5, 10, 5),
+            bgcolor=GUIColors.DUPLICATE_BG,
+            border_radius=5,
+            visible=False,
+        )
 
         # Primer Info Panel
         self.primer_info_panel = PrimerInfoPanel(
@@ -138,6 +160,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     border_radius=5,
                     padding=0,
                 ),
+                self.error_banner,
                 self.primer_info_panel,
             ],
             expand=True,
@@ -194,14 +217,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
                 self.app_page.run_task(do_focus)
 
+    def _on_add_primer_row(self, idx: int) -> None:
+        """Add a new empty primer row immediately below the row at idx."""
+        self.sync_to_state(rebuild_if_needed=False)
+        self.input_data.primers.insert(
+            idx + 1, {"name": "", "seq": "", "active": False}
+        )
+        self.update_ui()
+        if self.on_change_handler:
+            self.on_change_handler(None)
+
     def _move_primer(self, idx: int, direction: int) -> None:
         """Move primer at idx up (direction=-1) or down (direction=1)."""
-        parent_view = getattr(self.on_change_handler, "__self__", None)
-        if parent_view is not None:
-            if getattr(parent_view, "_focus_debouncer", None) is not None:
-                parent_view._focus_debouncer.cancel()
-            parent_view._skip_blur_timer = True
-
         self.sync_to_state(rebuild_if_needed=False)
         primers = self.input_data.primers
         target_idx = idx + direction
@@ -216,30 +243,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 self.focused_primer_index = target_idx
             elif self.focused_primer_index == target_idx:
                 self.focused_primer_index = idx
-
-            self.update_ui()
-            if self.on_change_handler:
-                self.on_change_handler(None)
-
-    def _delete_primer(self, idx: int) -> None:
-        """Delete primer at idx."""
-        parent_view = getattr(self.on_change_handler, "__self__", None)
-        if parent_view is not None:
-            if getattr(parent_view, "_focus_debouncer", None) is not None:
-                parent_view._focus_debouncer.cancel()
-            parent_view._skip_blur_timer = True
-
-        self.sync_to_state(rebuild_if_needed=False)
-        primers = self.input_data.primers
-        if 0 <= idx < len(primers):
-            primers.pop(idx)
-            if self.focused_primer_index == idx:
-                self.focused_primer_index = None
-            elif (
-                self.focused_primer_index is not None
-                and self.focused_primer_index > idx
-            ):
-                self.focused_primer_index -= 1
 
             self.update_ui()
             if self.on_change_handler:
@@ -267,19 +270,40 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
         return ui_primers
 
-    def sync_to_state(self, rebuild_if_needed: bool = True) -> bool:
+    def sync_to_state(self, rebuild_if_needed: bool = False) -> bool:
         """Sync current UI controls back to the central state.
 
         Returns True if a UI rebuild is needed.
         """
         ui_primers = self._extract_primer_data_from_ui()
-        filtered_ui_primers, should_rebuild = self._apply_activation_rules(
-            ui_primers
-        )
-
-        dup_indices = self._get_duplicate_indices_for_list(filtered_ui_primers)
         primers = []
-        for p in filtered_ui_primers:
+        for i, p in enumerate(ui_primers):
+            prev_p = (
+                self.input_data.primers[i]
+                if i < len(self.input_data.primers)
+                else {}
+            )
+            # Auto-activate when transitioning from empty to filled
+            is_filled = bool(p["name"].strip() and p["seq"].strip())
+            is_active = p["active"]
+            checkbox = p.get("checkbox")
+            if checkbox and checkbox.disabled and is_filled:
+                is_active = True
+                checkbox.value = True
+                checkbox.disabled = False
+
+            primers.append(
+                {
+                    "name": p["name"],
+                    "seq": p["seq"],
+                    "active": is_active,
+                    "name_touched": prev_p.get("name_touched", False),
+                    "seq_touched": prev_p.get("seq_touched", False),
+                }
+            )
+
+        dup_indices = self._get_duplicate_indices_for_list(ui_primers)
+        for p in ui_primers:
             container = p["container"]
             c_idx = container.data
             is_dup = c_idx in dup_indices
@@ -287,26 +311,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if container.bgcolor != new_color:
                 container.bgcolor = new_color
 
-            primers.append(
-                {
-                    "name": p["name"],
-                    "seq": p["seq"],
-                    "active": p["active"],
-                }
-            )
-
         # Run background primer construction/validation
         new_validation_errors = validate_primers(primers)
 
-        # Rebuild if the number of controls in the UI doesn't match the
-        # expected rows (filtered + 1 trailing empty row)
-        expected_rows = len(filtered_ui_primers) + 1
-        if len(self.primers_list.controls) != expected_rows:
-            should_rebuild = True
+        # Force active = False in state for empty fields
+        for p in primers:
+            is_empty = not p["name"].strip() or not p["seq"].strip()
+            if is_empty:
+                p["active"] = False
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
-        if should_rebuild and rebuild_if_needed:
+        if rebuild_if_needed:
             self.update_ui()
         else:
             # Update error status and duplicate highlights in-place on
@@ -318,105 +334,26 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     row.set_error(new_validation_errors[idx])
             self._update_row_highlights()
             self._update_header_checkbox_state()
+            self._update_delete_button_disabled_state()
 
-        return should_rebuild
-
-    def _apply_activation_rules(
-        self,
-        ui_primers: list[dict[str, Any]],
-    ) -> tuple[list[dict[str, Any]], bool]:
-        """Apply auto-activation, auto-inactivation and deletion rules."""
-        from amplifyp.dna import Primer
-
-        prev_primers = self.input_data.primers
-        filtered_primers = []
-        should_rebuild = False
-
-        # Precompute counts for duplicate checks in activation logic
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in ui_primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        for i, p in enumerate(ui_primers):
-            name_val = p["name"]
-            seq_val = p["seq"]
-            is_active = p["active"]
-            checkbox = p.get("checkbox")
-
-            # Deletion rule: if both are empty, delete it
-            if not name_val and not seq_val:
-                continue
-
-            prev_primer = prev_primers[i] if i < len(prev_primers) else None
-            prev_name = (
-                str(prev_primer.get("name", "")).strip() if prev_primer else ""
-            )
-            prev_seq = (
-                clean_sequence(str(prev_primer.get("seq", "")))
-                if prev_primer
-                else ""
-            )
-
-            prev_seq_invalid = False
-            if prev_seq:
-                try:
-                    Primer(sequence=prev_seq, name=prev_name)
-                except ValueError:
-                    prev_seq_invalid = True
-
-            # Check if current primer would be duplicate/invalid
-            n_lower = name_val.strip().lower()
-            s_lower = clean_sequence(seq_val).lower()
-            is_dup = (n_lower and names_count.get(n_lower, 0) > 1) or (
-                s_lower and seqs_count.get(s_lower, 0) > 1
-            )
-
-            # Auto-activation rule
-            if (not prev_name or not prev_seq or prev_seq_invalid) and (
-                name_val and seq_val
-            ):
-                is_valid = True
-                try:
-                    Primer(sequence=seq_val, name=name_val)
-                except ValueError:
-                    is_valid = False
-                if is_valid and not is_dup:
-                    is_active = True
-                    if checkbox is not None:
-                        checkbox.value = True
-                    should_rebuild = True
-
-            # Auto-inactivation rule if fields are cleared or invalid
-            is_valid = True
-            if name_val or seq_val:
-                try:
-                    Primer(sequence=seq_val, name=name_val)
-                except ValueError:
-                    is_valid = False
-                if is_dup:
-                    is_valid = False
-
-            if not name_val or not seq_val or not is_valid:
-                if is_active:
-                    is_active = False
-                    if checkbox is not None:
-                        checkbox.value = False
-                    should_rebuild = True
-
-            p["active"] = is_active
-            filtered_primers.append(p)
-
-        return filtered_primers, should_rebuild
+        return rebuild_if_needed
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
         self.primers_list.update_list_ui()
+        self._update_delete_button_disabled_state()
+
+    def _update_delete_button_disabled_state(self) -> None:
+        """Update disabled state of the delete button based on selection.
+
+        Selection means that the primer is active.
+        """
+        has_selected = any(
+            p.get("active", False) for p in self.input_data.primers
+        )
+        self.delete_selected_button.disabled = not has_selected
+        if self.delete_selected_button.parent:
+            self.delete_selected_button.update()
 
     def get_panel_width(self) -> float:
         """Get the current width of the primer input panel."""
@@ -468,9 +405,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         # Subtract space for other UI components in the row:
         # - Checkbox container (55)
         # - Two dividers (4 + 4 = 8)
-        # - Control container when focused (82)
+        # - Control container when focused (108)
         # - Minimum space to display "Sequence" text and edit cursor (100)
-        max_name_width = max(80.0, panel_width - 245.0)
+        max_name_width = max(80.0, panel_width - 271.0)
 
         target_width = max(
             80.0, min(max_name_width, self.name_column_width + delta_x)
@@ -509,7 +446,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self, new_panel_width: float, during_drag: bool = False
     ) -> None:
         """Scale name column width proportionally based on panel width."""
-        max_name_width = max(80.0, new_panel_width - 245.0)
+        max_name_width = max(80.0, new_panel_width - 271.0)
         target_width = max(
             80.0,
             min(max_name_width, new_panel_width * self.name_column_ratio),
@@ -547,14 +484,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         primers = self.input_data.primers
         if not primers:
             return
-        non_empty = [
-            p
-            for p in primers
-            if str(p.get("name", "")).strip()
-            or clean_sequence(str(p.get("seq", ""))).strip()
-        ]
-        if not non_empty:
-            return
 
         cb_value = self.all_primers_checkbox.value
         prev_value = self._prev_header_checkbox_value
@@ -571,25 +500,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             else:
                 target_active = True
 
-        for p in non_empty:
-            p["active"] = target_active
-
-        # Update checkbox values in-place on existing controls to avoid
-        # rebuilding the list
+        # Update checkbox values in-place on existing UI controls
         for row in self.primers_list.controls:
             if isinstance(row, PrimerRow) and row.data is not None:
                 idx = row.data
                 if idx < len(primers):
-                    p = primers[idx]
-                    is_non_empty = (
-                        str(p.get("name", "")).strip()
-                        or clean_sequence(str(p.get("seq", ""))).strip()
-                    )
-                    if is_non_empty and not row.checkbox.disabled:
-                        row.checkbox.value = target_active
+                    if target_active:
+                        if not row.checkbox.disabled:
+                            row.checkbox.value = True
+                    else:
+                        row.checkbox.value = False
 
         self._prev_header_checkbox_value = cb_value
-        self._update_header_checkbox_state()
         if self.on_change_handler:
             self.on_change_handler(e)
 
@@ -684,3 +606,70 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    def delete_primers(self, indices_to_delete: set[int]) -> None:
+        """Delete primers at indices and re-index controls in-place."""
+        if not indices_to_delete:
+            return
+
+        self.sync_to_state(rebuild_if_needed=False)
+        primers = self.input_data.primers
+
+        # Keep only indices NOT in the deleted set
+        new_primers = [
+            p for i, p in enumerate(primers) if i not in indices_to_delete
+        ]
+        if not new_primers:
+            new_primers = [{"name": "", "seq": "", "active": False}]
+        self.input_data.primers = new_primers
+
+        # Adjust focus index
+        if self.focused_primer_index in indices_to_delete:
+            self.focused_primer_index = None
+        elif self.focused_primer_index is not None:
+            # Shift focus index down for each deleted index that was before it
+            shift = sum(
+                1 for i in indices_to_delete if i < self.focused_primer_index
+            )
+            self.focused_primer_index -= shift
+
+        # Filter the controls list
+        remaining_controls = []
+        for row in self.primers_list.controls:
+            if isinstance(row, PrimerRow):
+                if row.data in indices_to_delete:
+                    continue
+                remaining_controls.append(row)
+
+        if not remaining_controls:
+            self.primers_list.controls.clear()
+            self.update_ui()
+            return
+
+        self.primers_list.controls = remaining_controls
+        num_remaining = len(remaining_controls)
+        # Find the earliest deleted index to start re-indexing from
+        start_reindex = min(indices_to_delete)
+
+        for new_idx in range(start_reindex, num_remaining):
+            row = remaining_controls[new_idx]
+            if isinstance(row, PrimerRow):
+                is_last_row = new_idx == num_remaining - 1
+                row.update_index(
+                    new_idx=new_idx,
+                    is_last_row=is_last_row,
+                    on_move_primer=self._move_primer,
+                    on_delete_primer=lambda idx: self.delete_primers({idx}),
+                    on_add_primer=self._on_add_primer_row,
+                    on_row_click=self._handle_row_click,
+                )
+
+        self._update_row_highlights()
+        self._update_primer_info_panel()
+        self._update_header_checkbox_state()
+        self._update_delete_button_disabled_state()
+        if self.app_page:
+            self.app_page.update()
+
+        if self.on_change_handler:
+            self.on_change_handler(None)

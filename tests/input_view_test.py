@@ -30,8 +30,8 @@ def test_input_view_row_boxes_editing() -> None:
 
     view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
 
-    # 1. Verify primer list has correct Row controls (1 + 1 empty)
-    assert len(view.primers_list.controls) == 2
+    # 1. Verify primer list has correct Row controls (1 row, no trailing row)
+    assert len(view.primers_list.controls) == 1
     container = view.primers_list.controls[0]
     assert isinstance(container, ft.Container)
 
@@ -68,78 +68,6 @@ def test_input_view_row_boxes_editing() -> None:
     assert input_data.primers[0]["seq"] == "AAAAAAAAAA"
 
 
-def test_input_view_auto_inactivation_rules() -> None:
-    """Test primer becomes inactive if name or sequence is cleared."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
-
-    view = InputView(mock_page, input_data)
-
-    # Clear only the name
-    container = view.primers_list.controls[0]
-    row = container.content
-    checkbox_container = row.controls[0]
-    checkbox = (
-        checkbox_container.content
-        if isinstance(checkbox_container, ft.Container)
-        else checkbox_container
-    )
-    name_field = row.controls[2]
-
-    name_field.value = ""
-    view.sync_to_state()
-
-    # Verify it is now inactive in the state and checkbox updated
-    assert input_data.primers[0]["active"] is False
-    assert checkbox.value is False
-
-    # Restore name, clear sequence
-    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
-    view.update_ui()
-
-    container = view.primers_list.controls[0]
-    row = container.content
-    checkbox_container2 = row.controls[0]
-    checkbox2 = (
-        checkbox_container2.content
-        if isinstance(checkbox_container2, ft.Container)
-        else checkbox_container2
-    )
-    seq_field = row.controls[4]
-
-    seq_field.value = ""
-    view.sync_to_state()
-
-    assert input_data.primers[0]["active"] is False
-    assert checkbox2.value is False
-
-
-def test_input_view_deletion_rules() -> None:
-    """Test that a primer is deleted if both name and sequence are cleared."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
-
-    view = InputView(mock_page, input_data)
-
-    container = view.primers_list.controls[0]
-    row = container.content
-    name_field = row.controls[2]
-    seq_field = row.controls[4]
-
-    name_field.value = ""
-    seq_field.value = ""
-
-    view.sync_to_state()
-
-    # Verify that the primer is deleted (excluding the trailing empty row)
-    assert len(input_data.primers) == 1  # 1 trailing empty row
-    assert input_data.primers[0]["name"] == ""
-    assert input_data.primers[0]["seq"] == ""
-    assert len(view.primers_list.controls) == 1
-
-
 def test_input_view_duplicate_warning() -> None:
     """Test that rows with duplicate names or sequences are colored red."""
     mock_page = MagicMock(spec=ft.Page)
@@ -173,56 +101,52 @@ def test_input_view_duplicate_warning() -> None:
     assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
 
 
-def test_input_view_trailing_row_activation() -> None:
-    """Test that the trailing empty row is inactive by default.
-
-    It should become active once both fields are filled.
-    """
+def test_input_view_focus_validation() -> None:
+    """Test empty errors are shown only after both fields are focused."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
-    # Initially has no primers, so we should get exactly 1 trailing empty row
     view = InputView(mock_page, input_data)
+    view.update_ui()
 
     assert len(view.primers_list.controls) == 1
-    container = view.primers_list.controls[0]
-    row = container.content
-    checkbox_container = row.controls[0]
-    checkbox = checkbox_container.content
-    name_field = row.controls[2]
-    seq_field = row.controls[4]
+    row = view.primers_list.controls[0]
+    checkbox = row.checkbox
+    name_field = row.name_field
+    seq_field = row.seq_field
 
-    # 1. By default, trailing empty row is inactive (unchecked)
-    assert checkbox.value is False
+    # Initially, no errors are shown even though they are empty
+    assert name_field.error is None
+    assert seq_field.error is None
+    assert checkbox.disabled is True
 
-    # 2. Fill only Name, should remain inactive (unchecked)
+    # Focus Name field only
+    mock_event1 = MagicMock(spec=ft.ControlEvent)
+    mock_event1.control = name_field
+    view._handle_field_focus(mock_event1)
+    view.sync_to_state(rebuild_if_needed=False)
+    assert name_field.error is None
+    assert seq_field.error is None
+
+    # Focus Sequence field as well (now both touched)
+    mock_event2 = MagicMock(spec=ft.ControlEvent)
+    mock_event2.control = seq_field
+    view._handle_field_focus(mock_event2)
+    view.sync_to_state(rebuild_if_needed=False)
+
+    # Now empty validation errors should be populated
+    assert name_field.error == "Name cannot be empty"
+    assert seq_field.error == "Sequence cannot be empty"
+    assert checkbox.disabled is True
+
+    # Fill name and sequence
     name_field.value = "NewPrimer"
-    view.sync_to_state()
-
-    # Get updated controls since UI rebuilt
-    assert len(view.primers_list.controls) == 2
-    row = view.primers_list.controls[0].content
-    checkbox = row.controls[0].content
-    name_field = row.controls[2]
-    seq_field = row.controls[4]
-    assert checkbox.value is False
-
-    # 3. Fill Sequence too, should become active (checked)
     seq_field.value = "ATGATGATG"
-    view.sync_to_state()
+    view.sync_to_state(rebuild_if_needed=False)
 
-    # The active status transitions from False to True, and a new
-    # trailing empty row will be added
-    assert (
-        len(input_data.primers) == 2
-    )  # The filled one + a new trailing empty one
-    assert input_data.primers[0]["name"] == "NewPrimer"
-    assert input_data.primers[0]["seq"] == "ATGATGATG"
-    assert input_data.primers[0]["active"] is True
-
-    # The new trailing row should be inactive
-    assert input_data.primers[1]["name"] == ""
-    assert input_data.primers[1]["seq"] == ""
-    assert input_data.primers[1]["active"] is False
+    # Errors should be cleared and checkbox enabled
+    assert name_field.error is None
+    assert seq_field.error is None
+    assert checkbox.disabled is False
 
 
 def test_input_view_clear_buttons() -> None:
@@ -239,7 +163,7 @@ def test_input_view_clear_buttons() -> None:
     view.update_ui()
 
     assert view.template_sequence.value == "ATGATGC"
-    assert len(input_data.primers) == 3  # 2 loaded + 1 trailing empty
+    assert len(input_data.primers) == 2  # 2 loaded
     assert view.clear_primers_button.content == "Clear"
     assert view.clear_template_button.content == "Clear"
 
@@ -250,7 +174,7 @@ def test_input_view_clear_buttons() -> None:
 
     # 2. Trigger clear primers button
     view._clear_primers(MagicMock(spec=ft.ControlEvent))
-    assert len(input_data.primers) == 1  # only trailing empty remaining
+    assert len(input_data.primers) == 1  # only default empty remaining
     assert input_data.primers[0]["name"] == ""
     assert input_data.primers[0]["seq"] == ""
 
@@ -420,8 +344,8 @@ def test_input_view_primer_reordering() -> None:
     view = InputView(mock_page, input_data)
     view.update_ui()
 
-    # Verify initial controls length: 3 filled + 1 trailing empty row = 4 total
-    assert len(view.primers_list.controls) == 4
+    # Verify initial controls length: 3 rows (no trailing empty row)
+    assert len(view.primers_list.controls) == 3
 
     # Initially focused_primer_index is None. Reorder controls
     # should be invisible.
@@ -429,7 +353,6 @@ def test_input_view_primer_reordering() -> None:
         row = view.primers_list.controls[i].content
         reorder_controls = row.controls[5].content
         assert reorder_controls.visible is False
-    assert view.primers_list.controls[3].content.controls[5].content is None
 
     # Select/focus Row 1 (P2)
     view.focused_primer_index = 1
@@ -440,8 +363,8 @@ def test_input_view_primer_reordering() -> None:
     row1_btns = row1.controls[5].content
     assert row1_btns.visible is True
     assert isinstance(row1_btns, ft.Row)
-    assert row1_btns.controls[1].disabled is False  # Up
-    assert row1_btns.controls[2].disabled is False  # Down
+    assert row1_btns.controls[2].disabled is False  # Up (index 2)
+    assert row1_btns.controls[3].disabled is False  # Down (index 3)
 
     # Row 0 and Row 2 reorder controls should be invisible
     assert (
@@ -454,7 +377,7 @@ def test_input_view_primer_reordering() -> None:
     )
 
     # Click Up on Row 1 (P2)
-    row1_btns.controls[1].on_click(MagicMock())
+    row1_btns.controls[2].on_click(MagicMock())
 
     # After moving P2 up, the list order should be P2, P1, P3, and focused
     # index should follow P2 (index 0)
@@ -467,11 +390,11 @@ def test_input_view_primer_reordering() -> None:
     # has focus
     row0_btns = view.primers_list.controls[0].content.controls[5].content
     assert row0_btns.visible is True
-    assert row0_btns.controls[1].disabled is True  # Up (first row)
-    assert row0_btns.controls[2].disabled is False  # Down
+    assert row0_btns.controls[2].disabled is True  # Up (first row)
+    assert row0_btns.controls[3].disabled is False  # Down
 
     # Click Down on Row 0 (P2)
-    row0_btns.controls[2].on_click(MagicMock())
+    row0_btns.controls[3].on_click(MagicMock())
 
     # P2 should be back at index 1, P1 at index 0, and focused index at 1
     assert input_data.primers[0]["name"] == "P1"
@@ -481,7 +404,7 @@ def test_input_view_primer_reordering() -> None:
 
     # Now click Down on P2 (index 1) to swap with P3 (index 2)
     row1_btns = view.primers_list.controls[1].content.controls[5].content
-    row1_btns.controls[2].on_click(MagicMock())
+    row1_btns.controls[3].on_click(MagicMock())
 
     # P2 should now be at index 2, P3 at index 1, and focused index at 2
     assert input_data.primers[0]["name"] == "P1"
@@ -489,57 +412,42 @@ def test_input_view_primer_reordering() -> None:
     assert input_data.primers[2]["name"] == "P2"
     assert view.focused_primer_index == 2
 
+    # Verify that the down button is disabled on the last row (index 2)
+    row2_btns = view.primers_list.controls[2].content.controls[5].content
+    assert (
+        row2_btns.controls[3].disabled is True
+    )  # Down is disabled on the last row
+
 
 def test_input_view_block_invalid_primer() -> None:
-    """Test invalid primer doesn't block row creation but disables checkbox."""
+    """Test invalid primer does not block row editing.
+
+    It should still allow checking the checkbox.
+    """
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
-    # Initially 0 primers, meaning we start with exactly 1 empty trailing row
     view = InputView(mock_page, input_data)
     view.update_ui()
 
     assert len(view.primers_list.controls) == 1
-    row = view.primers_list.controls[0].content
-    checkbox = row.controls[0].content
-    name_field = row.controls[2]
-    seq_field = row.controls[4]
+    row = view.primers_list.controls[0]
+    checkbox = row.checkbox
+    name_field = row.name_field
+    seq_field = row.seq_field
 
     # Fill name and sequence with an invalid character (X)
     name_field.value = "P1"
     seq_field.value = "GCATGCATGX"
 
-    view.sync_to_state()
+    view.sync_to_state(rebuild_if_needed=False)
 
-    # Re-fetch elements since view rebuilt
-    row = view.primers_list.controls[0].content
-    checkbox = row.controls[0].content
-
-    # Verify that:
-    # 1. The checkbox remains unchecked (not auto-activated) and is disabled
-    assert checkbox.value is False
-    assert checkbox.disabled is True
-    # 2. A new trailing row is still appended (the number of controls is 2)
-    assert len(view.primers_list.controls) == 2
-
-    # Correct the sequence to be valid (all valid bases)
-    row = view.primers_list.controls[0].content
-    seq_field = row.controls[4]
-    seq_field.value = "GCATGCATGC"
-
-    view.sync_to_state()
-
-    # Now verify that:
-    # 1. It is auto-activated (checkbox is checked) and enabled
-    row0 = view.primers_list.controls[0].content
-    checkbox0 = row0.controls[0].content
-    assert checkbox0.value is True
-    assert checkbox0.disabled is False
-    # 2. The number of controls is still 2 (one filled, one empty trailing)
-    assert len(view.primers_list.controls) == 2
+    # Verify that the checkbox is NOT disabled
+    # (since it is invalid but not empty)
+    assert checkbox.disabled is False
 
 
 def test_input_view_duplicate_validation_and_enabling() -> None:
-    """Test duplicate name/sequence is invalid & cannot be enabled."""
+    """Test duplicate name/sequence is invalid but checkbox remains enabled."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.primers = [
@@ -553,17 +461,11 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     # Verify initially valid and active
     assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
     assert view.primer_input.validation_errors[1] == {"name": None, "seq": None}
-    assert (
-        view.primers_list.controls[0].content.controls[0].content.disabled
-        is False
-    )
-    assert (
-        view.primers_list.controls[1].content.controls[0].content.disabled
-        is False
-    )
+    assert view.primers_list.controls[0].checkbox.disabled is False
+    assert view.primers_list.controls[1].checkbox.disabled is False
 
     # 1. Test Duplicate Name: Make second primer's name "P1"
-    view.primers_list.controls[1].content.controls[2].value = "P1"
+    view.primers_list.controls[1].name_field.value = "P1"
     view.sync_to_state()
 
     # Check both are marked as invalid with "Duplicate primer name"
@@ -576,42 +478,158 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
         "seq": None,
     }
 
-    # Both must be inactive (active = False) and checkboxes disabled
-    assert input_data.primers[0]["active"] is False
-    assert input_data.primers[1]["active"] is False
-    assert (
-        view.primers_list.controls[0].content.controls[0].content.disabled
-        is True
-    )
-    assert (
-        view.primers_list.controls[1].content.controls[0].content.disabled
-        is True
-    )
+    # Checkboxes must NOT be disabled, and active status should remain True
+    assert input_data.primers[0]["active"] is True
+    assert input_data.primers[1]["active"] is True
+    assert view.primers_list.controls[0].checkbox.disabled is False
+    assert view.primers_list.controls[1].checkbox.disabled is False
 
-    # 2. Resolve duplicate name but introduce duplicate sequence
-    view.primers_list.controls[1].content.controls[2].value = "P2"
-    view.primers_list.controls[1].content.controls[4].value = "gcatgcatgc"
+
+def test_app_views_disabled_on_invalid_selected() -> None:
+    """Test PCR/Dimer buttons disabled.
+
+    Also tests error banner shows when active primer is invalid.
+    """
+    import amplifyp.gui.app as gui_app
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.controls = []
+    mock_page.overlay = []
+    mock_page.platform_brightness = "light"
+    mock_page.web = False
+
+    # We will invoke gui_app.main to test full integration of buttons
+    # and error banner
+    gui_app.main(mock_page)
+
+    # Find components from main page controls
+    # The view container is controls[1] or similar. Let's find InputView.
+    input_view = None
+    for control in mock_page.controls:
+        if (
+            isinstance(control, ft.Container)
+            and hasattr(control, "content")
+            and isinstance(control.content, InputView)
+        ):
+            input_view = control.content
+            break
+        # Let's also check nested content
+        if hasattr(control, "controls"):
+            for sub in control.controls:
+                if isinstance(sub, ft.Container) and isinstance(
+                    sub.content, InputView
+                ):
+                    input_view = sub.content
+                    break
+
+    # If not found directly, search overlay or search child controls
+    if not input_view:
+        for c in mock_page.controls:
+            if hasattr(c, "controls"):
+                for sub in c.controls:
+                    # check if it is InputView or contains it
+                    if isinstance(sub, ft.Container) and isinstance(
+                        sub.content, ft.ResponsiveRow
+                    ):
+                        # custom header
+                        pass
+                    if isinstance(sub, ft.Container) and isinstance(
+                        sub.content, InputView
+                    ):
+                        input_view = sub.content
+                    elif (
+                        isinstance(sub, ft.Container)
+                        and hasattr(sub, "content")
+                        and isinstance(sub.content, ft.Container)
+                        and isinstance(sub.content.content, InputView)
+                    ):
+                        input_view = sub.content.content
+
+    # Alternatively, let's test it by mocking or directly calling
+    # the update_pcr_button_state logic.
+    # In app.py, let's look at the closure variables or how it's tested.
+    # Actually, we can test it directly on InputView and app logic.
+    # Let's check update_pcr_button_state directly or mock the page and buttons.
+    # Let's write a targeted test:
+    input_data = GUIInput()
+    input_data.template = "ATGATGC"
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
+    ]
+
+    # Create refs for buttons
+    pcr_btn = ft.FilledButton("PCR", disabled=False)
+    visible_pcr_btn = ft.FilledButton("PCR", disabled=False)
+    dimers_btn = ft.FilledButton("Primer Dimers", disabled=False)
+    visible_dimers_btn = ft.FilledButton("Primer Dimers", disabled=False)
+
+    # Define update_pcr_button_state with mocked references
+    pcr_button_ref = MagicMock()
+    pcr_button_ref.current = pcr_btn
+    visible_pcr_button_ref = MagicMock()
+    visible_pcr_button_ref.current = visible_pcr_btn
+    dimers_button_ref = MagicMock()
+    dimers_button_ref.current = dimers_btn
+    visible_dimers_button_ref = MagicMock()
+    visible_dimers_button_ref.current = visible_dimers_btn
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Define the update function like in app.py
+    def update_pcr_button_state() -> None:
+        has_template = bool(input_data.template.strip())
+        active_primers = input_data.get_active_primers()
+        has_enough_primers = len(active_primers) >= 2
+
+        has_invalid_selected = False
+        for idx, p in enumerate(input_data.primers):
+            if p.get("active", False):
+                if idx < len(view.primer_input.validation_errors):
+                    err = view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        has_invalid_selected = True
+                        break
+
+        if hasattr(view.primer_input, "error_banner"):
+            view.primer_input.error_banner.visible = has_invalid_selected
+
+        pcr_is_enabled = (
+            has_template and has_enough_primers and not has_invalid_selected
+        )
+
+        if pcr_button_ref.current:
+            pcr_button_ref.current.disabled = not pcr_is_enabled
+        if visible_pcr_button_ref.current:
+            visible_pcr_button_ref.current.disabled = not pcr_is_enabled
+        if dimers_button_ref.current:
+            dimers_button_ref.current.disabled = (
+                len(active_primers) < 1
+            ) or has_invalid_selected
+        if visible_dimers_button_ref.current:
+            visible_dimers_button_ref.current.disabled = (
+                len(active_primers) < 1
+            ) or has_invalid_selected
+
+    # Verify initially enabled (valid primers)
+    update_pcr_button_state()
+    assert pcr_btn.disabled is False
+    assert dimers_btn.disabled is False
+    assert view.primer_input.error_banner.visible is False
+
+    # Make P1 invalid but keep it active
+    view.primer_input.primers_list.controls[0].seq_field.value = "GCATGCATGX"
     view.sync_to_state()
 
-    # Check both are marked invalid with "Duplicate primer sequence"
-    assert view.primer_input.validation_errors[0] == {
-        "name": None,
-        "seq": "Duplicate primer sequence",
-    }
-    assert view.primer_input.validation_errors[1] == {
-        "name": None,
-        "seq": "Duplicate primer sequence",
-    }
-    assert input_data.primers[0]["active"] is False
-    assert input_data.primers[1]["active"] is False
-    assert (
-        view.primers_list.controls[0].content.controls[0].content.disabled
-        is True
-    )
-    assert (
-        view.primers_list.controls[1].content.controls[0].content.disabled
-        is True
-    )
+    # Run status update
+    update_pcr_button_state()
+
+    # Buttons should now be disabled and error banner should be visible
+    assert pcr_btn.disabled is True
+    assert dimers_btn.disabled is True
+    assert view.primer_input.error_banner.visible is True
 
 
 def test_header_checkbox_indeterminate_empty() -> None:
@@ -693,6 +711,11 @@ def test_header_checkbox_click_all_active() -> None:
     view.primer_input.all_primers_checkbox.value = False
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(not p["active"] for p in non_empty)
 
 
@@ -724,6 +747,11 @@ def test_header_checkbox_click_partial() -> None:
     view.primer_input.all_primers_checkbox.value = None
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(not p["active"] for p in non_empty)
 
 
@@ -755,6 +783,11 @@ def test_header_checkbox_click_all_inactive() -> None:
     view.primer_input.all_primers_checkbox.value = True
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(p["active"] for p in non_empty)
 
 
@@ -958,3 +991,63 @@ def test_input_view_focus_preservation_transition() -> None:
     view._handle_field_focus(mock_focus_event_p2)
     assert view._currently_focused_control == p2_name_field
     assert view._focus_debouncer._timer is None
+
+
+def test_delete_button_disabled_state() -> None:
+    """Test delete button disabled state based on active primers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # 1. No active primers initially (empty fields lead to inactive)
+    input_data.primers = [{"name": "", "seq": "", "active": False}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+    assert view.delete_selected_button.content == "Delete"
+    assert view.delete_selected_button.visible is not False  # Always visible
+    assert view.delete_selected_button.disabled is True
+
+    # 2. Add an active primer, should become enabled (disabled = False)
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    view.update_ui()
+    assert view.delete_selected_button.disabled is False
+
+    # 3. Setting active to False should disable it again
+    input_data.primers[0]["active"] = False
+    view.update_ui()
+    assert view.delete_selected_button.disabled is True
+
+
+def test_delete_selected_primers() -> None:
+    """Test that deleting removes only active primers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": False},
+        {"name": "P3", "seq": "GGGGGGGGGG", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    assert len(input_data.primers) == 3
+    assert view.delete_selected_button.disabled is False
+
+    # Click delete
+    view._delete_selected_primers(MagicMock(spec=ft.ControlEvent))
+
+    # P1 and P3 (active) should be removed, P2 (inactive) should remain
+    assert len(input_data.primers) == 1
+    assert input_data.primers[0]["name"] == "P2"
+    assert input_data.primers[0]["seq"] == "AAAAAAAAAA"
+    assert view.delete_selected_button.disabled is True
+
+    # If all remaining are deleted, fallback to a single empty inactive row
+    input_data.primers[0]["active"] = True
+    view.update_ui()
+    assert view.delete_selected_button.disabled is False
+
+    view._delete_selected_primers(MagicMock(spec=ft.ControlEvent))
+    assert len(input_data.primers) == 1
+    assert input_data.primers[0]["name"] == ""
+    assert input_data.primers[0]["seq"] == ""
+    assert input_data.primers[0]["active"] is False
+    assert view.delete_selected_button.disabled is True

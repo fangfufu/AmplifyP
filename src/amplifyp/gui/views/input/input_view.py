@@ -64,6 +64,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             handle_field_blur=self._handle_field_blur,
             handle_field_submit=self._handle_field_submit,
             clear_primers_callback=self._clear_primers,
+            delete_selected_callback=self._delete_selected_primers,
         )
 
         self.right_fraction = 0.5
@@ -115,6 +116,11 @@ class InputView(ft.Row):  # type: ignore[misc]
     def clear_primers_button(self) -> ft.OutlinedButton:
         """Get the clear primers button."""
         return self.primer_input.clear_primers_button
+
+    @property
+    def delete_selected_button(self) -> ft.OutlinedButton:
+        """Get the delete selected primers button."""
+        return self.primer_input.delete_selected_button
 
     @property
     def primer_info_panel(self) -> ft.Container:
@@ -191,7 +197,26 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._focus_debouncer.cancel()
 
         if e.control.data is not None:
-            self.primer_input.focused_primer_index = e.control.data
+            idx = (
+                e.control.data["idx"]
+                if isinstance(e.control.data, dict)
+                else e.control.data
+            )
+            field = (
+                e.control.data["field"]
+                if isinstance(e.control.data, dict)
+                else None
+            )
+
+            self.primer_input.focused_primer_index = idx
+
+            # Set touched status in state
+            if 0 <= idx < len(self.input_data.primers):
+                if field == "name":
+                    self.input_data.primers[idx]["name_touched"] = True
+                elif field == "seq":
+                    self.input_data.primers[idx]["seq_touched"] = True
+
             self.primer_input._update_row_highlights()
             self.primer_input._update_primer_info_panel()
             if self.app_page:
@@ -200,10 +225,6 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay."""
-        if getattr(self, "_skip_blur_timer", False):
-            self._skip_blur_timer = False
-            return
-
         # If focus has moved to another input control, just sync state.
         if (
             self._currently_focused_control is not None
@@ -213,22 +234,28 @@ class InputView(ft.Row):  # type: ignore[misc]
             return
 
         self._currently_focused_control = None
+
         self.sync_to_state(rebuild_if_needed=False)
 
         if isinstance(e.control, ft.TextField) and e.control.data is not None:
-            idx = e.control.data
+            idx = (
+                e.control.data["idx"]
+                if isinstance(e.control.data, dict)
+                else e.control.data
+            )
             if idx < len(self.primer_input.validation_errors):
                 err = self.primer_input.validation_errors[idx]
                 for row in self.primer_input.primers_list.controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         row.set_error(err)
                         break
+                # Auto-add new empty row if valid
+                self._auto_add_empty_row_if_needed(e.control)
                 self.app_page.update()
 
         def timer_callback() -> None:
             if not self.page:
                 return
-            self.sync_to_state(rebuild_if_needed=True)
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback()
 
@@ -238,14 +265,37 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Handle submission (Enter key) to immediately trigger results."""
         self._focus_debouncer.cancel()
         self.sync_to_state()
+        self._auto_add_empty_row_if_needed(e.control)
+        if self.app_page:
+            self.app_page.update()
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
+
+    def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
+        """Append a new empty row if the last row is filled and valid."""
+        if (
+            control.data is not None
+            and isinstance(control.data, dict)
+            and control.data.get("field") == "seq"
+        ):
+            idx = control.data["idx"]
+            num_primers = len(self.input_data.primers)
+            if idx == num_primers - 1:
+                p = self.input_data.primers[idx]
+                if p.get("name", "").strip() and p.get("seq", "").strip():
+                    if idx < len(self.primer_input.validation_errors):
+                        err = self.primer_input.validation_errors[idx]
+                        if not err.get("name") and not err.get("seq"):
+                            self.input_data.primers.append(
+                                {"name": "", "seq": "", "active": False}
+                            )
+                            self.primer_input.update_ui()
 
     def will_unmount(self) -> None:
         """Clean up when the view is unmounted."""
         self._focus_debouncer.cancel()
 
-    def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
+    def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
         """Sync current UI controls back to the central state."""
         self.template_input.sync_to_state()
         self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
@@ -264,9 +314,20 @@ class InputView(ft.Row):  # type: ignore[misc]
 
     def _clear_primers(self, e: ft.ControlEvent) -> None:
         """Clear all primers."""
-        self.input_data.primers = []
+        self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.primer_input.focused_primer_index = None
         self.update_ui()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def _delete_selected_primers(self, e: ft.ControlEvent) -> None:
+        """Delete all selected primers."""
+        active_indices = {
+            i for i, p in enumerate(self.input_data.primers) if p.get("active")
+        }
+        self.primer_input.delete_primers(active_indices)
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:

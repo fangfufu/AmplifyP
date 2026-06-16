@@ -36,11 +36,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         on_row_click: Any,
         on_move_primer: Any,
         on_delete_primer: Any,
+        on_add_primer: Any,
         on_divider_pan: Any,
         on_divider_pan_end: Any,
         is_focused: bool,
         is_last_row: bool,
-        is_penultimate_row: bool,
     ) -> None:
         """Initialize the PrimerRow."""
         has_err = bool(name_error or seq_error)
@@ -51,11 +51,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not has_err else None,
         )
         self.idx = idx
+        is_empty = not name.strip() or not seq.strip()
         self.checkbox = ft.Checkbox(
-            value=is_active if not has_err else False,
+            value=is_active if not is_empty else False,
             on_change=on_change_handler,
-            disabled=has_err,
-            visible=not is_last_row,
+            disabled=is_empty,
+            visible=True,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
@@ -71,7 +72,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not name_error else None,
             width=name_column_width,
             border=ft.InputBorder.NONE,
-            data=idx,
+            data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
@@ -84,7 +85,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not seq_error else None,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
-            data=idx,
+            data={"idx": idx, "field": "seq"},
             expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
@@ -116,50 +117,56 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         self.reorder_controls = None
         self.control_container = None
-        if not is_last_row:
-            up_button = ft.IconButton(
-                icon=ft.Icons.ARROW_UPWARD,
-                icon_size=16,
-                width=24,
-                height=24,
-                padding=0,
-                tooltip="Move Up",
-                disabled=(idx == 0),
-                on_click=lambda e: on_move_primer(idx, -1),
-            )
-            down_button = ft.IconButton(
-                icon=ft.Icons.ARROW_DOWNWARD,
-                icon_size=16,
-                width=24,
-                height=24,
-                padding=0,
-                tooltip="Move Down",
-                disabled=is_penultimate_row,
-                on_click=lambda e: on_move_primer(idx, 1),
-            )
-            delete_button = ft.IconButton(
-                icon=ft.Icons.DELETE_OUTLINE,
-                icon_size=16,
-                width=24,
-                height=24,
-                padding=0,
-                tooltip="Delete Primer",
-                on_click=lambda e: on_delete_primer(idx),
-            )
-            self.reorder_controls = ft.Row(
-                [delete_button, up_button, down_button],
-                spacing=2,
-                alignment=ft.MainAxisAlignment.CENTER,
-            )
-            self.control_container = ft.Container(
-                content=self.reorder_controls,
-                width=82 if is_focused else 0,
-                height=30,
-                alignment=ft.Alignment(0, 0),
-            )
-            self.reorder_controls.visible = is_focused
-        else:
-            self.control_container = ft.Container(width=82 if is_focused else 0)
+        up_button = ft.IconButton(
+            icon=ft.Icons.ARROW_UPWARD,
+            icon_size=16,
+            width=24,
+            height=24,
+            padding=0,
+            tooltip="Move Up",
+            disabled=(idx == 0),
+            on_click=lambda e: on_move_primer(idx, -1),
+        )
+        down_button = ft.IconButton(
+            icon=ft.Icons.ARROW_DOWNWARD,
+            icon_size=16,
+            width=24,
+            height=24,
+            padding=0,
+            tooltip="Move Down",
+            disabled=is_last_row,
+            on_click=lambda e: on_move_primer(idx, 1),
+        )
+        delete_button = ft.IconButton(
+            icon=ft.Icons.DELETE_OUTLINE,
+            icon_size=16,
+            width=24,
+            height=24,
+            padding=0,
+            tooltip="Delete Primer",
+            on_click=lambda e: on_delete_primer(idx),
+        )
+        add_button = ft.IconButton(
+            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
+            icon_size=16,
+            width=24,
+            height=24,
+            padding=0,
+            tooltip="Add Primer Below",
+            on_click=lambda e: on_add_primer(idx),
+        )
+        self.reorder_controls = ft.Row(
+            [add_button, delete_button, up_button, down_button],
+            spacing=2,
+            alignment=ft.MainAxisAlignment.CENTER,
+        )
+        self.control_container = ft.Container(
+            content=self.reorder_controls,
+            width=108 if is_focused else 0,
+            height=30,
+            alignment=ft.Alignment(0, 0),
+        )
+        self.reorder_controls.visible = is_focused
 
         self.content = ft.Row(
             [
@@ -187,9 +194,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self.bgcolor = None  # type: ignore[assignment]
 
         if self.control_container is not None:
-            self.control_container.width = 82 if is_focused else 0
+            self.control_container.width = 108 if is_focused else 0
+            try:
+                self.control_container.update()
+            except RuntimeError:
+                pass
         if self.reorder_controls is not None:
             self.reorder_controls.visible = is_focused
+            try:
+                self.reorder_controls.update()
+            except RuntimeError:
+                pass
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
@@ -215,6 +230,43 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
-        self.checkbox.disabled = has_err
-        if has_err:
+
+        is_empty = (
+            not self.name_field.value.strip()
+            or not self.seq_field.value.strip()
+        )
+        self.checkbox.disabled = is_empty
+        if self.checkbox.disabled:
             self.checkbox.value = False
+
+    def update_index(
+        self,
+        new_idx: int,
+        is_last_row: bool,
+        on_move_primer: Any,
+        on_delete_primer: Any,
+        on_add_primer: Any,
+        on_row_click: Any,
+    ) -> None:
+        """Update the index of the row and refresh its handlers and controls."""
+        self.data = new_idx
+        self.idx = new_idx
+        self.name_field.data = {"idx": new_idx, "field": "name"}
+        self.seq_field.data = {"idx": new_idx, "field": "seq"}
+
+        # Update click handler with the new index
+        self.on_click = lambda e: on_row_click(new_idx, self.name_field)
+
+        # Update reorder control buttons with the new index and state
+        if self.reorder_controls is not None:
+            add_button = self.reorder_controls.controls[0]
+            delete_button = self.reorder_controls.controls[1]
+            up_button = self.reorder_controls.controls[2]
+            down_button = self.reorder_controls.controls[3]
+
+            add_button.on_click = lambda e: on_add_primer(new_idx)
+            delete_button.on_click = lambda e: on_delete_primer(new_idx)
+            up_button.on_click = lambda e: on_move_primer(new_idx, -1)
+            up_button.disabled = new_idx == 0
+            down_button.on_click = lambda e: on_move_primer(new_idx, 1)
+            down_button.disabled = is_last_row

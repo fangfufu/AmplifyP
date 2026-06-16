@@ -100,6 +100,7 @@ def main(page: ft.Page) -> None:
     # Centralize state storage
     input_data = GUIInput()
     settings = GUISettings()
+    settings.load_from_local(page)
     pcr_button_ref = ft.Ref[ft.FilledButton]()
     dimers_button_ref = ft.Ref[ft.FilledButton]()
     visible_pcr_button_ref = ft.Ref[ft.FilledButton]()
@@ -152,13 +153,30 @@ def main(page: ft.Page) -> None:
             switch_view(e, dimers_view)
             page.update()
 
-    def update_pcr_button_state() -> None:
+    def update_pcr_button_state(sync: bool = True) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
-        input_view.sync_to_state()
+        if sync:
+            input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
         active_primers = input_data.get_active_primers()
         has_enough_primers = len(active_primers) >= 2
-        pcr_is_enabled = has_template and has_enough_primers
+
+        # Check if any selected (active) primer has validation errors
+        has_invalid_selected = False
+        for idx, p in enumerate(input_data.primers):
+            if p.get("active", False):
+                if idx < len(input_view.primer_input.validation_errors):
+                    err = input_view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        has_invalid_selected = True
+                        break
+
+        if hasattr(input_view.primer_input, "error_banner"):
+            input_view.primer_input.error_banner.visible = has_invalid_selected
+
+        pcr_is_enabled = (
+            has_template and has_enough_primers and not has_invalid_selected
+        )
 
         btn = pcr_button_ref.current
         if btn:
@@ -172,28 +190,34 @@ def main(page: ft.Page) -> None:
 
         dimers_btn = dimers_button_ref.current
         if dimers_btn:
-            dimers_btn.disabled = len(active_primers) < 1
+            dimers_btn.disabled = (
+                len(active_primers) < 1
+            ) or has_invalid_selected
 
         visible_dimers_btn = visible_dimers_button_ref.current
         if visible_dimers_btn:
-            visible_dimers_btn.disabled = len(active_primers) < 1
+            visible_dimers_btn.disabled = (
+                len(active_primers) < 1
+            ) or has_invalid_selected
 
         page.update()
 
     def on_settings_change(e: ft.ControlEvent) -> None:
         apply_theme()
         update_pcr_button_state()
+        settings.save_to_local(page)
 
     def run_apply_settings(e: ft.ControlEvent) -> None:
         apply_theme()
         update_pcr_button_state()
+        settings.save_to_local(page)
 
     input_view = InputView(
         page,
         input_data,
         settings,
-        on_change=lambda e: update_pcr_button_state(),
-        on_stop_editing=update_pcr_button_state,
+        on_change=lambda e: update_pcr_button_state(sync=False),
+        on_stop_editing=lambda: update_pcr_button_state(sync=False),
     )
     settings_view = SettingsView(
         page,
@@ -283,6 +307,7 @@ def main(page: ft.Page) -> None:
                 input_data.from_dict(parsed_state)
             if "settings" in parsed_state:
                 settings.from_dict(parsed_state["settings"])
+                settings.save_to_local(page)
             apply_theme()
             input_view.update_ui()
             settings_view.update_ui()

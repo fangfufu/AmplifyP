@@ -12,8 +12,6 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.util import clean_sequence
-
 from .primer_row import PrimerRow
 from .primer_validation import validate_primers
 
@@ -49,16 +47,11 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         )
         self.controls.clear()
 
-        # Filter out all empty primers from state first
-        clean_primers = [
-            p
-            for p in self.primer_input.input_data.primers
-            if str(p.get("name", "")).strip()
-            or clean_sequence(str(p.get("seq", ""))).strip()
-        ]
-
-        clean_primers.append({"name": "", "seq": "", "active": False})
-        self.primer_input.input_data.primers = clean_primers
+        # Initialize with a single empty row if the list is completely empty
+        if not self.primer_input.input_data.primers:
+            self.primer_input.input_data.primers = [
+                {"name": "", "seq": "", "active": False}
+            ]
 
         dup_indices = self.primer_input._get_duplicate_indices()
 
@@ -93,7 +86,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             is_dup = idx in dup_indices
             is_focused = idx == self.primer_input.focused_primer_index
             is_last_row = idx == num_primers - 1
-            is_penultimate_row = idx == num_primers - 2
 
             row = PrimerRow(
                 idx=idx,
@@ -111,12 +103,14 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 handle_field_submit=self.primer_input.handle_field_submit,
                 on_row_click=self.primer_input._handle_row_click,
                 on_move_primer=self.primer_input._move_primer,
-                on_delete_primer=self.primer_input._delete_primer,
+                on_delete_primer=lambda idx: self.primer_input.delete_primers(
+                    {idx}
+                ),
+                on_add_primer=self.primer_input._on_add_primer_row,
                 on_divider_pan=self.primer_input._on_primer_divider_pan,
                 on_divider_pan_end=self.primer_input._on_primer_divider_pan_end,
                 is_focused=is_focused,
                 is_last_row=is_last_row,
-                is_penultimate_row=is_penultimate_row,
             )
             self.controls.append(row)
 
@@ -139,3 +133,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup
                 )
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            pass

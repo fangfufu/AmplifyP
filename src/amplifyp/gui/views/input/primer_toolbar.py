@@ -21,6 +21,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         on_save: Any,
         on_load: Any,
         on_clear: Any,
+        on_delete_selected: Any,
     ) -> None:
         """Initialize the PrimerToolbar."""
         self.save_button = ft.FilledTonalButton(
@@ -44,10 +45,19 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             on_click=on_clear,
             height=32,
         )
+        self.delete_selected_button = ft.OutlinedButton(
+            "Delete",
+            icon=ft.Icons.DELETE_SWEEP,
+            tooltip="Delete Selected Primers",
+            on_click=on_delete_selected,
+            height=32,
+            disabled=True,
+        )
         super().__init__(
             [
                 self.load_button,
                 self.save_button,
+                self.delete_selected_button,
                 self.clear_button,
             ],
             spacing=10,

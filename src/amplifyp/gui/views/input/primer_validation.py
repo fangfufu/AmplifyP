@@ -12,20 +12,32 @@ from typing import Any
 from amplifyp.gui.util import clean_sequence
 
 
-def validate_primer(name: str, seq: str) -> str | None:
+def validate_primer(
+    name: str, seq: str, show_empty_errors: bool = False
+) -> tuple[str | None, str | None]:
     """Validate a single primer sequence and name.
 
-    Returns an error message if the primer is invalid, otherwise None.
+    Returns a tuple of (name_error, seq_error).
     """
-    if not seq:
-        return None
-    try:
-        from amplifyp.dna import Primer
+    name_err = None
+    seq_err = None
 
-        Primer(sequence=seq, name=name)
-        return None
-    except ValueError as ex:
-        return str(ex)
+    if not name.strip():
+        if show_empty_errors:
+            name_err = "Name cannot be empty"
+
+    if not seq.strip():
+        if show_empty_errors:
+            seq_err = "Sequence cannot be empty"
+    else:
+        try:
+            from amplifyp.dna import Primer
+
+            Primer(sequence=seq, name=name)
+        except ValueError as ex:
+            seq_err = str(ex)
+
+    return name_err, seq_err
 
 
 def validate_primers(
@@ -44,17 +56,22 @@ def validate_primers(
 
     errors = []
     for p in primers:
-        name_val = p.get("name", "")
-        seq_val = p.get("seq", "")
-        seq_err = validate_primer(name_val, seq_val)
-        name_err = None
+        name_val = str(p.get("name", "")).strip()
+        seq_val = clean_sequence(str(p.get("seq", "")))
 
-        n_lower = str(name_val).strip().lower()
-        s_lower = clean_sequence(str(seq_val)).lower()
+        show_empty_errors = bool(
+            p.get("name_touched", False) and p.get("seq_touched", False)
+        )
+        name_err, seq_err = validate_primer(
+            name_val, seq_val, show_empty_errors=show_empty_errors
+        )
+
+        n_lower = name_val.lower()
+        s_lower = seq_val.lower()
 
         if not seq_err and s_lower and seqs_count.get(s_lower, 0) > 1:
             seq_err = "Duplicate primer sequence"
-        if n_lower and names_count.get(n_lower, 0) > 1:
+        if not name_err and n_lower and names_count.get(n_lower, 0) > 1:
             name_err = "Duplicate primer name"
 
         errors.append({"name": name_err, "seq": seq_err})
