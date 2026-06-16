@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Input component for DNA template sequence."""
 
@@ -15,8 +22,6 @@ import flet as ft
 from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, clean_sequence
-
-from .template_file_manager import TemplateFileManager
 
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
@@ -38,15 +43,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.app_page = page
         self.settings = settings
         self.input_data = input_data
-
-        # Template File Manager
-        self.file_manager = TemplateFileManager(
-            page=self.app_page,
-            input_data=self.input_data,
-            on_update_ui=self.update_ui,
-            on_change_handler=on_change_handler,
-            show_notification=self._show_notification,
-        )
+        self.on_change_handler = on_change_handler
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence = ft.TextField(
@@ -165,12 +162,43 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
 
     async def _load_template_click(self, e: ft.ControlEvent) -> None:
-        """Open file picker to load template sequence."""
-        await self.file_manager.load_template_click(e)
+        """Open file picker to load template sequence from a TXT file."""
+        from amplifyp.gui.util import pick_and_read_file
+
+        content = await pick_and_read_file(
+            page=self.app_page,
+            dialog_title="Load",
+            allowed_extensions=["txt"],
+            show_notification=self._show_notification,
+        )
+        if content is None:
+            return
+
+        self.input_data.template = content
+        self.update_ui()
+        if self.on_change_handler:
+            self.on_change_handler(None)
+        self._show_notification("Template loaded successfully.")
 
     async def _save_template_click(self, e: ft.ControlEvent) -> None:
-        """Save template sequence."""
-        await self.file_manager.save_template_click(e)
+        """Save template sequence to a TXT file."""
+        template_content = self.input_data.template
+        if not template_content.strip():
+            self._show_notification("No template to save.")
+            return
+
+        from amplifyp.gui.util import save_and_write_file
+
+        await save_and_write_file(
+            page=self.app_page,
+            dialog_title="Save",
+            file_name="template.txt",
+            allowed_extensions=["txt"],
+            content=template_content,
+            show_notification=self._show_notification,
+            success_message_desktop="Template saved successfully.",
+            success_message_web="Template ready for download!",
+        )
 
     def _show_notification(self, message: str) -> None:
         """Show a notification message."""

@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """ListView for rendering, styling, and resizing primers."""
 
@@ -101,14 +108,14 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 handle_field_focus=self.primer_input.handle_field_focus,
                 handle_field_blur=self.primer_input.handle_field_blur,
                 handle_field_submit=self.primer_input.handle_field_submit,
-                on_row_click=self.primer_input._handle_row_click,
-                on_move_primer=self.primer_input._move_primer,
-                on_delete_primer=lambda idx: self.primer_input.delete_primers(
-                    {idx}
+                on_row_click=self.primer_input.action_controller.handle_row_click,
+                on_move_primer=self.primer_input.action_controller.move_primer,
+                on_delete_primer=lambda idx: (
+                    self.primer_input.action_controller.delete_primers({idx})
                 ),
-                on_add_primer=self.primer_input._on_add_primer_row,
-                on_divider_pan=self.primer_input._on_primer_divider_pan,
-                on_divider_pan_end=self.primer_input._on_primer_divider_pan_end,
+                on_add_primer=self.primer_input.action_controller.on_add_primer_row,
+                on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
+                on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
                 is_focused=is_focused,
                 is_last_row=is_last_row,
             )

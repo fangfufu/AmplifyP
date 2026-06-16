@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Input component for DNA primers list and details."""
 
@@ -16,9 +23,11 @@ from amplifyp.gui.settings import GUIColors, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, clean_sequence
 
+from .primer_action_controller import PrimerActionController
 from .primer_file_manager import PrimerFileManager
 from .primer_header import PrimerHeader
 from .primer_info_panel import PrimerInfoPanel
+from .primer_layout_manager import PrimerLayoutManager
 from .primer_list import PrimerList
 from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
@@ -52,6 +61,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.clear_primers_callback = clear_primers_callback
         self.delete_selected_callback = delete_selected_callback
 
+        self.layout_manager = PrimerLayoutManager(self)
+        self.action_controller = PrimerActionController(self)
+
         self.focused_primer_index: int | None = None
         self.validation_errors: list[dict[str, str | None]] = []
         self._prev_header_checkbox_value: bool | None = None
@@ -61,7 +73,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.name_column_width = 150.0
 
         # Calculate initial name column ratio
-        self.name_column_ratio = self.name_column_width / self.get_panel_width()
+        self.name_column_ratio = (
+            self.name_column_width / self.layout_manager.get_panel_width()
+        )
 
         # Primer List Component
         self.primers_list = PrimerList(self)
@@ -70,8 +84,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primer_header = PrimerHeader(
             settings=self.settings,
             on_toggle_all=self._on_toggle_all_primers,
-            on_divider_pan=self._on_primer_divider_pan,
-            on_divider_pan_end=self._on_primer_divider_pan_end,
+            on_divider_pan=self.layout_manager.on_primer_divider_pan,
+            on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
         )
         # Compatibility links
@@ -196,56 +210,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Get the primer info dimer text control."""
         return self.primer_info_panel.info_dimer_text
 
-    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
-        """Handle clicking on the row container.
-
-        Selects the row and focuses the name field.
-        """
-        import inspect
-
-        self.focused_primer_index = idx
-        self._update_row_highlights()
-        self._update_primer_info_panel()
-        res = name_edit.focus()
-        if inspect.iscoroutine(res):
-            if self.app_page:
-
-                async def do_focus() -> None:
-                    await res
-
-                self.app_page.run_task(do_focus)
-
-    def _on_add_primer_row(self, idx: int) -> None:
-        """Add a new empty primer row immediately below the row at idx."""
-        self.sync_to_state(rebuild_if_needed=False)
-        self.input_data.primers.insert(
-            idx + 1, {"name": "", "seq": "", "active": False}
-        )
-        self.update_ui()
-        if self.on_change_handler:
-            self.on_change_handler(None)
-
-    def _move_primer(self, idx: int, direction: int) -> None:
-        """Move primer at idx up (direction=-1) or down (direction=1)."""
-        self.sync_to_state(rebuild_if_needed=False)
-        primers = self.input_data.primers
-        target_idx = idx + direction
-
-        # Swap only if both indices are valid filled primers.
-        if 0 <= idx < len(primers) and 0 <= target_idx < len(primers):
-            primers[idx], primers[target_idx] = (
-                primers[target_idx],
-                primers[idx],
-            )
-            if self.focused_primer_index == idx:
-                self.focused_primer_index = target_idx
-            elif self.focused_primer_index == target_idx:
-                self.focused_primer_index = idx
-
-            self.update_ui()
-            if self.on_change_handler:
-                self.on_change_handler(None)
-
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
         """Extract primer data from UI controls."""
         ui_primers = []
@@ -352,130 +316,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.delete_selected_button.disabled = not has_selected
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
-
-    def get_panel_width(self) -> float:
-        """Get the current width of the primer input panel."""
-        page_width = (
-            self.app_page.width
-            if (self.app_page and self.app_page.width)
-            else 800.0
-        )
-        parent_view = getattr(self.on_change_handler, "__self__", None)
-        right_fraction = (
-            getattr(parent_view, "right_fraction", 0.5) if parent_view else 0.5
-        )
-        return page_width * right_fraction
-
-    def _cache_visible_rows_if_needed(self) -> None:
-        """Cache the list of visible rows based on viewport scroll state."""
-        if self._visible_rows_cache is not None:
-            return
-
-        self._visible_rows_cache = []
-        scroll_y = self.primers_list.scroll_pixels
-        viewport_h = self.primers_list.viewport_dimension
-        if self.app_page and self.app_page.height:
-            viewport_h = max(viewport_h, float(self.app_page.height))
-        current_y = 0.0
-        for row in self.primers_list.controls:
-            if isinstance(row, PrimerRow):
-                row_h = (
-                    30.0
-                    if not (row.name_field.error or row.seq_field.error)
-                    else 50.0
-                )
-                row_top = current_y
-                row_bottom = current_y + row_h
-
-                # Check if row is visible (plus 60px buffer above/below)
-                if (row_bottom >= scroll_y - 60.0) and (
-                    row_top <= scroll_y + viewport_h + 60.0
-                ):
-                    self._visible_rows_cache.append(row)
-
-                current_y += row_h
-
-    def _on_primer_divider_pan(self, e: ft.DragUpdateEvent) -> None:
-        """Handle dragging the vertical divider between Name and Sequence."""
-        delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
-        panel_width = self.get_panel_width()
-
-        # Subtract space for other UI components in the row:
-        # - Checkbox container (55)
-        # - Two dividers (4 + 4 = 8)
-        # - Control container when focused (108)
-        # - Minimum space to display "Sequence" text and edit cursor (100)
-        max_name_width = max(80.0, panel_width - 271.0)
-
-        target_width = max(
-            80.0, min(max_name_width, self.name_column_width + delta_x)
-        )
-
-        self.name_column_width = target_width
-        self.name_column_ratio = self.name_column_width / panel_width
-
-        # Update the width of the Name header control
-        self.primers_header.controls[2].width = self.name_column_width
-        self.primer_header.update()
-
-        self._cache_visible_rows_if_needed()
-        visible_rows = self._visible_rows_cache or []
-
-        # Update and render only the name fields of the visible rows directly
-        for row in visible_rows:
-            row.name_field.width = self.name_column_width
-            row.name_field.update()
-
-    def _on_primer_divider_pan_end(self, e: ft.DragEndEvent) -> None:
-        """Handle finishing the drag of the vertical divider."""
-        # Clear the visible rows cache
-        self._visible_rows_cache = None
-
-        # Ensure the final exact width is applied to header and all rows in sync
-        self.primers_header.controls[2].width = self.name_column_width
-        self.primer_header.update()
-
-        for row in self.primers_list.controls:
-            if isinstance(row, PrimerRow):
-                row.name_field.width = self.name_column_width
-        self.primers_list.update()
-
-    def adjust_name_column_width(
-        self, new_panel_width: float, during_drag: bool = False
-    ) -> None:
-        """Scale name column width proportionally based on panel width."""
-        max_name_width = max(80.0, new_panel_width - 271.0)
-        target_width = max(
-            80.0,
-            min(max_name_width, new_panel_width * self.name_column_ratio),
-        )
-
-        self.name_column_width = target_width
-
-        # Apply the new width to header
-        if (
-            hasattr(self, "primers_header")
-            and self.primers_header
-            and len(self.primers_header.controls) > 2
-        ):
-            self.primers_header.controls[2].width = self.name_column_width
-            self.primer_header.update()
-
-        if during_drag:
-            self._cache_visible_rows_if_needed()
-            visible_rows = self._visible_rows_cache or []
-
-            # Update/render name fields of visible rows directly
-            for row in visible_rows:
-                row.name_field.width = self.name_column_width
-                row.name_field.update()
-        else:
-            # Clear cache and update all rows
-            self._visible_rows_cache = None
-            for row in self.primers_list.controls:
-                if isinstance(row, PrimerRow):
-                    row.name_field.width = self.name_column_width
-            self.primers_list.update()
 
     def _on_toggle_all_primers(self, e: Any) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox."""
@@ -604,70 +444,3 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
-
-    def delete_primers(self, indices_to_delete: set[int]) -> None:
-        """Delete primers at indices and re-index controls in-place."""
-        if not indices_to_delete:
-            return
-
-        self.sync_to_state(rebuild_if_needed=False)
-        primers = self.input_data.primers
-
-        # Keep only indices NOT in the deleted set
-        new_primers = [
-            p for i, p in enumerate(primers) if i not in indices_to_delete
-        ]
-        if not new_primers:
-            new_primers = [{"name": "", "seq": "", "active": False}]
-        self.input_data.primers = new_primers
-
-        # Adjust focus index
-        if self.focused_primer_index in indices_to_delete:
-            self.focused_primer_index = None
-        elif self.focused_primer_index is not None:
-            # Shift focus index down for each deleted index that was before it
-            shift = sum(
-                1 for i in indices_to_delete if i < self.focused_primer_index
-            )
-            self.focused_primer_index -= shift
-
-        # Filter the controls list
-        remaining_controls = []
-        for row in self.primers_list.controls:
-            if isinstance(row, PrimerRow):
-                if row.data in indices_to_delete:
-                    continue
-                remaining_controls.append(row)
-
-        if not remaining_controls:
-            self.primers_list.controls.clear()
-            self.update_ui()
-            return
-
-        self.primers_list.controls = remaining_controls
-        num_remaining = len(remaining_controls)
-        # Find the earliest deleted index to start re-indexing from
-        start_reindex = min(indices_to_delete)
-
-        for new_idx in range(start_reindex, num_remaining):
-            row = remaining_controls[new_idx]
-            if isinstance(row, PrimerRow):
-                is_last_row = new_idx == num_remaining - 1
-                row.update_index(
-                    new_idx=new_idx,
-                    is_last_row=is_last_row,
-                    on_move_primer=self._move_primer,
-                    on_delete_primer=lambda idx: self.delete_primers({idx}),
-                    on_add_primer=self._on_add_primer_row,
-                    on_row_click=self._handle_row_click,
-                )
-
-        self._update_row_highlights()
-        self._update_primer_info_panel()
-        self._update_header_checkbox_state()
-        self._update_delete_button_disabled_state()
-        if self.app_page:
-            self.app_page.update()
-
-        if self.on_change_handler:
-            self.on_change_handler(None)
