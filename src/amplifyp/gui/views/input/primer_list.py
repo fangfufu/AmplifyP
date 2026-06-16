@@ -133,3 +133,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup
                 )
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            pass

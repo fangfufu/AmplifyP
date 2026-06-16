@@ -195,8 +195,16 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         if self.control_container is not None:
             self.control_container.width = 108 if is_focused else 0
+            try:
+                self.control_container.update()
+            except RuntimeError:
+                pass
         if self.reorder_controls is not None:
             self.reorder_controls.visible = is_focused
+            try:
+                self.reorder_controls.update()
+            except RuntimeError:
+                pass
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.

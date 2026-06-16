@@ -283,11 +283,20 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 if i < len(self.input_data.primers)
                 else {}
             )
+            # Auto-activate when transitioning from empty to filled
+            is_filled = bool(p["name"].strip() and p["seq"].strip())
+            is_active = p["active"]
+            checkbox = p.get("checkbox")
+            if checkbox and checkbox.disabled and is_filled:
+                is_active = True
+                checkbox.value = True
+                checkbox.disabled = False
+
             primers.append(
                 {
                     "name": p["name"],
                     "seq": p["seq"],
-                    "active": p["active"],
+                    "active": is_active,
                     "name_touched": prev_p.get("name_touched", False),
                     "seq_touched": prev_p.get("seq_touched", False),
                 }

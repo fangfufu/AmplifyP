@@ -249,6 +249,8 @@ class InputView(ft.Row):  # type: ignore[misc]
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         row.set_error(err)
                         break
+                # Auto-add new empty row if valid
+                self._auto_add_empty_row_if_needed(e.control)
                 self.app_page.update()
 
         def timer_callback() -> None:
@@ -263,8 +265,31 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Handle submission (Enter key) to immediately trigger results."""
         self._focus_debouncer.cancel()
         self.sync_to_state()
+        self._auto_add_empty_row_if_needed(e.control)
+        if self.app_page:
+            self.app_page.update()
         if self.on_stop_editing_callback:
             self.on_stop_editing_callback()
+
+    def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
+        """Append a new empty row if the last row is filled and valid."""
+        if (
+            control.data is not None
+            and isinstance(control.data, dict)
+            and control.data.get("field") == "seq"
+        ):
+            idx = control.data["idx"]
+            num_primers = len(self.input_data.primers)
+            if idx == num_primers - 1:
+                p = self.input_data.primers[idx]
+                if p.get("name", "").strip() and p.get("seq", "").strip():
+                    if idx < len(self.primer_input.validation_errors):
+                        err = self.primer_input.validation_errors[idx]
+                        if not err.get("name") and not err.get("seq"):
+                            self.input_data.primers.append(
+                                {"name": "", "seq": "", "active": False}
+                            )
+                            self.primer_input.update_ui()
 
     def will_unmount(self) -> None:
         """Clean up when the view is unmounted."""
