@@ -9,10 +9,12 @@
 """Settings sub-controls package."""
 
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
-from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
+from amplifyp.gui.views.settings.base_score_tile import (
+    BaseScoreTile,
+    ScoreTable,
+)
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
-from amplifyp.gui.views.settings.score_table import ScoreTable
 from amplifyp.gui.views.settings.tm_tile import TmTile
 
 __all__ = [

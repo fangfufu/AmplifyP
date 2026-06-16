@@ -12,8 +12,10 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
-from amplifyp.gui.views.settings.score_table import ScoreTable
+from amplifyp.gui.views.settings.base_score_tile import (
+    BaseScoreTile,
+    ScoreTable,
+)
 
 
 class DimerTile(BaseScoreTile):
