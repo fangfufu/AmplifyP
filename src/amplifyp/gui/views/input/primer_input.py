@@ -38,6 +38,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         handle_field_blur: Any,
         handle_field_submit: Any,
         clear_primers_callback: Any,
+        delete_selected_callback: Any,
     ) -> None:
         """Initialize the PrimerInput component."""
         super().__init__(expand=5)
@@ -49,6 +50,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.handle_field_blur = handle_field_blur
         self.handle_field_submit = handle_field_submit
         self.clear_primers_callback = clear_primers_callback
+        self.delete_selected_callback = delete_selected_callback
 
         self.focused_primer_index: int | None = None
         self.validation_errors: list[dict[str, str | None]] = []
@@ -91,11 +93,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_save=self._save_primers_click,
             on_load=self._load_primers_click,
             on_clear=self.clear_primers_callback,
+            on_delete_selected=self.delete_selected_callback,
         )
         # Compatibility links
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.save_primers_button = self.primer_toolbar.save_button
         self.load_primers_button = self.primer_toolbar.load_button
+        self.delete_selected_button = self.primer_toolbar.delete_selected_button
 
         # Primer Info Panel
         self.primer_info_panel = PrimerInfoPanel(
@@ -225,24 +229,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if self.on_change_handler:
                 self.on_change_handler(None)
 
-    def _delete_primer(self, idx: int) -> None:
-        """Delete primer at idx."""
-        self.sync_to_state(rebuild_if_needed=False)
-        primers = self.input_data.primers
-        if 0 <= idx < len(primers):
-            primers.pop(idx)
-            if self.focused_primer_index == idx:
-                self.focused_primer_index = None
-            elif (
-                self.focused_primer_index is not None
-                and self.focused_primer_index > idx
-            ):
-                self.focused_primer_index -= 1
-
-            self.update_ui()
-            if self.on_change_handler:
-                self.on_change_handler(None)
-
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
         """Extract primer data from UI controls."""
         ui_primers = []
@@ -322,12 +308,26 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     row.set_error(new_validation_errors[idx])
             self._update_row_highlights()
             self._update_header_checkbox_state()
+            self._update_delete_button_disabled_state()
 
         return rebuild_if_needed
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state."""
         self.primers_list.update_list_ui()
+        self._update_delete_button_disabled_state()
+
+    def _update_delete_button_disabled_state(self) -> None:
+        """Update disabled state of the delete button based on selection.
+
+        Selection means that the primer is active.
+        """
+        has_selected = any(
+            p.get("active", False) for p in self.input_data.primers
+        )
+        self.delete_selected_button.disabled = not has_selected
+        if self.delete_selected_button.parent:
+            self.delete_selected_button.update()
 
     def get_panel_width(self) -> float:
         """Get the current width of the primer input panel."""
@@ -580,3 +580,70 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    def delete_primers(self, indices_to_delete: set[int]) -> None:
+        """Delete primers at indices and re-index controls in-place."""
+        if not indices_to_delete:
+            return
+
+        self.sync_to_state(rebuild_if_needed=False)
+        primers = self.input_data.primers
+
+        # Keep only indices NOT in the deleted set
+        new_primers = [
+            p for i, p in enumerate(primers) if i not in indices_to_delete
+        ]
+        if not new_primers:
+            new_primers = [{"name": "", "seq": "", "active": False}]
+        self.input_data.primers = new_primers
+
+        # Adjust focus index
+        if self.focused_primer_index in indices_to_delete:
+            self.focused_primer_index = None
+        elif self.focused_primer_index is not None:
+            # Shift focus index down for each deleted index that was before it
+            shift = sum(
+                1 for i in indices_to_delete if i < self.focused_primer_index
+            )
+            self.focused_primer_index -= shift
+
+        # Filter the controls list
+        remaining_controls = []
+        for row in self.primers_list.controls:
+            if isinstance(row, PrimerRow):
+                if row.data in indices_to_delete:
+                    continue
+                remaining_controls.append(row)
+
+        if not remaining_controls:
+            self.primers_list.controls.clear()
+            self.update_ui()
+            return
+
+        self.primers_list.controls = remaining_controls
+        num_remaining = len(remaining_controls)
+        # Find the earliest deleted index to start re-indexing from
+        start_reindex = min(indices_to_delete)
+
+        for new_idx in range(start_reindex, num_remaining):
+            row = remaining_controls[new_idx]
+            if isinstance(row, PrimerRow):
+                is_last_row = new_idx == num_remaining - 1
+                row.update_index(
+                    new_idx=new_idx,
+                    is_last_row=is_last_row,
+                    on_move_primer=self._move_primer,
+                    on_delete_primer=lambda idx: self.delete_primers({idx}),
+                    on_add_primer=self._on_add_primer_row,
+                    on_row_click=self._handle_row_click,
+                )
+
+        self._update_row_highlights()
+        self._update_primer_info_panel()
+        self._update_header_checkbox_state()
+        self._update_delete_button_disabled_state()
+        if self.app_page:
+            self.app_page.update()
+
+        if self.on_change_handler:
+            self.on_change_handler(None)

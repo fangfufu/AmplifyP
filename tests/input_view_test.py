@@ -868,3 +868,63 @@ def test_input_view_focus_preservation_transition() -> None:
     view._handle_field_focus(mock_focus_event_p2)
     assert view._currently_focused_control == p2_name_field
     assert view._focus_debouncer._timer is None
+
+
+def test_delete_button_disabled_state() -> None:
+    """Test delete button disabled state based on active primers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # 1. No active primers initially (empty fields lead to inactive)
+    input_data.primers = [{"name": "", "seq": "", "active": False}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+    assert view.delete_selected_button.content == "Delete"
+    assert view.delete_selected_button.visible is not False  # Always visible
+    assert view.delete_selected_button.disabled is True
+
+    # 2. Add an active primer, should become enabled (disabled = False)
+    input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    view.update_ui()
+    assert view.delete_selected_button.disabled is False
+
+    # 3. Setting active to False should disable it again
+    input_data.primers[0]["active"] = False
+    view.update_ui()
+    assert view.delete_selected_button.disabled is True
+
+
+def test_delete_selected_primers() -> None:
+    """Test that deleting removes only active primers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "AAAAAAAAAA", "active": False},
+        {"name": "P3", "seq": "GGGGGGGGGG", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    assert len(input_data.primers) == 3
+    assert view.delete_selected_button.disabled is False
+
+    # Click delete
+    view._delete_selected_primers(MagicMock(spec=ft.ControlEvent))
+
+    # P1 and P3 (active) should be removed, P2 (inactive) should remain
+    assert len(input_data.primers) == 1
+    assert input_data.primers[0]["name"] == "P2"
+    assert input_data.primers[0]["seq"] == "AAAAAAAAAA"
+    assert view.delete_selected_button.disabled is True
+
+    # If all remaining are deleted, fallback to a single empty inactive row
+    input_data.primers[0]["active"] = True
+    view.update_ui()
+    assert view.delete_selected_button.disabled is False
+
+    view._delete_selected_primers(MagicMock(spec=ft.ControlEvent))
+    assert len(input_data.primers) == 1
+    assert input_data.primers[0]["name"] == ""
+    assert input_data.primers[0]["seq"] == ""
+    assert input_data.primers[0]["active"] is False
+    assert view.delete_selected_button.disabled is True

@@ -230,3 +230,35 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.checkbox.disabled = bool(has_err or is_empty)
         if self.checkbox.disabled:
             self.checkbox.value = False
+
+    def update_index(
+        self,
+        new_idx: int,
+        is_last_row: bool,
+        on_move_primer: Any,
+        on_delete_primer: Any,
+        on_add_primer: Any,
+        on_row_click: Any,
+    ) -> None:
+        """Update the index of the row and refresh its handlers and controls."""
+        self.data = new_idx
+        self.idx = new_idx
+        self.name_field.data = {"idx": new_idx, "field": "name"}
+        self.seq_field.data = {"idx": new_idx, "field": "seq"}
+
+        # Update click handler with the new index
+        self.on_click = lambda e: on_row_click(new_idx, self.name_field)
+
+        # Update reorder control buttons with the new index and state
+        if self.reorder_controls is not None:
+            add_button = self.reorder_controls.controls[0]
+            delete_button = self.reorder_controls.controls[1]
+            up_button = self.reorder_controls.controls[2]
+            down_button = self.reorder_controls.controls[3]
+
+            add_button.on_click = lambda e: on_add_primer(new_idx)
+            delete_button.on_click = lambda e: on_delete_primer(new_idx)
+            up_button.on_click = lambda e: on_move_primer(new_idx, -1)
+            up_button.disabled = new_idx == 0
+            down_button.on_click = lambda e: on_move_primer(new_idx, 1)
+            down_button.disabled = is_last_row

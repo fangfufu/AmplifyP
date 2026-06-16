@@ -64,6 +64,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             handle_field_blur=self._handle_field_blur,
             handle_field_submit=self._handle_field_submit,
             clear_primers_callback=self._clear_primers,
+            delete_selected_callback=self._delete_selected_primers,
         )
 
         self.right_fraction = 0.5
@@ -115,6 +116,11 @@ class InputView(ft.Row):  # type: ignore[misc]
     def clear_primers_button(self) -> ft.OutlinedButton:
         """Get the clear primers button."""
         return self.primer_input.clear_primers_button
+
+    @property
+    def delete_selected_button(self) -> ft.OutlinedButton:
+        """Get the delete selected primers button."""
+        return self.primer_input.delete_selected_button
 
     @property
     def primer_info_panel(self) -> ft.Container:
@@ -286,6 +292,17 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.primer_input.focused_primer_index = None
         self.update_ui()
+        if self.on_change:
+            self.on_change(e)
+        if self.on_stop_editing_callback:
+            self.on_stop_editing_callback()
+
+    def _delete_selected_primers(self, e: ft.ControlEvent) -> None:
+        """Delete all selected primers."""
+        active_indices = {
+            i for i, p in enumerate(self.input_data.primers) if p.get("active")
+        }
+        self.primer_input.delete_primers(active_indices)
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
