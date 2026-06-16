@@ -12,10 +12,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.views.settings.base_score_tile import (
-    BaseScoreTile,
-    ScoreTable,
-)
+from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
 
 
 class ReplicationTile(BaseScoreTile):
@@ -77,8 +74,3 @@ class ReplicationTile(BaseScoreTile):
                 self.set_amp4_compat,
             ],
         )
-
-    @property
-    def bp_table(self) -> ScoreTable:
-        """Get the base pair weights table (for backwards compatibility)."""
-        return self.score_table

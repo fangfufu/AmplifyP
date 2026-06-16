@@ -12,10 +12,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.views.settings.base_score_tile import (
-    BaseScoreTile,
-    ScoreTable,
-)
+from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
 
 
 class DimerTile(BaseScoreTile):
@@ -68,8 +65,3 @@ class DimerTile(BaseScoreTile):
                 self.set_pd_threshold,
             ],
         )
-
-    @property
-    def pd_table(self) -> ScoreTable:
-        """Get the primer dimer weights table (for backwards compatibility)."""
-        return self.score_table
