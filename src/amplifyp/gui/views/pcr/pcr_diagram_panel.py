@@ -95,13 +95,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         self.app_page.update()
 
-    def handle_resize(self) -> None:
-        """Handle window resizing by redrawing if visible."""
-        if self.diagram_container.visible:
-            # We don't have direct access to the PCR object, but the parent
-            # PCRView handles calling run_pcr during resize.
-            pass
-
     def reset_ui(self) -> None:
         """Reset the PCR view diagram canvas shapes and controls."""
         self.diagram_canvas.shapes.clear()

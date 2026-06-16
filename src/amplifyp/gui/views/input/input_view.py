@@ -177,17 +177,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    # Control layout compatibility properties
-    @property
-    def top_container(self) -> ft.Container:
-        """Get the template input container (layout backward compatibility)."""
-        return self.template_input
-
-    @property
-    def bottom_container(self) -> ft.Container:
-        """Get the primer input container (layout backward compatibility)."""
-        return self.primer_input
-
     def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Delegate row click handling to PrimerInput."""
         self.primer_input._handle_row_click(idx, name_edit)
@@ -291,10 +280,6 @@ class InputView(ft.Row):  # type: ignore[misc]
                             )
                             self.primer_input.update_ui()
 
-    def will_unmount(self) -> None:
-        """Clean up when the view is unmounted."""
-        self._focus_debouncer.cancel()
-
     def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
         """Sync current UI controls back to the central state."""
         self.template_input.sync_to_state()
@@ -391,14 +376,6 @@ class InputView(ft.Row):  # type: ignore[misc]
             panel_width = page_width * self.right_fraction
             self.primer_input.adjust_name_column_width(panel_width)
             self.update()
-
-    def get_template(self) -> str:
-        """Get the current template sequence."""
-        return self.input_data.template
-
-    def is_circular(self) -> bool:
-        """Check if the template is circular."""
-        return self.input_data.template_circular
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers."""

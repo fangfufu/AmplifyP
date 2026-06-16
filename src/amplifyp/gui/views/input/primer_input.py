@@ -97,8 +97,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
         # Compatibility links
         self.clear_primers_button = self.primer_toolbar.clear_button
-        self.save_primers_button = self.primer_toolbar.save_button
-        self.load_primers_button = self.primer_toolbar.load_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
 
         # Error Banner for selected invalid primers
