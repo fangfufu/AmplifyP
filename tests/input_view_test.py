@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Tests for InputView primer editing in-place."""
 
@@ -868,7 +875,7 @@ def test_template_load_save() -> None:
     mock_page.file_picker = mock_file_picker_instance
 
     with patch(
-        "amplifyp.gui.views.input.template_file_manager.ft.FilePicker",
+        "amplifyp.gui.views.input.template_input.ft.FilePicker",
         return_value=mock_file_picker_instance,
     ):
         view = InputView(mock_page, input_data)

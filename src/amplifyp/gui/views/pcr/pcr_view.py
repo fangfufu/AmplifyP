@@ -269,11 +269,6 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
-    def invalidate_cache(self) -> None:
-        """Invalidate the cached PCR simulation results."""
-        self._cached_pcr = None
-        self._cached_state_key = None
-
     def _clear_all_cards(self, e: Any) -> None:
         """Clear all detail cards below the overview map."""
         self.result_list.controls.clear()

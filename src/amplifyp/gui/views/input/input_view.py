@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Input view composing DNA Template input and Primer inputs."""
 
@@ -177,21 +184,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    # Control layout compatibility properties
-    @property
-    def top_container(self) -> ft.Container:
-        """Get the template input container (layout backward compatibility)."""
-        return self.template_input
-
-    @property
-    def bottom_container(self) -> ft.Container:
-        """Get the primer input container (layout backward compatibility)."""
-        return self.primer_input
-
-    def _handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
-        """Delegate row click handling to PrimerInput."""
-        self.primer_input._handle_row_click(idx, name_edit)
-
     def _handle_field_focus(self, e: ft.ControlEvent) -> None:
         """Handle focus on input fields to cancel auto-trigger timer."""
         self._focus_debouncer.cancel()
@@ -291,10 +283,6 @@ class InputView(ft.Row):  # type: ignore[misc]
                             )
                             self.primer_input.update_ui()
 
-    def will_unmount(self) -> None:
-        """Clean up when the view is unmounted."""
-        self._focus_debouncer.cancel()
-
     def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
         """Sync current UI controls back to the central state."""
         self.template_input.sync_to_state()
@@ -327,7 +315,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         active_indices = {
             i for i, p in enumerate(self.input_data.primers) if p.get("active")
         }
-        self.primer_input.delete_primers(active_indices)
+        self.primer_input.action_controller.delete_primers(active_indices)
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
@@ -363,7 +351,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.template_input.update()
 
             # Adjust the name column width of only the visible rows and header
-            self.primer_input.adjust_name_column_width(
+            self.primer_input.layout_manager.adjust_name_column_width(
                 new_width, during_drag=True
             )
 
@@ -379,7 +367,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input.expand = int(self.right_fraction * 1000)
 
             # Full rebuild to sync everything at the final width
-            self.primer_input.adjust_name_column_width(
+            self.primer_input.layout_manager.adjust_name_column_width(
                 panel_width, during_drag=False
             )
             self.update()
@@ -389,16 +377,10 @@ class InputView(ft.Row):  # type: ignore[misc]
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
             panel_width = page_width * self.right_fraction
-            self.primer_input.adjust_name_column_width(panel_width)
+            self.primer_input.layout_manager.adjust_name_column_width(
+                panel_width
+            )
             self.update()
-
-    def get_template(self) -> str:
-        """Get the current template sequence."""
-        return self.input_data.template
-
-    def is_circular(self) -> bool:
-        """Check if the template is circular."""
-        return self.input_data.template_circular
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers."""

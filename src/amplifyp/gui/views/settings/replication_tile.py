@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """ReplicationTile component for Flet settings view."""
 
@@ -13,7 +20,6 @@ from typing import Any
 import flet as ft
 
 from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
-from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
 class ReplicationTile(BaseScoreTile):
@@ -75,8 +81,3 @@ class ReplicationTile(BaseScoreTile):
                 self.set_amp4_compat,
             ],
         )
-
-    @property
-    def bp_table(self) -> ScoreTable:
-        """Get the base pair weights table (for backwards compatibility)."""
-        return self.score_table

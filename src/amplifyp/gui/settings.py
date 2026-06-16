@@ -90,11 +90,6 @@ class _GUIColorsMeta(type):
         )
 
     @property
-    def CONTAINER_HIGHEST(cls) -> str:
-        """Get container highest color."""
-        return cast(str, ft.Colors.SURFACE_CONTAINER_HIGHEST)
-
-    @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant color."""
         return cast(str, ft.Colors.OUTLINE_VARIANT)

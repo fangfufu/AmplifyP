@@ -25,6 +25,7 @@ from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
 from amplifyp.pcr import PCR
 
 from .amplicon_drawing import DrawnAmplicon
+from .pcr_layout import PCRLayoutSolver
 from .primer_drawing import DrawnPrimer
 
 __all__ = ["PCRDrawingPanel"]
@@ -95,13 +96,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         self.app_page.update()
 
-    def handle_resize(self) -> None:
-        """Handle window resizing by redrawing if visible."""
-        if self.diagram_container.visible:
-            # We don't have direct access to the PCR object, but the parent
-            # PCRView handles calling run_pcr during resize.
-            pass
-
     def reset_ui(self) -> None:
         """Reset the PCR view diagram canvas shapes and controls."""
         self.diagram_canvas.shapes.clear()
@@ -135,15 +129,24 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
         target_length = len(pcr.template)
 
-        fwd_bindings, rev_bindings = self._collect_primer_bindings(
+        fwd_bindings, rev_bindings = PCRLayoutSolver.collect_primer_bindings(
             pcr, amplicons
         )
 
         v_target, h_margin, c_width, t_width, v_frag_start = (
-            self._calculate_canvas_dimensions(
-                target_length, num_amplicons, fwd_bindings, rev_bindings
+            PCRLayoutSolver.calculate_canvas_dimensions(
+                target_length,
+                num_amplicons,
+                fwd_bindings,
+                rev_bindings,
+                self.app_page.width,
             )
         )
+
+        # Apply dimensions directly to UI controls
+        self.diagram_canvas.width = c_width
+        self.diagram_canvas.height = v_frag_start + num_amplicons * 35 + 30.0
+        self.diagram_stack.height = self.diagram_canvas.height
 
         if target_length > 0:
             self._draw_template_baseline(
@@ -169,44 +172,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             amplicons=amplicons,
             v_frag_start=v_frag_start,
         )
-
-    def _calculate_canvas_dimensions(
-        self,
-        target_length: int,
-        num_amplicons: int,
-        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
-        rev_bindings: dict[int, tuple[str, float, Any, Any]],
-    ) -> tuple[float, float, float, float, float]:
-        """Calculate drawing coordinates and set canvas/stack heights."""
-        # Calculate dynamic margins based on label lengths (approx 8px per char)
-        max_fwd_len = max(
-            (len(name) for name, _, _, _ in fwd_bindings.values()), default=0
-        )
-        max_rev_len = max(
-            (len(name) for name, _, _, _ in rev_bindings.values()), default=0
-        )
-
-        fwd_px = max_fwd_len * 8.0
-        rev_px = max_rev_len * 8.0
-
-        v_target = max(100.0, 66.0 + fwd_px)  # Y position of target baseline
-        h_margin = 20.0  # X padding
-        c_width = (
-            max(600.0, self.app_page.width - 80.0)
-            if self.app_page.width
-            else 800.0
-        )
-        self.diagram_canvas.width = c_width
-        t_width = c_width - (2.0 * h_margin)
-
-        # Calculate vertical size based on number of amplicons
-        v_frag_start = v_target + 70.0 + rev_px
-        v_frag_step = 35
-        canvas_height = v_frag_start + num_amplicons * v_frag_step + 30.0
-        self.diagram_canvas.height = canvas_height
-        self.diagram_stack.height = canvas_height
-
-        return v_target, h_margin, c_width, t_width, v_frag_start
 
     def _draw_template_baseline(
         self,
@@ -308,129 +273,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 )
             )
 
-    def _collect_primer_bindings(
-        self, pcr: PCR, amplicons: list[Any] | None = None
-    ) -> tuple[
-        dict[int, tuple[str, float, Any, Any]],
-        dict[int, tuple[str, float, Any, Any]],
-    ]:
-        """Collect and group unique forward and reverse primer binding sites."""
-        fwd_bindings = {}
-        rev_bindings = {}
-        if amplicons is None:
-            amplicons = pcr.amplicons
-        for amp in amplicons:
-            fwd_conf = next(
-                (
-                    c
-                    for c in pcr.amplicon_generator.repliconfs
-                    if c.primer is amp.fwd_origin
-                ),
-                None,
-            )
-            rev_conf = next(
-                (
-                    c
-                    for c in pcr.amplicon_generator.repliconfs
-                    if c.primer is amp.rev_origin
-                ),
-                None,
-            )
-            if fwd_conf is None or rev_conf is None:
-                continue
-            fwd_origin_point = fwd_conf.origin(amp.start)
-            rev_origin_point = rev_conf.origin(amp.end)
-            if fwd_origin_point is None or rev_origin_point is None:
-                continue
-            fwd_quality = fwd_origin_point.quality
-            rev_quality = rev_origin_point.quality
-
-            # Scale triangle size S based on quality score
-            fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
-            rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
-
-            fwd_bindings[amp.start.index] = (
-                amp.fwd_origin.name,
-                fwd_s,
-                fwd_conf,
-                amp.start,
-            )
-            rev_bindings[amp.end.index] = (
-                amp.rev_origin.name,
-                rev_s,
-                rev_conf,
-                amp.end,
-            )
-        return fwd_bindings, rev_bindings
-
-    def _calculate_shifted_x(
-        self,
-        bindings: dict[int, tuple[str, float, Any, Any]],
-        target_length: int,
-        t_width: float,
-        h_margin: float,
-        min_dist: float = 24.0,
-    ) -> dict[int, float]:
-        """Calculate shifted horizontal pixel positions to prevent overlap."""
-        if not bindings:
-            return {}
-
-        # List of (actual_idx, actual_x) sorted by X position
-        coords = []
-        for idx in bindings.keys():
-            x = (
-                h_margin + (idx / target_length * t_width)
-                if target_length
-                else h_margin
-            )
-            coords.append((idx, x))
-        coords.sort(key=lambda item: item[1])
-
-        # Simple cluster and distribute algorithm
-        n = len(coords)
-        shifted = dict(coords)
-
-        # We find overlapping segments/clusters
-        clusters = []
-        current_cluster = [coords[0]]
-
-        for i in range(1, n):
-            idx, x = coords[i]
-            _, prev_x = coords[i - 1]
-            # Check distance between original X of consecutive elements
-            if x - prev_x < min_dist:
-                current_cluster.append((idx, x))
-            else:
-                clusters.append(current_cluster)
-                current_cluster = [(idx, x)]
-        clusters.append(current_cluster)
-
-        # Now, spread out coordinates within each cluster
-        for cluster in clusters:
-            if len(cluster) <= 1:
-                continue
-            # Average X of the original positions in this cluster
-            avg_x = sum(x for _, x in cluster) / len(cluster)
-
-            # We want to space them evenly around avg_x
-            # Total width needed is (len - 1) * min_dist
-            k = len(cluster)
-            total_width = (k - 1) * min_dist
-            start_x = avg_x - total_width / 2.0
-
-            # Ensure we don't go out of canvas boundaries
-            min_canvas_x = h_margin
-            max_canvas_x = h_margin + t_width
-            if start_x < min_canvas_x:
-                start_x = min_canvas_x
-            elif start_x + total_width > max_canvas_x:
-                start_x = max_canvas_x - total_width
-
-            for idx_in_cluster, (idx, _) in enumerate(cluster):
-                shifted[idx] = start_x + idx_in_cluster * min_dist
-
-        return shifted
-
     def _draw_primers(
         self,
         fwd_bindings: dict[int, tuple[str, float, Any, Any]],
@@ -441,10 +283,10 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         v_target: float,
     ) -> None:
         """Draw forward and reverse primers using DrawnPrimer instances."""
-        fwd_shifted = self._calculate_shifted_x(
+        fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
             fwd_bindings, target_length, t_width, h_margin
         )
-        rev_shifted = self._calculate_shifted_x(
+        rev_shifted = PCRLayoutSolver.calculate_shifted_x(
             rev_bindings, target_length, t_width, h_margin
         )
 
