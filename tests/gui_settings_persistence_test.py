@@ -33,7 +33,9 @@ def test_get_config_path() -> None:
     with (
         patch("sys.platform", "win32"),
         patch.dict(
-            "os.environ", {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"}
+            "os.environ",
+            {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"},
+            clear=True,
         ),
     ):
         path = settings._get_config_path()
@@ -44,30 +46,31 @@ def test_get_config_path() -> None:
     # Test macOS
     with (
         patch("sys.platform", "darwin"),
-        patch("pathlib.Path.home", return_value=Path("/Users/test")),
+        patch.dict("os.environ", {"HOME": "/Users/test"}, clear=True),
     ):
         path = settings._get_config_path()
         assert (
-            str(path)
+            path.as_posix()
             == "/Users/test/Library/Application Support/AmplifyP/settings.yaml"
         )
 
     # Test Linux with XDG_CONFIG_HOME
     with (
         patch("sys.platform", "linux"),
-        patch.dict("os.environ", {"XDG_CONFIG_HOME": "/custom/config"}),
+        patch.dict(
+            "os.environ", {"XDG_CONFIG_HOME": "/custom/config"}, clear=True
+        ),
     ):
         path = settings._get_config_path()
-        assert str(path) == "/custom/config/amplifyp/settings.yaml"
+        assert path.as_posix() == "/custom/config/amplifyp/settings.yaml"
 
     # Test Linux without XDG_CONFIG_HOME
     with (
         patch("sys.platform", "linux"),
-        patch.dict("os.environ", {}),
-        patch("pathlib.Path.home", return_value=Path("/home/test")),
+        patch.dict("os.environ", {"HOME": "/home/test"}, clear=True),
     ):
         path = settings._get_config_path()
-        assert str(path) == "/home/test/.config/amplifyp/settings.yaml"
+        assert path.as_posix() == "/home/test/.config/amplifyp/settings.yaml"
 
 
 def test_desktop_save_to_local() -> None:

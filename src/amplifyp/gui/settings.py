@@ -519,15 +519,16 @@ class GUISettings:
             if appdata:
                 return Path(appdata) / "AmplifyP" / "settings.yaml"
             return (
-                Path.home()
+                Path(os.path.expanduser("~"))
                 / "AppData"
                 / "Roaming"
                 / "AmplifyP"
                 / "settings.yaml"
             )
         elif sys.platform.startswith("darwin"):
+            home = os.environ.get("HOME") or os.path.expanduser("~")
             return (
-                Path.home()
+                Path(home)
                 / "Library"
                 / "Application Support"
                 / "AmplifyP"
@@ -537,7 +538,8 @@ class GUISettings:
             xdg_config = os.environ.get("XDG_CONFIG_HOME")
             if xdg_config:
                 return Path(xdg_config) / "amplifyp" / "settings.yaml"
-            return Path.home() / ".config" / "amplifyp" / "settings.yaml"
+            home = os.environ.get("HOME") or os.path.expanduser("~")
+            return Path(home) / ".config" / "amplifyp" / "settings.yaml"
 
     def load_from_local(self, page: ft.Page) -> None:
         """Load settings from local storage.
