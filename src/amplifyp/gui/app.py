@@ -153,9 +153,10 @@ def main(page: ft.Page) -> None:
             switch_view(e, dimers_view)
             page.update()
 
-    def update_pcr_button_state() -> None:
+    def update_pcr_button_state(sync: bool = True) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
-        input_view.sync_to_state()
+        if sync:
+            input_view.sync_to_state()
         has_template = bool(input_data.template.strip())
         active_primers = input_data.get_active_primers()
         has_enough_primers = len(active_primers) >= 2
@@ -195,8 +196,8 @@ def main(page: ft.Page) -> None:
         page,
         input_data,
         settings,
-        on_change=lambda e: update_pcr_button_state(),
-        on_stop_editing=update_pcr_button_state,
+        on_change=lambda e: update_pcr_button_state(sync=False),
+        on_stop_editing=lambda: update_pcr_button_state(sync=False),
     )
     settings_view = SettingsView(
         page,

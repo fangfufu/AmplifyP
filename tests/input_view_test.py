@@ -588,6 +588,11 @@ def test_header_checkbox_click_all_active() -> None:
     view.primer_input.all_primers_checkbox.value = False
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(not p["active"] for p in non_empty)
 
 
@@ -619,6 +624,11 @@ def test_header_checkbox_click_partial() -> None:
     view.primer_input.all_primers_checkbox.value = None
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(not p["active"] for p in non_empty)
 
 
@@ -650,6 +660,11 @@ def test_header_checkbox_click_all_inactive() -> None:
     view.primer_input.all_primers_checkbox.value = True
     view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
 
+    non_empty = [
+        p
+        for p in input_data.primers
+        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
+    ]
     assert all(p["active"] for p in non_empty)
 
 

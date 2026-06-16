@@ -264,7 +264,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Clean up when the view is unmounted."""
         self._focus_debouncer.cancel()
 
-    def sync_to_state(self, rebuild_if_needed: bool = True) -> None:
+    def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
         """Sync current UI controls back to the central state."""
         self.template_input.sync_to_state()
         self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)

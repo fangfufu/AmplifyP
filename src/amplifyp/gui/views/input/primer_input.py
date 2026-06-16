@@ -265,7 +265,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
         return ui_primers
 
-    def sync_to_state(self, rebuild_if_needed: bool = True) -> bool:
+    def sync_to_state(self, rebuild_if_needed: bool = False) -> bool:
         """Sync current UI controls back to the central state.
 
         Returns True if a UI rebuild is needed.
@@ -458,14 +458,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         primers = self.input_data.primers
         if not primers:
             return
-        non_empty = [
-            p
-            for p in primers
-            if str(p.get("name", "")).strip()
-            or clean_sequence(str(p.get("seq", ""))).strip()
-        ]
-        if not non_empty:
-            return
 
         cb_value = self.all_primers_checkbox.value
         prev_value = self._prev_header_checkbox_value
@@ -482,25 +474,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             else:
                 target_active = True
 
-        for p in non_empty:
-            p["active"] = target_active
-
-        # Update checkbox values in-place on existing controls to avoid
-        # rebuilding the list
+        # Update checkbox values in-place on existing UI controls
         for row in self.primers_list.controls:
             if isinstance(row, PrimerRow) and row.data is not None:
                 idx = row.data
                 if idx < len(primers):
-                    p = primers[idx]
-                    is_non_empty = (
-                        str(p.get("name", "")).strip()
-                        or clean_sequence(str(p.get("seq", ""))).strip()
-                    )
-                    if is_non_empty and not row.checkbox.disabled:
-                        row.checkbox.value = target_active
+                    if target_active:
+                        if not row.checkbox.disabled:
+                            row.checkbox.value = True
+                    else:
+                        row.checkbox.value = False
 
         self._prev_header_checkbox_value = cb_value
-        self._update_header_checkbox_state()
         if self.on_change_handler:
             self.on_change_handler(e)
 
