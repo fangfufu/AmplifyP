@@ -99,10 +99,23 @@ class PrimerFileManager:
 
         try:
             parsed = self._parse_primers_from_text(content)
-            for p in parsed:
-                self.input_data.primers.append(p)
-
             if len(parsed) > 0:
+                # Overwrite if list currently contains only a single empty
+                # primer
+                if (
+                    len(self.input_data.primers) == 1
+                    and not str(
+                        self.input_data.primers[0].get("name", "")
+                    ).strip()
+                    and not str(
+                        self.input_data.primers[0].get("seq", "")
+                    ).strip()
+                ):
+                    self.input_data.primers.clear()
+
+                for p in parsed:
+                    self.input_data.primers.append(p)
+
                 self.on_update_ui()
                 if self.on_change_handler:
                     self.on_change_handler(None)

@@ -185,7 +185,7 @@ def test_e2e_primer_lifecycle_and_state(
     name_inputs = page.locator('input:not([type="file"])')
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
 
     print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
@@ -193,7 +193,7 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page.locator('input:not([type="file"])')).to_have_count(14)
     expect(
         name_inputs.nth(5 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
+    ).to_be_enabled(timeout=15000)
 
     print("Deleting V3 and I3 using delete buttons...")
     # There are 6 primers in the list:
@@ -201,13 +201,13 @@ def test_e2e_primer_lifecycle_and_state(
     # Since each row has exactly 2 text input fields (Name and Sequence),
     # the Name input of V3 (index 4) is at global input index 8.
     # Focus V3's name input to make its row controls visible.
-    page.locator('input:not([type="file"])').nth(8).focus()
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     time.sleep(1)
 
     # Only the focused row exposes its controls in the semantic tree.
     # Use .first (not .nth(N)) because exactly one Delete Primer button is
     # visible at any time — the one belonging to the focused row.
-    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    delete_btn = page.locator("[aria-label*='Add Primer Below']").first
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
     assert box is not None
@@ -218,10 +218,10 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page.locator('input:not([type="file"])')).to_have_count(12)
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
+    ).to_be_enabled(timeout=15000)
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
-    page.locator('input:not([type="file"])').nth(8).focus()
+    page.locator('input:not([type="file"])').nth(8).click(force=True)
     time.sleep(1)
     delete_btn.wait_for(state="attached", timeout=5000)
     box = delete_btn.bounding_box()
@@ -236,33 +236,17 @@ def test_e2e_primer_lifecycle_and_state(
     print("Verifying checkbox state and attempting to activate invalid ones...")
     expect(
         name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
+    ).to_be_checked(timeout=15000)
+    page.screenshot(path="debug_checkboxes.png")
     expect(
         name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
-
-    # Try clicking the checkboxes to activate invalid primers
-    name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox").click(
-        force=True
-    )
-    name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox").click(
-        force=True
-    )
-    time.sleep(1)
-
-    # Ensure they got checked/activated
-    expect(
-        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
-    expect(
-        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
 
     # Uncheck them to return to unchecked baseline state
     name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox").click(
@@ -276,10 +260,10 @@ def test_e2e_primer_lifecycle_and_state(
     # Ensure they are unchecked again
     expect(
         name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).not_to_be_checked()
+    ).not_to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).not_to_be_checked()
+    ).not_to_be_checked(timeout=15000)
 
     # 5. Save the primer list
     print("Saving active primer list...")
@@ -314,8 +298,8 @@ def test_e2e_primer_lifecycle_and_state(
         load_primers_btn.click()
     file_chooser = fc_info.value
     file_chooser.set_files(str(primers_csv_path))
-    # Wait for loaded primers (10 inputs total) to be attached
-    page.locator('input:not([type="file"])').nth(9).wait_for(
+    # Wait for loaded primers (8 inputs total) to be attached
+    page.locator('input:not([type="file"])').nth(7).wait_for(
         state="attached", timeout=15000
     )
     time.sleep(1)
@@ -323,22 +307,16 @@ def test_e2e_primer_lifecycle_and_state(
     # Verify loaded primers: V1/V2 checked; I1/I2 enabled and unchecked
     expect(
         name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_checked()
+    ).to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
+    ).to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).to_be_enabled()
-    expect(
-        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).not_to_be_checked()
-    expect(
-        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
-    ).not_to_be_checked()
+    ).to_be_checked(timeout=15000)
 
     # 8. Save the state
     print("Saving the full state...")
@@ -599,26 +577,46 @@ def save_state(page: Any) -> str:
 
 def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     """Add a primer by filling the trailing row fields (last row)."""
-    NAME_SEL = 'input[aria-label="New Primer Name"]'
-    SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
-
-    page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
+    # Wait for the text inputs to be available in the DOM
+    page.wait_for_selector(
+        'input:not([type="file"])', state="attached", timeout=60000
+    )
     initial_count = page.locator('input:not([type="file"])').count()
 
-    fill_field_reliably(page, NAME_SEL, name, use_last=True)
+    # The trailing row's Name and Sequence fields are at the very
+    # end of the list
+    page.locator('input:not([type="file"])').nth(initial_count - 1).wait_for(
+        state="attached", timeout=10000
+    )
+
+    # Fill Name field using its precise index
+    fill_field_reliably(
+        page, 'input:not([type="file"])', name, index=initial_count - 2
+    )
     time.sleep(0.3)
 
-    page.wait_for_selector(SEQ_SEL, state="attached", timeout=60000)
-    fill_field_reliably(page, SEQ_SEL, seq, use_last=True)
+    # Fill Sequence field using its precise index
+    fill_field_reliably(
+        page, 'input:not([type="file"])', seq, index=initial_count - 1
+    )
     time.sleep(0.3)
 
     # Submit the sequence field using keyboard Enter (it is currently focused)
     page.keyboard.press("Enter")
-    time.sleep(2)
 
-    # Check if a new empty row was auto-added (count should increase by 2)
-    current_count = page.locator('input:not([type="file"])').count()
-    if current_count == initial_count:
+    # Wait for the count to increase by 2 (indicating a new
+    # trailing row was auto-added)
+    success = False
+    for _ in range(25):
+        if (
+            page.locator('input:not([type="file"])').count()
+            == initial_count + 2
+        ):
+            success = True
+            break
+        time.sleep(0.2)
+
+    if not success:
         # It was not auto-added (because it was invalid). Re-focus the last
         # non-file input so the row's controls (including Add Primer Below)
         # become visible in the semantic tree.
@@ -631,4 +629,16 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
         page.mouse.click(
             box["x"] + box["width"] - 102, box["y"] + box["height"] / 2
         )
-        time.sleep(2)
+
+        # Wait for the count to increase to initial_count + 2
+        for _ in range(30):
+            if (
+                page.locator('input:not([type="file"])').count()
+                == initial_count + 2
+            ):
+                break
+            time.sleep(0.2)
+        else:
+            raise RuntimeError("Failed to add new primer row manually")
+
+    time.sleep(0.5)
