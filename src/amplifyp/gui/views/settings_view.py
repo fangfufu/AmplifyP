@@ -171,6 +171,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the color deficient mode checkbox."""
         return self.appearance_tile.set_color_deficient
 
+    @property
+    def set_improved_visualisation(self) -> ft.Checkbox:
+        """Get the improved visualisation mode checkbox."""
+        return self.appearance_tile.set_improved_visualisation
+
     def _build_action_buttons(self) -> ft.Row:
         """Build the Action buttons Row (Apply & Reset)."""
         return ft.Row(
@@ -246,6 +251,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "font_family": "Roboto Mono",
             "color_deficient": False,
             "dark_mode": "system",
+            "improved_visualisation": True,
         }
 
         for r_char in Nucleotides.PRIMER:

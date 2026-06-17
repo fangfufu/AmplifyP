@@ -137,11 +137,17 @@ def create_overlapped_sequence_view(
         # mid_line = primer row (black)
         # bottom_line = bonds (blue) + template (black)
         bottom_parts = bottom_line.split("\n")
-        if len(bottom_parts) >= 2:
+        if len(bottom_parts) == 3:
             bonds_line = bottom_parts[0]
+            comp_line = bottom_parts[1]
+            template_line = bottom_parts[2]
+        elif len(bottom_parts) >= 2:
+            bonds_line = bottom_parts[0]
+            comp_line = ""
             template_line = "\n".join(bottom_parts[1:])
         else:
             bonds_line = bottom_line
+            comp_line = ""
             template_line = ""
 
         spans = [
@@ -167,6 +173,16 @@ def create_overlapped_sequence_view(
                 ),
             ),
         ]
+        if comp_line:
+            spans.append(
+                ft.TextSpan(
+                    f"{comp_line}\n",
+                    style=ft.TextStyle(
+                        color=GUIColors.MUTED_GREY,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                )
+            )
         if template_line:
             spans.append(
                 ft.TextSpan(

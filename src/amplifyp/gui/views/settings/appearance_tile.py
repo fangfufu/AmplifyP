@@ -61,8 +61,16 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
         self._dummy_color_deficient = ft.Checkbox(visible=False)
 
+        self.set_improved_visualisation = ft.Checkbox(
+            label="Improved Visualisation Mode",
+        )
+        self.set_improved_visualisation.on_change = self.on_change_handler
+
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["color_deficient"] = self._dummy_color_deficient
+        self.settings_map["improved_visualisation"] = (
+            self.set_improved_visualisation
+        )
 
         super().__init__(
             title=ft.Text(
@@ -80,6 +88,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_font_family,
                                         self.set_color_scheme,
+                                        self.set_improved_visualisation,
                                         self._dummy_color_deficient,
                                     ],
                                     spacing=15,

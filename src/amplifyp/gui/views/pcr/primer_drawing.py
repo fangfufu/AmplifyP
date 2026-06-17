@@ -273,6 +273,7 @@ def format_context_lines(
     L: int,
     N: int,
     direction: DNADirection,
+    improved_visualisation: bool = False,
 ) -> tuple[str, str, str]:
     """Format context alignment lines for binding site context map."""
     if direction == DNADirection.FWD:
@@ -325,11 +326,25 @@ def format_context_lines(
     )
 
     context_line_prefix = "Context  "
-    bottom_line = (
-        f"{bonds_line}\n"
-        f"{context_line_prefix}5'-{upstream_seq}"
-        f"{binding_seq}{downstream_seq}-3'"
-    )
+    if improved_visualisation and direction == DNADirection.FWD:
+        from amplifyp.dna import GLOBAL_COMPLEMENT_TABLE
+
+        comp_upstream = upstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_line = (
+            f"{' ' * 9}3'-{comp_upstream}{comp_binding}{comp_downstream}-5'"
+        )
+        bottom_line = (
+            f"{bonds_line}\n"
+            f"{comp_line}\n"
+            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+        )
+    else:
+        bottom_line = (
+            f"{bonds_line}\n"
+            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+        )
 
     return top_line, primer_line, bottom_line
 
@@ -379,6 +394,9 @@ class ReplicationContextCard(DismissibleDetailCard):
             L=L,
             N=N,
             direction=var.direction,
+            improved_visualisation=bool(
+                settings.get("improved_visualisation", False)
+            ),
         )
 
         font_family = settings.get("font_family", "Roboto Mono")

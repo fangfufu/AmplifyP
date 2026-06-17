@@ -116,6 +116,11 @@ class _GUIColorsMeta(type):
         return cast(str, ft.Colors.GREY_400)
 
     @property
+    def MUTED_GREY(cls) -> str:
+        """Get muted/greyed out text color."""
+        return cast(str, ft.Colors.GREY_500)
+
+    @property
     def DUPLICATE_BG(cls) -> str:
         """Get duplicate warning background color."""
         if cls._dark_mode:
@@ -255,6 +260,7 @@ class GUISettings:
             "font_size_default": 14,
             "font_size_micro": 10,
             "font_size_table_header": 15,
+            "improved_visualisation": True,
         }
 
         # Initialize base-pair weights
