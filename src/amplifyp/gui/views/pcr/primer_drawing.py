@@ -279,7 +279,7 @@ def format_context_lines(
     if direction == DNADirection.FWD:
         start_genomic = (padded_idx - L) % N
         primer_display_seq = conf.primer.seq
-        primer_label = f"{primer_name} (Forward)"
+        primer_label = primer_name
         primer_ends = ("5'", "3'")
         strength_display = origin.binding_strength_str[::-1]
     else:
@@ -376,11 +376,7 @@ class ReplicationContextCard(DismissibleDetailCard):
             )
             return
 
-        primer_type = (
-            "Forward Primer"
-            if var.direction == DNADirection.FWD
-            else "Reverse Primer"
-        )
+        primer_type = "" if var.direction == DNADirection.FWD else "Reverse"
         L = len(conf.primer)
         N = len(conf.template)
 
@@ -469,9 +465,14 @@ class ReplicationContextCard(DismissibleDetailCard):
             ),
         ]
 
+        title = (
+            f"Context Map - {primer_name} ({primer_type}) Binding Site"
+            if primer_type
+            else f"Context Map - {primer_name} Binding Site"
+        )
         super().__init__(
             card_id=card_id,
-            title=(f"Context Map - {primer_name} ({primer_type}) Binding Site"),
+            title=title,
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,
