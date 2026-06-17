@@ -45,7 +45,7 @@ class DrawnPrimer:
         on_click: Callable[[], None],
         x_shifted: float | None = None,
     ) -> None:
-        """Initialize the DrawnPrimer."""
+        """Initialise the DrawnPrimer."""
         self.name = name
         self.index = index
         self.conf = conf
@@ -361,7 +361,7 @@ class ReplicationContextCard(DismissibleDetailCard):
         settings: Any,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialize the ReplicationContextCard."""
+        """Initialise the ReplicationContextCard."""
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)

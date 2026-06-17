@@ -49,7 +49,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         is_focused: bool,
         is_last_row: bool,
     ) -> None:
-        """Initialize the PrimerRow."""
+        """Initialise the PrimerRow."""
         has_err = bool(name_error or seq_error)
         super().__init__(
             data=idx,

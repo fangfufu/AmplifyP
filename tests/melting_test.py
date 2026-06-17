@@ -85,11 +85,11 @@ def test_salt_dependence() -> None:
     tm_low = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq), low_salt)
     tm_high = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq), high_salt)
 
-    # Higher salt should stabilize DNA, increasing Tm
+    # Higher salt should stabilise DNA, increasing Tm
     assert tm_high > tm_low
 
 
-def test_magnesium_stabilization() -> None:
+def test_magnesium_stabilisation() -> None:
     """Test that adding Mg2+ increases Tm."""
     # 50 mM Na+, 0 mM Mg++
     no_mg = replace(GLOBAL_TM_SETTINGS, divalent_salt_conc=0.0)

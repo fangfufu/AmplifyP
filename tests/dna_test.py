@@ -22,7 +22,7 @@ from amplifyp.errors import InvalidDNASequenceError, InvalidDNATypeError
 
 
 def test_dna_init() -> None:
-    """Test the initialization of a DNA object with a given sequence."""
+    """Test the initialisation of a DNA object with a given sequence."""
     dna = DNA("ATCG")
     assert dna.seq == "ATCG"
     assert dna.type == DNAType.LINEAR
@@ -96,7 +96,7 @@ def test_dna_str() -> None:
 
 
 def test_primer_init() -> None:
-    """Test the initialization of a Primer object."""
+    """Test the initialisation of a Primer object."""
     primer = Primer("ATCG")
     assert primer.seq == "ATCG"
     assert primer.type == DNAType.PRIMER

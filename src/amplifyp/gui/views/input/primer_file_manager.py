@@ -35,7 +35,7 @@ class PrimerFileManager:
         on_change_handler: Any,
         show_notification: Any,
     ) -> None:
-        """Initialize the PrimerFileManager."""
+        """Initialise the PrimerFileManager."""
         self.app_page = page
         self.input_data = input_data
         self.on_update_ui = on_update_ui
@@ -80,8 +80,8 @@ class PrimerFileManager:
             )
         return parsed_primers
 
-    def _serialize_primers_to_tsv(self, primers: list[dict[str, Any]]) -> str:
-        """Serialize primers list to a TSV string."""
+    def _serialise_primers_to_tsv(self, primers: list[dict[str, Any]]) -> str:
+        """Serialise primers list to a TSV string."""
         output = io.StringIO()
         writer = csv.writer(output, delimiter="\t")
         for p in primers:
@@ -143,7 +143,7 @@ class PrimerFileManager:
             self.show_notification("No primers to save.")
             return
 
-        tsv_content = self._serialize_primers_to_tsv(primers_to_save)
+        tsv_content = self._serialise_primers_to_tsv(primers_to_save)
 
         from amplifyp.gui.util import save_and_write_file
 

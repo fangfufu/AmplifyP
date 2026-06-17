@@ -33,7 +33,7 @@ from amplifyp.settings import ReplicationSettings
 
 
 def test_replication_origin_init() -> None:
-    """Test the initialization of a Origin object with invalid parameters."""
+    """Test the initialisation of a Origin object with invalid parameters."""
     with pytest.raises(ReplicationOriginLengthError):
         ReplicationOrigin(
             target="ATCG", primer="ATC", settings=ReplicationSettings()

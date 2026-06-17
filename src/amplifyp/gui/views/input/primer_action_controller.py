@@ -31,7 +31,7 @@ class PrimerActionController:
     """
 
     def __init__(self, owner: "PrimerInput") -> None:
-        """Initialize the PrimerActionController."""
+        """Initialise the PrimerActionController."""
         self.owner = owner
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:

@@ -87,7 +87,7 @@ class PrimerDimerGenerator:
     def __init__(
         self, settings: PrimerDimerSettings = GLOBAL_PRIMER_DIMER_SETTINGS
     ):
-        """Initialize the PrimerDimerGenerator.
+        """Initialise the PrimerDimerGenerator.
 
         Args:
             settings (PrimerDimerSettings): Settings to use for dimer

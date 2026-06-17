@@ -189,7 +189,7 @@ def test_input_view_clear_buttons() -> None:
 def test_input_view_primer_info_panel() -> None:
     """Test that the primer info panel displays correct information.
 
-    Verifies behavior when a primer is focused.
+    Verifies behaviour when a primer is focused.
     """
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()

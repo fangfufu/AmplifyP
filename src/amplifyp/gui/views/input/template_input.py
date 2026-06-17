@@ -39,7 +39,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         handle_field_submit: Any,
         clear_template_callback: Any,
     ) -> None:
-        """Initialize the TemplateInput component."""
+        """Initialise the TemplateInput component."""
         super().__init__(expand=5)
         self.app_page = page
         self.settings = settings

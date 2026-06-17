@@ -34,7 +34,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         on_divider_pan_end: Any,
         name_column_width: float,
     ) -> None:
-        """Initialize the PrimerHeader."""
+        """Initialise the PrimerHeader."""
         self.settings = settings
         self.all_primers_checkbox = ft.Checkbox(
             value=None,

@@ -40,7 +40,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the PCRView."""
+        """Initialise the PCRView."""
         super().__init__(expand=True)
         self.app_page = page
 

@@ -30,7 +30,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Any,
         header_size: int,
     ) -> None:
-        """Initialize the TmTile."""
+        """Initialise the TmTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler

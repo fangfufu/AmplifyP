@@ -28,7 +28,7 @@ class DuplicateRepliconfError(ValueError):
         self,
         message: str = "The Repliconf is already in the AmpliconGenerator.",
     ) -> None:
-        """Initialize the duplicate repliconf error."""
+        """Initialise the duplicate repliconf error."""
         super().__init__(message)
 
 
@@ -36,7 +36,7 @@ class PrimerNotFoundError(ValueError):
     """Exception raised when a primer is not found."""
 
     def __init__(self, primer: object) -> None:
-        """Initialize the primer not found error."""
+        """Initialise the primer not found error."""
         super().__init__(f"Primer {primer} not found")
 
 
@@ -44,7 +44,7 @@ class DuplicatedNameError(ValueError):
     """Exception raised when a primer name is already added."""
 
     def __init__(self, name: str) -> None:
-        """Initialize the duplicated name error."""
+        """Initialise the duplicated name error."""
         super().__init__(f"Primer name '{name}' already added")
 
 
@@ -52,7 +52,7 @@ class DuplicatedSequenceError(ValueError):
     """Exception raised when a primer sequence is already added."""
 
     def __init__(self, sequence: str) -> None:
-        """Initialize the duplicated sequence error."""
+        """Initialise the duplicated sequence error."""
         super().__init__(f"Primer sequence '{sequence}' already added")
 
 
@@ -60,7 +60,7 @@ class InvalidDNATypeError(TypeError):
     """Exception raised when a DNA type is not valid."""
 
     def __init__(self, message: str = "Invalid DNA type.") -> None:
-        """Initialize the invalid DNA type error."""
+        """Initialise the invalid DNA type error."""
         super().__init__(message)
 
 
@@ -68,7 +68,7 @@ class InvalidDNASequenceError(ValueError):
     """Exception raised when a DNA sequence contains invalid characters."""
 
     def __init__(self, invalid_chars: set[str] | list[str]) -> None:
-        """Initialize the invalid DNA sequence error."""
+        """Initialise the invalid DNA sequence error."""
         sorted_chars = ", ".join(sorted(invalid_chars))
         super().__init__(
             f"The DNA sequence contains invalid characters: {sorted_chars}"
@@ -85,7 +85,7 @@ class ReplicationOriginLengthError(ValueError):
         self,
         message: str = "The target has to have the same length as the primer.",
     ) -> None:
-        """Initialize the replication origin length error."""
+        """Initialise the replication origin length error."""
         super().__init__(message)
 
 
@@ -96,7 +96,7 @@ class BasePairTableDimensionError(ValueError):
 class RowLengthMismatchError(BasePairTableDimensionError):
     """Exception raised when a weight table's row length does not match.
 
-    The row length must match the expected size at initialization.
+    The row length must match the expected size at initialisation.
     """
 
     def __init__(
@@ -105,14 +105,14 @@ class RowLengthMismatchError(BasePairTableDimensionError):
             "BasePairWeightsTbl: row length mismatch at initialisation."
         ),
     ) -> None:
-        """Initialize the row length mismatch error."""
+        """Initialise the row length mismatch error."""
         super().__init__(message)
 
 
 class ColumnLengthMismatchError(BasePairTableDimensionError):
     """Exception raised when a weight table's column length does not match.
 
-    The column length must match the expected size at initialization.
+    The column length must match the expected size at initialisation.
     """
 
     def __init__(
@@ -121,7 +121,7 @@ class ColumnLengthMismatchError(BasePairTableDimensionError):
             "BasePairWeightsTbl: column length mismatch at initialisation."
         ),
     ) -> None:
-        """Initialize the column length mismatch error."""
+        """Initialise the column length mismatch error."""
         super().__init__(message)
 
 
@@ -135,7 +135,7 @@ class InvalidStartDirectionError(AmpliconDirectionError):
     def __init__(
         self, message: str = "Start direction must be forward."
     ) -> None:
-        """Initialize the invalid start direction error."""
+        """Initialise the invalid start direction error."""
         super().__init__(message)
 
 
@@ -143,7 +143,7 @@ class InvalidEndDirectionError(AmpliconDirectionError):
     """Exception raised when an amplicon end direction is not REV."""
 
     def __init__(self, message: str = "End direction must be reverse.") -> None:
-        """Initialize the invalid end direction error."""
+        """Initialise the invalid end direction error."""
         super().__init__(message)
 
 
@@ -159,7 +159,7 @@ class InvalidIndexOrderError(ValueError):
             "End index must be greater than start index for linear DNA."
         ),
     ) -> None:
-        """Initialize the invalid index order error."""
+        """Initialise the invalid index order error."""
         super().__init__(message)
 
 
@@ -177,7 +177,7 @@ class TemplateMismatchError(ValueError):
             "AmpliconGenerator."
         ),
     ) -> None:
-        """Initialize the template mismatch error."""
+        """Initialise the template mismatch error."""
         super().__init__(message)
 
 
@@ -195,5 +195,5 @@ class InvalidAmpliconRangeError(NotImplementedError):
             "bigger than the end index on a linear DNA template."
         ),
     ) -> None:
-        """Initialize the invalid amplicon range error."""
+        """Initialise the invalid amplicon range error."""
         super().__init__(message)

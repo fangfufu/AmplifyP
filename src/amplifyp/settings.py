@@ -50,7 +50,7 @@ class LengthWiseWeightTbl:
         default_weight: float = 0,
         overrides: dict[int, float] | None = None,
     ) -> None:
-        """Initialize a LengthWiseWeightTbl object.
+        """Initialise a LengthWiseWeightTbl object.
 
         Args:
             default_weight (float, optional): The default weight to use when a
@@ -137,7 +137,7 @@ class BasePairWeightsTbl:
         self.__weight: dict[tuple[str, str], float] = {}
         self.__row_max: dict[str, float] = {}
 
-        # Optimized lookups
+        # Optimised lookups
         self.__matrix: list[list[float]] = [
             [0.0] * len(self.__col) for _ in range(len(self.__row))
         ]
@@ -380,7 +380,7 @@ DEFAULT_PRIMER_DIMER_SYMBOL_THRESHOLD: Final[float] = 10.0
 class ReplicationSettings:
     """A configuration class for replication settings.
 
-    This class aggregates all parameters required for analyzing replication
+    This class aggregates all parameters required for analysing replication
     origins. It includes scoring tables for base pairing and run lengths, as
     well as cutoff thresholds for filtering results.
 

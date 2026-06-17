@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Utility functions for sequence handling and state serialization."""
+"""Utility functions for sequence handling and state serialisation."""
 
 import os
 import subprocess
@@ -74,8 +74,8 @@ def format_sequence(seq: str, wrap_length: int = 80) -> str:
     )
 
 
-def serialize_state(state: dict[str, object]) -> str:
-    """Serialize state dict to YAML string, handling multiline strings."""
+def serialise_state(state: dict[str, object]) -> str:
+    """Serialise state dict to YAML string, handling multiline strings."""
 
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         if "\n" in data:
@@ -233,7 +233,7 @@ class Debouncer:
     """A thread-based debounce helper for delaying UI actions."""
 
     def __init__(self, delay_seconds: float = 0.15) -> None:
-        """Initialize the Debouncer."""
+        """Initialise the Debouncer."""
         self.delay_seconds = delay_seconds
         self._timer: threading.Timer | None = None
 
@@ -259,7 +259,7 @@ class Debouncer:
             self._timer = None
 
 
-def initialize_score_fields(
+def initialise_score_fields(
     settings_map: dict[str, Any],
     prefix: str,
     row_headers: list[str],
@@ -267,7 +267,7 @@ def initialize_score_fields(
     on_change_handler: Any,
     font_size: int,
 ) -> None:
-    """Initialize a grid of text fields for a score table in settings_map."""
+    """Initialise a grid of text fields for a score table in settings_map."""
     from amplifyp.gui.colours import GUIColours
 
     for r_char in row_headers:
@@ -507,12 +507,12 @@ async def save_and_write_file(
 class NotificationHelper:
     """Helper class to manage user notifications and messages.
 
-    Wraps flet SnackBar usage to allow easy swapping to dialogs or other
+    Wraps flet SnackBar usage to allow easy swapping to dialogues or other
     components.
     """
 
     def __init__(self, page: ft.Page) -> None:
-        """Initialize the NotificationHelper."""
+        """Initialise the NotificationHelper."""
         self.page = page
         self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
         self.page.overlay.append(self._snack_bar)

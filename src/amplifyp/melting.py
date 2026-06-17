@@ -16,7 +16,7 @@
 """Primer melting temperature calculation module.
 
 This module provides functions to calculate the melting temperature (Tm) of
-DNA primers using the Nearest-Neighbor thermodynamics model.
+DNA primers using the Nearest-Neighbour thermodynamics model.
 """
 
 import math
@@ -33,7 +33,7 @@ from .settings import (
 # Keys are dinucleotides (5'->3')
 # Source: SantaLucia, J. (1998). "A unified view of polymer, dumbbell, and
 # oligonucleotide DNA
-# nearest-neighbor thermodynamics". PNAS, 95(4), 1460-1465.
+# nearest-neighbour thermodynamics". PNAS, 95(4), 1460-1465.
 NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "AA": (-7900, -22.2),
     "TT": (-7900, -22.2),
@@ -59,7 +59,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 ) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
 
-    Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic
+    Uses the Nearest-Neighbour model with SantaLucia 1998 thermodynamic
     parameters and salt corrections.
 
     Formula used:
@@ -119,7 +119,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbor steps
+    # Nearest neighbour steps
     for i in range(n - 1):
         dinuc = seq[i : i + 2]
         if dinuc in NN_THERMO_DATA:
@@ -267,7 +267,7 @@ def calculate_tm_lander_amplify4(
     entr: float = 108.0
     enth: float = 0.0
 
-    # Sum neighbors
+    # Sum neighbours
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
     for i in range(seq_len - 1):

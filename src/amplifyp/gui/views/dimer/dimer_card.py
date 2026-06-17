@@ -34,7 +34,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         settings: GUISettings,
         font_family: str = "Roboto Mono",
     ) -> None:
-        """Initialize the DimerCard."""
+        """Initialise the DimerCard."""
         super().__init__()
         self.d = d
         self.settings = settings

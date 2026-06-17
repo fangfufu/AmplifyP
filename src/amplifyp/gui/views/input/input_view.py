@@ -40,7 +40,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         on_change: Any | None = None,
         on_stop_editing: Any | None = None,
     ) -> None:
-        """Initialize the InputView."""
+        """Initialise the InputView."""
         super().__init__(
             expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
         )
@@ -388,7 +388,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.input_data.get_active_primers()
 
     def get_all_primers_state(self) -> list[dict[str, Any]]:
-        """Get all primers (active and inactive) for serialization."""
+        """Get all primers (active and inactive) for serialisation."""
         primers: list[dict[str, Any]] = []
         for p in self.input_data.primers:
             if (
@@ -406,7 +406,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         return primers
 
     def get_state(self) -> dict[str, Any]:
-        """Get the current input data state for serialization."""
+        """Get the current input data state for serialisation."""
         self.sync_to_state()
         return self.input_data.to_dict()
 

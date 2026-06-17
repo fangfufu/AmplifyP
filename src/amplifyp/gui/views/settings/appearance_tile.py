@@ -30,7 +30,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Any,
         header_size: int,
     ) -> None:
-        """Initialize the AppearanceTile."""
+        """Initialise the AppearanceTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler

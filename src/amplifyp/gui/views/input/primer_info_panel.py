@@ -29,7 +29,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
-        """Initialize the PrimerInfoPanel."""
+        """Initialise the PrimerInfoPanel."""
         super().__init__()
         self.settings = settings
         self._on_dismiss_callback: Any = None

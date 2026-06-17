@@ -50,7 +50,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         clear_primers_callback: Any,
         delete_selected_callback: Any,
     ) -> None:
-        """Initialize the PrimerInput component."""
+        """Initialise the PrimerInput component."""
         super().__init__(expand=5)
         self.app_page = page
         self.settings = settings

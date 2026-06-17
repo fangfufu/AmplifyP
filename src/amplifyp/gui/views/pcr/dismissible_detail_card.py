@@ -32,7 +32,7 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         dismiss_callback: Callable[[ft.Card], None],
         body_controls: list[ft.Control],
     ) -> None:
-        """Initialize the DismissibleDetailCard."""
+        """Initialise the DismissibleDetailCard."""
         super().__init__()
         self._card_id = card_id
 

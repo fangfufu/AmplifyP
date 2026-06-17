@@ -30,7 +30,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         self,
         primer_input: Any,
     ) -> None:
-        """Initialize the PrimerList."""
+        """Initialise the PrimerList."""
         super().__init__(
             expand=True,
             spacing=0,
@@ -54,7 +54,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         )
         self.controls.clear()
 
-        # Initialize with a single empty row if the list is completely empty
+        # Initialise with a single empty row if the list is completely empty
         if not self.primer_input.input_data.primers:
             self.primer_input.input_data.primers = [
                 {"name": "", "seq": "", "active": False}

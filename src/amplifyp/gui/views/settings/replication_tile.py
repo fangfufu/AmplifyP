@@ -35,7 +35,7 @@ class ReplicationTile(BaseScoreTile):
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialize the ReplicationTile."""
+        """Initialise the ReplicationTile."""
         from amplifyp.dna import Nucleotides
 
         self.set_primability_cutoff = ft.TextField(

@@ -24,7 +24,7 @@ import yaml
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, get_version, serialize_state
+from amplifyp.gui.util import NotificationHelper, get_version, serialise_state
 from amplifyp.gui.views import (
     DimerView,
     InputView,
@@ -37,7 +37,7 @@ class GUIController:
     """Manages GUI state, event handlers, views and main orchestration."""
 
     def __init__(self, page: ft.Page) -> None:
-        """Initialize the GUIController."""
+        """Initialise the GUIController."""
         self.page = page
         self.input_data = GUIInput()
         self.settings = GUISettings()
@@ -69,7 +69,7 @@ class GUIController:
             NotificationHelper, None
         )
 
-    def initialize(self) -> None:
+    def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
         self.page.overlay.clear()
         self.page.title = "AmplifyP"
@@ -440,7 +440,7 @@ class GUIController:
                 "input": self.input_data.to_dict(),
                 "settings": self.settings.to_dict(),
             }
-            yaml_str = serialize_state(combined)
+            yaml_str = serialise_state(combined)
 
             from amplifyp.gui.util import save_and_write_file
 

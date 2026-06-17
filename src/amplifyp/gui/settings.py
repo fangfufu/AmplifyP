@@ -54,7 +54,7 @@ class GUISettings:
     """Encapsulates configuration settings for the GUI."""
 
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
-        """Initialize GUISettings with optional dictionary or defaults."""
+        """Initialise GUISettings with optional dictionary or defaults."""
         from amplifyp.dna import Nucleotides
 
         self._settings: dict[str, Any] = {
@@ -85,7 +85,7 @@ class GUISettings:
             "improved_visualisation": True,
         }
 
-        # Initialize base-pair weights
+        # Initialise base-pair weights
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.TEMPLATE:
                 if c_char == Nucleotides.GAP:
@@ -95,7 +95,7 @@ class GUISettings:
                     DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char]
                 )
 
-        # Initialize primer-dimer weights
+        # Initialise primer-dimer weights
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.PRIMER:
                 key = f"pd_score_{r_char}_{c_char}"
@@ -294,7 +294,7 @@ class GUISettings:
         return calculate_tm_santalucia_1998_owczarzy_2008(primer, tm_settings)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert settings to a dictionary for serialization."""
+        """Convert settings to a dictionary for serialisation."""
         return dict(self._settings)
 
     def from_dict(self, settings_dict: dict[str, Any]) -> None:

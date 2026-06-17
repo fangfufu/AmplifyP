@@ -35,7 +35,7 @@ class DimerTile(BaseScoreTile):
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialize the DimerTile."""
+        """Initialise the DimerTile."""
         from amplifyp.dna import Nucleotides
 
         self.set_pd_min_overlap = ft.TextField(
