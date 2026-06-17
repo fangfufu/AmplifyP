@@ -249,7 +249,7 @@ class GUIController:
         self.visible_header_divider = ft.Container(
             width=1,
             height=20,
-            bgcolor=ft.Colors.OUTLINE,
+            bgcolor=GUIColors.OUTLINE,
         )
 
         app_version = get_version()
@@ -311,7 +311,7 @@ class GUIController:
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             padding=ft.Padding(16, 8, 16, 8),
-            bgcolor=ft.Colors.SURFACE,
+            bgcolor=GUIColors.SURFACE,
         )
 
         self.page.add(
@@ -339,7 +339,7 @@ class GUIController:
             is_dark = True
         else:
             self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = ft.Colors.WHITE
+            self.page.bg_color = GUIColors.WHITE
             is_dark = False
         GUIColors.dark_mode = is_dark
 

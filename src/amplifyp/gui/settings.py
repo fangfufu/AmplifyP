@@ -90,6 +90,11 @@ class _GUIColorsMeta(type):
         )
 
     @property
+    def SURFACE(cls) -> str:
+        """Get standard surface color."""
+        return cast(str, ft.Colors.SURFACE)
+
+    @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant color."""
         return cast(str, ft.Colors.OUTLINE_VARIANT)
@@ -214,6 +219,11 @@ class _GUIColorsMeta(type):
             if cls._color_deficient_mode
             else ft.Colors.RED_800,
         )
+
+    @property
+    def WHITE(cls) -> str:
+        """Get standard white color."""
+        return cast(str, ft.Colors.WHITE)
 
     @property
     def TRANSPARENT(cls) -> str:
