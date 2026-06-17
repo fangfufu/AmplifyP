@@ -47,6 +47,7 @@ def test_gui_state_save_load() -> None:
     settings_view = SettingsView(mock_page)
     settings_view.set_primability_cutoff.value = "0.9"
     settings_view.set_amp4_compat.value = True
+    settings_view.set_improved_visualisation.value = True
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
@@ -120,6 +121,7 @@ def test_gui_state_save_load() -> None:
     # Verify SettingsView
     assert new_settings_view.set_primability_cutoff.value == "0.9"
     assert new_settings_view.set_amp4_compat.value
+    assert new_settings_view.set_improved_visualisation.value
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
@@ -129,6 +131,7 @@ def test_gui_state_save_load() -> None:
     )
     assert new_settings_view.settings["dark_mode"] is True
     assert new_settings_view.settings["color_deficient"] is True
+    assert new_settings_view.settings["improved_visualisation"] is True
     assert new_settings_view.settings_map["bp_score_G_G"].value == "99.0"
     assert new_settings_view.settings_map["pd_score_G_G"].value == "99.0"
     # Check a default value wasn't changed
@@ -165,7 +168,7 @@ def test_settings_view_buttons() -> None:
     # Change some values
     settings_view.set_primability_cutoff.value = "0.95"
     settings_view.set_amp4_compat.value = True
-    settings_view.set_tm_method.value = "Lander / Amplify 4"
+    settings_view.set_improved_visualisation.value = True
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
@@ -183,7 +186,7 @@ def test_settings_view_buttons() -> None:
     assert apply_called
     assert settings_view.settings["primability_cutoff"] == "0.95"
     assert settings_view.settings["amp4_compat"] is True
-    assert settings_view.settings["tm_method"] == "Lander / Amplify 4"
+    assert settings_view.settings["improved_visualisation"] is True
     assert settings_view.settings["bp_score_G_G"] == "50.0"
     assert settings_view.settings["pd_score_G_G"] == "50.0"
 
@@ -196,9 +199,11 @@ def test_settings_view_buttons() -> None:
     )
     assert settings_view.settings["bp_score_G_G"] == "100"
     assert settings_view.settings["pd_score_G_G"] == "-20"
+    assert settings_view.settings["improved_visualisation"] is True
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
+    assert settings_view.set_improved_visualisation.value is True
     assert (
         settings_view.set_tm_method.value
         == "SantaLucia 1998 / Owczarzy 2008 (Default)"

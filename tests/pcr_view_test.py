@@ -347,3 +347,59 @@ def test_pcr_view_primers_same_3prime_end_different_5prime() -> None:
     ]
     assert "P1" in texts
     assert "P2" in texts
+
+
+def test_pcr_view_click_context_map_improved_visualisation() -> None:
+    """Test clicking a primer binding site shows RC strand in context map."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    # Turn on improved visualisation
+    view.settings["improved_visualisation"] = True
+    view.run_pcr()
+
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) >= 2
+
+    # Click on the first gesture detector (forward binding site)
+    fwd_detector = gesture_detectors[0]
+    fwd_detector.on_tap(MagicMock())
+
+    assert len(view.result_list.controls) == 1
+    card = view.result_list.controls[0]
+    assert isinstance(card, ft.Card)
+
+    # Extract diagram_text
+    diagram_text = card.content.content.controls[2].content.controls[0]
+    assert isinstance(diagram_text, ft.Text)
+
+    # Check spans
+    # It should have a span for the comp_line with MUTED_GREY color
+    from amplifyp.gui.settings import GUIColors
+
+    comp_spans = [
+        span
+        for span in diagram_text.spans
+        if getattr(span, "style", None)
+        and span.style.color == GUIColors.MUTED_GREY
+    ]
+    assert len(comp_spans) == 1
+    # Check that it contains "3'-" and "-5'" and the translated comp sequence
+    assert "3'-" in comp_spans[0].text
+    assert "-5'" in comp_spans[0].text
