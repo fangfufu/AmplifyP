@@ -19,7 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colours import GUIColours
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]
@@ -61,7 +61,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             70,
                             34,
                             paint=ft.Paint(
-                                color=GUIColors.DIVIDER_GREY,
+                                color=GUIColours.DIVIDER_GREY,
                                 stroke_width=1,
                             ),
                         )
@@ -150,12 +150,12 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             rows.append(ft.DataRow(cells=cells))
 
         table = ft.DataTable(
-            border=ft.Border.all(1, GUIColors.TRANSPARENT),
-            vertical_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
-            horizontal_lines=ft.BorderSide(1, GUIColors.DIVIDER_GREY),
+            border=ft.Border.all(1, GUIColours.TRANSPARENT),
+            vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
+            horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
             column_spacing=10,
             horizontal_margin=10,
-            heading_row_color=GUIColors.INFO_HEADER_BG,
+            heading_row_color=GUIColours.INFO_HEADER_BG,
             heading_row_height=40,
             data_row_min_height=36,
             data_row_max_height=36,
@@ -174,7 +174,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     [
                         ft.Container(
                             content=table,
-                            border=ft.Border.all(1, GUIColors.OUTLINE),
+                            border=ft.Border.all(1, GUIColours.OUTLINE),
                             border_radius=5,
                             padding=0,
                         )

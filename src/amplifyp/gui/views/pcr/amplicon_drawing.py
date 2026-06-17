@@ -21,7 +21,7 @@ from typing import Any
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colours import GUIColours
 
 from .dismissible_detail_card import DismissibleDetailCard
 
@@ -89,7 +89,7 @@ class DrawnAmplicon:
         """Draw the amplicon bar, text label, and gesture detector overlay."""
         # Amplicon Bar (Black, filling path)
         amp_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.FILL,
         )
         if self.amp.circular:
@@ -132,7 +132,7 @@ class DrawnAmplicon:
             )
             label_x = self.x_start + ((self.x_end - self.x_start) / 2.0)
 
-        # Amplicon Length Text (just number, black, centered)
+        # Amplicon Length Text (just number, black, centred)
         canvas.shapes.append(
             cv.Text(
                 label_x,
@@ -140,7 +140,7 @@ class DrawnAmplicon:
                 str(len(self.amp.product)),
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_amplicon", 13),
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
                 alignment=ft.Alignment(0.0, -1.0),
             )
@@ -159,7 +159,7 @@ class DrawnAmplicon:
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda _: self.on_click(),
                 content=ft.Container(
-                    bgcolor=GUIColors.TRANSPARENT,
+                    bgcolor=GUIColours.TRANSPARENT,
                     width=amp_width,
                     height=20 + self.bar_height,
                 ),
@@ -207,20 +207,20 @@ class AmpliconDetailCard(DismissibleDetailCard):
                 ft.TextSpan(
                     fwd_part,
                     style=ft.TextStyle(
-                        color=GUIColors.FWD_PRIMER,
+                        color=GUIColours.FWD_PRIMER,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
                 ft.TextSpan(
                     mid_part,
                     style=ft.TextStyle(
-                        color=GUIColors.TEXT_ON_SURFACE,
+                        color=GUIColours.TEXT_ON_SURFACE,
                     ),
                 ),
                 ft.TextSpan(
                     rev_part,
                     style=ft.TextStyle(
-                        color=GUIColors.REV_LABEL,
+                        color=GUIColours.REV_LABEL,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
@@ -237,7 +237,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                     ft.TextSpan(
                         amp.fwd_origin.name,
                         style=ft.TextStyle(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             weight=ft.FontWeight.BOLD,
                         ),
                     ),
@@ -245,7 +245,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                     ft.TextSpan(
                         amp.rev_origin.name,
                         style=ft.TextStyle(
-                            color=GUIColors.REV_LABEL,
+                            color=GUIColours.REV_LABEL,
                             weight=ft.FontWeight.BOLD,
                         ),
                     ),
@@ -266,7 +266,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                 content=sequence_text,
                 padding=12,
                 border_radius=6,
-                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+                border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             ),
         ]
 

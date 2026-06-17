@@ -19,7 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colours import GUIColours
 
 
 class PrimerRow(ft.Container):  # type: ignore[misc]
@@ -53,7 +53,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         has_err = bool(name_error or seq_error)
         super().__init__(
             data=idx,
-            bgcolor=GUIColors.DUPLICATE_BG if is_dup else None,
+            bgcolor=GUIColours.DUPLICATE_BG if is_dup else None,
             padding=0,
             height=30 if not has_err else None,
         )
@@ -108,7 +108,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_pan_end=on_divider_pan_end,
             content=ft.Container(
                 width=4,
-                bgcolor=GUIColors.DIVIDER_GREY,
+                bgcolor=GUIColours.DIVIDER_GREY,
                 margin=0,
                 height=30,
             ),
@@ -117,7 +117,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         self.active_divider = ft.Container(
             width=4,
-            bgcolor=GUIColors.DIVIDER_GREY,
+            bgcolor=GUIColours.DIVIDER_GREY,
             margin=0,
             height=30,
         )
@@ -192,11 +192,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
     ) -> None:
-        """Update the background color and reorder buttons layout."""
+        """Update the background colour and reorder buttons layout."""
         if is_focused:
-            self.bgcolor = GUIColors.SELECTED_ROW_BG
+            self.bgcolor = GUIColours.SELECTED_ROW_BG
         elif is_dup:
-            self.bgcolor = GUIColors.DUPLICATE_BG
+            self.bgcolor = GUIColours.DUPLICATE_BG
         else:
             self.bgcolor = None  # type: ignore[assignment]
 

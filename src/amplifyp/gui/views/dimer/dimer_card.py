@@ -18,7 +18,8 @@
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.util import (
     create_overlapped_sequence_view,
 )
@@ -93,7 +94,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             ),
             padding=12,
             border_radius=6,
-            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+            border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             height=110,
         )
 
@@ -131,10 +132,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 f"Overlap: {self.d.overlap} bp",
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.DIAGRAM_BLACK,
+                                color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.SELECTED_ROW_BG,
+                            bgcolor=GUIColours.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),
@@ -142,10 +143,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 quality_text,
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.DIAGRAM_BLACK,
+                                color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.SELECTED_ROW_BG,
+                            bgcolor=GUIColours.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),

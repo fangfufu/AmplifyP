@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, clean_sequence
 
@@ -119,14 +120,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 "PCR and Primer Dimer views are disabled because "
                 "one or more selected (active) primers are invalid."
             ),
-            color=GUIColors.ERROR_RED,
+            color=GUIColours.ERROR_RED,
             weight=ft.FontWeight.BOLD,
             size=13,
         )
         self.error_banner = ft.Container(
             content=self.error_message_text,
             padding=ft.Padding(10, 5, 10, 5),
-            bgcolor=GUIColors.DUPLICATE_BG,
+            bgcolor=GUIColours.DUPLICATE_BG,
             border_radius=5,
             visible=False,
         )
@@ -168,7 +169,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                         spacing=0,
                     ),
                     expand=True,
-                    border=ft.Border.all(1, GUIColors.OUTLINE),
+                    border=ft.Border.all(1, GUIColours.OUTLINE),
                     border_radius=5,
                     padding=0,
                 ),
@@ -269,7 +270,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             container = p["container"]
             c_idx = container.data
             is_dup = c_idx in dup_indices
-            new_color = GUIColors.DUPLICATE_BG if is_dup else None
+            new_color = GUIColours.DUPLICATE_BG if is_dup else None
             if container.bgcolor != new_color:
                 container.bgcolor = new_color
 
@@ -408,7 +409,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         return self._get_duplicate_indices_for_list(self.input_data.primers)
 
     def _update_row_highlights(self) -> None:
-        """Update background colors of all row containers.
+        """Update background colours of all row containers.
 
         Highlights rows based on selection and duplicates.
         """

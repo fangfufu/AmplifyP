@@ -76,7 +76,7 @@ def test_input_view_row_boxes_editing() -> None:
 
 
 def test_input_view_duplicate_warning() -> None:
-    """Test that rows with duplicate names or sequences are colored red."""
+    """Test that rows with duplicate names or sequences are coloured red."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.primers = [
@@ -95,7 +95,7 @@ def test_input_view_duplicate_warning() -> None:
     second_row.controls[2].value = "P1"
     view.sync_to_state()
 
-    # Both rows should have color warning set to RED_100
+    # Both rows should have colour warning set to RED_100
     assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_100
     assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
 
@@ -279,8 +279,8 @@ def test_input_view_sequence_validation() -> None:
 
 
 def test_input_view_row_highlighting() -> None:
-    """Test focusing a primer row updates the background color."""
-    from amplifyp.gui.settings import GUIColors
+    """Test focusing a primer row updates the background colour."""
+    from amplifyp.gui.colours import GUIColours
 
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
@@ -302,7 +302,7 @@ def test_input_view_row_highlighting() -> None:
     mock_event.control.data = 0
     view._handle_field_focus(mock_event)
 
-    assert view.primers_list.controls[0].bgcolor == GUIColors.SELECTED_ROW_BG
+    assert view.primers_list.controls[0].bgcolor == GUIColours.SELECTED_ROW_BG
     assert view.primers_list.controls[1].bgcolor is None
 
     # Focus on the second primer row (index 1)
@@ -310,12 +310,12 @@ def test_input_view_row_highlighting() -> None:
     view._handle_field_focus(mock_event)
 
     assert view.primers_list.controls[0].bgcolor is None
-    assert view.primers_list.controls[1].bgcolor == GUIColors.SELECTED_ROW_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.SELECTED_ROW_BG
 
 
 def test_input_view_row_single_click() -> None:
     """Test that a single click on the row container focuses it."""
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colours import GUIColours
 
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
@@ -334,7 +334,7 @@ def test_input_view_row_single_click() -> None:
     container.on_click(MagicMock())
 
     assert view.focused_primer_index == 0
-    assert container.bgcolor == GUIColors.SELECTED_ROW_BG
+    assert container.bgcolor == GUIColours.SELECTED_ROW_BG
     name_field.focus.assert_called_once()
 
 

@@ -21,7 +21,8 @@ from typing import Any
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
 
 from .amplicon_drawing import DrawnAmplicon
@@ -66,7 +67,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container = ft.Container(
             content=self.diagram_scrollable,
             visible=False,
-            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border=ft.Border.all(1, GUIColours.OUTLINE),
             border_radius=5,
             padding=10,
             height=300,
@@ -75,7 +76,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             on_pan_update=self._on_pan_update,
             content=ft.Container(
                 height=5,
-                bgcolor=GUIColors.DIVIDER_GREY,
+                bgcolor=GUIColours.DIVIDER_GREY,
                 border_radius=5,
                 margin=ft.Margin.symmetric(vertical=5),
             ),
@@ -184,7 +185,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Draw boundary lines, baseline, ticks, and texts."""
         # Draw vertical boundary lines at start and end of template
         boundary_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.STROKE,
             stroke_width=1.0,
         )
@@ -216,7 +217,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_baseline", 16),
                     weight=ft.FontWeight.BOLD,
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
             )
         )
@@ -228,7 +229,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_baseline", 16),
                     weight=ft.FontWeight.BOLD,
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
                 alignment=ft.Alignment(1.0, -1.0),
             )
@@ -242,7 +243,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                     cv.Path.LineTo(c_width - h_margin, v_target),
                 ],
                 paint=ft.Paint(
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                     style=ft.PaintingStyle.STROKE,
                     stroke_width=2.5,
                 ),
@@ -257,7 +258,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             tick_interval = 500
 
         tick_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.STROKE,
             stroke_width=1.0,
         )

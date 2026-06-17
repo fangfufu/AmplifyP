@@ -13,16 +13,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Centralized GUI settings and color definitions."""
+"""Centralised GUI settings and configuration."""
 
 import os
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 import yaml
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -49,185 +50,6 @@ if TYPE_CHECKING:
     )
 
 
-class _GUIColorsMeta(type):
-    """Metaclass for GUIColors to support dynamic color shifting."""
-
-    @property
-    def color_deficient_mode(cls) -> bool:
-        """Get color deficient mode status."""
-        return cls._color_deficient_mode
-
-    @color_deficient_mode.setter
-    def color_deficient_mode(cls, value: bool) -> None:
-        """Set color deficient mode status."""
-        cls._color_deficient_mode = value
-
-    @property
-    def dark_mode(cls) -> bool:
-        """Get dark mode status."""
-        return cls._dark_mode
-
-    @dark_mode.setter
-    def dark_mode(cls, value: bool) -> None:
-        """Set dark mode status."""
-        cls._dark_mode = value
-
-    @property
-    def TEXT_ON_SURFACE(cls) -> str:
-        """Get standard text color on surface."""
-        return cast(str, ft.Colors.ON_SURFACE)
-
-    @property
-    def SUCCESS_GREEN(cls) -> str:
-        """Get color-blind friendly success color."""
-        # Blue is highly distinguishable for most common
-        # red-green color blindness.
-        return cast(
-            str,
-            ft.Colors.BLUE_400
-            if cls._color_deficient_mode
-            else ft.Colors.GREEN_400,
-        )
-
-    @property
-    def OUTLINE_VARIANT(cls) -> str:
-        """Get outline variant color."""
-        return cast(str, ft.Colors.OUTLINE_VARIANT)
-
-    @property
-    def OUTLINE(cls) -> str:
-        """Get outline color."""
-        return cast(str, ft.Colors.OUTLINE)
-
-    @property
-    def ERROR_RED(cls) -> str:
-        """Get color-blind friendly error color."""
-        # Use Orange/Vermilion instead of Red in color deficient mode.
-        return cast(
-            str,
-            ft.Colors.ORANGE_800
-            if cls._color_deficient_mode
-            else ft.Colors.RED,
-        )
-
-    @property
-    def DIVIDER_GREY(cls) -> str:
-        """Get divider grey color."""
-        return cast(str, ft.Colors.GREY_400)
-
-    @property
-    def MUTED_GREY(cls) -> str:
-        """Get muted/greyed out text color."""
-        return cast(str, ft.Colors.GREY_500)
-
-    @property
-    def DUPLICATE_BG(cls) -> str:
-        """Get duplicate warning background color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_900
-                if cls._color_deficient_mode
-                else ft.Colors.RED_900,
-            )
-        return cast(
-            str,
-            ft.Colors.ORANGE_100
-            if cls._color_deficient_mode
-            else ft.Colors.RED_100,
-        )
-
-    @property
-    def SELECTED_ROW_BG(cls) -> str:
-        """Get selected/focused row background color."""
-        return cast(
-            str,
-            ft.Colors.BLUE_900 if cls._dark_mode else ft.Colors.BLUE_50,
-        )
-
-    @property
-    def DIAGRAM_BLACK(cls) -> str:
-        """Get diagram black/white color depending on dark mode."""
-        return cast(
-            str,
-            ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK,
-        )
-
-    @property
-    def INFO_HEADER_BG(cls) -> str:
-        """Get background color for info header."""
-        return cast(
-            str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
-        )
-
-    @property
-    def FWD_PRIMER(cls) -> str:
-        """Get forward primer color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.BLUE_300
-                if cls._color_deficient_mode
-                else ft.Colors.BLUE_400,
-            )
-        # Sky blue / clear blue for forward primer in color deficient mode
-        return cast(
-            str,
-            ft.Colors.BLUE_600
-            if cls._color_deficient_mode
-            else ft.Colors.BLUE_800,
-        )
-
-    @property
-    def REV_PRIMER(cls) -> str:
-        """Get reverse primer color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_300
-                if cls._color_deficient_mode
-                else ft.Colors.RED_ACCENT_200,
-            )
-        # Vermilion / orange-red for reverse primer in color deficient mode
-        # (instead of red-accent)
-        return cast(
-            str,
-            ft.Colors.ORANGE_700
-            if cls._color_deficient_mode
-            else ft.Colors.RED_ACCENT_700,
-        )
-
-    @property
-    def REV_LABEL(cls) -> str:
-        """Get reverse primer label color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_200
-                if cls._color_deficient_mode
-                else ft.Colors.RED_300,
-            )
-        return cast(
-            str,
-            ft.Colors.ORANGE_900
-            if cls._color_deficient_mode
-            else ft.Colors.RED_800,
-        )
-
-    @property
-    def TRANSPARENT(cls) -> str:
-        """Get transparent color."""
-        return cast(str, ft.Colors.TRANSPARENT)
-
-
-class GUIColors(metaclass=_GUIColorsMeta):
-    """Centralized semantic color constants for the GUI."""
-
-    _color_deficient_mode = False
-    _dark_mode = False
-
-
 class GUISettings:
     """Encapsulates configuration settings for the GUI."""
 
@@ -248,7 +70,7 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "color_deficient": False,
+            "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
             "font_size_map_primer": 13,
@@ -283,16 +105,16 @@ class GUISettings:
 
         if settings_dict is not None:
             self._settings.update(settings_dict)
-            if "color_deficient" in settings_dict:
-                val = settings_dict["color_deficient"]
+            if "colour_deficient" in settings_dict:
+                val = settings_dict["colour_deficient"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.color_deficient_mode = bool(val)
+                GUIColours.colour_deficient_mode = bool(val)
             if "dark_mode" in settings_dict:
                 val = settings_dict["dark_mode"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def __getitem__(self, key: str) -> Any:
         """Get a setting value by key."""
@@ -318,11 +140,11 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        if key == "color_deficient":
+        if key == "colour_deficient":
             val = value
             if isinstance(val, str):
                 val = val.lower() in ("true", "1", "yes")
-            GUIColors.color_deficient_mode = bool(val)
+            GUIColours.colour_deficient_mode = bool(val)
         elif key == "dark_mode":
             val = value
             if isinstance(val, str) and val.lower() == "system":
@@ -331,7 +153,7 @@ class GUISettings:
             else:
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a setting value by key with an optional default."""
@@ -506,12 +328,12 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
-        GUIColors.color_deficient_mode = bool(
-            self._settings.get("color_deficient", False)
+        GUIColours.colour_deficient_mode = bool(
+            self._settings.get("colour_deficient", False)
         )
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
-            GUIColors.dark_mode = bool(dark_mode_val)
+            GUIColours.dark_mode = bool(dark_mode_val)
 
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration."""

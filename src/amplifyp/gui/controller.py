@@ -21,7 +21,8 @@ from typing import cast
 import flet as ft
 import yaml
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, get_version, serialize_state
 from amplifyp.gui.views import (
@@ -249,14 +250,14 @@ class GUIController:
         self.visible_header_divider = ft.Container(
             width=1,
             height=20,
-            bgcolor=ft.Colors.OUTLINE,
+            bgcolor=GUIColours.OUTLINE,
         )
 
         app_version = get_version()
         version_text = ft.Text(
             app_version,
             size=14,
-            color=GUIColors.TEXT_ON_SURFACE,
+            color=GUIColours.TEXT_ON_SURFACE,
             opacity=0.5,
             weight=ft.FontWeight.W_400,
             selectable=True,
@@ -311,7 +312,7 @@ class GUIController:
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
             padding=ft.Padding(16, 8, 16, 8),
-            bgcolor=ft.Colors.SURFACE,
+            bgcolor=GUIColours.SURFACE,
         )
 
         self.page.add(
@@ -339,9 +340,9 @@ class GUIController:
             is_dark = True
         else:
             self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = ft.Colors.WHITE
+            self.page.bg_color = GUIColours.WHITE
             is_dark = False
-        GUIColors.dark_mode = is_dark
+        GUIColours.dark_mode = is_dark
 
     def on_platform_brightness_change(self, e: ft.ControlEvent) -> None:
         """Handle system brightness shifts."""

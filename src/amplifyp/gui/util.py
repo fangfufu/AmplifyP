@@ -103,7 +103,7 @@ def create_overlapped_sequence_view(
 
     Uses TextSpans for the visual representation.
     """
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colours import GUIColours
 
     resolved = _resolve_font_family(font_family)
 
@@ -112,21 +112,21 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.FWD_PRIMER,
+                    color=GUIColours.FWD_PRIMER,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 bottom_line,
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
@@ -154,21 +154,21 @@ def create_overlapped_sequence_view(
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{bonds_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.FWD_PRIMER,
+                    color=GUIColours.FWD_PRIMER,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
@@ -178,7 +178,7 @@ def create_overlapped_sequence_view(
                 ft.TextSpan(
                     f"{comp_line}\n",
                     style=ft.TextStyle(
-                        color=GUIColors.MUTED_GREY,
+                        color=GUIColours.MUTED_GREY,
                         weight=ft.FontWeight.BOLD,
                     ),
                 )
@@ -188,7 +188,7 @@ def create_overlapped_sequence_view(
                 ft.TextSpan(
                     template_line,
                     style=ft.TextStyle(
-                        color=GUIColors.TEXT_ON_SURFACE,
+                        color=GUIColours.TEXT_ON_SURFACE,
                         weight=ft.FontWeight.BOLD,
                     ),
                 )
@@ -206,7 +206,7 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     """Show an error dialog popup."""
     from typing import Any
 
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colours import GUIColours
 
     def close_dlg(e: Any) -> None:
         dialog.open = False
@@ -218,7 +218,7 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
             page.update()
 
     dialog = ft.AlertDialog(
-        title=ft.Text(title, color=GUIColors.ERROR_RED),
+        title=ft.Text(title, color=GUIColours.ERROR_RED),
         content=ft.Text(message),
         actions=[ft.TextButton("OK", on_click=close_dlg)],
         actions_alignment=ft.MainAxisAlignment.END,
@@ -268,7 +268,7 @@ def initialize_score_fields(
     font_size: int,
 ) -> None:
     """Initialize a grid of text fields for a score table in settings_map."""
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colours import GUIColours
 
     for r_char in row_headers:
         for c_char in col_headers:
@@ -282,7 +282,7 @@ def initialize_score_fields(
                 height=36,
                 content_padding=4,
                 text_style=ft.TextStyle(
-                    color=GUIColors.DIAGRAM_BLACK, size=font_size
+                    color=GUIColours.DIAGRAM_BLACK, size=font_size
                 ),
             )
 

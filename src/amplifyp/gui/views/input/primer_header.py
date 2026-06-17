@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 
 class PrimerHeader(ft.Container):  # type: ignore[misc]
@@ -49,7 +50,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
                 ),
                 ft.Container(
                     width=4,
-                    bgcolor=GUIColors.DIVIDER_GREY,
+                    bgcolor=GUIColours.DIVIDER_GREY,
                     margin=0,
                     height=36,
                 ),
@@ -68,7 +69,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
                     on_pan_end=on_divider_pan_end,
                     content=ft.Container(
                         width=4,
-                        bgcolor=GUIColors.DIVIDER_GREY,
+                        bgcolor=GUIColours.DIVIDER_GREY,
                         margin=0,
                         height=36,
                     ),
@@ -92,6 +93,6 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         super().__init__(
             content=self.header_row,
             padding=0,
-            border=ft.Border(bottom=ft.BorderSide(4, GUIColors.DIVIDER_GREY)),
+            border=ft.Border(bottom=ft.BorderSide(4, GUIColours.DIVIDER_GREY)),
             height=40,
         )

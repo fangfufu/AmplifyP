@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
 
@@ -37,7 +38,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             "Primer: -",
             weight=ft.FontWeight.BOLD,
             size=self.settings.get("font_size_subheader", 16),
-            color=GUIColors.TEXT_ON_SURFACE,
+            color=GUIColours.TEXT_ON_SURFACE,
             selectable=True,
         )
         self.info_header = ft.Container(
@@ -75,7 +76,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
         self.info_dimer_text = ft.Text(
             "",
-            color=GUIColors.ERROR_RED,
+            color=GUIColours.ERROR_RED,
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
