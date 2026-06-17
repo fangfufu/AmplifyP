@@ -138,7 +138,7 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
     # Reset GUIColors to avoid test contamination
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     GUIColors.color_deficient_mode = False
     GUIColors.dark_mode = False
@@ -214,7 +214,8 @@ def test_settings_view_buttons() -> None:
 
 def test_color_deficient_mode_switching() -> None:
     """Test toggling color deficient setting shifts GUIColors."""
-    from amplifyp.gui.settings import GUIColors, GUISettings
+    from amplifyp.gui.colors import GUIColors
+    from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
     # 1. Initially false/standard
@@ -244,7 +245,8 @@ def test_color_deficient_mode_switching() -> None:
 
 def test_dark_mode_switching() -> None:
     """Test toggling dark mode setting shifts GUIColors."""
-    from amplifyp.gui.settings import GUIColors, GUISettings
+    from amplifyp.gui.colors import GUIColors
+    from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
     # 1. Initially false/standard
@@ -315,7 +317,7 @@ def test_system_theme_saving_loading() -> None:
     assert new_settings_view_2.settings["color_deficient"] is True
 
     # Reset GUIColors to avoid test contamination
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     GUIColors.color_deficient_mode = False
     GUIColors.dark_mode = False

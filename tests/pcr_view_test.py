@@ -391,7 +391,7 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
 
     # Check spans
     # It should have a span for the comp_line with MUTED_GREY color
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     comp_spans = [
         span

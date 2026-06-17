@@ -280,7 +280,7 @@ def test_input_view_sequence_validation() -> None:
 
 def test_input_view_row_highlighting() -> None:
     """Test focusing a primer row updates the background color."""
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
@@ -315,7 +315,7 @@ def test_input_view_row_highlighting() -> None:
 
 def test_input_view_row_single_click() -> None:
     """Test that a single click on the row container focuses it."""
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()

@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
 

@@ -103,7 +103,7 @@ def create_overlapped_sequence_view(
 
     Uses TextSpans for the visual representation.
     """
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     resolved = _resolve_font_family(font_family)
 
@@ -206,7 +206,7 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     """Show an error dialog popup."""
     from typing import Any
 
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     def close_dlg(e: Any) -> None:
         dialog.open = False
@@ -268,7 +268,7 @@ def initialize_score_fields(
     font_size: int,
 ) -> None:
     """Initialize a grid of text fields for a score table in settings_map."""
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colors import GUIColors
 
     for r_char in row_headers:
         for c_char in col_headers:

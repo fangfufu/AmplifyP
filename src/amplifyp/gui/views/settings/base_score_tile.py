@@ -19,7 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colors import GUIColors
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]

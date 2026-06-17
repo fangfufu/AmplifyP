@@ -21,7 +21,7 @@ from typing import Any
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colors import GUIColors
 
 from .dismissible_detail_card import DismissibleDetailCard
 

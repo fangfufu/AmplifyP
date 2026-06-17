@@ -19,7 +19,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import GUISettings
 
 
 class PrimerHeader(ft.Container):  # type: ignore[misc]

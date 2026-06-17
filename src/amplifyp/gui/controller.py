@@ -21,7 +21,8 @@ from typing import cast
 import flet as ft
 import yaml
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, get_version, serialize_state
 from amplifyp.gui.views import (

@@ -21,7 +21,8 @@ from typing import Any
 import flet as ft
 
 from amplifyp.dna import DNA, DNAType, Primer
-from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 

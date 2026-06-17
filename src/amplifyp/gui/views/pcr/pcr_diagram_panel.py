@@ -21,7 +21,8 @@ from typing import Any
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
 
 from .amplicon_drawing import DrawnAmplicon

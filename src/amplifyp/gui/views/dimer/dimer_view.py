@@ -22,7 +22,8 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard

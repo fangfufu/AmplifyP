@@ -18,7 +18,8 @@
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.util import (
     create_overlapped_sequence_view,
 )
