@@ -167,9 +167,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.appearance_tile.set_font_family
 
     @property
-    def set_color_deficient(self) -> ft.Checkbox:
-        """Get the color deficient mode checkbox."""
-        return self.appearance_tile.set_color_deficient
+    def set_colour_deficient(self) -> ft.Checkbox:
+        """Get the colour deficient mode checkbox."""
+        return self.appearance_tile.set_colour_deficient
 
     @property
     def set_improved_visualisation(self) -> ft.Checkbox:
@@ -199,7 +199,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Sync current settings UI controls back to the central state."""
         for k, v in self.settings_map.items():
             self.settings[k] = v.value
-        self.appearance_tile.sync_color_scheme_to_settings()
+        self.appearance_tile.sync_colour_scheme_to_settings()
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
@@ -209,7 +209,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
-        self.appearance_tile.update_color_scheme_dropdown()
+        self.appearance_tile.update_colour_scheme_dropdown()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
@@ -249,7 +249,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "color_deficient": False,
+            "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,
         }

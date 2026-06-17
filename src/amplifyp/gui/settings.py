@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Centralized GUI settings and configuration."""
+"""Centralised GUI settings and configuration."""
 
 import os
 import sys
@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING, Any
 import flet as ft
 import yaml
 
-from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.colours import GUIColours
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -70,7 +70,7 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "color_deficient": False,
+            "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
             "font_size_map_primer": 13,
@@ -105,16 +105,16 @@ class GUISettings:
 
         if settings_dict is not None:
             self._settings.update(settings_dict)
-            if "color_deficient" in settings_dict:
-                val = settings_dict["color_deficient"]
+            if "colour_deficient" in settings_dict:
+                val = settings_dict["colour_deficient"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.color_deficient_mode = bool(val)
+                GUIColours.colour_deficient_mode = bool(val)
             if "dark_mode" in settings_dict:
                 val = settings_dict["dark_mode"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def __getitem__(self, key: str) -> Any:
         """Get a setting value by key."""
@@ -140,11 +140,11 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        if key == "color_deficient":
+        if key == "colour_deficient":
             val = value
             if isinstance(val, str):
                 val = val.lower() in ("true", "1", "yes")
-            GUIColors.color_deficient_mode = bool(val)
+            GUIColours.colour_deficient_mode = bool(val)
         elif key == "dark_mode":
             val = value
             if isinstance(val, str) and val.lower() == "system":
@@ -153,7 +153,7 @@ class GUISettings:
             else:
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a setting value by key with an optional default."""
@@ -328,12 +328,12 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
-        GUIColors.color_deficient_mode = bool(
-            self._settings.get("color_deficient", False)
+        GUIColours.colour_deficient_mode = bool(
+            self._settings.get("colour_deficient", False)
         )
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
-            GUIColors.dark_mode = bool(dark_mode_val)
+            GUIColours.dark_mode = bool(dark_mode_val)
 
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration."""

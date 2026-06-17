@@ -22,7 +22,7 @@ import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType
-from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.colours import GUIColours
 
 from .dismissible_detail_card import DismissibleDetailCard
 
@@ -87,7 +87,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(x_render, self.v_target - 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -102,7 +102,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(self.x_pos, self.v_target - 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -125,7 +125,7 @@ class DrawnPrimer:
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
-                        color=GUIColors.FWD_PRIMER,
+                        color=GUIColours.FWD_PRIMER,
                         style=ft.PaintingStyle.FILL,
                     ),
                 )
@@ -137,7 +137,7 @@ class DrawnPrimer:
                     on_tap=lambda _: self.on_click(),
                     content=ft.Text(
                         self.name,
-                        color=GUIColors.FWD_PRIMER,
+                        color=GUIColours.FWD_PRIMER,
                         size=self.settings.get("font_size_map_primer", 13),
                         weight=ft.FontWeight.BOLD,
                     ),
@@ -152,7 +152,7 @@ class DrawnPrimer:
                     mouse_cursor=ft.MouseCursor.CLICK,
                     on_tap=lambda _: self.on_click(),
                     content=ft.Container(
-                        bgcolor=GUIColors.TRANSPARENT,
+                        bgcolor=GUIColours.TRANSPARENT,
                         width=20,
                         height=25 + self.S,
                     ),
@@ -176,7 +176,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(x_render, self.v_target + 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.REV_PRIMER,
+                            color=GUIColours.REV_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -191,7 +191,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(self.x_pos, self.v_target + 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.REV_PRIMER,
+                            color=GUIColours.REV_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -214,7 +214,7 @@ class DrawnPrimer:
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
-                        color=GUIColors.REV_PRIMER,
+                        color=GUIColours.REV_PRIMER,
                         style=ft.PaintingStyle.FILL,
                     ),
                 )
@@ -226,7 +226,7 @@ class DrawnPrimer:
                     on_tap=lambda _: self.on_click(),
                     content=ft.Text(
                         self.name,
-                        color=GUIColors.REV_LABEL,
+                        color=GUIColours.REV_LABEL,
                         size=self.settings.get("font_size_map_primer", 13),
                         weight=ft.FontWeight.BOLD,
                     ),
@@ -241,7 +241,7 @@ class DrawnPrimer:
                     mouse_cursor=ft.MouseCursor.CLICK,
                     on_tap=lambda _: self.on_click(),
                     content=ft.Container(
-                        bgcolor=GUIColors.TRANSPARENT,
+                        bgcolor=GUIColours.TRANSPARENT,
                         width=20,
                         height=25 + self.S,
                     ),
@@ -424,10 +424,10 @@ class ReplicationContextCard(DismissibleDetailCard):
                         content=ft.Text(
                             f"Primeability: {prim_str}",
                             weight=ft.FontWeight.BOLD,
-                            color=GUIColors.DIAGRAM_BLACK,
+                            color=GUIColours.DIAGRAM_BLACK,
                             size=font_size_small,
                         ),
-                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
                         padding=ft.Padding(8, 4, 8, 4),
                         border_radius=4,
                     ),
@@ -435,10 +435,10 @@ class ReplicationContextCard(DismissibleDetailCard):
                         content=ft.Text(
                             f"Stability: {stab_str}",
                             weight=ft.FontWeight.BOLD,
-                            color=GUIColors.DIAGRAM_BLACK,
+                            color=GUIColours.DIAGRAM_BLACK,
                             size=font_size_small,
                         ),
-                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
                         padding=ft.Padding(8, 4, 8, 4),
                         border_radius=4,
                     ),
@@ -446,10 +446,10 @@ class ReplicationContextCard(DismissibleDetailCard):
                         content=ft.Text(
                             f"Quality: {origin.quality:.4f}",
                             weight=ft.FontWeight.BOLD,
-                            color=GUIColors.DIAGRAM_BLACK,
+                            color=GUIColours.DIAGRAM_BLACK,
                             size=font_size_small,
                         ),
-                        bgcolor=GUIColors.SELECTED_ROW_BG,
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
                         padding=ft.Padding(8, 4, 8, 4),
                         border_radius=4,
                     ),
@@ -465,7 +465,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                 ),
                 padding=12,
                 border_radius=6,
-                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+                border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             ),
         ]
 

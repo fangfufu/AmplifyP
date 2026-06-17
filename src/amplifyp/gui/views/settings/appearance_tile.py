@@ -46,7 +46,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         )
         self.set_font_family.on_change = self.on_change_handler
 
-        self.set_color_scheme = ft.Dropdown(
+        self.set_colour_scheme = ft.Dropdown(
             label="Colour Scheme",
             options=[
                 ft.dropdown.Option("Light"),
@@ -57,9 +57,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
         )
-        self.set_color_scheme.on_change = self._on_color_scheme_change
+        self.set_colour_scheme.on_change = self._on_colour_scheme_change
 
-        self._dummy_color_deficient = ft.Checkbox(visible=False)
+        self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
         self.set_improved_visualisation = ft.Checkbox(
             label="Improved Visualisation Mode",
@@ -67,7 +67,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_improved_visualisation.on_change = self.on_change_handler
 
         self.settings_map["font_family"] = self.set_font_family
-        self.settings_map["color_deficient"] = self._dummy_color_deficient
+        self.settings_map["colour_deficient"] = self._dummy_colour_deficient
         self.settings_map["improved_visualisation"] = (
             self.set_improved_visualisation
         )
@@ -87,9 +87,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                 content=ft.Column(
                                     [
                                         self.set_font_family,
-                                        self.set_color_scheme,
+                                        self.set_colour_scheme,
                                         self.set_improved_visualisation,
-                                        self._dummy_color_deficient,
+                                        self._dummy_colour_deficient,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -105,64 +105,66 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         )
 
     @property
-    def set_color_deficient(self) -> ft.Checkbox:
-        """Get color deficient checkbox for backwards compatibility."""
-        return self._dummy_color_deficient
+    def set_colour_deficient(self) -> ft.Checkbox:
+        """Get colour deficient checkbox for backwards compatibility."""
+        return self._dummy_colour_deficient
 
-    def _on_color_scheme_change(self, e: ft.ControlEvent) -> None:
-        """Handle color scheme dropdown change."""
-        self.sync_color_scheme_to_settings()
+    def _on_colour_scheme_change(self, e: ft.ControlEvent) -> None:
+        """Handle colour scheme dropdown change."""
+        self.sync_colour_scheme_to_settings()
         if self.on_change_handler:
             self.on_change_handler(e)
 
-    def update_color_scheme_dropdown(self) -> None:
-        """Update the color scheme dropdown value based on settings."""
+    def update_colour_scheme_dropdown(self) -> None:
+        """Update the colour scheme dropdown value based on settings."""
         dark = self.settings.get("dark_mode", False)
-        deficient = bool(self.settings.get("color_deficient", False))
+        deficient = bool(self.settings.get("colour_deficient", False))
         if str(dark).lower() == "system":
             if deficient:
-                self.set_color_scheme.value = (
+                self.set_colour_scheme.value = (
                     "System (Colour Deficient Friendly)"
                 )
             else:
-                self.set_color_scheme.value = "System"
+                self.set_colour_scheme.value = "System"
         elif bool(dark):
             if deficient:
-                self.set_color_scheme.value = "Dark (Colour Deficient Friendly)"
+                self.set_colour_scheme.value = (
+                    "Dark (Colour Deficient Friendly)"
+                )
             else:
-                self.set_color_scheme.value = "Dark"
+                self.set_colour_scheme.value = "Dark"
         else:
             if deficient:
-                self.set_color_scheme.value = (
+                self.set_colour_scheme.value = (
                     "Light (Colour Deficient Friendly)"
                 )
             else:
-                self.set_color_scheme.value = "Light"
+                self.set_colour_scheme.value = "Light"
 
-    def sync_color_scheme_to_settings(self) -> None:
-        """Sync the color scheme dropdown selection back to settings."""
-        val = self.set_color_scheme.value
+    def sync_colour_scheme_to_settings(self) -> None:
+        """Sync the colour scheme dropdown selection back to settings."""
+        val = self.set_colour_scheme.value
         if val == "Dark":
             self.settings["dark_mode"] = True
-            self.settings["color_deficient"] = False
-            self._dummy_color_deficient.value = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
         elif val == "Dark (Colour Deficient Friendly)":
             self.settings["dark_mode"] = True
-            self.settings["color_deficient"] = True
-            self._dummy_color_deficient.value = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
         elif val == "Light (Colour Deficient Friendly)":
             self.settings["dark_mode"] = False
-            self.settings["color_deficient"] = True
-            self._dummy_color_deficient.value = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
         elif val == "System":
             self.settings["dark_mode"] = "system"
-            self.settings["color_deficient"] = False
-            self._dummy_color_deficient.value = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
         elif val == "System (Colour Deficient Friendly)":
             self.settings["dark_mode"] = "system"
-            self.settings["color_deficient"] = True
-            self._dummy_color_deficient.value = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
         else:  # Light
             self.settings["dark_mode"] = False
-            self.settings["color_deficient"] = False
-            self._dummy_color_deficient.value = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False

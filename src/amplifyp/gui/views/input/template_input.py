@@ -19,7 +19,7 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, clean_sequence
@@ -67,7 +67,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
         self.circular_container = ft.Container(
             content=self.template_circular,
-            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border=ft.Border.all(1, GUIColours.OUTLINE),
             border_radius=5,
             padding=ft.Padding(0, 0, 0, 0),
             height=32,
@@ -153,7 +153,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         scroll=ft.ScrollMode.ALWAYS,
                     ),
                     expand=True,
-                    border=ft.Border.all(1, GUIColors.OUTLINE),
+                    border=ft.Border.all(1, GUIColours.OUTLINE),
                     border_radius=5,
                     padding=0,
                 ),

@@ -126,7 +126,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         self.primer_input._update_header_checkbox_state()
 
     def update_row_highlights(self) -> None:
-        """Update background colors of all row containers.
+        """Update background colours of all row containers.
 
         Highlights rows based on selection and duplicates.
         """

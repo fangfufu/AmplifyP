@@ -13,25 +13,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Centralized GUI color definitions and dynamic color shifting."""
+"""Centralised GUI colour definitions and dynamic colour shifting."""
 
 from typing import cast
 
 import flet as ft
 
 
-class _GUIColorsMeta(type):
-    """Metaclass for GUIColors to support dynamic color shifting."""
+class _GUIColoursMeta(type):
+    """Metaclass for GUIColours to support dynamic colour shifting."""
 
     @property
-    def color_deficient_mode(cls) -> bool:
-        """Get color deficient mode status."""
-        return cls._color_deficient_mode
+    def colour_deficient_mode(cls) -> bool:
+        """Get colour deficient mode status."""
+        return cls._colour_deficient_mode
 
-    @color_deficient_mode.setter
-    def color_deficient_mode(cls, value: bool) -> None:
-        """Set color deficient mode status."""
-        cls._color_deficient_mode = value
+    @colour_deficient_mode.setter
+    def colour_deficient_mode(cls, value: bool) -> None:
+        """Set colour deficient mode status."""
+        cls._colour_deficient_mode = value
 
     @property
     def dark_mode(cls) -> bool:
@@ -45,77 +45,77 @@ class _GUIColorsMeta(type):
 
     @property
     def TEXT_ON_SURFACE(cls) -> str:
-        """Get standard text color on surface."""
+        """Get standard text colour on surface."""
         return cast(str, ft.Colors.ON_SURFACE)
 
     @property
     def SUCCESS_GREEN(cls) -> str:
-        """Get color-blind friendly success color."""
+        """Get colour-blind friendly success colour."""
         # Blue is highly distinguishable for most common
-        # red-green color blindness.
+        # red-green colour blindness.
         return cast(
             str,
             ft.Colors.BLUE_400
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.GREEN_400,
         )
 
     @property
     def SURFACE(cls) -> str:
-        """Get standard surface color."""
+        """Get standard surface colour."""
         return cast(str, ft.Colors.SURFACE)
 
     @property
     def OUTLINE_VARIANT(cls) -> str:
-        """Get outline variant color."""
+        """Get outline variant colour."""
         return cast(str, ft.Colors.OUTLINE_VARIANT)
 
     @property
     def OUTLINE(cls) -> str:
-        """Get outline color."""
+        """Get outline colour."""
         return cast(str, ft.Colors.OUTLINE)
 
     @property
     def ERROR_RED(cls) -> str:
-        """Get color-blind friendly error color."""
-        # Use Orange/Vermilion instead of Red in color deficient mode.
+        """Get colour-blind friendly error colour."""
+        # Use Orange/Vermilion instead of Red in colour deficient mode.
         return cast(
             str,
             ft.Colors.ORANGE_800
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.RED,
         )
 
     @property
     def DIVIDER_GREY(cls) -> str:
-        """Get divider grey color."""
+        """Get divider grey colour."""
         return cast(str, ft.Colors.GREY_400)
 
     @property
     def MUTED_GREY(cls) -> str:
-        """Get muted/greyed out text color."""
+        """Get muted/greyed out text colour."""
         return cast(str, ft.Colors.GREY_500)
 
     @property
     def DUPLICATE_BG(cls) -> str:
-        """Get duplicate warning background color."""
+        """Get duplicate warning background colour."""
         if cls._dark_mode:
             return cast(
                 str,
                 ft.Colors.ORANGE_900
-                if cls._color_deficient_mode
+                if cls._colour_deficient_mode
                 else ft.Colors.RED_900,
             )
         return cast(
             str,
             ft.Colors.ORANGE_100
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.RED_100,
         )
 
     @property
     def SELECTED_ROW_BG(cls) -> str:
-        """Get selected/focused row background color."""
+        """Get selected/focused row background colour."""
         return cast(
             str,
             ft.Colors.BLUE_900 if cls._dark_mode else ft.Colors.BLUE_50,
@@ -123,7 +123,7 @@ class _GUIColorsMeta(type):
 
     @property
     def DIAGRAM_BLACK(cls) -> str:
-        """Get diagram black/white color depending on dark mode."""
+        """Get diagram black/white colour depending on dark mode."""
         return cast(
             str,
             ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK,
@@ -131,7 +131,7 @@ class _GUIColorsMeta(type):
 
     @property
     def INFO_HEADER_BG(cls) -> str:
-        """Get background color for info header."""
+        """Get background colour for info header."""
         return cast(
             str,
             ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
@@ -139,71 +139,71 @@ class _GUIColorsMeta(type):
 
     @property
     def FWD_PRIMER(cls) -> str:
-        """Get forward primer color."""
+        """Get forward primer colour."""
         if cls._dark_mode:
             return cast(
                 str,
                 ft.Colors.BLUE_300
-                if cls._color_deficient_mode
+                if cls._colour_deficient_mode
                 else ft.Colors.BLUE_400,
             )
-        # Sky blue / clear blue for forward primer in color deficient mode
+        # Sky blue / clear blue for forward primer in colour deficient mode
         return cast(
             str,
             ft.Colors.BLUE_600
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.BLUE_800,
         )
 
     @property
     def REV_PRIMER(cls) -> str:
-        """Get reverse primer color."""
+        """Get reverse primer colour."""
         if cls._dark_mode:
             return cast(
                 str,
                 ft.Colors.ORANGE_300
-                if cls._color_deficient_mode
+                if cls._colour_deficient_mode
                 else ft.Colors.RED_ACCENT_200,
             )
-        # Vermilion / orange-red for reverse primer in color deficient mode
+        # Vermilion / orange-red for reverse primer in colour deficient mode
         # (instead of red-accent)
         return cast(
             str,
             ft.Colors.ORANGE_700
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.RED_ACCENT_700,
         )
 
     @property
     def REV_LABEL(cls) -> str:
-        """Get reverse primer label color."""
+        """Get reverse primer label colour."""
         if cls._dark_mode:
             return cast(
                 str,
                 ft.Colors.ORANGE_200
-                if cls._color_deficient_mode
+                if cls._colour_deficient_mode
                 else ft.Colors.RED_300,
             )
         return cast(
             str,
             ft.Colors.ORANGE_900
-            if cls._color_deficient_mode
+            if cls._colour_deficient_mode
             else ft.Colors.RED_800,
         )
 
     @property
     def WHITE(cls) -> str:
-        """Get standard white color."""
+        """Get standard white colour."""
         return cast(str, ft.Colors.WHITE)
 
     @property
     def TRANSPARENT(cls) -> str:
-        """Get transparent color."""
+        """Get transparent colour."""
         return cast(str, ft.Colors.TRANSPARENT)
 
 
-class GUIColors(metaclass=_GUIColorsMeta):
-    """Centralized semantic color constants for the GUI."""
+class GUIColours(metaclass=_GUIColoursMeta):
+    """Centralised semantic colour constants for the GUI."""
 
-    _color_deficient_mode = False
+    _colour_deficient_mode = False
     _dark_mode = False

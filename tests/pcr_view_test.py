@@ -390,14 +390,14 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
     assert isinstance(diagram_text, ft.Text)
 
     # Check spans
-    # It should have a span for the comp_line with MUTED_GREY color
-    from amplifyp.gui.colors import GUIColors
+    # It should have a span for the comp_line with MUTED_GREY colour
+    from amplifyp.gui.colours import GUIColours
 
     comp_spans = [
         span
         for span in diagram_text.spans
         if getattr(span, "style", None)
-        and span.style.color == GUIColors.MUTED_GREY
+        and span.style.color == GUIColours.MUTED_GREY
     ]
     assert len(comp_spans) == 1
     # Check that it contains "3'-" and "-5'" and the translated comp sequence

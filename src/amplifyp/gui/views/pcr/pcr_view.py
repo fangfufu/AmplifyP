@@ -21,7 +21,7 @@ from typing import Any
 import flet as ft
 
 from amplifyp.dna import DNA, DNAType, Primer
-from amplifyp.gui.colors import GUIColors
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
@@ -143,7 +143,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                                 f"{MAX_AMPLICONS_RENDER} (sorted by "
                                 "quality score) are displayed to "
                                 "prevent UI freeze.",
-                                color=GUIColors.ERROR_RED,
+                                color=GUIColours.ERROR_RED,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             padding=10,
@@ -154,7 +154,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",
-                    color=GUIColors.ERROR_RED,
+                    color=GUIColours.ERROR_RED,
                 )
             )
             from amplifyp.gui.util import show_error_dialog
