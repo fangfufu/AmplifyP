@@ -45,7 +45,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         on_primer_click: Callable[[str, int, Any, Any], None],
         on_amplicon_click: Callable[[Any], None],
     ) -> None:
-        """Initialize the PCRDrawingPanel."""
+        """Initialise the PCRDrawingPanel."""
         super().__init__(spacing=0, tight=True)
         self.app_page = page
         self.settings = settings

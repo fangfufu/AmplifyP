@@ -38,7 +38,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialize the ScoreTable."""
+        """Initialise the ScoreTable."""
         self.label = label
         self.row_headers = row_headers
         self.col_headers = col_headers
@@ -209,15 +209,15 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
         col_label: str,
         parameter_controls: list[ft.Control],
     ) -> None:
-        """Initialize the BaseScoreTile."""
+        """Initialise the BaseScoreTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
 
-        # Map initialization (must happen before building ScoreTable)
-        from amplifyp.gui.util import initialize_score_fields
+        # Map initialisation (must happen before building ScoreTable)
+        from amplifyp.gui.util import initialise_score_fields
 
-        initialize_score_fields(
+        initialise_score_fields(
             settings_map=self.settings_map,
             prefix=score_table_prefix,
             row_headers=row_headers,

@@ -42,7 +42,7 @@ class PCR:
         template: DNA,
         settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ):
-        """Initialize a PCR reaction."""
+        """Initialise a PCR reaction."""
         self.template = template
         self.settings = settings
         self.__primers: list[Primer] = []

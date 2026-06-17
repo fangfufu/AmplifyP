@@ -42,7 +42,7 @@ class DrawnAmplicon:
         on_click: Callable[[], None],
         v_frag_start: float | None = None,
     ) -> None:
-        """Initialize the DrawnAmplicon."""
+        """Initialise the DrawnAmplicon."""
         self.amp = amp
         self.idx = idx
         self.target_length = target_length
@@ -178,7 +178,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
         settings: Any,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialize the AmpliconDetailCard."""
+        """Initialise the AmpliconDetailCard."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"

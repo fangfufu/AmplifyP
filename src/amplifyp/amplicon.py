@@ -77,7 +77,7 @@ class Amplicon:
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
 
-        Uses a set of predefined thresholds to categorize the quality score
+        Uses a set of predefined thresholds to categorise the quality score
         into descriptive strings ranging from "good" to "very weak".
 
         Args:
@@ -129,7 +129,7 @@ class AmpliconGenerator:
     """
 
     def __init__(self, template: DNA) -> None:
-        """Initialize an AmpliconGenerator.
+        """Initialise an AmpliconGenerator.
 
         Args:
             template (DNA): The template DNA sequence.

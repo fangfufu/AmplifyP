@@ -23,4 +23,4 @@ from amplifyp.gui.controller import GUIController
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
     controller = GUIController(page)
-    controller.initialize()
+    controller.initialise()

@@ -67,7 +67,7 @@ def test_gui_state_save_load() -> None:
         "settings": settings_state,
     }
 
-    # 4. Serialize (replicating main.py logic)
+    # 4. Serialise (replicating main.py logic)
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         if "\n" in data:
             return dumper.represent_scalar(
@@ -286,7 +286,7 @@ def test_system_theme_saving_loading() -> None:
     assert settings_view.settings["dark_mode"] == "system"
     assert settings_view.settings["colour_deficient"] is False
 
-    # 2. Serialize / deserialize settings state
+    # 2. Serialise / deserialize settings state
     settings_state = settings_view.get_state()
     new_settings_view = SettingsView(mock_page)
     new_settings_view.set_state(settings_state)

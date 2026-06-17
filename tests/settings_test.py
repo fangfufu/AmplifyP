@@ -107,7 +107,7 @@ def test_base_pair_weights_tbl_case_sensitivity() -> None:
         [0.0, 0.0, 0.0, 1.0],
     ]
 
-    # Initialize with lowercase
+    # Initialise with lowercase
     tbl = BasePairWeightsTbl(row, col, weights)
 
     # Check if row() and column() return uppercase (accessing row and col)
@@ -126,7 +126,7 @@ def test_base_pair_weights_tbl_case_sensitivity() -> None:
 
 def test_base_pair_weights_tbl_invalid_chars() -> None:
     """Test BasePairWeightsTbl with invalid characters (code >= 128)."""
-    # The optimized lookup table only supports ASCII (0-127).
+    # The optimised lookup table only supports ASCII (0-127).
     # Characters outside this range should fall back to dictionary lookup
     # or handle gracefully (be ignored in map).
 

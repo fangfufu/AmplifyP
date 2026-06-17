@@ -30,7 +30,7 @@ class PrimerLayoutManager:
     """
 
     def __init__(self, owner: "PrimerInput") -> None:
-        """Initialize the PrimerLayoutManager."""
+        """Initialise the PrimerLayoutManager."""
         self.owner = owner
 
     def get_panel_width(self) -> float:

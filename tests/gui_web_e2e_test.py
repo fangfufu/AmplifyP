@@ -401,7 +401,7 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
     page.locator("flt-semantics-placeholder").first.dispatch_event("click")
 
     # Wait for the primer name input to appear — confirms Pyodide is fully
-    # initialized and the semantics tree is ready. Much more reliable than
+    # initialised and the semantics tree is ready. Much more reliable than
     # a fixed sleep.
     NAME_SEL = 'input[aria-label="New Primer Name"]'
     SEQ_SEL = 'input[aria-label="New Primer Sequence"]'

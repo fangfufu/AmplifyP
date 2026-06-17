@@ -25,8 +25,8 @@ ______________________________________________________________________
   Flutter-based UI framework) providing a beautiful, fully responsive app for
   desktop and web browsers.
 - **Scoring Engine**: Calculates primability and stability scores using highly
-  customizable length-wise and pairwise weight tables.
-- **State Serialization**: Save and load templates, primers, cutoffs, and
+  customisable length-wise and pairwise weight tables.
+- **State Serialisation**: Save and load templates, primers, cutoffs, and
   replication configurations seamlessly using YAML files.
 - **Programmatic Python API**: A developer-friendly, fully typed API to run
   simulations, dimer analyses, or thermodynamic melting calculations within your
@@ -91,8 +91,8 @@ The GUI offers intuitive workflows to:
 
 1. **Input template DNA sequences** and configure linear/circular topologies.
 1. **Manage multiple primers** with individual sequences and custom names.
-1. **Customize thresholds** for primability and stability cutoffs.
-1. **Simulate PCR** to visualize products, lanes, and details of binding sites.
+1. **Customise thresholds** for primability and stability cutoffs.
+1. **Simulate PCR** to visualise products, lanes, and details of binding sites.
 1. **Save/Load projects** to resume work easily.
 
 ______________________________________________________________________
@@ -115,7 +115,7 @@ template = DNA(template_seq, DNAType.LINEAR, name="MyTemplate")
 primer_fwd = Primer("AGCT...", name="FwdPrimer")
 primer_rev = Primer("TCGA...", name="RevPrimer")
 
-# 2. Initialize the Amplicon Generator
+# 2. Initialise the Amplicon Generator
 generator = AmpliconGenerator(template)
 
 # 3. Create Replication Configurations for each primer

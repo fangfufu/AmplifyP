@@ -40,7 +40,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         on_apply: Any | None = None,
         on_reset: Any | None = None,
     ) -> None:
-        """Initialize the SettingsView."""
+        """Initialise the SettingsView."""
         super().__init__(
             expand=True, spacing=20, padding=10, scroll=ft.ScrollMode.ALWAYS
         )
@@ -57,7 +57,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         font_size_micro = self.settings.get("font_size_micro", 10)
         font_size_table_header = self.settings.get("font_size_table_header", 15)
 
-        # Initialize sub-control tiles
+        # Initialise sub-control tiles
         self.replication_tile = ReplicationTile(
             settings=self.settings,
             settings_map=self.settings_map,
@@ -280,7 +280,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.settings.get_replication_settings()
 
     def get_state(self) -> dict[str, Any]:
-        """Get the current settings for serialization."""
+        """Get the current settings for serialisation."""
         self.sync_to_state()
         return self.settings.to_dict()
 

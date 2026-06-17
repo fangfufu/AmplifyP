@@ -38,7 +38,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the DimerView."""
+        """Initialise the DimerView."""
         super().__init__(expand=True)
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
