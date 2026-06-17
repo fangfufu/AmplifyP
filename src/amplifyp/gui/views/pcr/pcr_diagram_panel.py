@@ -275,8 +275,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
     def _draw_primers(
         self,
-        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
-        rev_bindings: dict[int, tuple[str, float, Any, Any]],
+        fwd_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
+        rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
         target_length: int,
         t_width: float,
         h_margin: float,
@@ -290,9 +290,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             rev_bindings, target_length, t_width, h_margin
         )
 
-        for start_idx, (name, S, fwd_conf, fwd_var) in fwd_bindings.items():
+        def make_click(
+            n_val: str, idx_val: int, c_val: Any, v_val: Any
+        ) -> Callable[[], None]:
+            return lambda: self.on_primer_click(n_val, idx_val, c_val, v_val)
+
+        for (start_idx, name), (
+            name_val,
+            S,
+            fwd_conf,
+            fwd_var,
+        ) in fwd_bindings.items():
             drawn = DrawnPrimer(
-                name=name,
+                name=name_val,
                 index=start_idx,
                 conf=fwd_conf,
                 var=fwd_var,
@@ -302,16 +312,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=start_idx, c=fwd_conf, v=fwd_var: (  # type: ignore[misc]
-                    self.on_primer_click(n, idx, c, v)
-                ),
-                x_shifted=fwd_shifted.get(start_idx),
+                on_click=make_click(name_val, start_idx, fwd_conf, fwd_var),
+                x_shifted=fwd_shifted.get((start_idx, name)),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
-        for end_idx, (name, S, rev_conf, rev_var) in rev_bindings.items():
+        for (end_idx, name), (
+            name_val,
+            S,
+            rev_conf,
+            rev_var,
+        ) in rev_bindings.items():
             drawn = DrawnPrimer(
-                name=name,
+                name=name_val,
                 index=end_idx,
                 conf=rev_conf,
                 var=rev_var,
@@ -321,10 +334,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=end_idx, c=rev_conf, v=rev_var: (  # type: ignore[misc]
-                    self.on_primer_click(n, idx, c, v)
-                ),
-                x_shifted=rev_shifted.get(end_idx),
+                on_click=make_click(name_val, end_idx, rev_conf, rev_var),
+                x_shifted=rev_shifted.get((end_idx, name)),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 

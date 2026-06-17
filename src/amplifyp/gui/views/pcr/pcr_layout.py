@@ -30,8 +30,8 @@ class PCRLayoutSolver:
     def collect_primer_bindings(
         pcr: PCR, amplicons: list[Any]
     ) -> tuple[
-        dict[int, tuple[str, float, Any, Any]],
-        dict[int, tuple[str, float, Any, Any]],
+        dict[tuple[int, str], tuple[str, float, Any, Any]],
+        dict[tuple[int, str], tuple[str, float, Any, Any]],
     ]:
         """Collect and group unique forward and reverse primer binding sites."""
         fwd_bindings = {}
@@ -66,13 +66,13 @@ class PCRLayoutSolver:
             fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
             rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
 
-            fwd_bindings[amp.start.index] = (
+            fwd_bindings[(amp.start.index, amp.fwd_origin.name)] = (
                 amp.fwd_origin.name,
                 fwd_s,
                 fwd_conf,
                 amp.start,
             )
-            rev_bindings[amp.end.index] = (
+            rev_bindings[(amp.end.index, amp.rev_origin.name)] = (
                 amp.rev_origin.name,
                 rev_s,
                 rev_conf,
@@ -82,24 +82,25 @@ class PCRLayoutSolver:
 
     @staticmethod
     def calculate_shifted_x(
-        bindings: dict[int, tuple[str, float, Any, Any]],
+        bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
         target_length: int,
         t_width: float,
         h_margin: float,
         min_dist: float = 24.0,
-    ) -> dict[int, float]:
+    ) -> dict[tuple[int, str], float]:
         """Calculate shifted horizontal pixel positions to prevent overlap."""
         if not bindings:
             return {}
 
         coords = []
-        for idx in bindings.keys():
+        for key in bindings.keys():
+            idx = key[0]
             x = (
                 h_margin + (idx / target_length * t_width)
                 if target_length
                 else h_margin
             )
-            coords.append((idx, x))
+            coords.append((key, x))
         coords.sort(key=lambda item: item[1])
 
         n = len(coords)
@@ -109,13 +110,13 @@ class PCRLayoutSolver:
         current_cluster = [coords[0]]
 
         for i in range(1, n):
-            idx, x = coords[i]
+            key, x = coords[i]
             _, prev_x = coords[i - 1]
             if x - prev_x < min_dist:
-                current_cluster.append((idx, x))
+                current_cluster.append((key, x))
             else:
                 clusters.append(current_cluster)
-                current_cluster = [(idx, x)]
+                current_cluster = [(key, x)]
         clusters.append(current_cluster)
 
         for cluster in clusters:
@@ -134,8 +135,8 @@ class PCRLayoutSolver:
             elif start_x + total_width > max_canvas_x:
                 start_x = max_canvas_x - total_width
 
-            for idx_in_cluster, (idx, _) in enumerate(cluster):
-                shifted[idx] = start_x + idx_in_cluster * min_dist
+            for idx_in_cluster, (key, _) in enumerate(cluster):
+                shifted[key] = start_x + idx_in_cluster * min_dist
 
         return shifted
 
@@ -143,8 +144,8 @@ class PCRLayoutSolver:
     def calculate_canvas_dimensions(
         target_length: int,
         num_amplicons: int,
-        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
-        rev_bindings: dict[int, tuple[str, float, Any, Any]],
+        fwd_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
+        rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
         page_width: float | None,
     ) -> tuple[float, float, float, float, float]:
         """Calculate drawing coordinates and baseline positions."""

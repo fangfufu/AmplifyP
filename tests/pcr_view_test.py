@@ -313,3 +313,37 @@ def test_pcr_view_primer_label_collision() -> None:
     # Separated by >= 24.0 pixels due to de-collision logic
     assert lefts[1] - lefts[0] >= 24.0
     assert lefts[2] - lefts[1] >= 24.0
+
+
+def test_pcr_view_primers_same_3prime_end_different_5prime() -> None:
+    """Test that primers with same 3' ends but different 5' ends are shown."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # P1 and P2 have same 3' end sequence (ACTGCGAATCATTAAA) but
+    # different 5' ends.
+    input_data.primers = [
+        {"name": "P1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "P2", "seq": "ACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Verify that both P1 and P2 labels are rendered
+    texts = [
+        ctrl.content.value
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.color == "blue800"
+    ]
+    assert "P1" in texts
+    assert "P2" in texts
