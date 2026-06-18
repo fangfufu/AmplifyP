@@ -12,6 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 
 """Tests for the GUI app."""
 
@@ -19,6 +20,7 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
+from amplifyp.gui.app import main as gui_main
 from main import main
 
 
@@ -36,8 +38,6 @@ def test_gui_main() -> None:
 
 def test_gui_app_main() -> None:
     """Test the main function imported directly from amplifyp.gui.app."""
-    from amplifyp.gui.app import main as gui_main
-
     mock_page = MagicMock(spec=ft.Page)
     mock_page.window = MagicMock()
 
@@ -53,13 +53,10 @@ def test_window_close_warning_dialog() -> None:
 
     Simulates a hot reload scenario as well.
     """
-    from amplifyp.gui.app import main as gui_main
-
     mock_page = MagicMock(spec=ft.Page)
     mock_page.window = MagicMock()
     mock_page.overlay = []
     mock_page.web = False
-    mock_page._confirm_dialog = None
 
     # Call main first time (initial startup)
     gui_main(mock_page)
@@ -75,14 +72,16 @@ def test_window_close_warning_dialog() -> None:
     assert mock_page.window.on_event is not None
 
     # 3. Simulate close event
-    mock_event = MagicMock(spec=ft.WindowEvent)
+    mock_event = MagicMock()
     mock_event.data = "close"
     mock_page.window.on_event(mock_event)
 
     # Verify dialog is created, appended to overlay and opened
-    assert mock_page._confirm_dialog is not None
-    assert mock_page._confirm_dialog in mock_page.overlay
-    assert mock_page._confirm_dialog.open is True
+    dialog = next(
+        (c for c in mock_page.overlay if isinstance(c, ft.AlertDialog)), None
+    )
+    assert dialog is not None
+    assert dialog.open is True
     mock_page.update.assert_called()
 
     # Reset update mock for dismissal check
@@ -90,9 +89,9 @@ def test_window_close_warning_dialog() -> None:
 
     # 4. Simulate clicking "No" (confirm_dismiss)
     # The actions of AlertDialog are: Yes (index 0) and No (index 1)
-    no_button = mock_page._confirm_dialog.actions[1]
+    no_button = dialog.actions[1]
     no_button.on_click(MagicMock())
 
     # Verify dialog is closed
-    assert mock_page._confirm_dialog.open is False
+    assert dialog.open is False
     mock_page.update.assert_called_once()

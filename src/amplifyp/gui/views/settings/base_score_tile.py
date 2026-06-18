@@ -38,7 +38,21 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialise the ScoreTable."""
+        """Initialise the ScoreTable.
+
+        Args:
+            label: The title text displayed above the table.
+            row_headers: List of row header labels.
+            col_headers: List of column header labels.
+            row_label: Label for the row header column.
+            col_label: Label for the column header row.
+            prefix: Key prefix used to look up TextField components in
+                settings_map (e.g. "pd_score", "bp_score").
+            settings_map: Dictionary mapping setting keys to UI components.
+            font_size_default: Default font size for the label.
+            font_size_micro: Font size for the diagonal header labels.
+            font_size_table_header: Font size for row and column headers.
+        """
         self.label = label
         self.row_headers = row_headers
         self.col_headers = col_headers
@@ -209,7 +223,28 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
         col_label: str,
         parameter_controls: list[ft.Control],
     ) -> None:
-        """Initialise the BaseScoreTile."""
+        """Initialise the BaseScoreTile.
+
+        Args:
+            settings: The settings object.
+            settings_map: A dictionary mapping setting keys to UI
+                components for population and retrieval.
+            on_change_handler: The handler to call when a setting changes.
+            header_size: The size of the expansion tile header text.
+            font_size_default: Default font size for text elements.
+            font_size_micro: Micro font size for small labels.
+            font_size_table_header: Font size for table header cells.
+            title: The expansion tile title text.
+            score_table_label: Label for the score table section.
+            score_table_prefix: Key prefix for score table fields in
+                settings_map.
+            row_headers: List of row header labels for the score table.
+            col_headers: List of column header labels for the score table.
+            row_label: Label for the row header column.
+            col_label: Label for the column header row.
+            parameter_controls: List of additional parameter controls to
+                display alongside the score table.
+        """
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler

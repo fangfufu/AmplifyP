@@ -194,7 +194,12 @@ class PrimerDimerGenerator:
         )
 
     def analyse_primers(self) -> None:
-        """Analyse all pairs of primers for primer dimers."""
+        """Analyse all pairs of primers for primer dimers.
+
+        This method iterates through all unique pairs of primers added to the
+        generator, calculates their dimer potential, and stores those that
+        meet the specified quality and overlap thresholds.
+        """
         self.primer_dimers.clear()
         for p1, p2 in itertools.combinations_with_replacement(self.primers, 2):
             res = self.generate_primer_dimer(p1, p2)

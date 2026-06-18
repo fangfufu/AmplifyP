@@ -40,7 +40,15 @@ class InputView(ft.Row):  # type: ignore[misc]
         on_change: Any | None = None,
         on_stop_editing: Any | None = None,
     ) -> None:
-        """Initialise the InputView."""
+        """Initialize the InputView.
+
+        Args:
+            page: The Flet page instance.
+            input_data: The central input data store.
+            settings: The GUI settings instance.
+            on_change: Callback for input field changes.
+            on_stop_editing: Callback for when editing stops.
+        """
         super().__init__(
             expand=True, vertical_alignment=ft.CrossAxisAlignment.STRETCH
         )
@@ -186,7 +194,14 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.primer_input.focused_primer_index = val
 
     def _handle_field_focus(self, e: ft.ControlEvent) -> None:
-        """Handle focus on input fields to cancel auto-trigger timer."""
+        """Handle focus on input fields to cancel auto-trigger timer.
+
+        Updates the focused primer index, marks field touch status,
+        highlights rows, and updates the primer info panel.
+
+        Args:
+            e: The Flet control event containing focus information.
+        """
         self._focus_debouncer.cancel()
 
         if e.control.data is not None:
@@ -217,7 +232,14 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._currently_focused_control = e.control
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
-        """Handle blur on input fields to trigger results page after a delay."""
+        """Handle blur on input fields to trigger results page after a delay.
+
+        Syncs state, applies validation errors to rows, auto-adds empty
+        rows if needed, and triggers a debounced callback for results.
+
+        Args:
+            e: The Flet control event containing blur information.
+        """
         # If focus has moved to another input control, just sync state.
         if (
             self._currently_focused_control is not None
@@ -247,6 +269,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
 
         def timer_callback() -> None:
+            """Callback for debounced field blur."""
             if not self.page:
                 return
             if self.on_stop_editing_callback:
@@ -255,7 +278,14 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._focus_debouncer.trigger(timer_callback)
 
     def _handle_field_submit(self, e: ft.ControlEvent) -> None:
-        """Handle submission (Enter key) to immediately trigger results."""
+        """Handle submission (Enter key) to immediately trigger results.
+
+        Cancels any pending debounced callbacks, syncs state, auto-adds
+        empty rows if needed, and triggers the stop-editing callback.
+
+        Args:
+            e: The Flet control event containing submission information.
+        """
         self._focus_debouncer.cancel()
         self.sync_to_state()
         self._auto_add_empty_row_if_needed(e.control)
@@ -265,7 +295,16 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback()
 
     def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
-        """Append a new empty row if the last row is filled and valid."""
+        """Append a new empty row if the last row is filled and valid.
+
+        Checks if the control that triggered this method is a sequence
+        field on the last primer row, and if so, verifies that both
+        name and sequence are filled and valid. If so, appends a new
+        empty primer row.
+
+        Args:
+            control: The Flet control that triggered the check.
+        """
         if (
             control.data is not None
             and isinstance(control.data, dict)
@@ -285,24 +324,46 @@ class InputView(ft.Row):  # type: ignore[misc]
                             self.primer_input.update_ui()
 
     def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
-        """Sync current UI controls back to the central state."""
+        """Sync current UI controls back to the central state.
+
+        Args:
+            rebuild_if_needed: Whether to rebuild UI if changes detected.
+        """
         self.template_input.sync_to_state()
         self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
 
     def update_ui(self) -> None:
-        """Update Flet UI controls to match the central state."""
+        """Update Flet UI controls to match the central state.
+
+        Refreshes both the template input and primer input views to
+        reflect the current state.
+        """
         self.template_input.update_ui()
         self.primer_input.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
-        """Handle change in input fields."""
+        """Handle change in input fields.
+
+        Syncs state to the central store, updates the primer info panel,
+        and triggers the on_change callback.
+
+        Args:
+            e: The Flet control event containing change information.
+        """
         self.sync_to_state()
         self.primer_input._update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
 
     def _clear_primers(self, e: ft.ControlEvent) -> None:
-        """Clear all primers."""
+        """Clear all primers.
+
+        Resets the primer list to a single empty primer row, clears
+        the focused primer index, updates the UI, and triggers callbacks.
+
+        Args:
+            e: The Flet control event containing click information.
+        """
         self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.primer_input.focused_primer_index = None
         self.update_ui()
@@ -312,7 +373,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback()
 
     def _delete_selected_primers(self, e: ft.ControlEvent) -> None:
-        """Delete all selected primers."""
+        """Delete all selected primers.
+
+        Identifies all active (selected) primers and removes them using
+        the action controller, then triggers callbacks.
+
+        Args:
+            e: The Flet control event containing click information.
+        """
         active_indices = {
             i for i, p in enumerate(self.input_data.primers) if p.get("active")
         }
@@ -323,7 +391,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback()
 
     def _clear_template(self, e: ft.ControlEvent) -> None:
-        """Clear the DNA template."""
+        """Clear the DNA template.
+
+        Clears the template sequence field, syncs state, and triggers
+        callbacks.
+
+        Args:
+            e: The Flet control event containing click information.
+        """
         self.template_input.template_sequence.value = ""
         self.sync_to_state()
         if self.on_change:
@@ -332,7 +407,14 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback()
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
-        """Handle resizing the bottom (right) container via the divider."""
+        """Handle resizing the bottom (right) container via the divider.
+
+        Adjusts the width of the template input panel and the name
+        column width of primer rows based on drag delta.
+
+        Args:
+            e: The Flet drag update event containing delta information.
+        """
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
             delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
@@ -357,7 +439,15 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
 
     def _on_pan_end(self, e: ft.DragEndEvent) -> None:
-        """Handle finishing the drag of the main layout divider."""
+        """Handle finishing the drag of the main layout divider.
+
+        Restores responsive expand weights for both panels, performs a
+        full rebuild to sync everything at the final width, and updates
+        the name column width.
+
+        Args:
+            e: The Flet drag end event.
+        """
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
             panel_width = page_width * self.right_fraction
@@ -374,7 +464,11 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.update()
 
     def _handle_resize(self, e: Any) -> None:
-        """Handle page resize to proportionally scale name column."""
+        """Handle page resize to proportionally scale name column.
+
+        Args:
+            e: The Flet resize event.
+        """
         page_width = self.app_page.width
         if isinstance(page_width, (int, float)) and page_width > 0:
             panel_width = page_width * self.right_fraction
@@ -384,11 +478,20 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.update()
 
     def get_primers(self) -> list[dict[str, Any]]:
-        """Get the list of active primers."""
+        """Get the list of active primers.
+
+        Returns:
+            A list of dictionaries containing active primer data.
+        """
         return self.input_data.get_active_primers()
 
     def get_all_primers_state(self) -> list[dict[str, Any]]:
-        """Get all primers (active and inactive) for serialisation."""
+        """Get all primers (active and inactive) for serialisation.
+
+        Returns:
+            A list of dictionaries containing all primer data with name,
+            formatted sequence, and active status.
+        """
         primers: list[dict[str, Any]] = []
         for p in self.input_data.primers:
             if (
@@ -406,20 +509,37 @@ class InputView(ft.Row):  # type: ignore[misc]
         return primers
 
     def get_state(self) -> dict[str, Any]:
-        """Get the current input data state for serialisation."""
+        """Get the current input data state for serialisation.
+
+        Syncs UI controls to state and returns the central input data
+        as a dictionary.
+
+        Returns:
+            A dictionary containing the current input data state.
+        """
         self.sync_to_state()
         return self.input_data.to_dict()
 
     def set_state(self, state: dict[str, Any]) -> None:
-        """Set the current input data from deserialized data."""
+        """Set the current input data from deserialized data.
+
+        Args:
+            state: A dictionary containing the input data to restore.
+        """
         self.input_data.from_dict(state)
         self.update_ui()
         self.app_page.update()
 
     def _update_row_highlights(self) -> None:
-        """Update background colours of all row containers."""
+        """Update background colours of all row containers.
+
+        Delegates to the primer input's row highlight update method.
+        """
         self.primer_input._update_row_highlights()
 
     def _update_primer_info_panel(self) -> None:
-        """Update the primer information panel based on the focused primer."""
+        """Update the primer information panel based on the focused primer.
+
+        Delegates to the primer input's info panel update method.
+        """
         self.primer_input._update_primer_info_panel()

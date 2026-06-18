@@ -30,7 +30,15 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Any,
         header_size: int,
     ) -> None:
-        """Initialise the AppearanceTile."""
+        """Initialise the AppearanceTile.
+
+        Args:
+            settings: The settings object.
+            settings_map: A dictionary mapping setting keys to UI
+                components for population and retrieval.
+            on_change_handler: The handler to call when a setting changes.
+            header_size: The size of the header text.
+        """
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
@@ -43,8 +51,8 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
+            on_select=self.on_change_handler,
         )
-        self.set_font_family.on_change = self.on_change_handler
 
         self.set_colour_scheme = ft.Dropdown(
             label="Colour Scheme",
@@ -56,8 +64,8 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
+            on_select=self.on_change_handler,
         )
-        self.set_colour_scheme.on_change = self._on_colour_scheme_change
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
@@ -110,13 +118,24 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         return self._dummy_colour_deficient
 
     def _on_colour_scheme_change(self, e: ft.ControlEvent) -> None:
-        """Handle colour scheme dropdown change."""
+        """Handle colour scheme dropdown change.
+
+        Syncs the selected colour scheme to settings and triggers the
+        change handler.
+
+        Args:
+            e: The Flet control event triggered by the dropdown change.
+        """
         self.sync_colour_scheme_to_settings()
         if self.on_change_handler:
             self.on_change_handler(e)
 
     def update_colour_scheme_dropdown(self) -> None:
-        """Update the colour scheme dropdown value based on settings."""
+        """Update the colour scheme dropdown value based on settings.
+
+        Reads the current dark_mode and colour_deficient settings and
+        sets the dropdown to the matching display option.
+        """
         dark = self.settings.get("dark_mode", False)
         deficient = bool(self.settings.get("colour_deficient", False))
         if str(dark).lower() == "system":
@@ -142,7 +161,12 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 self.set_colour_scheme.value = "Light"
 
     def sync_colour_scheme_to_settings(self) -> None:
-        """Sync the colour scheme dropdown selection back to settings."""
+        """Sync the colour scheme dropdown selection back to settings.
+
+        Parses the dropdown value and updates dark_mode and
+        colour_deficient settings accordingly, including the hidden
+        checkbox state.
+        """
         val = self.set_colour_scheme.value
         if val == "Dark":
             self.settings["dark_mode"] = True

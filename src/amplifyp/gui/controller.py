@@ -16,7 +16,7 @@
 """GUI controller for orchestrating views, state, and page events."""
 
 import traceback
-from typing import cast
+from typing import Any, cast
 
 import flet as ft
 import yaml
@@ -37,7 +37,11 @@ class GUIController:
     """Manages GUI state, event handlers, views and main orchestration."""
 
     def __init__(self, page: ft.Page) -> None:
-        """Initialise the GUIController."""
+        """Initialize the GUIController.
+
+        Args:
+            page: The Flet page instance for the application.
+        """
         self.page = page
         self.input_data = GUIInput()
         self.settings = GUISettings()
@@ -91,7 +95,7 @@ class GUIController:
         else:
             self.page.window.prevent_close = False
             self.page.window.prevent_close = True
-            self.page._confirm_dialog = None
+            self._confirm_dialog = None
             self.page.window.on_event = self.on_window_event
 
         self.settings.load_from_local(self.page)
@@ -129,6 +133,11 @@ class GUIController:
         self._setup_navigation_controls()
 
     def _setup_navigation_controls(self) -> None:
+        """Configure navigation controls for the main application window.
+
+        Creates and sets up the AppBar buttons and the visible top header
+        buttons (Input, PCR, Primer Dimers, Settings, Save, Load).
+        """
         # AppBar buttons (for test compatibility)
         input_button = ft.FilledButton(
             "Input",
@@ -136,7 +145,7 @@ class GUIController:
             on_click=lambda e: self.switch_view(e, self.input_view),
             tooltip="Input",
         )
-        input_button.content_description = "Input"
+        input_button.tooltip = "Input"
 
         pcr_button = ft.FilledButton(
             "PCR",
@@ -146,7 +155,7 @@ class GUIController:
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
         )
-        pcr_button.content_description = "PCR"
+        pcr_button.tooltip = "PCR"
 
         dimers_button = ft.FilledButton(
             "Primer Dimers",
@@ -156,7 +165,7 @@ class GUIController:
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
         )
-        dimers_button.content_description = "Primer Dimers"
+        dimers_button.tooltip = "Primer Dimers"
 
         settings_button = ft.FilledButton(
             "Settings",
@@ -164,7 +173,7 @@ class GUIController:
             on_click=lambda e: self.switch_view(e, self.settings_view),
             tooltip="Settings",
         )
-        settings_button.content_description = "Settings"
+        settings_button.tooltip = "Settings"
 
         save_btn_control = ft.FilledButton(
             "Save all",
@@ -172,7 +181,7 @@ class GUIController:
             tooltip="Save all",
             on_click=self.save_state,
         )
-        save_btn_control.content_description = "Save all"
+        save_btn_control.tooltip = "Save all"
 
         load_btn_control = ft.FilledButton(
             "Load all",
@@ -180,7 +189,7 @@ class GUIController:
             tooltip="Load all",
             on_click=self.load_state,
         )
-        load_btn_control.content_description = "Load all"
+        load_btn_control.tooltip = "Load all"
 
         self.page.appbar = ft.AppBar(
             visible=False,
@@ -201,7 +210,7 @@ class GUIController:
             on_click=lambda e: self.switch_view(e, self.input_view),
             tooltip="Input",
         )
-        visible_input_button.content_description = "Input"
+        visible_input_button.tooltip = "Input"
 
         visible_pcr_button = ft.FilledButton(
             "PCR",
@@ -211,7 +220,7 @@ class GUIController:
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
         )
-        visible_pcr_button.content_description = "PCR"
+        visible_pcr_button.tooltip = "PCR"
 
         visible_dimers_button = ft.FilledButton(
             "Primer Dimers",
@@ -221,7 +230,7 @@ class GUIController:
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
         )
-        visible_dimers_button.content_description = "Primer Dimers"
+        visible_dimers_button.tooltip = "Primer Dimers"
 
         visible_settings_button = ft.FilledButton(
             "Settings",
@@ -229,7 +238,7 @@ class GUIController:
             on_click=lambda e: self.switch_view(e, self.settings_view),
             tooltip="Settings",
         )
-        visible_settings_button.content_description = "Settings"
+        visible_settings_button.tooltip = "Settings"
 
         self.visible_save_btn_control = ft.FilledButton(
             "Save all",
@@ -237,7 +246,7 @@ class GUIController:
             tooltip="Save all",
             on_click=self.save_state,
         )
-        self.visible_save_btn_control.content_description = "Save all"
+        self.visible_save_btn_control.tooltip = "Save all"
 
         self.visible_load_btn_control = ft.FilledButton(
             "Load all",
@@ -245,7 +254,7 @@ class GUIController:
             tooltip="Load all",
             on_click=self.load_state,
         )
-        self.visible_load_btn_control.content_description = "Load all"
+        self.visible_load_btn_control.tooltip = "Load all"
 
         self.visible_header_divider = ft.Container(
             width=1,
@@ -344,7 +353,7 @@ class GUIController:
             is_dark = False
         GUIColours.dark_mode = is_dark
 
-    def on_platform_brightness_change(self, e: ft.ControlEvent) -> None:
+    def on_platform_brightness_change(self) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
         self.page.update()
@@ -417,18 +426,30 @@ class GUIController:
         self.page.update()
 
     def on_settings_change(self, e: ft.ControlEvent) -> None:
-        """Handle settings changes."""
+        """Handle settings changes from the settings view.
+
+        Applies theme, updates PCR button state, and persists settings.
+
+        Args:
+            e: The Flet control event triggering the change.
+        """
         self.apply_theme()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 
     def run_apply_settings(self, e: ft.ControlEvent) -> None:
-        """Apply the settings updates."""
+        """Apply settings updates from the settings view.
+
+        Applies theme, updates PCR button state, and persists settings.
+
+        Args:
+            e: The Flet control event triggering the apply action.
+        """
         self.apply_theme()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 
-    async def save_state(self, e: ft.ControlEvent) -> None:
+    async def save_state(self, e: Any) -> None:
         """Save app state to YAML configuration file."""
         if self.filepicker_open:
             return
@@ -459,7 +480,7 @@ class GUIController:
         finally:
             self.filepicker_open = False
 
-    async def load_state(self, e: ft.ControlEvent) -> None:
+    async def load_state(self, e: Any) -> None:
         """Load app state from YAML configuration file."""
         if self.filepicker_open:
             return
@@ -503,8 +524,16 @@ class GUIController:
         finally:
             self.filepicker_open = False
 
-    def switch_view(self, e: ft.ControlEvent, view: ft.Control) -> None:
-        """Switch routing container views."""
+    def switch_view(self, e: Any, view: ft.Control) -> None:
+        """Switch the main view container to display a different view.
+
+        Updates the container content and configures resize handlers
+        appropriate for the target view.
+
+        Args:
+            e: The event that triggered the view switch.
+            view: The Flet control to display as the new view.
+        """
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
@@ -522,29 +551,43 @@ class GUIController:
 
     def confirm_dismiss(self, e: ft.ControlEvent) -> None:
         """Close confirmation dialog."""
-        dialog = getattr(self.page, "_confirm_dialog", None)
+        dialog = self._confirm_dialog
         if dialog:
             dialog.open = False
             self.page.update()
 
     async def confirm_exit_async(self) -> None:
-        """Destroy window helper."""
+        """Asynchronously destroy the application window.
+
+        Used as a task handler for safe window closure on desktop.
+        """
         try:
             await self.page.window.destroy()
         except Exception:  # noqa: S110
             pass
 
     def confirm_exit(self, e: ft.ControlEvent) -> None:
-        """Exit task launcher."""
+        """Launch the async window destruction task.
+
+        Args:
+            e: The Flet control event triggering the exit.
+        """
         self.page.run_task(self.confirm_exit_async)
 
     def on_window_event(self, e: ft.WindowEvent) -> None:
-        """Handle desktop close warning dialogues."""
+        """Handle desktop window events, showing close confirmation dialog.
+
+        When the user attempts to close the application window, this method
+        displays a confirmation dialog to prevent accidental data loss.
+
+        Args:
+            e: The window event containing close information.
+        """
         if (
             e.data == "close"
             or getattr(e, "type", None) == ft.WindowEventType.CLOSE
         ):
-            dialog = getattr(self.page, "_confirm_dialog", None)
+            dialog = self._confirm_dialog
             if not dialog:
                 dialog = ft.AlertDialog(
                     modal=True,
@@ -559,7 +602,7 @@ class GUIController:
                     ],
                     actions_alignment=ft.MainAxisAlignment.END,
                 )
-                self.page._confirm_dialog = dialog
+                self._confirm_dialog = dialog
 
             if dialog not in self.page.overlay:
                 self.page.overlay.append(dialog)

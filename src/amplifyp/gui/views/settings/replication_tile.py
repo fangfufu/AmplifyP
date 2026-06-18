@@ -35,7 +35,18 @@ class ReplicationTile(BaseScoreTile):
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialise the ReplicationTile."""
+        """Initialise the ReplicationTile.
+
+        Args:
+            settings (Any): The settings object.
+            settings_map (dict[str, Any]): A dictionary mapping setting keys
+                to UI components.
+            on_change_handler (Any): The handler to call when a setting changes.
+            header_size (int): The size of the header text.
+            font_size_default (int): Default font size for text.
+            font_size_micro (int): Micro font size for small text.
+            font_size_table_header (int): Font size for table headers.
+        """
         from amplifyp.dna import Nucleotides
 
         self.set_primability_cutoff = ft.TextField(

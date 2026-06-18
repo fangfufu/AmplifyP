@@ -34,7 +34,13 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         settings: GUISettings,
         font_family: str = "Roboto Mono",
     ) -> None:
-        """Initialise the DimerCard."""
+        """Initialise the DimerCard.
+
+        Args:
+            d: The PrimerDimer object containing sequence alignment data.
+            settings: Application GUI settings instance.
+            font_family: Font family for sequence display.
+        """
         super().__init__()
         self.d = d
         self.settings = settings
@@ -60,7 +66,18 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         )
 
     def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
-        """Build the visual alignment container control for a dimer."""
+        """Build the visual alignment container control for a dimer.
+
+        Creates a three-line text visualisation showing the two primer
+        sequences aligned at their binding interface with strength
+        indicators in the middle line.
+
+        Args:
+            font_size_default: Font size for the sequence display.
+
+        Returns:
+            A Container with the alignment diagram and border styling.
+        """
         seq1 = self.d.primer_1.seq
         seq2 = self.d.primer_2.seq
 
@@ -101,7 +118,18 @@ class DimerCard(ft.Card):  # type: ignore[misc]
     def _build_card_header(
         self, font_size_subheader: int, font_size_small: int
     ) -> ft.Column:
-        """Build the header row of the dimer card."""
+        """Build the header row of the dimer card.
+
+        Displays the dimer title (primer names or self-dimer label),
+        overlap length, and quality score in styled containers.
+
+        Args:
+            font_size_subheader: Font size for the dimer title.
+            font_size_small: Font size for the overlap and quality labels.
+
+        Returns:
+            A Column containing the title and metric containers.
+        """
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
         seq1 = self.d.primer_1.seq

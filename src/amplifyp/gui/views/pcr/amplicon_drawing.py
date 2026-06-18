@@ -42,7 +42,21 @@ class DrawnAmplicon:
         on_click: Callable[[], None],
         v_frag_start: float | None = None,
     ) -> None:
-        """Initialise the DrawnAmplicon."""
+        """Initialise the DrawnAmplicon.
+
+        Args:
+            amp: The amplicon object with start, end, product, and q_score.
+            idx: Zero-based index for vertical positioning of fragment rows.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            c_width: Total canvas width in pixels.
+            settings: Application GUI settings instance.
+            on_click: Callback invoked when the amplicon is clicked.
+            v_frag_start: Vertical start position for fragment rows, or
+                None to use a default.
+        """
         self.amp = amp
         self.idx = idx
         self.target_length = target_length
@@ -86,7 +100,16 @@ class DrawnAmplicon:
             self.bar_height = 1.0
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
-        """Draw the amplicon bar, text label, and gesture detector overlay."""
+        """Draw the amplicon bar, text label, and gesture detector overlay.
+
+        Draws a filled rectangle (or full-width bar for circular templates)
+        representing the amplicon, a length label below it, and a
+        transparent GestureDetector overlay for click handling.
+
+        Args:
+            canvas: The Flet canvas to draw shapes on.
+            stack: The Flet stack to add the gesture detector overlay to.
+        """
         # Amplicon Bar (Black, filling path)
         amp_paint = ft.Paint(
             color=GUIColours.DIAGRAM_BLACK,
@@ -178,7 +201,17 @@ class AmpliconDetailCard(DismissibleDetailCard):
         settings: Any,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialise the AmpliconDetailCard."""
+        """Initialise the AmpliconDetailCard.
+
+        Displays the amplicon length, forward/reverse primer names,
+        quality score, and amplified sequence with coloured primer regions.
+
+        Args:
+            amp: The amplicon object with fwd_origin, rev_origin, product,
+                and q_score attributes.
+            settings: Application GUI settings instance.
+            dismiss_callback: Callback invoked when the card is dismissed.
+        """
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"

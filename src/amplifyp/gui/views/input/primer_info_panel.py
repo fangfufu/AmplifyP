@@ -29,7 +29,12 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
-        """Initialise the PrimerInfoPanel."""
+        """Initialise the PrimerInfoPanel.
+
+        Args:
+            settings: Application GUI settings instance.
+            font_family: Font family for sequence display.
+        """
         super().__init__()
         self.settings = settings
         self._on_dismiss_callback: Any = None
@@ -109,7 +114,11 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.visible = False
 
     def _on_close_click(self, e: Any) -> None:
-        """Handle close button click: clear focus and hide panel."""
+        """Handle close button click: clear focus and hide panel.
+
+        Args:
+            e: The Flet control event triggered by the close button click.
+        """
         self.visible = False
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
@@ -122,7 +131,19 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         on_update_highlights: Any,
         on_dismiss: Any = None,
     ) -> None:
-        """Update the primer information panel based on the focused primer."""
+        """Update the primer information panel based on the focused primer.
+
+        Displays Tm, sequence details, base counts, redundancy, and
+        self-dimer potential for the specified primer.
+
+        Args:
+            focused_idx: Zero-based index of the focused primer, or None
+                to hide the panel.
+            input_data: Central GUI input state containing primer list.
+            app_page: The Flet page instance for UI updates.
+            on_update_highlights: Callback to update row highlight colours.
+            on_dismiss: Callback invoked when the panel is dismissed.
+        """
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
             self.visible = False

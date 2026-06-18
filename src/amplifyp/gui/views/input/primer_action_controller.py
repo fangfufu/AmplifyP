@@ -31,13 +31,22 @@ class PrimerActionController:
     """
 
     def __init__(self, owner: "PrimerInput") -> None:
-        """Initialise the PrimerActionController."""
+        """Initialise the PrimerActionController.
+
+        Args:
+            owner: The parent PrimerInput component that owns this controller.
+        """
         self.owner = owner
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle clicking on the row container.
 
-        Selects the row and focuses the name field.
+        Selects the row, focuses the name field, updates highlights,
+        and displays primer info.
+
+        Args:
+            idx: Zero-based index of the clicked primer row.
+            name_edit: The name TextField control to focus.
         """
         self.owner.focused_primer_index = idx
         self.owner._update_row_highlights()
@@ -52,7 +61,14 @@ class PrimerActionController:
                 self.owner.app_page.run_task(do_focus)
 
     def on_add_primer_row(self, idx: int) -> None:
-        """Add a new empty primer row immediately below the row at idx."""
+        """Add a new empty primer row immediately below the row at idx.
+
+        Syncs current UI to state, inserts a new empty primer dict,
+        rebuilds the UI, and triggers the change handler.
+
+        Args:
+            idx: Zero-based index of the row below which to insert.
+        """
         self.owner.sync_to_state(rebuild_if_needed=False)
         self.owner.input_data.primers.insert(
             idx + 1, {"name": "", "seq": "", "active": False}
@@ -62,7 +78,15 @@ class PrimerActionController:
             self.owner.on_change_handler(None)
 
     def move_primer(self, idx: int, direction: int) -> None:
-        """Move primer at idx up (direction=-1) or down (direction=1)."""
+        """Move primer at idx up (direction=-1) or down (direction=1).
+
+        Swaps the primer at idx with its neighbour and adjusts the
+        focused index accordingly.
+
+        Args:
+            idx: Zero-based index of the primer to move.
+            direction: -1 to move up, 1 to move down.
+        """
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
         target_idx = idx + direction
@@ -83,7 +107,14 @@ class PrimerActionController:
                 self.owner.on_change_handler(None)
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
-        """Delete primers at indices and re-index controls in-place."""
+        """Delete primers at indices and re-index controls in-place.
+
+        Removes the specified primers from state and UI controls,
+        adjusts the focused index, and re-indexes remaining rows.
+
+        Args:
+            indices_to_delete: Set of zero-based indices to remove.
+        """
         if not indices_to_delete:
             return
 

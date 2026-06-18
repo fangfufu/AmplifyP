@@ -50,7 +50,19 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         clear_primers_callback: Any,
         delete_selected_callback: Any,
     ) -> None:
-        """Initialise the PrimerInput component."""
+        """Initialise the PrimerInput component.
+
+        Args:
+            page: The Flet page instance for file picker and notifications.
+            settings: Application GUI settings instance.
+            input_data: Central GUI input state object.
+            on_change_handler: Callback invoked when primer content changes.
+            handle_field_focus: Callback for field focus events.
+            handle_field_blur: Callback for field blur events.
+            handle_field_submit: Callback for field submit events.
+            clear_primers_callback: Callback to clear all primers.
+            delete_selected_callback: Callback to delete selected primers.
+        """
         super().__init__(expand=5)
         self.app_page = page
         self.settings = settings
@@ -212,7 +224,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         return self.primer_info_panel.info_dimer_text
 
     def _extract_primer_data_from_ui(self) -> list[dict[str, Any]]:
-        """Extract primer data from UI controls."""
+        """Extract primer data from UI controls.
+
+        Returns:
+            A list of dicts with keys 'name', 'seq', 'active', 'container',
+            and 'checkbox' for each primer row in the UI.
+        """
         ui_primers = []
         for row in self.primers_list.controls:
             if not isinstance(row, PrimerRow):
@@ -236,7 +253,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def sync_to_state(self, rebuild_if_needed: bool = False) -> bool:
         """Sync current UI controls back to the central state.
 
-        Returns True if a UI rebuild is needed.
+        Args:
+            rebuild_if_needed: If True, triggers a full UI rebuild after
+                syncing. Otherwise, updates error states in-place.
+
+        Returns:
+            True if a UI rebuild was needed and performed.
         """
         ui_primers = self._extract_primer_data_from_ui()
         primers = []
@@ -302,14 +324,19 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         return rebuild_if_needed
 
     def update_ui(self) -> None:
-        """Update Flet UI controls to match the central state."""
+        """Update Flet UI controls to match the central state.
+
+        Rebuilds the primer list and updates the delete button disabled
+        state based on current selections.
+        """
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
 
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of the delete button based on selection.
 
-        Selection means that the primer is active.
+        The delete button is enabled only when at least one primer is
+        active (selected).
         """
         has_selected = any(
             p.get("active", False) for p in self.input_data.primers
@@ -319,7 +346,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.delete_selected_button.update()
 
     def _on_toggle_all_primers(self, e: Any) -> None:
-        """Toggle all primers active/inactive based on tri-state checkbox."""
+        """Toggle all primers active/inactive based on tri-state checkbox.
+
+        Handles the three checkbox states (True, False, None/tristate)
+        to determine the target active state for all primers.
+
+        Args:
+            e: The Flet control event triggered by the checkbox change.
+        """
         primers = self.input_data.primers
         if not primers:
             return
@@ -355,7 +389,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.on_change_handler(e)
 
     def _update_header_checkbox_state(self) -> None:
-        """Update the header checkbox to reflect the current primer states."""
+        """Update the header checkbox to reflect the current primer states.
+
+        Sets the tri-state checkbox to True (all active), False (none
+        active), or None (mixed state) based on the current primer list.
+        """
         primers = self.input_data.primers
         non_empty = [
             p
@@ -377,7 +415,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def _get_duplicate_indices_for_list(
         self, primers: list[dict[str, Any]]
     ) -> set[int]:
-        """Find and return indices of duplicate primers by name/sequence."""
+        """Find and return indices of duplicate primers by name/sequence.
+
+        Args:
+            primers: List of primer dicts to check for duplicates.
+
+        Returns:
+            Set of indices corresponding to primers with duplicate names
+            or sequences.
+        """
         names_count: dict[str, int] = {}
         seqs_count: dict[str, int] = {}
         for p in primers:
@@ -405,20 +451,31 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         return dup_indices
 
     def _get_duplicate_indices(self) -> set[int]:
-        """Find indices of primers with duplicate names or sequences."""
+        """Find indices of primers with duplicate names or sequences.
+
+        Returns:
+            Set of indices corresponding to primers with duplicate names
+            or sequences in the central state.
+        """
         return self._get_duplicate_indices_for_list(self.input_data.primers)
 
     def _update_row_highlights(self) -> None:
         """Update background colours of all row containers.
 
-        Highlights rows based on selection and duplicates.
+        Highlights rows based on selection (focused primer) and
+        duplicates (by name or sequence).
         """
         self.primers_list.update_row_highlights()
 
     def _update_primer_info_panel(self) -> None:
-        """Update the primer information panel based on the focused primer."""
+        """Update the primer information panel based on the focused primer.
+
+        Displays Tm, sequence details, base counts, redundancy, and
+        dimer potential for the currently focused primer row.
+        """
 
         def on_dismiss() -> None:
+            """Clear focus when the primer info panel is dismissed."""
             self.focused_primer_index = None
             self._update_row_highlights()
             if self.app_page:
@@ -433,15 +490,31 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
 
     async def _load_primers_click(self, e: ft.ControlEvent) -> None:
-        """Open file picker to load primers from CSV/TSV file."""
+        """Open file picker to load primers from CSV/TSV file.
+
+        Delegates to the PrimerFileManager component.
+
+        Args:
+            e: The Flet control event triggered by the load button click.
+        """
         await self.file_manager.load_primers_click(e)
 
     async def _save_primers_click(self, e: ft.ControlEvent) -> None:
-        """Save active primers to a CSV file."""
+        """Save active primers to a CSV file.
+
+        Delegates to the PrimerFileManager component.
+
+        Args:
+            e: The Flet control event triggered by the save button click.
+        """
         await self.file_manager.save_primers_click(e)
 
     def _show_notification(self, message: str) -> None:
-        """Show a notification message."""
+        """Show a notification message.
+
+        Args:
+            message: The notification message text to display.
+        """
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)

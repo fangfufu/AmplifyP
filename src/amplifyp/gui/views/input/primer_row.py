@@ -49,7 +49,31 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         is_focused: bool,
         is_last_row: bool,
     ) -> None:
-        """Initialise the PrimerRow."""
+        """Initialise the PrimerRow.
+
+        Args:
+            idx: The zero-based index of this primer row.
+            name: The primer name.
+            seq: The primer DNA sequence.
+            is_active: Whether this primer is selected/active.
+            is_dup: Whether this primer is a duplicate.
+            name_error: Error message for the name field, or None.
+            seq_error: Error message for the sequence field, or None.
+            font_family: Font family for sequence display.
+            name_column_width: Width of the name column in pixels.
+            on_change_handler: Callback for field change events.
+            handle_field_focus: Callback for field focus events.
+            handle_field_blur: Callback for field blur events.
+            handle_field_submit: Callback for field submit events.
+            on_row_click: Callback when the row container is clicked.
+            on_move_primer: Callback to move a primer up or down.
+            on_delete_primer: Callback to delete a primer.
+            on_add_primer: Callback to add a new primer below.
+            on_divider_pan: Callback for dragging the name/sequence divider.
+            on_divider_pan_end: Callback for ending the divider drag.
+            is_focused: Whether this row is currently focused.
+            is_last_row: Whether this is the last row in the list.
+        """
         has_err = bool(name_error or seq_error)
         super().__init__(
             data=idx,
@@ -192,7 +216,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
     ) -> None:
-        """Update the background colour and reorder buttons layout."""
+        """Update the background colour and reorder buttons layout.
+
+        Args:
+            is_focused: Whether this row should show the reorder controls.
+            is_dup: Whether this primer is a duplicate.
+        """
         if is_focused:
             self.bgcolor = GUIColours.SELECTED_ROW_BG
         elif is_dup:
@@ -217,6 +246,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         """Set or clear the error message.
 
         Also adjusts the sequence field, name field and container height.
+
+        Args:
+            err: Error dict with 'name' and 'seq' keys, a string error
+                message, or None to clear errors.
         """
         if isinstance(err, dict):
             name_error = err.get("name")
@@ -255,7 +288,16 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         on_add_primer: Any,
         on_row_click: Any,
     ) -> None:
-        """Update the index of the row and refresh its handlers and controls."""
+        """Update the index of the row and refresh its handlers and controls.
+
+        Args:
+            new_idx: The new zero-based index for this primer row.
+            is_last_row: Whether this row is now the last in the list.
+            on_move_primer: Callback to move a primer up or down.
+            on_delete_primer: Callback to delete a primer.
+            on_add_primer: Callback to add a new primer below.
+            on_row_click: Callback when the row container is clicked.
+        """
         self.data = new_idx
         self.idx = new_idx
         self.name_field.data = {"idx": new_idx, "field": "name"}

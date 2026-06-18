@@ -33,7 +33,16 @@ class PCRLayoutSolver:
         dict[tuple[int, str], tuple[str, float, Any, Any]],
         dict[tuple[int, str], tuple[str, float, Any, Any]],
     ]:
-        """Collect and group unique forward and reverse primer binding sites."""
+        """Collect and group unique forward and reverse primer binding sites.
+
+        Args:
+            pcr: The PCR simulation instance containing repliconf configs.
+            amplicons: List of amplicon objects with start/end positions.
+
+        Returns:
+            A tuple of (forward_bindings, reverse_bindings) dicts mapping
+            (index, name) keys to (name, size, conf, var) tuples.
+        """
         fwd_bindings = {}
         rev_bindings = {}
         for amp in amplicons:
@@ -88,7 +97,21 @@ class PCRLayoutSolver:
         h_margin: float,
         min_dist: float = 24.0,
     ) -> dict[tuple[int, str], float]:
-        """Calculate shifted horizontal pixel positions to prevent overlap."""
+        """Calculate shifted horizontal pixel positions to prevent overlap.
+
+        Detects clusters of bindings that are too close together and
+        redistributes them evenly within the available canvas width.
+
+        Args:
+            bindings: Dict mapping (index, name) keys to binding data.
+            target_length: Total length of the template in base pairs.
+            t_width: Total template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            min_dist: Minimum pixel distance between shifted bindings.
+
+        Returns:
+            Dict mapping (index, name) keys to shifted x-coordinate floats.
+        """
         if not bindings:
             return {}
 
@@ -148,7 +171,20 @@ class PCRLayoutSolver:
         rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
         page_width: float | None,
     ) -> tuple[float, float, float, float, float]:
-        """Calculate drawing coordinates and baseline positions."""
+        """Calculate drawing coordinates and baseline positions.
+
+        Args:
+            target_length: Total length of the template in base pairs.
+            num_amplicons: Number of amplicons to render.
+            fwd_bindings: Forward primer binding data dict.
+            rev_bindings: Reverse primer binding data dict.
+            page_width: Current page width in pixels, or None.
+
+        Returns:
+            A tuple of (v_target, h_margin, c_width, t_width, v_frag_start)
+            representing vertical target position, horizontal margin, canvas
+            width, template width, and fragment start vertical position.
+        """
         max_fwd_len = max(
             (len(name) for name, _, _, _ in fwd_bindings.values()), default=0
         )

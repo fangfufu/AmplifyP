@@ -30,7 +30,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         on_clear: Any,
         on_delete_selected: Any,
     ) -> None:
-        """Initialise the PrimerToolbar."""
+        """Initialise the PrimerToolbar.
+
+        Args:
+            on_save: Callback to save primers to a TSV file.
+            on_load: Callback to load primers from a CSV/TSV file.
+            on_clear: Callback to clear all primers.
+            on_delete_selected: Callback to delete selected primers.
+        """
         self.save_button = ft.FilledTonalButton(
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,

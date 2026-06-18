@@ -190,7 +190,6 @@ class BasePairWeightsTbl:
         """Return the string of row nucleotides.
 
         Returns:
-        Returns:
             str: The row nucleotides, excluding the last character if it was a
                 gap placeholder.
         """
@@ -199,7 +198,6 @@ class BasePairWeightsTbl:
     def column(self) -> str:
         """Return the string of column nucleotides.
 
-        Returns:
         Returns:
             str: The column nucleotides, excluding the last character if it was
                 a gap placeholder.
@@ -273,7 +271,6 @@ class BasePairWeightsTbl:
     def __str__(self) -> str:
         """Return a string representation of the weight table.
 
-        Returns:
         Returns:
             str: A string representation of the internal dictionary mapping
                 pairs to weights.

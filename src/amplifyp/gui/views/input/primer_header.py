@@ -34,7 +34,15 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         on_divider_pan_end: Any,
         name_column_width: float,
     ) -> None:
-        """Initialise the PrimerHeader."""
+        """Initialise the PrimerHeader.
+
+        Args:
+            settings: Application GUI settings instance.
+            on_toggle_all: Callback for the tri-state "all primers" checkbox.
+            on_divider_pan: Callback for dragging the name/sequence divider.
+            on_divider_pan_end: Callback for ending the divider drag.
+            name_column_width: Width of the name column in pixels.
+        """
         self.settings = settings
         self.all_primers_checkbox = ft.Checkbox(
             value=None,

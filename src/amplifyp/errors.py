@@ -28,7 +28,11 @@ class DuplicateRepliconfError(ValueError):
         self,
         message: str = "The Repliconf is already in the AmpliconGenerator.",
     ) -> None:
-        """Initialise the duplicate repliconf error."""
+        """Initialize the duplicate repliconf error.
+
+        Args:
+            message: The error message describing the duplicate repliconf.
+        """
         super().__init__(message)
 
 
@@ -36,7 +40,11 @@ class PrimerNotFoundError(ValueError):
     """Exception raised when a primer is not found."""
 
     def __init__(self, primer: object) -> None:
-        """Initialise the primer not found error."""
+        """Initialize the primer not found error.
+
+        Args:
+            primer: The primer object that was not found.
+        """
         super().__init__(f"Primer {primer} not found")
 
 
@@ -44,7 +52,11 @@ class DuplicatedNameError(ValueError):
     """Exception raised when a primer name is already added."""
 
     def __init__(self, name: str) -> None:
-        """Initialise the duplicated name error."""
+        """Initialize the duplicated name error.
+
+        Args:
+            name: The primer name that was already added.
+        """
         super().__init__(f"Primer name '{name}' already added")
 
 
@@ -52,7 +64,11 @@ class DuplicatedSequenceError(ValueError):
     """Exception raised when a primer sequence is already added."""
 
     def __init__(self, sequence: str) -> None:
-        """Initialise the duplicated sequence error."""
+        """Initialize the duplicated sequence error.
+
+        Args:
+            sequence: The primer sequence that was already added.
+        """
         super().__init__(f"Primer sequence '{sequence}' already added")
 
 
@@ -60,7 +76,11 @@ class InvalidDNATypeError(TypeError):
     """Exception raised when a DNA type is not valid."""
 
     def __init__(self, message: str = "Invalid DNA type.") -> None:
-        """Initialise the invalid DNA type error."""
+        """Initialize the invalid DNA type error.
+
+        Args:
+            message: The error message describing the invalid DNA type.
+        """
         super().__init__(message)
 
 
@@ -68,7 +88,12 @@ class InvalidDNASequenceError(ValueError):
     """Exception raised when a DNA sequence contains invalid characters."""
 
     def __init__(self, invalid_chars: set[str] | list[str]) -> None:
-        """Initialise the invalid DNA sequence error."""
+        """Initialize the invalid DNA sequence error.
+
+        Args:
+            invalid_chars: The set or list of invalid characters found in the
+                DNA sequence.
+        """
         sorted_chars = ", ".join(sorted(invalid_chars))
         super().__init__(
             f"The DNA sequence contains invalid characters: {sorted_chars}"
@@ -85,7 +110,11 @@ class ReplicationOriginLengthError(ValueError):
         self,
         message: str = "The target has to have the same length as the primer.",
     ) -> None:
-        """Initialise the replication origin length error."""
+        """Initialize the replication origin length error.
+
+        Args:
+            message: The error message describing the length mismatch.
+        """
         super().__init__(message)
 
 
@@ -105,7 +134,11 @@ class RowLengthMismatchError(BasePairTableDimensionError):
             "BasePairWeightsTbl: row length mismatch at initialisation."
         ),
     ) -> None:
-        """Initialise the row length mismatch error."""
+        """Initialize the row length mismatch error.
+
+        Args:
+            message: The error message describing the row length mismatch.
+        """
         super().__init__(message)
 
 
@@ -121,7 +154,11 @@ class ColumnLengthMismatchError(BasePairTableDimensionError):
             "BasePairWeightsTbl: column length mismatch at initialisation."
         ),
     ) -> None:
-        """Initialise the column length mismatch error."""
+        """Initialize the column length mismatch error.
+
+        Args:
+            message: The error message describing the column length mismatch.
+        """
         super().__init__(message)
 
 
@@ -135,7 +172,11 @@ class InvalidStartDirectionError(AmpliconDirectionError):
     def __init__(
         self, message: str = "Start direction must be forward."
     ) -> None:
-        """Initialise the invalid start direction error."""
+        """Initialize the invalid start direction error.
+
+        Args:
+            message: The error message describing the invalid start direction.
+        """
         super().__init__(message)
 
 
@@ -143,7 +184,11 @@ class InvalidEndDirectionError(AmpliconDirectionError):
     """Exception raised when an amplicon end direction is not REV."""
 
     def __init__(self, message: str = "End direction must be reverse.") -> None:
-        """Initialise the invalid end direction error."""
+        """Initialize the invalid end direction error.
+
+        Args:
+            message: The error message describing the invalid end direction.
+        """
         super().__init__(message)
 
 
@@ -159,7 +204,11 @@ class InvalidIndexOrderError(ValueError):
             "End index must be greater than start index for linear DNA."
         ),
     ) -> None:
-        """Initialise the invalid index order error."""
+        """Initialize the invalid index order error.
+
+        Args:
+            message: The error message describing the invalid index order.
+        """
         super().__init__(message)
 
 
@@ -177,7 +226,11 @@ class TemplateMismatchError(ValueError):
             "AmpliconGenerator."
         ),
     ) -> None:
-        """Initialise the template mismatch error."""
+        """Initialize the template mismatch error.
+
+        Args:
+            message: The error message describing the template mismatch.
+        """
         super().__init__(message)
 
 
@@ -195,5 +248,9 @@ class InvalidAmpliconRangeError(NotImplementedError):
             "bigger than the end index on a linear DNA template."
         ),
     ) -> None:
-        """Initialise the invalid amplicon range error."""
+        """Initialize the invalid amplicon range error.
+
+        Args:
+            message: The error message describing the invalid amplicon range.
+        """
         super().__init__(message)
