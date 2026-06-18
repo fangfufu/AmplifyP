@@ -434,7 +434,9 @@ class ReplicationContextCard(DismissibleDetailCard):
 
         origin = conf.origin(var)
         if origin is None:
-            body_controls = [ft.Text("Error: Replication origin not found")]
+            body_controls = list[ft.Control](
+                [ft.Text("Error: Replication origin not found")]
+            )
             super().__init__(
                 card_id=card_id,
                 title="Error",
