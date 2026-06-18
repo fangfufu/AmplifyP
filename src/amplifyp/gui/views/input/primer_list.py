@@ -30,7 +30,12 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         self,
         primer_input: Any,
     ) -> None:
-        """Initialise the PrimerList."""
+        """Initialise the PrimerList.
+
+        Args:
+            primer_input: The parent PrimerInput component that owns this
+                list.
+        """
         super().__init__(
             expand=True,
             spacing=0,
@@ -46,12 +51,17 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         """Update the cached scroll position and viewport dimension.
 
         Args:
-            e (ft.OnScrollEvent): The scroll event.
+            e: The Flet scroll event containing pixel position.
         """
         self.scroll_pixels = e.pixels
 
     def update_list_ui(self) -> None:
-        """Update Flet UI controls to match the central state."""
+        """Update Flet UI controls to match the central state.
+
+        Clears existing controls, creates a new PrimerRow for each
+        primer in the input data, validates all primers, and updates
+        highlights and header checkbox state.
+        """
         font_family = self.primer_input.settings.get(
             "font_family", "Roboto Mono"
         )
@@ -131,7 +141,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
     def update_row_highlights(self) -> None:
         """Update background colours of all row containers.
 
-        Highlights rows based on selection and duplicates.
+        Highlights rows based on selection (focused primer) and
+        duplicates (by name or sequence).
         """
         dup_indices = self.primer_input._get_duplicate_indices()
 

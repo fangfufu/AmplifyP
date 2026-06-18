@@ -25,7 +25,17 @@ def validate_primer(
 ) -> tuple[str | None, str | None]:
     """Validate a single primer sequence and name.
 
-    Returns a tuple of (name_error, seq_error).
+    Checks for empty fields and validates the DNA sequence using the
+    Primer class. Returns error messages for invalid fields.
+
+    Args:
+        name: The primer name to validate.
+        seq: The primer DNA sequence to validate.
+        show_empty_errors: If True, reports empty name/sequence as errors.
+
+    Returns:
+        A tuple of (name_error, seq_error) where each element is an
+        error message string or None if valid.
     """
     name_err = None
     seq_err = None
@@ -51,7 +61,19 @@ def validate_primer(
 def validate_primers(
     primers: list[dict[str, Any]],
 ) -> list[dict[str, str | None]]:
-    """Validate a list of primers, detecting format and duplicate errors."""
+    """Validate a list of primers, detecting format and duplicate errors.
+
+    Validates each primer's name and sequence, then checks for
+    duplicate names and sequences across the entire list.
+
+    Args:
+        primers: List of primer dicts with 'name', 'seq', 'name_touched',
+            and 'seq_touched' keys.
+
+    Returns:
+        List of error dicts, one per primer, with 'name' and 'seq' keys
+        containing error message strings or None.
+    """
     names_count: dict[str, int] = {}
     seqs_count: dict[str, int] = {}
     for p in primers:

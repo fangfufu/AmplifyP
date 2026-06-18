@@ -163,7 +163,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
 
     async def _load_template_click(self, e: ft.ControlEvent) -> None:
-        """Open file picker to load template sequence from a TXT file."""
+        """Open file picker to load template sequence from a TXT file.
+
+        Args:
+            e: The Flet control event triggered by the load button click.
+        """
         from amplifyp.gui.util import pick_and_read_file
 
         content = await pick_and_read_file(
@@ -182,7 +186,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._show_notification("Template loaded successfully.")
 
     async def _save_template_click(self, e: ft.ControlEvent) -> None:
-        """Save template sequence to a TXT file."""
+        """Save template sequence to a TXT file.
+
+        Args:
+            e: The Flet control event triggered by the save button click.
+        """
         template_content = self.input_data.template
         if not template_content.strip():
             self._show_notification("No template to save.")
@@ -202,13 +210,21 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
 
     def _show_notification(self, message: str) -> None:
-        """Show a notification message."""
+        """Show a notification message.
+
+        Args:
+            message: The message to display in the notification.
+        """
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
 
     def sync_to_state(self) -> None:
-        """Sync template text field to the central state."""
+        """Sync template text field to the central state.
+
+        Reads the current UI values and writes them into the central
+        ``GUIInput`` state object.
+        """
         self.template_sequence.value = self.template_sequence.value or ""
         self.input_data.template = clean_sequence(
             str(self.template_sequence.value)
@@ -216,7 +232,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.input_data.template_circular = bool(self.template_circular.value)
 
     def update_ui(self) -> None:
-        """Update template UI elements to match central state."""
+        """Update template UI elements to match central state.
+
+        Applies values from the central ``GUIInput`` state object to the
+        template text field and circular checkbox controls.
+        """
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family
