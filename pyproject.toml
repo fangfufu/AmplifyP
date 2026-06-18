@@ -29,6 +29,7 @@ optional-dependencies.tests = [
   "pytest-cov>=7.1.0",
   "pytest-testmon>=2.2.0",
   "pytest-playwright>=0.8.0",
+  "pyright>=1.1.410",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
@@ -91,3 +92,12 @@ mypy_path = "src"
 [tool.vulture]
 paths = ["src/"]
 min_confidence = 80
+
+[tool.pyright]
+include = ["src/"]
+exclude = ["tests/"]
+reportAttributeAccessIssue = false
+reportArgumentType = false
+reportCallIssue = false
+reportMissingImports = false
+reportReturnType = false
