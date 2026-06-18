@@ -37,7 +37,11 @@ class GUIController:
     """Manages GUI state, event handlers, views and main orchestration."""
 
     def __init__(self, page: ft.Page) -> None:
-        """Initialise the GUIController."""
+        """Initialize the GUIController.
+
+        Args:
+            page: The Flet page instance for the application.
+        """
         self.page = page
         self.input_data = GUIInput()
         self.settings = GUISettings()
@@ -422,13 +426,25 @@ class GUIController:
         self.page.update()
 
     def on_settings_change(self, e: ft.ControlEvent) -> None:
-        """Handle settings changes."""
+        """Handle settings changes from the settings view.
+
+        Applies theme, updates PCR button state, and persists settings.
+
+        Args:
+            e: The Flet control event triggering the change.
+        """
         self.apply_theme()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 
     def run_apply_settings(self, e: ft.ControlEvent) -> None:
-        """Apply the settings updates."""
+        """Apply settings updates from the settings view.
+
+        Applies theme, updates PCR button state, and persists settings.
+
+        Args:
+            e: The Flet control event triggering the apply action.
+        """
         self.apply_theme()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
@@ -509,7 +525,15 @@ class GUIController:
             self.filepicker_open = False
 
     def switch_view(self, e: Any, view: ft.Control) -> None:
-        """Switch routing container views."""
+        """Switch the main view container to display a different view.
+
+        Updates the container content and configures resize handlers
+        appropriate for the target view.
+
+        Args:
+            e: The event that triggered the view switch.
+            view: The Flet control to display as the new view.
+        """
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
@@ -533,18 +557,32 @@ class GUIController:
             self.page.update()
 
     async def confirm_exit_async(self) -> None:
-        """Destroy window helper."""
+        """Asynchronously destroy the application window.
+
+        Used as a task handler for safe window closure on desktop.
+        """
         try:
             await self.page.window.destroy()
         except Exception:  # noqa: S110
             pass
 
     def confirm_exit(self, e: ft.ControlEvent) -> None:
-        """Exit task launcher."""
+        """Launch the async window destruction task.
+
+        Args:
+            e: The Flet control event triggering the exit.
+        """
         self.page.run_task(self.confirm_exit_async)
 
     def on_window_event(self, e: ft.WindowEvent) -> None:
-        """Handle desktop close warning dialogues."""
+        """Handle desktop window events, showing close confirmation dialog.
+
+        When the user attempts to close the application window, this method
+        displays a confirmation dialog to prevent accidental data loss.
+
+        Args:
+            e: The window event containing close information.
+        """
         if (
             e.data == "close"
             or getattr(e, "type", None) == ft.WindowEventType.CLOSE
