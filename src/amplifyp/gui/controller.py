@@ -18,7 +18,7 @@
 import traceback
 from typing import Any, cast
 
-import flet as ft
+import flet as ft  # type: ignore[import-not-found, unused-ignore]
 import yaml
 
 from amplifyp.gui.colours import GUIColours
@@ -86,12 +86,14 @@ class GUIController:
         # Handle close / reload warnings
         if self.page.web:
             if hasattr(self.page, "run_javascript"):
-                self.page.run_javascript("""
+                self.page.run_javascript(
+                    """
                     window.addEventListener('beforeunload', (event) => {
                         event.preventDefault();
                         event.returnValue = '';
                     });
-                """)
+                    """
+                )
         else:
             self.page.window.prevent_close = False
             self.page.window.prevent_close = True
@@ -281,7 +283,7 @@ class GUIController:
                                 ft.Image(
                                     src="images/favicon.png",
                                     height=32,
-                                    fit="contain",
+                                    fit=ft.BoxFit.CONTAIN,
                                 ),
                                 ft.Text(
                                     "AmplifyP",

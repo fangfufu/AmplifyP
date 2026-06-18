@@ -367,7 +367,7 @@ def get_git_sha() -> str:
         pass
 
     try:
-        import js
+        import js  # type: ignore[import-not-found, unused-ignore]
 
         if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
             sha = str(js.window.__APP_SHA__)
@@ -438,7 +438,7 @@ def get_full_sha() -> str:
         pass
 
     try:
-        import js
+        import js  # type: ignore[import-not-found, unused-ignore]
 
         if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
             sha = str(js.window.__APP_SHA__)

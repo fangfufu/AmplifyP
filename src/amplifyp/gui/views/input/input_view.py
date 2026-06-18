@@ -15,7 +15,7 @@
 
 """Input view composing DNA Template input and Primer inputs."""
 
-from typing import Any
+from typing import Any, cast
 
 import flet as ft
 
@@ -139,7 +139,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.primer_input.delete_selected_button
 
     @property
-    def primer_info_panel(self) -> ft.Container:
+    def primer_info_panel(self) -> ft.Card:
         """Get the primer info panel."""
         return self.primer_input.primer_info_panel
 
@@ -229,7 +229,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input._update_primer_info_panel()
             if self.app_page:
                 self.app_page.update()
-        self._currently_focused_control = e.control
+        self._currently_focused_control = cast(ft.Control, e.control)
 
     def _handle_field_blur(self, e: ft.ControlEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay.
@@ -265,7 +265,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                         row.set_error(err)
                         break
                 # Auto-add new empty row if valid
-                self._auto_add_empty_row_if_needed(e.control)
+                self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
                 self.app_page.update()
 
         def timer_callback() -> None:
@@ -288,7 +288,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """
         self._focus_debouncer.cancel()
         self.sync_to_state()
-        self._auto_add_empty_row_if_needed(e.control)
+        self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
         if self.app_page:
             self.app_page.update()
         if self.on_stop_editing_callback:

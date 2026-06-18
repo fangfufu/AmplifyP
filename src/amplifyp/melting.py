@@ -244,7 +244,7 @@ def calculate_tm_lander_amplify4(
 ) -> float:
     """Calculate Tm using the original Amplify4 algorithm.
 
-    This method is a direct port of the ``calcTm`` method from the Swift
+    This method is a direct port of the `calcTm` method from the Swift
     codebase (Primer.swift). It uses its own set of entropy and enthalpy
     tables (typically 5x5 matrices) and specific correction factors.
 

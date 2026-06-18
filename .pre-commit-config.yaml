@@ -38,6 +38,24 @@ repos:
         additional_dependencies: [tokenize-rt==3.2.0, types-PyYAML]
   - repo: local
     hooks:
+      - id: pyright
+        name: pyright
+        entry: pyright
+        language: python
+        additional_dependencies:
+          - .
+          - pyright
+          - flet
+          - pyyaml
+          - pytest
+          - playwright
+          - requests
+          - pytesseract
+          - pillow
+        pass_filenames: false
+        always_run: true
+  - repo: local
+    hooks:
       - id: pytest
         name: pytest
         entry: pytest

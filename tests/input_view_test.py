@@ -859,6 +859,18 @@ def test_header_checkbox_tristate_cycle() -> None:
     assert primer_input._prev_header_checkbox_value is True
 
 
+def _run_async(coro: object) -> None:
+    """Run an async coroutine in a fresh event loop in a separate thread."""
+    import asyncio
+    import concurrent.futures
+
+    def _run() -> None:
+        asyncio.run(coro)  # type: ignore[arg-type]
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(_run).result()
+
+
 def test_template_load_save() -> None:
     """Test loading and saving template using FilePicker."""
     from unittest.mock import AsyncMock, MagicMock, patch
@@ -887,9 +899,7 @@ def test_template_load_save() -> None:
 
         # --- TEST SAVE ---
         # 1. Save empty template
-        import asyncio
-
-        asyncio.run(
+        _run_async(
             view.template_input.save_template_button.on_click(
                 MagicMock(spec=ft.ControlEvent)
             )
@@ -901,7 +911,7 @@ def test_template_load_save() -> None:
         # 2. Save non-empty template
         input_data.template = "ATGCATGC"
         view.update_ui()
-        asyncio.run(
+        _run_async(
             view.template_input.save_template_button.on_click(
                 MagicMock(spec=ft.ControlEvent)
             )
@@ -922,7 +932,7 @@ def test_template_load_save() -> None:
             return_value=[mock_file]
         )
 
-        asyncio.run(
+        _run_async(
             view.template_input.load_template_button.on_click(
                 MagicMock(spec=ft.ControlEvent)
             )

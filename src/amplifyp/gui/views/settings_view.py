@@ -179,18 +179,20 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def _build_action_buttons(self) -> ft.Row:
         """Build the Action buttons Row (Apply & Reset)."""
         return ft.Row(
-            [
-                ft.FilledButton(
-                    "Apply",
-                    icon=ft.Icons.DONE,
-                    on_click=self._on_apply_handler,
-                ),
-                ft.OutlinedButton(
-                    "Reset to Default",
-                    icon=ft.Icons.RESTORE,
-                    on_click=self._on_reset_handler,
-                ),
-            ],
+            list[ft.Control](
+                [
+                    ft.FilledButton(
+                        "Apply",
+                        icon=ft.Icons.DONE,
+                        on_click=self._on_apply_handler,
+                    ),
+                    ft.OutlinedButton(
+                        "Reset to Default",
+                        icon=ft.Icons.RESTORE,
+                        on_click=self._on_reset_handler,
+                    ),
+                ]
+            ),
             alignment=ft.MainAxisAlignment.END,
             spacing=10,
         )
