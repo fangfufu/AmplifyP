@@ -99,5 +99,6 @@ exclude = ["tests/"]
 reportAttributeAccessIssue = false
 reportArgumentType = false
 reportCallIssue = false
+reportGeneralTypeIssues = false
 reportMissingImports = false
 reportReturnType = false
