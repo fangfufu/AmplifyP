@@ -294,6 +294,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         def make_click(
             n_val: str, idx_val: int, c_val: Any, v_val: Any
         ) -> Callable[[], None]:
+            """Return a lambda that calls the on_primer_click callback."""
             return lambda: self.on_primer_click(n_val, idx_val, c_val, v_val)
 
         for (start_idx, name), (

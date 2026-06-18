@@ -37,6 +37,7 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         self._card_id = card_id
 
         def remove_card(e: Any) -> None:
+            """Callback to trigger the dismiss callback."""
             dismiss_callback(self)
 
         self.content = ft.Container(

@@ -30,7 +30,15 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Any,
         header_size: int,
     ) -> None:
-        """Initialise the TmTile."""
+        """Initialise the TmTile.
+
+        Args:
+            settings: The settings object.
+            settings_map: A dictionary mapping setting keys to UI
+                components for population and retrieval.
+            on_change_handler: The handler to call when a setting changes.
+            header_size: The size of the expansion tile header text.
+        """
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
@@ -67,8 +75,8 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Lander / Amplify 4"),
             ],
             expand=True,
+            on_select=self.on_change_handler,
         )
-        self.set_tm_method.on_change = self.on_change_handler
 
         self.settings_map["tm_dna_conc"] = self.set_tm_dna_conc
         self.settings_map["tm_dnap_conc"] = self.set_tm_dnap_conc

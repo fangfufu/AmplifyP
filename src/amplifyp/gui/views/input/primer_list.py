@@ -43,9 +43,12 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         self.viewport_dimension = 600.0
 
     def _on_scroll(self, e: ft.OnScrollEvent) -> None:
+        """Update the cached scroll position and viewport dimension.
+
+        Args:
+            e (ft.OnScrollEvent): The scroll event.
+        """
         self.scroll_pixels = e.pixels
-        if e.viewport_dimension is not None:
-            self.viewport_dimension = e.viewport_dimension
 
     def update_list_ui(self) -> None:
         """Update Flet UI controls to match the central state."""

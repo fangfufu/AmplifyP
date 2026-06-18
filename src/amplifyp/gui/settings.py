@@ -54,7 +54,11 @@ class GUISettings:
     """Encapsulates configuration settings for the GUI."""
 
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
-        """Initialise GUISettings with optional dictionary or defaults."""
+        """Initialize GUISettings with optional dictionary or defaults.
+
+        Args:
+            settings_dict: Optional dictionary of initial setting values.
+        """
         from amplifyp.dna import Nucleotides
 
         self._settings: dict[str, Any] = {
@@ -117,11 +121,29 @@ class GUISettings:
                 GUIColours.dark_mode = bool(val)
 
     def __getitem__(self, key: str) -> Any:
-        """Get a setting value by key."""
+        """Get a setting value by key.
+
+        Args:
+            key: The setting key to retrieve.
+
+        Returns:
+            The setting value.
+
+        Raises:
+            KeyError: If the key does not exist.
+        """
         return self._settings[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Set a setting value by key."""
+        """Set a setting value by key with type coercion.
+
+        Automatically converts string values to match the expected type
+        of the setting (bool, int, float, or str).
+
+        Args:
+            key: The setting key to update.
+            value: The new value to set.
+        """
         if key in self._settings:
             orig_val = self._settings[key]
             if isinstance(orig_val, bool):
@@ -156,26 +178,62 @@ class GUISettings:
                 GUIColours.dark_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get a setting value by key with an optional default."""
+        """Get a setting value by key with an optional default.
+
+        Args:
+            key: The setting key to retrieve.
+            default: The default value if the key does not exist.
+
+        Returns:
+            The setting value, or the default if not found.
+        """
         return self._settings.get(key, default)
 
     def items(self) -> Any:
-        """Get the settings key-value items."""
+        """Get the settings key-value items.
+
+        Returns:
+            A view of the setting key-value pairs.
+        """
         return self._settings.items()
 
     def keys(self) -> Any:
-        """Get the settings keys."""
+        """Get the settings keys.
+
+        Returns:
+            A view of the setting keys.
+        """
         return self._settings.keys()
 
     def __iter__(self) -> Any:
-        """Iterate over settings keys."""
+        """Iterate over settings keys.
+
+        Returns:
+            An iterator over the setting keys.
+        """
         return iter(self._settings)
 
     def __contains__(self, key: str) -> bool:
-        """Check if a key exists in settings."""
+        """Check if a key exists in settings.
+
+        Args:
+            key: The setting key to check.
+
+        Returns:
+            True if the key exists, False otherwise.
+        """
         return key in self._settings
 
     def _safe_float(self, key: str, default: float) -> float:
+        """Retrieve a setting as float, returning a default if conversion fails.
+
+        Args:
+            key (str): The setting key.
+            default (float): The default value to return.
+
+        Returns:
+            float: The setting value as a float, or the default value.
+        """
         val = self._settings.get(key)
         if val is None or val == "":
             return default
@@ -185,6 +243,15 @@ class GUISettings:
             return default
 
     def _safe_int(self, key: str, default: int) -> int:
+        """Retrieve a setting as int, returning a default if conversion fails.
+
+        Args:
+            key (str): The setting key.
+            default (int): The default value to return.
+
+        Returns:
+            int: The setting value as an integer, or the default value.
+        """
         val = self._settings.get(key)
         if val is None or val == "":
             return default
@@ -194,7 +261,15 @@ class GUISettings:
             return default
 
     def get_replication_settings(self) -> "ReplicationSettings":
-        """Get ReplicationSettings from the central settings."""
+        """Get ReplicationSettings from the central settings.
+
+        Constructs a ReplicationSettings object using the current GUI
+        settings values for primability/stability cutoffs, base-pair
+        weights, and Amplify4 compatibility mode.
+
+        Returns:
+            A ReplicationSettings instance configured from GUI settings.
+        """
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import BasePairWeightsTbl, ReplicationSettings
 
@@ -227,7 +302,15 @@ class GUISettings:
         )
 
     def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
-        """Get PrimerDimerSettings from the central settings."""
+        """Get PrimerDimerSettings from the central settings.
+
+        Constructs a PrimerDimerSettings object using the current GUI
+        settings values for minimum overlap, threshold, and base-pair
+        weights.
+
+        Returns:
+            A PrimerDimerSettings instance configured from GUI settings.
+        """
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import BasePairWeightsTbl, PrimerDimerSettings
 
@@ -257,7 +340,15 @@ class GUISettings:
         )
 
     def get_tm_settings(self) -> "TMSettings":
-        """Get TMSettings from the central settings."""
+        """Get TMSettings from the central settings.
+
+        Constructs a TMSettings object using the current GUI settings
+        values for DNA concentration, salt concentrations, and dNTP
+        concentration used in melting temperature calculations.
+
+        Returns:
+            A TMSettings instance configured from GUI settings.
+        """
         from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
 
         return TMSettings(
@@ -279,7 +370,18 @@ class GUISettings:
         )
 
     def calculate_primer_tm(self, primer: Any) -> float:
-        """Calculate the melting temperature of a primer based on settings."""
+        """Calculate the melting temperature of a primer based on settings.
+
+        Uses the configured TM method (SantaLucia 1998 / Owczarzy 2008
+        or Lander / Amplify 4) and current thermodynamic settings to
+        compute the melting temperature.
+
+        Args:
+            primer: The primer object to calculate Tm for.
+
+        Returns:
+            The melting temperature as a float.
+        """
         from amplifyp.melting import (
             calculate_tm_lander_amplify4,
             calculate_tm_santalucia_1998_owczarzy_2008,
@@ -294,11 +396,23 @@ class GUISettings:
         return calculate_tm_santalucia_1998_owczarzy_2008(primer, tm_settings)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert settings to a dictionary for serialisation."""
+        """Convert settings to a dictionary for serialisation.
+
+        Returns:
+            A copy of the internal settings dictionary.
+        """
         return dict(self._settings)
 
     def from_dict(self, settings_dict: dict[str, Any]) -> None:
-        """Update settings from a dictionary."""
+        """Update settings from a dictionary.
+
+        Applies values from the dictionary to matching keys, performing
+        type coercion as needed. Also updates GUIColours state for
+        colour_deficient and dark_mode settings.
+
+        Args:
+            settings_dict: Dictionary of setting key-value pairs to apply.
+        """
         for k in self._settings:
             if k in settings_dict:
                 v = settings_dict[k]
@@ -336,7 +450,15 @@ class GUISettings:
             GUIColours.dark_mode = bool(dark_mode_val)
 
     def _get_config_path(self) -> Path:
-        """Get the OS-specific path for user settings configuration."""
+        """Get the OS-specific path for user settings configuration.
+
+        Returns:
+            Path object pointing to the settings.yaml file location:
+            - Windows: %APPDATA%/AmplifyP/settings.yaml
+            - macOS: ~/Library/Application Support/AmplifyP/settings.yaml
+            - Linux: $XDG_CONFIG_HOME/amplifyp/settings.yaml or
+                ~/.config/amplifyp/settings.yaml
+        """
         if sys.platform.startswith("win"):
             appdata = os.environ.get("APPDATA")
             if appdata:
@@ -371,30 +493,28 @@ class GUISettings:
         On desktop platforms, reads from OS-specific YAML file.
         """
         if getattr(page, "web", False):
-            if (
-                not hasattr(page, "client_storage")
-                or page.client_storage is None
-            ):
-                return
-            # Web browser path
-            settings_dict = {}
-            for k in self._settings.keys():
-                storage_key = f"amplifyp.settings.{k}"
-                if page.client_storage.contains_key(storage_key):
-                    settings_dict[k] = page.client_storage.get(storage_key)
-            if settings_dict:
-                self.from_dict(settings_dict)
-        else:
-            # Desktop path
-            config_path = self._get_config_path()
-            if config_path.exists():
-                try:
-                    with open(config_path, encoding="utf-8") as f:
-                        data = yaml.safe_load(f)
-                    if isinstance(data, dict):
-                        self.from_dict(data)
-                except Exception as e:
-                    print(f"Error loading settings from {config_path}: {e}")
+            storage = getattr(page, "client_storage", None)
+            if storage is not None:
+                # Web browser path
+                settings_dict = {}
+                for k in self._settings.keys():
+                    storage_key = f"amplifyp.settings.{k}"
+                    if storage.contains_key(storage_key):
+                        settings_dict[k] = storage.get(storage_key)
+                if settings_dict:
+                    self.from_dict(settings_dict)
+            return
+
+        # Desktop path
+        config_path = self._get_config_path()
+        if config_path.exists():
+            try:
+                with open(config_path, encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                if isinstance(data, dict):
+                    self.from_dict(data)
+            except Exception as e:
+                print(f"Error loading settings from {config_path}: {e}")
 
     def save_to_local(self, page: ft.Page) -> None:
         """Save settings to local storage.
@@ -403,21 +523,19 @@ class GUISettings:
         On desktop platforms, writes to OS-specific YAML file.
         """
         if getattr(page, "web", False):
-            if (
-                not hasattr(page, "client_storage")
-                or page.client_storage is None
-            ):
-                return
-            # Web browser path
-            for k, v in self._settings.items():
-                storage_key = f"amplifyp.settings.{k}"
-                page.client_storage.set(storage_key, v)
-        else:
-            # Desktop path
-            config_path = self._get_config_path()
-            try:
-                config_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(config_path, "w", encoding="utf-8") as f:
-                    yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
-            except Exception as e:
-                print(f"Error saving settings to {config_path}: {e}")
+            storage = getattr(page, "client_storage", None)
+            if storage is not None:
+                # Web browser path
+                for k, v in self._settings.items():
+                    storage_key = f"amplifyp.settings.{k}"
+                    storage.set(storage_key, v)
+            return
+
+        # Desktop path
+        config_path = self._get_config_path()
+        try:
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
+        except Exception as e:
+            print(f"Error saving settings to {config_path}: {e}")

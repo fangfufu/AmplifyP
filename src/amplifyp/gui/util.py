@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
+#
 """Utility functions for sequence handling and state serialisation."""
 
 import os
@@ -26,7 +26,17 @@ import yaml
 
 
 def clean_sequence(seq: str) -> str:
-    """Clean sequence of escaped and standard whitespaces."""
+    """Clean sequence of escaped and standard whitespaces.
+
+    Removes escaped newlines, tabs, carriage returns, and all standard
+    whitespace characters from the sequence.
+
+    Args:
+        seq: The sequence string to clean.
+
+    Returns:
+        The cleaned sequence with all whitespace removed.
+    """
     if not seq:
         return ""
     clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
@@ -67,7 +77,18 @@ def _resolve_font_family(font_family: str) -> str:
 
 
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
-    """Format sequence into lines of specified length."""
+    """Format sequence into lines of specified length.
+
+    First cleans the sequence, then wraps it into lines of the given
+    length.
+
+    Args:
+        seq: The sequence string to format.
+        wrap_length: Maximum number of characters per line.
+
+    Returns:
+        The formatted sequence with newlines at wrap boundaries.
+    """
     clean = clean_sequence(seq)
     return "\n".join(
         [clean[i : i + wrap_length] for i in range(0, len(clean), wrap_length)]
@@ -75,9 +96,20 @@ def format_sequence(seq: str, wrap_length: int = 80) -> str:
 
 
 def serialise_state(state: dict[str, object]) -> str:
-    """Serialise state dict to YAML string, handling multiline strings."""
+    """Serialise state dict to YAML string, handling multiline strings.
+
+    Uses a custom YAML dumper that represents multiline strings using
+    the '|' block style for better readability.
+
+    Args:
+        state: The state dictionary to serialise.
+
+    Returns:
+        A YAML string representation of the state.
+    """
 
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+        """Represent multiline strings using the '|' block style in YAML."""
         if "\n" in data:
             return dumper.represent_scalar(
                 "tag:yaml.org,2002:str", data, style="|"
@@ -85,7 +117,7 @@ def serialise_state(state: dict[str, object]) -> str:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
     class _StateDumper(yaml.Dumper):
-        pass
+        """Custom YAML dumper using multiline representer for strings."""
 
     _StateDumper.add_representer(str, multiline_presenter)
     return yaml.dump(state, Dumper=_StateDumper, sort_keys=False)
@@ -101,7 +133,22 @@ def create_overlapped_sequence_view(
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
-    Uses TextSpans for the visual representation.
+    Uses TextSpans for the visual representation with colour-coded
+    lines. For dimer view, displays three lines (top, middle, bottom).
+    For context map view, displays five lines (coordinates, primer row,
+    bonds, complement, template).
+
+    Args:
+        top_line: The top line content (coordinates/arrows for context map).
+        mid_line: The middle line content (primer row).
+        bottom_line: The bottom line content (bonds + template for context
+            map, or third line for dimer view).
+        font_family: The font family to use for the text.
+        font_size: The font size in pixels.
+        is_dimer: Whether this is a dimer view (True) or context map (False).
+
+    Returns:
+        A Flet Text control with styled TextSpans.
     """
     from amplifyp.gui.colours import GUIColours
 
@@ -172,27 +219,21 @@ def create_overlapped_sequence_view(
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
+            ft.TextSpan(
+                f"{comp_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColours.MUTED_GREY,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                template_line,
+                style=ft.TextStyle(
+                    color=GUIColours.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
         ]
-        if comp_line:
-            spans.append(
-                ft.TextSpan(
-                    f"{comp_line}\n",
-                    style=ft.TextStyle(
-                        color=GUIColours.MUTED_GREY,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                )
-            )
-        if template_line:
-            spans.append(
-                ft.TextSpan(
-                    template_line,
-                    style=ft.TextStyle(
-                        color=GUIColours.TEXT_ON_SURFACE,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                )
-            )
 
     return ft.Text(
         spans=spans,
@@ -203,16 +244,27 @@ def create_overlapped_sequence_view(
 
 
 def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
-    """Show an error dialog popup."""
+    """Show an error dialog popup.
+
+    Creates and displays a modal AlertDialog with the given title and
+    message, styled with the error colour.
+
+    Args:
+        page: The Flet page instance.
+        title: The dialog title.
+        message: The error message to display.
+    """
     from typing import Any
 
     from amplifyp.gui.colours import GUIColours
 
     def close_dlg(e: Any) -> None:
+        """Close the error dialog and update the page."""
         dialog.open = False
         page.update()
 
     def on_dismiss(e: Any) -> None:
+        """Remove the dialog from the page overlay when dismissed."""
         if dialog in page.overlay:
             page.overlay.remove(dialog)
             page.update()
@@ -233,7 +285,11 @@ class Debouncer:
     """A thread-based debounce helper for delaying UI actions."""
 
     def __init__(self, delay_seconds: float = 0.15) -> None:
-        """Initialise the Debouncer."""
+        """Initialize the Debouncer.
+
+        Args:
+            delay_seconds: The delay in seconds before triggering the callback.
+        """
         self.delay_seconds = delay_seconds
         self._timer: threading.Timer | None = None
 
@@ -267,7 +323,20 @@ def initialise_score_fields(
     on_change_handler: Any,
     font_size: int,
 ) -> None:
-    """Initialise a grid of text fields for a score table in settings_map."""
+    """Initialise a grid of text fields for a score table in settings_map.
+
+    Creates ft.TextField controls for each combination of row and column
+    headers, storing them in settings_map with keys formatted as
+    '{prefix}_{row}_{col}'.
+
+    Args:
+        settings_map: Dictionary to store the created TextField controls.
+        prefix: The prefix for the field keys.
+        row_headers: List of row header characters.
+        col_headers: List of column header characters.
+        on_change_handler: Callback function for field change events.
+        font_size: The font size for the field text.
+    """
     from amplifyp.gui.colours import GUIColours
 
     for r_char in row_headers:
@@ -512,13 +581,23 @@ class NotificationHelper:
     """
 
     def __init__(self, page: ft.Page) -> None:
-        """Initialise the NotificationHelper."""
+        """Initialize the NotificationHelper.
+
+        Args:
+            page: The Flet page instance for displaying notifications.
+        """
         self.page = page
         self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
         self.page.overlay.append(self._snack_bar)
 
     def show_message(self, message: str) -> None:
-        """Show a message to the user."""
+        """Show a message to the user via a SnackBar.
+
+        Updates the SnackBar content and opens it on the page overlay.
+
+        Args:
+            message: The message to display.
+        """
         self._snack_bar.content = ft.Text(message)
         self._snack_bar.open = True
         self.page.update()

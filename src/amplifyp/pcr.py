@@ -42,7 +42,13 @@ class PCR:
         template: DNA,
         settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ):
-        """Initialise a PCR reaction."""
+        """Initialise a PCR reaction.
+
+        Args:
+            template (DNA): The template DNA for the PCR reaction.
+            settings (ReplicationSettings, optional): The replication settings.
+                Defaults to GLOBAL_REPLICATION_SETTINGS.
+        """
         self.template = template
         self.settings = settings
         self.__primers: list[Primer] = []
@@ -100,11 +106,22 @@ class PCR:
         return self.__primers.copy()
 
     def predict_amplicons(self) -> int:
-        """Predict the amplicons for the PCR reaction."""
+        """Predict the amplicons for the PCR reaction.
+
+        This updates the internal `amplicons` list by generating
+        possible amplicons based on the current template and primers.
+
+        Returns:
+            int: The number of amplicons predicted.
+        """
         self.__amplicons = self.amplicon_generator.get_amplicons()
         return len(self.__amplicons)
 
     @property
     def amplicons(self) -> list[Amplicon]:
-        """Get the predicted amplicons."""
+        """Get the predicted amplicons.
+
+        Returns:
+            list[Amplicon]: A list of predicted amplicon objects.
+        """
         return self.__amplicons.copy()

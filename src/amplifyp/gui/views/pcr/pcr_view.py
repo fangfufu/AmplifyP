@@ -218,6 +218,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 return
 
         def dismiss(card: ft.Card) -> None:
+            """Callback to remove the detail card when dismissed."""
             if card in self.result_list.controls:
                 self.result_list.controls.remove(card)
                 self._update_cards_header_visibility()
@@ -250,6 +251,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 return
 
         def dismiss(card: ft.Card) -> None:
+            """Callback to remove the detail card when dismissed."""
             if card in self.result_list.controls:
                 self.result_list.controls.remove(card)
                 self._update_cards_header_visibility()

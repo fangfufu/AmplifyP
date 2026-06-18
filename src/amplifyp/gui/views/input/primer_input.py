@@ -419,6 +419,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Update the primer information panel based on the focused primer."""
 
         def on_dismiss() -> None:
+            """Clear focus when the primer info panel is dismissed."""
             self.focused_primer_index = None
             self._update_row_highlights()
             if self.app_page:

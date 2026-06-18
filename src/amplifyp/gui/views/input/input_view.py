@@ -247,6 +247,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
 
         def timer_callback() -> None:
+            """Callback for debounced field blur."""
             if not self.page:
                 return
             if self.on_stop_editing_callback:
