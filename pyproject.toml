@@ -100,4 +100,3 @@ reportAttributeAccessIssue = false
 reportArgumentType = false
 reportCallIssue = false
 reportMissingImports = false
-reportReturnType = false
