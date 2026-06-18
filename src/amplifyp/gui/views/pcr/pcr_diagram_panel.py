@@ -45,7 +45,16 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         on_primer_click: Callable[[str, int, Any, Any], None],
         on_amplicon_click: Callable[[Any], None],
     ) -> None:
-        """Initialise the PCRDrawingPanel."""
+        """Initialise the PCRDrawingPanel.
+
+        Args:
+            page: The Flet page instance for UI updates.
+            settings: Application GUI settings instance.
+            on_primer_click: Callback invoked when a primer is clicked.
+                Receives (name, index, conf, var) arguments.
+            on_amplicon_click: Callback invoked when an amplicon is clicked.
+                Receives the amplicon object as argument.
+        """
         super().__init__(spacing=0, tight=True)
         self.app_page = page
         self.settings = settings
@@ -90,7 +99,11 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         ]
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
-        """Handle vertical resizing of the diagram container."""
+        """Handle vertical resizing of the diagram container.
+
+        Args:
+            e: The Flet drag update event containing delta y.
+        """
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
         self.diagram_container.height = max(
             150.0, float(self.diagram_container.height or 300.0) + delta_y
@@ -98,7 +111,11 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.app_page.update()
 
     def reset_ui(self) -> None:
-        """Reset the PCR view diagram canvas shapes and controls."""
+        """Reset the PCR view diagram canvas shapes and controls.
+
+        Clears all shapes, hides the diagram container and divider,
+        and resets the stack to contain only the canvas.
+        """
         self.diagram_canvas.shapes.clear()
         self.diagram_stack.controls.clear()
         self.diagram_stack.controls.append(self.diagram_canvas)
@@ -109,6 +126,12 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Perform coordinates calculations and render diagram elements.
 
         This draws baseline, primers, and amplicons.
+        Sorts amplicons by quality score and limits rendering to
+        MAX_AMPLICONS_RENDER if there are too many.
+
+        Args:
+            pcr: The PCR simulation instance containing amplicons and
+                template data.
         """
         amplicons = pcr.amplicons
         num_amplicons = len(amplicons)
@@ -182,7 +205,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         t_width: float,
         target_length: int,
     ) -> None:
-        """Draw boundary lines, baseline, ticks, and texts."""
+        """Draw boundary lines, baseline, ticks, and texts.
+
+        Draws vertical boundary lines at start/end, position labels (1
+        and target_length), the main baseline, and dynamic tick marks
+        scaled based on template length.
+
+        Args:
+            v_target: Vertical position of the baseline.
+            h_margin: Horizontal margin in pixels.
+            c_width: Total canvas width in pixels.
+            t_width: Template drawing width in pixels.
+            target_length: Total length of the template in base pairs.
+        """
         # Draw vertical boundary lines at start and end of template
         boundary_paint = ft.Paint(
             color=GUIColours.DIAGRAM_BLACK,
@@ -283,7 +318,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         h_margin: float,
         v_target: float,
     ) -> None:
-        """Draw forward and reverse primers using DrawnPrimer instances."""
+        """Draw forward and reverse primers using DrawnPrimer instances.
+
+        Calculates shifted x-positions to prevent overlap, then creates
+        and draws DrawnPrimer objects for each binding site.
+
+        Args:
+            fwd_bindings: Forward primer binding data dict.
+            rev_bindings: Reverse primer binding data dict.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+        """
         fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
             fwd_bindings, target_length, t_width, h_margin
         )
@@ -352,7 +399,20 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         amplicons: list[Any] | None = None,
         v_frag_start: float | None = None,
     ) -> None:
-        """Draw amplicons using DrawnAmplicon instances."""
+        """Draw amplicons using DrawnAmplicon instances.
+
+        Args:
+            pcr: The PCR simulation instance.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            c_width: Total canvas width in pixels.
+            amplicons: List of amplicon objects to draw, or None to use
+                pcr.amplicons.
+            v_frag_start: Vertical start position for fragment rows, or
+                None to use a default.
+        """
         if amplicons is None:
             amplicons = pcr.amplicons
         for idx, amp in enumerate(amplicons):

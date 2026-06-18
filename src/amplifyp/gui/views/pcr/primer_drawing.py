@@ -45,7 +45,23 @@ class DrawnPrimer:
         on_click: Callable[[], None],
         x_shifted: float | None = None,
     ) -> None:
-        """Initialise the DrawnPrimer."""
+        """Initialise the DrawnPrimer.
+
+        Args:
+            name: The primer name for display.
+            index: The binding position index on the template.
+            conf: The Repliconf configuration object for this primer.
+            var: The variable containing direction information.
+            S: Triangle size factor based on quality score.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            settings: Application GUI settings instance.
+            on_click: Callback invoked when the primer is clicked.
+            x_shifted: Optional overridden x-coordinate for shifted
+                positioning to prevent overlap.
+        """
         self.name = name
         self.index = index
         self.conf = conf
@@ -68,7 +84,16 @@ class DrawnPrimer:
         self.direction = var.direction
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
-        """Draw the primer indicator elements onto the canvas and stack."""
+        """Draw the primer indicator elements onto the canvas and stack.
+
+        Draws connector lines (straight or bent if shifted), direction-
+        specific triangles (down-pointing blue for forward, up-pointing
+        red for reverse), rotated labels, and click overlays.
+
+        Args:
+            canvas: The Flet canvas to draw shapes on.
+            stack: The Flet stack to add labels and gesture detectors to.
+        """
         x_render = self.x_shifted if self.x_shifted is not None else self.x_pos
 
         if self.direction == DNADirection.FWD:
@@ -252,7 +277,17 @@ class DrawnPrimer:
 
 
 def get_template_substring(template: DNA, start: int, length: int) -> str:
-    """Get substring of template DNA, supporting circular wrapping."""
+    """Get substring of template DNA, supporting circular wrapping.
+
+    Args:
+        template: The DNA template object.
+        start: The starting index for the substring.
+        length: The number of bases to extract.
+
+    Returns:
+        A string of the requested DNA substring, with '-' for out-of-
+        bounds positions on linear templates.
+    """
     N_len = len(template)
     if template.type == DNAType.CIRCULAR:
         return "".join(
@@ -275,7 +310,27 @@ def format_context_lines(
     direction: DNADirection,
     improved_visualisation: bool = False,
 ) -> tuple[str, str, str]:
-    """Format context alignment lines for binding site context map."""
+    """Format context alignment lines for binding site context map.
+
+    Constructs multi-line text visualisation showing the primer binding
+    site with upstream/downstream context, pipe markers, arrows, and
+    optional complementary strand display.
+
+    Args:
+        primer_name: The name of the primer.
+        padded_idx: The padded binding index on the template.
+        conf: The Repliconf configuration object.
+        origin: The replication origin object.
+        L: Length of the primer.
+        N: Length of the template.
+        direction: The DNA direction (FWD or REV).
+        improved_visualisation: If True, includes complementary strand
+            display for forward primers.
+
+    Returns:
+        A tuple of (top_line, primer_line, bottom_line) strings for
+        the context map visualisation.
+    """
     if direction == DNADirection.FWD:
         start_genomic = (padded_idx - L) % N
         primer_display_seq = conf.primer.seq
@@ -361,7 +416,20 @@ class ReplicationContextCard(DismissibleDetailCard):
         settings: Any,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialise the ReplicationContextCard."""
+        """Initialise the ReplicationContextCard.
+
+        Displays primability, stability, quality scores, and a visually
+        aligned replication context map for the specified primer binding
+        site.
+
+        Args:
+            primer_name: The name of the primer.
+            padded_idx: The padded binding index on the template.
+            conf: The Repliconf configuration object.
+            var: The variable containing direction information.
+            settings: Application GUI settings instance.
+            dismiss_callback: Callback invoked when the card is dismissed.
+        """
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)

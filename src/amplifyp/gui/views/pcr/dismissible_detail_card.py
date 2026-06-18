@@ -32,7 +32,17 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         dismiss_callback: Callable[[ft.Card], None],
         body_controls: list[ft.Control],
     ) -> None:
-        """Initialise the DismissibleDetailCard."""
+        """Initialise the DismissibleDetailCard.
+
+        Args:
+            card_id: Unique identifier string for this card.
+            title: The card title text displayed in the header.
+            settings: Application GUI settings instance for font sizes.
+            dismiss_callback: Callback invoked when the close button is
+                clicked. Receives the card instance as argument.
+            body_controls: List of Flet control objects to display in
+                the card body below the header.
+        """
         super().__init__()
         self._card_id = card_id
 
