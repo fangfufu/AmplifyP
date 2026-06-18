@@ -35,7 +35,18 @@ class DimerTile(BaseScoreTile):
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialise the DimerTile."""
+        """Initialise the DimerTile.
+
+        Args:
+            settings: The settings object.
+            settings_map: A dictionary mapping setting keys to UI
+                components for population and retrieval.
+            on_change_handler: The handler to call when a setting changes.
+            header_size: The size of the expansion tile header text.
+            font_size_default: Default font size for text elements.
+            font_size_micro: Micro font size for small labels.
+            font_size_table_header: Font size for table header cells.
+        """
         from amplifyp.dna import Nucleotides
 
         self.set_pd_min_overlap = ft.TextField(
