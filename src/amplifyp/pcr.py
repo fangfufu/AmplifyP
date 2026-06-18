@@ -13,7 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""This module contains the PCR class, which represents a PCR reaction."""
+"""PCR reaction simulation module.
+
+This module provides the `PCR` class, which represents a complete Polymerase
+Chain Reaction (PCR) simulation. It manages templates, primers, and the
+internal amplicon generator to predict all possible amplification products.
+"""
 
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import DNA, Primer
