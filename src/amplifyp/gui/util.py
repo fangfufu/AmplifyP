@@ -26,7 +26,7 @@ import yaml
 
 
 def clean_sequence(seq: str) -> str:
-    """Clean sequence of escaped and standard whitespaces.
+    r"""Clean sequence of escaped and standard whitespaces.
 
     Removes escaped newlines, tabs, carriage returns, and all standard
     whitespace characters from the sequence.
