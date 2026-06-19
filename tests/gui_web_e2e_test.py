@@ -75,9 +75,18 @@ def build_app() -> None:
 def serve_app(build_app: None) -> Generator[str, None, None]:
     """Serve the static app in a background thread."""
     HTTPServer.allow_reuse_address = True
+
+    class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
+        def translate_path(self, path: str) -> str:
+            if path.startswith("/AmplifyP/"):
+                path = path[len("/AmplifyP") :]
+            elif path == "/AmplifyP":
+                path = "/"
+            return super().translate_path(path)
+
     server = HTTPServer(
         ("localhost", SERVER_PORT),
-        lambda *args: SimpleHTTPRequestHandler(*args, directory=DIST_DIR),
+        lambda *args: CustomHTTPRequestHandler(*args, directory=DIST_DIR),
     )
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
