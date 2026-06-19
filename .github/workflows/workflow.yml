@@ -26,11 +26,11 @@ jobs:
         run: |
           pip install .[tests,e2e] pre-commit
       - name: Run pre-commit
-        shell: bash
+        env:
+          SKIP: pytest
         run: |
-          SKIP=pytest pre-commit run --all-files --show-diff-on-failure
+          pre-commit run --all-files --show-diff-on-failure
       - name: Run unit tests
-        shell: bash
         run: |
           pytest -v
       - name: Build Flet web app (Linux only)
@@ -39,21 +39,36 @@ jobs:
           matrix.python-version == '3.13' &&
           !(github.event_name == 'push' && github.ref_name == 'dev')
         run: |
-          bash ./build_static.sh --base-url /${{ github.event.repository.name }}/
+          bash ./build_static.sh \
+            --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release
-        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' && github.ref_name == 'stable' ||
+          github.event_name == 'workflow_dispatch') &&
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         run: |
           tar -czf amplifyp-web.tar.gz -C dist .
       - name: Upload Web Artifact
-        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' && github.ref_name == 'stable' ||
+          github.event_name == 'workflow_dispatch') &&
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
           name: amplifyp-web
           path: amplifyp-web.tar.gz
       - name: Display coverage report
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         run: |
           coverage report -m
       - name: Upload Coverage to Codecov
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         uses: codecov/codecov-action@v7
       - name: Run E2E tests
         if: |
@@ -66,7 +81,12 @@ jobs:
           playwright install --with-deps chromium
           xvfb-run -a pytest -v -m e2e
       - name: Build Flet Linux binary
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' ||
+          github.event_name == 'workflow_dispatch') &&
+          github.ref_name == 'stable' &&
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -75,20 +95,40 @@ jobs:
             libasound2-dev libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
             libmpv-dev mpv
-          flet build linux src --yes
+          flet build linux src -o build/linux --yes
           tar -czf amplifyp-linux.tar.gz -C build/linux .
       - name: Build Flet macOS binary
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'macOS' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' ||
+          github.event_name == 'workflow_dispatch') &&
+          github.ref_name == 'stable' &&
+          runner.os == 'macOS' &&
+          matrix.python-version == '3.13'
         run: |
-          flet build macos src --yes
-          python -c "import shutil; shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')"
+          flet build macos src -o build/macos --yes
+          python -c "
+          import shutil
+          shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')
+          "
       - name: Build Flet Windows binary
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'Windows' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' ||
+          github.event_name == 'workflow_dispatch') &&
+          github.ref_name == 'stable' &&
+          runner.os == 'Windows' &&
+          matrix.python-version == '3.13'
         run: |
-          flet build windows src --yes
-          python -c "import shutil; shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')"
+          flet build windows src -o build/windows --yes
+          python -c "
+          import shutil
+          shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')
+          "
       - name: Upload build artifact
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && matrix.python-version == '3.13'
+        if: |
+          (github.event_name == 'push' ||
+          github.event_name == 'workflow_dispatch') &&
+          github.ref_name == 'stable' &&
+          matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
           name: amplifyp-${{ runner.os }}
@@ -99,7 +139,10 @@ jobs:
           if-no-files-found: ignore
   release:
     needs: [test]
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable'
+    if: |
+      (github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch') &&
+      github.ref_name == 'stable'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -122,8 +165,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          tag_name: ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
-          name: Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
+          tag_name: >-
+            ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
+          name: >-
+            Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
           files: |
             amplifyp-linux.tar.gz
             amplifyp-macos.zip
@@ -134,7 +179,8 @@ jobs:
     if: |
       always() &&
       needs.test.result == 'success' &&
-      (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch')
+      (github.event_name == 'push' && github.ref_name == 'stable' ||
+      github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
