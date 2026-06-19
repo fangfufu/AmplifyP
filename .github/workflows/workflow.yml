@@ -26,11 +26,11 @@ jobs:
         run: |
           pip install .[tests,e2e] pre-commit
       - name: Run pre-commit
-        shell: bash
+        env:
+          SKIP: pytest
         run: |
-          SKIP=pytest pre-commit run --all-files --show-diff-on-failure
+          pre-commit run --all-files --show-diff-on-failure
       - name: Run unit tests
-        shell: bash
         run: |
           pytest -v
       - name: Build Flet web app (Linux only)
