@@ -97,7 +97,8 @@ jobs:
             libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
             libmpv-dev mpv
           flet build linux src -o build/linux --project AmplifyP --yes
-          tar -czf amplifyp-linux.tar.gz -C build/linux .
+          mv build/linux build/AmplifyP
+          tar -czf amplifyp-linux.tar.gz -C build AmplifyP
       - name: Build Flet macOS binary
         if: |
           (github.event_name == 'push' ||
@@ -107,9 +108,10 @@ jobs:
           matrix.python-version == '3.13'
         run: |
           flet build macos src -o build/macos --project AmplifyP --yes
+          mv build/macos build/AmplifyP
           python -c "
           import shutil
-          shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')
+          shutil.make_archive('amplifyp-macos', 'zip', 'build', 'AmplifyP')
           "
       - name: Build Flet Windows binary
         if: |
@@ -120,9 +122,10 @@ jobs:
           matrix.python-version == '3.13'
         run: |
           flet build windows src -o build/windows --project AmplifyP --yes
+          mv build/windows build/AmplifyP
           python -c "
           import shutil
-          shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')
+          shutil.make_archive('amplifyp-windows', 'zip', 'build', 'AmplifyP')
           "
       - name: Upload build artifact
         if: |
