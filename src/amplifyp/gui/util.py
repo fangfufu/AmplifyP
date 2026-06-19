@@ -374,7 +374,7 @@ def get_git_sha() -> str:
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
@@ -445,7 +445,7 @@ def get_full_sha() -> str:
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
