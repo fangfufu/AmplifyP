@@ -15,6 +15,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.12', '3.13', '3.14']
     runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: 1
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -32,15 +34,18 @@ jobs:
         run: |
           pytest -v
       - name: Build Flet web app (Linux only)
-        if: runner.os == 'Linux'
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13' &&
+          !(github.event_name == 'push' && github.ref_name == 'dev')
         run: |
           bash ./build_static.sh --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release
-        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.12'
+        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.13'
         run: |
           tar -czf amplifyp-web.tar.gz -C dist .
       - name: Upload Web Artifact
-        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.12'
+        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
           name: amplifyp-web
@@ -53,31 +58,15 @@ jobs:
       - name: Run E2E tests
         if: |
           runner.os == 'Linux' &&
+          matrix.python-version == '3.13' &&
           !(github.event_name == 'push' && github.ref_name == 'dev')
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
           playwright install --with-deps chromium
           xvfb-run -a pytest -v -m e2e
-  build-binaries:
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable'
-    needs: test
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    env:
-      PYTHONUTF8: 1
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - name: Install dependencies
-        run: |
-          pip install . flet
       - name: Build Flet Linux binary
-        if: runner.os == 'Linux'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.13'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -89,16 +78,17 @@ jobs:
           flet build linux src --yes
           tar -czf amplifyp-linux.tar.gz -C build/linux .
       - name: Build Flet macOS binary
-        if: runner.os == 'macOS'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'macOS' && matrix.python-version == '3.13'
         run: |
           flet build macos src --yes
           python -c "import shutil; shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')"
       - name: Build Flet Windows binary
-        if: runner.os == 'Windows'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && runner.os == 'Windows' && matrix.python-version == '3.13'
         run: |
           flet build windows src --yes
           python -c "import shutil; shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')"
       - name: Upload build artifact
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable' && matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4
         with:
           name: amplifyp-${{ runner.os }}
@@ -108,7 +98,7 @@ jobs:
             amplifyp-windows.zip
           if-no-files-found: ignore
   release:
-    needs: [test, build-binaries]
+    needs: [test]
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable'
     runs-on: ubuntu-latest
     permissions:
