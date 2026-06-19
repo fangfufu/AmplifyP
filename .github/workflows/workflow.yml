@@ -110,7 +110,12 @@ jobs:
           flet build macos src -o build/macos --project AmplifyP --yes
           mv build/macos build/AmplifyP
           ln -s /Applications build/AmplifyP/Applications
-          hdiutil create -volname "AmplifyP" -srcfolder build/AmplifyP -ov -format UDZO amplifyp-macos.dmg
+          hdiutil create \
+            -volname "AmplifyP" \
+            -srcfolder build/AmplifyP \
+            -ov \
+            -format UDZO \
+            amplifyp-macos.dmg
       - name: Build Flet Windows binary
         if: |
           (github.event_name == 'push' ||
@@ -169,8 +174,7 @@ jobs:
           draft: true
           tag_name: >-
             ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
-          name: >-
-            Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
+          name: Release ${{ steps.info.outputs.version }}
           files: |
             amplifyp-linux.tar.gz
             amplifyp-macos.dmg
