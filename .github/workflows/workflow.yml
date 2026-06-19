@@ -33,33 +33,14 @@ jobs:
         shell: bash
         run: |
           pytest -v
-      - name: Display coverage report
-        run: |
-          coverage report -m
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v7
-      - name: Run E2E tests
-        if: |
-          runner.os == 'Linux' &&
-          matrix.python-version == '3.13' &&
-          !(github.event_name == 'push' && github.ref_name == 'dev')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
-          playwright install --with-deps chromium
-          xvfb-run -a pytest -v -m e2e
       - name: Build Flet web app (Linux only)
         if: |
           runner.os == 'Linux' &&
           matrix.python-version == '3.13' &&
           !(github.event_name == 'push' && github.ref_name == 'dev')
         run: |
-          if [ ! -f dist/index.html ]; then
-            bash ./build_static.sh \
-              --base-url /${{ github.event.repository.name }}/
-          else
-            echo "Web app already built by E2E tests. Skipping build."
-          fi
+          bash ./build_static.sh \
+            --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release
         if: |
           (github.event_name == 'push' && github.ref_name == 'stable' ||
@@ -78,6 +59,21 @@ jobs:
         with:
           name: amplifyp-web
           path: amplifyp-web.tar.gz
+      - name: Display coverage report
+        run: |
+          coverage report -m
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v7
+      - name: Run E2E tests
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13' &&
+          !(github.event_name == 'push' && github.ref_name == 'dev')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
+          playwright install --with-deps chromium
+          xvfb-run -a pytest -v -m e2e
       - name: Build Flet Linux binary
         if: |
           (github.event_name == 'push' ||
