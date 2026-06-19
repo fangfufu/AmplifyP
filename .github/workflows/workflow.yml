@@ -19,23 +19,40 @@ jobs:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
     steps:
+      - name: Filter matrix on dev
+        id: filter
+        shell: python
+        run: |
+          import os
+          ref = "${{ github.ref_name }}"
+          os_name = "${{ runner.os }}"
+          py_ver = "${{ matrix.python-version }}"
+          run = ref != "dev" or (os_name == "Linux" and py_ver == "3.13")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"run={'true' if run else 'false'}\n")
       - uses: actions/checkout@v7
+        if: steps.filter.outputs.run == 'true'
       - uses: actions/setup-python@v6
+        if: steps.filter.outputs.run == 'true'
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
+        if: steps.filter.outputs.run == 'true'
         run: |
           pip install .[tests,e2e] pre-commit
       - name: Run pre-commit
+        if: steps.filter.outputs.run == 'true'
         env:
           SKIP: pytest
         run: |
           pre-commit run --all-files --show-diff-on-failure
       - name: Run unit tests
+        if: steps.filter.outputs.run == 'true'
         run: |
           pytest -v
       - name: Build Flet web app (Linux only)
         if: |
+          steps.filter.outputs.run == 'true' &&
           runner.os == 'Linux' &&
           matrix.python-version == '3.13' &&
           !(github.event_name == 'push' && github.ref_name == 'dev')
@@ -44,6 +61,7 @@ jobs:
             --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' && github.ref_name == 'stable' ||
           github.event_name == 'workflow_dispatch') &&
           runner.os == 'Linux' &&
@@ -52,6 +70,7 @@ jobs:
           tar -czf amplifyp-web.tar.gz -C dist .
       - name: Upload Web Artifact
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' && github.ref_name == 'stable' ||
           github.event_name == 'workflow_dispatch') &&
           runner.os == 'Linux' &&
@@ -62,17 +81,20 @@ jobs:
           path: amplifyp-web.tar.gz
       - name: Display coverage report
         if: |
+          steps.filter.outputs.run == 'true' &&
           runner.os == 'Linux' &&
           matrix.python-version == '3.13'
         run: |
           coverage report -m
       - name: Upload Coverage to Codecov
         if: |
+          steps.filter.outputs.run == 'true' &&
           runner.os == 'Linux' &&
           matrix.python-version == '3.13'
         uses: codecov/codecov-action@v7
       - name: Run E2E tests
         if: |
+          steps.filter.outputs.run == 'true' &&
           runner.os == 'Linux' &&
           matrix.python-version == '3.13' &&
           !(github.event_name == 'push' && github.ref_name == 'dev')
@@ -83,6 +105,7 @@ jobs:
           xvfb-run -a pytest -v -m e2e
       - name: Build Flet Linux binary
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' ||
           github.event_name == 'workflow_dispatch') &&
           github.ref_name == 'stable' &&
@@ -101,6 +124,7 @@ jobs:
           tar -czf amplifyp-linux.tar.gz -C build AmplifyP
       - name: Build Flet macOS binary
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' ||
           github.event_name == 'workflow_dispatch') &&
           github.ref_name == 'stable' &&
@@ -118,6 +142,7 @@ jobs:
             amplifyp-macos.dmg
       - name: Build Flet Windows binary
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' ||
           github.event_name == 'workflow_dispatch') &&
           github.ref_name == 'stable' &&
@@ -132,6 +157,7 @@ jobs:
           "
       - name: Upload build artifact
         if: |
+          steps.filter.outputs.run == 'true' &&
           (github.event_name == 'push' ||
           github.event_name == 'workflow_dispatch') &&
           github.ref_name == 'stable' &&

@@ -208,7 +208,9 @@ def test_calculate_tm_no_monovalent() -> None:
 def test_calculate_tm_amplify4_edge_cases() -> None:
     """Test Tm calculation (Amplify4) with edge cases."""
     # Empty primer
-    assert calculate_tm_lander_amplify4(Primer(""), GLOBAL_TM_SETTINGS) == 0.0
+    assert calculate_tm_lander_amplify4(
+        Primer(""), GLOBAL_TM_SETTINGS
+    ) == pytest.approx(0.0)
 
     # Zero/negative salt
     # Should fallback to 50mM
