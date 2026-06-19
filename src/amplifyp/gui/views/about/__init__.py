@@ -13,23 +13,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""GUI Views for the Flet application."""
+"""About View package."""
 
-from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.views.about.about_view import AboutView
 
-from .about import AboutView
-from .dimer import DimerView
-from .input import InputView
-from .pcr import PCRView
-from .settings_view import SettingsView
-
-__all__ = [
-    "AboutView",
-    "DimerView",
-    "GUIInput",
-    "GUISettings",
-    "InputView",
-    "PCRView",
-    "SettingsView",
-]
+__all__ = ["AboutView"]
