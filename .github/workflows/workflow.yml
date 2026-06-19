@@ -7,7 +7,7 @@ on:
 permissions:
   contents: read
 jobs:
-  run:
+  test:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -29,10 +29,24 @@ jobs:
         shell: bash
         run: |
           pytest -v
-      - name: Build Flet app
+      - name: Install Flet (Linux only for web build check)
+        if: runner.os == 'Linux'
         run: |
           pip install flet
+      - name: Build Flet web app (Linux only)
+        if: runner.os == 'Linux'
+        run: |
           flet publish src/main.py --base-url /${{ github.event.repository.name }}/
+      - name: Archive and Upload Web Release
+        if: github.event_name == 'push' && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.12'
+        run: |
+          tar -czf amplifyp-web.tar.gz -C dist .
+      - name: Upload Web Artifact
+        if: github.event_name == 'push' && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: amplifyp-web
+          path: amplifyp-web.tar.gz
       - name: Display coverage report
         run: |
           coverage report -m
@@ -47,3 +61,81 @@ jobs:
           sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
           playwright install --with-deps chromium
           xvfb-run -a pytest -v -m e2e
+  build-binaries:
+    if: github.event_name == 'push' && github.ref_name == 'stable'
+    needs: test
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: |
+          pip install . flet
+      - name: Build Flet Linux binary
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            binutils clang cmake llvm lld ninja-build pkg-config \
+            libgtk-3-dev libsecret-1-0 libsecret-1-dev libunwind-dev \
+            libasound2-dev libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
+            libmpv-dev mpv
+          flet build linux src --yes
+          tar -czf amplifyp-linux.tar.gz -C build/linux .
+      - name: Build Flet macOS binary
+        if: runner.os == 'macOS'
+        run: |
+          flet build macos src --yes
+          zip -r amplifyp-macos.zip build/macos
+      - name: Build Flet Windows binary
+        if: runner.os == 'Windows'
+        run: |
+          flet build windows src --yes
+          python -c "import shutil; shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')"
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amplifyp-${{ runner.os }}
+          path: |
+            amplifyp-linux.tar.gz
+            amplifyp-macos.zip
+            amplifyp-windows.zip
+          if-no-files-found: ignore
+  release:
+    needs: [test, build-binaries]
+    if: github.event_name == 'push' && github.ref_name == 'stable'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Get version and short SHA
+        id: info
+        shell: bash
+        run: |
+          VERSION=$(grep -m 1 'version =' pyproject.toml | cut -d '"' -f 2)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: amplifyp-*
+          merge-multiple: true
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
+          name: Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
+          files: |
+            amplifyp-linux.tar.gz
+            amplifyp-macos.zip
+            amplifyp-windows.zip
+            amplifyp-web.tar.gz

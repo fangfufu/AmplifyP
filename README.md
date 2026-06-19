@@ -4,6 +4,7 @@
 [![codecov](https://codecov.io/gh/fangfufu/AmplifyP/graph/badge.svg?token=UNEJRZSVPJ)](https://codecov.io/gh/fangfufu/AmplifyP)
 [![CodeFactor](https://www.codefactor.io/repository/github/fangfufu/amplifyp/badge)](https://www.codefactor.io/repository/github/fangfufu/amplifyp)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f3bffb3752794a728b3722120ca267fa)](https://app.codacy.com/gh/fangfufu/AmplifyP/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # AmplifyP
 
@@ -17,10 +18,29 @@ stability, and melting properties of primer binding sites.
 
 ______________________________________________________________________
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [Web Version (Static)](#web-version-static)
+  - [Local Graphical User Interface (GUI)](#local-graphical-user-interface-gui)
+  - [Python API](#python-api)
+    - [Basic PCR Simulation](#basic-pcr-simulation)
+    - [Primer Dimer Analysis](#primer-dimer-analysis)
+    - [Thermodynamic Melting Calculations](#thermodynamic-melting-calculations)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Attribution](#attribution)
+- [License](#license)
+
+______________________________________________________________________
+
 ## Features
 
 - **PCR Simulation**: Predict potential amplicons, product sequences, and
-  lengths using rigorous primer-template binding models.
+  lengths using rigorous primer-template binding models. Supports both linear
+  and circular DNA templates.
 - **Cross-Platform GUI**: Built with [Flet](https://flet.dev/) (a modern
   Flutter-based UI framework) providing a beautiful, fully responsive app for
   desktop and web browsers.
@@ -31,6 +51,10 @@ ______________________________________________________________________
 - **Programmatic Python API**: A developer-friendly, fully typed API to run
   simulations, dimer analyses, or thermodynamic melting calculations within your
   pipelines.
+- **Primer Dimer Analysis**: Detect and score primer-dimer formation risks
+  between primer pairs, including self-dimers and cross-dimers.
+- **Melting Temperature Calculations**: Compute thermodynamic melting properties
+  of primer-template and primer-primer hybrids using nearest-neighbor models.
 
 ______________________________________________________________________
 
@@ -38,7 +62,7 @@ ______________________________________________________________________
 
 AmplifyP requires Python 3.12 or higher.
 
-First, clone the repository and source your Python virtual environment under
+First, clone the repository and set up your Python virtual environment under
 `.venv` at the root of the repository:
 
 ```bash
@@ -72,8 +96,6 @@ live static web app:
 To build and test the static web app locally, or to run the application with
 hot-reload for development, see the [Development Guide](src/README.md).
 
-______________________________________________________________________
-
 ### Local Graphical User Interface (GUI)
 
 You can launch the Flet GUI application locally as a standalone desktop app.
@@ -93,14 +115,15 @@ The GUI offers intuitive workflows to:
 1. **Manage multiple primers** with individual sequences and custom names.
 1. **Customise thresholds** for primability and stability cutoffs.
 1. **Simulate PCR** to visualise products, lanes, and details of binding sites.
-1. **Save/Load projects** to resume work easily.
+1. **Analyze primer dimers** to identify potential primer-dimer formation risks.
+1. **Save/Load projects** to resume work easily via YAML configuration files.
 
-______________________________________________________________________
-
-### Python API Example
+### Python API
 
 Integrate AmplifyP into your custom bioinformatics workflows using the Python
-API:
+API.
+
+#### Basic PCR Simulation
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType
@@ -141,6 +164,85 @@ for amp in amplicons:
     print(f"Quality Score: {amp.q_score}")
     print("-" * 20)
 ```
+
+#### Primer Dimer Analysis
+
+```python
+from amplifyp.dna import DNA, Primer, DNAType
+from amplifyp.repliconf import Repliconf
+from amplifyp.dimer import DimerGenerator
+from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
+
+template = DNA("AGCT...", DNAType.LINEAR, name="Template")
+primer_a = Primer("AGCT...", name="PrimerA")
+primer_b = Primer("TCGA...", name="PrimerB")
+
+# Create replication configurations
+conf_a = Repliconf(template, primer_a, GLOBAL_REPLICATION_SETTINGS)
+conf_b = Repliconf(template, primer_b, GLOBAL_REPLICATION_SETTINGS)
+conf_a.search()
+conf_b.search()
+
+# Generate dimer analysis
+dimer_gen = DimerGenerator()
+dimer_gen.add(conf_a)
+dimer_gen.add(conf_b)
+
+dimers = dimer_gen.get_dimers()
+for dimer in dimers:
+    print(f"Dimer: {dimer.primer1.name}-{dimer.primer2.name}")
+    print(f"Score: {dimer.score}")
+    print(f"Product: {dimer.product.seq}")
+```
+
+#### Thermodynamic Melting Calculations
+
+```python
+from amplifyp.dna import DNA, Primer
+from amplifyp.melting import MeltingCalculator
+
+primer = Primer("AGCTTCGAA", name="TestPrimer")
+template = DNA("TTTCTAGCTTCGAAAGGG", name="Template")
+
+calculator = MeltingCalculator()
+
+# Calculate melting temperature of primer-template hybrid
+tm = calculator.calculate_tm(primer, template)
+print(f"Melting Temperature: {tm:.2f}°C")
+```
+
+______________________________________________________________________
+
+## Project Structure
+
+```
+AmplifyP/
+├── pyproject.toml              # Package configuration and dependencies
+├── README.md                   # This file
+├── src/
+│   ├── main.py                 # GUI application entry point
+│   ├── amplifyp/               # Core package
+│   │   ├── amplicon.py         # Amplicon generation logic
+│   │   ├── dimer.py            # Primer dimer analysis
+│   │   ├── dna.py              # DNA/Primer sequence classes
+│   │   ├── errors.py           # Custom exception types
+│   │   ├── gui/                # Flet-based GUI components
+│   │   ├── melting.py          # Thermodynamic melting calculations
+│   │   ├── origin.py           # Primer binding site detection
+│   │   ├── pcr.py              # PCR simulation engine
+│   │   ├── repliconf.py        # Replication configuration
+│   │   └── settings.py         # Global replication settings
+│   └── README.md               # Development guide
+├── tests/                      # Unit and integration tests
+└── scripts/                    # Utility scripts
+```
+
+______________________________________________________________________
+
+## Development
+
+For development setup, running the app with hot-reload, building the static web
+version, and running tests, see the [Development Guide](src/README.md).
 
 ______________________________________________________________________
 

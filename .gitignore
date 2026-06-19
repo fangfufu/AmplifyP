@@ -139,3 +139,6 @@ uv.lock
 
 # Kilocode related
 .kilo
+
+# Playwright MCP
+.playwright-mcp/
