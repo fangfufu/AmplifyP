@@ -96,7 +96,7 @@ jobs:
             libasound2-dev libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
             libmpv-dev mpv
-          flet build linux src -o build/linux --yes
+          flet build linux src -o build/linux --project AmplifyP --yes
           tar -czf amplifyp-linux.tar.gz -C build/linux .
       - name: Build Flet macOS binary
         if: |
@@ -106,7 +106,7 @@ jobs:
           runner.os == 'macOS' &&
           matrix.python-version == '3.13'
         run: |
-          flet build macos src -o build/macos --yes
+          flet build macos src -o build/macos --project AmplifyP --yes
           python -c "
           import shutil
           shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')
@@ -119,7 +119,7 @@ jobs:
           runner.os == 'Windows' &&
           matrix.python-version == '3.13'
         run: |
-          flet build windows src -o build/windows --yes
+          flet build windows src -o build/windows --project AmplifyP --yes
           python -c "
           import shutil
           shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')
