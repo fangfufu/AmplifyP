@@ -17,6 +17,7 @@
 
 import os
 import subprocess
+import sys
 import threading
 import time
 from collections.abc import Generator
@@ -156,7 +157,7 @@ def fill_field_reliably(
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
-    os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
+    sys.platform != "linux", reason="E2E tests only run on Linux"
 )  # type: ignore[untyped-decorator]
 def test_e2e_primer_lifecycle_and_state(
     page: Any, serve_app: str, tmp_path: Any
@@ -393,7 +394,7 @@ def test_e2e_primer_lifecycle_and_state(
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
-    os.name == "nt", reason="E2E tests are flaky/unsupported on Windows CI"
+    sys.platform != "linux", reason="E2E tests only run on Linux"
 )  # type: ignore[untyped-decorator]
 def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
     """Test dimer alignment and verify monospace alignment using OCR."""
