@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: 1
+      FLET_CLI_NO_RICH_OUTPUT: 1
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
