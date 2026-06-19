@@ -51,6 +51,10 @@ if not Page:
 @pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
 def build_app() -> None:
     """Build the Flet static app using build_static.sh."""
+    if os.path.exists(os.path.join(DIST_DIR, "index.html")):
+        print("==> Flet static app already built, skipping build...")
+        return
+
     print("==> Building static site using build_static.sh...")
     script_path = os.path.join(os.getcwd(), "build_static.sh")
     import sys
