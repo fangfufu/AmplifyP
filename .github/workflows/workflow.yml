@@ -18,7 +18,7 @@ jobs:
     env:
       PYTHONUTF8: 1
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -147,7 +147,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Get version and short SHA
         id: info
         shell: bash
@@ -162,7 +162,7 @@ jobs:
           pattern: amplifyp-*
           merge-multiple: true
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           tag_name: >-
