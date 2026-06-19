@@ -4,6 +4,7 @@ on:
     branches: [stable]
   push:
     branches: [dev, stable]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -29,20 +30,16 @@ jobs:
         shell: bash
         run: |
           pytest -v
-      - name: Install Flet (Linux only for web build check)
-        if: runner.os == 'Linux'
-        run: |
-          pip install flet
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
         run: |
-          flet publish src/main.py --base-url /${{ github.event.repository.name }}/
+          bash ./build_static.sh --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release
-        if: github.event_name == 'push' && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.12'
+        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.12'
         run: |
           tar -czf amplifyp-web.tar.gz -C dist .
       - name: Upload Web Artifact
-        if: github.event_name == 'push' && github.ref_name == 'stable' && runner.os == 'Linux' && matrix.python-version == '3.12'
+        if: (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch') && runner.os == 'Linux' && matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: amplifyp-web
@@ -62,7 +59,7 @@ jobs:
           playwright install --with-deps chromium
           xvfb-run -a pytest -v -m e2e
   build-binaries:
-    if: github.event_name == 'push' && github.ref_name == 'stable'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable'
     needs: test
     strategy:
       matrix:
@@ -109,7 +106,7 @@ jobs:
           if-no-files-found: ignore
   release:
     needs: [test, build-binaries]
-    if: github.event_name == 'push' && github.ref_name == 'stable'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref_name == 'stable'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -139,3 +136,38 @@ jobs:
             amplifyp-macos.zip
             amplifyp-windows.zip
             amplifyp-web.tar.gz
+  deploy:
+    needs: test
+    if: |
+      always() &&
+      needs.test.result == 'success' &&
+      (github.event_name == 'push' && github.ref_name == 'stable' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download web artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: amplifyp-web
+      - name: Extract archive
+        run: |
+          mkdir dist
+          tar -xzf amplifyp-web.tar.gz -C dist
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ./dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
