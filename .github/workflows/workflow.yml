@@ -168,10 +168,10 @@ jobs:
         with:
           pattern: amplifyp-*
           merge-multiple: true
-      - name: Create Draft Release
+      - name: Create Pre-release
         uses: softprops/action-gh-release@v3
         with:
-          draft: true
+          prerelease: true
           tag_name: >-
             ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
           name: >-
