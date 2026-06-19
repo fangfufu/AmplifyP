@@ -15,6 +15,7 @@
 #
 """Utility functions for sequence handling and state serialisation."""
 
+import asyncio
 import os
 import subprocess
 import threading
@@ -506,6 +507,18 @@ def get_version() -> str:
     return f"{pkg_version} ({git_sha})"
 
 
+def _read_file(path: str) -> str:
+    """Synchronous file read helper for use with asyncio.to_thread."""
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def _write_file(path: str, content: str) -> None:
+    """Synchronous file write helper for use with asyncio.to_thread."""
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 async def pick_and_read_file(
     page: ft.Page,
     dialog_title: str,
@@ -531,8 +544,8 @@ async def pick_and_read_file(
             if not file.path:
                 show_notification("Error: Could not read file content.")
                 return None
-            with open(file.path, encoding="utf-8") as f:
-                return f.read()
+            content = await asyncio.to_thread(_read_file, file.path)
+            return content
     except Exception as ex:
         show_notification(f"Error loading file: {ex}")
         return None
@@ -564,8 +577,7 @@ async def save_and_write_file(
         else:
             if file_path is None:
                 return False
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+            await asyncio.to_thread(_write_file, file_path, content)
             show_notification(success_message_desktop)
             return True
     except Exception as ex:
