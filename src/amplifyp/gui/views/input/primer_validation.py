@@ -40,13 +40,11 @@ def validate_primer(
     name_err = None
     seq_err = None
 
-    if not name.strip():
-        if show_empty_errors:
-            name_err = "Name cannot be empty"
+    if not name.strip() and show_empty_errors:
+        name_err = "Name cannot be empty"
 
-    if not seq.strip():
-        if show_empty_errors:
-            seq_err = "Sequence cannot be empty"
+    if not seq.strip() and show_empty_errors:
+        seq_err = "Sequence cannot be empty"
     else:
         try:
             from amplifyp.dna import Primer

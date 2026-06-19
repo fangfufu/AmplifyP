@@ -491,7 +491,6 @@ class GUIController:
             from amplifyp.gui.util import pick_and_read_file
 
             content = await pick_and_read_file(
-                page=self.page,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 show_notification=self.notification_helper.show_message,
@@ -526,14 +525,14 @@ class GUIController:
         finally:
             self.filepicker_open = False
 
-    def switch_view(self, e: Any, view: ft.Control) -> None:
+    def switch_view(self, _e: Any, view: ft.Control) -> None:
         """Switch the main view container to display a different view.
 
         Updates the container content and configures resize handlers
         appropriate for the target view.
 
         Args:
-            e: The event that triggered the view switch.
+            _e: The event that triggered the view switch (unused).
             view: The Flet control to display as the new view.
         """
         self.view_container.content = view

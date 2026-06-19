@@ -520,7 +520,6 @@ def _write_file(path: str, content: str) -> None:
 
 
 async def pick_and_read_file(
-    page: ft.Page,
     dialog_title: str,
     allowed_extensions: list[str],
     show_notification: Callable[[str], None],

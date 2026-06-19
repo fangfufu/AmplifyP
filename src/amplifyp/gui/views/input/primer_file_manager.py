@@ -117,19 +117,18 @@ class PrimerFileManager:
         output.close()
         return tsv_content
 
-    async def load_primers_click(self, e: ft.ControlEvent) -> None:
+    async def load_primers_click(self, _e: ft.ControlEvent) -> None:
         """Open file picker to load primers from CSV/TSV file.
 
         Reads the selected file, parses primers, appends them to the
         current primer list, and updates the UI.
 
         Args:
-            e: The Flet control event triggered by the load button click.
+            _e: The Flet control event (unused).
         """
         from amplifyp.gui.util import pick_and_read_file
 
         content = await pick_and_read_file(
-            page=self.app_page,
             dialog_title="Load",
             allowed_extensions=["csv", "tsv", "txt"],
             show_notification=self.show_notification,
@@ -165,14 +164,14 @@ class PrimerFileManager:
         except Exception as ex:
             self.show_notification(f"Error parsing primers: {ex}")
 
-    async def save_primers_click(self, e: ft.ControlEvent) -> None:
+    async def save_primers_click(self, _e: ft.ControlEvent) -> None:
         """Save primers to a TSV file.
 
         Opens a file picker for the user to choose a save location,
         then writes the primer list as tab-separated values.
 
         Args:
-            e: The Flet control event triggered by the save button click.
+            _e: The Flet control event (unused).
         """
         primers_to_save = [
             p

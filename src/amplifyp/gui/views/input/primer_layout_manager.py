@@ -140,14 +140,14 @@ class PrimerLayoutManager:
             row.name_field.width = self.owner.name_column_width
             row.name_field.update()
 
-    def on_primer_divider_pan_end(self, e: ft.DragEndEvent) -> None:
+    def on_primer_divider_pan_end(self, _e: ft.DragEndEvent) -> None:
         """Handle finishing the drag of the vertical divider.
 
         Clears the visible rows cache and applies the final name column
         width to all rows in the primer list.
 
         Args:
-            e: The Flet drag end event.
+            _e: The Flet drag end event (unused).
         """
         # Clear the visible rows cache
         self.owner._visible_rows_cache = None
