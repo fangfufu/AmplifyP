@@ -16,10 +16,6 @@ biologists and researchers to predict DNA amplification products (amplicons)
 from a template sequence and primer set, accurately factoring in primability,
 stability, and melting properties of primer binding sites.
 
-| Aspect | Details | | --- | --- | | **Version** | v0.6.7 | | **Python** | 3.12,
-3.13, 3.14 | | **License** | GPL-3.0 | | **Web App** |
-[fangfufu.github.io/AmplifyP](https://fangfufu.github.io/AmplifyP/) |
-
 ______________________________________________________________________
 
 ## Table of Contents
