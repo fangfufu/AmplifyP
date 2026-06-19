@@ -81,7 +81,7 @@ class GUIController:
         self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
         self.page.padding = 0
         self.page.spacing = 0
-        self.page.window.icon = "images/icon.png"
+        self.page.window.icon = "/images/icon.png"
 
         # Handle close / reload warnings
         if self.page.web:
@@ -281,7 +281,7 @@ class GUIController:
                         content=ft.Row(
                             [
                                 ft.Image(
-                                    src="images/favicon.png",
+                                    src="/images/favicon.png",
                                     height=32,
                                     fit=ft.BoxFit.CONTAIN,
                                 ),
