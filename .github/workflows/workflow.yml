@@ -10,6 +10,7 @@ permissions:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.12', '3.13', '3.14']
@@ -91,7 +92,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           flet build macos src --yes
-          zip -r amplifyp-macos.zip build/macos
+          python -c "import shutil; shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')"
       - name: Build Flet Windows binary
         if: runner.os == 'Windows'
         run: |
