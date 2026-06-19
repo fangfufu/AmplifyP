@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         if: steps.filter.outputs.run == 'true'
         run: |
-          pip install .[tests,e2e] pre-commit
+          pip install .[dev,e2e] pre-commit
       - name: Run pre-commit
         if: steps.filter.outputs.run == 'true'
         env:
