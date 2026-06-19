@@ -17,8 +17,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       PYTHONUTF8: 1
+      FLET_CLI_NO_RICH_OUTPUT: 1
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
@@ -95,7 +96,7 @@ jobs:
             libasound2-dev libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
             libmpv-dev mpv
-          flet build linux src -o build/linux --yes
+          flet build linux src -o build/linux --project AmplifyP --yes
           tar -czf amplifyp-linux.tar.gz -C build/linux .
       - name: Build Flet macOS binary
         if: |
@@ -105,7 +106,7 @@ jobs:
           runner.os == 'macOS' &&
           matrix.python-version == '3.13'
         run: |
-          flet build macos src -o build/macos --yes
+          flet build macos src -o build/macos --project AmplifyP --yes
           python -c "
           import shutil
           shutil.make_archive('amplifyp-macos', 'zip', 'build/macos')
@@ -118,7 +119,7 @@ jobs:
           runner.os == 'Windows' &&
           matrix.python-version == '3.13'
         run: |
-          flet build windows src -o build/windows --yes
+          flet build windows src -o build/windows --project AmplifyP --yes
           python -c "
           import shutil
           shutil.make_archive('amplifyp-windows', 'zip', 'build/windows')
@@ -147,7 +148,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Get version and short SHA
         id: info
         shell: bash
@@ -162,7 +163,7 @@ jobs:
           pattern: amplifyp-*
           merge-multiple: true
       - name: Create Draft Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           tag_name: >-
