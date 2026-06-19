@@ -171,7 +171,6 @@ jobs:
       - name: Create Pre-release
         uses: softprops/action-gh-release@v3
         with:
-          draft: false
           prerelease: true
           tag_name: >-
             ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
