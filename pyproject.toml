@@ -33,6 +33,7 @@ optional-dependencies.tests = [
   "pytest-testmon>=2.2.0",
   "pytest-playwright>=0.8.0",
   "pyright>=1.1.410",
+  "pre-commit",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
