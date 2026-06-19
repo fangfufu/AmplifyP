@@ -541,17 +541,17 @@ def test_app_views_disabled_on_invalid_selected() -> None:
                     ):
                         # custom header
                         pass
-                    if isinstance(sub, ft.Container) and isinstance(
-                        sub.content, InputView
-                    ):
-                        input_view = sub.content
-                    elif (
+                    if (
                         isinstance(sub, ft.Container)
                         and hasattr(sub, "content")
                         and isinstance(sub.content, ft.Container)
                         and isinstance(sub.content.content, InputView)
                     ):
                         input_view = sub.content.content
+                    elif isinstance(sub, ft.Container) and isinstance(
+                        sub.content, InputView
+                    ):
+                        input_view = sub.content
 
     # Alternatively, let's test it by mocking or directly calling
     # the update_pcr_button_state logic.

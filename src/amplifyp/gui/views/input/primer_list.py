@@ -84,24 +84,19 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             seq_val = p["seq"]
             is_active = p.get("active", True)
             error_message = self.primer_input.validation_errors[idx]
-            name_err = (
-                error_message.get("name")
-                if isinstance(error_message, dict)
-                else (
-                    error_message
-                    if error_message == "Duplicate primer name"
-                    else None
-                )
-            )
-            seq_err = (
-                error_message.get("seq")
-                if isinstance(error_message, dict)
-                else (
-                    None
-                    if error_message == "Duplicate primer name"
-                    else error_message
-                )
-            )
+            if isinstance(error_message, dict):
+                name_err = error_message.get("name")
+            elif error_message == "Duplicate primer name":
+                name_err = error_message
+            else:
+                name_err = None
+
+            if isinstance(error_message, dict):
+                seq_err = error_message.get("seq")
+            elif error_message == "Duplicate primer name":
+                seq_err = None
+            else:
+                seq_err = error_message
 
             is_dup = idx in dup_indices
             is_focused = idx == self.primer_input.focused_primer_index

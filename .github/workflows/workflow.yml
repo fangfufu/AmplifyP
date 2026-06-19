@@ -119,6 +119,7 @@ jobs:
             libasound2-dev libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
             libmpv-dev mpv
+          python scripts/gen_git_sha.py
           flet build linux src -o build/linux --project AmplifyP --yes
           mv build/linux build/AmplifyP
           tar -czf amplifyp-linux.tar.gz -C build AmplifyP
@@ -131,6 +132,7 @@ jobs:
           runner.os == 'macOS' &&
           matrix.python-version == '3.13'
         run: |
+          python scripts/gen_git_sha.py
           flet build macos src -o build/macos --project AmplifyP --yes
           mv build/macos build/AmplifyP
           ln -s /Applications build/AmplifyP/Applications
@@ -149,6 +151,7 @@ jobs:
           runner.os == 'Windows' &&
           matrix.python-version == '3.13'
         run: |
+          python scripts/gen_git_sha.py
           flet build windows src -o build/windows --project AmplifyP --yes
           mv build/windows build/AmplifyP
           python -c "

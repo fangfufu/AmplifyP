@@ -52,13 +52,12 @@ class PrimerActionController:
         self.owner._update_row_highlights()
         self.owner._update_primer_info_panel()
         res = name_edit.focus()
-        if inspect.iscoroutine(res):
-            if self.owner.app_page:
+        if inspect.iscoroutine(res) and self.owner.app_page:
 
-                async def do_focus() -> None:
-                    await res
+            async def do_focus() -> None:
+                await res
 
-                self.owner.app_page.run_task(do_focus)
+            self.owner.app_page.run_task(do_focus)
 
     def on_add_primer_row(self, idx: int) -> None:
         """Add a new empty primer row immediately below the row at idx.
