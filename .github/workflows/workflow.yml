@@ -60,9 +60,15 @@ jobs:
           name: amplifyp-web
           path: amplifyp-web.tar.gz
       - name: Display coverage report
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         run: |
           coverage report -m
       - name: Upload Coverage to Codecov
+        if: |
+          runner.os == 'Linux' &&
+          matrix.python-version == '3.13'
         uses: codecov/codecov-action@v7
       - name: Run E2E tests
         if: |
