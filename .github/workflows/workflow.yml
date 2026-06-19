@@ -174,7 +174,8 @@ jobs:
           draft: true
           tag_name: >-
             ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
-          name: Release ${{ steps.info.outputs.version }}
+          name: >-
+            Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
           files: |
             amplifyp-linux.tar.gz
             amplifyp-macos.dmg
