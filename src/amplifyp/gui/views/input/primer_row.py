@@ -36,6 +36,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq_error: str | None,
         font_family: str,
         name_column_width: float,
+        settings: Any,
         on_change_handler: Any,
         handle_field_focus: Any,
         handle_field_blur: Any,
@@ -61,6 +62,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             seq_error: Error message for the sequence field, or None.
             font_family: Font family for sequence display.
             name_column_width: Width of the name column in pixels.
+            settings: Application GUI settings instance.
             on_change_handler: Callback for field change events.
             handle_field_focus: Callback for field focus events.
             handle_field_blur: Callback for field blur events.
@@ -82,6 +84,43 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not has_err else None,
         )
         self.idx = idx
+        self.settings = settings
+        show_temp = self.settings.get("show_primer_temperature", False)
+
+        tm_val = ""
+        if seq.strip():
+            try:
+                from amplifyp.dna import Primer
+                from amplifyp.gui.util import clean_sequence
+
+                cleaned_seq = clean_sequence(seq)
+                if cleaned_seq:
+                    primer_obj = Primer(sequence=cleaned_seq, name=name)
+                    tm = self.settings.calculate_primer_tm(primer_obj)
+                    tm_val = f"{tm:.1f}°C"
+            except Exception:
+                tm_val = "-"
+
+        self.tm_text = ft.Text(
+            value=tm_val,
+            size=self.settings.get("font_size_body", 13),
+            selectable=False,
+        )
+        self.tm_container = ft.Container(
+            content=self.tm_text,
+            width=50,
+            padding=ft.Padding(5, 0, 0, 0),
+            alignment=ft.Alignment(-1, 0),
+            visible=show_temp,
+        )
+        self.tm_divider = ft.Container(
+            width=4,
+            bgcolor=GUIColours.DIVIDER_GREY,
+            margin=0,
+            height=30,
+            visible=show_temp,
+        )
+
         is_empty = not name.strip() or not seq.strip()
         self.checkbox = ft.Checkbox(
             value=is_active if not is_empty else False,
@@ -199,15 +238,18 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.reorder_controls.visible = is_focused
 
+        controls = [
+            self.checkbox_container,
+            self.active_divider,
+            self.name_field,
+            self.divider,
+        ]
+        if show_temp:
+            controls.extend([self.tm_container, self.tm_divider])
+        controls.extend([self.seq_field, self.control_container])
+
         self.content = ft.Row(
-            [
-                self.checkbox_container,
-                self.active_divider,
-                self.name_field,
-                self.divider,
-                self.seq_field,
-                self.control_container,
-            ],
+            controls,
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
@@ -319,3 +361,27 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             up_button.disabled = new_idx == 0
             down_button.on_click = lambda e: on_move_primer(new_idx, 1)
             down_button.disabled = is_last_row
+
+    def update_tm(self, settings: Any) -> None:
+        """Update the displayed Tm in-place based on the current sequence."""
+        # ponytail: calculates Tm using user-selected formula
+        seq_val = self.seq_field.value
+        name_val = self.name_field.value
+        tm_val = ""
+        if seq_val and seq_val.strip():
+            try:
+                from amplifyp.dna import Primer
+                from amplifyp.gui.util import clean_sequence
+
+                cleaned_seq = clean_sequence(seq_val)
+                if cleaned_seq:
+                    primer_obj = Primer(sequence=cleaned_seq, name=name_val)
+                    tm = settings.calculate_primer_tm(primer_obj)
+                    tm_val = f"{tm:.1f}°C"
+            except Exception:
+                tm_val = "-"
+        self.tm_text.value = tm_val
+        try:
+            self.tm_text.update()
+        except RuntimeError:
+            pass

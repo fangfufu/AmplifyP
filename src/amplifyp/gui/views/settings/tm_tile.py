@@ -77,6 +77,12 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             expand=True,
             on_select=self.on_change_handler,
         )
+        from amplifyp.gui.util import BorderedCheckbox
+
+        self.set_show_primer_temperature = BorderedCheckbox(
+            label="Show Primer Temperature in List",
+            on_change=self.on_change_handler,
+        )
 
         self.settings_map["tm_dna_conc"] = self.set_tm_dna_conc
         self.settings_map["tm_dnap_conc"] = self.set_tm_dnap_conc
@@ -84,6 +90,9 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["tm_div_salt"] = self.set_tm_div_salt
         self.settings_map["tm_dNTP_conc"] = self.set_tm_dNTP_conc
         self.settings_map["tm_method"] = self.set_tm_method
+        self.settings_map["show_primer_temperature"] = (
+            self.set_show_primer_temperature
+        )
 
         super().__init__(
             title=ft.Text(
@@ -108,6 +117,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                                                 self.set_tm_mono_salt,
                                                 self.set_tm_div_salt,
                                                 self.set_tm_dNTP_conc,
+                                                self.set_show_primer_temperature,
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,

@@ -112,6 +112,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 seq_error=seq_err,
                 font_family=font_family,
                 name_column_width=self.primer_input.name_column_width,
+                settings=self.primer_input.settings,
                 on_change_handler=self.primer_input.on_change_handler,
                 handle_field_focus=self.primer_input.handle_field_focus,
                 handle_field_blur=self.primer_input.handle_field_blur,

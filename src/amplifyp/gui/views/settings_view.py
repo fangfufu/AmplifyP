@@ -175,6 +175,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the improved visualisation mode checkbox."""
         return self.appearance_tile.set_improved_visualisation
 
+    @property
+    def set_show_primer_temperature(self) -> ft.Checkbox:
+        """Get the show primer temperature checkbox."""
+        return self.tm_tile.set_show_primer_temperature
+
     def _build_action_buttons(self) -> ft.Row:
         """Build the Action buttons Row (Apply & Reset)."""
         return ft.Row(
@@ -257,6 +262,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,
+            "show_primer_temperature": False,
         }
 
         for r_char in Nucleotides.PRIMER:

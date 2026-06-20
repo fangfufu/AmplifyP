@@ -454,6 +454,7 @@ class GUIController:
             e: The Flet control event triggering the change.
         """
         self.apply_theme()
+        self.input_view.update_ui()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 
@@ -466,6 +467,7 @@ class GUIController:
             e: The Flet control event triggering the apply action.
         """
         self.apply_theme()
+        self.input_view.update_ui()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 

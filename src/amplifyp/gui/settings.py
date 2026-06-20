@@ -87,6 +87,7 @@ class GUISettings:
             "font_size_micro": 10,
             "font_size_table_header": 15,
             "improved_visualisation": True,
+            "show_primer_temperature": False,
         }
 
         # Initialise base-pair weights

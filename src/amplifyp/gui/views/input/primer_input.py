@@ -317,6 +317,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     new_validation_errors
                 ):
                     row.set_error(new_validation_errors[idx])
+                    row.update_tm(self.settings)
             self._update_row_highlights()
             self._update_header_checkbox_state()
             self._update_delete_button_disabled_state()
@@ -329,6 +330,26 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Rebuilds the primer list and updates the delete button disabled
         state based on current selections.
         """
+        # Recreate the header to make sure controls match settings and indices
+        self.primer_header = PrimerHeader(
+            settings=self.settings,
+            on_toggle_all=self._on_toggle_all_primers,
+            on_divider_pan=self.layout_manager.on_primer_divider_pan,
+            on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
+            name_column_width=self.name_column_width,
+        )
+        self.all_primers_checkbox = self.primer_header.all_primers_checkbox
+        self.primers_header = self.primer_header.header_row
+        self.primers_header_container = self.primer_header
+
+        # Replace the header in the UI container controls
+        self.content.controls[1].content.controls[0] = self.primer_header
+        try:
+            if self.content.controls[1].page:
+                self.content.controls[1].update()
+        except Exception:  # noqa: S110
+            pass
+
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
 
