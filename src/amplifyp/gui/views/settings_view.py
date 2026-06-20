@@ -175,6 +175,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the improved visualisation mode checkbox."""
         return self.appearance_tile.set_improved_visualisation
 
+    @property
+    def set_show_primer_temperature(self) -> ft.Checkbox:
+        """Get the show primer temperature checkbox."""
+        return self.tm_tile.set_show_primer_temperature
+
+    @property
+    def set_tm_colour_scheme(self) -> ft.Dropdown:
+        """Get the Tm colour scheme dropdown."""
+        return self.tm_tile.set_tm_colour_scheme
+
     def _build_action_buttons(self) -> ft.Row:
         """Build the Action buttons Row (Apply & Reset)."""
         return ft.Row(
@@ -218,6 +228,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
+        # Sync the triggering control's value first (Dropdown .value may not
+        # be updated yet when on_select fires in Flet).
+        ctrl = getattr(e, "control", None)
+        if ctrl is not None:
+            for k, v in self.settings_map.items():
+                if v is ctrl:
+                    self.settings[k] = ctrl.value
+                    break
         self.sync_to_state()
         if self.on_change:
             self.on_change(e)
@@ -257,6 +275,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,
+            "show_primer_temperature": False,
+            "tm_colour_scheme": "None",
         }
 
         for r_char in Nucleotides.PRIMER:

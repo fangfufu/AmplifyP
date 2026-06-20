@@ -48,6 +48,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_primability_cutoff.value = "0.9"
     settings_view.set_amp4_compat.value = True
     settings_view.set_improved_visualisation.value = True
+    settings_view.set_show_primer_temperature.value = True
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
@@ -132,6 +133,8 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.settings["dark_mode"] is True
     assert new_settings_view.settings["colour_deficient"] is True
     assert new_settings_view.settings["improved_visualisation"] is True
+    assert new_settings_view.settings["show_primer_temperature"] is True
+    assert new_settings_view.set_show_primer_temperature.value
     assert new_settings_view.settings_map["bp_score_G_G"].value == "99.0"
     assert new_settings_view.settings_map["pd_score_G_G"].value == "99.0"
     # Check a default value wasn't changed
@@ -169,6 +172,7 @@ def test_settings_view_buttons() -> None:
     settings_view.set_primability_cutoff.value = "0.95"
     settings_view.set_amp4_compat.value = True
     settings_view.set_improved_visualisation.value = True
+    settings_view.set_show_primer_temperature.value = True
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
@@ -187,6 +191,7 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings["primability_cutoff"] == "0.95"
     assert settings_view.settings["amp4_compat"] is True
     assert settings_view.settings["improved_visualisation"] is True
+    assert settings_view.settings["show_primer_temperature"] is True
     assert settings_view.settings["bp_score_G_G"] == "50.0"
     assert settings_view.settings["pd_score_G_G"] == "50.0"
 
@@ -200,10 +205,14 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings["bp_score_G_G"] == "100"
     assert settings_view.settings["pd_score_G_G"] == "-20"
     assert settings_view.settings["improved_visualisation"] is True
+    assert settings_view.settings["show_primer_temperature"] is False
+    assert settings_view.settings["tm_colour_scheme"] == "None"
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
     assert settings_view.set_improved_visualisation.value is True
+    assert settings_view.set_show_primer_temperature.value is False
+    assert settings_view.set_tm_colour_scheme.value == "None"
     assert (
         settings_view.set_tm_method.value
         == "SantaLucia 1998 / Owczarzy 2008 (Default)"
@@ -361,3 +370,45 @@ def test_simple_state_font_sizes_are_integers() -> None:
     settings["font_size_map_baseline"] = "20"
     assert isinstance(settings.get("font_size_map_baseline"), int)
     assert settings.get("font_size_map_baseline") == 20
+
+
+def test_tm_colour_scheme_application() -> None:
+    """Test colour scheme changes in SettingsView colour PrimerRow Tm text."""
+    from unittest.mock import MagicMock
+
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.views.input import InputView
+    from amplifyp.gui.views.settings_view import SettingsView
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    # P1 has Tm around 50-60C, seq must be valid DNA to calculate Tm
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGCATGCATGCAT", "active": True}
+    ]
+
+    # 1. Create the views sharing the same settings and page
+    input_view = InputView(mock_page, input_data, settings)
+
+    # Enable show primer temperature so Tm column is shown
+    settings["show_primer_temperature"] = True
+    input_view.update_ui()
+
+    # The row initially has tm_colour_scheme = None, so color should be None
+    row = input_view.primers_list.controls[0]
+    assert row.tm_text.color is None
+
+    # 2. Open SettingsView and select a colour scheme
+    settings_view = SettingsView(mock_page, settings)
+    settings_view.set_tm_colour_scheme.value = "Traffic Light"
+    settings_view.sync_to_state()
+    assert settings["tm_colour_scheme"] == "Traffic Light"
+
+    # 3. Simulate controller.run_apply_settings -> input_view.update_ui()
+    input_view.update_ui()
+
+    # 4. Check that the row now has the correct color scheme color applied
+    row = input_view.primers_list.controls[0]
+    assert row.tm_text.color is not None

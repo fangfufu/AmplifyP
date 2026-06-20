@@ -454,8 +454,10 @@ class GUIController:
             e: The Flet control event triggering the change.
         """
         self.apply_theme()
+        self.input_view.update_ui()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
+        self.page.update()
 
     def run_apply_settings(self, e: ft.ControlEvent) -> None:
         """Apply settings updates from the settings view.
@@ -466,8 +468,10 @@ class GUIController:
             e: The Flet control event triggering the apply action.
         """
         self.apply_theme()
+        self.input_view.update_ui()
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
+        self.page.update()
 
     async def save_state(self, e: Any) -> None:
         """Save app state to YAML configuration file."""
@@ -565,6 +569,9 @@ class GUIController:
             self.page.on_resize = self.pcr_view._handle_resize
         else:
             self.page.on_resize = None
+
+        if hasattr(view, "update_ui"):
+            view.update_ui()
 
         self.page.update()
 
