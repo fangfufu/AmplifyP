@@ -177,7 +177,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_improved_visualisation(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the improved visualisation mode checkbox."""
-        return self.appearance_tile.set_improved_visualisation
+        return self.replication_tile.set_improved_visualisation
 
     @property
     def set_show_primer_temperature(self) -> ft.Checkbox | BorderedCheckbox:

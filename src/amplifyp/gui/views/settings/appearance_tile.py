@@ -72,18 +72,8 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
-        from amplifyp.gui.util import BorderedCheckbox
-
-        self.set_improved_visualisation = BorderedCheckbox(
-            label="Improved Visualisation Mode",
-            on_change=self.on_change_handler,
-        )
-
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
-        self.settings_map["improved_visualisation"] = (
-            self.set_improved_visualisation
-        )
 
         super().__init__(
             title=ft.Text(
@@ -101,7 +91,6 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_font_family,
                                         self.set_colour_scheme,
-                                        self.set_improved_visualisation,
                                         self._dummy_colour_deficient,
                                     ],
                                     spacing=15,

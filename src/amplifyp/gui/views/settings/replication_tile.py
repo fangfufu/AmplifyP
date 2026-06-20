@@ -68,10 +68,15 @@ class ReplicationTile(BaseScoreTile):
             value=False,
             on_change=on_change_handler,
         )
+        self.set_improved_visualisation = BorderedCheckbox(
+            label="Improved Visualisation Mode",
+            on_change=on_change_handler,
+        )
 
         settings_map["primability_cutoff"] = self.set_primability_cutoff
         settings_map["stability_cutoff"] = self.set_stability_cutoff
         settings_map["amp4_compat"] = self.set_amp4_compat
+        settings_map["improved_visualisation"] = self.set_improved_visualisation
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
@@ -94,5 +99,6 @@ class ReplicationTile(BaseScoreTile):
                 self.set_primability_cutoff,
                 self.set_stability_cutoff,
                 self.set_amp4_compat,
+                self.set_improved_visualisation,
             ],
         )
