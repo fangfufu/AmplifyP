@@ -79,7 +79,7 @@ jobs:
           github.event_name == 'workflow_dispatch') &&
           runner.os == 'Linux' &&
           matrix.python-version == '3.13'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amplifyp-web
           path: amplifyp-web.tar.gz
@@ -169,7 +169,7 @@ jobs:
           github.event_name == 'workflow_dispatch') &&
           github.ref_name == 'stable' &&
           matrix.python-version == '3.13'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: amplifyp-${{ runner.os }}
           path: |
@@ -197,7 +197,7 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
       - name: Download all workflow artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: amplifyp-*
           merge-multiple: true
@@ -234,7 +234,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Download web artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: amplifyp-web
       - name: Extract archive
