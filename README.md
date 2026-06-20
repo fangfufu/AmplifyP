@@ -249,10 +249,8 @@ ______________________________________________________________________
 ## Attribution
 
 - **[Amplify4](https://engels.genetics.wisc.edu/amplify/)**: This project is
-  built upon the logic and methodology of the original
-  [Amplify4](https://github.com/wrengels/Amplify4) software by William Engels.
-  We preserve the simulation models and algorithms of the original while
-  offering a modern, robust, and accessible cross-platform implementation.
+  based on the original [Amplify4](https://github.com/wrengels/Amplify4)
+  software by William Engels.
 - **[Roboto Mono Font](https://fonts.google.com/specimen/Roboto+Mono)**:
   Licenced under the SIL Open Font License, Version 1.1. Copyright 2015 The
   Roboto Mono Project Authors.

@@ -165,9 +165,8 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                         ),
                     ),
                     ft.TextSpan(
-                        ": This project is built upon the logic and "
-                        "methodology of the original software by William "
-                        "Engels."
+                        ": This project is based on the original "
+                        "software by William Engels."
                     ),
                 ],
                 size=font_size_default,
