@@ -108,8 +108,8 @@ def test_input_view_duplicate_warning() -> None:
     assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
 
 
-def test_input_view_focus_validation() -> None:
-    """Test empty errors are shown only after both fields are focused."""
+def test_input_view_activation_validation() -> None:
+    """Test empty errors are shown only when the row is active/selected."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     view = InputView(mock_page, input_data)
@@ -121,39 +121,40 @@ def test_input_view_focus_validation() -> None:
     name_field = row.name_field
     seq_field = row.seq_field
 
-    # Initially, no errors are shown even though they are empty
+    # Initially, no errors are shown and checkbox is enabled
     assert name_field.error is None
     assert seq_field.error is None
-    assert checkbox.disabled is True
+    assert checkbox.disabled is False
+    assert checkbox.value is False
 
-    # Focus Name field only
-    mock_event1 = MagicMock(spec=ft.ControlEvent)
-    mock_event1.control = name_field
-    view._handle_field_focus(mock_event1)
-    view.sync_to_state(rebuild_if_needed=False)
-    assert name_field.error is None
-    assert seq_field.error is None
-
-    # Focus Sequence field as well (now both touched)
-    mock_event2 = MagicMock(spec=ft.ControlEvent)
-    mock_event2.control = seq_field
-    view._handle_field_focus(mock_event2)
+    # Try to activate the primer by setting checkbox to checked
+    checkbox.value = True
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Now empty validation errors should be populated
+    # Validation errors populated and checkbox value reverted to False
     assert name_field.error == "Name cannot be empty"
     assert seq_field.error == "Sequence cannot be empty"
-    assert checkbox.disabled is True
+    assert checkbox.disabled is False
+    assert checkbox.value is False
 
-    # Fill name and sequence
+    # Simulate typing or changing focus to deactivate the error state
+    view.sync_to_state(rebuild_if_needed=False)
+
+    # Empty validation errors should be cleared when syncing inactive state
+    assert name_field.error is None
+    assert seq_field.error is None
+
+    # Fill name and sequence and check the box
+    checkbox.value = True
     name_field.value = "NewPrimer"
     seq_field.value = "ATGATGATG"
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Errors should be cleared and checkbox enabled
+    # Errors should be cleared and checkbox active
     assert name_field.error is None
     assert seq_field.error is None
     assert checkbox.disabled is False
+    assert checkbox.value is True
 
 
 def test_input_view_clear_buttons() -> None:

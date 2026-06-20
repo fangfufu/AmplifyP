@@ -302,8 +302,8 @@ def test_e2e_primer_lifecycle_and_state(
     clear_primers_btn.click()
     time.sleep(2)
 
-    # Verify list is empty by checking if only one row (trailing row) is left
-    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+    # Verify list is empty by checking if trailing row remains (2 inputs)
+    expect(page.locator('input:not([type="file"])')).to_have_count(2)
 
     # 7. Load the primer list
     print("Loading the primer list...")
@@ -362,11 +362,11 @@ def test_e2e_primer_lifecycle_and_state(
 
     # Wait for app/Pyodide to fully load and the input to appear
     page.wait_for_selector(
-        'input[aria-label="New Primer Name"]', state="attached", timeout=60000
+        'input:not([type="file"])', state="attached", timeout=60000
     )
 
-    # Assert clean state before load
-    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+    # Assert clean state before load (2 inputs)
+    expect(page.locator('input:not([type="file"])')).to_have_count(2)
 
     print("Loading the saved state...")
     load_state_btn = page.locator("[aria-label*='Load all']").first
@@ -414,11 +414,8 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
     )
     page.locator("flt-semantics-placeholder").first.dispatch_event("click")
 
-    # Wait for the primer name input to appear — confirms Pyodide is fully
-    # initialised and the semantics tree is ready. Much more reliable than
-    # a fixed sleep.
-    NAME_SEL = 'input[aria-label="New Primer Name"]'
-    SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
+    # Find Name and Sequence inputs of the first/only row
+    NAME_SEL = 'input:not([type="file"])'
     page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
 
     # 2. Enter Primer Details - with retry to handle dropped first keystrokes
@@ -430,10 +427,10 @@ def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
     # fields; there is no separate "Add" button — filling the trailing empty
     # row and tabbing away triggers blur→sync_to_state which adds the primer.
     # CSS selectors are used so fill_field_reliably can verify via JS eval.
-    fill_field_reliably(page, NAME_SEL, PRIMER_NAME)
+    fill_field_reliably(page, NAME_SEL, PRIMER_NAME, index=0)
     page.keyboard.press("Tab")
 
-    fill_field_reliably(page, SEQ_SEL, PRIMER_SEQ)
+    fill_field_reliably(page, NAME_SEL, PRIMER_SEQ, index=1)
     # Tab away from the seq field to trigger on_blur → timer → sync_to_state
     page.keyboard.press("Tab")
     time.sleep(2)  # Allow blur timer (0.15s) and state sync to complete

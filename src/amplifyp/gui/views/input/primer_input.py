@@ -282,18 +282,36 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
             # Auto-activate when transitioning from empty to filled
             is_filled = bool(p["name"].strip() and p["seq"].strip())
+            was_empty = (
+                not prev_p.get("name", "").strip()
+                or not prev_p.get("seq", "").strip()
+            )
+            was_active = prev_p.get("active", False)
             is_active = p["active"]
-            checkbox = p.get("checkbox")
-            if checkbox and checkbox.disabled and is_filled:
+
+            show_empty_errors = prev_p.get("show_empty_errors", False)
+            if is_active and not is_filled:
+                is_active = False
+                show_empty_errors = True
+                checkbox = p.get("checkbox")
+                if checkbox:
+                    checkbox.value = False
+            elif not is_active:
+                show_empty_errors = False
+
+            if is_filled and was_empty and not was_active:
                 is_active = True
-                checkbox.value = True
-                checkbox.disabled = False
+                show_empty_errors = False
+                checkbox = p.get("checkbox")
+                if checkbox:
+                    checkbox.value = True
 
             primers.append(
                 {
                     "name": p["name"],
                     "seq": p["seq"],
                     "active": is_active,
+                    "show_empty_errors": show_empty_errors,
                     "name_touched": prev_p.get("name_touched", False),
                     "seq_touched": prev_p.get("seq_touched", False),
                 }
@@ -310,12 +328,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         # Run background primer construction/validation
         new_validation_errors = validate_primers(primers)
-
-        # Force active = False in state for empty fields
-        for p in primers:
-            is_empty = not p["name"].strip() or not p["seq"].strip()
-            if is_empty:
-                p["active"] = False
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors

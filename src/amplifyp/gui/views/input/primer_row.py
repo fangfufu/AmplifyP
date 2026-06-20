@@ -141,11 +141,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             visible=show_temp,
         )
 
-        is_empty = not name.strip() or not seq.strip()
         self.checkbox = ft.Checkbox(
-            value=is_active if not is_empty else False,
+            value=is_active,
             on_change=on_change_handler,
-            disabled=is_empty,
+            disabled=False,
             visible=True,
         )
         self.checkbox_container = ft.Container(
@@ -156,7 +155,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.name_field = ft.TextField(
             value=name,
-            hint_text="New Primer Name",
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
             height=30 if not name_error else None,
@@ -169,7 +167,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.seq_field = ft.TextField(
             value=seq,
-            hint_text="New Primer Sequence",
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
             height=30 if not seq_error else None,
@@ -273,13 +270,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
 
-        is_empty = (
-            not self.name_field.value.strip()
-            or not self.seq_field.value.strip()
-        )
-        self.checkbox.disabled = is_empty
-        if self.checkbox.disabled:
-            self.checkbox.value = False
+        self.checkbox.disabled = False
 
     def update_index(
         self,
