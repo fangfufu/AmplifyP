@@ -21,7 +21,7 @@ import flet as ft
 import yaml
 
 from amplifyp.gui.views.input import InputView
-from amplifyp.gui.views.settings_view import SettingsView
+from amplifyp.gui.views.settings import SettingsView
 
 
 def test_gui_state_save_load() -> None:
@@ -379,7 +379,7 @@ def test_tm_colour_scheme_application() -> None:
     from amplifyp.gui.settings import GUISettings
     from amplifyp.gui.user_data import GUIInput
     from amplifyp.gui.views.input import InputView
-    from amplifyp.gui.views.settings_view import SettingsView
+    from amplifyp.gui.views.settings import SettingsView
 
     mock_page = MagicMock(spec=ft.Page)
     settings = GUISettings()

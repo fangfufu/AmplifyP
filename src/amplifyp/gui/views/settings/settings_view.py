@@ -26,12 +26,10 @@ from amplifyp.gui.settings import GUISettings
 
 if TYPE_CHECKING:
     from amplifyp.gui.util import BorderedCheckbox
-from amplifyp.gui.views.settings import (
-    AppearanceTile,
-    DimerTile,
-    ReplicationTile,
-    TmTile,
-)
+from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
+from amplifyp.gui.views.settings.dimer_tile import DimerTile
+from amplifyp.gui.views.settings.replication_tile import ReplicationTile
+from amplifyp.gui.views.settings.tm_tile import TmTile
 from amplifyp.settings import ReplicationSettings
 
 

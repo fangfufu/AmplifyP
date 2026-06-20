@@ -22,6 +22,7 @@ from amplifyp.gui.views.settings.base_score_tile import (
 )
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
+from amplifyp.gui.views.settings.settings_view import SettingsView
 from amplifyp.gui.views.settings.tm_tile import TmTile
 
 __all__ = [
@@ -30,5 +31,6 @@ __all__ = [
     "DimerTile",
     "ReplicationTile",
     "ScoreTable",
+    "SettingsView",
     "TmTile",
 ]
