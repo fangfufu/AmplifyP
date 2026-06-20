@@ -116,7 +116,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.replication_tile.set_stability_cutoff
 
     @property
-    def set_amp4_compat(self) -> ft.Checkbox:
+    def set_amp4_compat(self) -> Any:
         """Get the amplify4 compatibility mode checkbox."""
         return self.replication_tile.set_amp4_compat
 
@@ -171,12 +171,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.appearance_tile.set_colour_deficient
 
     @property
-    def set_improved_visualisation(self) -> ft.Checkbox:
+    def set_improved_visualisation(self) -> Any:
         """Get the improved visualisation mode checkbox."""
         return self.appearance_tile.set_improved_visualisation
 
     @property
-    def set_show_primer_temperature(self) -> ft.Checkbox:
+    def set_show_primer_temperature(self) -> Any:
         """Get the show primer temperature checkbox."""
         return self.tm_tile.set_show_primer_temperature
 
@@ -240,13 +240,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
 
-    def _on_apply_handler(self, e: ft.ControlEvent) -> None:
+    def _on_apply_handler(self, *args: Any) -> None:
         """Handle apply button click."""
         self.sync_to_state()
         if self.on_apply:
-            self.on_apply(e)
+            self.on_apply(args[0] if args else None)
 
-    def _on_reset_handler(self, e: ft.ControlEvent) -> None:
+    def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import (
@@ -297,7 +297,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
         if self.on_reset:
-            self.on_reset(e)
+            self.on_reset(args[0] if args else None)
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""
