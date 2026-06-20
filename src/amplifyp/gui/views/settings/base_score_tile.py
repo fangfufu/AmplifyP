@@ -122,7 +122,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             weight=ft.FontWeight.BOLD,
                             size=self.font_size_table_header,
                         ),
-                        width=48,
+                        width=38,
                         alignment=ft.Alignment(0, 0),
                     )
                 )
@@ -149,7 +149,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
 
                 # Style TextField to match the borderless style in primer table
                 field.border = ft.InputBorder.NONE
-                field.width = 48
+                field.width = 38
                 field.height = 30
                 field.content_padding = 0
 
@@ -157,7 +157,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     ft.DataCell(
                         ft.Container(
                             content=field,
-                            width=48,
+                            width=38,
                             alignment=ft.Alignment(0, 0),
                         )
                     )

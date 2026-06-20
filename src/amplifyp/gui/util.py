@@ -346,7 +346,7 @@ def initialise_score_fields(
                 on_change=on_change_handler,
                 text_align=ft.TextAlign.CENTER,
                 dense=True,
-                width=48,
+                width=38,
                 height=36,
                 content_padding=4,
                 text_style=ft.TextStyle(
