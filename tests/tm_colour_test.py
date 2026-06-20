@@ -44,43 +44,43 @@ class TestTmColourTrafficLight:
     def test_high_tm_gives_green(self) -> None:
         """Tm >= 60 deg C gives green in normal mode."""
         colour = tm_colour(65.0, "Traffic Light")
-        assert colour == str(ft.Colors.GREEN_600)
+        assert colour is ft.Colors.GREEN_600
 
     def test_mid_tm_gives_amber(self) -> None:
         """50 <= Tm < 60 deg C gives amber in normal mode."""
         colour = tm_colour(55.0, "Traffic Light")
-        assert colour == str(ft.Colors.ORANGE_600)
+        assert colour is ft.Colors.ORANGE_600
 
     def test_low_tm_gives_red(self) -> None:
         """Tm < 50 deg C gives red in normal mode."""
         colour = tm_colour(45.0, "Traffic Light")
-        assert colour == str(ft.Colors.RED_700)
+        assert colour is ft.Colors.RED_700
 
     def test_boundary_60(self) -> None:
         """Exactly 60 deg C is green (>= 60)."""
-        assert tm_colour(60.0, "Traffic Light") == str(ft.Colors.GREEN_600)
+        assert tm_colour(60.0, "Traffic Light") is ft.Colors.GREEN_600
 
     def test_boundary_50(self) -> None:
         """Exactly 50 deg C is amber (>= 50, < 60)."""
-        assert tm_colour(50.0, "Traffic Light") == str(ft.Colors.ORANGE_600)
+        assert tm_colour(50.0, "Traffic Light") is ft.Colors.ORANGE_600
 
     def test_colour_deficient_high_tm_gives_blue(self) -> None:
         """Colour-deficient mode: Tm >= 60 deg C gives blue not green."""
         GUIColours.colour_deficient_mode = True
         colour = tm_colour(65.0, "Traffic Light")
-        assert colour == str(ft.Colors.BLUE_600)
+        assert colour is ft.Colors.BLUE_600
 
     def test_colour_deficient_low_tm_gives_red(self) -> None:
         """Colour-deficient mode: Tm < 50 deg C still gives red."""
         GUIColours.colour_deficient_mode = True
         colour = tm_colour(40.0, "Traffic Light")
-        assert colour == str(ft.Colors.RED_700)
+        assert colour is ft.Colors.RED_700
 
     def test_colour_deficient_mid_tm_gives_orange(self) -> None:
         """Colour-deficient mode: mid-range Tm gives orange."""
         GUIColours.colour_deficient_mode = True
         colour = tm_colour(55.0, "Traffic Light")
-        assert colour == str(ft.Colors.ORANGE_600)
+        assert colour is ft.Colors.ORANGE_600
 
 
 class TestTmColourCoolWarm:
@@ -88,24 +88,24 @@ class TestTmColourCoolWarm:
 
     def test_very_cold_gives_blue_700(self) -> None:
         """Tm well below 45 deg C gives the coldest blue."""
-        assert tm_colour(30.0, "Cool-Warm") == str(ft.Colors.BLUE_700)
+        assert tm_colour(30.0, "Cool-Warm") is ft.Colors.BLUE_700
 
     def test_boundary_45_gives_blue_500(self) -> None:
         """Tm exactly at 45 deg C is in the 45-50 band (BLUE_500)."""
-        assert tm_colour(45.0, "Cool-Warm") == str(ft.Colors.BLUE_500)
+        assert tm_colour(45.0, "Cool-Warm") is ft.Colors.BLUE_500
 
     def test_mid_low_gives_blue_300(self) -> None:
         """Tm in 50-55 band gives BLUE_300."""
-        assert tm_colour(52.0, "Cool-Warm") == str(ft.Colors.BLUE_300)
+        assert tm_colour(52.0, "Cool-Warm") is ft.Colors.BLUE_300
 
     def test_near_midpoint_gives_on_surface_variant(self) -> None:
         """Tm in the 58-62 midpoint band gives ON_SURFACE_VARIANT."""
-        assert tm_colour(60.0, "Cool-Warm") == str(ft.Colors.ON_SURFACE_VARIANT)
+        assert tm_colour(60.0, "Cool-Warm") is ft.Colors.ON_SURFACE_VARIANT
 
     def test_warm_gives_red_300(self) -> None:
         """Tm in the 65-70 band gives RED_300."""
-        assert tm_colour(67.0, "Cool-Warm") == str(ft.Colors.RED_300)
+        assert tm_colour(67.0, "Cool-Warm") is ft.Colors.RED_300
 
     def test_very_hot_gives_red_700(self) -> None:
         """Tm >= 75 deg C gives the hottest red."""
-        assert tm_colour(80.0, "Cool-Warm") == str(ft.Colors.RED_700)
+        assert tm_colour(80.0, "Cool-Warm") is ft.Colors.RED_700

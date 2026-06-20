@@ -217,8 +217,8 @@ class GUIColours(metaclass=_GUIColoursMeta):
     _dark_mode = False
 
 
-def tm_colour(tm_value: float | None, scheme: str) -> str | None:
-    """Return a Flet colour string for the given Tm and colour scheme.
+def tm_colour(tm_value: float | None, scheme: str) -> ft.Colors | None:
+    """Return a Flet colour enum for the given Tm and colour scheme.
 
     Returns None when scheme is "None" or unrecognised (no colouring).
 
@@ -227,7 +227,7 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
         scheme: One of "None", "Cool-Warm", or "Traffic Light".
 
     Returns:
-        A Flet colour string, or None if no colouring should be applied.
+        A Flet Colors enum value, or None if no colouring should be applied.
     """
     if tm_value is None or scheme == "None":
         return None
@@ -236,38 +236,38 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
         if GUIColours.colour_deficient_mode:
             # Colour-blind-safe: blue (high), orange (mid), red (low)
             if tm_value >= 60:
-                return str(ft.Colors.BLUE_600)
+                return ft.Colors.BLUE_600
             if tm_value >= 50:
-                return str(ft.Colors.ORANGE_600)
-            return str(ft.Colors.RED_700)
+                return ft.Colors.ORANGE_600
+            return ft.Colors.RED_700
         else:
             if tm_value >= 60:
-                return str(ft.Colors.GREEN_600)
+                return ft.Colors.GREEN_600
             if tm_value >= 50:
-                return str(ft.Colors.ORANGE_600)
-            return str(ft.Colors.RED_700)
+                return ft.Colors.ORANGE_600
+            return ft.Colors.RED_700
 
     if scheme == "Cool-Warm":
         # Discrete steps: blue (cold) -> white (mid) -> red (hot)
         # Mapped across 45-75 degrees C in ~5 degree C bands
         if tm_value < 45:
-            return str(ft.Colors.BLUE_700)
+            return ft.Colors.BLUE_700
         if tm_value < 50:
-            return str(ft.Colors.BLUE_500)
+            return ft.Colors.BLUE_500
         if tm_value < 55:
-            return str(ft.Colors.BLUE_300)
+            return ft.Colors.BLUE_300
         if tm_value < 58:
-            return str(ft.Colors.BLUE_100)
+            return ft.Colors.BLUE_100
         if tm_value < 62:
             # Near midpoint — use surface colour (effectively white/black
             # depending on theme) so text remains readable.
-            return str(ft.Colors.ON_SURFACE_VARIANT)
+            return ft.Colors.ON_SURFACE_VARIANT
         if tm_value < 65:
-            return str(ft.Colors.RED_100)
+            return ft.Colors.RED_100
         if tm_value < 70:
-            return str(ft.Colors.RED_300)
+            return ft.Colors.RED_300
         if tm_value < 75:
-            return str(ft.Colors.RED_500)
-        return str(ft.Colors.RED_700)
+            return ft.Colors.RED_500
+        return ft.Colors.RED_700
 
     return None
