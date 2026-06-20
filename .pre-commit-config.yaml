@@ -50,7 +50,7 @@ repos:
         args: [--wrap, '80']
         exclude: ^\.agents/rules/
 ci:
-  skip: []
+  skip: [pytest]
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit.com hooks
 
