@@ -121,7 +121,6 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                         [
                             ft.Row(
                                 [
-                                    ft.Container(expand=True),
                                     ft.Container(
                                         content=ft.Column(
                                             [
@@ -139,9 +138,8 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                         ),
-                                        expand=2,
+                                        width=450,
                                     ),
-                                    ft.Container(expand=True),
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER,
                             ),
