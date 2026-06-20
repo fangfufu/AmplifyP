@@ -15,11 +15,16 @@
 
 """Settings View for the Flet application."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
 from amplifyp.gui.settings import GUISettings
+
+if TYPE_CHECKING:
+    from amplifyp.gui.util import BorderedCheckbox
 from amplifyp.gui.views.settings import (
     AppearanceTile,
     DimerTile,
@@ -116,7 +121,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.replication_tile.set_stability_cutoff
 
     @property
-    def set_amp4_compat(self) -> Any:
+    def set_amp4_compat(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the amplify4 compatibility mode checkbox."""
         return self.replication_tile.set_amp4_compat
 
@@ -171,12 +176,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.appearance_tile.set_colour_deficient
 
     @property
-    def set_improved_visualisation(self) -> Any:
+    def set_improved_visualisation(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the improved visualisation mode checkbox."""
         return self.appearance_tile.set_improved_visualisation
 
     @property
-    def set_show_primer_temperature(self) -> Any:
+    def set_show_primer_temperature(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the show primer temperature checkbox."""
         return self.tm_tile.set_show_primer_temperature
 
