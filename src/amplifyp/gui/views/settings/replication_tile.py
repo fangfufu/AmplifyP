@@ -69,7 +69,7 @@ class ReplicationTile(BaseScoreTile):
             on_change=on_change_handler,
         )
         self.set_improved_visualisation = BorderedCheckbox(
-            label="Improved Visualisation Mode",
+            label="Improved Primer Binding Site Visualisation",
             on_change=on_change_handler,
         )
 

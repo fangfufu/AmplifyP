@@ -285,10 +285,10 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             self.score_table,
-                            ft.VerticalDivider(),
+                            ft.Container(height=10),
                             ft.Container(
                                 content=ft.Column(
                                     [
@@ -304,12 +304,11 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=260,
+                                width=350,
                             ),
                         ],
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        scroll=ft.ScrollMode.ALWAYS,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=10,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )
