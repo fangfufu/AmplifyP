@@ -15,6 +15,7 @@
 
 """Centralised GUI settings and configuration."""
 
+import logging
 import os
 import sys
 from collections.abc import ItemsView, Iterator, KeysView
@@ -42,6 +43,8 @@ if TYPE_CHECKING:
         ReplicationSettings,
         TMSettings,
     )
+
+logger = logging.getLogger(__name__)
 
 # Maximum number of amplicons to draw on the PCR result diagram to
 # prevent UI freeze.
@@ -518,7 +521,9 @@ class GUISettings:
                 if isinstance(data, dict):
                     self.from_dict(data)
             except Exception as e:
-                print(f"Error loading settings from {config_path}: {e}")
+                logger.error(
+                    "Error loading settings from %s: %s", config_path, e
+                )
 
     def save_to_local(self, page: ft.Page) -> None:
         """Save settings to local storage.
@@ -542,4 +547,4 @@ class GUISettings:
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
         except Exception as e:
-            print(f"Error saving settings to {config_path}: {e}")
+            logger.error("Error saving settings to %s: %s", config_path, e)

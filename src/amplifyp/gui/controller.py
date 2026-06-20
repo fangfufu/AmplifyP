@@ -15,7 +15,7 @@
 
 """GUI controller for orchestrating views, state, and page events."""
 
-import traceback
+import logging
 from typing import cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -32,6 +32,8 @@ from amplifyp.gui.views import (
     PCRView,
     SettingsView,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class GUIController:
@@ -542,7 +544,7 @@ class GUIController:
             self.update_pcr_button_state()
             self.notification_helper.show_message("State loaded successfully!")
         except Exception as ex:
-            print("LOAD STATE ERROR:", traceback.format_exc())
+            logger.exception("Error loading state:")
             self.notification_helper.show_message(f"Error loading state: {ex}")
         finally:
             self.filepicker_open = False
