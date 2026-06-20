@@ -17,6 +17,7 @@
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 
@@ -88,6 +89,30 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                                 ft.Text(
                                     app_version,
                                     selectable=True,
+                                    size=font_size_default,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.START,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        ),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Repository: ",
+                                    weight=ft.FontWeight.BOLD,
+                                    size=font_size_default,
+                                ),
+                                ft.Text(
+                                    spans=[
+                                        ft.TextSpan(
+                                            "github.com/fangfufu/AmplifyP",
+                                            url="https://github.com/fangfufu/AmplifyP",
+                                            style=ft.TextStyle(
+                                                decoration=ft.TextDecoration.UNDERLINE,
+                                                color=GUIColours.LINK_BLUE,
+                                            ),
+                                        )
+                                    ],
                                     size=font_size_default,
                                 ),
                             ],
