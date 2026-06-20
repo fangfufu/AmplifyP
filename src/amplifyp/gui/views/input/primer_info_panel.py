@@ -236,7 +236,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             self.visible = True
 
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
 

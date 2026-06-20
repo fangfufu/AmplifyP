@@ -254,3 +254,7 @@ class InvalidAmpliconRangeError(NotImplementedError):
             message: The error message describing the invalid amplicon range.
         """
         super().__init__(message)
+
+
+class InsufficientThermodynamicDataError(ValueError):
+    """Exception raised when a sequence lacks thermodynamic data."""

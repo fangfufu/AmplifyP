@@ -104,7 +104,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = self.settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError, ArithmeticError):
                 logger.debug(
                     "Failed to calculate Tm for primer '%s'",
                     name,
@@ -318,7 +318,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except (ValueError, AttributeError):
+            except (ValueError, AttributeError, ArithmeticError):
                 logger.debug(
                     "Failed to calculate Tm for primer '%s'",
                     name_val,
