@@ -15,7 +15,9 @@
 
 """Toolbar containing actions for managing primers (Save, Load, Clear)."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Awaitable, Callable
 
 import flet as ft
 
@@ -25,10 +27,10 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
 
     def __init__(
         self,
-        on_save: Any,
-        on_load: Any,
-        on_clear: Any,
-        on_delete_selected: Any,
+        on_save: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_load: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_clear: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_delete_selected: Callable[[ft.Event | None], None | Awaitable[None]],
     ) -> None:
         """Initialise the PrimerToolbar.
 

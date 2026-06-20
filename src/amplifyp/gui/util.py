@@ -255,16 +255,14 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
         title: The dialog title.
         message: The error message to display.
     """
-    from typing import Any
-
     from amplifyp.gui.colours import GUIColours
 
-    def close_dlg(e: Any) -> None:
+    def close_dlg(e: ft.Event[ft.Control]) -> None:
         """Close the error dialog and update the page."""
         dialog.open = False
         page.update()
 
-    def on_dismiss(e: Any) -> None:
+    def on_dismiss(e: ft.Event[ft.Control]) -> None:
         """Remove the dialog from the page overlay when dismissed."""
         if dialog in page.overlay:
             page.overlay.remove(dialog)
@@ -321,7 +319,7 @@ def initialise_score_fields(
     prefix: str,
     row_headers: list[str],
     col_headers: list[str],
-    on_change_handler: Any,
+    on_change_handler: Callable[[ft.Event[ft.Control] | None], None],
     font_size: int,
 ) -> None:
     """Initialise a grid of text fields for a score table in settings_map.
@@ -348,7 +346,7 @@ def initialise_score_fields(
                 on_change=on_change_handler,
                 text_align=ft.TextAlign.CENTER,
                 dense=True,
-                width=48,
+                width=38,
                 height=36,
                 content_padding=4,
                 text_style=ft.TextStyle(
@@ -612,3 +610,46 @@ class NotificationHelper:
         self._snack_bar.content = ft.Text(message)
         self._snack_bar.open = True
         self.page.update()
+
+
+class BorderedCheckbox(ft.Container):  # type: ignore[misc]
+    """A checkbox wrapped in a container with a border matching input fields.
+
+    # ponytail: helper for styled checkboxes in settings view
+    """
+
+    def __init__(
+        self,
+        label: str,
+        value: bool = False,
+        on_change: Callable[[ft.Event[ft.Control] | None], None] | None = None,
+    ) -> None:
+        """Initialize the BorderedCheckbox."""
+        from amplifyp.gui.colours import GUIColours
+
+        self.checkbox = ft.Checkbox(
+            label=label,
+            value=value,
+            on_change=on_change,
+        )
+        super().__init__(
+            content=self.checkbox,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=ft.Padding(10, 0, 10, 0),
+            height=48,
+            alignment=ft.Alignment(-1, 0),
+        )
+
+    @property
+    def value(self) -> bool:
+        """Get the value of the inner checkbox."""
+        return bool(self.checkbox.value)
+
+    @value.setter
+    def value(self, val: ft.Control) -> None:
+        """Set the value of the inner checkbox."""
+        if isinstance(val, str):
+            self.checkbox.value = val.lower() == "true"
+        else:
+            self.checkbox.value = bool(val)

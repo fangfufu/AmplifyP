@@ -16,9 +16,10 @@
 """DismissibleDetailCard base component for PCR view detail cards."""
 
 from collections.abc import Callable
-from typing import Any
 
 import flet as ft
+
+from amplifyp.gui.settings import GUISettings
 
 
 class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
@@ -28,7 +29,7 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         self,
         card_id: str,
         title: str,
-        settings: Any,
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
         body_controls: list[ft.Control],
     ) -> None:
@@ -46,7 +47,7 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         super().__init__()
         self._card_id = card_id
 
-        def remove_card(e: Any) -> None:
+        def remove_card(e: ft.Event) -> None:
             """Callback to trigger the dismiss callback."""
             dismiss_callback(self)
 

@@ -15,12 +15,17 @@
 
 """ListView for rendering, styling, and resizing primers."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import flet as ft
 
 from .primer_row import PrimerRow
 from .primer_validation import validate_primers
+
+if TYPE_CHECKING:
+    from .primer_input import PrimerInput
 
 
 class PrimerList(ft.ListView):  # type: ignore[misc]
@@ -28,7 +33,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
 
     def __init__(
         self,
-        primer_input: Any,
+        primer_input: PrimerInput,
     ) -> None:
         """Initialise the PrimerList.
 
@@ -112,6 +117,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 seq_error=seq_err,
                 font_family=font_family,
                 name_column_width=self.primer_input.name_column_width,
+                settings=self.primer_input.settings,
                 on_change_handler=self.primer_input.on_change_handler,
                 handle_field_focus=self.primer_input.handle_field_focus,
                 handle_field_blur=self.primer_input.handle_field_blur,

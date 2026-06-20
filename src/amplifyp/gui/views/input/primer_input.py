@@ -15,7 +15,10 @@
 
 """Input component for DNA primers list and details."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, cast
 
 import flet as ft
 
@@ -43,12 +46,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_primers_callback: Any,
-        delete_selected_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.ControlEvent], None],
+        handle_field_blur: Callable[[ft.ControlEvent], None],
+        handle_field_submit: Callable[[ft.Event], None],
+        clear_primers_callback: Callable[[ft.Event | None], None],
+        delete_selected_callback: Callable[[ft.Event | None], None],
     ) -> None:
         """Initialise the PrimerInput component.
 
@@ -317,6 +320,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     new_validation_errors
                 ):
                     row.set_error(new_validation_errors[idx])
+                    row.update_tm(self.settings)
             self._update_row_highlights()
             self._update_header_checkbox_state()
             self._update_delete_button_disabled_state()
@@ -329,6 +333,29 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Rebuilds the primer list and updates the delete button disabled
         state based on current selections.
         """
+        # Recreate the header to make sure controls match settings and indices
+        self.primer_header = PrimerHeader(
+            settings=self.settings,
+            on_toggle_all=self._on_toggle_all_primers,
+            on_divider_pan=self.layout_manager.on_primer_divider_pan,
+            on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
+            name_column_width=self.name_column_width,
+        )
+        self.all_primers_checkbox = self.primer_header.all_primers_checkbox
+        self.primers_header = self.primer_header.header_row
+        self.primers_header_container = self.primer_header
+
+        # Replace the header in the UI container controls
+        column = cast(ft.Column, self.content)
+        container = cast(ft.Container, column.controls[1])
+        inner_column = cast(ft.Column, container.content)
+        inner_column.controls[0] = self.primer_header
+        try:
+            if container.page:
+                container.update()
+        except Exception:  # noqa: S110
+            pass
+
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
 
@@ -345,7 +372,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
 
-    def _on_toggle_all_primers(self, e: Any) -> None:
+    def _on_toggle_all_primers(self, e: ft.Event[ft.Checkbox]) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox.
 
         Handles the three checkbox states (True, False, None/tristate)
@@ -385,8 +412,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                         row.checkbox.value = False
 
         self._prev_header_checkbox_value = cb_value
-        if self.on_change_handler:
-            self.on_change_handler(e)
+        self.on_change_handler(e)
 
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states.
@@ -489,7 +515,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_dismiss=on_dismiss,
         )
 
-    async def _load_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _load_primers_click(self, e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file.
 
         Delegates to the PrimerFileManager component.
@@ -499,7 +525,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """
         await self.file_manager.load_primers_click(e)
 
-    async def _save_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _save_primers_click(self, e: ft.Event | None) -> None:
         """Save active primers to a CSV file.
 
         Delegates to the PrimerFileManager component.

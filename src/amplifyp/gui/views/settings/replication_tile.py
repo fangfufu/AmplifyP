@@ -15,10 +15,12 @@
 
 """ReplicationTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
 
 
@@ -27,9 +29,9 @@ class ReplicationTile(BaseScoreTile):
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
         font_size_default: int,
         font_size_micro: int,
@@ -59,15 +61,22 @@ class ReplicationTile(BaseScoreTile):
             value="0.4",
             on_change=on_change_handler,
         )
-        self.set_amp4_compat = ft.Checkbox(
+        from amplifyp.gui.util import BorderedCheckbox
+
+        self.set_amp4_compat = BorderedCheckbox(
             label="Amplify4 Compatibility Mode",
             value=False,
+            on_change=on_change_handler,
+        )
+        self.set_improved_visualisation = BorderedCheckbox(
+            label="Improved Primer Binding Site Visualisation",
             on_change=on_change_handler,
         )
 
         settings_map["primability_cutoff"] = self.set_primability_cutoff
         settings_map["stability_cutoff"] = self.set_stability_cutoff
         settings_map["amp4_compat"] = self.set_amp4_compat
+        settings_map["improved_visualisation"] = self.set_improved_visualisation
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
@@ -90,5 +99,6 @@ class ReplicationTile(BaseScoreTile):
                 self.set_primability_cutoff,
                 self.set_stability_cutoff,
                 self.set_amp4_compat,
+                self.set_improved_visualisation,
             ],
         )

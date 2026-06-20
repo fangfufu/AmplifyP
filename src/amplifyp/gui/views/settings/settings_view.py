@@ -15,17 +15,21 @@
 
 """Settings View for the Flet application."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.views.settings import (
-    AppearanceTile,
-    DimerTile,
-    ReplicationTile,
-    TmTile,
-)
+
+if TYPE_CHECKING:
+    from amplifyp.gui.util import BorderedCheckbox
+from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
+from amplifyp.gui.views.settings.dimer_tile import DimerTile
+from amplifyp.gui.views.settings.replication_tile import ReplicationTile
+from amplifyp.gui.views.settings.tm_tile import TmTile
 from amplifyp.settings import ReplicationSettings
 
 
@@ -36,9 +40,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_apply: Any | None = None,
-        on_reset: Any | None = None,
+        on_change: Callable[[ft.ControlEvent], None] | None = None,
+        on_apply: Callable[[ft.ControlEvent | None], None] | None = None,
+        on_reset: Callable[[ft.ControlEvent | None], None] | None = None,
     ) -> None:
         """Initialise the SettingsView."""
         super().__init__(
@@ -116,7 +120,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.replication_tile.set_stability_cutoff
 
     @property
-    def set_amp4_compat(self) -> ft.Checkbox:
+    def set_amp4_compat(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the amplify4 compatibility mode checkbox."""
         return self.replication_tile.set_amp4_compat
 
@@ -171,9 +175,19 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.appearance_tile.set_colour_deficient
 
     @property
-    def set_improved_visualisation(self) -> ft.Checkbox:
+    def set_improved_visualisation(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the improved visualisation mode checkbox."""
-        return self.appearance_tile.set_improved_visualisation
+        return self.replication_tile.set_improved_visualisation
+
+    @property
+    def set_show_primer_temperature(self) -> ft.Checkbox | BorderedCheckbox:
+        """Get the show primer temperature checkbox."""
+        return self.tm_tile.set_show_primer_temperature
+
+    @property
+    def set_tm_colour_scheme(self) -> ft.Dropdown:
+        """Get the Tm colour scheme dropdown."""
+        return self.tm_tile.set_tm_colour_scheme
 
     def _build_action_buttons(self) -> ft.Row:
         """Build the Action buttons Row (Apply & Reset)."""
@@ -204,9 +218,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
+        from amplifyp.gui.util import BorderedCheckbox
+
         for k, v in self.settings.items():
             if k in self.settings_map:
-                if isinstance(self.settings_map[k], ft.Checkbox):
+                if isinstance(
+                    self.settings_map[k], (ft.Checkbox, BorderedCheckbox)
+                ):
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
@@ -214,17 +232,25 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
+        # Sync the triggering control's value first (Dropdown .value may not
+        # be updated yet when on_select fires in Flet).
+        ctrl = getattr(e, "control", None)
+        if ctrl is not None:
+            for k, v in self.settings_map.items():
+                if v is ctrl:
+                    self.settings[k] = ctrl.value
+                    break
         self.sync_to_state()
         if self.on_change:
             self.on_change(e)
 
-    def _on_apply_handler(self, e: ft.ControlEvent) -> None:
+    def _on_apply_handler(self, *args: Any) -> None:
         """Handle apply button click."""
         self.sync_to_state()
         if self.on_apply:
-            self.on_apply(e)
+            self.on_apply(args[0] if args else None)
 
-    def _on_reset_handler(self, e: ft.ControlEvent) -> None:
+    def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import (
@@ -253,6 +279,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,
+            "show_primer_temperature": False,
+            "tm_colour_scheme": "None",
         }
 
         for r_char in Nucleotides.PRIMER:
@@ -273,7 +301,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.update_ui()
         self.app_page.update()
         if self.on_reset:
-            self.on_reset(e)
+            self.on_reset(args[0] if args else None)
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""

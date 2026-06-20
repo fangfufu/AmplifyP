@@ -15,9 +15,13 @@
 
 """Coordinate transformation and layout solver helper for the PCRView."""
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from amplifyp.pcr import PCR
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
 
 
 class PCRLayoutSolver:
@@ -28,10 +32,10 @@ class PCRLayoutSolver:
 
     @staticmethod
     def collect_primer_bindings(
-        pcr: PCR, amplicons: list[Any]
+        pcr: PCR, amplicons: list["Amplicon"]
     ) -> tuple[
-        dict[tuple[int, str], tuple[str, float, Any, Any]],
-        dict[tuple[int, str], tuple[str, float, Any, Any]],
+        dict[tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]],
+        dict[tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]],
     ]:
         """Collect and group unique forward and reverse primer binding sites.
 
@@ -91,7 +95,9 @@ class PCRLayoutSolver:
 
     @staticmethod
     def calculate_shifted_x(
-        bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
+        bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
         target_length: int,
         t_width: float,
         h_margin: float,
@@ -167,8 +173,12 @@ class PCRLayoutSolver:
     def calculate_canvas_dimensions(
         target_length: int,
         num_amplicons: int,
-        fwd_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
-        rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
+        fwd_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
+        rev_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
         page_width: float | None,
     ) -> tuple[float, float, float, float, float]:
         """Calculate drawing coordinates and baseline positions.

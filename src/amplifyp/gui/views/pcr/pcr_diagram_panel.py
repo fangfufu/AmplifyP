@@ -16,7 +16,7 @@
 """Diagram panel widget for rendering PCR execution targets."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
@@ -24,6 +24,10 @@ import flet.canvas as cv
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
 
 from .amplicon_drawing import DrawnAmplicon
 from .pcr_layout import PCRLayoutSolver
@@ -42,8 +46,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings,
-        on_primer_click: Callable[[str, int, Any, Any], None],
-        on_amplicon_click: Callable[[Any], None],
+        on_primer_click: Callable[[str, int, "Repliconf", "DirIdx"], None],
+        on_amplicon_click: Callable[["Amplicon"], None],
     ) -> None:
         """Initialise the PCRDrawingPanel.
 
@@ -311,8 +315,12 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
     def _draw_primers(
         self,
-        fwd_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
-        rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]],
+        fwd_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
+        rev_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
         target_length: int,
         t_width: float,
         h_margin: float,
@@ -339,7 +347,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
 
         def make_click(
-            n_val: str, idx_val: int, c_val: Any, v_val: Any
+            n_val: str, idx_val: int, c_val: "Repliconf", v_val: "DirIdx"
         ) -> Callable[[], None]:
             """Return a lambda that calls the on_primer_click callback."""
             return lambda: self.on_primer_click(n_val, idx_val, c_val, v_val)
@@ -396,7 +404,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         h_margin: float,
         v_target: float,
         c_width: float,
-        amplicons: list[Any] | None = None,
+        amplicons: list["Amplicon"] | None = None,
         v_frag_start: float | None = None,
     ) -> None:
         """Draw amplicons using DrawnAmplicon instances.

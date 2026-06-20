@@ -15,11 +15,13 @@
 
 """Base score settings tile and score table for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]
@@ -120,7 +122,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             weight=ft.FontWeight.BOLD,
                             size=self.font_size_table_header,
                         ),
-                        width=48,
+                        width=38,
                         alignment=ft.Alignment(0, 0),
                     )
                 )
@@ -147,7 +149,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
 
                 # Style TextField to match the borderless style in primer table
                 field.border = ft.InputBorder.NONE
-                field.width = 48
+                field.width = 38
                 field.height = 30
                 field.content_padding = 0
 
@@ -155,7 +157,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     ft.DataCell(
                         ft.Container(
                             content=field,
-                            width=48,
+                            width=38,
                             alignment=ft.Alignment(0, 0),
                         )
                     )
@@ -207,9 +209,9 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
         font_size_default: int,
         font_size_micro: int,
@@ -283,10 +285,10 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             self.score_table,
-                            ft.VerticalDivider(),
+                            ft.Container(height=10),
                             ft.Container(
                                 content=ft.Column(
                                     [
@@ -302,12 +304,11 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=220,
+                                width=350,
                             ),
                         ],
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        scroll=ft.ScrollMode.ALWAYS,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        spacing=10,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )

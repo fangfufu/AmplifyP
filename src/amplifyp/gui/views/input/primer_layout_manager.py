@@ -111,7 +111,10 @@ class PrimerLayoutManager:
         # - Two dividers (4 + 4 = 8)
         # - Control container when focused (108)
         # - Minimum space to display "Sequence" text and edit cursor (100)
-        max_name_width = max(80.0, panel_width - 271.0)
+        # - Plus optional Tm column (50 width + 4 divider = 54)
+        show_temp = self.owner.settings.get("show_primer_temperature", False)
+        extra_space = 54.0 if show_temp else 0.0
+        max_name_width = max(80.0, panel_width - 271.0 - extra_space)
 
         target_width = max(
             80.0,
@@ -178,7 +181,9 @@ class PrimerLayoutManager:
             during_drag: If True, updates only visible rows for smooth
                 feedback. If False, updates all rows.
         """
-        max_name_width = max(80.0, new_panel_width - 271.0)
+        show_temp = self.owner.settings.get("show_primer_temperature", False)
+        extra_space = 54.0 if show_temp else 0.0
+        max_name_width = max(80.0, new_panel_width - 271.0 - extra_space)
         target_width = max(
             80.0,
             min(

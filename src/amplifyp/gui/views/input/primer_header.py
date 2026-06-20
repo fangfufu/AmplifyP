@@ -15,7 +15,9 @@
 
 """Header component for the primers list showing columns and resizing."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
@@ -29,9 +31,9 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
     def __init__(
         self,
         settings: GUISettings,
-        on_toggle_all: Any,
-        on_divider_pan: Any,
-        on_divider_pan_end: Any,
+        on_toggle_all: Callable[[ft.Event[ft.Checkbox]], None],
+        on_divider_pan: Callable[[ft.DragUpdateEvent], None],
+        on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         name_column_width: float,
     ) -> None:
         """Initialise the PrimerHeader.
@@ -49,51 +51,75 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             tristate=True,
             on_change=on_toggle_all,
         )
-        self.header_row = ft.Row(
-            [
-                ft.Container(
-                    content=self.all_primers_checkbox,
-                    width=55,
-                    alignment=ft.Alignment(0, 0),
+        show_temp = self.settings.get("show_primer_temperature", False)
+        self.tm_header = ft.Container(
+            content=ft.Text(
+                "Tm",
+                weight=ft.FontWeight.BOLD,
+                size=self.settings.get("font_size_small", 12),
+            ),
+            width=50,
+            padding=ft.Padding(5, 0, 0, 0),
+            alignment=ft.Alignment(-1, 0),
+            visible=show_temp,
+        )
+        self.tm_divider = ft.Container(
+            width=4,
+            bgcolor=GUIColours.DIVIDER_GREY,
+            margin=0,
+            height=36,
+            visible=show_temp,
+        )
+        controls = [
+            ft.Container(
+                content=self.all_primers_checkbox,
+                width=55,
+                alignment=ft.Alignment(0, 0),
+            ),
+            ft.Container(
+                width=4,
+                bgcolor=GUIColours.DIVIDER_GREY,
+                margin=0,
+                height=36,
+            ),
+            ft.Container(
+                content=ft.Text(
+                    "Name",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_small", 12),
                 ),
-                ft.Container(
+                width=name_column_width,
+                padding=ft.Padding(5, 0, 0, 0),
+                alignment=ft.Alignment(-1, 0),
+            ),
+            ft.GestureDetector(
+                on_pan_update=on_divider_pan,
+                on_pan_end=on_divider_pan_end,
+                content=ft.Container(
                     width=4,
                     bgcolor=GUIColours.DIVIDER_GREY,
                     margin=0,
                     height=36,
                 ),
-                ft.Container(
-                    content=ft.Text(
-                        "Name",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_small", 12),
-                    ),
-                    width=name_column_width,
-                    padding=ft.Padding(5, 0, 0, 0),
-                    alignment=ft.Alignment(-1, 0),
+                mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
+            ),
+        ]
+        if show_temp:
+            controls.extend([self.tm_header, self.tm_divider])
+        controls.append(
+            ft.Container(
+                content=ft.Text(
+                    "Sequence",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_small", 12),
                 ),
-                ft.GestureDetector(
-                    on_pan_update=on_divider_pan,
-                    on_pan_end=on_divider_pan_end,
-                    content=ft.Container(
-                        width=4,
-                        bgcolor=GUIColours.DIVIDER_GREY,
-                        margin=0,
-                        height=36,
-                    ),
-                    mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
-                ),
-                ft.Container(
-                    content=ft.Text(
-                        "Sequence",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_small", 12),
-                    ),
-                    expand=True,
-                    padding=ft.Padding(5, 0, 0, 0),
-                    alignment=ft.Alignment(-1, 0),
-                ),
-            ],
+                expand=True,
+                padding=ft.Padding(5, 0, 0, 0),
+                alignment=ft.Alignment(-1, 0),
+            )
+        )
+        self.header_row = ft.Row(
+            controls,
             alignment=ft.MainAxisAlignment.START,
             height=36,
             spacing=0,
