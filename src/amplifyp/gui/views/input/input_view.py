@@ -196,7 +196,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+    def _handle_field_focus(self, e: ft.Event[ft.TextField]) -> None:
         """Handle focus on input fields to cancel auto-trigger timer.
 
         Updates the focused primer index, marks field touch status,
@@ -234,7 +234,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
         self._currently_focused_control = cast(ft.Control, e.control)
 
-    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+    def _handle_field_blur(self, e: ft.Event[ft.TextField]) -> None:
         """Handle blur on input fields to trigger results page after a delay.
 
         Syncs state, applies validation errors to rows, auto-adds empty
@@ -280,7 +280,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self._focus_debouncer.trigger(timer_callback)
 
-    def _handle_field_submit(self, e: ft.Event) -> None:
+    def _handle_field_submit(self, e: ft.Event[ft.TextField]) -> None:
         """Handle submission (Enter key) to immediately trigger results.
 
         Cancels any pending debounced callbacks, syncs state, auto-adds
@@ -466,7 +466,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             self.update()
 
-    def _handle_resize(self, e: ft.ControlEvent) -> None:
+    def _handle_resize(self, e: ft.PageResizeEvent) -> None:
         """Handle page resize to proportionally scale name column.
 
         Args:

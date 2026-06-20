@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -37,6 +38,8 @@ from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
 from .primer_validation import validate_primers
 
+logger = logging.getLogger(__name__)
+
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
     """Input component for DNA primers list and details."""
@@ -47,9 +50,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         settings: GUISettings,
         input_data: GUIInput,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.ControlEvent], None],
-        handle_field_blur: Callable[[ft.ControlEvent], None],
-        handle_field_submit: Callable[[ft.Event], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
         clear_primers_callback: Callable[[ft.Event | None], None],
         delete_selected_callback: Callable[[ft.Event | None], None],
     ) -> None:
@@ -353,8 +356,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         try:
             if container.page:
                 container.update()
-        except Exception:  # noqa: S110
-            pass
+        except RuntimeError:
+            logger.debug("Container page detached, skipping update")
 
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()

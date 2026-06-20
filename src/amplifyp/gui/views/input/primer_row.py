@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, cast
 
@@ -24,6 +25,8 @@ import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -45,9 +48,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         name_column_width: float,
         settings: GUISettings,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.ControlEvent], None],
-        handle_field_blur: Callable[[ft.ControlEvent], None],
-        handle_field_submit: Callable[[ft.Event], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
         on_row_click: Callable[[int, ft.TextField], None],
         on_move_primer: Callable[[int, int], None],
         on_delete_primer: Callable[[int], None],
@@ -107,7 +110,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = self.settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except Exception:
+            except (ValueError, AttributeError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name,
+                    exc_info=True,
+                )
                 tm_val = "-"
 
         scheme = self.settings.get("tm_colour_scheme", "None")
@@ -294,13 +302,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             try:
                 self.control_container.update()
             except RuntimeError:
-                pass
+                logger.debug("Control container page detached, skipping update")
         if self.reorder_controls is not None:
             self.reorder_controls.visible = is_focused
             try:
                 self.reorder_controls.update()
             except RuntimeError:
-                pass
+                logger.debug("Reorder controls page detached, skipping update")
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
@@ -400,7 +408,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except Exception:
+            except (ValueError, AttributeError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name_val,
+                    exc_info=True,
+                )
                 tm_val = "-"
         self.tm_text.value = tm_val
         scheme = settings.get("tm_colour_scheme", "None")
@@ -414,4 +427,4 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         try:
             self.tm_text.update()
         except RuntimeError:
-            pass
+            logger.debug("Tm text page detached, skipping update")
