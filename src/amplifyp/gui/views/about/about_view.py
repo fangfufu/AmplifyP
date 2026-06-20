@@ -136,8 +136,24 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                                     size=font_size_default,
                                 ),
                                 ft.Text(
-                                    "This project is licenced under the GNU "
-                                    "General Public License v3.0 (GPL-3.0).",
+                                    spans=[
+                                        ft.TextSpan(
+                                            "This project is licenced "
+                                            "under the "
+                                        ),
+                                        ft.TextSpan(
+                                            "GNU General Public "
+                                            "License v3.0 (GPL-3.0)",
+                                            url="https://github.com/"
+                                            "fangfufu/AmplifyP/blob/"
+                                            "stable/LICENSE",
+                                            style=ft.TextStyle(
+                                                decoration=ft.TextDecoration.UNDERLINE,
+                                                color=GUIColours.LINK_BLUE,
+                                            ),
+                                        ),
+                                        ft.TextSpan("."),
+                                    ],
                                     size=font_size_default,
                                 ),
                             ]
