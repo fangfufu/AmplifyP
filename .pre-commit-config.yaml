@@ -40,19 +40,8 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: pytest
-        language: python
-        additional_dependencies:
-          - .
-          - pytest
-          - pytest-cov
-          - pytest-testmon
-          - pytest-asyncio
-          - pytest-playwright
-          - pytesseract
-          - pillow
-          - flet
-          - pyyaml
+        entry: .venv/bin/pytest
+        language: system
         pass_filenames: false
   - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
