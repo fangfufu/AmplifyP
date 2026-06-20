@@ -38,23 +38,6 @@ repos:
         additional_dependencies: [tokenize-rt, types-PyYAML]
   - repo: local
     hooks:
-      - id: pyright
-        name: pyright
-        entry: pyright
-        language: python
-        additional_dependencies:
-          - .
-          - pyright
-          - flet
-          - pyyaml
-          - pytest
-          - playwright
-          - requests
-          - pytesseract
-          - pillow
-        pass_filenames: false
-  - repo: local
-    hooks:
       - id: pytest
         name: pytest
         entry: pytest
@@ -78,7 +61,7 @@ repos:
         args: [--wrap, '80']
         exclude: ^\.agents/rules/
 ci:
-  skip: [pyright]
+  skip: []
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit.com hooks
 

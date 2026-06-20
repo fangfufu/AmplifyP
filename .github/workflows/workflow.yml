@@ -50,6 +50,10 @@ jobs:
         if: steps.filter.outputs.run == 'true'
         run: |
           pytest -v
+      - name: Run pyright
+        if: steps.filter.outputs.run == 'true'
+        run: |
+          pyright
       - name: Build Flet web app (Linux only)
         if: |
           steps.filter.outputs.run == 'true' &&
