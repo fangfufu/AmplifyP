@@ -29,9 +29,8 @@ def test_about_view_initialisation() -> None:
     view = AboutView(mock_page)
 
     assert len(view.controls) > 0
-    # Check that first control is Title
-    assert isinstance(view.controls[0], ft.Text)
-    assert view.controls[0].value == "About AmplifyP"
+    # Check that first control is the header Row
+    assert isinstance(view.controls[0], ft.Row)
 
 
 def test_controller_about_view_integration() -> None:

@@ -44,12 +44,6 @@ class AboutView(ft.ListView):  # type: ignore[misc]
 
         # ponytail: simple ListView containing icon, version, and commit SHA
         self.controls = [
-            ft.Text(
-                "About AmplifyP",
-                weight=ft.FontWeight.BOLD,
-                size=24,
-            ),
-            ft.Divider(),
             ft.Row(
                 [
                     ft.Image(
@@ -75,7 +69,6 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                 ],
                 spacing=20,
             ),
-            ft.Divider(),
             ft.Container(
                 content=ft.Column(
                     [
@@ -135,6 +128,20 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                             alignment=ft.MainAxisAlignment.START,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Licence: ",
+                                    weight=ft.FontWeight.BOLD,
+                                    size=font_size_default,
+                                ),
+                                ft.Text(
+                                    "This project is licenced under the GNU "
+                                    "General Public License v3.0 (GPL-3.0).",
+                                    size=font_size_default,
+                                ),
+                            ]
+                        ),
                     ],
                     spacing=10,
                 ),
@@ -147,30 +154,28 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                 size=18,
             ),
             ft.Text(
-                "• Amplify4: This project is built upon the logic "
-                "and methodology of the "
-                "original Amplify4 software by William Engels. We "
-                "preserve the simulation "
-                "models and algorithms of the original while "
-                "offering a modern, robust, "
-                "and accessible cross-platform implementation.",
+                spans=[
+                    ft.TextSpan("• "),
+                    ft.TextSpan(
+                        "Amplify 4",
+                        url="https://engels.genetics.wisc.edu/amplify/",
+                        style=ft.TextStyle(
+                            decoration=ft.TextDecoration.UNDERLINE,
+                            color=GUIColours.LINK_BLUE,
+                        ),
+                    ),
+                    ft.TextSpan(
+                        ": This project is built upon the logic and "
+                        "methodology of the original software by William "
+                        "Engels."
+                    ),
+                ],
                 size=font_size_default,
             ),
             ft.Text(
                 "• Roboto Mono Font: Licenced under the Apache "
                 "License, Version 2.0. "
                 "Copyright 2015 The Roboto Mono Project Authors.",
-                size=font_size_default,
-            ),
-            ft.Divider(),
-            ft.Text(
-                "Licence",
-                weight=ft.FontWeight.BOLD,
-                size=18,
-            ),
-            ft.Text(
-                "This project is licenced under the GNU General Public "
-                "License v3.0 (GPL-3.0).",
                 size=font_size_default,
             ),
         ]
