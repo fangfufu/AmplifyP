@@ -204,9 +204,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
+        from amplifyp.gui.util import BorderedCheckbox
+
         for k, v in self.settings.items():
             if k in self.settings_map:
-                if isinstance(self.settings_map[k], ft.Checkbox):
+                if isinstance(
+                    self.settings_map[k], (ft.Checkbox, BorderedCheckbox)
+                ):
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)

@@ -59,7 +59,9 @@ class ReplicationTile(BaseScoreTile):
             value="0.4",
             on_change=on_change_handler,
         )
-        self.set_amp4_compat = ft.Checkbox(
+        from amplifyp.gui.util import BorderedCheckbox
+
+        self.set_amp4_compat = BorderedCheckbox(
             label="Amplify4 Compatibility Mode",
             value=False,
             on_change=on_change_handler,

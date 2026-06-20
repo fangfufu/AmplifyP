@@ -612,3 +612,46 @@ class NotificationHelper:
         self._snack_bar.content = ft.Text(message)
         self._snack_bar.open = True
         self.page.update()
+
+
+class BorderedCheckbox(ft.Container):  # type: ignore[misc]
+    """A checkbox wrapped in a container with a border matching input fields.
+
+    # ponytail: helper for styled checkboxes in settings view
+    """
+
+    def __init__(
+        self,
+        label: str,
+        value: bool = False,
+        on_change: Any | None = None,
+    ) -> None:
+        """Initialize the BorderedCheckbox."""
+        from amplifyp.gui.colours import GUIColours
+
+        self.checkbox = ft.Checkbox(
+            label=label,
+            value=value,
+            on_change=on_change,
+        )
+        super().__init__(
+            content=self.checkbox,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=ft.Padding(10, 0, 10, 0),
+            height=48,
+            alignment=ft.Alignment(-1, 0),
+        )
+
+    @property
+    def value(self) -> bool:
+        """Get the value of the inner checkbox."""
+        return bool(self.checkbox.value)
+
+    @value.setter
+    def value(self, val: Any) -> None:
+        """Set the value of the inner checkbox."""
+        if isinstance(val, str):
+            self.checkbox.value = val.lower() == "true"
+        else:
+            self.checkbox.value = bool(val)
