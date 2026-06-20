@@ -173,9 +173,22 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                 size=font_size_default,
             ),
             ft.Text(
-                "• Roboto Mono Font: Licenced under the SIL Open "
-                "Font License, Version 1.1. "
-                "Copyright 2015 The Roboto Mono Project Authors.",
+                spans=[
+                    ft.TextSpan("• "),
+                    ft.TextSpan(
+                        "Roboto Mono Font",
+                        url="https://fonts.google.com/specimen/Roboto+Mono",
+                        style=ft.TextStyle(
+                            decoration=ft.TextDecoration.UNDERLINE,
+                            color=GUIColours.LINK_BLUE,
+                        ),
+                    ),
+                    ft.TextSpan(
+                        ": Licenced under the SIL Open Font License, "
+                        "Version 1.1. Copyright 2015 The Roboto Mono "
+                        "Project Authors."
+                    ),
+                ],
                 size=font_size_default,
             ),
         ]
