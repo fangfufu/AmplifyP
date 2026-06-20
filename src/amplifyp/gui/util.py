@@ -618,10 +618,7 @@ class NotificationHelper:
 
 
 class BorderedCheckbox(ft.Container):  # type: ignore[misc]
-    """A checkbox wrapped in a container with a border matching input fields.
-
-    # ponytail: helper for styled checkboxes in settings view
-    """
+    """A checkbox wrapped in a container with a border matching input fields."""
 
     def __init__(
         self,

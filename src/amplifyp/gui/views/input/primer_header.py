@@ -60,24 +60,6 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             on_change=on_toggle_all,
         )
         show_temp = self.settings.get("show_primer_temperature", False)
-        self.tm_header = ft.Container(
-            content=ft.Text(
-                "Tm",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_small", 12),
-            ),
-            width=50,
-            padding=ft.Padding(5, 0, 0, 0),
-            alignment=ft.Alignment(-1, 0),
-            visible=show_temp,
-        )
-        self.tm_divider = ft.Container(
-            width=4,
-            bgcolor=GUIColours.DIVIDER_GREY,
-            margin=0,
-            height=36,
-            visible=show_temp,
-        )
         self.add_button = ft.IconButton(
             icon=ft.Icons.ADD_CIRCLE_OUTLINE,
             icon_size=16,
@@ -128,12 +110,61 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             spacing=2,
             alignment=ft.MainAxisAlignment.CENTER,
         )
-        self.control_container = ft.Container(
-            content=self.reorder_controls,
-            width=108,
+        self.tm_divider = ft.Container(
+            width=4,
+            bgcolor=GUIColours.DIVIDER_GREY,
+            margin=0,
             height=36,
-            alignment=ft.Alignment(0, 0),
+            visible=show_temp,
         )
+
+        if show_temp:
+            self.tm_header = ft.Container(
+                content=self.reorder_controls,
+                width=108,
+                padding=ft.Padding(5, 0, 5, 0),
+                alignment=ft.Alignment(0, 0),
+                visible=True,
+            )
+            self.sequence_header = ft.Container(
+                content=ft.Text(
+                    "Sequence",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_small", 12),
+                ),
+                expand=True,
+                padding=ft.Padding(5, 0, 0, 0),
+                alignment=ft.Alignment(-1, 0),
+            )
+        else:
+            self.tm_header = ft.Container(
+                content=ft.Text(
+                    "Tm",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_small", 12),
+                ),
+                width=50,
+                padding=ft.Padding(5, 0, 0, 0),
+                alignment=ft.Alignment(-1, 0),
+                visible=False,
+            )
+            self.sequence_header = ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text(
+                            "Sequence",
+                            weight=ft.FontWeight.BOLD,
+                            size=self.settings.get("font_size_small", 12),
+                        ),
+                        self.reorder_controls,
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                expand=True,
+                padding=ft.Padding(5, 0, 5, 0),
+                alignment=ft.Alignment(-1, 0),
+            )
+
         controls = [
             ft.Container(
                 content=self.all_primers_checkbox,
@@ -167,24 +198,10 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
                 ),
                 mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
             ),
+            self.sequence_header,
         ]
         if show_temp:
-            controls.extend([self.tm_header, self.tm_divider])
-        controls.extend(
-            [
-                ft.Container(
-                    content=ft.Text(
-                        "Sequence",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_small", 12),
-                    ),
-                    expand=True,
-                    padding=ft.Padding(5, 0, 0, 0),
-                    alignment=ft.Alignment(-1, 0),
-                ),
-                self.control_container,
-            ]
-        )
+            controls.append(self.tm_header)
         self.header_row = ft.Row(
             controls,
             alignment=ft.MainAxisAlignment.START,

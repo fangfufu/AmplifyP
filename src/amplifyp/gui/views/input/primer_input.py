@@ -574,7 +574,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     async def _copy_primers_click(self, e: ft.Event | None) -> None:
         """Copy selected or focused primers to clipboard in TSV format."""
-        # ponytail: reuse existing active check or focused state
         primers = self.input_data.primers
         selected_primers = [p for p in primers if p.get("active", False)]
 
@@ -601,8 +600,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     async def _paste_primers_click(self, e: ft.Event | None) -> None:
         """Paste primers from clipboard starting at focused index or end."""
-        # ponytail: reuse Clipboard service for paste
-        clipboard_text = await ft.Clipboard().get()
+        try:
+            clipboard_text = await ft.Clipboard().get()
+        except Exception as ex:
+            logger.warning("Failed to access clipboard: %s", ex)
+            self._show_notification(
+                "Unable to read clipboard. Try pasting directly into a "
+                "primer field using Ctrl+V."
+            )
+            return
         if not clipboard_text:
             self._show_notification("Clipboard is empty.")
             return

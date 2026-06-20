@@ -129,8 +129,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.tm_container = ft.Container(
             content=self.tm_text,
             width=50,
-            padding=ft.Padding(5, 0, 0, 0),
-            alignment=ft.Alignment(-1, 0),
+            padding=ft.Padding(0, 0, 5, 0),
+            alignment=ft.Alignment(1, 0),
             visible=show_temp,
         )
         self.tm_divider = ft.Container(
@@ -202,21 +202,15 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30,
         )
 
-        self.control_container = ft.Container(
-            width=108,
-            height=30,
-            alignment=ft.Alignment(0, 0),
-        )
-
         controls = [
             self.checkbox_container,
             self.active_divider,
             self.name_field,
             self.divider,
+            self.seq_field,
         ]
         if show_temp:
-            controls.extend([self.tm_container, self.tm_divider])
-        controls.extend([self.seq_field, self.control_container])
+            controls.extend([self.tm_divider, self.tm_container])
 
         self.content = ft.Row(
             controls,
@@ -293,7 +287,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
     def update_tm(self, settings: GUISettings) -> None:
         """Update the displayed Tm in-place based on the current sequence."""
-        # ponytail: calculates Tm using user-selected formula
         seq_val = self.seq_field.value
         name_val = self.name_field.value
         tm_val = ""

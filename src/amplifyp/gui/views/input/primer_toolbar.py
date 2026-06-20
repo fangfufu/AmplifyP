@@ -97,6 +97,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
                 self.clear_button,
             ],
             spacing=10,
+            alignment=ft.MainAxisAlignment.END,
             tight=True,
             wrap=True,
         )
