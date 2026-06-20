@@ -36,8 +36,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         settings: GUISettings,
         input_data: GUIInput,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.FocusEvent], None],
-        handle_field_blur: Callable[[ft.FocusEvent], None],
+        handle_field_focus: Callable[[ft.ControlEvent], None],
+        handle_field_blur: Callable[[ft.ControlEvent], None],
         handle_field_submit: Callable[[ft.Event], None],
         clear_template_callback: Callable[[ft.Event | None], None],
     ) -> None:

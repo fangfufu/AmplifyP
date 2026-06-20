@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 import flet as ft
 
@@ -47,8 +47,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         settings: GUISettings,
         input_data: GUIInput,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.FocusEvent], None],
-        handle_field_blur: Callable[[ft.FocusEvent], None],
+        handle_field_focus: Callable[[ft.ControlEvent], None],
+        handle_field_blur: Callable[[ft.ControlEvent], None],
         handle_field_submit: Callable[[ft.Event], None],
         clear_primers_callback: Callable[[ft.Event | None], None],
         delete_selected_callback: Callable[[ft.Event | None], None],
@@ -346,10 +346,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header_container = self.primer_header
 
         # Replace the header in the UI container controls
-        self.content.controls[1].content.controls[0] = self.primer_header
+        column = cast(ft.Column, self.content)
+        container = cast(ft.Container, column.controls[1])
+        inner_column = cast(ft.Column, container.content)
+        inner_column.controls[0] = self.primer_header
         try:
-            if self.content.controls[1].page:
-                self.content.controls[1].update()
+            if container.page:
+                container.update()
         except Exception:  # noqa: S110
             pass
 
