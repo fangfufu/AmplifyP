@@ -295,30 +295,26 @@ class GUIController:
         )
 
         header_container = ft.Container(
-            content=ft.ResponsiveRow(
+            content=ft.Column(
                 [
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Image(
-                                    src="/images/favicon.png",
-                                    height=32,
-                                    fit=ft.BoxFit.CONTAIN,
-                                ),
-                                ft.Text(
-                                    "AmplifyP",
-                                    size=20,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Container(width=12),
-                                version_text,
-                            ],
-                            spacing=8,
-                            tight=True,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        col={"lg": 4, "md": 12, "sm": 12, "xs": 12},
-                        alignment=ft.Alignment(-1, 0),
+                    ft.Row(
+                        [
+                            ft.Image(
+                                src="/images/favicon.png",
+                                height=32,
+                                fit=ft.BoxFit.CONTAIN,
+                            ),
+                            ft.Text(
+                                "AmplifyP",
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Container(width=12),
+                            version_text,
+                        ],
+                        spacing=8,
+                        tight=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     ft.Container(
                         content=ft.Row(
@@ -337,11 +333,11 @@ class GUIController:
                             wrap=True,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
-                        col={"lg": 8, "md": 12, "sm": 12, "xs": 12},
                         alignment=ft.Alignment(1, 0),
                     ),
                 ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8,
+                horizontal_alignment=ft.CrossAxisAlignment.START,
             ),
             padding=ft.Padding(16, 8, 16, 8),
             bgcolor=GUIColours.SURFACE,
