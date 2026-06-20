@@ -304,7 +304,7 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=220,
+                                width=260,
                             ),
                         ],
                         vertical_alignment=ft.CrossAxisAlignment.START,
