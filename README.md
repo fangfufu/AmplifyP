@@ -252,7 +252,7 @@ ______________________________________________________________________
   original [Amplify4](https://github.com/wrengels/Amplify4) software by William
   Engels. We preserve the simulation models and algorithms of the original while
   offering a modern, robust, and accessible cross-platform implementation.
-- **Roboto Mono Font**: Licensed under the Apache License, Version 2.0.
+- **Roboto Mono Font**: Licenced under the SIL Open Font License, Version 1.1.
   Copyright 2015 The Roboto Mono Project Authors.
 
 ______________________________________________________________________

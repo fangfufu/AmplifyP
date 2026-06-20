@@ -173,8 +173,8 @@ class AboutView(ft.ListView):  # type: ignore[misc]
                 size=font_size_default,
             ),
             ft.Text(
-                "• Roboto Mono Font: Licenced under the Apache "
-                "License, Version 2.0. "
+                "• Roboto Mono Font: Licenced under the SIL Open "
+                "Font License, Version 1.1. "
                 "Copyright 2015 The Roboto Mono Project Authors.",
                 size=font_size_default,
             ),
