@@ -54,6 +54,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
+            width=350,
             on_select=self.on_change_handler,
         )
 
@@ -67,6 +68,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
+            width=350,
             on_select=self.on_change_handler,
         )
 
@@ -96,7 +98,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=450,
+                                width=350,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
