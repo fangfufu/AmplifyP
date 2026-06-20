@@ -36,7 +36,7 @@ from amplifyp.settings import (
 )
 
 if TYPE_CHECKING:
-    from amplifyp.pcr import Primer
+    from amplifyp.dna import Primer
     from amplifyp.settings import (
         PrimerDimerSettings,
         ReplicationSettings,

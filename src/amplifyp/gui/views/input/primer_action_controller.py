@@ -73,7 +73,7 @@ class PrimerActionController:
             idx + 1, {"name": "", "seq": "", "active": False}
         )
         self.owner.update_ui()
-        if self.owner.on_change_handler:
+        if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
 
     def move_primer(self, idx: int, direction: int) -> None:
@@ -102,7 +102,7 @@ class PrimerActionController:
                 self.owner.focused_primer_index = idx
 
             self.owner.update_ui()
-            if self.owner.on_change_handler:
+            if self.owner.on_change_handler is not None:
                 self.owner.on_change_handler(None)
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
@@ -180,5 +180,5 @@ class PrimerActionController:
         if self.owner.app_page:
             self.owner.app_page.update()
 
-        if self.owner.on_change_handler:
+        if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)

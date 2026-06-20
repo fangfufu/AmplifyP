@@ -29,7 +29,7 @@ from amplifyp.repliconf import DirIdx, Repliconf
 from .dismissible_detail_card import DismissibleDetailCard
 
 if TYPE_CHECKING:
-    from amplifyp.repliconf import ReplicationOrigin
+    from amplifyp.origin import ReplicationOrigin
 
 
 class DrawnPrimer:

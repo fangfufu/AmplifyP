@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import flet as ft
 
@@ -36,9 +36,6 @@ from .primer_list import PrimerList
 from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
 from .primer_validation import validate_primers
-
-if TYPE_CHECKING:
-    from .primer_input import PrimerInput
 
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
