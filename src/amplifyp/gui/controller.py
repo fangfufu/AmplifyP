@@ -349,6 +349,7 @@ class GUIController:
         )
         self.page.controls.insert(0, header_container)
         self.page.on_resize = self.input_view._handle_resize
+        self.page.update()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
