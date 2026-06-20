@@ -394,7 +394,7 @@ class Repliconf:
 
         # Prepare set of characters for lookup keys
         lookup_keys = set(Nucleotides.TEMPLATE)
-        lookup_keys.update(c.lower() for c in list(lookup_keys))
+        lookup_keys.update({c.lower() for c in lookup_keys})
 
         for k, base_p in enumerate(primer_rev):
             row_max = S.row_max(base_p)

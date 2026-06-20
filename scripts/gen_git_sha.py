@@ -13,7 +13,7 @@ def get_sha(cmd: list[str]) -> str:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)  # noqa: S603
         return r.stdout.strip() or "unknown"
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except OSError:
         return "unknown"
 
 

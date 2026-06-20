@@ -26,6 +26,7 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import NotificationHelper, get_version, serialise_state
 from amplifyp.gui.views import (
+    AboutView,
     DimerView,
     InputView,
     PCRView,
@@ -57,6 +58,7 @@ class GUIController:
         # Views placeholders
         self.input_view: InputView = cast(InputView, None)
         self.settings_view: SettingsView = cast(SettingsView, None)
+        self.about_view: AboutView = cast(AboutView, None)
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
@@ -123,6 +125,7 @@ class GUIController:
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
+        self.about_view = AboutView(self.page, self.settings)
 
         self.notification_helper = NotificationHelper(self.page)
 
@@ -177,6 +180,14 @@ class GUIController:
         )
         settings_button.tooltip = "Settings"
 
+        about_button = ft.FilledButton(
+            "About",
+            icon=ft.Icons.INFO,
+            on_click=lambda e: self.switch_view(e, self.about_view),
+            tooltip="About",
+        )
+        about_button.tooltip = "About"
+
         save_btn_control = ft.FilledButton(
             "Save all",
             icon=ft.Icons.SAVE,
@@ -200,6 +211,7 @@ class GUIController:
                 pcr_button,
                 dimers_button,
                 settings_button,
+                about_button,
                 save_btn_control,
                 load_btn_control,
             ],
@@ -242,6 +254,14 @@ class GUIController:
         )
         visible_settings_button.tooltip = "Settings"
 
+        visible_about_button = ft.FilledButton(
+            "About",
+            icon=ft.Icons.INFO,
+            on_click=lambda e: self.switch_view(e, self.about_view),
+            tooltip="About",
+        )
+        visible_about_button.tooltip = "About"
+
         self.visible_save_btn_control = ft.FilledButton(
             "Save all",
             icon=ft.Icons.SAVE,
@@ -275,30 +295,26 @@ class GUIController:
         )
 
         header_container = ft.Container(
-            content=ft.ResponsiveRow(
+            content=ft.Column(
                 [
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Image(
-                                    src="/images/favicon.png",
-                                    height=32,
-                                    fit=ft.BoxFit.CONTAIN,
-                                ),
-                                ft.Text(
-                                    "AmplifyP",
-                                    size=20,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Container(width=12),
-                                version_text,
-                            ],
-                            spacing=8,
-                            tight=True,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        col={"lg": 4, "md": 12, "sm": 12, "xs": 12},
-                        alignment=ft.Alignment(-1, 0),
+                    ft.Row(
+                        [
+                            ft.Image(
+                                src="/images/favicon.png",
+                                height=32,
+                                fit=ft.BoxFit.CONTAIN,
+                            ),
+                            ft.Text(
+                                "AmplifyP",
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Container(width=12),
+                            version_text,
+                        ],
+                        spacing=8,
+                        tight=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     ft.Container(
                         content=ft.Row(
@@ -307,6 +323,7 @@ class GUIController:
                                 visible_pcr_button,
                                 visible_dimers_button,
                                 visible_settings_button,
+                                visible_about_button,
                                 self.visible_header_divider,
                                 self.visible_save_btn_control,
                                 self.visible_load_btn_control,
@@ -316,11 +333,11 @@ class GUIController:
                             wrap=True,
                             vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
-                        col={"lg": 8, "md": 12, "sm": 12, "xs": 12},
                         alignment=ft.Alignment(1, 0),
                     ),
                 ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                spacing=8,
+                horizontal_alignment=ft.CrossAxisAlignment.START,
             ),
             padding=ft.Padding(16, 8, 16, 8),
             bgcolor=GUIColours.SURFACE,
@@ -332,6 +349,7 @@ class GUIController:
         )
         self.page.controls.insert(0, header_container)
         self.page.on_resize = self.input_view._handle_resize
+        self.page.update()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""

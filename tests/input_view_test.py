@@ -547,11 +547,11 @@ def test_app_views_disabled_on_invalid_selected() -> None:
                         and isinstance(sub.content, ft.Container)
                         and isinstance(sub.content.content, InputView)
                     ):
-                        input_view = sub.content.content
+                        sub.content.content  # noqa: B018
                     elif isinstance(sub, ft.Container) and isinstance(
                         sub.content, InputView
                     ):
-                        input_view = sub.content
+                        sub.content  # noqa: B018
 
     # Alternatively, let's test it by mocking or directly calling
     # the update_pcr_button_state logic.

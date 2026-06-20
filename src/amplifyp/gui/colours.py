@@ -192,6 +192,14 @@ class _GUIColoursMeta(type):
         )
 
     @property
+    def LINK_BLUE(cls) -> str:
+        """Get standard hyperlink blue colour."""
+        return cast(
+            str,
+            ft.Colors.BLUE_400 if cls._dark_mode else ft.Colors.BLUE_700,
+        )
+
+    @property
     def WHITE(cls) -> str:
         """Get standard white colour."""
         return cast(str, ft.Colors.WHITE)

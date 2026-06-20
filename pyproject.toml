@@ -26,13 +26,14 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-optional-dependencies.tests = [
+optional-dependencies.dev = [
   "pytest>=9.0.3",
   "pytest-asyncio>=1.4.0",
   "pytest-cov>=7.1.0",
   "pytest-testmon>=2.2.0",
   "pytest-playwright>=0.8.0",
   "pyright>=1.1.410",
+  "pre-commit",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
@@ -75,8 +76,6 @@ pythonpath = "src"
 testpaths = ["tests"]
 addopts = [
   "--import-mode=importlib",
-  "--cov=src/amplifyp",
-  "--cov-report=xml",
   "-m", "not e2e",
 ]
 markers = [

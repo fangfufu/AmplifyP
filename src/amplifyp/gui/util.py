@@ -374,7 +374,7 @@ def get_git_sha() -> str:
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
@@ -386,7 +386,7 @@ def get_git_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except OSError:
         pass
 
     try:
@@ -445,7 +445,7 @@ def get_full_sha() -> str:
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
@@ -457,7 +457,7 @@ def get_full_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except OSError:
         pass
 
     try:

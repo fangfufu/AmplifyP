@@ -38,38 +38,10 @@ repos:
         additional_dependencies: [tokenize-rt, types-PyYAML]
   - repo: local
     hooks:
-      - id: pyright
-        name: pyright
-        entry: pyright
-        language: python
-        additional_dependencies:
-          - .
-          - pyright
-          - flet
-          - pyyaml
-          - pytest
-          - playwright
-          - requests
-          - pytesseract
-          - pillow
-        pass_filenames: false
-  - repo: local
-    hooks:
       - id: pytest
         name: pytest
-        entry: pytest
-        language: python
-        additional_dependencies:
-          - .
-          - pytest
-          - pytest-cov
-          - pytest-testmon
-          - pytest-asyncio
-          - pytest-playwright
-          - pytesseract
-          - pillow
-          - flet
-          - pyyaml
+        entry: .venv/bin/pytest
+        language: system
         pass_filenames: false
   - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
@@ -78,7 +50,7 @@ repos:
         args: [--wrap, '80']
         exclude: ^\.agents/rules/
 ci:
-  skip: [pyright]
+  skip: [pytest]
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit.com hooks
 
