@@ -126,11 +126,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 handle_field_blur=self.primer_input.handle_field_blur,
                 handle_field_submit=self.primer_input.handle_field_submit,
                 on_row_click=self.primer_input.action_controller.handle_row_click,
-                on_move_primer=self.primer_input.action_controller.move_primer,
-                on_delete_primer=lambda idx: (
-                    self.primer_input.action_controller.delete_primers({idx})
-                ),
-                on_add_primer=self.primer_input.action_controller.on_add_primer_row,
                 on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
                 on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
                 is_focused=is_focused,

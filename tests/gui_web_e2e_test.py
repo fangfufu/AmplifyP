@@ -219,18 +219,14 @@ def test_e2e_primer_lifecycle_and_state(
     # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
     # Since each row has exactly 2 text input fields (Name and Sequence),
     # the Name input of V3 (index 4) is at global input index 8.
-    # Focus V3's name input to make its row controls visible.
+    # Focus V3's name input to select the row.
     page.locator('input:not([type="file"])').nth(8).click(force=True)
     time.sleep(1)
 
-    # Only the focused row exposes its controls in the semantic tree.
-    # Use .first (not .nth(N)) because exactly one Delete Primer button is
-    # visible at any time — the one belonging to the focused row.
-    delete_btn = page.locator("[aria-label*='Add Primer Below']").first
-    delete_btn.wait_for(state="attached", timeout=5000)
-    box = delete_btn.bounding_box()
-    assert box is not None
-    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    # Click the header Delete Primer button.
+    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    expect(delete_btn).to_be_enabled(timeout=5000)
+    delete_btn.click(force=True)
     time.sleep(1)
 
     # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
@@ -242,10 +238,9 @@ def test_e2e_primer_lifecycle_and_state(
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
     page.locator('input:not([type="file"])').nth(8).click(force=True)
     time.sleep(1)
-    delete_btn.wait_for(state="attached", timeout=5000)
-    box = delete_btn.bounding_box()
-    assert box is not None
-    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    expect(delete_btn).to_be_enabled(timeout=5000)
+    delete_btn.click(force=True)
     time.sleep(1)
 
     # Verify I3 deleted: count returned to 5 rows (10 inputs).
@@ -637,17 +632,12 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     if not success:
         # It was not auto-added (because it was invalid). Re-focus the last
-        # non-file input so the row's controls (including Add Primer Below)
-        # become visible in the semantic tree.
+        # non-file input so the header Add button is enabled.
         page.locator('input:not([type="file"])').last.click(force=True)
         time.sleep(0.5)
         add_btn = page.locator("[aria-label*='Add Primer Below']").first
-        add_btn.wait_for(state="attached", timeout=5000)
-        box = add_btn.bounding_box()
-        assert box is not None
-        page.mouse.click(
-            box["x"] + box["width"] - 102, box["y"] + box["height"] / 2
-        )
+        expect(add_btn).to_be_enabled(timeout=5000)
+        add_btn.click(force=True)
 
         # Wait for the count to increase to initial_count + 2
         for _ in range(30):

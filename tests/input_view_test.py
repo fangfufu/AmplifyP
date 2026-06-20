@@ -354,37 +354,26 @@ def test_input_view_primer_reordering() -> None:
     # Verify initial controls length: 3 rows (no trailing empty row)
     assert len(view.primers_list.controls) == 3
 
-    # Initially focused_primer_index is None. Reorder controls
-    # should be invisible.
-    for i in range(3):
-        row = view.primers_list.controls[i].content
-        reorder_controls = row.controls[5].content
-        assert reorder_controls.visible is False
+    # Initially focused_primer_index is None. Reorder controls on header.
+    header = view.primer_input.primer_header
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is True
+    assert header.up_button.disabled is True
+    assert header.down_button.disabled is True
 
     # Select/focus Row 1 (P2)
     view.focused_primer_index = 1
     view._update_row_highlights()
 
-    # Now Row 1 reorder controls should be visible.
-    row1 = view.primers_list.controls[1].content
-    row1_btns = row1.controls[5].content
-    assert row1_btns.visible is True
-    assert isinstance(row1_btns, ft.Row)
-    assert row1_btns.controls[2].disabled is False  # Up (index 2)
-    assert row1_btns.controls[3].disabled is False  # Down (index 3)
+    # Now header reorder controls should be enabled for Row 1
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is False
+    assert header.up_button.disabled is False  # Up enabled
+    assert header.down_button.disabled is False  # Down enabled
 
-    # Row 0 and Row 2 reorder controls should be invisible
-    assert (
-        view.primers_list.controls[0].content.controls[5].content.visible
-        is False
-    )
-    assert (
-        view.primers_list.controls[2].content.controls[5].content.visible
-        is False
-    )
-
-    # Click Up on Row 1 (P2)
-    row1_btns.controls[2].on_click(MagicMock())
+    # Click Up on Row 1 (P2) via header button
+    header.up_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # After moving P2 up, the list order should be P2, P1, P3, and focused
     # index should follow P2 (index 0)
@@ -393,15 +382,15 @@ def test_input_view_primer_reordering() -> None:
     assert input_data.primers[2]["name"] == "P3"
     assert view.focused_primer_index == 0
 
-    # In the updated UI, Row 0 (P2) should now have the buttons since it
-    # has focus
-    row0_btns = view.primers_list.controls[0].content.controls[5].content
-    assert row0_btns.visible is True
-    assert row0_btns.controls[2].disabled is True  # Up (first row)
-    assert row0_btns.controls[3].disabled is False  # Down
+    # In the updated UI, header buttons should update for index 0 (first row)
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is False
+    assert header.up_button.disabled is True  # Up is disabled on the first row
+    assert header.down_button.disabled is False  # Down is enabled
 
-    # Click Down on Row 0 (P2)
-    row0_btns.controls[3].on_click(MagicMock())
+    # Click Down on P2 (index 0) via header button
+    header.down_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # P2 should be back at index 1, P1 at index 0, and focused index at 1
     assert input_data.primers[0]["name"] == "P1"
@@ -410,8 +399,8 @@ def test_input_view_primer_reordering() -> None:
     assert view.focused_primer_index == 1
 
     # Now click Down on P2 (index 1) to swap with P3 (index 2)
-    row1_btns = view.primers_list.controls[1].content.controls[5].content
-    row1_btns.controls[3].on_click(MagicMock())
+    header.down_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # P2 should now be at index 2, P3 at index 1, and focused index at 2
     assert input_data.primers[0]["name"] == "P1"
@@ -420,9 +409,8 @@ def test_input_view_primer_reordering() -> None:
     assert view.focused_primer_index == 2
 
     # Verify that the down button is disabled on the last row (index 2)
-    row2_btns = view.primers_list.controls[2].content.controls[5].content
     assert (
-        row2_btns.controls[3].disabled is True
+        header.down_button.disabled is True
     )  # Down is disabled on the last row
 
 
