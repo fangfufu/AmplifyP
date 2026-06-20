@@ -33,6 +33,11 @@ except ImportError:
     Page = None
     expect = None
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 # Define ports and paths (port 34521 as per user instructions)
 SERVER_PORT = 34521
 SRC_DIR = os.path.join(os.getcwd(), "src")
@@ -97,12 +102,12 @@ def serve_app(build_app: None) -> Generator[str, None, None]:
 
     # Wait for server to be responsive
     for _ in range(10):
+        if requests is None:
+            break
         try:
-            import requests
-
             if requests.get(base_url, timeout=1).status_code == 200:
                 break
-        except Exception:
+        except requests.exceptions.RequestException:
             time.sleep(0.5)
 
     yield base_url

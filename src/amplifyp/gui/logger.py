@@ -92,7 +92,7 @@ def initialise_logging(is_web: bool = False) -> None:
             )
             file_handler.setFormatter(file_formatter)
             root_logger.addHandler(file_handler)
-        except Exception as e:
+        except OSError as e:
             # Fallback gracefully if directory creation or file writing fails
             # (e.g. permission issues in sandbox or restricted systems)
             logging.warning(

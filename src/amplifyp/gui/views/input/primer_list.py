@@ -17,12 +17,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import flet as ft
 
 from .primer_row import PrimerRow
 from .primer_validation import validate_primers
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .primer_input import PrimerInput
@@ -159,4 +162,4 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             if self.page:
                 self.update()
         except RuntimeError:
-            pass
+            logger.debug("Page detached, skipping list update")

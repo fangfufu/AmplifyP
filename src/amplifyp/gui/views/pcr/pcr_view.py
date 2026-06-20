@@ -15,6 +15,7 @@
 
 """PCR View for the Flet application."""
 
+import logging
 import traceback
 from typing import TYPE_CHECKING, Any
 
@@ -33,6 +34,8 @@ if TYPE_CHECKING:
 from .amplicon_drawing import AmpliconDetailCard
 from .pcr_diagram_panel import PCRDrawingPanel
 from .primer_drawing import ReplicationContextCard
+
+logger = logging.getLogger(__name__)
 
 
 class PCRView(ft.Column):  # type: ignore[misc]
@@ -154,7 +157,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
                         )
                     )
 
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.error("PCR simulation failed: %s", ex, exc_info=True)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",

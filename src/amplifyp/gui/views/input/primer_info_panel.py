@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 import flet as ft
@@ -25,6 +26,8 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
+
+logger = logging.getLogger(__name__)
 
 
 class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
@@ -233,7 +236,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             self.visible = True
 
-        except Exception:
+        except (ValueError, AttributeError):
+            logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
 
         app_page.update()

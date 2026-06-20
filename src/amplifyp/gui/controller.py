@@ -501,7 +501,7 @@ class GUIController:
                 success_message_desktop="State saved successfully!",
                 success_message_web="State ready for download!",
             )
-        except Exception as ex:
+        except (OSError, ValueError) as ex:
             self.notification_helper.show_message(f"Error saving state: {ex}")
         finally:
             self.filepicker_open = False
@@ -543,7 +543,7 @@ class GUIController:
             self.settings_view.update_ui()
             self.update_pcr_button_state()
             self.notification_helper.show_message("State loaded successfully!")
-        except Exception as ex:
+        except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state:")
             self.notification_helper.show_message(f"Error loading state: {ex}")
         finally:
@@ -591,8 +591,8 @@ class GUIController:
         """
         try:
             await self.page.window.destroy()
-        except Exception:  # noqa: S110
-            pass
+        except RuntimeError:
+            logger.debug("Window already closed, skipping destroy")
 
     def confirm_exit(self, e: ft.ControlEvent) -> None:
         """Launch the async window destruction task.

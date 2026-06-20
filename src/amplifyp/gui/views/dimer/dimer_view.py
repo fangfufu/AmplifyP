@@ -15,6 +15,7 @@
 
 """Dimer View for the Flet application."""
 
+import logging
 import traceback
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +28,8 @@ from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from amplifyp.dimer import PrimerDimer
@@ -126,7 +129,8 @@ class DimerView(ft.Column):  # type: ignore[misc]
                         font_family=font_family,
                     )
                     self.result_list.controls.append(card)
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.error("Dimer analysis failed: %s", ex, exc_info=True)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",

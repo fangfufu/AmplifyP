@@ -20,6 +20,7 @@ import os
 import subprocess
 import threading
 from collections.abc import Callable
+from importlib.metadata import PackageNotFoundError
 from typing import Any
 
 import flet as ft
@@ -491,14 +492,18 @@ def get_full_sha() -> str:
 
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
+    import logging
+
+    logger = logging.getLogger(__name__)
     try:
         from amplifyp import __version__ as pkg_version
-    except Exception:
+    except ImportError:
         try:
             from importlib.metadata import version
 
             pkg_version = version("amplifyp")
-        except Exception:
+        except PackageNotFoundError:
+            logger.debug("amplifyp package version not found")
             pkg_version = "unknown"
 
     git_sha = get_git_sha()
@@ -543,7 +548,7 @@ async def pick_and_read_file(
                 return None
             content = await asyncio.to_thread(_read_file, file.path)
             return content
-    except Exception as ex:
+    except OSError as ex:
         show_notification(f"Error loading file: {ex}")
         return None
 
@@ -577,7 +582,7 @@ async def save_and_write_file(
             await asyncio.to_thread(_write_file, file_path, content)
             show_notification(success_message_desktop)
             return True
-    except Exception as ex:
+    except OSError as ex:
         show_notification(f"Error saving file: {ex}")
         return False
 
