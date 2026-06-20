@@ -15,9 +15,12 @@
 
 """AppearanceTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+
+from amplifyp.gui.settings import GUISettings
 
 
 class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -25,9 +28,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
         """Initialise the AppearanceTile.
@@ -129,8 +132,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             e: The Flet control event triggered by the dropdown change.
         """
         self.sync_colour_scheme_to_settings()
-        if self.on_change_handler:
-            self.on_change_handler(e)
+        self.on_change_handler(e)
 
     def update_colour_scheme_dropdown(self) -> None:
         """Update the colour scheme dropdown value based on settings.

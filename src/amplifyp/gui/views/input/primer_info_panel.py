@@ -15,7 +15,9 @@
 
 """Flet component displaying details of a selected DNA primer."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
@@ -37,7 +39,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         super().__init__()
         self.settings = settings
-        self._on_dismiss_callback: Any = None
+        self._on_dismiss_callback: Callable[[], None] | None = None
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -113,7 +115,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
         self.visible = False
 
-    def _on_close_click(self, e: Any) -> None:
+    def _on_close_click(self, e: ft.Event) -> None:
         """Handle close button click: clear focus and hide panel.
 
         Args:
@@ -128,8 +130,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         focused_idx: int | None,
         input_data: GUIInput,
         app_page: ft.Page,
-        on_update_highlights: Any,
-        on_dismiss: Any = None,
+        on_update_highlights: Callable[[], None],
+        on_dismiss: Callable[[], None] | None = None,
     ) -> None:
         """Update the primer information panel based on the focused primer.
 

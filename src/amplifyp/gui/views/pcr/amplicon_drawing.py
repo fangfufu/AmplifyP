@@ -16,14 +16,18 @@
 """Amplicon drawing class and detail card helpers for the PCRView."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 from .dismissible_detail_card import DismissibleDetailCard
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
 
 
 class DrawnAmplicon:
@@ -31,14 +35,14 @@ class DrawnAmplicon:
 
     def __init__(
         self,
-        amp: Any,
+        amp: "Amplicon",
         idx: int,
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
         c_width: float,
-        settings: Any,
+        settings: GUISettings,
         on_click: Callable[[], None],
         v_frag_start: float | None = None,
     ) -> None:
@@ -197,8 +201,8 @@ class AmpliconDetailCard(DismissibleDetailCard):
 
     def __init__(
         self,
-        amp: Any,
-        settings: Any,
+        amp: "Amplicon",
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
         """Initialise the AmpliconDetailCard.

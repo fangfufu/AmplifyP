@@ -16,15 +16,20 @@
 """Primer drawing class and context card helpers for the PCRView."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+from amplifyp.repliconf import DirIdx, Repliconf
 
 from .dismissible_detail_card import DismissibleDetailCard
+
+if TYPE_CHECKING:
+    from amplifyp.repliconf import ReplicationOrigin
 
 
 class DrawnPrimer:
@@ -34,14 +39,14 @@ class DrawnPrimer:
         self,
         name: str,
         index: int,
-        conf: Any,
-        var: Any,
+        conf: Repliconf,
+        var: DirIdx,
         S: float,
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
-        settings: Any,
+        settings: GUISettings,
         on_click: Callable[[], None],
         x_shifted: float | None = None,
     ) -> None:
@@ -303,8 +308,8 @@ def get_template_substring(template: DNA, start: int, length: int) -> str:
 def format_context_lines(
     primer_name: str,
     padded_idx: int,
-    conf: Any,
-    origin: Any,
+    conf: Repliconf,
+    origin: "ReplicationOrigin",
     L: int,
     N: int,
     direction: DNADirection,
@@ -411,9 +416,9 @@ class ReplicationContextCard(DismissibleDetailCard):
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
-        settings: Any,
+        conf: Repliconf,
+        var: DirIdx,
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
         """Initialise the ReplicationContextCard.

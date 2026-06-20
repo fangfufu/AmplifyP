@@ -15,7 +15,9 @@
 
 """Input component for DNA template sequence."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
@@ -33,11 +35,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_template_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.FocusEvent], None],
+        handle_field_blur: Callable[[ft.FocusEvent], None],
+        handle_field_submit: Callable[[ft.Event], None],
+        clear_template_callback: Callable[[ft.Event | None], None],
     ) -> None:
         """Initialise the TemplateInput component."""
         super().__init__(expand=5)
@@ -162,7 +164,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             spacing=5,
         )
 
-    async def _load_template_click(self, e: ft.ControlEvent) -> None:
+    async def _load_template_click(self, e: ft.Event) -> None:
         """Open file picker to load template sequence from a TXT file.
 
         Args:
@@ -180,11 +182,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         self.input_data.template = content
         self.update_ui()
-        if self.on_change_handler:
-            self.on_change_handler(None)
+        self.on_change_handler(None)
         self._show_notification("Template loaded successfully.")
 
-    async def _save_template_click(self, e: ft.ControlEvent) -> None:
+    async def _save_template_click(self, e: ft.Event) -> None:
         """Save template sequence to a TXT file.
 
         Args:

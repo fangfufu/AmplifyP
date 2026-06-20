@@ -15,11 +15,13 @@
 
 """Base score settings tile and score table for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]
@@ -207,9 +209,9 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
         font_size_default: int,
         font_size_micro: int,

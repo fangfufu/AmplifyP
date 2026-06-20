@@ -16,7 +16,7 @@
 """PCR View for the Flet application."""
 
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
@@ -25,6 +25,10 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
 
 from .amplicon_drawing import AmpliconDetailCard
 from .pcr_diagram_panel import PCRDrawingPanel
@@ -204,8 +208,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
+        conf: "Repliconf",
+        var: "DirIdx",
     ) -> None:
         """Create and show context map card below the overview map."""
         card_id = f"context_{primer_name}_{padded_idx}"
@@ -236,7 +240,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self._update_cards_header_visibility()
         self.app_page.update()
 
-    def _show_amplicon_dialog(self, amp: Any) -> None:
+    def _show_amplicon_dialog(self, amp: "Amplicon") -> None:
         """Show details card of the selected amplicon below the overview map."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
@@ -272,7 +276,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
-    def _clear_all_cards(self, e: Any) -> None:
+    def _clear_all_cards(self, e: ft.Event) -> None:
         """Clear all detail cards below the overview map."""
         self.result_list.controls.clear()
         self._update_cards_header_visibility()

@@ -15,6 +15,9 @@
 
 """Input view composing DNA Template input and Primer inputs."""
 
+from __future__ import annotations
+
+from collections.abc import Callable
 from typing import Any, cast
 
 import flet as ft
@@ -37,8 +40,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         page: ft.Page,
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_stop_editing: Any | None = None,
+        on_change: Callable[[ft.Event | None], None] | None = None,
+        on_stop_editing: Callable[[ft.Event | None], None] | None = None,
     ) -> None:
         """Initialize the InputView.
 
@@ -193,7 +196,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+    def _handle_field_focus(self, e: ft.FocusEvent) -> None:
         """Handle focus on input fields to cancel auto-trigger timer.
 
         Updates the focused primer index, marks field touch status,
@@ -231,7 +234,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
         self._currently_focused_control = cast(ft.Control, e.control)
 
-    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+    def _handle_field_blur(self, e: ft.FocusEvent) -> None:
         """Handle blur on input fields to trigger results page after a delay.
 
         Syncs state, applies validation errors to rows, auto-adds empty
@@ -273,11 +276,11 @@ class InputView(ft.Row):  # type: ignore[misc]
             if not self.page:
                 return
             if self.on_stop_editing_callback:
-                self.on_stop_editing_callback()
+                self.on_stop_editing_callback(None)
 
         self._focus_debouncer.trigger(timer_callback)
 
-    def _handle_field_submit(self, e: ft.ControlEvent) -> None:
+    def _handle_field_submit(self, e: ft.Event) -> None:
         """Handle submission (Enter key) to immediately trigger results.
 
         Cancels any pending debounced callbacks, syncs state, auto-adds
@@ -292,7 +295,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.app_page:
             self.app_page.update()
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
     def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
         """Append a new empty row if the last row is filled and valid.
@@ -341,7 +344,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.template_input.update_ui()
         self.primer_input.update_ui()
 
-    def _on_change_handler(self, e: ft.ControlEvent) -> None:
+    def _on_change_handler(self, e: ft.Event | None) -> None:
         """Handle change in input fields.
 
         Syncs state to the central store, updates the primer info panel,
@@ -355,7 +358,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
 
-    def _clear_primers(self, e: ft.ControlEvent) -> None:
+    def _clear_primers(self, e: ft.Event | None) -> None:
         """Clear all primers.
 
         Resets the primer list to a single empty primer row, clears
@@ -370,9 +373,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
-    def _delete_selected_primers(self, e: ft.ControlEvent) -> None:
+    def _delete_selected_primers(self, e: ft.Event | None) -> None:
         """Delete all selected primers.
 
         Identifies all active (selected) primers and removes them using
@@ -388,9 +391,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
-    def _clear_template(self, e: ft.ControlEvent) -> None:
+    def _clear_template(self, e: ft.Event | None) -> None:
         """Clear the DNA template.
 
         Clears the template sequence field, syncs state, and triggers
@@ -404,7 +407,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom (right) container via the divider.
@@ -463,7 +466,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             self.update()
 
-    def _handle_resize(self, e: Any) -> None:
+    def _handle_resize(self, e: ft.ResizeEvent) -> None:
         """Handle page resize to proportionally scale name column.
 
         Args:

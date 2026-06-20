@@ -31,7 +31,7 @@ def test_input_view_row_boxes_editing() -> None:
 
     stop_editing_called = False
 
-    def on_stop_editing() -> None:
+    def on_stop_editing(e: ft.Event | None) -> None:
         nonlocal stop_editing_called
         stop_editing_called = True
 
@@ -960,7 +960,7 @@ def test_input_view_focus_preservation_transition() -> None:
 
     stop_editing_called = False
 
-    def on_stop_editing() -> None:
+    def on_stop_editing(e: ft.Event | None) -> None:
         nonlocal stop_editing_called
         stop_editing_called = True
 

@@ -15,7 +15,10 @@
 
 """Input component for DNA primers list and details."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
@@ -34,6 +37,9 @@ from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
 from .primer_validation import validate_primers
 
+if TYPE_CHECKING:
+    from .primer_input import PrimerInput
+
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
     """Input component for DNA primers list and details."""
@@ -43,12 +49,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_primers_callback: Any,
-        delete_selected_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.FocusEvent], None],
+        handle_field_blur: Callable[[ft.FocusEvent], None],
+        handle_field_submit: Callable[[ft.Event], None],
+        clear_primers_callback: Callable[[ft.Event | None], None],
+        delete_selected_callback: Callable[[ft.Event | None], None],
     ) -> None:
         """Initialise the PrimerInput component.
 
@@ -366,7 +372,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
 
-    def _on_toggle_all_primers(self, e: Any) -> None:
+    def _on_toggle_all_primers(self, e: ft.Event[ft.Checkbox]) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox.
 
         Handles the three checkbox states (True, False, None/tristate)
@@ -406,8 +412,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                         row.checkbox.value = False
 
         self._prev_header_checkbox_value = cb_value
-        if self.on_change_handler:
-            self.on_change_handler(e)
+        self.on_change_handler(e)
 
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states.
@@ -510,7 +515,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_dismiss=on_dismiss,
         )
 
-    async def _load_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _load_primers_click(self, e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file.
 
         Delegates to the PrimerFileManager component.
@@ -520,7 +525,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """
         await self.file_manager.load_primers_click(e)
 
-    async def _save_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _save_primers_click(self, e: ft.Event | None) -> None:
         """Save active primers to a CSV file.
 
         Delegates to the PrimerFileManager component.

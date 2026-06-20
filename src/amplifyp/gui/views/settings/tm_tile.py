@@ -15,9 +15,12 @@
 
 """TmTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+
+from amplifyp.gui.settings import GUISettings
 
 
 class TmTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -25,9 +28,9 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
         """Initialise the TmTile.

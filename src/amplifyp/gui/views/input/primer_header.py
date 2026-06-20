@@ -15,7 +15,9 @@
 
 """Header component for the primers list showing columns and resizing."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
@@ -29,9 +31,9 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
     def __init__(
         self,
         settings: GUISettings,
-        on_toggle_all: Any,
-        on_divider_pan: Any,
-        on_divider_pan_end: Any,
+        on_toggle_all: Callable[[ft.Event[ft.Checkbox]], None],
+        on_divider_pan: Callable[[ft.DragUpdateEvent], None],
+        on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         name_column_width: float,
     ) -> None:
         """Initialise the PrimerHeader.

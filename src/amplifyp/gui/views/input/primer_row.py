@@ -15,11 +15,18 @@
 
 """A single row representing a primer in the list."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, cast
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+
+if TYPE_CHECKING:
+    pass
 
 
 class PrimerRow(ft.Container):  # type: ignore[misc]
@@ -36,17 +43,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq_error: str | None,
         font_family: str,
         name_column_width: float,
-        settings: Any,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        on_row_click: Any,
-        on_move_primer: Any,
-        on_delete_primer: Any,
-        on_add_primer: Any,
-        on_divider_pan: Any,
-        on_divider_pan_end: Any,
+        settings: GUISettings,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.FocusEvent], None],
+        handle_field_blur: Callable[[ft.FocusEvent], None],
+        handle_field_submit: Callable[[ft.Event], None],
+        on_row_click: Callable[[int, ft.TextField], None],
+        on_move_primer: Callable[[int, int], None],
+        on_delete_primer: Callable[[int], None],
+        on_add_primer: Callable[[int], None],
+        on_divider_pan: Callable[[ft.DragUpdateEvent], None],
+        on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         is_focused: bool,
         is_last_row: bool,
     ) -> None:
@@ -336,10 +343,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self,
         new_idx: int,
         is_last_row: bool,
-        on_move_primer: Any,
-        on_delete_primer: Any,
-        on_add_primer: Any,
-        on_row_click: Any,
+        on_move_primer: Callable[[int, int], None],
+        on_delete_primer: Callable[[int], None],
+        on_add_primer: Callable[[int], None],
+        on_row_click: Callable[[int, ft.TextField], None],
     ) -> None:
         """Update the index of the row and refresh its handlers and controls.
 
@@ -361,10 +368,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         # Update reorder control buttons with the new index and state
         if self.reorder_controls is not None:
-            add_button = self.reorder_controls.controls[0]
-            delete_button = self.reorder_controls.controls[1]
-            up_button = self.reorder_controls.controls[2]
-            down_button = self.reorder_controls.controls[3]
+            add_button = cast(ft.IconButton, self.reorder_controls.controls[0])
+            delete_button = cast(
+                ft.IconButton, self.reorder_controls.controls[1]
+            )
+            up_button = cast(ft.IconButton, self.reorder_controls.controls[2])
+            down_button = cast(ft.IconButton, self.reorder_controls.controls[3])
 
             add_button.on_click = lambda e: on_add_primer(new_idx)
             delete_button.on_click = lambda e: on_delete_primer(new_idx)
@@ -373,7 +382,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             down_button.on_click = lambda e: on_move_primer(new_idx, 1)
             down_button.disabled = is_last_row
 
-    def update_tm(self, settings: Any) -> None:
+    def update_tm(self, settings: GUISettings) -> None:
         """Update the displayed Tm in-place based on the current sequence."""
         # ponytail: calculates Tm using user-selected formula
         seq_val = self.seq_field.value

@@ -17,6 +17,7 @@
 
 import os
 import sys
+from collections.abc import ItemsView, Iterator, KeysView
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +35,14 @@ from amplifyp.settings import (
     GLOBAL_TM_SETTINGS,
 )
 
+if TYPE_CHECKING:
+    from amplifyp.pcr import Primer
+    from amplifyp.settings import (
+        PrimerDimerSettings,
+        ReplicationSettings,
+        TMSettings,
+    )
+
 # Maximum number of amplicons to draw on the PCR result diagram to
 # prevent UI freeze.
 MAX_AMPLICONS_RENDER = 100
@@ -41,13 +50,6 @@ MAX_AMPLICONS_RENDER = 100
 # Maximum number of primer dimer cards to display in the UI to
 # prevent UI freeze.
 MAX_DIMERS_RENDER = 100
-
-if TYPE_CHECKING:
-    from amplifyp.settings import (
-        PrimerDimerSettings,
-        ReplicationSettings,
-        TMSettings,
-    )
 
 
 class GUISettings:
@@ -191,7 +193,7 @@ class GUISettings:
         """
         return self._settings.get(key, default)
 
-    def items(self) -> Any:
+    def items(self) -> ItemsView[str, Any]:
         """Get the settings key-value items.
 
         Returns:
@@ -199,7 +201,7 @@ class GUISettings:
         """
         return self._settings.items()
 
-    def keys(self) -> Any:
+    def keys(self) -> KeysView[str]:
         """Get the settings keys.
 
         Returns:
@@ -207,7 +209,7 @@ class GUISettings:
         """
         return self._settings.keys()
 
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator[str]:
         """Iterate over settings keys.
 
         Returns:
@@ -371,7 +373,7 @@ class GUISettings:
             ),
         )
 
-    def calculate_primer_tm(self, primer: Any) -> float:
+    def calculate_primer_tm(self, primer: "Primer") -> float:
         """Calculate the melting temperature of a primer based on settings.
 
         Uses the configured TM method (SantaLucia 1998 / Owczarzy 2008

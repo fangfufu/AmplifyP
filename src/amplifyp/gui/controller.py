@@ -16,7 +16,7 @@
 """GUI controller for orchestrating views, state, and page events."""
 
 import traceback
-from typing import Any, cast
+from typing import cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
 import yaml
@@ -114,7 +114,7 @@ class GUIController:
             self.input_data,
             self.settings,
             on_change=lambda e: self.update_pcr_button_state(sync=False),
-            on_stop_editing=lambda: self.update_pcr_button_state(sync=False),
+            on_stop_editing=lambda e: self.update_pcr_button_state(sync=False),
         )
         self.settings_view = SettingsView(
             self.page,
@@ -473,7 +473,7 @@ class GUIController:
         self.settings.save_to_local(self.page)
         self.page.update()
 
-    async def save_state(self, e: Any) -> None:
+    async def save_state(self, e: ft.Event[ft.Control]) -> None:
         """Save app state to YAML configuration file."""
         if self.filepicker_open:
             return
@@ -504,7 +504,7 @@ class GUIController:
         finally:
             self.filepicker_open = False
 
-    async def load_state(self, e: Any) -> None:
+    async def load_state(self, e: ft.Event[ft.Control]) -> None:
         """Load app state from YAML configuration file."""
         if self.filepicker_open:
             return
@@ -547,7 +547,7 @@ class GUIController:
         finally:
             self.filepicker_open = False
 
-    def switch_view(self, _e: Any, view: ft.Control) -> None:
+    def switch_view(self, _e: ft.Event[ft.Control], view: ft.Control) -> None:
         """Switch the main view container to display a different view.
 
         Updates the container content and configures resize handlers

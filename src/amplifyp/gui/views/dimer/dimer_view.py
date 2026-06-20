@@ -16,7 +16,7 @@
 """Dimer View for the Flet application."""
 
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
@@ -27,6 +27,9 @@ from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+if TYPE_CHECKING:
+    from amplifyp.dimer import PrimerDimer
 
 
 class DimerView(ft.Column):  # type: ignore[misc]
@@ -43,7 +46,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
-        self._cached_dimers: list[Any] | None = None
+        self._cached_dimers: list[PrimerDimer] | None = None
         self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
             None
         )

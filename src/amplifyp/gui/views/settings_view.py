@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 import flet as ft
@@ -41,9 +42,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_apply: Any | None = None,
-        on_reset: Any | None = None,
+        on_change: Callable[[ft.ControlEvent], None] | None = None,
+        on_apply: Callable[[ft.ControlEvent | None], None] | None = None,
+        on_reset: Callable[[ft.ControlEvent | None], None] | None = None,
     ) -> None:
         """Initialise the SettingsView."""
         super().__init__(
