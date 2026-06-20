@@ -49,7 +49,7 @@ jobs:
       - name: Run unit tests
         if: steps.filter.outputs.run == 'true'
         run: |
-          pytest -v
+          pytest -v --cov=src/amplifyp --cov-report=xml
       - name: Run pyright
         if: steps.filter.outputs.run == 'true'
         run: |

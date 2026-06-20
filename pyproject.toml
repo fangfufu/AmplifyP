@@ -76,8 +76,6 @@ pythonpath = "src"
 testpaths = ["tests"]
 addopts = [
   "--import-mode=importlib",
-  "--cov=src/amplifyp",
-  "--cov-report=xml",
   "-m", "not e2e",
 ]
 markers = [
