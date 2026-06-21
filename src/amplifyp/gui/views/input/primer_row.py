@@ -23,8 +23,10 @@ from typing import TYPE_CHECKING
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.dna import Primer
+from amplifyp.gui.colours import GUIColours, tm_colour
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.util import clean_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -89,15 +91,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.idx = idx
         self.settings = settings
+        self.is_last_row = is_last_row
         show_temp = self.settings.get("show_primer_temperature", False)
 
         tm_val = ""
         self._tm_value: float | None = None
-        if seq.strip():
+        if show_temp and seq.strip():
             try:
-                from amplifyp.dna import Primer
-                from amplifyp.gui.util import clean_sequence
-
                 cleaned_seq = clean_sequence(seq)
                 if cleaned_seq:
                     primer_obj = Primer(sequence=cleaned_seq, name=name)
@@ -321,11 +321,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         name_val = self.name_field.value
         tm_val = ""
         self._tm_value = None
-        if seq_val and seq_val.strip():
+        show_temp = settings.get("show_primer_temperature", False)
+        if show_temp and seq_val and seq_val.strip():
             try:
-                from amplifyp.dna import Primer
-                from amplifyp.gui.util import clean_sequence
-
                 cleaned_seq = clean_sequence(seq_val)
                 if cleaned_seq:
                     primer_obj = Primer(sequence=cleaned_seq, name=name_val)
@@ -341,7 +339,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 tm_val = "-"
         self.tm_text.value = tm_val
         scheme = settings.get("tm_colour_scheme", "None")
-        from amplifyp.gui.colours import tm_colour
 
         self.tm_text.color = (
             tm_colour(self._tm_value, scheme)
