@@ -1,0 +1,40 @@
+name: Push to dev
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+jobs:
+  test:
+    name: Run fast tests and checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PYTHONUTF8: 1
+      FLET_CLI_NO_RICH_OUTPUT: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          pip install .[dev,e2e] pre-commit
+      - name: Run pre-commit checks
+        env:
+          SKIP: pytest
+        run: |
+          pre-commit run --all-files --show-diff-on-failure
+      - name: Run unit tests
+        run: |
+          pytest -v --cov=src/amplifyp --cov-report=xml
+      - name: Run pyright analysis
+        run: |
+          pyright
+      - name: Display coverage report
+        run: |
+          coverage report -m
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
