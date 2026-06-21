@@ -157,30 +157,52 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=name,
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
-            height=30 if not name_error else None,
-            width=name_column_width,
+            height=30 if not name_error else 55,
             border=ft.InputBorder.NONE,
             multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
         )
+        self.name_container = ft.Container(
+            content=self.name_field,
+            width=1000,
+            height=30 if not name_error else 55,
+        )
+        self.name_scroll = ft.ListView(
+            horizontal=True,
+            width=name_column_width,
+            height=30 if not name_error else 55,
+            controls=[self.name_container],
+        )
         self.seq_field = ft.TextField(
             value=seq,
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
-            height=30 if not seq_error else None,
+            height=30 if not seq_error else 55,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
             multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "seq"},
-            expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
+        )
+        self.seq_container = ft.Container(
+            content=self.seq_field,
+            width=5000,
+            height=30 if not seq_error else 55,
+        )
+        self.seq_scroll = ft.ListView(
+            horizontal=True,
+            expand=True,
+            height=30 if not seq_error else 55,
+            controls=[self.seq_container],
         )
         if name_error:
             self.name_field.error = name_error
@@ -209,9 +231,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         controls = [
             self.checkbox_container,
             self.active_divider,
-            self.name_field,
+            self.name_scroll,
             self.divider,
-            self.seq_field,
+            self.seq_scroll,
         ]
         if show_temp:
             controls.extend([self.tm_divider, self.tm_container])
@@ -261,9 +283,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 seq_error = err
 
         self.name_field.error = name_error
-        self.name_field.height = 30 if not name_error else None
+        self.name_field.height = 30 if not name_error else 55
+        self.name_container.height = 30 if not name_error else 55
+        self.name_scroll.height = 30 if not name_error else 55
         self.seq_field.error = seq_error
-        self.seq_field.height = 30 if not seq_error else None
+        self.seq_field.height = 30 if not seq_error else 55
+        self.seq_container.height = 30 if not seq_error else 55
+        self.seq_scroll.height = 30 if not seq_error else 55
 
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
