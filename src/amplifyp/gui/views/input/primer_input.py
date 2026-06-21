@@ -165,20 +165,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             [
                 ft.ResponsiveRow(
                     [
-                        ft.Container(
-                            content=ft.Text(
-                                "Primers",
-                                weight=ft.FontWeight.BOLD,
-                                no_wrap=True,
-                            ),
-                            col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
-                            height=32,
-                            alignment=ft.Alignment(-1, 0),
-                        ),
-                        ft.Container(
-                            content=self.primer_toolbar,
-                            col={"lg": 9, "md": 9, "sm": 12, "xs": 12},
-                            alignment=ft.Alignment(1, 0),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Primers",
+                                    weight=ft.FontWeight.BOLD,
+                                    no_wrap=True,
+                                ),
+                                self.primer_toolbar,
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            wrap=True,
                         ),
                     ],
                     run_spacing=0,

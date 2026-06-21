@@ -87,14 +87,26 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             on_click=on_paste,
             height=32,
         )
+        self.file_group = ft.Row(
+            [self.load_button, self.save_button],
+            spacing=10,
+            tight=True,
+        )
+        self.clipboard_group = ft.Row(
+            [self.copy_button, self.paste_button],
+            spacing=10,
+            tight=True,
+        )
+        self.edit_group = ft.Row(
+            [self.delete_selected_button, self.clear_button],
+            spacing=10,
+            tight=True,
+        )
         super().__init__(
             [
-                self.load_button,
-                self.save_button,
-                self.copy_button,
-                self.paste_button,
-                self.delete_selected_button,
-                self.clear_button,
+                self.file_group,
+                self.clipboard_group,
+                self.edit_group,
             ],
             spacing=10,
             alignment=ft.MainAxisAlignment.END,
