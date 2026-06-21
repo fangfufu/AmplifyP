@@ -3,12 +3,12 @@ on:
   push:
     branches: [stable]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build:
     name: Build artifacts (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
     strategy:
       fail-fast: false
       matrix:

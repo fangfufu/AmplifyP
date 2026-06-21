@@ -3,12 +3,12 @@ on:
   pull_request:
     branches: [stable]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   test:
     name: Run tests and checks (${{ matrix.os }} - Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
     strategy:
       fail-fast: false
       matrix:

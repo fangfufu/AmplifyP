@@ -3,12 +3,12 @@ on:
   push:
     branches: [dev]
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   test:
     name: Run fast tests and checks
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
