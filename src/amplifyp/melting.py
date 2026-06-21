@@ -178,7 +178,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
             "Denominator is zero in Tm calculation"
         )
 
-    if dh == 0.0:
+    if math.isclose(dh, 0.0, abs_tol=1e-9):
         raise InsufficientThermodynamicDataError(
             "Invalid sequence: lacks standard thermodynamic base pairs"
         )
