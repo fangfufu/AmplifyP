@@ -521,7 +521,7 @@ class GUISettings:
                 if isinstance(data, dict):
                     self.from_dict(data)
             except (OSError, yaml.YAMLError, ValueError) as e:
-                logger.error(
+                logger.exception(
                     "Error loading settings from %s: %s", config_path, e
                 )
 
@@ -547,4 +547,4 @@ class GUISettings:
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
         except (OSError, yaml.YAMLError, ValueError) as e:
-            logger.error("Error saving settings to %s: %s", config_path, e)
+            logger.exception("Error saving settings to %s: %s", config_path, e)
