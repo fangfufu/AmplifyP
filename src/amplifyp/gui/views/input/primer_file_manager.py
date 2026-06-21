@@ -161,7 +161,7 @@ class PrimerFileManager:
                 self.show_notification(f"Loaded {len(parsed)} primer(s).")
             else:
                 self.show_notification("No valid primers found in file.")
-        except Exception as ex:
+        except (OSError, ValueError, csv.Error) as ex:
             self.show_notification(f"Error parsing primers: {ex}")
 
     async def save_primers_click(self, _e: ft.Event | None) -> None:

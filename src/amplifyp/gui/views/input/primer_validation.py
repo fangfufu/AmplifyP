@@ -87,9 +87,7 @@ def validate_primers(
         name_val = str(p.get("name", "")).strip()
         seq_val = clean_sequence(str(p.get("seq", "")))
 
-        show_empty_errors = bool(
-            p.get("name_touched", False) and p.get("seq_touched", False)
-        )
+        show_empty_errors = bool(p.get("show_empty_errors", False))
         name_err, seq_err = validate_primer(
             name_val, seq_val, show_empty_errors=show_empty_errors
         )

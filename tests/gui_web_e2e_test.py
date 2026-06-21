@@ -16,12 +16,13 @@
 """End-to-End tests for the static web version of the GUI."""
 
 import os
+import signal
 import subprocess
 import sys
 import threading
 import time
 from collections.abc import Generator
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 import pytest
@@ -33,10 +34,19 @@ except ImportError:
     Page = None
     expect = None
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 # Define ports and paths (port 34521 as per user instructions)
 SERVER_PORT = 34521
 SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
+
+PRIMER_INPUT_SEL = (
+    'textarea:not([disabled]):not([aria-label*="Enter DNA sequence"])'
+)
 
 
 # Check entire module for dependencies
@@ -47,6 +57,21 @@ if not Page:
         "And then: playwright install chromium",
         pytrace=False,
     )
+
+
+@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+def browser_type_launch_args(browser_type_launch_args: Any) -> dict[str, Any]:
+    """Force headless mode for E2E tests and add flags for stability."""
+    return {
+        **browser_type_launch_args,
+        "headless": True,
+        "args": [
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--ignore-gpu-blocklist",
+        ],
+    }
 
 
 @pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
@@ -75,7 +100,7 @@ def build_app() -> None:
 @pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
 def serve_app(build_app: None) -> Generator[str, None, None]:
     """Serve the static app in a background thread."""
-    HTTPServer.allow_reuse_address = True
+    ThreadingHTTPServer.allow_reuse_address = True
 
     class CustomHTTPRequestHandler(SimpleHTTPRequestHandler):
         def translate_path(self, path: str) -> str:
@@ -85,7 +110,7 @@ def serve_app(build_app: None) -> Generator[str, None, None]:
                 path = "/"
             return super().translate_path(path)
 
-    server = HTTPServer(
+    server = ThreadingHTTPServer(
         ("localhost", SERVER_PORT),
         lambda *args: CustomHTTPRequestHandler(*args, directory=DIST_DIR),
     )
@@ -97,12 +122,12 @@ def serve_app(build_app: None) -> Generator[str, None, None]:
 
     # Wait for server to be responsive
     for _ in range(10):
+        if requests is None:
+            break
         try:
-            import requests
-
             if requests.get(base_url, timeout=1).status_code == 200:
                 break
-        except Exception:
+        except requests.exceptions.RequestException:
             time.sleep(0.5)
 
     yield base_url
@@ -155,12 +180,32 @@ def fill_field_reliably(
     )
 
 
+@pytest.fixture  # type: ignore[untyped-decorator]
+def e2e_timeout() -> Generator[None, None, None]:
+    """Ensure E2E test does not run for more than 5 minutes."""
+
+    def handler(signum: Any, frame: Any) -> None:
+        raise TimeoutError("Test timed out after 5 minutes")
+
+    sigalrm = getattr(signal, "SIGALRM", None)
+    alarm = getattr(signal, "alarm", None)
+
+    if sigalrm is not None and alarm is not None:
+        signal.signal(sigalrm, handler)
+        alarm(300)
+    try:
+        yield
+    finally:
+        if alarm is not None:
+            alarm(0)
+
+
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     sys.platform != "linux", reason="E2E tests only run on Linux"
 )  # type: ignore[untyped-decorator]
 def test_e2e_primer_lifecycle_and_state(
-    page: Any, serve_app: str, tmp_path: Any
+    page: Any, serve_app: str, tmp_path: Any, e2e_timeout: None
 ) -> None:
     """Test full primer lifecycle and state saving/loading.
 
@@ -174,10 +219,15 @@ def test_e2e_primer_lifecycle_and_state(
       - Save the state.
       - Load the state.
     """
+    page.set_default_timeout(30000)
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
     # 1. Navigate to app with semantics enabled
     page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
     expect(page).to_have_title("AmplifyP", timeout=120000)
     wait_for_semantics(page)
 
@@ -195,8 +245,8 @@ def test_e2e_primer_lifecycle_and_state(
     print("Adding extra valid (V3) primer...")
     add_primer_to_trailing_row(page, "V3", "CGATCGATCGATCGAT")
     # Verify V3 added: 6 rows (12 inputs) and checkbox is checked.
-    expect(page.locator('input:not([type="file"])')).to_have_count(12)
-    name_inputs = page.locator('input:not([type="file"])')
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
+    name_inputs = page.locator(PRIMER_INPUT_SEL)
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
@@ -204,7 +254,7 @@ def test_e2e_primer_lifecycle_and_state(
     print("Adding extra invalid (I3) primer...")
     add_primer_to_trailing_row(page, "I3", "XYZXYZXYZ")
     # Verify I3 added: 7 rows (14 inputs) and checkbox is enabled.
-    expect(page.locator('input:not([type="file"])')).to_have_count(14)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(14)
     expect(
         name_inputs.nth(5 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_enabled(timeout=15000)
@@ -214,37 +264,54 @@ def test_e2e_primer_lifecycle_and_state(
     # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
     # Since each row has exactly 2 text input fields (Name and Sequence),
     # the Name input of V3 (index 4) is at global input index 8.
-    # Focus V3's name input to make its row controls visible.
-    page.locator('input:not([type="file"])').nth(8).click(force=True)
+    # Focus V3's name input to select the row.
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
-    # Only the focused row exposes its controls in the semantic tree.
-    # Use .first (not .nth(N)) because exactly one Delete Primer button is
-    # visible at any time — the one belonging to the focused row.
-    delete_btn = page.locator("[aria-label*='Add Primer Below']").first
-    delete_btn.wait_for(state="attached", timeout=5000)
-    box = delete_btn.bounding_box()
-    assert box is not None
-    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    # Click the header Delete Primer button.
+    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    if not delete_btn.is_visible():
+        # Fall back to locating the delete button in the focused row
+        # container if individual button's behaviour is merged
+        row_container = page.locator("[aria-label*='Add Primer Below']").first
+        delete_btn = row_container.locator("[role='button']").nth(1)
+    expect(delete_btn).to_be_enabled(timeout=5000)
+    try:
+        delete_btn.click(force=True)
+    except Exception:
+        try:
+            delete_btn.dispatch_event("click")
+        except Exception:  # noqa: S110
+            pass
     time.sleep(1)
 
     # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
-    expect(page.locator('input:not([type="file"])')).to_have_count(12)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
     expect(
         name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
     ).to_be_enabled(timeout=15000)
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
-    page.locator('input:not([type="file"])').nth(8).click(force=True)
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
-    delete_btn.wait_for(state="attached", timeout=5000)
-    box = delete_btn.bounding_box()
-    assert box is not None
-    page.mouse.click(box["x"] + box["width"] - 76, box["y"] + box["height"] / 2)
+    delete_btn = page.locator("[aria-label*='Delete Primer']").first
+    if not delete_btn.is_visible():
+        # Fall back to locating the delete button in the focused row
+        # container if individual button's behaviour is merged
+        row_container = page.locator("[aria-label*='Add Primer Below']").first
+        delete_btn = row_container.locator("[role='button']").nth(1)
+    expect(delete_btn).to_be_enabled(timeout=5000)
+    try:
+        delete_btn.click(force=True)
+    except Exception:
+        try:
+            delete_btn.dispatch_event("click")
+        except Exception:  # noqa: S110
+            pass
     time.sleep(1)
 
     # Verify I3 deleted: count returned to 5 rows (10 inputs).
-    expect(page.locator('input:not([type="file"])')).to_have_count(10)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
     print("Verifying checkbox state and attempting to activate invalid ones...")
@@ -302,8 +369,8 @@ def test_e2e_primer_lifecycle_and_state(
     clear_primers_btn.click()
     time.sleep(2)
 
-    # Verify list is empty by checking if only one row (trailing row) is left
-    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+    # Verify list is empty by checking if trailing row remains (2 inputs)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(2)
 
     # 7. Load the primer list
     print("Loading the primer list...")
@@ -313,7 +380,7 @@ def test_e2e_primer_lifecycle_and_state(
     file_chooser = fc_info.value
     file_chooser.set_files(str(primers_csv_path))
     # Wait for loaded primers (8 inputs total) to be attached
-    page.locator('input:not([type="file"])').nth(7).wait_for(
+    page.locator(PRIMER_INPUT_SEL).nth(7).wait_for(
         state="attached", timeout=15000
     )
     time.sleep(1)
@@ -358,15 +425,17 @@ def test_e2e_primer_lifecycle_and_state(
     # 9. Load the state
     print("Refreshing/reloading page to clear state...")
     page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
     wait_for_semantics(page)
 
     # Wait for app/Pyodide to fully load and the input to appear
-    page.wait_for_selector(
-        'input[aria-label="New Primer Name"]', state="attached", timeout=60000
-    )
+    page.wait_for_selector(PRIMER_INPUT_SEL, state="attached", timeout=60000)
 
-    # Assert clean state before load
-    expect(page.locator('input[aria-label="New Primer Name"]')).to_have_count(1)
+    # Assert clean state before load (2 inputs)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(2)
 
     print("Loading the saved state...")
     load_state_btn = page.locator("[aria-label*='Load all']").first
@@ -392,67 +461,105 @@ def test_e2e_primer_lifecycle_and_state(
     assert "I2" in final_content
 
 
+def wait_for_ui(
+    page: Any, text: str, timeout_sec: int = 60
+) -> tuple[float, float]:
+    """Wait for specified text on screen via OCR and return coordinates."""
+    import io
+    import time
+
+    import pytesseract
+    from PIL import Image
+
+    start_time = time.time()
+    while time.time() - start_time < timeout_sec:
+        screenshot_bytes = page.screenshot()
+        image = Image.open(io.BytesIO(screenshot_bytes))
+        ocr_data = pytesseract.image_to_data(
+            image, output_type=pytesseract.Output.DICT
+        )
+        words = ocr_data["text"]
+        for i, w in enumerate(words):
+            if w.strip() and text.lower() in w.strip().lower():
+                left = ocr_data["left"][i]
+                top = ocr_data["top"][i]
+                width = ocr_data["width"][i]
+                height = ocr_data["height"][i]
+                center_x = left + width / 2
+                center_y = top + height / 2
+                return center_x, center_y
+        time.sleep(1.0)
+    raise TimeoutError(
+        f"Timed out waiting for text '{text}' to appear on screen via OCR."
+    )
+
+
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     sys.platform != "linux", reason="E2E tests only run on Linux"
 )  # type: ignore[untyped-decorator]
-def test_e2e_dimer_alignment(page: Any, serve_app: str, tmp_path: Any) -> None:
+def test_e2e_dimer_alignment(
+    page: Any, serve_app: str, tmp_path: Any, e2e_timeout: None
+) -> None:
     """Test dimer alignment and verify monospace alignment using OCR."""
+    page.set_default_timeout(30000)
     # Subscribe to console messages
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
-    # 1. Navigate to app with semantics enabled
-    page.goto(f"{serve_app}/?enable-semantics=true")
+    # 1. Navigate to app (no semantics)
+    page.goto(f"{serve_app}/")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
     expect(page).to_have_title("AmplifyP", timeout=120000)
 
-    # Wait for Flutter Web engine
-    page.wait_for_selector(
-        "flt-semantics-host", state="attached", timeout=60000
-    )
-    page.wait_for_selector(
-        "flt-semantics-placeholder", state="attached", timeout=30000
-    )
-    page.locator("flt-semantics-placeholder").first.dispatch_event("click")
+    # Wait for UI to load and capture initial coordinates of toolbar and headers
+    print("Waiting for UI to load via OCR...")
+    wait_for_ui(page, "Template")
 
-    # Wait for the primer name input to appear — confirms Pyodide is fully
-    # initialised and the semantics tree is ready. Much more reliable than
-    # a fixed sleep.
-    NAME_SEL = 'input[aria-label="New Primer Name"]'
-    SEQ_SEL = 'input[aria-label="New Primer Sequence"]'
-    page.wait_for_selector(NAME_SEL, state="attached", timeout=60000)
+    dimers_x, dimers_y = wait_for_ui(page, "Dimers")
+    print(f"Dimers button located at ({dimers_x}, {dimers_y})")
 
-    # 2. Enter Primer Details - with retry to handle dropped first keystrokes
+    name_x, name_y = wait_for_ui(page, "Name")
+    print(f"Name header located at ({name_x}, {name_y})")
+
+    # Click Name input box (located slightly below the Name header)
+    page.mouse.click(name_x, name_y + 35)
+    time.sleep(0.5)
+
+    # 2. Enter Primer Details
     PRIMER_NAME = "10290"
     PRIMER_SEQ = "GTGGGTATCACAAATTTGGG"
 
-    # Flutter Web exposes the hint_text as the aria-label for text fields.
-    # Primer Name and Primer Sequence are the hint_texts on the inline row
-    # fields; there is no separate "Add" button — filling the trailing empty
-    # row and tabbing away triggers blur→sync_to_state which adds the primer.
-    # CSS selectors are used so fill_field_reliably can verify via JS eval.
-    fill_field_reliably(page, NAME_SEL, PRIMER_NAME)
-    page.keyboard.press("Tab")
+    page.keyboard.type(PRIMER_NAME)
+    print(f"Typed name: {PRIMER_NAME}")
+    time.sleep(0.5)
 
-    fill_field_reliably(page, SEQ_SEL, PRIMER_SEQ)
+    page.keyboard.press("Tab")
+    time.sleep(0.5)
+
+    page.keyboard.type(PRIMER_SEQ)
+    print(f"Typed sequence: {PRIMER_SEQ}")
+    time.sleep(0.5)
+
     # Tab away from the seq field to trigger on_blur → timer → sync_to_state
     page.keyboard.press("Tab")
-    time.sleep(2)  # Allow blur timer (0.15s) and state sync to complete
+    time.sleep(2.0)  # Allow blur timer and state sync to complete
 
     # Save a debug screenshot of the input page after clicking Add
     page.screenshot(path=str(tmp_path / "debug_after_add.png"))
 
-    # 4. Navigate to Primer Dimers view
-    dimers_btn = page.locator("[aria-label*='Primer Dimers']").first
-    expect(dimers_btn).to_be_enabled(timeout=10000)
-    dimers_btn.click()
+    # 4. Navigate to Primer Dimers view by clicking the saved coordinates
+    print(f"Navigating to Primer Dimers. Click: ({dimers_x}, {dimers_y})")
+    page.mouse.click(dimers_x, dimers_y)
     time.sleep(2)
 
     # Save a debug screenshot after clicking Primer Dimers
     page.screenshot(path=str(tmp_path / "debug_after_click_dimers.png"))
 
     # The primer dimer analysis runs synchronously in the Flet Python worker.
-    # Flutter Web CanvasKit renders text to a <canvas> element, NOT to the DOM,
-    # so neither "text=" nor "[aria-label*=]" selectors work for rendered text.
+    # Flutter Web CanvasKit renders text to a <canvas> element, NOT to the DOM.
     # We simply wait for CanvasKit to finish typography rendering.
     time.sleep(8)
 
@@ -569,10 +676,34 @@ def wait_for_semantics(page: Any) -> None:
     page.wait_for_selector(
         "flt-semantics-host", state="attached", timeout=60000
     )
-    page.wait_for_selector(
-        "flt-semantics-placeholder", state="attached", timeout=30000
-    )
-    page.locator("flt-semantics-placeholder").first.dispatch_event("click")
+    placeholder = page.locator("flt-semantics-placeholder").first
+    placeholder.wait_for(state="attached", timeout=30000)
+
+    # Retry clicking the placeholder until at least one input is attached
+    # ensuring correct ready behaviour of the semantics layer.
+    for i in range(30):
+        if page.locator(PRIMER_INPUT_SEL).count() > 0:
+            print(f"Semantics successfully enabled after {i} retries.")
+            return
+
+        print(
+            f"Attempting to enable semantics (click retry {i + 1}). "
+            f"Checking for ready behaviour..."
+        )
+        try:
+            placeholder.dispatch_event("click")
+        except Exception:  # noqa: S110
+            pass
+        try:
+            placeholder.click(force=True, timeout=1000)
+        except Exception:  # noqa: S110
+            pass
+        time.sleep(1.0)
+
+    if page.locator(PRIMER_INPUT_SEL).count() == 0:
+        raise RuntimeError(
+            "Timed out waiting for Flutter Web semantics to enable."
+        )
 
 
 def save_state(page: Any) -> str:
@@ -592,67 +723,84 @@ def save_state(page: Any) -> str:
 def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     """Add a primer by filling the trailing row fields (last row)."""
     # Wait for the text inputs to be available in the DOM
-    page.wait_for_selector(
-        'input:not([type="file"])', state="attached", timeout=60000
-    )
-    initial_count = page.locator('input:not([type="file"])').count()
+    try:
+        page.wait_for_selector(
+            PRIMER_INPUT_SEL, state="attached", timeout=15000
+        )
+    except Exception:
+        print("Timeout waiting for inputs. Retrying semantics click...")
+        wait_for_semantics(page)
+
+    initial_count = page.locator(PRIMER_INPUT_SEL).count()
 
     # The trailing row's Name and Sequence fields are at the very
     # end of the list
-    page.locator('input:not([type="file"])').nth(initial_count - 1).wait_for(
+    page.locator(PRIMER_INPUT_SEL).nth(initial_count - 1).wait_for(
         state="attached", timeout=10000
     )
 
     # Fill Name field using its precise index
-    fill_field_reliably(
-        page, 'input:not([type="file"])', name, index=initial_count - 2
-    )
+    fill_field_reliably(page, PRIMER_INPUT_SEL, name, index=initial_count - 2)
     time.sleep(0.3)
 
     # Fill Sequence field using its precise index
-    fill_field_reliably(
-        page, 'input:not([type="file"])', seq, index=initial_count - 1
-    )
+    fill_field_reliably(page, PRIMER_INPUT_SEL, seq, index=initial_count - 1)
     time.sleep(0.3)
 
-    # Submit the sequence field using keyboard Enter (it is currently focused)
-    page.keyboard.press("Enter")
+    # Tab away from the sequence field to trigger
+    # on_blur → timer → sync_to_state
+    page.keyboard.press("Tab")
+    time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new
     # trailing row was auto-added)
     success = False
-    for _ in range(25):
-        if (
-            page.locator('input:not([type="file"])').count()
-            == initial_count + 2
-        ):
+    for _ in range(50):
+        if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
             success = True
             break
         time.sleep(0.2)
 
     if not success:
+        # Check one more time before doing anything
+        if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
+            return
+
         # It was not auto-added (because it was invalid). Re-focus the last
-        # non-file input so the row's controls (including Add Primer Below)
-        # become visible in the semantic tree.
-        page.locator('input:not([type="file"])').last.click(force=True)
+        # non-file input so the header Add button is enabled.
+        page.locator(PRIMER_INPUT_SEL).last.click(force=True)
         time.sleep(0.5)
+
+        # Check again after focusing/sleeping
+        if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
+            return
+
         add_btn = page.locator("[aria-label*='Add Primer Below']").first
         add_btn.wait_for(state="attached", timeout=5000)
         box = add_btn.bounding_box()
-        assert box is not None
-        page.mouse.click(
-            box["x"] + box["width"] - 102, box["y"] + box["height"] / 2
-        )
+        if box and box["width"] > 100:
+            # Resolve the correct button inside the row container if the
+            # container width is large
+            add_btn = add_btn.locator("[role='button']").first
+        expect(add_btn).to_be_enabled(timeout=5000)
+
+        # Click the Add button (try physical click first and then fallback to
+        # dispatching event)
+        try:
+            add_btn.click(force=True)
+        except Exception:
+            try:
+                add_btn.dispatch_event("click")
+            except Exception:  # noqa: S110
+                pass
 
         # Wait for the count to increase to initial_count + 2
         for _ in range(30):
-            if (
-                page.locator('input:not([type="file"])').count()
-                == initial_count + 2
-            ):
+            if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
                 break
             time.sleep(0.2)
         else:
+            page.screenshot(path="failed_add_row.png")
             raise RuntimeError("Failed to add new primer row manually")
 
     time.sleep(0.5)

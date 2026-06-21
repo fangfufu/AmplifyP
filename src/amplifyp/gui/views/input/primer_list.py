@@ -17,12 +17,15 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import flet as ft
 
 from .primer_row import PrimerRow
 from .primer_validation import validate_primers
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .primer_input import PrimerInput
@@ -123,11 +126,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 handle_field_blur=self.primer_input.handle_field_blur,
                 handle_field_submit=self.primer_input.handle_field_submit,
                 on_row_click=self.primer_input.action_controller.handle_row_click,
-                on_move_primer=self.primer_input.action_controller.move_primer,
-                on_delete_primer=lambda idx: (
-                    self.primer_input.action_controller.delete_primers({idx})
-                ),
-                on_add_primer=self.primer_input.action_controller.on_add_primer_row,
                 on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
                 on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
                 is_focused=is_focused,
@@ -159,4 +157,4 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             if self.page:
                 self.update()
         except RuntimeError:
-            pass
+            logger.debug("Page detached, skipping list update")

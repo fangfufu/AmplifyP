@@ -108,8 +108,8 @@ def test_input_view_duplicate_warning() -> None:
     assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
 
 
-def test_input_view_focus_validation() -> None:
-    """Test empty errors are shown only after both fields are focused."""
+def test_input_view_activation_validation() -> None:
+    """Test empty errors are shown only when the row is active/selected."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     view = InputView(mock_page, input_data)
@@ -121,39 +121,40 @@ def test_input_view_focus_validation() -> None:
     name_field = row.name_field
     seq_field = row.seq_field
 
-    # Initially, no errors are shown even though they are empty
+    # Initially, no errors are shown and checkbox is enabled
     assert name_field.error is None
     assert seq_field.error is None
-    assert checkbox.disabled is True
+    assert checkbox.disabled is False
+    assert checkbox.value is False
 
-    # Focus Name field only
-    mock_event1 = MagicMock(spec=ft.ControlEvent)
-    mock_event1.control = name_field
-    view._handle_field_focus(mock_event1)
-    view.sync_to_state(rebuild_if_needed=False)
-    assert name_field.error is None
-    assert seq_field.error is None
-
-    # Focus Sequence field as well (now both touched)
-    mock_event2 = MagicMock(spec=ft.ControlEvent)
-    mock_event2.control = seq_field
-    view._handle_field_focus(mock_event2)
+    # Try to activate the primer by setting checkbox to checked
+    checkbox.value = True
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Now empty validation errors should be populated
+    # Validation errors populated and checkbox value reverted to False
     assert name_field.error == "Name cannot be empty"
     assert seq_field.error == "Sequence cannot be empty"
-    assert checkbox.disabled is True
+    assert checkbox.disabled is False
+    assert checkbox.value is False
 
-    # Fill name and sequence
+    # Simulate typing or changing focus to deactivate the error state
+    view.sync_to_state(rebuild_if_needed=False)
+
+    # Empty validation errors should be cleared when syncing inactive state
+    assert name_field.error is None
+    assert seq_field.error is None
+
+    # Fill name and sequence and check the box
+    checkbox.value = True
     name_field.value = "NewPrimer"
     seq_field.value = "ATGATGATG"
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Errors should be cleared and checkbox enabled
+    # Errors should be cleared and checkbox active
     assert name_field.error is None
     assert seq_field.error is None
     assert checkbox.disabled is False
+    assert checkbox.value is True
 
 
 def test_input_view_clear_buttons() -> None:
@@ -354,37 +355,26 @@ def test_input_view_primer_reordering() -> None:
     # Verify initial controls length: 3 rows (no trailing empty row)
     assert len(view.primers_list.controls) == 3
 
-    # Initially focused_primer_index is None. Reorder controls
-    # should be invisible.
-    for i in range(3):
-        row = view.primers_list.controls[i].content
-        reorder_controls = row.controls[5].content
-        assert reorder_controls.visible is False
+    # Initially focused_primer_index is None. Reorder controls on header.
+    header = view.primer_input.primer_header
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is True
+    assert header.up_button.disabled is True
+    assert header.down_button.disabled is True
 
     # Select/focus Row 1 (P2)
     view.focused_primer_index = 1
     view._update_row_highlights()
 
-    # Now Row 1 reorder controls should be visible.
-    row1 = view.primers_list.controls[1].content
-    row1_btns = row1.controls[5].content
-    assert row1_btns.visible is True
-    assert isinstance(row1_btns, ft.Row)
-    assert row1_btns.controls[2].disabled is False  # Up (index 2)
-    assert row1_btns.controls[3].disabled is False  # Down (index 3)
+    # Now header reorder controls should be enabled for Row 1
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is False
+    assert header.up_button.disabled is False  # Up enabled
+    assert header.down_button.disabled is False  # Down enabled
 
-    # Row 0 and Row 2 reorder controls should be invisible
-    assert (
-        view.primers_list.controls[0].content.controls[5].content.visible
-        is False
-    )
-    assert (
-        view.primers_list.controls[2].content.controls[5].content.visible
-        is False
-    )
-
-    # Click Up on Row 1 (P2)
-    row1_btns.controls[2].on_click(MagicMock())
+    # Click Up on Row 1 (P2) via header button
+    header.up_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # After moving P2 up, the list order should be P2, P1, P3, and focused
     # index should follow P2 (index 0)
@@ -393,15 +383,15 @@ def test_input_view_primer_reordering() -> None:
     assert input_data.primers[2]["name"] == "P3"
     assert view.focused_primer_index == 0
 
-    # In the updated UI, Row 0 (P2) should now have the buttons since it
-    # has focus
-    row0_btns = view.primers_list.controls[0].content.controls[5].content
-    assert row0_btns.visible is True
-    assert row0_btns.controls[2].disabled is True  # Up (first row)
-    assert row0_btns.controls[3].disabled is False  # Down
+    # In the updated UI, header buttons should update for index 0 (first row)
+    assert header.add_button.disabled is False
+    assert header.delete_button.disabled is False
+    assert header.up_button.disabled is True  # Up is disabled on the first row
+    assert header.down_button.disabled is False  # Down is enabled
 
-    # Click Down on Row 0 (P2)
-    row0_btns.controls[3].on_click(MagicMock())
+    # Click Down on P2 (index 0) via header button
+    header.down_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # P2 should be back at index 1, P1 at index 0, and focused index at 1
     assert input_data.primers[0]["name"] == "P1"
@@ -410,8 +400,8 @@ def test_input_view_primer_reordering() -> None:
     assert view.focused_primer_index == 1
 
     # Now click Down on P2 (index 1) to swap with P3 (index 2)
-    row1_btns = view.primers_list.controls[1].content.controls[5].content
-    row1_btns.controls[3].on_click(MagicMock())
+    header.down_button.on_click(MagicMock())
+    header = view.primer_input.primer_header
 
     # P2 should now be at index 2, P3 at index 1, and focused index at 2
     assert input_data.primers[0]["name"] == "P1"
@@ -420,9 +410,8 @@ def test_input_view_primer_reordering() -> None:
     assert view.focused_primer_index == 2
 
     # Verify that the down button is disabled on the last row (index 2)
-    row2_btns = view.primers_list.controls[2].content.controls[5].content
     assert (
-        row2_btns.controls[3].disabled is True
+        header.down_button.disabled is True
     )  # Down is disabled on the last row
 
 
@@ -1068,3 +1057,64 @@ def test_delete_selected_primers() -> None:
     assert input_data.primers[0]["seq"] == ""
     assert input_data.primers[0]["active"] is False
     assert view.delete_selected_button.disabled is True
+
+
+def test_tsv_paste_handling() -> None:
+    """Test pasting TSV data and parsing it correctly."""
+    from unittest.mock import MagicMock
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Get the text field (e.g. name field of first row)
+    name_field = view.primers_list.controls[0].name_field
+
+    # Trigger change handler with a multiline/tab value (paste)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = name_field
+    name_field.value = "PrimerA\tATGCTAG\nPrimerB\tCGATCGAT"
+
+    view._on_change_handler(mock_event)
+
+    # Check that both primers were added and not squashed
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "PrimerA"
+    assert input_data.primers[0]["seq"] == "ATGCTAG"
+    assert input_data.primers[1]["name"] == "PrimerB"
+    assert input_data.primers[1]["seq"] == "CGATCGAT"
+
+
+def test_enter_press_handling() -> None:
+    """Test that pressing Enter triggers submit and strips the newline."""
+    from unittest.mock import MagicMock
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+
+    submit_called = False
+
+    def on_stop_editing(e: ft.Event | None) -> None:
+        nonlocal submit_called
+        submit_called = True
+
+    view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
+    view.update_ui()
+
+    # Get the name field
+    name_field = view.primers_list.controls[0].name_field
+
+    # Trigger change handler with a value ending with a newline (Enter press)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = name_field
+    name_field.value = "PrimerA\n"
+
+    view._on_change_handler(mock_event)
+
+    # Check that the newline was stripped from the field
+    assert name_field.value == "PrimerA"
+    # Check that the submission callback was invoked
+    assert submit_called
+    # Check that no new row was parsed/added (length remains 1)
+    assert len(input_data.primers) == 1

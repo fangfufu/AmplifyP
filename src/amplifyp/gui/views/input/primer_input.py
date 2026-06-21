@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -37,6 +38,8 @@ from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
 from .primer_validation import validate_primers
 
+logger = logging.getLogger(__name__)
+
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
     """Input component for DNA primers list and details."""
@@ -47,9 +50,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         settings: GUISettings,
         input_data: GUIInput,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.ControlEvent], None],
-        handle_field_blur: Callable[[ft.ControlEvent], None],
-        handle_field_submit: Callable[[ft.Event], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
         clear_primers_callback: Callable[[ft.Event | None], None],
         delete_selected_callback: Callable[[ft.Event | None], None],
     ) -> None:
@@ -103,6 +106,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_divider_pan=self.layout_manager.on_primer_divider_pan,
             on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
+            on_add_primer=self._header_add_click,
+            on_delete_primer=self._header_delete_click,
+            on_move_primer_up=self._header_up_click,
+            on_move_primer_down=self._header_down_click,
         )
         # Compatibility links
         self.all_primers_checkbox = self.primer_header.all_primers_checkbox
@@ -124,6 +131,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_load=self._load_primers_click,
             on_clear=self.clear_primers_callback,
             on_delete_selected=self.delete_selected_callback,
+            on_copy=self._copy_primers_click,
+            on_paste=self._paste_primers_click,
         )
         # Compatibility links
         self.clear_primers_button = self.primer_toolbar.clear_button
@@ -156,20 +165,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             [
                 ft.ResponsiveRow(
                     [
-                        ft.Container(
-                            content=ft.Text(
-                                "Primers",
-                                weight=ft.FontWeight.BOLD,
-                                no_wrap=True,
-                            ),
-                            col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
-                            height=32,
-                            alignment=ft.Alignment(-1, 0),
-                        ),
-                        ft.Container(
-                            content=self.primer_toolbar,
-                            col={"lg": 9, "md": 9, "sm": 12, "xs": 12},
-                            alignment=ft.Alignment(1, 0),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Primers",
+                                    weight=ft.FontWeight.BOLD,
+                                    no_wrap=True,
+                                ),
+                                self.primer_toolbar,
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            wrap=True,
                         ),
                     ],
                     run_spacing=0,
@@ -273,18 +280,36 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
             # Auto-activate when transitioning from empty to filled
             is_filled = bool(p["name"].strip() and p["seq"].strip())
+            was_empty = (
+                not prev_p.get("name", "").strip()
+                or not prev_p.get("seq", "").strip()
+            )
+            was_active = prev_p.get("active", False)
             is_active = p["active"]
-            checkbox = p.get("checkbox")
-            if checkbox and checkbox.disabled and is_filled:
+
+            show_empty_errors = prev_p.get("show_empty_errors", False)
+            if is_active and not is_filled:
+                is_active = False
+                show_empty_errors = True
+                checkbox = p.get("checkbox")
+                if checkbox:
+                    checkbox.value = False
+            elif not is_active:
+                show_empty_errors = False
+
+            if is_filled and was_empty and not was_active:
                 is_active = True
-                checkbox.value = True
-                checkbox.disabled = False
+                show_empty_errors = False
+                checkbox = p.get("checkbox")
+                if checkbox:
+                    checkbox.value = True
 
             primers.append(
                 {
                     "name": p["name"],
                     "seq": p["seq"],
                     "active": is_active,
+                    "show_empty_errors": show_empty_errors,
                     "name_touched": prev_p.get("name_touched", False),
                     "seq_touched": prev_p.get("seq_touched", False),
                 }
@@ -301,12 +326,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         # Run background primer construction/validation
         new_validation_errors = validate_primers(primers)
-
-        # Force active = False in state for empty fields
-        for p in primers:
-            is_empty = not p["name"].strip() or not p["seq"].strip()
-            if is_empty:
-                p["active"] = False
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
@@ -340,6 +359,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_divider_pan=self.layout_manager.on_primer_divider_pan,
             on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
+            on_add_primer=self._header_add_click,
+            on_delete_primer=self._header_delete_click,
+            on_move_primer_up=self._header_up_click,
+            on_move_primer_down=self._header_down_click,
         )
         self.all_primers_checkbox = self.primer_header.all_primers_checkbox
         self.primers_header = self.primer_header.header_row
@@ -353,11 +376,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         try:
             if container.page:
                 container.update()
-        except Exception:  # noqa: S110
-            pass
+        except RuntimeError:
+            logger.debug("Container page detached, skipping update")
 
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
+        self._update_header_buttons_state()
 
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of the delete button based on selection.
@@ -492,6 +516,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         duplicates (by name or sequence).
         """
         self.primers_list.update_row_highlights()
+        self._update_header_buttons_state()
 
     def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer.
@@ -544,3 +569,173 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    async def _copy_primers_click(self, e: ft.Event | None) -> None:
+        """Copy selected or focused primers to clipboard in TSV format."""
+        primers = self.input_data.primers
+        selected_primers = [p for p in primers if p.get("active", False)]
+
+        # Fallback to focused primer if no checked boxes
+        if not selected_primers and self.focused_primer_index is not None:
+            if 0 <= self.focused_primer_index < len(primers):
+                selected_primers = [primers[self.focused_primer_index]]
+
+        if not selected_primers:
+            self._show_notification("No primers selected or focused to copy.")
+            return
+
+        lines = []
+        for p in selected_primers:
+            name = str(p.get("name", "")).strip()
+            seq = str(p.get("seq", "")).strip()
+            lines.append(f"{name}\t{seq}")
+
+        tsv_text = "\n".join(lines)
+        await ft.Clipboard().set(tsv_text)
+        self._show_notification(
+            f"Copied {len(selected_primers)} primer(s) to clipboard."
+        )
+
+    async def _paste_primers_click(self, e: ft.Event | None) -> None:
+        """Paste primers from clipboard starting at focused index or end."""
+        try:
+            clipboard_text = await ft.Clipboard().get()
+        except Exception as ex:
+            logger.warning("Failed to access clipboard: %s", ex)
+            self._show_notification(
+                "Unable to read clipboard. Try pasting directly into a "
+                "primer field using Ctrl+V."
+            )
+            return
+        if not clipboard_text:
+            self._show_notification("Clipboard is empty.")
+            return
+
+        parsed = []
+        for line in clipboard_text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                name = parts[0].strip()
+                seq = parts[1].strip()
+            elif len(parts) == 1:
+                subparts = line.split(",")
+                if len(subparts) >= 2:
+                    name = subparts[0].strip()
+                    seq = subparts[1].strip()
+                else:
+                    val = line.strip()
+                    cleaned = clean_sequence(val)
+                    is_seq = False
+                    if cleaned:
+                        is_seq = all(
+                            c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
+                            for c in cleaned
+                        )
+                    if is_seq:
+                        name = ""
+                        seq = val
+                    else:
+                        name = val
+                        seq = ""
+            else:
+                continue
+            parsed.append({"name": name, "seq": seq, "active": True})
+
+        if not parsed:
+            self._show_notification("No valid primers found in clipboard.")
+            return
+
+        primers = self.input_data.primers
+        start_idx = (
+            self.focused_primer_index
+            if self.focused_primer_index is not None
+            else len(primers)
+        )
+
+        # Replace single empty row
+        if (
+            len(primers) == 1
+            and not primers[0].get("name")
+            and not primers[0].get("seq")
+        ):
+            primers.clear()
+            start_idx = 0
+
+        for i, new_p in enumerate(parsed):
+            target_idx = start_idx + i
+            if target_idx < len(primers):
+                primers[target_idx]["name"] = new_p["name"]
+                primers[target_idx]["seq"] = new_p["seq"]
+                primers[target_idx]["active"] = True
+            else:
+                primers.append(new_p)
+
+        self.update_ui()
+        self.sync_to_state(rebuild_if_needed=True)
+        if self.on_change_handler is not None:
+            self.on_change_handler(None)
+
+        self._show_notification(f"Pasted {len(parsed)} primer(s).")
+
+    def _update_header_buttons_state(self) -> None:
+        """Update enabled/disabled state of header action buttons."""
+        if not hasattr(self, "primer_header") or self.primer_header is None:
+            return
+
+        idx = self.focused_primer_index
+        num_primers = len(self.input_data.primers)
+
+        if idx is None:
+            self.primer_header.add_button.disabled = False
+            self.primer_header.delete_button.disabled = True
+            self.primer_header.up_button.disabled = True
+            self.primer_header.down_button.disabled = True
+        else:
+            self.primer_header.add_button.disabled = False
+            self.primer_header.delete_button.disabled = False
+            self.primer_header.up_button.disabled = idx == 0
+            self.primer_header.down_button.disabled = idx == num_primers - 1
+
+        try:
+            if self.primer_header.page:
+                self.primer_header.update()
+        except RuntimeError:
+            logger.debug("Header page detached, skipping update")
+
+    def _header_add_click(self, e: ft.Event | None) -> None:
+        """Handle header Add button click."""
+        idx = (
+            self.focused_primer_index
+            if self.focused_primer_index is not None
+            else len(self.input_data.primers) - 1
+        )
+        self.action_controller.on_add_primer_row(idx)
+        self.focused_primer_index = idx + 1
+        self._update_header_buttons_state()
+
+    def _header_delete_click(self, e: ft.Event | None) -> None:
+        """Handle header Delete button click."""
+        if self.focused_primer_index is not None:
+            self.action_controller.delete_primers({self.focused_primer_index})
+            self._update_header_buttons_state()
+
+    def _header_up_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Up button click."""
+        if (
+            self.focused_primer_index is not None
+            and self.focused_primer_index > 0
+        ):
+            self.action_controller.move_primer(self.focused_primer_index, -1)
+            self._update_header_buttons_state()
+
+    def _header_down_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Down button click."""
+        if (
+            self.focused_primer_index is not None
+            and self.focused_primer_index < len(self.input_data.primers) - 1
+        ):
+            self.action_controller.move_primer(self.focused_primer_index, 1)
+            self._update_header_buttons_state()

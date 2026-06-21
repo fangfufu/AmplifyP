@@ -17,13 +17,16 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -45,13 +48,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         name_column_width: float,
         settings: GUISettings,
         on_change_handler: Callable[[ft.Event | None], None],
-        handle_field_focus: Callable[[ft.ControlEvent], None],
-        handle_field_blur: Callable[[ft.ControlEvent], None],
-        handle_field_submit: Callable[[ft.Event], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
         on_row_click: Callable[[int, ft.TextField], None],
-        on_move_primer: Callable[[int, int], None],
-        on_delete_primer: Callable[[int], None],
-        on_add_primer: Callable[[int], None],
         on_divider_pan: Callable[[ft.DragUpdateEvent], None],
         on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         is_focused: bool,
@@ -75,9 +75,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             handle_field_blur: Callback for field blur events.
             handle_field_submit: Callback for field submit events.
             on_row_click: Callback when the row container is clicked.
-            on_move_primer: Callback to move a primer up or down.
-            on_delete_primer: Callback to delete a primer.
-            on_add_primer: Callback to add a new primer below.
             on_divider_pan: Callback for dragging the name/sequence divider.
             on_divider_pan_end: Callback for ending the divider drag.
             is_focused: Whether this row is currently focused.
@@ -107,7 +104,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = self.settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except Exception:
+            except (ValueError, AttributeError, ArithmeticError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name,
+                    exc_info=True,
+                )
                 tm_val = "-"
 
         scheme = self.settings.get("tm_colour_scheme", "None")
@@ -127,8 +129,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.tm_container = ft.Container(
             content=self.tm_text,
             width=50,
-            padding=ft.Padding(5, 0, 0, 0),
-            alignment=ft.Alignment(-1, 0),
+            padding=ft.Padding(0, 0, 5, 0),
+            alignment=ft.Alignment(1, 0),
             visible=show_temp,
         )
         self.tm_divider = ft.Container(
@@ -139,11 +141,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             visible=show_temp,
         )
 
-        is_empty = not name.strip() or not seq.strip()
         self.checkbox = ft.Checkbox(
-            value=is_active if not is_empty else False,
+            value=is_active,
             on_change=on_change_handler,
-            disabled=is_empty,
+            disabled=False,
             visible=True,
         )
         self.checkbox_container = ft.Container(
@@ -154,30 +155,32 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.name_field = ft.TextField(
             value=name,
-            hint_text="New Primer Name",
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
             height=30 if not name_error else None,
             width=name_column_width,
             border=ft.InputBorder.NONE,
+            multiline=True,
             data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
         )
         self.seq_field = ft.TextField(
             value=seq,
-            hint_text="New Primer Sequence",
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
             height=30 if not seq_error else None,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
+            multiline=True,
             data={"idx": idx, "field": "seq"},
             expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
         )
         if name_error:
             self.name_field.error = name_error
@@ -203,68 +206,15 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30,
         )
 
-        self.reorder_controls = None
-        self.control_container = None
-        up_button = ft.IconButton(
-            icon=ft.Icons.ARROW_UPWARD,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Move Up",
-            disabled=(idx == 0),
-            on_click=lambda e: on_move_primer(idx, -1),
-        )
-        down_button = ft.IconButton(
-            icon=ft.Icons.ARROW_DOWNWARD,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Move Down",
-            disabled=is_last_row,
-            on_click=lambda e: on_move_primer(idx, 1),
-        )
-        delete_button = ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Delete Primer",
-            on_click=lambda e: on_delete_primer(idx),
-        )
-        add_button = ft.IconButton(
-            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Add Primer Below",
-            on_click=lambda e: on_add_primer(idx),
-        )
-        self.reorder_controls = ft.Row(
-            [add_button, delete_button, up_button, down_button],
-            spacing=2,
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
-        self.control_container = ft.Container(
-            content=self.reorder_controls,
-            width=108 if is_focused else 0,
-            height=30,
-            alignment=ft.Alignment(0, 0),
-        )
-        self.reorder_controls.visible = is_focused
-
         controls = [
             self.checkbox_container,
             self.active_divider,
             self.name_field,
             self.divider,
+            self.seq_field,
         ]
         if show_temp:
-            controls.extend([self.tm_container, self.tm_divider])
-        controls.extend([self.seq_field, self.control_container])
+            controls.extend([self.tm_divider, self.tm_container])
 
         self.content = ft.Row(
             controls,
@@ -276,10 +226,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
     ) -> None:
-        """Update the background colour and reorder buttons layout.
+        """Update the background colour.
 
         Args:
-            is_focused: Whether this row should show the reorder controls.
+            is_focused: Whether this row is currently focused.
             is_dup: Whether this primer is a duplicate.
         """
         if is_focused:
@@ -288,19 +238,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self.bgcolor = GUIColours.DUPLICATE_BG
         else:
             self.bgcolor = None  # type: ignore[assignment]
-
-        if self.control_container is not None:
-            self.control_container.width = 108 if is_focused else 0
-            try:
-                self.control_container.update()
-            except RuntimeError:
-                pass
-        if self.reorder_controls is not None:
-            self.reorder_controls.visible = is_focused
-            try:
-                self.reorder_controls.update()
-            except RuntimeError:
-                pass
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
@@ -331,31 +268,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
 
-        is_empty = (
-            not self.name_field.value.strip()
-            or not self.seq_field.value.strip()
-        )
-        self.checkbox.disabled = is_empty
-        if self.checkbox.disabled:
-            self.checkbox.value = False
+        self.checkbox.disabled = False
 
     def update_index(
         self,
         new_idx: int,
-        is_last_row: bool,
-        on_move_primer: Callable[[int, int], None],
-        on_delete_primer: Callable[[int], None],
-        on_add_primer: Callable[[int], None],
         on_row_click: Callable[[int, ft.TextField], None],
     ) -> None:
         """Update the index of the row and refresh its handlers and controls.
 
         Args:
             new_idx: The new zero-based index for this primer row.
-            is_last_row: Whether this row is now the last in the list.
-            on_move_primer: Callback to move a primer up or down.
-            on_delete_primer: Callback to delete a primer.
-            on_add_primer: Callback to add a new primer below.
             on_row_click: Callback when the row container is clicked.
         """
         self.data = new_idx
@@ -366,25 +289,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         # Update click handler with the new index
         self.on_click = lambda e: on_row_click(new_idx, self.name_field)
 
-        # Update reorder control buttons with the new index and state
-        if self.reorder_controls is not None:
-            add_button = cast(ft.IconButton, self.reorder_controls.controls[0])
-            delete_button = cast(
-                ft.IconButton, self.reorder_controls.controls[1]
-            )
-            up_button = cast(ft.IconButton, self.reorder_controls.controls[2])
-            down_button = cast(ft.IconButton, self.reorder_controls.controls[3])
-
-            add_button.on_click = lambda e: on_add_primer(new_idx)
-            delete_button.on_click = lambda e: on_delete_primer(new_idx)
-            up_button.on_click = lambda e: on_move_primer(new_idx, -1)
-            up_button.disabled = new_idx == 0
-            down_button.on_click = lambda e: on_move_primer(new_idx, 1)
-            down_button.disabled = is_last_row
-
     def update_tm(self, settings: GUISettings) -> None:
         """Update the displayed Tm in-place based on the current sequence."""
-        # ponytail: calculates Tm using user-selected formula
         seq_val = self.seq_field.value
         name_val = self.name_field.value
         tm_val = ""
@@ -400,7 +306,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except Exception:
+            except (ValueError, AttributeError, ArithmeticError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name_val,
+                    exc_info=True,
+                )
                 tm_val = "-"
         self.tm_text.value = tm_val
         scheme = settings.get("tm_colour_scheme", "None")
@@ -414,4 +325,4 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         try:
             self.tm_text.update()
         except RuntimeError:
-            pass
+            logger.debug("Tm text page detached, skipping update")
