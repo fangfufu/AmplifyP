@@ -151,7 +151,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
     # Ratio R = sqrt([Mg2+]) / [Mon+]
-    if mono_M == 0:
+    if math.isclose(mono_M, 0.0, abs_tol=1e-9):
         ratio = 999.0  # Large number, Divalent dominant
     else:
         ratio = math.sqrt(div_M) / mono_M
@@ -173,7 +173,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         total_dna_conc_M = 50e-9
 
     denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
-    if denom_1M == 0:  # pragma: no cover
+    if math.isclose(denom_1M, 0.0, abs_tol=1e-9):  # pragma: no cover
         raise InsufficientThermodynamicDataError(
             "Denominator is zero in Tm calculation"
         )
@@ -184,18 +184,18 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         )
 
     tm_1m_K = dh / denom_1M
-    if tm_1m_K == 0.0:
+    if math.isclose(tm_1m_K, 0.0, abs_tol=1e-9):
         raise InsufficientThermodynamicDataError("Calculated base Tm is zero")
 
     # Now apply corrections
-    if div_M == 0:
+    if math.isclose(div_M, 0.0, abs_tol=1e-9):
         # Monovalent only (SantaLucia 1998)
         # Apply strict SantaLucia 1998 entropy correction
         # This effectively modifies the denom.
         if mono_M > 0:
             ds_corr = 0.368 * (n - 1) * math.log(mono_M)
             denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
-            if denom_corr == 0:
+            if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
                 raise InsufficientThermodynamicDataError(
                     "Denominator with salt correction is zero"
                 )
@@ -211,7 +211,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # We will use the SantaLucia correction with [Mon+]
         ds_corr = 0.368 * (n - 1) * math.log(mono_M)
         denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
-        if denom_corr == 0:
+        if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
             raise InsufficientThermodynamicDataError(
                 "Denominator with salt correction is zero"
             )
@@ -251,7 +251,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # well.
 
         tm_inv = (1.0 / tm_1m_K) + corr
-        if tm_inv == 0.0:
+        if math.isclose(tm_inv, 0.0, abs_tol=1e-9):
             raise InsufficientThermodynamicDataError(
                 "Inverse Tm with salt correction is zero"
             )
@@ -320,7 +320,7 @@ def calculate_tm_lander_amplify4(
     log_salt = 16.6 * math.log10(salt_conc_val / 1000.0)
 
     denom = entr + log_dna
-    if denom == 0.0:
+    if math.isclose(denom, 0.0, abs_tol=1e-9):
         raise InsufficientThermodynamicDataError(
             "Denominator is zero in Tm calculation (Amplify4)"
         )
