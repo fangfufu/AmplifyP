@@ -66,6 +66,7 @@ class GUISettings:
         """
         from amplifyp.dna import Nucleotides
 
+        self._cached_tm_settings: TMSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -169,6 +170,7 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
+        self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
             if isinstance(val, str):
@@ -358,7 +360,10 @@ class GUISettings:
         """
         from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
 
-        return TMSettings(
+        if self._cached_tm_settings is not None:
+            return self._cached_tm_settings
+
+        self._cached_tm_settings = TMSettings(
             dna_conc=self._safe_float(
                 "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
             ),
@@ -375,6 +380,7 @@ class GUISettings:
                 "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
             ),
         )
+        return self._cached_tm_settings
 
     def calculate_primer_tm(self, primer: "Primer") -> float:
         """Calculate the melting temperature of a primer based on settings.
@@ -455,6 +461,7 @@ class GUISettings:
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
             GUIColours.dark_mode = bool(dark_mode_val)
+        self._cached_tm_settings = None
 
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration.

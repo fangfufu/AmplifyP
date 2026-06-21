@@ -49,15 +49,15 @@ def test_input_view_row_boxes_editing() -> None:
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
     active_divider = row.controls[1]
-    name_scroll = row.controls[2]
+    name_field = row.controls[2]
     divider = row.controls[3]
-    seq_scroll = row.controls[4]
+    seq_field = row.controls[4]
 
     assert isinstance(checkbox, ft.Checkbox)
     assert isinstance(active_divider, ft.Container)
-    assert isinstance(name_scroll, ft.ListView)
+    assert isinstance(name_field, ft.TextField)
     assert isinstance(divider, ft.GestureDetector)
-    assert isinstance(seq_scroll, ft.ListView)
+    assert isinstance(seq_field, ft.TextField)
 
     name_field = container.name_field
     seq_field = container.seq_field
@@ -268,7 +268,7 @@ def test_input_view_sequence_validation() -> None:
 
     assert seq_field.error is not None
     assert "contains invalid characters" in seq_field.error
-    assert container.height is None  # Row container expanded/autosized
+    assert container.height == 80  # Row container expanded for error message
 
     # Fix the sequence
     seq_field.value = "GCATGCATGC"

@@ -352,32 +352,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Rebuilds the primer list and updates the delete button disabled
         state based on current selections.
         """
-        # Recreate the header to make sure controls match settings and indices
-        self.primer_header = PrimerHeader(
-            settings=self.settings,
-            on_toggle_all=self._on_toggle_all_primers,
-            on_divider_pan=self.layout_manager.on_primer_divider_pan,
-            on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
-            name_column_width=self.name_column_width,
-            on_add_primer=self._header_add_click,
-            on_delete_primer=self._header_delete_click,
-            on_move_primer_up=self._header_up_click,
-            on_move_primer_down=self._header_down_click,
-        )
-        self.all_primers_checkbox = self.primer_header.all_primers_checkbox
-        self.primers_header = self.primer_header.header_row
-        self.primers_header_container = self.primer_header
-
         # Replace the header in the UI container controls
         column = cast(ft.Column, self.content)
         container = cast(ft.Container, column.controls[1])
         inner_column = cast(ft.Column, container.content)
         inner_column.controls[0] = self.primer_header
-        try:
-            if container.page:
-                container.update()
-        except RuntimeError:
-            logger.debug("Container page detached, skipping update")
 
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
@@ -459,8 +438,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
-        if self.app_page:
-            self.app_page.update()
 
     def _get_duplicate_indices_for_list(
         self, primers: list[dict[str, Any]]

@@ -15,7 +15,9 @@
 
 """GUI controller for orchestrating views, state, and page events."""
 
+import asyncio
 import logging
+import time
 from typing import cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -514,6 +516,9 @@ class GUIController:
         try:
             from amplifyp.gui.util import pick_and_read_file
 
+            logger.info("load_state: starting")
+            t0 = time.perf_counter()
+
             content = await pick_and_read_file(
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
@@ -522,7 +527,12 @@ class GUIController:
             if content is None:
                 return
 
+            dt = time.perf_counter() - t0
+            logger.info(f"load_state: pick_and_read_file took {dt:.2f}s")
+            t1 = time.perf_counter()
             parsed_state = yaml.safe_load(content)
+            dt = time.perf_counter() - t1
+            logger.info(f"load_state: yaml.safe_load took {dt:.2f}s")
 
             if not isinstance(parsed_state, dict):
                 self.notification_helper.show_message(
@@ -530,18 +540,47 @@ class GUIController:
                 )
                 return
 
+            t2 = time.perf_counter()
             if "input" in parsed_state:
                 self.input_data.from_dict(parsed_state["input"])
             else:
                 # Legacy format: input data at top level
                 self.input_data.from_dict(parsed_state)
+            dt = time.perf_counter() - t2
+            logger.info(f"load_state: input_data.from_dict took {dt:.2f}s")
+
+            t3 = time.perf_counter()
             if "settings" in parsed_state:
                 self.settings.from_dict(parsed_state["settings"])
                 self.settings.save_to_local(self.page)
+            dt = time.perf_counter() - t3
+            logger.info(f"load_state: settings.from_dict took {dt:.2f}s")
+
+            t4 = time.perf_counter()
             self.apply_theme()
+            dt = time.perf_counter() - t4
+            logger.info(f"load_state: apply_theme took {dt:.2f}s")
+
+            await asyncio.sleep(0)
+
+            t5 = time.perf_counter()
             self.input_view.update_ui()
+            dt = time.perf_counter() - t5
+            logger.info(f"load_state: input_view.update_ui took {dt:.2f}s")
+
+            t6 = time.perf_counter()
             self.settings_view.update_ui()
+            dt = time.perf_counter() - t6
+            logger.info(f"load_state: settings_view.update_ui took {dt:.2f}s")
+
+            logger.info("load_state: about to call update_pcr_button_state")
+            t7 = time.perf_counter()
             self.update_pcr_button_state()
+            dt = time.perf_counter() - t7
+            logger.info(f"load_state: update_pcr_button_state took {dt:.2f}s")
+
+            dt = time.perf_counter() - t0
+            logger.info(f"load_state: TOTAL {dt:.2f}s")
             self.notification_helper.show_message("State loaded successfully!")
         except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state:")

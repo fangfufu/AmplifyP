@@ -241,5 +241,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family
         )
-        self.template_sequence.value = self.input_data.template
-        self.template_circular.value = self.input_data.template_circular
+        if self.template_sequence.value != self.input_data.template:
+            self.template_sequence.value = self.input_data.template
+        if self.template_circular.value != self.input_data.template_circular:
+            self.template_circular.value = self.input_data.template_circular
