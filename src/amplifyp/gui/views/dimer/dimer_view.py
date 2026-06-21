@@ -130,7 +130,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
                     )
                     self.result_list.controls.append(card)
         except (OSError, ValueError, RuntimeError) as ex:
-            logger.error("Dimer analysis failed: %s", ex, exc_info=True)
+            logger.exception("Dimer analysis failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",

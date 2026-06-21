@@ -66,14 +66,13 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
     def update_list_ui(self) -> None:
         """Update Flet UI controls to match the central state.
 
-        Clears existing controls, creates a new PrimerRow for each
-        primer in the input data, validates all primers, and updates
-        highlights and header checkbox state.
+        Reuses existing PrimerRow controls where possible, adjusting
+        the list size incrementally. Updates highlights and header
+        checkbox state.
         """
         font_family = self.primer_input.settings.get(
             "font_family", "Roboto Mono"
         )
-        self.controls.clear()
 
         # Initialise with a single empty row if the list is completely empty
         if not self.primer_input.input_data.primers:
@@ -81,57 +80,64 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 {"name": "", "seq": "", "active": False}
             ]
 
-        dup_indices = self.primer_input._get_duplicate_indices()
-
         self.primer_input.validation_errors = validate_primers(
             self.primer_input.input_data.primers
         )
         num_primers = len(self.primer_input.input_data.primers)
+        num_controls = len(self.controls)
+
+        # 1. Adjust length of controls to match num_primers
+        if num_controls > num_primers:
+            self.controls[num_primers:] = []
+        elif num_controls < num_primers:
+            for idx in range(num_controls, num_primers):
+                row = PrimerRow(
+                    idx=idx,
+                    name="",
+                    seq="",
+                    is_active=False,
+                    is_dup=False,
+                    name_error=None,
+                    seq_error=None,
+                    font_family=font_family,
+                    name_column_width=self.primer_input.name_column_width,
+                    settings=self.primer_input.settings,
+                    on_change_handler=self.primer_input.on_change_handler,
+                    handle_field_focus=self.primer_input.handle_field_focus,
+                    handle_field_blur=self.primer_input.handle_field_blur,
+                    handle_field_submit=self.primer_input.handle_field_submit,
+                    on_row_click=self.primer_input.action_controller.handle_row_click,
+                    on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
+                    on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
+                    is_focused=False,
+                    is_last_row=(idx == num_primers - 1),
+                )
+                self.controls.append(row)
+
+        # 2. Update controls in-place
         for idx, p in enumerate(self.primer_input.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
             is_active = p.get("active", True)
             error_message = self.primer_input.validation_errors[idx]
-            if isinstance(error_message, dict):
-                name_err = error_message.get("name")
-            elif error_message == "Duplicate primer name":
-                name_err = error_message
-            else:
-                name_err = None
 
-            if isinstance(error_message, dict):
-                seq_err = error_message.get("seq")
-            elif error_message == "Duplicate primer name":
-                seq_err = None
-            else:
-                seq_err = error_message
+            row = self.controls[idx]
+            if not isinstance(row, PrimerRow):
+                continue
 
-            is_dup = idx in dup_indices
-            is_focused = idx == self.primer_input.focused_primer_index
-            is_last_row = idx == num_primers - 1
-
-            row = PrimerRow(
-                idx=idx,
-                name=name_val,
-                seq=seq_val,
-                is_active=is_active,
-                is_dup=is_dup,
-                name_error=name_err,
-                seq_error=seq_err,
-                font_family=font_family,
-                name_column_width=self.primer_input.name_column_width,
-                settings=self.primer_input.settings,
-                on_change_handler=self.primer_input.on_change_handler,
-                handle_field_focus=self.primer_input.handle_field_focus,
-                handle_field_blur=self.primer_input.handle_field_blur,
-                handle_field_submit=self.primer_input.handle_field_submit,
-                on_row_click=self.primer_input.action_controller.handle_row_click,
-                on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
-                on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
-                is_focused=is_focused,
-                is_last_row=is_last_row,
+            row.update_index(
+                idx, self.primer_input.action_controller.handle_row_click
             )
-            self.controls.append(row)
+
+            if row.name_field.value != name_val:
+                row.name_field.value = name_val
+            if row.seq_field.value != seq_val:
+                row.seq_field.value = seq_val
+            if row.checkbox.value != is_active:
+                row.checkbox.value = is_active
+
+            row.set_error(error_message)
+            row.update_tm(self.primer_input.settings)
 
         self.update_row_highlights()
         self.primer_input._update_primer_info_panel()

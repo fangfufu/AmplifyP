@@ -248,7 +248,9 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
     name_inputs = page.locator(PRIMER_INPUT_SEL)
     expect(
-        name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(4 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
 
     print("Adding extra invalid (I3) primer...")
@@ -256,7 +258,9 @@ def test_e2e_primer_lifecycle_and_state(
     # Verify I3 added: 7 rows (14 inputs) and checkbox is enabled.
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(14)
     expect(
-        name_inputs.nth(5 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(5 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_enabled(timeout=15000)
 
     print("Deleting V3 and I3 using delete buttons...")
@@ -288,7 +292,9 @@ def test_e2e_primer_lifecycle_and_state(
     # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
     expect(
-        name_inputs.nth(4 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(4 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_enabled(timeout=15000)
 
     # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
@@ -316,34 +322,46 @@ def test_e2e_primer_lifecycle_and_state(
     # 4. Verify checkboxes and try to activate invalid primers
     print("Verifying checkbox state and attempting to activate invalid ones...")
     expect(
-        name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(0 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(1 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(2 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     page.screenshot(path="debug_checkboxes.png")
     expect(
-        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(3 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
 
     # Uncheck them to return to unchecked baseline state
-    name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox").click(
-        force=True
-    )
-    name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox").click(
-        force=True
-    )
+    name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
+    name_inputs.nth(3 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
     time.sleep(1)
 
     # Ensure they are unchecked again
     expect(
-        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(2 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).not_to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(3 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).not_to_be_checked(timeout=15000)
 
     # 5. Save the primer list
@@ -387,16 +405,24 @@ def test_e2e_primer_lifecycle_and_state(
 
     # Verify loaded primers: V1/V2 checked; I1/I2 enabled and unchecked
     expect(
-        name_inputs.nth(0 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(0 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(1 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(1 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(2 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(2 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
     expect(
-        name_inputs.nth(3 * 2).locator("xpath=../..").get_by_role("checkbox")
+        name_inputs.nth(3 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
     ).to_be_checked(timeout=15000)
 
     # 8. Save the state

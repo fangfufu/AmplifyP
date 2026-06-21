@@ -49,14 +49,19 @@ def test_input_view_row_boxes_editing() -> None:
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
     active_divider = row.controls[1]
-    name_field = row.controls[2]
+    name_scroll = row.controls[2]
     divider = row.controls[3]
-    seq_field = row.controls[4]
+    seq_scroll = row.controls[4]
 
     assert isinstance(checkbox, ft.Checkbox)
     assert isinstance(active_divider, ft.Container)
-    assert isinstance(name_field, ft.TextField)
+    assert isinstance(name_scroll, ft.ListView)
     assert isinstance(divider, ft.GestureDetector)
+    assert isinstance(seq_scroll, ft.ListView)
+
+    name_field = container.name_field
+    seq_field = container.seq_field
+    assert isinstance(name_field, ft.TextField)
     assert isinstance(seq_field, ft.TextField)
 
     assert checkbox.value is True
@@ -91,8 +96,8 @@ def test_input_view_duplicate_warning() -> None:
     assert view.primers_list.controls[1].bgcolor is None
 
     # Change the second primer's name to P1 (duplicate name)
-    second_row = view.primers_list.controls[1].content
-    second_row.controls[2].value = "P1"
+    second_row = view.primers_list.controls[1]
+    second_row.name_field.value = "P1"
     view.sync_to_state()
 
     # Both rows should have colour warning set to RED_100
@@ -100,8 +105,8 @@ def test_input_view_duplicate_warning() -> None:
     assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
 
     # Resolve duplicate name, introduce duplicate sequence (case-insensitive)
-    second_row.controls[2].value = "P2"
-    second_row.controls[4].value = "gcatgcatgc"
+    second_row.name_field.value = "P2"
+    second_row.seq_field.value = "gcatgcatgc"
     view.sync_to_state()
 
     assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_100
@@ -247,8 +252,7 @@ def test_input_view_sequence_validation() -> None:
     view.update_ui()
 
     container = view.primers_list.controls[0]
-    row = container.content
-    seq_field = row.controls[4]
+    seq_field = container.seq_field
 
     # Verify no error initially
     assert seq_field.error is None
@@ -260,8 +264,7 @@ def test_input_view_sequence_validation() -> None:
 
     # Re-fetch elements since view rebuilt
     container = view.primers_list.controls[0]
-    row = container.content
-    seq_field = row.controls[4]
+    seq_field = container.seq_field
 
     assert seq_field.error is not None
     assert "contains invalid characters" in seq_field.error
@@ -272,8 +275,7 @@ def test_input_view_sequence_validation() -> None:
     view.sync_to_state()
 
     container = view.primers_list.controls[0]
-    row = container.content
-    seq_field = row.controls[4]
+    seq_field = container.seq_field
 
     assert seq_field.error is None
     assert container.height == 30
@@ -326,7 +328,7 @@ def test_input_view_row_single_click() -> None:
     view.update_ui()
 
     container = view.primers_list.controls[0]
-    name_field = container.content.controls[2]
+    name_field = container.name_field
 
     # Mock focus method on TextField
     name_field.focus = MagicMock()
@@ -956,8 +958,8 @@ def test_input_view_focus_preservation_transition() -> None:
     view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
     view.update_ui()
 
-    p1_name_field = view.primers_list.controls[0].content.controls[2]
-    p2_name_field = view.primers_list.controls[1].content.controls[2]
+    p1_name_field = view.primers_list.controls[0].name_field
+    p2_name_field = view.primers_list.controls[1].name_field
 
     # Focus P1
     mock_focus_event_p1 = MagicMock(spec=ft.ControlEvent)

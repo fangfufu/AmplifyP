@@ -209,6 +209,34 @@ class _GUIColoursMeta(type):
         """Get transparent colour."""
         return cast(str, ft.Colors.TRANSPARENT)
 
+    @property
+    def GRADIENT_GREY(cls) -> str:
+        """Get grey colour for temperature gradient."""
+        return "#9e9e9e"
+
+    @property
+    def GRADIENT_GREEN(cls) -> str:
+        """Get green/blue gradient colour for temperature."""
+        return (
+            "#1e88e5"  # ft.Colors.BLUE_600
+            if cls._colour_deficient_mode
+            else "#388e3c"  # ft.Colors.GREEN_600
+        )
+
+    @property
+    def GRADIENT_YELLOW(cls) -> str:
+        """Get yellow/orange gradient colour for temperature."""
+        return (
+            "#f57c00"  # ft.Colors.ORANGE_600
+            if cls._colour_deficient_mode
+            else "#fdd835"  # ft.Colors.YELLOW_600
+        )
+
+    @property
+    def GRADIENT_RED(cls) -> str:
+        """Get red colour for temperature gradient."""
+        return "#d32f2f"  # ft.Colors.RED_700
+
 
 class GUIColours(metaclass=_GUIColoursMeta):
     """Centralised semantic colour constants for the GUI."""
@@ -217,57 +245,112 @@ class GUIColours(metaclass=_GUIColoursMeta):
     _dark_mode = False
 
 
-def tm_colour(tm_value: float | None, scheme: str) -> ft.Colors | None:
-    """Return a Flet colour enum for the given Tm and colour scheme.
+def _hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
+    """Convert a hex colour string to an (R, G, B) tuple.
 
-    Returns None when scheme is "None" or unrecognised (no colouring).
+    Args:
+        hex_str: A string of the format "#RRGGBB".
+
+    Returns:
+        A tuple of (R, G, B) integers.
+    """
+    hex_clean = hex_str.lstrip("#")
+    return (
+        int(hex_clean[0:2], 16),
+        int(hex_clean[2:4], 16),
+        int(hex_clean[4:6], 16),
+    )
+
+
+def _rgb_to_hex(r: int, g: int, b: int) -> str:
+    """Convert an (R, G, B) tuple to a hex colour string.
+
+    Args:
+        r: Red component (0-255).
+        g: Green component (0-255).
+        b: Blue component (0-255).
+
+    Returns:
+        A string of the format "#RRGGBB".
+    """
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _interpolate_colour(colour_1: str, colour_2: str, t: float) -> str:
+    """Interpolate between two hex colours by factor t (0 to 1).
+
+    Args:
+        colour_1: Starting hex colour.
+        colour_2: Ending hex colour.
+        t: Interpolation factor between 0.0 and 1.0.
+
+    Returns:
+        Interpolated hex colour.
+    """
+    r1, g1, b1 = _hex_to_rgb(colour_1)
+    r2, g2, b2 = _hex_to_rgb(colour_2)
+    r = int(r1 + (r2 - r1) * t)
+    g = int(g1 + (g2 - g1) * t)
+    b = int(b1 + (b2 - b1) * t)
+    return _rgb_to_hex(r, g, b)
+
+
+def tm_colour(tm_value: float | None, scheme: str) -> str | None:
+    """Return a Flet colour or hex string for the given Tm.
+
+    Returns None when scheme is "None" or unrecognised.
 
     Args:
         tm_value: The melting temperature in degrees Celsius, or None.
         scheme: One of "None", "Cool-Warm", or "Traffic Light".
 
     Returns:
-        A Flet Colors enum value, or None if no colouring should be applied.
+        A Flet Colors enum value/hex string, or None.
     """
     if tm_value is None or scheme == "None":
         return None
 
     if scheme == "Traffic Light":
-        if GUIColours.colour_deficient_mode:
-            # Colour-blind-safe: blue (high), orange (mid), red (low)
-            if tm_value >= 60:
-                return ft.Colors.BLUE_600
-            if tm_value >= 50:
-                return ft.Colors.ORANGE_600
-            return ft.Colors.RED_700
-        else:
-            if tm_value >= 60:
-                return ft.Colors.GREEN_600
-            if tm_value >= 50:
-                return ft.Colors.ORANGE_600
-            return ft.Colors.RED_700
+        if tm_value <= 0:
+            return GUIColours.GRADIENT_GREY
+        if tm_value < 55:
+            t = tm_value / 55.0
+            return _interpolate_colour(
+                GUIColours.GRADIENT_GREY, GUIColours.GRADIENT_GREEN, t
+            )
+        if tm_value < 65:
+            t = (tm_value - 55.0) / 10.0
+            return _interpolate_colour(
+                GUIColours.GRADIENT_GREEN, GUIColours.GRADIENT_YELLOW, t
+            )
+        if tm_value < 75:
+            t = (tm_value - 65.0) / 10.0
+            return _interpolate_colour(
+                GUIColours.GRADIENT_YELLOW, GUIColours.GRADIENT_RED, t
+            )
+        return GUIColours.GRADIENT_RED
 
     if scheme == "Cool-Warm":
         # Discrete steps: blue (cold) -> white (mid) -> red (hot)
         # Mapped across 45-75 degrees C in ~5 degree C bands
         if tm_value < 45:
-            return ft.Colors.BLUE_700
+            return cast(str, ft.Colors.BLUE_700)
         if tm_value < 50:
-            return ft.Colors.BLUE_500
+            return cast(str, ft.Colors.BLUE_500)
         if tm_value < 55:
-            return ft.Colors.BLUE_300
+            return cast(str, ft.Colors.BLUE_300)
         if tm_value < 58:
-            return ft.Colors.BLUE_100
+            return cast(str, ft.Colors.BLUE_100)
         if tm_value < 62:
             # Near midpoint — use surface colour (effectively white/black
             # depending on theme) so text remains readable.
-            return ft.Colors.ON_SURFACE_VARIANT
+            return cast(str, ft.Colors.ON_SURFACE_VARIANT)
         if tm_value < 65:
-            return ft.Colors.RED_100
+            return cast(str, ft.Colors.RED_100)
         if tm_value < 70:
-            return ft.Colors.RED_300
+            return cast(str, ft.Colors.RED_300)
         if tm_value < 75:
-            return ft.Colors.RED_500
-        return ft.Colors.RED_700
+            return cast(str, ft.Colors.RED_500)
+        return cast(str, ft.Colors.RED_700)
 
     return None

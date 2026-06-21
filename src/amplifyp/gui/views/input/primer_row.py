@@ -23,8 +23,10 @@ from typing import TYPE_CHECKING
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.dna import Primer
+from amplifyp.gui.colours import GUIColours, tm_colour
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.util import clean_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -89,15 +91,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.idx = idx
         self.settings = settings
+        self.is_last_row = is_last_row
         show_temp = self.settings.get("show_primer_temperature", False)
 
         tm_val = ""
         self._tm_value: float | None = None
-        if seq.strip():
+        if show_temp and seq.strip():
             try:
-                from amplifyp.dna import Primer
-                from amplifyp.gui.util import clean_sequence
-
                 cleaned_seq = clean_sequence(seq)
                 if cleaned_seq:
                     primer_obj = Primer(sequence=cleaned_seq, name=name)
@@ -157,30 +157,52 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=name,
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
-            height=30 if not name_error else None,
-            width=name_column_width,
+            height=30 if not name_error else 55,
             border=ft.InputBorder.NONE,
             multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
         )
+        self.name_container = ft.Container(
+            content=self.name_field,
+            width=1000,
+            height=30 if not name_error else 55,
+        )
+        self.name_scroll = ft.ListView(
+            horizontal=True,
+            width=name_column_width,
+            height=30 if not name_error else 55,
+            controls=[self.name_container],
+        )
         self.seq_field = ft.TextField(
             value=seq,
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
-            height=30 if not seq_error else None,
+            height=30 if not seq_error else 55,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
             multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "seq"},
-            expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
+        )
+        self.seq_container = ft.Container(
+            content=self.seq_field,
+            width=5000,
+            height=30 if not seq_error else 55,
+        )
+        self.seq_scroll = ft.ListView(
+            horizontal=True,
+            expand=True,
+            height=30 if not seq_error else 55,
+            controls=[self.seq_container],
         )
         if name_error:
             self.name_field.error = name_error
@@ -209,9 +231,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         controls = [
             self.checkbox_container,
             self.active_divider,
-            self.name_field,
+            self.name_scroll,
             self.divider,
-            self.seq_field,
+            self.seq_scroll,
         ]
         if show_temp:
             controls.extend([self.tm_divider, self.tm_container])
@@ -261,9 +283,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 seq_error = err
 
         self.name_field.error = name_error
-        self.name_field.height = 30 if not name_error else None
+        self.name_field.height = 30 if not name_error else 55
+        self.name_container.height = 30 if not name_error else 55
+        self.name_scroll.height = 30 if not name_error else 55
         self.seq_field.error = seq_error
-        self.seq_field.height = 30 if not seq_error else None
+        self.seq_field.height = 30 if not seq_error else 55
+        self.seq_container.height = 30 if not seq_error else 55
+        self.seq_scroll.height = 30 if not seq_error else 55
 
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
@@ -295,11 +321,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         name_val = self.name_field.value
         tm_val = ""
         self._tm_value = None
-        if seq_val and seq_val.strip():
+        show_temp = settings.get("show_primer_temperature", False)
+        if show_temp and seq_val and seq_val.strip():
             try:
-                from amplifyp.dna import Primer
-                from amplifyp.gui.util import clean_sequence
-
                 cleaned_seq = clean_sequence(seq_val)
                 if cleaned_seq:
                     primer_obj = Primer(sequence=cleaned_seq, name=name_val)
@@ -315,7 +339,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 tm_val = "-"
         self.tm_text.value = tm_val
         scheme = settings.get("tm_colour_scheme", "None")
-        from amplifyp.gui.colours import tm_colour
 
         self.tm_text.color = (
             tm_colour(self._tm_value, scheme)

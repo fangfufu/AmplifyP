@@ -158,7 +158,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                     )
 
         except (OSError, ValueError, RuntimeError) as ex:
-            logger.error("PCR simulation failed: %s", ex, exc_info=True)
+            logger.exception("PCR simulation failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",

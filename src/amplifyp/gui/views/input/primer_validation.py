@@ -17,6 +17,7 @@
 
 from typing import Any
 
+from amplifyp.dna import Primer
 from amplifyp.gui.util import clean_sequence
 
 
@@ -47,8 +48,6 @@ def validate_primer(
         seq_err = "Sequence cannot be empty"
     else:
         try:
-            from amplifyp.dna import Primer
-
             Primer(sequence=seq, name=name)
         except ValueError as ex:
             seq_err = str(ex)
