@@ -368,6 +368,13 @@ class InputView(ft.Row):  # type: ignore[misc]
             if isinstance(data, dict) and "idx" in data and "field" in data:
                 val = str(e.control.value or "")
                 if "\t" in val or "\n" in val:
+                    non_empty_lines = [
+                        line for line in val.splitlines() if line.strip()
+                    ]
+                    if "\t" not in val and len(non_empty_lines) <= 1:
+                        e.control.value = val.replace("\n", "")
+                        self._handle_field_submit(e)
+                        return
                     self._handle_pasted_text(val, data["idx"], data["field"])
                     return
 

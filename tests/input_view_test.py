@@ -1084,3 +1084,37 @@ def test_tsv_paste_handling() -> None:
     assert input_data.primers[0]["seq"] == "ATGCTAG"
     assert input_data.primers[1]["name"] == "PrimerB"
     assert input_data.primers[1]["seq"] == "CGATCGAT"
+
+
+def test_enter_press_handling() -> None:
+    """Test that pressing Enter triggers submit and strips the newline."""
+    from unittest.mock import MagicMock
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+
+    submit_called = False
+
+    def on_stop_editing(e: ft.Event | None) -> None:
+        nonlocal submit_called
+        submit_called = True
+
+    view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
+    view.update_ui()
+
+    # Get the name field
+    name_field = view.primers_list.controls[0].name_field
+
+    # Trigger change handler with a value ending with a newline (Enter press)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = name_field
+    name_field.value = "PrimerA\n"
+
+    view._on_change_handler(mock_event)
+
+    # Check that the newline was stripped from the field
+    assert name_field.value == "PrimerA"
+    # Check that the submission callback was invoked
+    assert submit_called
+    # Check that no new row was parsed/added (length remains 1)
+    assert len(input_data.primers) == 1
