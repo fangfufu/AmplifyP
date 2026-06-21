@@ -160,10 +160,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not name_error else None,
             width=name_column_width,
             border=ft.InputBorder.NONE,
+            multiline=True,
             data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
         )
         self.seq_field = ft.TextField(
             value=seq,
@@ -172,11 +174,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not seq_error else None,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
+            multiline=True,
             data={"idx": idx, "field": "seq"},
             expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
         )
         if name_error:
             self.name_field.error = name_error

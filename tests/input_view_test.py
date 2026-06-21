@@ -1057,3 +1057,30 @@ def test_delete_selected_primers() -> None:
     assert input_data.primers[0]["seq"] == ""
     assert input_data.primers[0]["active"] is False
     assert view.delete_selected_button.disabled is True
+
+
+def test_tsv_paste_handling() -> None:
+    """Test pasting TSV data and parsing it correctly."""
+    from unittest.mock import MagicMock
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Get the text field (e.g. name field of first row)
+    name_field = view.primers_list.controls[0].name_field
+
+    # Trigger change handler with a multiline/tab value (paste)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = name_field
+    name_field.value = "PrimerA\tATGCTAG\nPrimerB\tCGATCGAT"
+
+    view._on_change_handler(mock_event)
+
+    # Check that both primers were added and not squashed
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "PrimerA"
+    assert input_data.primers[0]["seq"] == "ATGCTAG"
+    assert input_data.primers[1]["name"] == "PrimerB"
+    assert input_data.primers[1]["seq"] == "CGATCGAT"

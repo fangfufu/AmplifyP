@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -30,6 +31,8 @@ from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
 from .primer_input import PrimerInput
 from .primer_row import PrimerRow
 from .template_input import TemplateInput
+
+logger = logging.getLogger(__name__)
 
 
 class InputView(ft.Row):  # type: ignore[misc]
