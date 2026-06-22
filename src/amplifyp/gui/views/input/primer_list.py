@@ -91,6 +91,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             ]
 
         t1 = time.perf_counter()
+
         self.primer_input.validation_errors = validate_primers(
             self.primer_input.input_data.primers
         )
@@ -101,6 +102,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
 
         # 1. Adjust length of controls to match num_primers
         t2 = time.perf_counter()
+
         if num_controls > num_primers:
             self.controls[num_primers:] = []
         elif num_controls < num_primers:
@@ -132,6 +134,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
 
         # 2. Update controls in-place
         t3 = time.perf_counter()
+
         for idx, p in enumerate(self.primer_input.input_data.primers):
             name_val = p["name"]
             seq_val = p["seq"]
