@@ -20,7 +20,17 @@ import flet as ft
 from amplifyp.gui.controller import GUIController
 
 
-def main(page: ft.Page) -> None:
-    """Main entry point for the Flet application."""
-    controller = GUIController(page)
+def main(
+    page: ft.Page, state_file: str | None = None, auto_close: bool = False
+) -> None:
+    """Main entry point for the Flet application.
+
+    Args:
+        page: The Flet page instance.
+        state_file: Optional path to a YAML state file to load on startup.
+        auto_close: If True, quit automatically after rendering is complete.
+    """
+    controller = GUIController(
+        page, state_file=state_file, auto_close=auto_close
+    )
     controller.initialise()
