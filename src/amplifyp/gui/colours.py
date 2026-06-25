@@ -237,6 +237,16 @@ class _GUIColoursMeta(type):
         """Get red colour for temperature gradient."""
         return "#d32f2f"  # ft.Colors.RED_700
 
+    @property
+    def GRADIENT_BLUE(cls) -> str:
+        """Get blue colour for Cool-Warm temperature gradient."""
+        return "#1565c0"  # ft.Colors.BLUE_700
+
+    @property
+    def GRADIENT_BLACK(cls) -> str:
+        """Get black colour for Cool-Warm temperature gradient."""
+        return "#000000"
+
 
 class GUIColours(metaclass=_GUIColoursMeta):
     """Centralised semantic colour constants for the GUI."""
@@ -331,26 +341,18 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
         return GUIColours.GRADIENT_RED
 
     if scheme == "Cool-Warm":
-        # Discrete steps: blue (cold) -> white (mid) -> red (hot)
-        # Mapped across 45-75 degrees C in ~5 degree C bands
-        if tm_value < 45:
-            return cast(str, ft.Colors.BLUE_700)
-        if tm_value < 50:
-            return cast(str, ft.Colors.BLUE_500)
+        if tm_value <= 35:
+            return GUIColours.GRADIENT_BLUE
         if tm_value < 55:
-            return cast(str, ft.Colors.BLUE_300)
-        if tm_value < 58:
-            return cast(str, ft.Colors.BLUE_100)
-        if tm_value < 62:
-            # Near midpoint — use surface colour (effectively white/black
-            # depending on theme) so text remains readable.
-            return cast(str, ft.Colors.ON_SURFACE_VARIANT)
-        if tm_value < 65:
-            return cast(str, ft.Colors.RED_100)
-        if tm_value < 70:
-            return cast(str, ft.Colors.RED_300)
+            t = (tm_value - 35.0) / 20.0
+            return _interpolate_colour(
+                GUIColours.GRADIENT_BLUE, GUIColours.GRADIENT_BLACK, t
+            )
         if tm_value < 75:
-            return cast(str, ft.Colors.RED_500)
-        return cast(str, ft.Colors.RED_700)
+            t = (tm_value - 55.0) / 20.0
+            return _interpolate_colour(
+                GUIColours.GRADIENT_BLACK, GUIColours.GRADIENT_RED, t
+            )
+        return GUIColours.GRADIENT_RED
 
     return None

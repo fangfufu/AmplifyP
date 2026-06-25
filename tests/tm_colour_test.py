@@ -2,7 +2,6 @@
 
 from collections.abc import Generator
 
-import flet as ft
 import pytest
 
 from amplifyp.gui.colours import GUIColours, tm_colour
@@ -129,25 +128,29 @@ class TestTmColourCoolWarm:
     """Tests for the "Cool-Warm" scheme."""
 
     def test_very_cold_gives_blue_700(self) -> None:
-        """Tm well below 45 deg C gives the coldest blue."""
-        assert tm_colour(30.0, "Cool-Warm") is ft.Colors.BLUE_700
+        """Tm well below 35 deg C gives the coldest blue."""
+        assert tm_colour(25.0, "Cool-Warm") == "#1565c0"
 
-    def test_boundary_45_gives_blue_500(self) -> None:
-        """Tm exactly at 45 deg C is in the 45-50 band (BLUE_500)."""
-        assert tm_colour(45.0, "Cool-Warm") is ft.Colors.BLUE_500
+    def test_boundary_35_gives_blue_700(self) -> None:
+        """Tm exactly at 35 deg C gives BLUE_700."""
+        assert tm_colour(35.0, "Cool-Warm") == "#1565c0"
 
-    def test_mid_low_gives_blue_300(self) -> None:
-        """Tm in 50-55 band gives BLUE_300."""
-        assert tm_colour(52.0, "Cool-Warm") is ft.Colors.BLUE_300
+    def test_interpolates_blue_to_black(self) -> None:
+        """Tm=45 interpolates blue700→black, t=0.5."""
+        # Blue700: #1565c0 (21,101,192) → Black: #000000 (0,0,0)
+        # R=10, G=50, B=96
+        assert tm_colour(45.0, "Cool-Warm") == "#0a3260"
 
-    def test_near_midpoint_gives_on_surface_variant(self) -> None:
-        """Tm in the 58-62 midpoint band gives ON_SURFACE_VARIANT."""
-        assert tm_colour(60.0, "Cool-Warm") is ft.Colors.ON_SURFACE_VARIANT
+    def test_midpoint_gives_black(self) -> None:
+        """Tm=55 deg C gives black (midpoint of gradient)."""
+        assert tm_colour(55.0, "Cool-Warm") == "#000000"
 
-    def test_warm_gives_red_300(self) -> None:
-        """Tm in the 65-70 band gives RED_300."""
-        assert tm_colour(67.0, "Cool-Warm") is ft.Colors.RED_300
+    def test_interpolates_black_to_red(self) -> None:
+        """Tm=65 interpolates black→red700, t=0.5."""
+        # Black: #000000 (0,0,0) → Red700: #d32f2f (211,47,47)
+        # R=105, G=23, B=23
+        assert tm_colour(65.0, "Cool-Warm") == "#691717"
 
     def test_very_hot_gives_red_700(self) -> None:
         """Tm >= 75 deg C gives the hottest red."""
-        assert tm_colour(80.0, "Cool-Warm") is ft.Colors.RED_700
+        assert tm_colour(80.0, "Cool-Warm") == "#d32f2f"
