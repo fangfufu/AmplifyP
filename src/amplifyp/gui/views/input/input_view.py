@@ -330,14 +330,19 @@ class InputView(ft.Row):  # type: ignore[misc]
                             )
                             self.primer_input.update_ui()
 
-    def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
+    def sync_to_state(
+        self, rebuild_if_needed: bool = False, skip_extract: bool = False
+    ) -> None:
         """Sync current UI controls back to the central state.
 
         Args:
             rebuild_if_needed: Whether to rebuild UI if changes detected.
+            skip_extract: Whether to skip UI extraction for primer input.
         """
         self.template_input.sync_to_state()
-        self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
+        self.primer_input.sync_to_state(
+            rebuild_if_needed=rebuild_if_needed, skip_extract=skip_extract
+        )
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state.
@@ -375,7 +380,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                         e.control.value = val.replace("\n", "")
                         self._handle_field_submit(e)
                         return
-                    self._handle_pasted_text(val, data["idx"], data["field"])
+                    self._handle_pasted_text(
+                        val, data["idx"], data["field"], e.control
+                    )
                     return
 
         self.sync_to_state()
@@ -383,7 +390,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
 
-    def _handle_pasted_text(self, text: str, idx: int, field: str) -> None:
+    def _handle_pasted_text(
+        self, text: str, idx: int, field: str, control: ft.TextField
+    ) -> None:
         """Parse pasted text and insert into the primer list."""
         parsed = []
         for line in text.splitlines():
@@ -442,7 +451,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 primers.append(new_p)
 
         self.update_ui()
-        self.sync_to_state(rebuild_if_needed=True)
+        self.sync_to_state(rebuild_if_needed=True, skip_extract=True)
         if self.on_change:
             self.on_change(None)
 
