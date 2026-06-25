@@ -18,11 +18,9 @@
 import flet as ft
 
 from amplifyp.gui.controller import GUIController
-from amplifyp.gui.logger import initialise_logging
 
 
 def main(page: ft.Page) -> None:
     """Main entry point for the Flet application."""
-    initialise_logging(is_web=getattr(page, "web", False))
     controller = GUIController(page)
     controller.initialise()
