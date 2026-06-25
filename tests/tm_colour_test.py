@@ -2,7 +2,6 @@
 
 from collections.abc import Generator
 
-import flet as ft
 import pytest
 
 from amplifyp.gui.colours import GUIColours, tm_colour
@@ -41,71 +40,117 @@ class TestTmColourNone:
 class TestTmColourTrafficLight:
     """Tests for the "Traffic Light" scheme."""
 
-    def test_high_tm_gives_green(self) -> None:
-        """Tm >= 60 deg C gives green in normal mode."""
-        colour = tm_colour(65.0, "Traffic Light")
-        assert colour is ft.Colors.GREEN_600
+    def test_low_tm_gives_grey(self) -> None:
+        """Tm <= 0 deg C gives grey in normal mode."""
+        assert tm_colour(-5.0, "Traffic Light") == "#9e9e9e"
+        assert tm_colour(0.0, "Traffic Light") == "#9e9e9e"
 
-    def test_mid_tm_gives_amber(self) -> None:
-        """50 <= Tm < 60 deg C gives amber in normal mode."""
-        colour = tm_colour(55.0, "Traffic Light")
-        assert colour is ft.Colors.ORANGE_600
+    def test_green_midpoint(self) -> None:
+        """Tm = 55 deg C gives green in normal mode."""
+        assert tm_colour(55.0, "Traffic Light") == "#388e3c"
 
-    def test_low_tm_gives_red(self) -> None:
-        """Tm < 50 deg C gives red in normal mode."""
-        colour = tm_colour(45.0, "Traffic Light")
-        assert colour is ft.Colors.RED_700
+    def test_yellow_midpoint(self) -> None:
+        """Tm = 65 deg C gives yellow in normal mode."""
+        assert tm_colour(65.0, "Traffic Light") == "#fdd835"
 
-    def test_boundary_60(self) -> None:
-        """Exactly 60 deg C is green (>= 60)."""
-        assert tm_colour(60.0, "Traffic Light") is ft.Colors.GREEN_600
+    def test_red_midpoint(self) -> None:
+        """Tm >= 75 deg C gives red in normal mode."""
+        assert tm_colour(75.0, "Traffic Light") == "#d32f2f"
+        assert tm_colour(80.0, "Traffic Light") == "#d32f2f"
 
-    def test_boundary_50(self) -> None:
-        """Exactly 50 deg C is amber (>= 50, < 60)."""
-        assert tm_colour(50.0, "Traffic Light") is ft.Colors.ORANGE_600
+    def test_interpolation_grey_to_green(self) -> None:
+        """Tm between 0 and 55 interpolates between grey and green."""
+        # Halfway point at 27.5 deg C (t = 0.5)
+        # Grey: #9e9e9e (158, 158, 158)
+        # Green: #388e3c (56, 142, 60)
+        # R = 158 + (56 - 158) * 0.5 = 107
+        # G = 158 + (142 - 158) * 0.5 = 150
+        # B = 158 + (60 - 158) * 0.5 = 109
+        # Hex: #6b966d
+        assert tm_colour(27.5, "Traffic Light") == "#6b966d"
 
-    def test_colour_deficient_high_tm_gives_blue(self) -> None:
-        """Colour-deficient mode: Tm >= 60 deg C gives blue not green."""
+    def test_interpolation_green_to_yellow(self) -> None:
+        """Tm between 55 and 65 interpolates between green and yellow."""
+        # Halfway point at 60 deg C (t = 0.5)
+        # Green: #388e3c (56, 142, 60)
+        # Yellow: #fdd835 (253, 216, 53)
+        # R = 56 + (253 - 56) * 0.5 = 154
+        # G = 142 + (216 - 142) * 0.5 = 179
+        # B = 60 + (53 - 60) * 0.5 = 56
+        # Hex: #9ab338
+        assert tm_colour(60.0, "Traffic Light") == "#9ab338"
+
+    def test_interpolation_yellow_to_red(self) -> None:
+        """Tm between 65 and 75 interpolates between yellow and red."""
+        # Halfway point at 70 deg C (t = 0.5)
+        # Yellow: #fdd835 (253, 216, 53)
+        # Red: #d32f2f (211, 47, 47)
+        # R = 253 + (211 - 253) * 0.5 = 232
+        # G = 216 + (47 - 216) * 0.5 = 131
+        # B = 53 + (47 - 53) * 0.5 = 50
+        # Hex: #e88332
+        assert tm_colour(70.0, "Traffic Light") == "#e88332"
+
+    def test_colour_deficient_grey_boundary(self) -> None:
+        """Colour-deficient mode: Tm <= 0 deg C still gives grey."""
         GUIColours.colour_deficient_mode = True
-        colour = tm_colour(65.0, "Traffic Light")
-        assert colour is ft.Colors.BLUE_600
+        assert tm_colour(-5.0, "Traffic Light") == "#9e9e9e"
 
-    def test_colour_deficient_low_tm_gives_red(self) -> None:
-        """Colour-deficient mode: Tm < 50 deg C still gives red."""
+    def test_colour_deficient_blue_midpoint(self) -> None:
+        """Colour-deficient mode: Tm = 55 deg C gives blue."""
         GUIColours.colour_deficient_mode = True
-        colour = tm_colour(40.0, "Traffic Light")
-        assert colour is ft.Colors.RED_700
+        assert tm_colour(55.0, "Traffic Light") == "#1e88e5"
 
-    def test_colour_deficient_mid_tm_gives_orange(self) -> None:
-        """Colour-deficient mode: mid-range Tm gives orange."""
+    def test_colour_deficient_orange_midpoint(self) -> None:
+        """Colour-deficient mode: Tm = 65 deg C gives orange."""
         GUIColours.colour_deficient_mode = True
-        colour = tm_colour(55.0, "Traffic Light")
-        assert colour is ft.Colors.ORANGE_600
+        assert tm_colour(65.0, "Traffic Light") == "#f57c00"
+
+    def test_colour_deficient_red_midpoint(self) -> None:
+        """Colour-deficient mode: Tm >= 75 deg C gives red."""
+        GUIColours.colour_deficient_mode = True
+        assert tm_colour(75.0, "Traffic Light") == "#d32f2f"
+
+    def test_colour_deficient_interpolation_blue_to_orange(self) -> None:
+        """Colour-deficient mode: interpolates between blue and orange."""
+        # Halfway point at 60 deg C (t = 0.5)
+        # Blue: #1e88e5 (30, 136, 229)
+        # Orange: #f57c00 (245, 124, 0)
+        # R = 30 + (245 - 30) * 0.5 = 137
+        # G = 136 + (124 - 136) * 0.5 = 130
+        # B = 229 + (0 - 229) * 0.5 = 114
+        # Hex: #898272
+        GUIColours.colour_deficient_mode = True
+        assert tm_colour(60.0, "Traffic Light") == "#898272"
 
 
 class TestTmColourCoolWarm:
     """Tests for the "Cool-Warm" scheme."""
 
     def test_very_cold_gives_blue_700(self) -> None:
-        """Tm well below 45 deg C gives the coldest blue."""
-        assert tm_colour(30.0, "Cool-Warm") is ft.Colors.BLUE_700
+        """Tm well below 35 deg C gives the coldest blue."""
+        assert tm_colour(25.0, "Cool-Warm") == "#1565c0"
 
-    def test_boundary_45_gives_blue_500(self) -> None:
-        """Tm exactly at 45 deg C is in the 45-50 band (BLUE_500)."""
-        assert tm_colour(45.0, "Cool-Warm") is ft.Colors.BLUE_500
+    def test_boundary_35_gives_blue_700(self) -> None:
+        """Tm exactly at 35 deg C gives BLUE_700."""
+        assert tm_colour(35.0, "Cool-Warm") == "#1565c0"
 
-    def test_mid_low_gives_blue_300(self) -> None:
-        """Tm in 50-55 band gives BLUE_300."""
-        assert tm_colour(52.0, "Cool-Warm") is ft.Colors.BLUE_300
+    def test_interpolates_blue_to_black(self) -> None:
+        """Tm=45 interpolates blue700→black, t=0.5."""
+        # Blue700: #1565c0 (21,101,192) → Black: #000000 (0,0,0)
+        # R=10, G=50, B=96
+        assert tm_colour(45.0, "Cool-Warm") == "#0a3260"
 
-    def test_near_midpoint_gives_on_surface_variant(self) -> None:
-        """Tm in the 58-62 midpoint band gives ON_SURFACE_VARIANT."""
-        assert tm_colour(60.0, "Cool-Warm") is ft.Colors.ON_SURFACE_VARIANT
+    def test_midpoint_gives_black(self) -> None:
+        """Tm=55 deg C gives black (midpoint of gradient)."""
+        assert tm_colour(55.0, "Cool-Warm") == "#000000"
 
-    def test_warm_gives_red_300(self) -> None:
-        """Tm in the 65-70 band gives RED_300."""
-        assert tm_colour(67.0, "Cool-Warm") is ft.Colors.RED_300
+    def test_interpolates_black_to_red(self) -> None:
+        """Tm=65 interpolates black→red700, t=0.5."""
+        # Black: #000000 (0,0,0) → Red700: #d32f2f (211,47,47)
+        # R=105, G=23, B=23
+        assert tm_colour(65.0, "Cool-Warm") == "#691717"
 
     def test_very_hot_gives_red_700(self) -> None:
         """Tm >= 75 deg C gives the hottest red."""
-        assert tm_colour(80.0, "Cool-Warm") is ft.Colors.RED_700
+        assert tm_colour(80.0, "Cool-Warm") == "#d32f2f"

@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -30,6 +31,8 @@ from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
 from .primer_input import PrimerInput
 from .primer_row import PrimerRow
 from .template_input import TemplateInput
+
+logger = logging.getLogger(__name__)
 
 
 class InputView(ft.Row):  # type: ignore[misc]
@@ -196,7 +199,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+    def _handle_field_focus(self, e: ft.Event[ft.TextField]) -> None:
         """Handle focus on input fields to cancel auto-trigger timer.
 
         Updates the focused primer index, marks field touch status,
@@ -213,6 +216,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 if isinstance(e.control.data, dict)
                 else e.control.data
             )
+
             field = (
                 e.control.data["field"]
                 if isinstance(e.control.data, dict)
@@ -234,7 +238,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
         self._currently_focused_control = cast(ft.Control, e.control)
 
-    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+    def _handle_field_blur(self, e: ft.Event[ft.TextField]) -> None:
         """Handle blur on input fields to trigger results page after a delay.
 
         Syncs state, applies validation errors to rows, auto-adds empty
@@ -280,7 +284,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self._focus_debouncer.trigger(timer_callback)
 
-    def _handle_field_submit(self, e: ft.Event) -> None:
+    def _handle_field_submit(self, e: ft.Event[ft.TextField]) -> None:
         """Handle submission (Enter key) to immediately trigger results.
 
         Cancels any pending debounced callbacks, syncs state, auto-adds
@@ -353,10 +357,94 @@ class InputView(ft.Row):  # type: ignore[misc]
         Args:
             e: The Flet control event containing change information.
         """
+        if (
+            e
+            and hasattr(e, "control")
+            and isinstance(e.control, ft.TextField)
+            and e.control.data is not None
+        ):
+            data = e.control.data
+
+            if isinstance(data, dict) and "idx" in data and "field" in data:
+                val = str(e.control.value or "")
+                if "\t" in val or "\n" in val:
+                    non_empty_lines = [
+                        line for line in val.splitlines() if line.strip()
+                    ]
+                    if "\t" not in val and len(non_empty_lines) <= 1:
+                        e.control.value = val.replace("\n", "")
+                        self._handle_field_submit(e)
+                        return
+                    self._handle_pasted_text(val, data["idx"], data["field"])
+                    return
+
         self.sync_to_state()
         self.primer_input._update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
+
+    def _handle_pasted_text(self, text: str, idx: int, field: str) -> None:
+        """Parse pasted text and insert into the primer list."""
+        parsed = []
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                name = parts[0].strip()
+                seq = parts[1].strip()
+            elif len(parts) == 1:
+                subparts = line.split(",")
+                if len(subparts) >= 2:
+                    name = subparts[0].strip()
+                    seq = subparts[1].strip()
+                else:
+                    val = line.strip()
+                    cleaned = clean_sequence(val)
+                    is_seq = False
+                    if cleaned:
+                        is_seq = all(
+                            c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
+                            for c in cleaned
+                        )
+                    if is_seq:
+                        name = ""
+                        seq = val
+                    else:
+                        name = val
+                        seq = ""
+            else:
+                continue
+            parsed.append({"name": name, "seq": seq, "active": True})
+
+        if not parsed:
+            return
+
+        primers = self.input_data.primers
+
+        # Replace single empty row
+        if (
+            len(primers) == 1
+            and not primers[0].get("name")
+            and not primers[0].get("seq")
+        ):
+            primers.clear()
+            idx = 0
+
+        for i, new_p in enumerate(parsed):
+            target_idx = idx + i
+            if target_idx < len(primers):
+                primers[target_idx]["name"] = new_p["name"]
+                primers[target_idx]["seq"] = new_p["seq"]
+                primers[target_idx]["active"] = True
+            else:
+                primers.append(new_p)
+
+        self.update_ui()
+        self.sync_to_state(rebuild_if_needed=True)
+        if self.on_change:
+            self.on_change(None)
 
     def _clear_primers(self, e: ft.Event | None) -> None:
         """Clear all primers.
@@ -466,7 +554,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             self.update()
 
-    def _handle_resize(self, e: ft.ControlEvent) -> None:
+    def _handle_resize(self, e: ft.PageResizeEvent) -> None:
         """Handle page resize to proportionally scale name column.
 
         Args:

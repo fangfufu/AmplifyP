@@ -81,7 +81,7 @@ class PrimerLayoutManager:
                 row_h = (
                     30.0
                     if not (row.name_field.error or row.seq_field.error)
-                    else 50.0
+                    else 55.0
                 )
                 row_top = current_y
                 row_bottom = current_y + row_h
@@ -140,8 +140,8 @@ class PrimerLayoutManager:
 
         # Update and render only the name fields of the visible rows directly
         for row in visible_rows:
-            row.name_field.width = self.owner.name_column_width
-            row.name_field.update()
+            row.name_scroll.width = self.owner.name_column_width
+            row.name_scroll.update()
 
     def on_primer_divider_pan_end(self, _e: ft.DragEndEvent) -> None:
         """Handle finishing the drag of the vertical divider.
@@ -165,7 +165,7 @@ class PrimerLayoutManager:
 
         for row in self.owner.primers_list.controls:
             if isinstance(row, PrimerRow):
-                row.name_field.width = self.owner.name_column_width
+                row.name_scroll.width = self.owner.name_column_width
         self.owner.primers_list.update()
 
     def adjust_name_column_width(
@@ -213,12 +213,12 @@ class PrimerLayoutManager:
 
             # Update/render name fields of visible rows directly
             for row in visible_rows:
-                row.name_field.width = self.owner.name_column_width
-                row.name_field.update()
+                row.name_scroll.width = self.owner.name_column_width
+                row.name_scroll.update()
         else:
             # Clear cache and update all rows
             self.owner._visible_rows_cache = None
             for row in self.owner.primers_list.controls:
                 if isinstance(row, PrimerRow):
-                    row.name_field.width = self.owner.name_column_width
+                    row.name_scroll.width = self.owner.name_column_width
             self.owner.primers_list.update()

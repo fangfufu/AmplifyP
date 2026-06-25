@@ -163,13 +163,8 @@ class PrimerActionController:
         for new_idx in range(start_reindex, num_remaining):
             row = remaining_controls[new_idx]
             if isinstance(row, PrimerRow):
-                is_last_row = new_idx == num_remaining - 1
                 row.update_index(
                     new_idx=new_idx,
-                    is_last_row=is_last_row,
-                    on_move_primer=self.move_primer,
-                    on_delete_primer=lambda idx: self.delete_primers({idx}),
-                    on_add_primer=self.on_add_primer_row,
                     on_row_click=self.handle_row_click,
                 )
 

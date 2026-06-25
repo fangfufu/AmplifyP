@@ -176,7 +176,10 @@ class PrimerDimerGenerator:
                 c2 = seq2[left_end + offset]
 
                 # Sum weights
-                q += self.settings.weights[c1, c2]
+                try:
+                    q += self.settings.weights[c1, c2]
+                except KeyError:
+                    pass
 
             if q >= best_quality:
                 best_quality = q

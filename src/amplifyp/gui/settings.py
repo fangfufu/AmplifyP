@@ -15,6 +15,7 @@
 
 """Centralised GUI settings and configuration."""
 
+import logging
 import os
 import sys
 from collections.abc import ItemsView, Iterator, KeysView
@@ -43,6 +44,8 @@ if TYPE_CHECKING:
         TMSettings,
     )
 
+logger = logging.getLogger(__name__)
+
 # Maximum number of amplicons to draw on the PCR result diagram to
 # prevent UI freeze.
 MAX_AMPLICONS_RENDER = 100
@@ -63,6 +66,7 @@ class GUISettings:
         """
         from amplifyp.dna import Nucleotides
 
+        self._cached_tm_settings: TMSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -166,6 +170,7 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
+        self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
             if isinstance(val, str):
@@ -355,7 +360,10 @@ class GUISettings:
         """
         from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
 
-        return TMSettings(
+        if self._cached_tm_settings is not None:
+            return self._cached_tm_settings
+
+        self._cached_tm_settings = TMSettings(
             dna_conc=self._safe_float(
                 "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
             ),
@@ -372,6 +380,7 @@ class GUISettings:
                 "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
             ),
         )
+        return self._cached_tm_settings
 
     def calculate_primer_tm(self, primer: "Primer") -> float:
         """Calculate the melting temperature of a primer based on settings.
@@ -452,6 +461,7 @@ class GUISettings:
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
             GUIColours.dark_mode = bool(dark_mode_val)
+        self._cached_tm_settings = None
 
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration.
@@ -517,8 +527,10 @@ class GUISettings:
                     data = yaml.safe_load(f)
                 if isinstance(data, dict):
                     self.from_dict(data)
-            except Exception as e:
-                print(f"Error loading settings from {config_path}: {e}")
+            except (OSError, yaml.YAMLError, ValueError) as e:
+                logger.exception(
+                    "Error loading settings from %s: %s", config_path, e
+                )
 
     def save_to_local(self, page: ft.Page) -> None:
         """Save settings to local storage.
@@ -541,5 +553,5 @@ class GUISettings:
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
-        except Exception as e:
-            print(f"Error saving settings to {config_path}: {e}")
+        except (OSError, yaml.YAMLError, ValueError) as e:
+            logger.exception("Error saving settings to %s: %s", config_path, e)

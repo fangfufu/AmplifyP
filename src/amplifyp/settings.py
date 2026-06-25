@@ -23,7 +23,6 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Final
 
@@ -69,7 +68,10 @@ class LengthWiseWeightTbl:
         Returns:
             LengthWiseWeightTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = LengthWiseWeightTbl.__new__(LengthWiseWeightTbl)
+        new_tbl.__default_weight = self.__default_weight
+        new_tbl.__overrides = dict(self.__overrides)
+        return new_tbl
 
     def copy(self) -> "LengthWiseWeightTbl":
         """Return a deep copy of this object.
@@ -283,7 +285,15 @@ class BasePairWeightsTbl:
         Returns:
             BasePairWeightsTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = BasePairWeightsTbl.__new__(BasePairWeightsTbl)
+        new_tbl.__row = self.__row
+        new_tbl.__col = self.__col
+        new_tbl.__weight = dict(self.__weight)
+        new_tbl.__row_max = dict(self.__row_max)
+        new_tbl.__matrix = [list(r) for r in self.__matrix]
+        new_tbl.__row_map = list(self.__row_map)
+        new_tbl.__col_map = list(self.__col_map)
+        return new_tbl
 
     def copy(self) -> "BasePairWeightsTbl":
         """Return a deep copy of this object.

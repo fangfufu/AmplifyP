@@ -42,7 +42,6 @@ class AboutView(ft.ListView):  # type: ignore[misc]
         app_version = get_version()
         font_size_default = self.settings.get("font_size_default", 14)
 
-        # ponytail: simple ListView containing icon, version, and commit SHA
         self.controls = [
             ft.Row(
                 [
