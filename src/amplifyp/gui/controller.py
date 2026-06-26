@@ -17,7 +17,7 @@
 
 import asyncio
 import logging
-from typing import cast
+from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
 import yaml
@@ -144,7 +144,7 @@ class GUIController:
 
         # Load state file if provided via CLI
         if self.state_file:
-            self._load_state_file(self.state_file)
+            self._restore_state_from_file(self.state_file)
 
         # Auto-close: run analysis and quit if flag is set
         if self.auto_close and self.state_file:
@@ -494,8 +494,8 @@ class GUIController:
         self.settings.save_to_local(self.page)
         self.page.update()
 
-    def _load_state_file(self, path: str) -> None:
-        """Load app state from a YAML file on startup.
+    def _restore_state_from_file(self, path: str) -> None:
+        """Restore app state from a YAML file on startup.
 
         Args:
             path: Path to the YAML state file.
@@ -510,21 +510,29 @@ class GUIController:
                 logger.warning("Invalid state file format, ignoring.")
                 return
 
-            if "input" in parsed_state:
-                self.input_data.from_dict(parsed_state["input"])
-            else:
-                self.input_data.from_dict(parsed_state)
-            if "settings" in parsed_state:
-                self.settings.from_dict(parsed_state["settings"])
-                self.settings.save_to_local(self.page)
-            self.apply_theme()
-            self.input_view.update_ui()
-            self.settings_view.update_ui()
-            self.update_pcr_button_state()
-            self.page.update()
+            self._apply_parsed_state(parsed_state)
             logger.info("State loaded successfully from %s", path)
         except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state file '%s': %s", path, ex)
+
+    def _apply_parsed_state(self, parsed_state: dict[str, Any]) -> None:
+        """Apply parsed YAML state to the application.
+
+        Args:
+            parsed_state: Parsed YAML dict containing input and settings.
+        """
+        if "input" in parsed_state:
+            self.input_data.from_dict(parsed_state["input"])
+        else:
+            self.input_data.from_dict(parsed_state)
+        if "settings" in parsed_state:
+            self.settings.from_dict(parsed_state["settings"])
+            self.settings.save_to_local(self.page)
+        self.apply_theme()
+        self.input_view.update_ui()
+        self.settings_view.update_ui()
+        self.update_pcr_button_state()
+        self.page.update()
 
     async def save_state(self, e: ft.Event[ft.Control]) -> None:
         """Save app state to YAML configuration file."""
@@ -581,18 +589,7 @@ class GUIController:
                 )
                 return
 
-            if "input" in parsed_state:
-                self.input_data.from_dict(parsed_state["input"])
-            else:
-                # Legacy format: input data at top level
-                self.input_data.from_dict(parsed_state)
-            if "settings" in parsed_state:
-                self.settings.from_dict(parsed_state["settings"])
-                self.settings.save_to_local(self.page)
-            self.apply_theme()
-            self.input_view.update_ui()
-            self.settings_view.update_ui()
-            self.update_pcr_button_state()
+            self._apply_parsed_state(parsed_state)
             self.notification_helper.show_message("State loaded successfully!")
         except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state:")
