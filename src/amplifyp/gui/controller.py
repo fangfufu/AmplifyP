@@ -15,6 +15,7 @@
 
 """GUI controller for orchestrating views, state, and page events."""
 
+import asyncio
 import logging
 from typing import cast
 
@@ -39,13 +40,22 @@ logger = logging.getLogger(__name__)
 class GUIController:
     """Manages GUI state, event handlers, views and main orchestration."""
 
-    def __init__(self, page: ft.Page) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        state_file: str | None = None,
+        auto_close: bool = False,
+    ) -> None:
         """Initialize the GUIController.
 
         Args:
             page: The Flet page instance for the application.
+            state_file: Optional path to a YAML state file to load on startup.
+            auto_close: If True, quit automatically after rendering is complete.
         """
         self.page = page
+        self.state_file = state_file
+        self.auto_close = auto_close
         self.input_data = GUIInput()
         self.settings = GUISettings()
         self.filepicker_open = False
@@ -100,9 +110,10 @@ class GUIController:
                 )
         else:
             self.page.window.prevent_close = False
-            self.page.window.prevent_close = True
-            self._confirm_dialog = None
-            self.page.window.on_event = self.on_window_event
+            if not self.auto_close:
+                self.page.window.prevent_close = True
+                self._confirm_dialog = None
+                self.page.window.on_event = self.on_window_event
 
         self.settings.load_from_local(self.page)
         self.page.on_platform_brightness_change = (
@@ -130,6 +141,14 @@ class GUIController:
         self.about_view = AboutView(self.page, self.settings)
 
         self.notification_helper = NotificationHelper(self.page)
+
+        # Load state file if provided via CLI
+        if self.state_file:
+            self._load_state_file(self.state_file)
+
+        # Auto-close: run analysis and quit if flag is set
+        if self.auto_close and self.state_file:
+            self.page.run_task(self._auto_close_and_quit_delayed)
 
         # Main view container
         self.view_container = ft.Container(
@@ -475,6 +494,38 @@ class GUIController:
         self.settings.save_to_local(self.page)
         self.page.update()
 
+    def _load_state_file(self, path: str) -> None:
+        """Load app state from a YAML file on startup.
+
+        Args:
+            path: Path to the YAML state file.
+        """
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+
+            parsed_state = yaml.safe_load(content)
+
+            if not isinstance(parsed_state, dict):
+                logger.warning("Invalid state file format, ignoring.")
+                return
+
+            if "input" in parsed_state:
+                self.input_data.from_dict(parsed_state["input"])
+            else:
+                self.input_data.from_dict(parsed_state)
+            if "settings" in parsed_state:
+                self.settings.from_dict(parsed_state["settings"])
+                self.settings.save_to_local(self.page)
+            self.apply_theme()
+            self.input_view.update_ui()
+            self.settings_view.update_ui()
+            self.update_pcr_button_state()
+            self.page.update()
+            logger.info("State loaded successfully from %s", path)
+        except (OSError, ValueError, yaml.YAMLError) as ex:
+            logger.exception("Error loading state file '%s': %s", path, ex)
+
     async def save_state(self, e: ft.Event[ft.Control]) -> None:
         """Save app state to YAML configuration file."""
         if self.filepicker_open:
@@ -601,6 +652,41 @@ class GUIController:
             e: The Flet control event triggering the exit.
         """
         self.page.run_task(self.confirm_exit_async)
+
+    async def _auto_close_and_quit_delayed(
+        self, e: ft.ControlEvent | None = None
+    ) -> None:
+        """Run PCR/dimer analysis then quit for performance regression testing.
+
+        Yields to the event loop to let initial render complete, runs analysis,
+        then destroys the window automatically.
+
+        Args:
+            e: Unused event parameter for task compatibility.
+        """
+        try:
+            # Yield to event loop to let the initial page render complete
+            await asyncio.sleep(0)
+
+            has_template = bool(self.input_data.template.strip())
+            active_primers = self.input_data.get_active_primers()
+            has_enough_primers = len(active_primers) >= 2
+
+            if has_template and has_enough_primers:
+                self.pcr_view.run_pcr()
+
+            if len(active_primers) >= 1:
+                self.dimers_view.run_analysis()
+
+            self.page.update()
+
+            await self.confirm_exit_async()
+        except Exception:
+            logger.exception("Error during auto-close sequence")
+            try:
+                await self.confirm_exit_async()
+            except RuntimeError:
+                pass
 
     def on_window_event(self, e: ft.WindowEvent) -> None:
         """Handle desktop window events, showing close confirmation dialog.

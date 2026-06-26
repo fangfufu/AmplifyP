@@ -15,18 +15,40 @@
 
 """Main Flet application entry point."""
 
+import argparse
+import os
+
 import flet as ft
 
 from amplifyp.gui import main as app_main
 
+state_file: str | None = None
+auto_close: bool = False
+
 
 def main(page: ft.Page) -> None:
     """Flet entry point - delegates to amplifyp.gui."""
-    app_main(page)
+    app_main(page, state_file=state_file, auto_close=auto_close)
 
 
 if __name__ == "__main__":  # pragma: no cover
-    import os
+    parser = argparse.ArgumentParser(
+        description="AmplifyP - Primer design and PCR simulation tool"
+    )
+    parser.add_argument(
+        "-f",
+        "--state",
+        type=str,
+        help="Path to a YAML state file to load on startup",
+    )
+    parser.add_argument(
+        "--auto-close",
+        action="store_true",
+        help="Auto-quit after rendering completes (requires --state)",
+    )
+    args = parser.parse_args()
+    state_file = args.state
+    auto_close = args.auto_close
 
     assets_dir = os.path.join(os.path.dirname(__file__), "assets")
     ft.run(main, upload_dir="uploads", assets_dir=assets_dir)
