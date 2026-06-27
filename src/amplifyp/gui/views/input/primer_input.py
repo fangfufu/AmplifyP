@@ -260,17 +260,25 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
         return ui_primers
 
-    def sync_to_state(self, rebuild_if_needed: bool = False) -> bool:
+    def sync_to_state(
+        self, rebuild_if_needed: bool = False, skip_extract: bool = False
+    ) -> bool:
         """Sync current UI controls back to the central state.
 
         Args:
             rebuild_if_needed: If True, triggers a full UI rebuild after
                 syncing. Otherwise, updates error states in-place.
+            skip_extract: If True, skips UI extraction and uses existing
+                state directly. Used after paste handling where state is
+                already updated.
 
         Returns:
             True if a UI rebuild was needed and performed.
         """
-        ui_primers = self._extract_primer_data_from_ui()
+        if skip_extract:
+            ui_primers = self.input_data.primers
+        else:
+            ui_primers = self._extract_primer_data_from_ui()
         primers = []
         for i, p in enumerate(ui_primers):
             prev_p = (
@@ -317,7 +325,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         dup_indices = self._get_duplicate_indices_for_list(ui_primers)
         for p in ui_primers:
-            container = p["container"]
+            container = p.get("container")
+            if container is None:
+                continue
             c_idx = container.data
             is_dup = c_idx in dup_indices
             new_color = GUIColours.DUPLICATE_BG if is_dup else None
