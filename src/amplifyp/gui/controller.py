@@ -142,13 +142,9 @@ class GUIController:
 
         self.notification_helper = NotificationHelper(self.page)
 
-        # Load state file if provided via CLI
+        # Load state and handle auto-close asynchronously once page is ready
         if self.state_file:
-            self._restore_state_from_file(self.state_file)
-
-        # Auto-close: run analysis and quit if flag is set
-        if self.auto_close and self.state_file:
-            self.page.run_task(self._auto_close_and_quit_delayed)
+            self.page.run_task(self._restore_state_and_auto_close_async)
 
         # Main view container
         self.view_container = ft.Container(
@@ -512,8 +508,8 @@ class GUIController:
 
             self._apply_parsed_state(parsed_state)
             logger.info("State loaded successfully from %s", path)
-        except (OSError, ValueError, yaml.YAMLError) as ex:
-            logger.exception("Error loading state file '%s': %s", path, ex)
+        except (OSError, ValueError, yaml.YAMLError):
+            logger.exception("Error loading state file '%s'", path)
 
     def _apply_parsed_state(self, parsed_state: dict[str, Any]) -> None:
         """Apply parsed YAML state to the application.
@@ -649,6 +645,15 @@ class GUIController:
             e: The Flet control event triggering the exit.
         """
         self.page.run_task(self.confirm_exit_async)
+
+    async def _restore_state_and_auto_close_async(self) -> None:
+        """Restore state from file and run auto-close sequence if requested."""
+        # Yield to let the page finish initial rendering and attach controls
+        await asyncio.sleep(0)
+        if self.state_file:
+            self._restore_state_from_file(self.state_file)
+        if self.auto_close and self.state_file:
+            await self._auto_close_and_quit_delayed()
 
     async def _auto_close_and_quit_delayed(
         self, e: ft.ControlEvent | None = None

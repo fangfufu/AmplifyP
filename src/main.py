@@ -47,6 +47,8 @@ if __name__ == "__main__":  # pragma: no cover
         help="Auto-quit after rendering completes (requires --state)",
     )
     args = parser.parse_args()
+    if args.auto_close and not args.state:
+        parser.error("--auto-close requires --state")
     state_file = args.state
     auto_close = args.auto_close
 
