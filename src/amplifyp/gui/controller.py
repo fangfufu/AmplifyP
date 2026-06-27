@@ -676,6 +676,8 @@ class GUIController:
                 self.dimers_view.run_analysis()
 
             self.page.update()
+            # Give Flet/Flutter rendering engine time to finish the pass
+            await asyncio.sleep(1)
 
             await self.confirm_exit_async()
         except Exception:
