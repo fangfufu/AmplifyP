@@ -393,6 +393,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self._update_delete_button_disabled_state()
         self._update_header_buttons_state()
 
+        # Update error banner and message colors to match the theme
+        self.error_message_text.color = GUIColours.ERROR_RED
+        self.error_banner.bgcolor = GUIColours.DUPLICATE_BG
+
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of the delete button based on selection.
 
