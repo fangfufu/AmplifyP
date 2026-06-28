@@ -27,6 +27,7 @@ from amplifyp.gui.settings import GUISettings
 if TYPE_CHECKING:
     from amplifyp.gui.util import BorderedCheckbox
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
+from amplifyp.gui.views.settings.backup_tile import BackupTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.tm_tile import TmTile
@@ -96,11 +97,22 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
+        self.backup_tile = BackupTile(
+            page=self.app_page,
+            settings=self.settings,
+            sync_to_state_callback=self.sync_to_state,
+            update_ui_callback=self.update_ui,
+            on_apply_callback=self.on_apply,
+            header_size=header_size,
+            font_size_default=font_size_default,
+        )
+
         self.controls = [
             self.replication_tile,
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
+            self.backup_tile,
             ft.Divider(),
             self._build_action_buttons(),
         ]
@@ -229,6 +241,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 else:
                     self.settings_map[k].value = str(v)
         self.appearance_tile.update_colour_scheme_dropdown()
+        self.replication_tile.update_ui()
+        self.dimer_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""

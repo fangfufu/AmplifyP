@@ -20,6 +20,7 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 
@@ -56,6 +57,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             width=350,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self.set_colour_scheme = ft.Dropdown(
@@ -70,6 +72,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             width=350,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)

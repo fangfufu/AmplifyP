@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 import flet as ft
 import yaml
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.views.input import InputView
 from amplifyp.gui.views.settings import SettingsView
 
@@ -141,7 +142,6 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
     # Reset GUIColours to avoid test contamination
-    from amplifyp.gui.colours import GUIColours
 
     GUIColours.colour_deficient_mode = False
     GUIColours.dark_mode = False
@@ -221,9 +221,82 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings_map["pd_score_G_G"].value == "-20"
 
 
+def test_settings_backup_and_restore() -> None:
+    """Test saving and loading settings in SettingsView via BackupTile."""
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings_view = SettingsView(mock_page)
+
+    # 1. Modify settings view controls
+    settings_view.set_primability_cutoff.value = "0.95"
+    settings_view.set_amp4_compat.value = True
+    settings_view.set_tm_dna_conc.value = "150.0"
+    settings_view.settings_map["bp_score_G_G"].value = "88.0"
+
+    # Save to state
+    settings_view.sync_to_state()
+
+    # 2. Mock saving
+    serialised_yaml = ""
+
+    from typing import Any
+
+    async def mock_save_and_write_file(
+        page: Any,
+        dialog_title: Any,
+        file_name: Any,
+        allowed_extensions: Any,
+        content: Any,
+        show_notification: Any,
+        success_message_desktop: Any,
+        success_message_web: Any,
+    ) -> bool:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+        return True
+
+    # Click save button
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        asyncio.run(settings_view.backup_tile._save_settings_async(MagicMock()))
+
+    # Verify saved YAML contains settings and the modified values
+    parsed = yaml.safe_load(serialised_yaml)
+    assert "settings" in parsed
+    assert parsed["settings"]["primability_cutoff"] == "0.95"
+    assert parsed["settings"]["amp4_compat"] is True
+    assert parsed["settings"]["tm_dna_conc"] == "150.0"
+    assert parsed["settings"]["bp_score_G_G"] == "88.0"
+    # Ensure there is no input data in the backup
+    assert "input" not in parsed
+
+    # 3. Modify controls again to prepare for load
+    settings_view.set_primability_cutoff.value = "0.50"
+    settings_view.set_amp4_compat.value = False
+    settings_view.set_tm_dna_conc.value = "50.0"
+    settings_view.settings_map["bp_score_G_G"].value = "10.0"
+    settings_view.sync_to_state()
+
+    # 4. Mock loading
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.pick_and_read_file",
+        new=AsyncMock(return_value=serialised_yaml),
+    ):
+        asyncio.run(settings_view.backup_tile._load_settings_async(MagicMock()))
+
+    # Verify values have been restored to the controls
+    assert settings_view.set_primability_cutoff.value == "0.95"
+    assert settings_view.set_amp4_compat.value is True
+    assert settings_view.set_tm_dna_conc.value == "150.0"
+    assert settings_view.settings_map["bp_score_G_G"].value == "88.0"
+
+
 def test_colour_deficient_mode_switching() -> None:
     """Test toggling colour deficient setting shifts GUIColours."""
-    from amplifyp.gui.colours import GUIColours
     from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
@@ -254,7 +327,6 @@ def test_colour_deficient_mode_switching() -> None:
 
 def test_dark_mode_switching() -> None:
     """Test toggling dark mode setting shifts GUIColours."""
-    from amplifyp.gui.colours import GUIColours
     from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
@@ -326,7 +398,6 @@ def test_system_theme_saving_loading() -> None:
     assert new_settings_view_2.settings["colour_deficient"] is True
 
     # Reset GUIColours to avoid test contamination
-    from amplifyp.gui.colours import GUIColours
 
     GUIColours.colour_deficient_mode = False
     GUIColours.dark_mode = False
@@ -412,3 +483,99 @@ def test_tm_colour_scheme_application() -> None:
     # 4. Check that the row now has the correct color scheme color applied
     row = input_view.primers_list.controls[0]
     assert row.tm_text.color is not None
+
+
+def test_controller_load_save_only_affects_input() -> None:
+    """Test that controller save and load only affect input state.
+
+    Settings should be ignored.
+    """
+    from typing import Any
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.controller import GUIController
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    controller = GUIController(mock_page)
+    controller.input_view = MagicMock()
+    controller.settings_view = MagicMock()
+    controller.notification_helper = MagicMock()
+    # Set mock settings
+    controller.settings["tm_method"] = "Lander / Amplify 4"
+    controller.settings["dark_mode"] = True
+
+    # Set mock input
+    controller.input_data.template = "ATGCT"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True},
+        {"name": "P2", "seq": "TGC", "active": False},
+    ]
+
+    # Mock pick_and_read_file and save_and_write_file
+    serialised_yaml = ""
+
+    async def mock_save_and_write_file(
+        page: ft.Page,
+        dialog_title: str,
+        file_name: str,
+        allowed_extensions: list[str],
+        content: str,
+        show_notification: Any,
+        success_message_desktop: str,
+        success_message_web: str,
+    ) -> None:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+
+    with patch(
+        "amplifyp.gui.util.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        import asyncio
+
+        asyncio.run(controller.save_state(MagicMock()))
+
+    # Check serialised yaml content
+    parsed_yaml = yaml.safe_load(serialised_yaml)
+    assert "input" in parsed_yaml
+    assert "settings" not in parsed_yaml
+    assert parsed_yaml["input"]["template"] == "ATGCT"
+    assert parsed_yaml["input"]["template_circular"] is True
+    assert len(parsed_yaml["input"]["primers"]) == 2
+    assert parsed_yaml["input"]["primers"][0]["name"] == "P1"
+    assert parsed_yaml["input"]["primers"][0]["active"] is True
+    assert parsed_yaml["input"]["primers"][1]["active"] is False
+
+    # Now let's test load_state. If the loaded YAML contains both input
+    # and settings, settings should be ignored (not applied to settings).
+    test_yaml = """
+input:
+  template: "CGTAC"
+  template_circular: false
+  primers:
+    - name: "P3"
+      seq: "CGT"
+      active: true
+settings:
+  tm_method: "SantaLucia 1998 / Owczarzy 2008 (Default)"
+  dark_mode: false
+"""
+    with patch(
+        "amplifyp.gui.util.pick_and_read_file",
+        new=AsyncMock(return_value=test_yaml),
+    ):
+        asyncio.run(controller.load_state(MagicMock()))
+
+    # Input state should be updated
+    assert controller.input_data.template == "CGTAC"
+    assert controller.input_data.template_circular is False
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == "P3"
+
+    # Settings should remain unchanged (ignored)
+    assert controller.settings["tm_method"] == "Lander / Amplify 4"
+    assert controller.settings["dark_mode"] is True

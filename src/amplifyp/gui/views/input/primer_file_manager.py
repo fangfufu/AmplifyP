@@ -130,6 +130,7 @@ class PrimerFileManager:
         from amplifyp.gui.util import pick_and_read_file
 
         content = await pick_and_read_file(
+            page=self.app_page,
             dialog_title="Load",
             allowed_extensions=["csv", "tsv", "txt"],
             show_notification=self.show_notification,

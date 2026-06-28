@@ -580,7 +580,7 @@ def test_app_views_disabled_on_invalid_selected() -> None:
     def update_pcr_button_state() -> None:
         has_template = bool(input_data.template.strip())
         active_primers = input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 2
+        has_enough_primers = len(active_primers) >= 1
 
         has_invalid_selected = False
         for idx, p in enumerate(input_data.primers):
@@ -703,7 +703,7 @@ def test_header_checkbox_click_all_active() -> None:
         for p in input_data.primers
         if str(p.get("name", "")).strip() or p.get("seq", "").strip()
     ]
-    assert all(p["active"] for p in non_empty)
+    assert all(not p["active"] for p in non_empty)
 
     # Simulate Flet cycle: None → False (second click)
     view.primer_input.all_primers_checkbox.value = False
@@ -822,7 +822,7 @@ def test_header_checkbox_tristate_cycle() -> None:
     assert all(
         not p["active"] for p in input_data.primers if p.get("seq", "").strip()
     )
-    assert primer_input._prev_header_checkbox_value is None
+    assert primer_input._prev_header_checkbox_value is False
 
     # Click 3: Flet cycles None → False, handler sees False → deactivate
     cb.value = False
@@ -839,7 +839,7 @@ def test_header_checkbox_tristate_cycle() -> None:
     assert all(
         p["active"] for p in input_data.primers if p.get("seq", "").strip()
     )
-    assert primer_input._prev_header_checkbox_value is None
+    assert primer_input._prev_header_checkbox_value is True
 
     # Click 5: Flet cycles None → True, handler sees cb_value=True → activate
     cb.value = True

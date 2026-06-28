@@ -74,6 +74,7 @@ class GUIController:
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
+        self.header_container: ft.Container = cast(ft.Container, None)
 
         # UI Control placeholders
         self.visible_save_btn_control: ft.FilledButton = cast(
@@ -311,7 +312,7 @@ class GUIController:
             selectable=True,
         )
 
-        header_container = ft.Container(
+        self.header_container = ft.Container(
             content=ft.Column(
                 [
                     ft.Row(
@@ -364,7 +365,7 @@ class GUIController:
             ft.Divider(height=1, thickness=1),
             self.view_container,
         )
-        self.page.controls.insert(0, header_container)
+        self.page.controls.insert(0, self.header_container)
         self.page.on_resize = self.input_view._handle_resize
         self.page.update()
 
@@ -389,10 +390,20 @@ class GUIController:
             self.page.bg_color = GUIColours.WHITE
             is_dark = False
         GUIColours.dark_mode = is_dark
+        if hasattr(self, "header_container") and self.header_container:
+            self.header_container.bgcolor = GUIColours.SURFACE
 
-    def on_platform_brightness_change(self) -> None:
+    def on_platform_brightness_change(
+        self, e: ft.ControlEvent | None = None
+    ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
+        self.input_view.update_ui()
+        self.settings_view.update_ui()
+        if self.pcr_view.diagram_panel.diagram_container.visible:
+            self.pcr_view.run_pcr(keep_cards=True)
+        if len(self.dimers_view.result_list.controls) > 0:
+            self.dimers_view.run_analysis()
         self.page.update()
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
@@ -417,7 +428,7 @@ class GUIController:
             self.input_view.sync_to_state()
         has_template = bool(self.input_data.template.strip())
         active_primers = self.input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 2
+        has_enough_primers = len(active_primers) >= 1
 
         # Check if any selected (active) primer has validation errors
         has_invalid_selected = False
@@ -462,7 +473,7 @@ class GUIController:
 
         self.page.update()
 
-    def on_settings_change(self, e: ft.ControlEvent) -> None:
+    def on_settings_change(self, e: ft.ControlEvent | None = None) -> None:
         """Handle settings changes from the settings view.
 
         Applies theme, updates PCR button state, and persists settings.
@@ -471,12 +482,26 @@ class GUIController:
             e: The Flet control event triggering the change.
         """
         self.apply_theme()
-        self.input_view.update_ui()
+
+        # Only update the active view immediately to prevent lag!
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        elif active_view == self.settings_view:
+            self.settings_view.update_ui()
+
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
+
+        # Only redraw/re-simulate active views
+        if active_view == self.pcr_view:
+            self.pcr_view.run_pcr(keep_cards=True)
+        elif active_view == self.dimers_view:
+            self.dimers_view.run_analysis()
+
         self.page.update()
 
-    def run_apply_settings(self, e: ft.ControlEvent) -> None:
+    def run_apply_settings(self, e: ft.ControlEvent | None = None) -> None:
         """Apply settings updates from the settings view.
 
         Applies theme, updates PCR button state, and persists settings.
@@ -484,11 +509,7 @@ class GUIController:
         Args:
             e: The Flet control event triggering the apply action.
         """
-        self.apply_theme()
-        self.input_view.update_ui()
-        self.update_pcr_button_state()
-        self.settings.save_to_local(self.page)
-        self.page.update()
+        self.on_settings_change(e)
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.
@@ -511,17 +532,20 @@ class GUIController:
         except (OSError, ValueError, yaml.YAMLError):
             logger.exception("Error loading state file '%s'", path)
 
-    def _apply_parsed_state(self, parsed_state: dict[str, Any]) -> None:
+    def _apply_parsed_state(
+        self, parsed_state: dict[str, Any], ignore_settings: bool = False
+    ) -> None:
         """Apply parsed YAML state to the application.
 
         Args:
             parsed_state: Parsed YAML dict containing input and settings.
+            ignore_settings: If True, settings are not applied.
         """
         if "input" in parsed_state:
             self.input_data.from_dict(parsed_state["input"])
         else:
             self.input_data.from_dict(parsed_state)
-        if "settings" in parsed_state:
+        if not ignore_settings and "settings" in parsed_state:
             self.settings.from_dict(parsed_state["settings"])
             self.settings.save_to_local(self.page)
         self.apply_theme()
@@ -537,10 +561,8 @@ class GUIController:
         self.filepicker_open = True
         try:
             self.input_view.sync_to_state()
-            self.settings_view.sync_to_state()
             combined: dict[str, object] = {
                 "input": self.input_data.to_dict(),
-                "settings": self.settings.to_dict(),
             }
             yaml_str = serialise_state(combined)
 
@@ -570,6 +592,7 @@ class GUIController:
             from amplifyp.gui.util import pick_and_read_file
 
             content = await pick_and_read_file(
+                page=self.page,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 show_notification=self.notification_helper.show_message,
@@ -585,7 +608,7 @@ class GUIController:
                 )
                 return
 
-            self._apply_parsed_state(parsed_state)
+            self._apply_parsed_state(parsed_state, ignore_settings=True)
             self.notification_helper.show_message("State loaded successfully!")
         except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state:")
@@ -608,6 +631,8 @@ class GUIController:
         self.visible_save_btn_control.visible = is_input
         self.visible_load_btn_control.visible = is_input
         self.visible_header_divider.visible = is_input
+        if hasattr(view, "update_ui"):
+            view.update_ui()
 
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
@@ -670,14 +695,14 @@ class GUIController:
             # Yield to event loop to let the initial page render complete
             await asyncio.sleep(0)
 
-            has_template = bool(self.input_data.template.strip())
-            active_primers = self.input_data.get_active_primers()
-            has_enough_primers = len(active_primers) >= 2
+            self.update_pcr_button_state(sync=False)
 
-            if has_template and has_enough_primers:
+            pcr_btn = self.pcr_button_ref.current
+            if pcr_btn and not pcr_btn.disabled:
                 self.pcr_view.run_pcr()
 
-            if len(active_primers) >= 1:
+            dimers_btn = self.dimers_button_ref.current
+            if dimers_btn and not dimers_btn.disabled:
                 self.dimers_view.run_analysis()
 
             self.page.update()

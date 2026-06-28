@@ -20,6 +20,7 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
 
@@ -55,11 +56,13 @@ class ReplicationTile(BaseScoreTile):
             label="Primability Cutoff",
             value="0.8",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_stability_cutoff = ft.TextField(
             label="Stability Cutoff",
             value="0.4",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         from amplifyp.gui.util import BorderedCheckbox
 

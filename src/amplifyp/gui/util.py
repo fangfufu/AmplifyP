@@ -199,6 +199,8 @@ def create_overlapped_sequence_view(
             comp_line = ""
             template_line = ""
 
+        comp_span_text = f"{comp_line}\n" if comp_line else ""
+
         spans = [
             ft.TextSpan(
                 f"{top_line}\n",
@@ -222,7 +224,7 @@ def create_overlapped_sequence_view(
                 ),
             ),
             ft.TextSpan(
-                f"{comp_line}\n",
+                comp_span_text,
                 style=ft.TextStyle(
                     color=GUIColours.MUTED_GREY,
                     weight=ft.FontWeight.BOLD,
@@ -523,13 +525,16 @@ def _write_file(path: str, content: str) -> None:
 
 
 async def pick_and_read_file(
+    page: ft.Page,
     dialog_title: str,
     allowed_extensions: list[str],
     show_notification: Callable[[str], None],
 ) -> str | None:
     """Open a file picker to load a file, and read its text content."""
+    file_picker = ft.FilePicker()
+    page.overlay.append(file_picker)
+    page.update()
     try:
-        file_picker = ft.FilePicker()
         files = await file_picker.pick_files(
             dialog_title=dialog_title,
             allowed_extensions=allowed_extensions,
@@ -551,6 +556,10 @@ async def pick_and_read_file(
     except OSError as ex:
         show_notification(f"Error loading file: {ex}")
         return None
+    finally:
+        if file_picker in page.overlay:
+            page.overlay.remove(file_picker)
+            page.update()
 
 
 async def save_and_write_file(
@@ -564,8 +573,10 @@ async def save_and_write_file(
     success_message_web: str = "Ready for download!",
 ) -> bool:
     """Save content using the file picker, supporting both Web and Desktop."""
+    file_picker = ft.FilePicker()
+    page.overlay.append(file_picker)
+    page.update()
     try:
-        file_picker = ft.FilePicker()
         file_path = await file_picker.save_file(
             dialog_title=dialog_title,
             file_name=file_name,
@@ -585,6 +596,10 @@ async def save_and_write_file(
     except OSError as ex:
         show_notification(f"Error saving file: {ex}")
         return False
+    finally:
+        if file_picker in page.overlay:
+            page.overlay.remove(file_picker)
+            page.update()
 
 
 class NotificationHelper:

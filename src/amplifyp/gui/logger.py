@@ -62,7 +62,6 @@ def initialise_logging(is_web: bool = False) -> None:
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.INFO)

@@ -138,20 +138,19 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
 
-        # Error Banner for selected invalid primers
         self.error_message_text = ft.Text(
             value=(
                 "PCR and Primer Dimer views are disabled because "
                 "one or more selected (active) primers are invalid."
             ),
-            color=GUIColours.ERROR_RED,
+            color=ft.Colors.ON_ERROR_CONTAINER,
             weight=ft.FontWeight.BOLD,
             size=13,
         )
         self.error_banner = ft.Container(
             content=self.error_message_text,
             padding=ft.Padding(10, 5, 10, 5),
-            bgcolor=GUIColours.DUPLICATE_BG,
+            bgcolor=ft.Colors.ERROR_CONTAINER,
             border_radius=5,
             visible=False,
         )
@@ -392,6 +391,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
         self._update_header_buttons_state()
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            pass
 
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of the delete button based on selection.
@@ -469,6 +473,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
+        self._prev_header_checkbox_value = self.all_primers_checkbox.value
         if self.app_page:
             self.app_page.update()
 

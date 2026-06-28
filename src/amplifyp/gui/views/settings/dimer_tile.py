@@ -20,6 +20,7 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
 
@@ -55,11 +56,13 @@ class DimerTile(BaseScoreTile):
             label="Min Overlap",
             value="3",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_pd_threshold = ft.TextField(
             label="Threshold",
             value="60.0",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         settings_map["pd_min_overlap"] = self.set_pd_min_overlap
