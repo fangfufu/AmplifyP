@@ -15,9 +15,14 @@
 
 """Main Flet application logic."""
 
+import logging
+
 import flet as ft
 
 from amplifyp.gui.controller import GUIController
+from amplifyp.gui.logger import initialise_logging
+
+logger = logging.getLogger(__name__)
 
 
 def main(
@@ -30,6 +35,8 @@ def main(
         state_file: Optional path to a YAML state file to load on startup.
         auto_close: If True, quit automatically after rendering is complete.
     """
+    initialise_logging(is_web=page.web)
+    logger.info("Starting AmplifyP GUI application")
     controller = GUIController(
         page, state_file=state_file, auto_close=auto_close
     )
