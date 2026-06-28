@@ -473,6 +473,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
+        self._prev_header_checkbox_value = self.all_primers_checkbox.value
         if self.app_page:
             self.app_page.update()
 

@@ -703,7 +703,7 @@ def test_header_checkbox_click_all_active() -> None:
         for p in input_data.primers
         if str(p.get("name", "")).strip() or p.get("seq", "").strip()
     ]
-    assert all(p["active"] for p in non_empty)
+    assert all(not p["active"] for p in non_empty)
 
     # Simulate Flet cycle: None → False (second click)
     view.primer_input.all_primers_checkbox.value = False
@@ -822,7 +822,7 @@ def test_header_checkbox_tristate_cycle() -> None:
     assert all(
         not p["active"] for p in input_data.primers if p.get("seq", "").strip()
     )
-    assert primer_input._prev_header_checkbox_value is None
+    assert primer_input._prev_header_checkbox_value is False
 
     # Click 3: Flet cycles None → False, handler sees False → deactivate
     cb.value = False
@@ -839,7 +839,7 @@ def test_header_checkbox_tristate_cycle() -> None:
     assert all(
         p["active"] for p in input_data.primers if p.get("seq", "").strip()
     )
-    assert primer_input._prev_header_checkbox_value is None
+    assert primer_input._prev_header_checkbox_value is True
 
     # Click 5: Flet cycles None → True, handler sees cb_value=True → activate
     cb.value = True
