@@ -417,7 +417,7 @@ class GUIController:
             self.input_view.sync_to_state()
         has_template = bool(self.input_data.template.strip())
         active_primers = self.input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 2
+        has_enough_primers = len(active_primers) >= 1
 
         # Check if any selected (active) primer has validation errors
         has_invalid_selected = False
@@ -670,14 +670,14 @@ class GUIController:
             # Yield to event loop to let the initial page render complete
             await asyncio.sleep(0)
 
-            has_template = bool(self.input_data.template.strip())
-            active_primers = self.input_data.get_active_primers()
-            has_enough_primers = len(active_primers) >= 2
+            self.update_pcr_button_state(sync=False)
 
-            if has_template and has_enough_primers:
+            pcr_btn = self.pcr_button_ref.current
+            if pcr_btn and not pcr_btn.disabled:
                 self.pcr_view.run_pcr()
 
-            if len(active_primers) >= 1:
+            dimers_btn = self.dimers_button_ref.current
+            if dimers_btn and not dimers_btn.disabled:
                 self.dimers_view.run_analysis()
 
             self.page.update()

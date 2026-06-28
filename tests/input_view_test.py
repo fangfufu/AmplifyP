@@ -580,7 +580,7 @@ def test_app_views_disabled_on_invalid_selected() -> None:
     def update_pcr_button_state() -> None:
         has_template = bool(input_data.template.strip())
         active_primers = input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 2
+        has_enough_primers = len(active_primers) >= 1
 
         has_invalid_selected = False
         for idx, p in enumerate(input_data.primers):
