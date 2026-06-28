@@ -209,40 +209,42 @@ class _GUIColoursMeta(type):
     @property
     def GRADIENT_GREY(cls) -> str:
         """Get grey colour for temperature gradient."""
-        return "#9e9e9e"
+        return cast(str, ft.Colors.GREY_500)
 
     @property
     def GRADIENT_GREEN(cls) -> str:
         """Get green/blue gradient colour for temperature."""
-        return (
-            "#1e88e5"  # ft.Colors.BLUE_600
+        return cast(
+            str,
+            ft.Colors.BLUE_600
             if cls._colour_deficient_mode
-            else "#388e3c"  # ft.Colors.GREEN_600
+            else ft.Colors.GREEN_600,
         )
 
     @property
     def GRADIENT_YELLOW(cls) -> str:
         """Get yellow/orange gradient colour for temperature."""
-        return (
-            "#f57c00"  # ft.Colors.ORANGE_600
+        return cast(
+            str,
+            ft.Colors.ORANGE_600
             if cls._colour_deficient_mode
-            else "#fdd835"  # ft.Colors.YELLOW_600
+            else ft.Colors.YELLOW_600,
         )
 
     @property
     def GRADIENT_RED(cls) -> str:
         """Get red colour for temperature gradient."""
-        return "#d32f2f"  # ft.Colors.RED_700
+        return cast(str, ft.Colors.RED_700)
 
     @property
     def GRADIENT_BLUE(cls) -> str:
         """Get blue colour for Cool-Warm temperature gradient."""
-        return "#1565c0"  # ft.Colors.BLUE_700
+        return cast(str, ft.Colors.BLUE_700)
 
     @property
     def GRADIENT_MIDPOINT(cls) -> str:
         """Get midpoint colour for Cool-Warm temperature gradient."""
-        return "#ffffff" if cls._dark_mode else "#000000"
+        return cast(str, ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK)
 
 
 class GUIColours(metaclass=_GUIColoursMeta):
@@ -252,16 +254,38 @@ class GUIColours(metaclass=_GUIColoursMeta):
     _dark_mode = False
 
 
+_COLOR_HEX_MAP = {
+    "grey500": "#9e9e9e",
+    "blue600": "#1e88e5",
+    "green600": "#388e3c",
+    "orange600": "#f57c00",
+    "yellow600": "#fdd835",
+    "red700": "#d32f2f",
+    "blue700": "#1565c0",
+    "white": "#ffffff",
+    "black": "#000000",
+}
+
+
+def _get_color_hex(color_str: str) -> str:
+    """Get hex representation of a color name or return hex string."""
+    if color_str.startswith("#"):
+        return color_str
+    # Normalize color name (e.g. "blue_600" or "BLUE_600" -> "blue600")
+    norm_name = color_str.lower().replace("_", "")
+    return _COLOR_HEX_MAP.get(norm_name, color_str)
+
+
 def _hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
-    """Convert a hex colour string to an (R, G, B) tuple.
+    """Convert a color name or hex string to an (R, G, B) tuple.
 
     Args:
-        hex_str: A string of the format "#RRGGBB".
+        hex_str: A color name or hex string of the format "#RRGGBB".
 
     Returns:
         A tuple of (R, G, B) integers.
     """
-    hex_clean = hex_str.lstrip("#")
+    hex_clean = _get_color_hex(hex_str).lstrip("#")
     return (
         int(hex_clean[0:2], 16),
         int(hex_clean[2:4], 16),
@@ -319,7 +343,7 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
 
     if scheme == "Traffic Light":
         if tm_value <= 0:
-            return GUIColours.GRADIENT_GREY
+            return _get_color_hex(GUIColours.GRADIENT_GREY)
         if tm_value < 55:
             t = tm_value / 55.0
             return _interpolate_colour(
@@ -335,11 +359,11 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
             return _interpolate_colour(
                 GUIColours.GRADIENT_YELLOW, GUIColours.GRADIENT_RED, t
             )
-        return GUIColours.GRADIENT_RED
+        return _get_color_hex(GUIColours.GRADIENT_RED)
 
     if scheme == "Cool-Warm":
         if tm_value <= 35:
-            return GUIColours.GRADIENT_BLUE
+            return _get_color_hex(GUIColours.GRADIENT_BLUE)
         if tm_value < 55:
             t = (tm_value - 35.0) / 20.0
             return _interpolate_colour(
@@ -350,6 +374,6 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
             return _interpolate_colour(
                 GUIColours.GRADIENT_MIDPOINT, GUIColours.GRADIENT_RED, t
             )
-        return GUIColours.GRADIENT_RED
+        return _get_color_hex(GUIColours.GRADIENT_RED)
 
     return None
