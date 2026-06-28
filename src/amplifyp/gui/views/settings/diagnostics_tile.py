@@ -296,7 +296,9 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option(mb_value)
             )
             self.log_rotation_max_bytes.options.sort(
-                key=lambda opt: int(opt.key) if opt.key.isdigit() else 0
+                key=lambda opt: (
+                    int(opt.key) if opt.key and opt.key.isdigit() else 0
+                )
             )
 
         self.log_rotation_max_bytes.value = mb_value
