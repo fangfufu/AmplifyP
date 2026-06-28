@@ -15,7 +15,7 @@
 
 """Centralised GUI colour definitions and dynamic colour shifting."""
 
-from typing import cast
+from typing import ClassVar, cast
 
 import flet as ft
 
@@ -254,76 +254,53 @@ class GUIColours(metaclass=_GUIColoursMeta):
     _dark_mode = False
 
 
-_COLOR_HEX_MAP = {
-    "grey500": "#9e9e9e",
-    "blue600": "#1e88e5",
-    "green600": "#388e3c",
-    "orange600": "#f57c00",
-    "yellow600": "#fdd835",
-    "red700": "#d32f2f",
-    "blue700": "#1565c0",
-    "white": "#ffffff",
-    "black": "#000000",
-}
+class ColourInterpolator:
+    """Helper to convert color names to hex codes and interpolate colors."""
 
+    MAP: ClassVar[dict[str, str]] = {
+        "grey500": "#9e9e9e",
+        "blue600": "#1e88e5",
+        "green600": "#388e3c",
+        "orange600": "#f57c00",
+        "yellow600": "#fdd835",
+        "red700": "#d32f2f",
+        "blue700": "#1565c0",
+        "white": "#ffffff",
+        "black": "#000000",
+    }
 
-def _get_color_hex(color_str: str) -> str:
-    """Get hex representation of a color name or return hex string."""
-    if color_str.startswith("#"):
-        return color_str
-    # Normalize color name (e.g. "blue_600" or "BLUE_600" -> "blue600")
-    norm_name = color_str.lower().replace("_", "")
-    return _COLOR_HEX_MAP.get(norm_name, color_str)
+    @classmethod
+    def get_hex(cls, color_str: str) -> str:
+        """Get hex representation of a color name or return hex string."""
+        if color_str.startswith("#"):
+            return color_str
+        norm_name = color_str.lower().replace("_", "")
+        return cls.MAP.get(norm_name, color_str)
 
+    @classmethod
+    def to_rgb(cls, color_str: str) -> tuple[int, int, int]:
+        """Convert a color name or hex string to an (R, G, B) tuple."""
+        hex_clean = cls.get_hex(color_str).lstrip("#")
+        return (
+            int(hex_clean[0:2], 16),
+            int(hex_clean[2:4], 16),
+            int(hex_clean[4:6], 16),
+        )
 
-def _hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
-    """Convert a color name or hex string to an (R, G, B) tuple.
+    @staticmethod
+    def to_hex(r: int, g: int, b: int) -> str:
+        """Convert an (R, G, B) tuple to a hex colour string."""
+        return f"#{r:02x}{g:02x}{b:02x}"
 
-    Args:
-        hex_str: A color name or hex string of the format "#RRGGBB".
-
-    Returns:
-        A tuple of (R, G, B) integers.
-    """
-    hex_clean = _get_color_hex(hex_str).lstrip("#")
-    return (
-        int(hex_clean[0:2], 16),
-        int(hex_clean[2:4], 16),
-        int(hex_clean[4:6], 16),
-    )
-
-
-def _rgb_to_hex(r: int, g: int, b: int) -> str:
-    """Convert an (R, G, B) tuple to a hex colour string.
-
-    Args:
-        r: Red component (0-255).
-        g: Green component (0-255).
-        b: Blue component (0-255).
-
-    Returns:
-        A string of the format "#RRGGBB".
-    """
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
-def _interpolate_colour(colour_1: str, colour_2: str, t: float) -> str:
-    """Interpolate between two hex colours by factor t (0 to 1).
-
-    Args:
-        colour_1: Starting hex colour.
-        colour_2: Ending hex colour.
-        t: Interpolation factor between 0.0 and 1.0.
-
-    Returns:
-        Interpolated hex colour.
-    """
-    r1, g1, b1 = _hex_to_rgb(colour_1)
-    r2, g2, b2 = _hex_to_rgb(colour_2)
-    r = int(r1 + (r2 - r1) * t)
-    g = int(g1 + (g2 - g1) * t)
-    b = int(b1 + (b2 - b1) * t)
-    return _rgb_to_hex(r, g, b)
+    @classmethod
+    def interpolate(cls, color_1: str, color_2: str, t: float) -> str:
+        """Interpolate between two colors by factor t (0 to 1)."""
+        r1, g1, b1 = cls.to_rgb(color_1)
+        r2, g2, b2 = cls.to_rgb(color_2)
+        r = int(r1 + (r2 - r1) * t)
+        g = int(g1 + (g2 - g1) * t)
+        b = int(b1 + (b2 - b1) * t)
+        return cls.to_hex(r, g, b)
 
 
 def tm_colour(tm_value: float | None, scheme: str) -> str | None:
@@ -343,37 +320,37 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
 
     if scheme == "Traffic Light":
         if tm_value <= 0:
-            return _get_color_hex(GUIColours.GRADIENT_GREY)
+            return ColourInterpolator.get_hex(GUIColours.GRADIENT_GREY)
         if tm_value < 55:
             t = tm_value / 55.0
-            return _interpolate_colour(
+            return ColourInterpolator.interpolate(
                 GUIColours.GRADIENT_GREY, GUIColours.GRADIENT_GREEN, t
             )
         if tm_value < 65:
             t = (tm_value - 55.0) / 10.0
-            return _interpolate_colour(
+            return ColourInterpolator.interpolate(
                 GUIColours.GRADIENT_GREEN, GUIColours.GRADIENT_YELLOW, t
             )
         if tm_value < 75:
             t = (tm_value - 65.0) / 10.0
-            return _interpolate_colour(
+            return ColourInterpolator.interpolate(
                 GUIColours.GRADIENT_YELLOW, GUIColours.GRADIENT_RED, t
             )
-        return _get_color_hex(GUIColours.GRADIENT_RED)
+        return ColourInterpolator.get_hex(GUIColours.GRADIENT_RED)
 
     if scheme == "Cool-Warm":
         if tm_value <= 35:
-            return _get_color_hex(GUIColours.GRADIENT_BLUE)
+            return ColourInterpolator.get_hex(GUIColours.GRADIENT_BLUE)
         if tm_value < 55:
             t = (tm_value - 35.0) / 20.0
-            return _interpolate_colour(
+            return ColourInterpolator.interpolate(
                 GUIColours.GRADIENT_BLUE, GUIColours.GRADIENT_MIDPOINT, t
             )
         if tm_value < 75:
             t = (tm_value - 55.0) / 20.0
-            return _interpolate_colour(
+            return ColourInterpolator.interpolate(
                 GUIColours.GRADIENT_MIDPOINT, GUIColours.GRADIENT_RED, t
             )
-        return _get_color_hex(GUIColours.GRADIENT_RED)
+        return ColourInterpolator.get_hex(GUIColours.GRADIENT_RED)
 
     return None
