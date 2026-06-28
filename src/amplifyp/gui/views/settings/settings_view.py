@@ -343,6 +343,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         self.settings.from_dict(reset_dict)
         self.update_ui()
+        self.settings.save_to_local(self.app_page)
+        self._reconfigure_logging()
         self.app_page.update()
         if self.on_reset:
             self.on_reset(args[0] if args else None)
