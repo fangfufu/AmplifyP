@@ -234,6 +234,80 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings_map["pd_score_G_G"].value == "-20"
 
 
+def test_settings_backup_and_restore() -> None:
+    """Test saving and loading settings in SettingsView via BackupTile."""
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings_view = SettingsView(mock_page)
+
+    # 1. Modify settings view controls
+    settings_view.set_primability_cutoff.value = "0.95"
+    settings_view.set_amp4_compat.value = True
+    settings_view.set_tm_dna_conc.value = "150.0"
+    settings_view.settings_map["bp_score_G_G"].value = "88.0"
+
+    # Save to state
+    settings_view.sync_to_state()
+
+    # 2. Mock saving
+    serialised_yaml = ""
+
+    from typing import Any
+
+    async def mock_save_and_write_file(
+        page: Any,
+        dialog_title: Any,
+        file_name: Any,
+        allowed_extensions: Any,
+        content: Any,
+        show_notification: Any,
+        success_message_desktop: Any,
+        success_message_web: Any,
+    ) -> bool:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+        return True
+
+    # Click save button
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        asyncio.run(settings_view.backup_tile._save_settings_async(MagicMock()))
+
+    # Verify saved YAML contains settings and the modified values
+    parsed = yaml.safe_load(serialised_yaml)
+    assert "settings" in parsed
+    assert parsed["settings"]["primability_cutoff"] == "0.95"
+    assert parsed["settings"]["amp4_compat"] is True
+    assert parsed["settings"]["tm_dna_conc"] == "150.0"
+    assert parsed["settings"]["bp_score_G_G"] == "88.0"
+    # Ensure there is no input data in the backup
+    assert "input" not in parsed
+
+    # 3. Modify controls again to prepare for load
+    settings_view.set_primability_cutoff.value = "0.50"
+    settings_view.set_amp4_compat.value = False
+    settings_view.set_tm_dna_conc.value = "50.0"
+    settings_view.settings_map["bp_score_G_G"].value = "10.0"
+    settings_view.sync_to_state()
+
+    # 4. Mock loading
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.pick_and_read_file",
+        new=AsyncMock(return_value=serialised_yaml),
+    ):
+        asyncio.run(settings_view.backup_tile._load_settings_async(MagicMock()))
+
+    # Verify values have been restored to the controls
+    assert settings_view.set_primability_cutoff.value == "0.95"
+    assert settings_view.set_amp4_compat.value is True
+    assert settings_view.set_tm_dna_conc.value == "150.0"
+    assert settings_view.settings_map["bp_score_G_G"].value == "88.0"
+
+
 def test_colour_deficient_mode_switching() -> None:
     """Test toggling colour deficient setting shifts GUIColours."""
     from amplifyp.gui.colours import GUIColours

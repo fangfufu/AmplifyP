@@ -608,6 +608,7 @@ class GUIController:
             from amplifyp.gui.util import pick_and_read_file
 
             content = await pick_and_read_file(
+                page=self.page,
                 dialog_title="Load all",
                 allowed_extensions=["yaml", "yml"],
                 show_notification=self.notification_helper.show_message,
