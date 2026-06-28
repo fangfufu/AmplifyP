@@ -487,6 +487,133 @@ def test_e2e_primer_lifecycle_and_state(
     assert "I2" in final_content
 
 
+@pytest.mark.e2e  # type: ignore[untyped-decorator]
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="E2E tests only run on Linux"
+)  # type: ignore[untyped-decorator]
+def test_e2e_settings_backup(
+    page: Any, serve_app: str, tmp_path: Any, e2e_timeout: None
+) -> None:
+    """Test Settings Backup: Save/Load Settings via file picker.
+
+    Exercises the FilePicker (pick_and_read_file / save_and_write_file)
+    via page.services — the fix for Flet 0.85 web mode.
+
+    Semantics discovery findings:
+    - ExpansionTile headers appear as role='button' in the DOM tree,
+      accessible via their text content (e.g. 'Backup').
+    - After expanding the Backup tile, exactly 2 new role='button' nodes
+      with EMPTY text appear. These are Save Settings (first) and Load
+      Settings (second). Their labels are rendered on canvas, not DOM.
+    - Strategy: count buttons before expand, then target nth new buttons
+      by index after expansion.
+
+    Steps:
+      1. Navigate to Settings tab.
+      2. Click the 'Backup' expansion tile header button to expand it.
+      3. Click the first new (empty-text) button = Save Settings download.
+      4. Verify the downloaded YAML contains 'settings:' key.
+      5. Reload, navigate to Settings > Backup again.
+      6. Click the second new (empty-text) button = Load Settings.
+      7. Supply the downloaded file via file chooser.
+      8. Verify the app is still responsive.
+    """
+    page.set_default_timeout(30000)
+    page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
+
+    def expand_backup_tile() -> None:
+        """Click the Backup tile header to expand it.
+
+        Debug findings:
+        - Backup tile header is role='button' with textContent 'Backup'.
+        - After clicking, the header merges into a group (count goes
+          12 -> 13, not 12 -> 14).
+        - The 2 expanded buttons appear as role='button' with
+          textContent 'Save Settings' and 'Load Settings' at fixed
+          positions (indices 9 and 10 in the button list).
+        - We locate them by name (textContent) via get_by_role.
+        """
+        backup_btn = page.get_by_role("button", name="Backup")
+        backup_btn.wait_for(state="attached", timeout=15000)
+        print("  Clicking Backup tile to expand...")
+        backup_btn.click(force=True)
+        # Wait for 'Save Settings' button to appear
+        page.get_by_role("button", name="Save Settings").wait_for(
+            state="attached", timeout=10000
+        )
+        time.sleep(1.5)
+        print("  Backup tile expanded.")
+
+    def navigate_to_settings() -> None:
+        """Click the Settings tab and wait for expansion tiles to load."""
+        print("  Clicking Settings tab...")
+        page.locator("[aria-label='Settings']").first.click(force=True)
+        # Backup tile header must be visible before proceeding
+        page.get_by_role("button", name="Backup").wait_for(
+            state="attached", timeout=15000
+        )
+
+    # 1. Navigate to app with semantics enabled
+    page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
+    expect(page).to_have_title("AmplifyP", timeout=120000)
+    wait_for_semantics(page)
+
+    # 2. Navigate to Settings and expand Backup
+    print("Navigating to Settings...")
+    navigate_to_settings()
+    expand_backup_tile()
+
+    # 3. Click 'Save Settings' button — triggers download
+    print("Clicking Save Settings...")
+    save_btn = page.get_by_role("button", name="Save Settings")
+    with page.expect_download(timeout=20000) as download_info:
+        save_btn.click(force=True)
+    download = download_info.value
+    settings_yaml_path = tmp_path / "amplify_settings.yaml"
+    download.save_as(str(settings_yaml_path))
+    print(f"  Downloaded to {settings_yaml_path}")
+
+    # Verify YAML content
+    with open(settings_yaml_path, encoding="utf-8") as f:
+        settings_content = f.read()
+    assert "settings:" in settings_content, (
+        "Expected 'settings:' key in downloaded YAML, "
+        f"got:\n{settings_content[:200]}"
+    )
+    print("  Save Settings: YAML content verified.")
+
+    # 4. Reload and navigate to Settings > Backup again
+    print("Reloading page...")
+    page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
+    wait_for_semantics(page)
+    navigate_to_settings()
+    expand_backup_tile()
+
+    # 5. Click 'Load Settings' button — triggers file chooser
+    print("Clicking Load Settings...")
+    load_btn = page.get_by_role("button", name="Load Settings")
+    with page.expect_file_chooser(timeout=15000) as fc_info:
+        load_btn.click(force=True)
+    file_chooser = fc_info.value
+    file_chooser.set_files(str(settings_yaml_path))
+    time.sleep(3)
+
+    # 6. Verify app is still alive (no crash after load)
+    assert page.locator("[aria-label='Settings']").count() > 0, (
+        "Settings tab missing — app may have crashed after load"
+    )
+    print("  Load Settings: app still responsive after load.")
+    print("test_e2e_settings_backup PASSED.")
+
+
 def wait_for_ui(
     page: Any, text: str, timeout_sec: int = 60
 ) -> tuple[float, float]:
