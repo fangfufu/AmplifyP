@@ -18,16 +18,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.logger import get_default_log_file_path
 from amplifyp.gui.settings import GUISettings
-
-if TYPE_CHECKING:
-    pass
 
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 

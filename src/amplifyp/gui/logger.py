@@ -57,6 +57,58 @@ _current_file_path: str | None = None
 _current_is_web: bool = False
 
 
+def _create_console_handler() -> logging.StreamHandler[Any]:
+    """Create and configure the default console StreamHandler."""
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    console_formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+    console_handler.setFormatter(console_formatter)
+    return console_handler
+
+
+def _create_file_handler(
+    file_path: str,
+    rotation_enabled: bool,
+    rotation_max_bytes: int,
+    silent: bool = False,
+) -> logging.FileHandler | None:
+    """Create and configure a file handler, with optional rotation."""
+    try:
+        log_dir = Path(file_path).parent
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        file_handler: logging.FileHandler
+        if rotation_enabled:
+            file_handler = logging.handlers.RotatingFileHandler(
+                file_path,
+                maxBytes=rotation_max_bytes,
+                backupCount=3,
+                encoding="utf-8",
+            )
+        else:
+            file_handler = logging.FileHandler(
+                file_path,
+                encoding="utf-8",
+            )
+        file_handler.setLevel(logging.DEBUG)
+        file_formatter = logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s "
+            "(%(filename)s:%(lineno)d): %(message)s"
+        )
+        file_handler.setFormatter(file_formatter)
+        return file_handler
+    except OSError as e:
+        if not silent:
+            logging.warning(
+                "Could not initialise file logging: %s. "
+                "Console logging will be used instead.",
+                e,
+            )
+        return None
+
+
 def _set_logger_levels(amplifyp_level: int, flet_level: int) -> None:
     """Set levels on all amplifyp and flet loggers."""
     if flet_level < logging.INFO:
@@ -121,41 +173,17 @@ def _apply_stored_settings() -> None:
     _set_logger_levels(amplifyp_level, flet_level)
 
     if log_console_enabled:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.DEBUG)
-        console_formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        )
-        console_handler.setFormatter(console_formatter)
-        root_logger.addHandler(console_handler)
+        root_logger.addHandler(_create_console_handler())
 
     if log_file_enabled:
-        try:
-            log_dir = Path(resolved_path).parent
-            log_dir.mkdir(parents=True, exist_ok=True)
-
-            file_handler: logging.FileHandler
-            if log_rotation_enabled:
-                file_handler = logging.handlers.RotatingFileHandler(
-                    resolved_path,
-                    maxBytes=log_rotation_max_bytes,
-                    backupCount=3,
-                    encoding="utf-8",
-                )
-            else:
-                file_handler = logging.FileHandler(
-                    resolved_path,
-                    encoding="utf-8",
-                )
-            file_handler.setLevel(logging.DEBUG)
-            file_formatter = logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(name)s "
-                "(%(filename)s:%(lineno)d): %(message)s"
-            )
-            file_handler.setFormatter(file_formatter)
+        file_handler = _create_file_handler(
+            resolved_path,
+            log_rotation_enabled,
+            log_rotation_max_bytes,
+            silent=True,
+        )
+        if file_handler is not None:
             root_logger.addHandler(file_handler)
-        except OSError:
-            pass
 
     _logging_initialised = True
 
@@ -248,11 +276,12 @@ def _find_console_handler(
         The console StreamHandler, or None if not found.
     """
     for handler in root_logger.handlers:
-        if isinstance(handler, logging.StreamHandler) and hasattr(
-            handler, "stream"
+        if (
+            isinstance(handler, logging.StreamHandler)
+            and hasattr(handler, "stream")
+            and handler.stream is sys.stdout
         ):
-            if handler.stream is sys.stdout:
-                return handler
+            return handler
     return None
 
 
@@ -342,46 +371,17 @@ def initialise_logging(
 
     # Console handler
     if log_console_enabled:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.DEBUG)
-        console_formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        )
-        console_handler.setFormatter(console_formatter)
-        root_logger.addHandler(console_handler)
+        root_logger.addHandler(_create_console_handler())
 
     # File handler (desktop mode only)
     if not is_web and log_file_enabled:
-        try:
-            log_dir = Path(_current_file_path).parent
-            log_dir.mkdir(parents=True, exist_ok=True)
-
-            file_handler: logging.FileHandler
-            if log_rotation_enabled:
-                file_handler = logging.handlers.RotatingFileHandler(
-                    _current_file_path,
-                    maxBytes=log_rotation_max_bytes,
-                    backupCount=3,
-                    encoding="utf-8",
-                )
-            else:
-                file_handler = logging.FileHandler(
-                    _current_file_path,
-                    encoding="utf-8",
-                )
-            file_handler.setLevel(logging.DEBUG)
-            file_formatter = logging.Formatter(
-                "%(asctime)s [%(levelname)s] %(name)s "
-                "(%(filename)s:%(lineno)d): %(message)s"
-            )
-            file_handler.setFormatter(file_formatter)
+        file_handler = _create_file_handler(
+            _current_file_path,
+            log_rotation_enabled,
+            log_rotation_max_bytes,
+        )
+        if file_handler is not None:
             root_logger.addHandler(file_handler)
-        except OSError as e:
-            logging.warning(
-                "Could not initialise file logging: %s. "
-                "Console logging will be used instead.",
-                e,
-            )
 
     _logging_initialised = True
 
@@ -426,13 +426,7 @@ def reconfigure_logging(
     # Handle console handler
     console_handler = _find_console_handler(root_logger)
     if log_console_enabled and console_handler is None:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(logging.DEBUG)
-        console_formatter = logging.Formatter(
-            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-        )
-        console_handler.setFormatter(console_formatter)
-        root_logger.addHandler(console_handler)
+        root_logger.addHandler(_create_console_handler())
     elif not log_console_enabled and console_handler is not None:
         root_logger.removeHandler(console_handler)
 
@@ -475,33 +469,10 @@ def reconfigure_logging(
             root_logger, logging.FileHandler
         )
         if existing_file is None and existing_simple is None:
-            try:
-                log_dir = Path(resolved_path).parent
-                log_dir.mkdir(parents=True, exist_ok=True)
-
-                file_handler: logging.FileHandler
-                if log_rotation_enabled:
-                    file_handler = logging.handlers.RotatingFileHandler(
-                        resolved_path,
-                        maxBytes=log_rotation_max_bytes,
-                        backupCount=3,
-                        encoding="utf-8",
-                    )
-                else:
-                    file_handler = logging.FileHandler(
-                        resolved_path,
-                        encoding="utf-8",
-                    )
-                file_handler.setLevel(logging.DEBUG)
-                file_formatter = logging.Formatter(
-                    "%(asctime)s [%(levelname)s] %(name)s "
-                    "(%(filename)s:%(lineno)d): %(message)s"
-                )
-                file_handler.setFormatter(file_formatter)
+            file_handler = _create_file_handler(
+                resolved_path,
+                log_rotation_enabled,
+                log_rotation_max_bytes,
+            )
+            if file_handler is not None:
                 root_logger.addHandler(file_handler)
-            except OSError as e:
-                logging.warning(
-                    "Could not initialise file logging: %s. "
-                    "Console logging will be used instead.",
-                    e,
-                )
