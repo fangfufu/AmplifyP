@@ -14,13 +14,13 @@ repos:
       - id: yamlfmt
         exclude: ^tests/examples/save_states/
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.18
+    rev: v0.15.20
     hooks:
       - id: ruff-format
       - id: ruff-check
         args: [--fix]
   - repo: https://github.com/crate-ci/typos
-    rev: v1
+    rev: v1.47.2
     hooks:
       - id: typos
   - repo: https://github.com/jendrikseipp/vulture

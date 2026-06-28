@@ -26,8 +26,10 @@ from amplifyp.gui.settings import GUISettings
 
 if TYPE_CHECKING:
     from amplifyp.gui.util import BorderedCheckbox
+from amplifyp.gui.logger import reconfigure_logging
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.backup_tile import BackupTile
+from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.tm_tile import TmTile
@@ -97,6 +99,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
+        self.diagnostics_tile = DiagnosticsTile(
+            page=self.app_page,
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,
+            header_size=header_size,
+        )
+
         self.backup_tile = BackupTile(
             page=self.app_page,
             settings=self.settings,
@@ -112,6 +122,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
+            self.diagnostics_tile,
             self.backup_tile,
             ft.Divider(),
             self._build_action_buttons(),
@@ -225,8 +236,31 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
         for k, v in self.settings_map.items():
-            self.settings[k] = v.value
+            if k == "log_rotation_max_bytes":
+                try:
+                    self.settings[k] = int(v.value) * 1024 * 1024
+                except (ValueError, TypeError):
+                    self.settings[k] = 5242880
+            else:
+                self.settings[k] = v.value
         self.appearance_tile.sync_colour_scheme_to_settings()
+
+    def _reconfigure_logging(self) -> None:
+        """Reconfigure logging based on current settings."""
+        reconfigure_logging(
+            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_flet=self.settings.get("log_level_flet", "INFO"),
+            log_console_enabled=self.settings.get("log_console_enabled", True),
+            log_file_enabled=self.settings.get("log_file_enabled", True),
+            log_file_path=self.settings.get("log_file_path", "(Default)"),
+            is_web=self.app_page.web,
+            log_rotation_enabled=self.settings.get(
+                "log_rotation_enabled", True
+            ),
+            log_rotation_max_bytes=self.settings.get(
+                "log_rotation_max_bytes", 5242880
+            ),
+        )
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
@@ -243,6 +277,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.appearance_tile.update_colour_scheme_dropdown()
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()
+        self.diagnostics_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
@@ -255,12 +290,15 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings[k] = ctrl.value
                     break
         self.sync_to_state()
+        self._reconfigure_logging()
         if self.on_change:
             self.on_change(e)
 
     def _on_apply_handler(self, *args: Any) -> None:
         """Handle apply button click."""
         self.sync_to_state()
+        self.settings.save_to_local(self.app_page)
+        self._reconfigure_logging()
         if self.on_apply:
             self.on_apply(args[0] if args else None)
 
@@ -295,6 +333,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "improved_visualisation": True,
             "show_primer_temperature": False,
             "tm_colour_scheme": "None",
+            "log_level_amplifyp": "INFO",
+            "log_level_flet": "INFO",
+            "log_console_enabled": True,
+            "log_file_enabled": True,
+            "log_file_path": "(Default)",
+            "log_rotation_enabled": True,
+            "log_rotation_max_bytes": 5242880,
         }
 
         for r_char in Nucleotides.PRIMER:

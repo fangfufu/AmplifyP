@@ -95,6 +95,13 @@ class GUISettings:
             "improved_visualisation": True,
             "show_primer_temperature": False,
             "tm_colour_scheme": "None",
+            "log_level_amplifyp": "INFO",
+            "log_level_flet": "INFO",
+            "log_console_enabled": True,
+            "log_file_enabled": True,
+            "log_file_path": "(Default)",
+            "log_rotation_enabled": True,
+            "log_rotation_max_bytes": 5242880,
         }
 
         # Initialise base-pair weights

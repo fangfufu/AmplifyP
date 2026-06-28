@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING
 
 import flet as ft
 
@@ -29,9 +28,6 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.util import clean_sequence
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    pass
 
 
 class PrimerRow(ft.Container):  # type: ignore[misc]
