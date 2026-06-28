@@ -166,8 +166,6 @@ def _get_settings_path() -> Path:
     Returns:
         Path object pointing to settings.yaml.
     """
-    import sys
-
     if sys.platform.startswith("win"):
         appdata = os.environ.get("APPDATA")
         if appdata:

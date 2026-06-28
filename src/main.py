@@ -19,7 +19,6 @@ import os
 
 import flet as ft
 
-import amplifyp.gui.logger  # noqa: F401
 from amplifyp.gui import main as app_main
 
 state_file: str | None = None
