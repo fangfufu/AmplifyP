@@ -49,6 +49,7 @@ def reset_logging_flag() -> None:
             or type(handler) is logging.FileHandler
         ):
             root_logger.removeHandler(handler)
+            handler.close()
 
 
 def test_get_log_dir() -> None:
@@ -407,23 +408,13 @@ def test_reconfigure_logging_invalid_level() -> None:
 
 def test_initialise_logging_graceful_fallback() -> None:
     """Test that folder creation errors fall back to console gracefully."""
-    # Use a path in a directory that doesn't exist and can't be created
-    # due to permissions (using a read-only parent)
-
-    # Create a temporary directory and make it read-only
-    import tempfile
-
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        # Create a read-only subdirectory
-        readonly_dir = Path(tmp_dir) / "readonly"
-        readonly_dir.mkdir()
-        readonly_dir.chmod(0o444)
-
-        custom_log_file = str(readonly_dir / "test.log")
-
+    # Mock Path.mkdir to raise PermissionError, simulating a read-only directory
+    with patch.object(
+        Path, "mkdir", side_effect=PermissionError("Permission denied")
+    ):
         initialise_logging(
             is_web=False,
-            log_file_path=custom_log_file,
+            log_file_path="/some/readonly/path/test.log",
         )
 
         # Should fall back to console only
@@ -439,9 +430,6 @@ def test_initialise_logging_graceful_fallback() -> None:
 
         assert len(console_handlers) == 1
         assert len(file_handlers) == 0
-
-        # Restore permissions for cleanup
-        readonly_dir.chmod(0o755)
 
 
 def test_initialise_logging_reapplies_settings() -> None:
