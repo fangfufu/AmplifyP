@@ -403,3 +403,51 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
     # Check that it contains "3'-" and "-5'" and the translated comp sequence
     assert "3'-" in comp_spans[0].text
     assert "-5'" in comp_spans[0].text
+
+
+def test_format_context_lines_alignment_long_label() -> None:
+    """Test format_context_lines aligns elements for long primer labels."""
+    from amplifyp.dna import DNA, DNADirection, Primer
+    from amplifyp.gui.views.pcr.primer_drawing import format_context_lines
+    from amplifyp.repliconf import Repliconf
+
+    template = DNA("A" * 100)
+    primer = Primer("C" * 20)
+    conf = Repliconf(template, primer)
+    origin = MagicMock()
+    # Mock binding strength string
+    origin.binding_strength_str = "|" * 20
+
+    # Long name of length 34
+    long_name = "2223 - 108 (a.k.a. 3312) (Reverse)"
+    _top, mid, bot = format_context_lines(
+        primer_name=long_name,
+        padded_idx=50,
+        conf=conf,
+        origin=origin,
+        L=20,
+        N=100,
+        direction=DNADirection.REV,
+    )
+
+    # For DNADirection.REV, the primer label is f"{primer_name} (Reverse)"
+    # which is "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)".
+    # Let's count length: 34 + 10 = 44 characters.
+    # The label is padded to 44. The sequence prefix is 44 + 3 = 47.
+    # So the primer sequence starts at index 47.
+    # Verify that primer sequence starts with '3\'-' at offset 44
+    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+
+    # The mid line should be:
+    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-CCC...C-5'"
+    # The bonds line in bottom line is the first line of bottom_line.
+    # The bonds line starts with:
+    # 12 + 20 + extra_spaces = 32 + (44 - 29) = 47 spaces.
+    lines_bot = bot.split("\n")
+    assert lines_bot[0].startswith(" " * 47 + "|")
+
+    # The context line in bottom_line starts with:
+    # "Context  " (9 chars) + 15 spaces + "5'-" (3 chars) = 27 spaces,
+    # then 20 bp upstream = 47 spaces before binding sequence.
+    # Let's check:
+    assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")

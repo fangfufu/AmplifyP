@@ -353,25 +353,28 @@ def format_context_lines(
     start_num_str = str(((start_genomic) % N) + 1)
     end_num_str = str(((end_genomic - 1) % N) + 1)
 
+    label_width = max(29, len(primer_label))
+    extra_spaces = label_width - 29
+
     # Construct primer line:
     primer_line = (
-        f"{primer_label:<29}"
+        f"{primer_label:<{label_width}}"
         f"{primer_ends[0]}-{primer_display_seq}-{primer_ends[1]}"
     )
 
     # Construct strength line:
-    bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
+    bonds_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}{strength_display}"
 
     # Construct pipes and arrows:
-    pipe_line = f"{' ' * 12}{' ' * 20}|{' ' * (L - 2)}|"
-    arrow_line = f"{' ' * 12}{' ' * 20}V{' ' * (L - 2)}V"
+    pipe_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}|{' ' * (L - 2)}|"
+    arrow_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}V{' ' * (L - 2)}V"
 
     # Construct numbers:
-    num_line_chars = [" "] * (12 + 20 + L + 20)
-    col1 = 12 + 20 - len(start_num_str) // 2
+    num_line_chars = [" "] * (12 + 20 + extra_spaces + L + 20)
+    col1 = 12 + 20 + extra_spaces - len(start_num_str) // 2
     for idx, char in enumerate(start_num_str):
         num_line_chars[col1 + idx] = char
-    col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
+    col2 = (12 + 20 + extra_spaces + L - 1) - len(end_num_str) // 2
     for idx, char in enumerate(end_num_str):
         num_line_chars[col2 + idx] = char
     top_line = "".join(num_line_chars).rstrip()
@@ -393,17 +396,20 @@ def format_context_lines(
         comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_line = (
-            f"{' ' * 9}3'-{comp_upstream}{comp_binding}{comp_downstream}-5'"
+            f"{' ' * (9 + extra_spaces)}3'-"
+            f"{comp_upstream}{comp_binding}{comp_downstream}-5'"
         )
         bottom_line = (
             f"{bonds_line}\n"
             f"{comp_line}\n"
-            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
         )
     else:
         bottom_line = (
             f"{bonds_line}\n"
-            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
         )
 
     return top_line, primer_line, bottom_line

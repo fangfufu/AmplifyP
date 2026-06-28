@@ -425,3 +425,99 @@ def test_tm_colour_scheme_application() -> None:
     # 4. Check that the row now has the correct color scheme color applied
     row = input_view.primers_list.controls[0]
     assert row.tm_text.color is not None
+
+
+def test_controller_load_save_only_affects_input() -> None:
+    """Test that controller save and load only affect input state.
+
+    Settings should be ignored.
+    """
+    from typing import Any
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.controller import GUIController
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    controller = GUIController(mock_page)
+    controller.input_view = MagicMock()
+    controller.settings_view = MagicMock()
+    controller.notification_helper = MagicMock()
+    # Set mock settings
+    controller.settings["tm_method"] = "Lander / Amplify 4"
+    controller.settings["dark_mode"] = True
+
+    # Set mock input
+    controller.input_data.template = "ATGCT"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True},
+        {"name": "P2", "seq": "TGC", "active": False},
+    ]
+
+    # Mock pick_and_read_file and save_and_write_file
+    serialised_yaml = ""
+
+    async def mock_save_and_write_file(
+        page: ft.Page,
+        dialog_title: str,
+        file_name: str,
+        allowed_extensions: list[str],
+        content: str,
+        show_notification: Any,
+        success_message_desktop: str,
+        success_message_web: str,
+    ) -> None:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+
+    with patch(
+        "amplifyp.gui.util.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        import asyncio
+
+        asyncio.run(controller.save_state(MagicMock()))
+
+    # Check serialised yaml content
+    parsed_yaml = yaml.safe_load(serialised_yaml)
+    assert "input" in parsed_yaml
+    assert "settings" not in parsed_yaml
+    assert parsed_yaml["input"]["template"] == "ATGCT"
+    assert parsed_yaml["input"]["template_circular"] is True
+    assert len(parsed_yaml["input"]["primers"]) == 2
+    assert parsed_yaml["input"]["primers"][0]["name"] == "P1"
+    assert parsed_yaml["input"]["primers"][0]["active"] is True
+    assert parsed_yaml["input"]["primers"][1]["active"] is False
+
+    # Now let's test load_state. If the loaded YAML contains both input
+    # and settings, settings should be ignored (not applied to settings).
+    test_yaml = """
+input:
+  template: "CGTAC"
+  template_circular: false
+  primers:
+    - name: "P3"
+      seq: "CGT"
+      active: true
+settings:
+  tm_method: "SantaLucia 1998 / Owczarzy 2008 (Default)"
+  dark_mode: false
+"""
+    with patch(
+        "amplifyp.gui.util.pick_and_read_file",
+        new=AsyncMock(return_value=test_yaml),
+    ):
+        asyncio.run(controller.load_state(MagicMock()))
+
+    # Input state should be updated
+    assert controller.input_data.template == "CGTAC"
+    assert controller.input_data.template_circular is False
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == "P3"
+
+    # Settings should remain unchanged (ignored)
+    assert controller.settings["tm_method"] == "Lander / Amplify 4"
+    assert controller.settings["dark_mode"] is True

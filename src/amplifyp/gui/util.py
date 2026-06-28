@@ -199,6 +199,8 @@ def create_overlapped_sequence_view(
             comp_line = ""
             template_line = ""
 
+        comp_span_text = f"{comp_line}\n" if comp_line else ""
+
         spans = [
             ft.TextSpan(
                 f"{top_line}\n",
@@ -222,7 +224,7 @@ def create_overlapped_sequence_view(
                 ),
             ),
             ft.TextSpan(
-                f"{comp_line}\n",
+                comp_span_text,
                 style=ft.TextStyle(
                     color=GUIColours.MUTED_GREY,
                     weight=ft.FontWeight.BOLD,

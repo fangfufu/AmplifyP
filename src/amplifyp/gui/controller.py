@@ -548,17 +548,20 @@ class GUIController:
         except (OSError, ValueError, yaml.YAMLError):
             logger.exception("Error loading state file '%s'", path)
 
-    def _apply_parsed_state(self, parsed_state: dict[str, Any]) -> None:
+    def _apply_parsed_state(
+        self, parsed_state: dict[str, Any], ignore_settings: bool = False
+    ) -> None:
         """Apply parsed YAML state to the application.
 
         Args:
             parsed_state: Parsed YAML dict containing input and settings.
+            ignore_settings: If True, settings are not applied.
         """
         if "input" in parsed_state:
             self.input_data.from_dict(parsed_state["input"])
         else:
             self.input_data.from_dict(parsed_state)
-        if "settings" in parsed_state:
+        if not ignore_settings and "settings" in parsed_state:
             self.settings.from_dict(parsed_state["settings"])
             self.settings.save_to_local(self.page)
         self.apply_theme()
@@ -574,10 +577,8 @@ class GUIController:
         self.filepicker_open = True
         try:
             self.input_view.sync_to_state()
-            self.settings_view.sync_to_state()
             combined: dict[str, object] = {
                 "input": self.input_data.to_dict(),
-                "settings": self.settings.to_dict(),
             }
             yaml_str = serialise_state(combined)
 
@@ -622,7 +623,7 @@ class GUIController:
                 )
                 return
 
-            self._apply_parsed_state(parsed_state)
+            self._apply_parsed_state(parsed_state, ignore_settings=True)
             self.notification_helper.show_message("State loaded successfully!")
         except (OSError, ValueError, yaml.YAMLError) as ex:
             logger.exception("Error loading state:")
