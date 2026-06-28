@@ -18,11 +18,17 @@
 import logging
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from amplifyp.gui.logger import _get_log_dir, initialise_logging
+from amplifyp.gui.logger import (
+    _get_log_dir,
+    get_default_log_file_path,
+    initialise_logging,
+    reconfigure_logging,
+    resolve_log_file_path,
+)
 
 
 @pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
@@ -31,12 +37,16 @@ def reset_logging_flag() -> None:
     import amplifyp.gui.logger
 
     amplifyp.gui.logger._logging_initialised = False
+    amplifyp.gui.logger._current_file_path = None
+    amplifyp.gui.logger._current_is_web = False
 
     # Clean up our own handlers from root logger to prevent cross-test pollution
     root_logger = logging.getLogger()
     for handler in list(root_logger.handlers):
-        if type(handler) is logging.StreamHandler or isinstance(
-            handler, logging.handlers.RotatingFileHandler
+        if (
+            type(handler) is logging.StreamHandler
+            or isinstance(handler, logging.handlers.RotatingFileHandler)
+            or type(handler) is logging.FileHandler
         ):
             root_logger.removeHandler(handler)
 
@@ -87,6 +97,25 @@ def test_get_log_dir() -> None:
         assert path.as_posix() == "/home/test/.config/amplifyp"
 
 
+def test_get_default_log_file_path() -> None:
+    """Test that the default log file path is resolved correctly."""
+    default_path = get_default_log_file_path()
+    assert "app.log" in default_path
+    assert "amplifyp" in default_path.lower()
+
+
+def test_resolve_log_file_path() -> None:
+    """Test path resolution with '(Default)' and custom paths."""
+    # Test with '(Default)'
+    resolved = resolve_log_file_path("(Default)")
+    assert resolved == get_default_log_file_path()
+
+    # Test with custom path
+    custom_path = "/custom/path/to/my.log"
+    resolved = resolve_log_file_path(custom_path)
+    assert resolved == custom_path
+
+
 def test_initialise_logging_web() -> None:
     """Test logging setup when running in web mode."""
     initialise_logging(is_web=True)
@@ -107,11 +136,10 @@ def test_initialise_logging_web() -> None:
 
 
 def test_initialise_logging_desktop(tmp_path: Path) -> None:
-    """Test logging setup when running in desktop mode."""
-    with (
-        patch("amplifyp.gui.logger._get_log_dir", return_value=tmp_path),
-    ):
-        initialise_logging(is_web=False)
+    """Test logging setup when running in desktop mode with custom path."""
+    custom_log_file = str(tmp_path / "test_app.log")
+
+    initialise_logging(is_web=False, log_file_path=custom_log_file)
 
     root_logger = logging.getLogger()
     console_handlers = [
@@ -125,7 +153,111 @@ def test_initialise_logging_desktop(tmp_path: Path) -> None:
 
     assert len(console_handlers) == 1
     assert len(file_handlers) == 1
-    assert (tmp_path / "app.log").exists()
+    assert (tmp_path / "test_app.log").exists()
+
+
+def test_initialise_logging_no_rotation(tmp_path: Path) -> None:
+    """Test logging setup with rotation disabled uses FileHandler."""
+    custom_log_file = str(tmp_path / "test_no_rotation.log")
+
+    initialise_logging(
+        is_web=False,
+        log_file_path=custom_log_file,
+        log_rotation_enabled=False,
+    )
+
+    root_logger = logging.getLogger()
+    console_handlers = [
+        h for h in root_logger.handlers if type(h) is logging.StreamHandler
+    ]
+    rotating_handlers = [
+        h
+        for h in root_logger.handlers
+        if type(h) is logging.handlers.RotatingFileHandler
+    ]
+    file_handlers = [
+        h for h in root_logger.handlers if type(h) is logging.FileHandler
+    ]
+
+    assert len(console_handlers) == 1
+    assert len(rotating_handlers) == 0
+    assert len(file_handlers) == 1
+    assert (tmp_path / "test_no_rotation.log").exists()
+
+
+def test_reconfigure_logging_rotation_toggle(tmp_path: Path) -> None:
+    """Test toggling rotation at runtime switches handler type."""
+    custom_log_file = str(tmp_path / "test_rotation_toggle.log")
+
+    # Start with rotation enabled
+    initialise_logging(
+        is_web=False,
+        log_file_enabled=True,
+        log_file_path=custom_log_file,
+        log_rotation_enabled=True,
+    )
+    root_logger = logging.getLogger()
+    rotating = [
+        h
+        for h in root_logger.handlers
+        if type(h) is logging.handlers.RotatingFileHandler
+    ]
+    simple = [h for h in root_logger.handlers if type(h) is logging.FileHandler]
+    assert len(rotating) == 1
+    assert len(simple) == 0
+
+    # Disable rotation
+    reconfigure_logging(
+        log_file_enabled=True,
+        log_file_path=custom_log_file,
+        log_rotation_enabled=False,
+        is_web=False,
+    )
+    rotating = [
+        h
+        for h in root_logger.handlers
+        if type(h) is logging.handlers.RotatingFileHandler
+    ]
+    simple = [h for h in root_logger.handlers if type(h) is logging.FileHandler]
+    assert len(rotating) == 0
+    assert len(simple) == 1
+
+    # Re-enable rotation
+    reconfigure_logging(
+        log_file_enabled=True,
+        log_file_path=custom_log_file,
+        log_rotation_enabled=True,
+        is_web=False,
+    )
+    rotating = [
+        h
+        for h in root_logger.handlers
+        if type(h) is logging.handlers.RotatingFileHandler
+    ]
+    simple = [h for h in root_logger.handlers if type(h) is logging.FileHandler]
+    assert len(rotating) == 1
+    assert len(simple) == 0
+
+
+def test_reconfigure_logging_max_bytes(tmp_path: Path) -> None:
+    """Test that custom max bytes is applied to RotatingFileHandler."""
+    custom_log_file = str(tmp_path / "test_max_bytes.log")
+    custom_max = 1024 * 1024  # 1 MB
+
+    initialise_logging(
+        is_web=False,
+        log_file_path=custom_log_file,
+        log_rotation_max_bytes=custom_max,
+    )
+
+    root_logger = logging.getLogger()
+    rotating = [
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.handlers.RotatingFileHandler)
+    ]
+    assert len(rotating) == 1
+    assert rotating[0].maxBytes == custom_max
 
 
 def test_initialise_logging_already_initialised() -> None:
@@ -146,31 +278,194 @@ def test_initialise_logging_already_initialised() -> None:
     assert len(console_handlers_2) == 1
 
 
-def test_initialise_logging_graceful_fallback(tmp_path: Path) -> None:
-    """Test that folder creation errors fall back to console gracefully."""
-    # Mock mkdir to raise an exception (simulate permission error)
-    mock_dir = MagicMock(spec=Path)
-    mock_dir.mkdir.side_effect = PermissionError("Permission denied")
+def test_initialise_logging_console_disabled() -> None:
+    """Test logging setup with console output disabled."""
+    initialise_logging(
+        is_web=True,
+        log_console_enabled=False,
+    )
 
-    with (
-        patch("amplifyp.gui.logger._get_log_dir", return_value=mock_dir),
-        patch("logging.warning") as mock_warning,
-    ):
-        initialise_logging(is_web=False)
-
-    # Should fall back to console only
     root_logger = logging.getLogger()
     console_handlers = [
         h for h in root_logger.handlers if type(h) is logging.StreamHandler
     ]
+
+    assert len(console_handlers) == 0
+
+
+def test_reconfigure_logging_console_toggle() -> None:
+    """Test toggling console output at runtime."""
+    # Start with console enabled
+    initialise_logging(is_web=True, log_console_enabled=True)
+    root_logger = logging.getLogger()
+    console_handlers = [
+        h for h in root_logger.handlers if type(h) is logging.StreamHandler
+    ]
+    assert len(console_handlers) == 1
+
+    # Disable console
+    reconfigure_logging(is_web=True, log_console_enabled=False)
+    console_handlers = [
+        h for h in root_logger.handlers if type(h) is logging.StreamHandler
+    ]
+    assert len(console_handlers) == 0
+
+    # Re-enable console
+    reconfigure_logging(is_web=True, log_console_enabled=True)
+    console_handlers = [
+        h for h in root_logger.handlers if type(h) is logging.StreamHandler
+    ]
+    assert len(console_handlers) == 1
+
+
+def test_reconfigure_logging_level_change() -> None:
+    """Test changing log levels at runtime."""
+    initialise_logging(is_web=True)
+
+    # Check default levels
+    amplifyp_logger = logging.getLogger("amplifyp.gui")
+    flet_logger = logging.getLogger("flet")
+    assert amplifyp_logger.level == logging.INFO
+    assert flet_logger.level == logging.INFO
+
+    # Change levels to valid values
+    reconfigure_logging(
+        log_level_amplifyp="WARNING",
+        log_level_flet="WARNING",
+        is_web=True,
+    )
+    assert amplifyp_logger.level == logging.WARNING
+    assert flet_logger.level == logging.WARNING
+
+    # Test that setting flet log level to DEBUG clamps to INFO
+    reconfigure_logging(
+        log_level_amplifyp="WARNING",
+        log_level_flet="DEBUG",
+        is_web=True,
+    )
+    assert flet_logger.level == logging.INFO
+
+
+def test_reconfigure_logging_file_toggle(tmp_path: Path) -> None:
+    """Test toggling file logging at runtime."""
+    custom_log_file = str(tmp_path / "test_reconfigure.log")
+
+    # Start with file logging enabled
+    initialise_logging(
+        is_web=False,
+        log_file_enabled=True,
+        log_file_path=custom_log_file,
+    )
+    root_logger = logging.getLogger()
     file_handlers = [
         h
         for h in root_logger.handlers
         if isinstance(h, logging.handlers.RotatingFileHandler)
     ]
+    assert len(file_handlers) == 1
 
-    assert len(console_handlers) == 1
+    # Disable file logging
+    reconfigure_logging(
+        log_file_enabled=False,
+        is_web=False,
+    )
+    file_handlers = [
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.handlers.RotatingFileHandler)
+    ]
     assert len(file_handlers) == 0
 
-    # Verify warning was logged
-    mock_warning.assert_called_once()
+    # Re-enable file logging with new path
+    new_path = str(tmp_path / "test_reconfigure2.log")
+    reconfigure_logging(
+        log_file_enabled=True,
+        log_file_path=new_path,
+        is_web=False,
+    )
+    file_handlers = [
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.handlers.RotatingFileHandler)
+    ]
+    assert len(file_handlers) == 1
+    assert (tmp_path / "test_reconfigure2.log").exists()
+
+
+def test_reconfigure_logging_invalid_level() -> None:
+    """Test that invalid log level strings fall back to INFO."""
+    initialise_logging(is_web=True)
+
+    # Set invalid level
+    reconfigure_logging(
+        log_level_amplifyp="INVALID_LEVEL",
+        is_web=True,
+    )
+    amplifyp_logger = logging.getLogger("amplifyp.gui")
+    assert amplifyp_logger.level == logging.INFO
+
+
+def test_initialise_logging_graceful_fallback() -> None:
+    """Test that folder creation errors fall back to console gracefully."""
+    # Use a path in a directory that doesn't exist and can't be created
+    # due to permissions (using a read-only parent)
+
+    # Create a temporary directory and make it read-only
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # Create a read-only subdirectory
+        readonly_dir = Path(tmp_dir) / "readonly"
+        readonly_dir.mkdir()
+        readonly_dir.chmod(0o444)
+
+        custom_log_file = str(readonly_dir / "test.log")
+
+        initialise_logging(
+            is_web=False,
+            log_file_path=custom_log_file,
+        )
+
+        # Should fall back to console only
+        root_logger = logging.getLogger()
+        console_handlers = [
+            h for h in root_logger.handlers if type(h) is logging.StreamHandler
+        ]
+        file_handlers = [
+            h
+            for h in root_logger.handlers
+            if isinstance(h, logging.handlers.RotatingFileHandler)
+        ]
+
+        assert len(console_handlers) == 1
+        assert len(file_handlers) == 0
+
+        # Restore permissions for cleanup
+        readonly_dir.chmod(0o755)
+
+
+def test_initialise_logging_reapplies_settings() -> None:
+    """Test that calling initialise_logging when already initialised
+    reapplies settings.
+    """
+    initialise_logging(
+        is_web=True,
+        log_level_amplifyp="WARNING",
+        log_level_flet="CRITICAL",
+    )
+    amplifyp_logger = logging.getLogger("amplifyp")
+    amplifyp_gui_logger = logging.getLogger("amplifyp.gui")
+    flet_logger = logging.getLogger("flet")
+    assert amplifyp_logger.level == logging.WARNING
+    assert amplifyp_gui_logger.level == logging.WARNING
+    assert flet_logger.level == logging.CRITICAL
+
+    # Re-initialise with different levels (flet log level should clamp to INFO)
+    initialise_logging(
+        is_web=True,
+        log_level_amplifyp="ERROR",
+        log_level_flet="DEBUG",
+    )
+    assert amplifyp_logger.level == logging.ERROR
+    assert amplifyp_gui_logger.level == logging.ERROR
+    assert flet_logger.level == logging.INFO

@@ -21,6 +21,7 @@ import flet as ft
 
 from amplifyp.gui.controller import GUIController
 from amplifyp.gui.logger import initialise_logging
+from amplifyp.gui.settings import GUISettings
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,21 @@ def main(
         state_file: Optional path to a YAML state file to load on startup.
         auto_close: If True, quit automatically after rendering is complete.
     """
-    initialise_logging(is_web=page.web)
+    gui_settings = GUISettings()
+    gui_settings.load_from_local(page)
+
+    initialise_logging(
+        is_web=page.web,
+        log_level_amplifyp=gui_settings.get("log_level_amplifyp", "DEBUG"),
+        log_level_flet=gui_settings.get("log_level_flet", "INFO"),
+        log_console_enabled=gui_settings.get("log_console_enabled", True),
+        log_file_enabled=gui_settings.get("log_file_enabled", not page.web),
+        log_file_path=gui_settings.get("log_file_path", "(Default)"),
+        log_rotation_enabled=gui_settings.get("log_rotation_enabled", True),
+        log_rotation_max_bytes=gui_settings.get(
+            "log_rotation_max_bytes", 5242880
+        ),
+    )
     logger.info("Starting AmplifyP GUI application")
     controller = GUIController(
         page, state_file=state_file, auto_close=auto_close

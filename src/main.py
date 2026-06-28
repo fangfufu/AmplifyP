@@ -12,7 +12,6 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
 """Main Flet application entry point."""
 
 import argparse
@@ -20,6 +19,7 @@ import os
 
 import flet as ft
 
+import amplifyp.gui.logger  # noqa: F401
 from amplifyp.gui import main as app_main
 
 state_file: str | None = None
