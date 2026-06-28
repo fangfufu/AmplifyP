@@ -229,6 +229,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 else:
                     self.settings_map[k].value = str(v)
         self.appearance_tile.update_colour_scheme_dropdown()
+        self.replication_tile.update_ui()
+        self.dimer_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""

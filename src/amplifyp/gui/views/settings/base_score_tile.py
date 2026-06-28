@@ -165,7 +165,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
 
             rows.append(ft.DataRow(cells=cells))
 
-        table = ft.DataTable(
+        self.table = ft.DataTable(
             border=ft.Border.all(1, GUIColours.TRANSPARENT),
             vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
             horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
@@ -189,7 +189,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                 ft.Row(
                     [
                         ft.Container(
-                            content=table,
+                            content=self.table,
                             border=ft.Border.all(1, GUIColours.OUTLINE),
                             border_radius=5,
                             padding=0,
@@ -314,3 +314,7 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
                 )
             ],
         )
+
+    def update_ui(self) -> None:
+        """Update Flet UI controls to match theme/settings."""
+        self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG

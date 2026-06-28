@@ -15,13 +15,26 @@
 
 """Tests for GUI state saving and loading."""
 
+from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import flet as ft
+import pytest
 import yaml
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.views.input import InputView
 from amplifyp.gui.views.settings import SettingsView
+
+
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def reset_colour_modes() -> Generator[None, None, None]:
+    """Reset colour-deficient and dark mode between tests."""
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
+    yield
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
 
 
 def test_gui_state_save_load() -> None:

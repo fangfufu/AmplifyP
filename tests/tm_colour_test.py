@@ -135,22 +135,51 @@ class TestTmColourCoolWarm:
         """Tm exactly at 35 deg C gives BLUE_700."""
         assert tm_colour(35.0, "Cool-Warm") == "#1565c0"
 
-    def test_interpolates_blue_to_black(self) -> None:
-        """Tm=45 interpolates blue700→black, t=0.5."""
+    def test_interpolates_blue_to_midpoint(self) -> None:
+        """Tm=45 interpolates blue700→midpoint, t=0.5."""
         # Blue700: #1565c0 (21,101,192) → Black: #000000 (0,0,0)
         # R=10, G=50, B=96
         assert tm_colour(45.0, "Cool-Warm") == "#0a3260"
 
-    def test_midpoint_gives_black(self) -> None:
-        """Tm=55 deg C gives black (midpoint of gradient)."""
+    def test_midpoint_gives_black_in_light_mode(self) -> None:
+        """Tm=55 deg C gives black (midpoint of gradient) in light mode."""
         assert tm_colour(55.0, "Cool-Warm") == "#000000"
 
-    def test_interpolates_black_to_red(self) -> None:
-        """Tm=65 interpolates black→red700, t=0.5."""
+    def test_interpolates_midpoint_to_red(self) -> None:
+        """Tm=65 interpolates midpoint→red700, t=0.5."""
         # Black: #000000 (0,0,0) → Red700: #d32f2f (211,47,47)
         # R=105, G=23, B=23
         assert tm_colour(65.0, "Cool-Warm") == "#691717"
 
     def test_very_hot_gives_red_700(self) -> None:
         """Tm >= 75 deg C gives the hottest red."""
+        assert tm_colour(80.0, "Cool-Warm") == "#d32f2f"
+
+    def test_very_cold_gives_blue_700_in_dark_mode(self) -> None:
+        """Tm well below 35 deg C gives the coldest blue in dark mode."""
+        GUIColours.dark_mode = True
+        assert tm_colour(25.0, "Cool-Warm") == "#1565c0"
+
+    def test_midpoint_gives_white_in_dark_mode(self) -> None:
+        """Tm=55 deg C gives white (midpoint of gradient) in dark mode."""
+        GUIColours.dark_mode = True
+        assert tm_colour(55.0, "Cool-Warm") == "#ffffff"
+
+    def test_interpolates_blue_to_white_in_dark_mode(self) -> None:
+        """Tm=45 interpolates blue700→white, t=0.5 in dark mode."""
+        # Blue700: #1565c0 (21,101,192) → White: #ffffff (255,255,255)
+        # R=138, G=178, B=223
+        GUIColours.dark_mode = True
+        assert tm_colour(45.0, "Cool-Warm") == "#8ab2df"
+
+    def test_interpolates_white_to_red_in_dark_mode(self) -> None:
+        """Tm=65 interpolates white→red700, t=0.5 in dark mode."""
+        # White: #ffffff (255,255,255) → Red700: #d32f2f (211,47,47)
+        # R=233, G=151, B=151
+        GUIColours.dark_mode = True
+        assert tm_colour(65.0, "Cool-Warm") == "#e99797"
+
+    def test_very_hot_gives_red_700_in_dark_mode(self) -> None:
+        """Tm >= 75 deg C gives the hottest red in dark mode."""
+        GUIColours.dark_mode = True
         assert tm_colour(80.0, "Cool-Warm") == "#d32f2f"

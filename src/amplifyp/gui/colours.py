@@ -124,10 +124,7 @@ class _GUIColoursMeta(type):
     @property
     def DIAGRAM_BLACK(cls) -> str:
         """Get diagram black/white colour depending on dark mode."""
-        return cast(
-            str,
-            ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK,
-        )
+        return cast(str, ft.Colors.ON_SURFACE)
 
     @property
     def INFO_HEADER_BG(cls) -> str:
@@ -243,9 +240,9 @@ class _GUIColoursMeta(type):
         return "#1565c0"  # ft.Colors.BLUE_700
 
     @property
-    def GRADIENT_BLACK(cls) -> str:
-        """Get black colour for Cool-Warm temperature gradient."""
-        return "#000000"
+    def GRADIENT_MIDPOINT(cls) -> str:
+        """Get midpoint colour for Cool-Warm temperature gradient."""
+        return "#ffffff" if cls._dark_mode else "#000000"
 
 
 class GUIColours(metaclass=_GUIColoursMeta):
@@ -346,12 +343,12 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
         if tm_value < 55:
             t = (tm_value - 35.0) / 20.0
             return _interpolate_colour(
-                GUIColours.GRADIENT_BLUE, GUIColours.GRADIENT_BLACK, t
+                GUIColours.GRADIENT_BLUE, GUIColours.GRADIENT_MIDPOINT, t
             )
         if tm_value < 75:
             t = (tm_value - 55.0) / 20.0
             return _interpolate_colour(
-                GUIColours.GRADIENT_BLACK, GUIColours.GRADIENT_RED, t
+                GUIColours.GRADIENT_MIDPOINT, GUIColours.GRADIENT_RED, t
             )
         return GUIColours.GRADIENT_RED
 

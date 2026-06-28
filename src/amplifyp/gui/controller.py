@@ -74,6 +74,7 @@ class GUIController:
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
+        self.header_container: ft.Container = cast(ft.Container, None)
 
         # UI Control placeholders
         self.visible_save_btn_control: ft.FilledButton = cast(
@@ -311,7 +312,7 @@ class GUIController:
             selectable=True,
         )
 
-        header_container = ft.Container(
+        self.header_container = ft.Container(
             content=ft.Column(
                 [
                     ft.Row(
@@ -364,7 +365,7 @@ class GUIController:
             ft.Divider(height=1, thickness=1),
             self.view_container,
         )
-        self.page.controls.insert(0, header_container)
+        self.page.controls.insert(0, self.header_container)
         self.page.on_resize = self.input_view._handle_resize
         self.page.update()
 
@@ -389,10 +390,18 @@ class GUIController:
             self.page.bg_color = GUIColours.WHITE
             is_dark = False
         GUIColours.dark_mode = is_dark
+        if hasattr(self, "header_container") and self.header_container:
+            self.header_container.bgcolor = GUIColours.SURFACE
 
     def on_platform_brightness_change(self) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
+        self.input_view.update_ui()
+        self.settings_view.update_ui()
+        if self.pcr_view.diagram_panel.diagram_container.visible:
+            self.pcr_view.run_pcr(keep_cards=True)
+        if len(self.dimers_view.result_list.controls) > 0:
+            self.dimers_view.run_analysis()
         self.page.update()
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
@@ -471,9 +480,23 @@ class GUIController:
             e: The Flet control event triggering the change.
         """
         self.apply_theme()
-        self.input_view.update_ui()
+
+        # Only update the active view immediately to prevent lag!
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        elif active_view == self.settings_view:
+            self.settings_view.update_ui()
+
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
+
+        # Only redraw/re-simulate active views
+        if active_view == self.pcr_view:
+            self.pcr_view.run_pcr(keep_cards=True)
+        elif active_view == self.dimers_view:
+            self.dimers_view.run_analysis()
+
         self.page.update()
 
     def run_apply_settings(self, e: ft.ControlEvent) -> None:
@@ -485,9 +508,23 @@ class GUIController:
             e: The Flet control event triggering the apply action.
         """
         self.apply_theme()
-        self.input_view.update_ui()
+
+        # Only update the active view immediately to prevent lag!
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        elif active_view == self.settings_view:
+            self.settings_view.update_ui()
+
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
+
+        # Only redraw/re-simulate active views
+        if active_view == self.pcr_view:
+            self.pcr_view.run_pcr(keep_cards=True)
+        elif active_view == self.dimers_view:
+            self.dimers_view.run_analysis()
+
         self.page.update()
 
     def _restore_state_from_file(self, path: str) -> None:
@@ -608,6 +645,8 @@ class GUIController:
         self.visible_save_btn_control.visible = is_input
         self.visible_load_btn_control.visible = is_input
         self.visible_header_divider.visible = is_input
+        if hasattr(view, "update_ui"):
+            view.update_ui()
 
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize

@@ -20,6 +20,7 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 
@@ -50,26 +51,31 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             label="DNA Conc (nM)",
             value="50.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dnap_conc = ft.TextField(
             label="DNA Pol Conc",
             value="0.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_mono_salt = ft.TextField(
             label="Monovalent Salt Conc (mM)",
             value="50.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_div_salt = ft.TextField(
             label="Divalent Salt Conc (mM)",
             value="1.5",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dNTP_conc = ft.TextField(
             label="dNTP Conc (mM)",
             value="0.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_method = ft.Dropdown(
             label="Tm Calculation Method",
@@ -79,6 +85,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             expand=True,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         from amplifyp.gui.util import BorderedCheckbox
 
@@ -95,6 +102,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             expand=True,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self.settings_map["tm_dna_conc"] = self.set_tm_dna_conc
