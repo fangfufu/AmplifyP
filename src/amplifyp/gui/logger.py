@@ -450,9 +450,9 @@ def reconfigure_logging(
             root_logger, logging.handlers.RotatingFileHandler
         )
         old_simple = _find_handler_by_type(root_logger, logging.FileHandler)
-        if old_rotating is not None and not log_rotation_enabled:
-            rotation_changed = True
-        elif old_simple is not None and log_rotation_enabled:
+        if (old_rotating is not None and not log_rotation_enabled) or (
+            old_simple is not None and log_rotation_enabled
+        ):
             rotation_changed = True
 
     if old_path is not None and (

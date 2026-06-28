@@ -42,7 +42,7 @@ def reset_logging_flag() -> None:
 
     # Clean up our own handlers from root logger to prevent cross-test pollution
     root_logger = logging.getLogger()
-    for handler in list(root_logger.handlers):
+    for handler in root_logger.handlers[:]:
         if (
             type(handler) is logging.StreamHandler
             or isinstance(handler, logging.handlers.RotatingFileHandler)
