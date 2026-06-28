@@ -342,7 +342,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "improved_visualisation": True,
             "show_primer_temperature": False,
             "tm_colour_scheme": "None",
-            "log_level_amplifyp": "DEBUG",
+            "log_level_amplifyp": "INFO",
             "log_level_flet": "INFO",
             "log_console_enabled": True,
             "log_file_enabled": True,
