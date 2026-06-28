@@ -245,6 +245,23 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 self.settings[k] = v.value
         self.appearance_tile.sync_colour_scheme_to_settings()
 
+    def _reconfigure_logging(self) -> None:
+        """Reconfigure logging based on current settings."""
+        reconfigure_logging(
+            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_flet=self.settings.get("log_level_flet", "INFO"),
+            log_console_enabled=self.settings.get("log_console_enabled", True),
+            log_file_enabled=self.settings.get("log_file_enabled", True),
+            log_file_path=self.settings.get("log_file_path", "(Default)"),
+            is_web=self.app_page.web,
+            log_rotation_enabled=self.settings.get(
+                "log_rotation_enabled", True
+            ),
+            log_rotation_max_bytes=self.settings.get(
+                "log_rotation_max_bytes", 5242880
+            ),
+        )
+
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
         from amplifyp.gui.util import BorderedCheckbox
@@ -273,20 +290,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings[k] = ctrl.value
                     break
         self.sync_to_state()
-        reconfigure_logging(
-            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
-            log_level_flet=self.settings.get("log_level_flet", "INFO"),
-            log_console_enabled=self.settings.get("log_console_enabled", True),
-            log_file_enabled=self.settings.get("log_file_enabled", True),
-            log_file_path=self.settings.get("log_file_path", "(Default)"),
-            is_web=self.app_page.web,
-            log_rotation_enabled=self.settings.get(
-                "log_rotation_enabled", True
-            ),
-            log_rotation_max_bytes=self.settings.get(
-                "log_rotation_max_bytes", 5242880
-            ),
-        )
+        self._reconfigure_logging()
         if self.on_change:
             self.on_change(e)
 
@@ -294,20 +298,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Handle apply button click."""
         self.sync_to_state()
         self.settings.save_to_local(self.app_page)
-        reconfigure_logging(
-            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
-            log_level_flet=self.settings.get("log_level_flet", "INFO"),
-            log_console_enabled=self.settings.get("log_console_enabled", True),
-            log_file_enabled=self.settings.get("log_file_enabled", True),
-            log_file_path=self.settings.get("log_file_path", "(Default)"),
-            is_web=self.app_page.web,
-            log_rotation_enabled=self.settings.get(
-                "log_rotation_enabled", True
-            ),
-            log_rotation_max_bytes=self.settings.get(
-                "log_rotation_max_bytes", 5242880
-            ),
-        )
+        self._reconfigure_logging()
         if self.on_apply:
             self.on_apply(args[0] if args else None)
 
