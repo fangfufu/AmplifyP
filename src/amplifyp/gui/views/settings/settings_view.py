@@ -44,7 +44,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings | None = None,
         on_change: Callable[[ft.ControlEvent], None] | None = None,
-        on_apply: Callable[[ft.ControlEvent | None], None] | None = None,
         on_reset: Callable[[ft.ControlEvent | None], None] | None = None,
     ) -> None:
         """Initialise the SettingsView."""
@@ -54,7 +53,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.app_page = page
         self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
-        self.on_apply = on_apply
         self.on_reset = on_reset
 
         self.settings_map: dict[str, Any] = {}
@@ -112,7 +110,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             settings=self.settings,
             sync_to_state_callback=self.sync_to_state,
             update_ui_callback=self.update_ui,
-            on_apply_callback=self.on_apply,
+            on_change_callback=self.on_change,
             header_size=header_size,
             font_size_default=font_size_default,
         )
@@ -125,7 +123,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.diagnostics_tile,
             self.backup_tile,
             ft.Divider(),
-            self._build_action_buttons(),
+            self._build_reset_button(),
         ]
 
         # Sync initial UI state
@@ -212,16 +210,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the Tm colour scheme dropdown."""
         return self.tm_tile.set_tm_colour_scheme
 
-    def _build_action_buttons(self) -> ft.Row:
-        """Build the Action buttons Row (Apply & Reset)."""
+    def _build_reset_button(self) -> ft.Row:
+        """Build the Reset button Row."""
         return ft.Row(
             list[ft.Control](
                 [
-                    ft.FilledButton(
-                        "Apply",
-                        icon=ft.Icons.DONE,
-                        on_click=self._on_apply_handler,
-                    ),
                     ft.OutlinedButton(
                         "Reset to Default",
                         icon=ft.Icons.RESTORE,
@@ -293,14 +286,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self._reconfigure_logging()
         if self.on_change:
             self.on_change(e)
-
-    def _on_apply_handler(self, *args: Any) -> None:
-        """Handle apply button click."""
-        self.sync_to_state()
-        self.settings.save_to_local(self.app_page)
-        self._reconfigure_logging()
-        if self.on_apply:
-            self.on_apply(args[0] if args else None)
 
     def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""

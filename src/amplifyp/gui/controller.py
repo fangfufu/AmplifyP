@@ -134,8 +134,7 @@ class GUIController:
             self.page,
             self.settings,
             on_change=self.on_settings_change,
-            on_apply=self.run_apply_settings,
-            on_reset=self.run_apply_settings,
+            on_reset=self.on_settings_change,
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
@@ -500,16 +499,6 @@ class GUIController:
             self.dimers_view.run_analysis()
 
         self.page.update()
-
-    def run_apply_settings(self, e: ft.ControlEvent | None = None) -> None:
-        """Apply settings updates from the settings view.
-
-        Applies theme, updates PCR button state, and persists settings.
-
-        Args:
-            e: The Flet control event triggering the apply action.
-        """
-        self.on_settings_change(e)
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.
