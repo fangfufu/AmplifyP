@@ -41,7 +41,7 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
         settings: GUISettings,
         sync_to_state_callback: Callable[[], None],
         update_ui_callback: Callable[[], None],
-        on_apply_callback: Callable[[ft.ControlEvent | None], None] | None,
+        on_change_callback: Callable[[ft.ControlEvent | None], None] | None,
         header_size: int,
         font_size_default: int,
     ) -> None:
@@ -50,7 +50,7 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings = settings
         self.sync_to_state_callback = sync_to_state_callback
         self.update_ui_callback = update_ui_callback
-        self.on_apply_callback = on_apply_callback
+        self.on_change_callback = on_change_callback
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
 
@@ -173,8 +173,8 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
 
             # Apply loaded changes (theme, notify views, update PCR
             # button, etc.)
-            if self.on_apply_callback:
-                self.on_apply_callback(None)
+            if self.on_change_callback:
+                self.on_change_callback(None)
 
             self.notification_helper.show_message(
                 "Settings loaded successfully!"

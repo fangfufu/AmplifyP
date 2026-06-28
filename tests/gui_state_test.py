@@ -148,15 +148,10 @@ def test_gui_state_save_load() -> None:
 
 
 def test_settings_view_buttons() -> None:
-    """Test Apply and Reset to Default buttons in SettingsView."""
+    """Test Reset to Default button in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
 
-    apply_called = False
     reset_called = False
-
-    def on_apply_callback(e: ft.ControlEvent) -> None:
-        nonlocal apply_called
-        apply_called = True
 
     def on_reset_callback(e: ft.ControlEvent) -> None:
         nonlocal reset_called
@@ -164,7 +159,6 @@ def test_settings_view_buttons() -> None:
 
     settings_view = SettingsView(
         mock_page,
-        on_apply=on_apply_callback,
         on_reset=on_reset_callback,
     )
 
@@ -176,24 +170,12 @@ def test_settings_view_buttons() -> None:
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
-    # Find the Row containing the Apply and Reset buttons
+    # Find the Row containing the Reset button
     buttons_row = settings_view.controls[-1]
     assert isinstance(buttons_row, ft.Row)
-    apply_btn = buttons_row.controls[0]
-    reset_btn = buttons_row.controls[1]
+    reset_btn = buttons_row.controls[0]
 
-    assert apply_btn.content == "Apply"
     assert reset_btn.content == "Reset to Default"
-
-    # Trigger Apply
-    apply_btn.on_click(MagicMock(spec=ft.ControlEvent))
-    assert apply_called
-    assert settings_view.settings["primability_cutoff"] == "0.95"
-    assert settings_view.settings["amp4_compat"] is True
-    assert settings_view.settings["improved_visualisation"] is True
-    assert settings_view.settings["show_primer_temperature"] is True
-    assert settings_view.settings["bp_score_G_G"] == "50.0"
-    assert settings_view.settings["pd_score_G_G"] == "50.0"
 
     # Trigger Reset
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
