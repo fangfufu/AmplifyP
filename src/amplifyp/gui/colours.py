@@ -279,8 +279,12 @@ class ColourInterpolator:
 
     @classmethod
     def to_rgb(cls, color_str: str) -> tuple[int, int, int]:
-        """Convert a color name or hex string to an (R, G, B) tuple."""
+        """Convert a colour name or hex string to an (R, G, B) tuple."""
         hex_clean = cls.get_hex(color_str).lstrip("#")
+        if len(hex_clean) == 3:
+            hex_clean = "".join(c * 2 for c in hex_clean)
+        if len(hex_clean) != 6:
+            raise ValueError(f"Invalid hex colour: {color_str}")
         return (
             int(hex_clean[0:2], 16),
             int(hex_clean[2:4], 16),

@@ -15,26 +15,14 @@
 
 """Tests for GUI state saving and loading."""
 
-from collections.abc import Generator
 from unittest.mock import MagicMock
 
 import flet as ft
-import pytest
 import yaml
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.views.input import InputView
 from amplifyp.gui.views.settings import SettingsView
-
-
-@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
-def reset_colour_modes() -> Generator[None, None, None]:
-    """Reset colour-deficient and dark mode between tests."""
-    GUIColours.colour_deficient_mode = False
-    GUIColours.dark_mode = False
-    yield
-    GUIColours.colour_deficient_mode = False
-    GUIColours.dark_mode = False
 
 
 def test_gui_state_save_load() -> None:
@@ -154,7 +142,6 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
     # Reset GUIColours to avoid test contamination
-    from amplifyp.gui.colours import GUIColours
 
     GUIColours.colour_deficient_mode = False
     GUIColours.dark_mode = False
@@ -310,7 +297,6 @@ def test_settings_backup_and_restore() -> None:
 
 def test_colour_deficient_mode_switching() -> None:
     """Test toggling colour deficient setting shifts GUIColours."""
-    from amplifyp.gui.colours import GUIColours
     from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
@@ -341,7 +327,6 @@ def test_colour_deficient_mode_switching() -> None:
 
 def test_dark_mode_switching() -> None:
     """Test toggling dark mode setting shifts GUIColours."""
-    from amplifyp.gui.colours import GUIColours
     from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
@@ -413,7 +398,6 @@ def test_system_theme_saving_loading() -> None:
     assert new_settings_view_2.settings["colour_deficient"] is True
 
     # Reset GUIColours to avoid test contamination
-    from amplifyp.gui.colours import GUIColours
 
     GUIColours.colour_deficient_mode = False
     GUIColours.dark_mode = False

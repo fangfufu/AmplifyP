@@ -393,7 +393,9 @@ class GUIController:
         if hasattr(self, "header_container") and self.header_container:
             self.header_container.bgcolor = GUIColours.SURFACE
 
-    def on_platform_brightness_change(self) -> None:
+    def on_platform_brightness_change(
+        self, e: ft.ControlEvent | None = None
+    ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
         self.input_view.update_ui()
@@ -471,7 +473,7 @@ class GUIController:
 
         self.page.update()
 
-    def on_settings_change(self, e: ft.ControlEvent) -> None:
+    def on_settings_change(self, e: ft.ControlEvent | None = None) -> None:
         """Handle settings changes from the settings view.
 
         Applies theme, updates PCR button state, and persists settings.
@@ -499,7 +501,7 @@ class GUIController:
 
         self.page.update()
 
-    def run_apply_settings(self, e: ft.ControlEvent) -> None:
+    def run_apply_settings(self, e: ft.ControlEvent | None = None) -> None:
         """Apply settings updates from the settings view.
 
         Applies theme, updates PCR button state, and persists settings.
@@ -507,25 +509,7 @@ class GUIController:
         Args:
             e: The Flet control event triggering the apply action.
         """
-        self.apply_theme()
-
-        # Only update the active view immediately to prevent lag!
-        active_view = self.view_container.content
-        if active_view == self.input_view:
-            self.input_view.update_ui()
-        elif active_view == self.settings_view:
-            self.settings_view.update_ui()
-
-        self.update_pcr_button_state()
-        self.settings.save_to_local(self.page)
-
-        # Only redraw/re-simulate active views
-        if active_view == self.pcr_view:
-            self.pcr_view.run_pcr(keep_cards=True)
-        elif active_view == self.dimers_view:
-            self.dimers_view.run_analysis()
-
-        self.page.update()
+        self.on_settings_change(e)
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.
