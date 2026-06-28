@@ -532,7 +532,7 @@ async def pick_and_read_file(
 ) -> str | None:
     """Open a file picker to load a file, and read its text content."""
     file_picker = ft.FilePicker()
-    page.overlay.append(file_picker)
+    page.services.append(file_picker)
     page.update()
     try:
         files = await file_picker.pick_files(
@@ -557,8 +557,8 @@ async def pick_and_read_file(
         show_notification(f"Error loading file: {ex}")
         return None
     finally:
-        if file_picker in page.overlay:
-            page.overlay.remove(file_picker)
+        if file_picker in page.services:
+            page.services.remove(file_picker)
             page.update()
 
 
@@ -574,7 +574,7 @@ async def save_and_write_file(
 ) -> bool:
     """Save content using the file picker, supporting both Web and Desktop."""
     file_picker = ft.FilePicker()
-    page.overlay.append(file_picker)
+    page.services.append(file_picker)
     page.update()
     try:
         file_path = await file_picker.save_file(
@@ -597,8 +597,8 @@ async def save_and_write_file(
         show_notification(f"Error saving file: {ex}")
         return False
     finally:
-        if file_picker in page.overlay:
-            page.overlay.remove(file_picker)
+        if file_picker in page.services:
+            page.services.remove(file_picker)
             page.update()
 
 
