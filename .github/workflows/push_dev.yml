@@ -6,8 +6,6 @@ on:
 jobs:
   test:
     name: Run fast tests and checks
-    permissions:
-      contents: read
     runs-on: ubuntu-latest
     env:
       PYTHONUTF8: 1

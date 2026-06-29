@@ -6,8 +6,6 @@ on:
 jobs:
   build:
     name: Build artifacts (${{ matrix.os }})
-    permissions:
-      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -125,7 +123,6 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pages: write
       id-token: write
     concurrency:
