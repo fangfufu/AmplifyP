@@ -9,7 +9,7 @@ AmplifyP requires Python 3.12 or higher.
 To install development dependencies (testing and E2E automation):
 
 ```bash
-pip install -e ".[tests,e2e]"
+pip install -e ".[dev,e2e]"
 ```
 
 ## Running the App with Hot-Reload

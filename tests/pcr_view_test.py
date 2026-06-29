@@ -5,6 +5,13 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Tests for PCR View and primer binding site context map popups."""
 
@@ -65,12 +72,14 @@ def test_pcr_view_click_context_map() -> None:
     assert "10290" in title_text
 
     # Verify Primeability, Stability and Quality display
-    stats_text = card.content.content.controls[1]
-    assert isinstance(stats_text, ft.Text)
-    stats_spans = "".join([span.text for span in stats_text.spans])
-    assert "Primeability =" in stats_spans
-    assert "Stability =" in stats_spans
-    assert "Quality =" in stats_spans
+    stats_row = card.content.content.controls[1]
+    assert isinstance(stats_row, ft.Row)
+    p_text = stats_row.controls[0].content.value
+    s_text = stats_row.controls[1].content.value
+    q_text = stats_row.controls[2].content.value
+    assert "Primeability: 1.000" in p_text
+    assert "Stability: 1.000" in s_text
+    assert "Quality: 1.0000" in q_text
 
     # Extract diagram_text
     diagram_text = card.content.content.controls[2].content.controls[0]
@@ -88,7 +97,7 @@ def test_pcr_view_click_context_map() -> None:
     # 5. Template context sequence
     assert "1" in full_text
     assert "20" in full_text
-    assert "↓" in full_text
+    assert "V" in full_text
     assert "10290" in full_text
     assert "5'" in full_text
     assert "3'" in full_text
@@ -127,13 +136,14 @@ def test_pcr_view_click_amplicon() -> None:
     # Verify no cards initially
     assert len(view.result_list.controls) == 0
 
-    # Find the gesture detectors.
+    # Find the gesture detectors (excluding label detectors which wrap ft.Text).
     gesture_detectors = [
         ctrl
         for ctrl in view.diagram_stack.controls
         if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Container)
     ]
-    # We should have 3 gesture detectors total
+    # We should have 3 gesture detectors total (2 primers + 1 amplicon)
     assert len(gesture_detectors) == 3
 
     # Click on the third gesture detector (the amplicon)
@@ -226,11 +236,12 @@ def test_pcr_view_no_duplicate_cards() -> None:
     view = PCRView(mock_page, input_data)
     view.run_pcr()
 
-    # Find the gesture detectors: 2 context maps, 1 amplicon
+    # Find the gesture detectors: 2 context maps, 1 amplicon (excluding labels)
     gesture_detectors = [
         ctrl
         for ctrl in view.diagram_stack.controls
         if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Container)
     ]
     assert len(gesture_detectors) == 3
 
@@ -284,11 +295,14 @@ def test_pcr_view_primer_label_collision() -> None:
     view = PCRView(mock_page, input_data)
     view.run_pcr()
 
-    # The stack should have DrawnPrimer text controls.
+    # The stack should have DrawnPrimer text controls, which are now
+    # wrapped in GestureDetector.
     texts = [
         ctrl
         for ctrl in view.diagram_stack.controls
-        if isinstance(ctrl, ft.Text) and ctrl.color == "blue800"
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.color == "blue800"
     ]
     # We should have 3 forward primer label texts
     assert len(texts) == 3
@@ -299,3 +313,141 @@ def test_pcr_view_primer_label_collision() -> None:
     # Separated by >= 24.0 pixels due to de-collision logic
     assert lefts[1] - lefts[0] >= 24.0
     assert lefts[2] - lefts[1] >= 24.0
+
+
+def test_pcr_view_primers_same_3prime_end_different_5prime() -> None:
+    """Test that primers with same 3' ends but different 5' ends are shown."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # P1 and P2 have same 3' end sequence (ACTGCGAATCATTAAA) but
+    # different 5' ends.
+    input_data.primers = [
+        {"name": "P1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "P2", "seq": "ACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Verify that both P1 and P2 labels are rendered
+    texts = [
+        ctrl.content.value
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.color == "blue800"
+    ]
+    assert "P1" in texts
+    assert "P2" in texts
+
+
+def test_pcr_view_click_context_map_improved_visualisation() -> None:
+    """Test clicking a primer binding site shows RC strand in context map."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    # Turn on improved visualisation
+    view.settings["improved_visualisation"] = True
+    view.run_pcr()
+
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) >= 2
+
+    # Click on the first gesture detector (forward binding site)
+    fwd_detector = gesture_detectors[0]
+    fwd_detector.on_tap(MagicMock())
+
+    assert len(view.result_list.controls) == 1
+    card = view.result_list.controls[0]
+    assert isinstance(card, ft.Card)
+
+    # Extract diagram_text
+    diagram_text = card.content.content.controls[2].content.controls[0]
+    assert isinstance(diagram_text, ft.Text)
+
+    # Check spans
+    # It should have a span for the comp_line with MUTED_GREY colour
+    from amplifyp.gui.colours import GUIColours
+
+    comp_spans = [
+        span
+        for span in diagram_text.spans
+        if getattr(span, "style", None)
+        and span.style.color == GUIColours.MUTED_GREY
+    ]
+    assert len(comp_spans) == 1
+    # Check that it contains "3'-" and "-5'" and the translated comp sequence
+    assert "3'-" in comp_spans[0].text
+    assert "-5'" in comp_spans[0].text
+
+
+def test_format_context_lines_alignment_long_label() -> None:
+    """Test format_context_lines aligns elements for long primer labels."""
+    from amplifyp.dna import DNA, DNADirection, Primer
+    from amplifyp.gui.views.pcr.primer_drawing import format_context_lines
+    from amplifyp.repliconf import Repliconf
+
+    template = DNA("A" * 100)
+    primer = Primer("C" * 20)
+    conf = Repliconf(template, primer)
+    origin = MagicMock()
+    # Mock binding strength string
+    origin.binding_strength_str = "|" * 20
+
+    # Long name of length 34
+    long_name = "2223 - 108 (a.k.a. 3312) (Reverse)"
+    _top, mid, bot = format_context_lines(
+        primer_name=long_name,
+        padded_idx=50,
+        conf=conf,
+        origin=origin,
+        L=20,
+        N=100,
+        direction=DNADirection.REV,
+    )
+
+    # For DNADirection.REV, the primer label is f"{primer_name} (Reverse)"
+    # which is "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)".
+    # Let's count length: 34 + 10 = 44 characters.
+    # The label is padded to 44. The sequence prefix is 44 + 3 = 47.
+    # So the primer sequence starts at index 47.
+    # Verify that primer sequence starts with '3\'-' at offset 44
+    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+
+    # The mid line should be:
+    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-CCC...C-5'"
+    # The bonds line in bottom line is the first line of bottom_line.
+    # The bonds line starts with:
+    # 12 + 20 + extra_spaces = 32 + (44 - 29) = 47 spaces.
+    lines_bot = bot.split("\n")
+    assert lines_bot[0].startswith(" " * 47 + "|")
+
+    # The context line in bottom_line starts with:
+    # "Context  " (9 chars) + 15 spaces + "5'-" (3 chars) = 27 spaces,
+    # then 20 bp upstream = 47 spaces before binding sequence.
+    # Let's check:
+    assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")

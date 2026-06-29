@@ -23,7 +23,6 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Final
 
@@ -50,7 +49,7 @@ class LengthWiseWeightTbl:
         default_weight: float = 0,
         overrides: dict[int, float] | None = None,
     ) -> None:
-        """Initialize a LengthWiseWeightTbl object.
+        """Initialise a LengthWiseWeightTbl object.
 
         Args:
             default_weight (float, optional): The default weight to use when a
@@ -69,7 +68,10 @@ class LengthWiseWeightTbl:
         Returns:
             LengthWiseWeightTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = LengthWiseWeightTbl.__new__(LengthWiseWeightTbl)
+        new_tbl.__default_weight = self.__default_weight
+        new_tbl.__overrides = dict(self.__overrides)
+        return new_tbl
 
     def copy(self) -> "LengthWiseWeightTbl":
         """Return a deep copy of this object.
@@ -137,7 +139,7 @@ class BasePairWeightsTbl:
         self.__weight: dict[tuple[str, str], float] = {}
         self.__row_max: dict[str, float] = {}
 
-        # Optimized lookups
+        # Optimised lookups
         self.__matrix: list[list[float]] = [
             [0.0] * len(self.__col) for _ in range(len(self.__row))
         ]
@@ -190,7 +192,6 @@ class BasePairWeightsTbl:
         """Return the string of row nucleotides.
 
         Returns:
-        Returns:
             str: The row nucleotides, excluding the last character if it was a
                 gap placeholder.
         """
@@ -199,7 +200,6 @@ class BasePairWeightsTbl:
     def column(self) -> str:
         """Return the string of column nucleotides.
 
-        Returns:
         Returns:
             str: The column nucleotides, excluding the last character if it was
                 a gap placeholder.
@@ -274,7 +274,6 @@ class BasePairWeightsTbl:
         """Return a string representation of the weight table.
 
         Returns:
-        Returns:
             str: A string representation of the internal dictionary mapping
                 pairs to weights.
         """
@@ -286,7 +285,15 @@ class BasePairWeightsTbl:
         Returns:
             BasePairWeightsTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = BasePairWeightsTbl.__new__(BasePairWeightsTbl)
+        new_tbl.__row = self.__row
+        new_tbl.__col = self.__col
+        new_tbl.__weight = dict(self.__weight)
+        new_tbl.__row_max = dict(self.__row_max)
+        new_tbl.__matrix = [list(r) for r in self.__matrix]
+        new_tbl.__row_map = list(self.__row_map)
+        new_tbl.__col_map = list(self.__col_map)
+        return new_tbl
 
     def copy(self) -> "BasePairWeightsTbl":
         """Return a deep copy of this object.
@@ -380,7 +387,7 @@ DEFAULT_PRIMER_DIMER_SYMBOL_THRESHOLD: Final[float] = 10.0
 class ReplicationSettings:
     """A configuration class for replication settings.
 
-    This class aggregates all parameters required for analyzing replication
+    This class aggregates all parameters required for analysing replication
     origins. It includes scoring tables for base pairing and run lengths, as
     well as cutoff thresholds for filtering results.
 

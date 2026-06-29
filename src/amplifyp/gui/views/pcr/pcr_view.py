@@ -15,19 +15,27 @@
 
 """PCR View for the Flet application."""
 
+import logging
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
 from amplifyp.dna import DNA, DNAType, Primer
-from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
 
 from .amplicon_drawing import AmpliconDetailCard
 from .pcr_diagram_panel import PCRDrawingPanel
 from .primer_drawing import ReplicationContextCard
+
+logger = logging.getLogger(__name__)
 
 
 class PCRView(ft.Column):  # type: ignore[misc]
@@ -39,7 +47,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the PCRView."""
+        """Initialise the PCRView."""
         super().__init__(expand=True)
         self.app_page = page
 
@@ -142,18 +150,19 @@ class PCRView(ft.Column):  # type: ignore[misc]
                                 f"{MAX_AMPLICONS_RENDER} (sorted by "
                                 "quality score) are displayed to "
                                 "prevent UI freeze.",
-                                color=GUIColors.ERROR_RED,
+                                color=GUIColours.ERROR_RED,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             padding=10,
                         )
                     )
 
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.exception("PCR simulation failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",
-                    color=GUIColors.ERROR_RED,
+                    color=GUIColours.ERROR_RED,
                 )
             )
             from amplifyp.gui.util import show_error_dialog
@@ -203,8 +212,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
+        conf: "Repliconf",
+        var: "DirIdx",
     ) -> None:
         """Create and show context map card below the overview map."""
         card_id = f"context_{primer_name}_{padded_idx}"
@@ -217,6 +226,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 return
 
         def dismiss(card: ft.Card) -> None:
+            """Callback to remove the detail card when dismissed."""
             if card in self.result_list.controls:
                 self.result_list.controls.remove(card)
                 self._update_cards_header_visibility()
@@ -234,7 +244,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self._update_cards_header_visibility()
         self.app_page.update()
 
-    def _show_amplicon_dialog(self, amp: Any) -> None:
+    def _show_amplicon_dialog(self, amp: "Amplicon") -> None:
         """Show details card of the selected amplicon below the overview map."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
@@ -249,6 +259,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 return
 
         def dismiss(card: ft.Card) -> None:
+            """Callback to remove the detail card when dismissed."""
             if card in self.result_list.controls:
                 self.result_list.controls.remove(card)
                 self._update_cards_header_visibility()
@@ -269,7 +280,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
-    def _clear_all_cards(self, e: Any) -> None:
+    def _clear_all_cards(self, e: ft.Event) -> None:
         """Clear all detail cards below the overview map."""
         self.result_list.controls.clear()
         self._update_cards_header_visibility()

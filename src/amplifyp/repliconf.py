@@ -252,7 +252,7 @@ class Repliconf:
     Attributes:
         padding_len (int): The length of padding added to the template,
             typically equal to the primer length.
-        primer (Primer): The primer sequence being analyzed.
+        primer (Primer): The primer sequence being analysed.
         template (DNA): The original template DNA sequence.
         template_seq (dict[DNADirection, str]): A dictionary mapping direction
             (FWD/REV) to the processed (padded/complemented) template strings.
@@ -267,7 +267,7 @@ class Repliconf:
         primer: Primer,
         settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ) -> None:
-        """Initialize a Repliconf object.
+        """Initialise a Repliconf object.
 
         Args:
             template (DNA): The template DNA sequence to be searched.
@@ -289,7 +289,7 @@ class Repliconf:
                 template.seq + Nucleotides.GAP * self.padding_len
             ).translate(GLOBAL_COMPLEMENT_TABLE)
         elif template.type == DNAType.CIRCULAR:
-            # Matches existing behavior including 0 case where padding is empty
+            # Matches existing behaviour including 0 case where padding is empty
             padding = (
                 template.seq[-self.padding_len :]
                 if self.padding_len > 0
@@ -348,7 +348,7 @@ class Repliconf:
         i = var.index
 
         if direction:
-            # Optimized reverse slicing: template_seq[end-1:start-1:-1]
+            # Optimised reverse slicing: template_seq[end-1:start-1:-1]
             # This creates only 1 string object instead of 2 (slice then
             # reverse)
             end = i + len(self.primer)
@@ -392,7 +392,7 @@ class Repliconf:
         """
         self.origin_db.clear()
 
-        # Optimization: Pre-calculate constants and lookup tables
+        # Optimisation: Pre-calculate constants and lookup tables
         m = self.settings.match_weight
         S = self.settings.base_pair_scores
         r = self.settings.run_weights
@@ -408,7 +408,7 @@ class Repliconf:
 
         # Prepare set of characters for lookup keys
         lookup_keys = set(Nucleotides.TEMPLATE)
-        lookup_keys.update(c.lower() for c in list(lookup_keys))
+        lookup_keys.update({c.lower() for c in lookup_keys})
 
         for k, base_p in enumerate(primer_rev):
             row_max = S.row_max(base_p)

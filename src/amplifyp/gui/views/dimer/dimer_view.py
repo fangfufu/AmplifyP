@@ -15,17 +15,24 @@
 
 """Dimer View for the Flet application."""
 
+import logging
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimerGenerator
 from amplifyp.dna import Primer
-from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from amplifyp.dimer import PrimerDimer
 
 
 class DimerView(ft.Column):  # type: ignore[misc]
@@ -37,12 +44,12 @@ class DimerView(ft.Column):  # type: ignore[misc]
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
     ) -> None:
-        """Initialize the DimerView."""
+        """Initialise the DimerView."""
         super().__init__(expand=True)
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
-        self._cached_dimers: list[Any] | None = None
+        self._cached_dimers: list[PrimerDimer] | None = None
         self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
             None
         )
@@ -108,7 +115,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
                                 f"{MAX_DIMERS_RENDER} strongest binding "
                                 "dimers are displayed to prevent "
                                 "UI freeze.",
-                                color=GUIColors.ERROR_RED,
+                                color=GUIColours.ERROR_RED,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             padding=10,
@@ -122,11 +129,12 @@ class DimerView(ft.Column):  # type: ignore[misc]
                         font_family=font_family,
                     )
                     self.result_list.controls.append(card)
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.exception("Dimer analysis failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",
-                    color=GUIColors.ERROR_RED,
+                    color=GUIColours.ERROR_RED,
                 )
             )
             show_error_dialog(self.app_page, "Error running analysis", str(ex))

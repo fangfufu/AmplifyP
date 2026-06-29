@@ -90,14 +90,16 @@ def test_dimer_view_with_dimers() -> None:
     col_content = card_container.content
     assert isinstance(col_content, ft.Column)
 
-    # Title row
-    title_row = col_content.controls[0]
+    # Title column
+    title_col = col_content.controls[0]
+    assert isinstance(title_col, ft.Column)
+    title_row = title_col.controls[0]
     assert isinstance(title_row, ft.Row)
     title_text = title_row.controls[0].value
     assert "P1" in title_text or "P2" in title_text
 
     # Code block with alignment
-    code_container = col_content.controls[2]
+    code_container = col_content.controls[1]
     assert isinstance(code_container, ft.Container)
     alignment_row = code_container.content
     assert isinstance(alignment_row, ft.Row)
@@ -111,3 +113,5 @@ def test_dimer_view_with_dimers() -> None:
     assert "3'-" in text_values
     # Mid line should contain bond characters like '|' or ':'
     assert "|" in text_values or ":" in text_values
+    # Check that the primer names are present as labels
+    assert "P1: " in text_values

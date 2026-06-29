@@ -13,12 +13,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Centralized GUI settings and color definitions."""
+"""Centralised GUI settings and configuration."""
 
-from typing import TYPE_CHECKING, Any, cast
+import logging
+import os
+import sys
+from collections.abc import ItemsView, Iterator, KeysView
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
+import yaml
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -29,6 +36,16 @@ from amplifyp.settings import (
     GLOBAL_TM_SETTINGS,
 )
 
+if TYPE_CHECKING:
+    from amplifyp.dna import Primer
+    from amplifyp.settings import (
+        PrimerDimerSettings,
+        ReplicationSettings,
+        TMSettings,
+    )
+
+logger = logging.getLogger(__name__)
+
 # Maximum number of amplicons to draw on the PCR result diagram to
 # prevent UI freeze.
 MAX_AMPLICONS_RENDER = 100
@@ -37,200 +54,19 @@ MAX_AMPLICONS_RENDER = 100
 # prevent UI freeze.
 MAX_DIMERS_RENDER = 100
 
-if TYPE_CHECKING:
-    from amplifyp.settings import (
-        PrimerDimerSettings,
-        ReplicationSettings,
-        TMSettings,
-    )
-
-
-class _GUIColorsMeta(type):
-    """Metaclass for GUIColors to support dynamic color shifting."""
-
-    @property
-    def color_deficient_mode(cls) -> bool:
-        """Get color deficient mode status."""
-        return cls._color_deficient_mode
-
-    @color_deficient_mode.setter
-    def color_deficient_mode(cls, value: bool) -> None:
-        """Set color deficient mode status."""
-        cls._color_deficient_mode = value
-
-    @property
-    def dark_mode(cls) -> bool:
-        """Get dark mode status."""
-        return cls._dark_mode
-
-    @dark_mode.setter
-    def dark_mode(cls, value: bool) -> None:
-        """Set dark mode status."""
-        cls._dark_mode = value
-
-    @property
-    def TEXT_ON_SURFACE(cls) -> str:
-        """Get standard text color on surface."""
-        return cast(str, ft.Colors.ON_SURFACE)
-
-    @property
-    def SUCCESS_GREEN(cls) -> str:
-        """Get color-blind friendly success color."""
-        # Blue is highly distinguishable for most common
-        # red-green color blindness.
-        return cast(
-            str,
-            ft.Colors.BLUE_400
-            if cls._color_deficient_mode
-            else ft.Colors.GREEN_400,
-        )
-
-    @property
-    def CONTAINER_HIGHEST(cls) -> str:
-        """Get container highest color."""
-        return cast(str, ft.Colors.SURFACE_CONTAINER_HIGHEST)
-
-    @property
-    def OUTLINE_VARIANT(cls) -> str:
-        """Get outline variant color."""
-        return cast(str, ft.Colors.OUTLINE_VARIANT)
-
-    @property
-    def OUTLINE(cls) -> str:
-        """Get outline color."""
-        return cast(str, ft.Colors.OUTLINE)
-
-    @property
-    def ERROR_RED(cls) -> str:
-        """Get color-blind friendly error color."""
-        # Use Orange/Vermilion instead of Red in color deficient mode.
-        return cast(
-            str,
-            ft.Colors.ORANGE_800
-            if cls._color_deficient_mode
-            else ft.Colors.RED,
-        )
-
-    @property
-    def DIVIDER_GREY(cls) -> str:
-        """Get divider grey color."""
-        return cast(str, ft.Colors.GREY_400)
-
-    @property
-    def DUPLICATE_BG(cls) -> str:
-        """Get duplicate warning background color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_900
-                if cls._color_deficient_mode
-                else ft.Colors.RED_900,
-            )
-        return cast(
-            str,
-            ft.Colors.ORANGE_100
-            if cls._color_deficient_mode
-            else ft.Colors.RED_100,
-        )
-
-    @property
-    def SELECTED_ROW_BG(cls) -> str:
-        """Get selected/focused row background color."""
-        return cast(
-            str,
-            ft.Colors.BLUE_900 if cls._dark_mode else ft.Colors.BLUE_50,
-        )
-
-    @property
-    def DIAGRAM_BLACK(cls) -> str:
-        """Get diagram black/white color depending on dark mode."""
-        return cast(
-            str,
-            ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK,
-        )
-
-    @property
-    def INFO_HEADER_BG(cls) -> str:
-        """Get background color for info header."""
-        return cast(
-            str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
-        )
-
-    @property
-    def FWD_PRIMER(cls) -> str:
-        """Get forward primer color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.BLUE_300
-                if cls._color_deficient_mode
-                else ft.Colors.BLUE_400,
-            )
-        # Sky blue / clear blue for forward primer in color deficient mode
-        return cast(
-            str,
-            ft.Colors.BLUE_600
-            if cls._color_deficient_mode
-            else ft.Colors.BLUE_800,
-        )
-
-    @property
-    def REV_PRIMER(cls) -> str:
-        """Get reverse primer color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_300
-                if cls._color_deficient_mode
-                else ft.Colors.RED_ACCENT_200,
-            )
-        # Vermilion / orange-red for reverse primer in color deficient mode
-        # (instead of red-accent)
-        return cast(
-            str,
-            ft.Colors.ORANGE_700
-            if cls._color_deficient_mode
-            else ft.Colors.RED_ACCENT_700,
-        )
-
-    @property
-    def REV_LABEL(cls) -> str:
-        """Get reverse primer label color."""
-        if cls._dark_mode:
-            return cast(
-                str,
-                ft.Colors.ORANGE_200
-                if cls._color_deficient_mode
-                else ft.Colors.RED_300,
-            )
-        return cast(
-            str,
-            ft.Colors.ORANGE_900
-            if cls._color_deficient_mode
-            else ft.Colors.RED_800,
-        )
-
-    @property
-    def TRANSPARENT(cls) -> str:
-        """Get transparent color."""
-        return cast(str, ft.Colors.TRANSPARENT)
-
-
-class GUIColors(metaclass=_GUIColorsMeta):
-    """Centralized semantic color constants for the GUI."""
-
-    _color_deficient_mode = False
-    _dark_mode = False
-
 
 class GUISettings:
     """Encapsulates configuration settings for the GUI."""
 
     def __init__(self, settings_dict: dict[str, Any] | None = None) -> None:
-        """Initialize GUISettings with optional dictionary or defaults."""
+        """Initialize GUISettings with optional dictionary or defaults.
+
+        Args:
+            settings_dict: Optional dictionary of initial setting values.
+        """
         from amplifyp.dna import Nucleotides
 
+        self._cached_tm_settings: TMSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -244,7 +80,7 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "color_deficient": False,
+            "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
             "font_size_map_primer": 13,
@@ -256,9 +92,19 @@ class GUISettings:
             "font_size_default": 14,
             "font_size_micro": 10,
             "font_size_table_header": 15,
+            "improved_visualisation": True,
+            "show_primer_temperature": False,
+            "tm_colour_scheme": "None",
+            "log_level_amplifyp": "INFO",
+            "log_level_flet": "INFO",
+            "log_console_enabled": True,
+            "log_file_enabled": True,
+            "log_file_path": "(Default)",
+            "log_rotation_enabled": True,
+            "log_rotation_max_bytes": 5242880,
         }
 
-        # Initialize base-pair weights
+        # Initialise base-pair weights
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.TEMPLATE:
                 if c_char == Nucleotides.GAP:
@@ -268,7 +114,7 @@ class GUISettings:
                     DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char]
                 )
 
-        # Initialize primer-dimer weights
+        # Initialise primer-dimer weights
         for r_char in Nucleotides.PRIMER:
             for c_char in Nucleotides.PRIMER:
                 key = f"pd_score_{r_char}_{c_char}"
@@ -278,23 +124,41 @@ class GUISettings:
 
         if settings_dict is not None:
             self._settings.update(settings_dict)
-            if "color_deficient" in settings_dict:
-                val = settings_dict["color_deficient"]
+            if "colour_deficient" in settings_dict:
+                val = settings_dict["colour_deficient"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.color_deficient_mode = bool(val)
+                GUIColours.colour_deficient_mode = bool(val)
             if "dark_mode" in settings_dict:
                 val = settings_dict["dark_mode"]
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def __getitem__(self, key: str) -> Any:
-        """Get a setting value by key."""
+        """Get a setting value by key.
+
+        Args:
+            key: The setting key to retrieve.
+
+        Returns:
+            The setting value.
+
+        Raises:
+            KeyError: If the key does not exist.
+        """
         return self._settings[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        """Set a setting value by key."""
+        """Set a setting value by key with type coercion.
+
+        Automatically converts string values to match the expected type
+        of the setting (bool, int, float, or str).
+
+        Args:
+            key: The setting key to update.
+            value: The new value to set.
+        """
         if key in self._settings:
             orig_val = self._settings[key]
             if isinstance(orig_val, bool):
@@ -313,11 +177,12 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        if key == "color_deficient":
+        self._cached_tm_settings = None
+        if key == "colour_deficient":
             val = value
             if isinstance(val, str):
                 val = val.lower() in ("true", "1", "yes")
-            GUIColors.color_deficient_mode = bool(val)
+            GUIColours.colour_deficient_mode = bool(val)
         elif key == "dark_mode":
             val = value
             if isinstance(val, str) and val.lower() == "system":
@@ -326,29 +191,65 @@ class GUISettings:
             else:
                 if isinstance(val, str):
                     val = val.lower() in ("true", "1", "yes")
-                GUIColors.dark_mode = bool(val)
+                GUIColours.dark_mode = bool(val)
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get a setting value by key with an optional default."""
+        """Get a setting value by key with an optional default.
+
+        Args:
+            key: The setting key to retrieve.
+            default: The default value if the key does not exist.
+
+        Returns:
+            The setting value, or the default if not found.
+        """
         return self._settings.get(key, default)
 
-    def items(self) -> Any:
-        """Get the settings key-value items."""
+    def items(self) -> ItemsView[str, Any]:
+        """Get the settings key-value items.
+
+        Returns:
+            A view of the setting key-value pairs.
+        """
         return self._settings.items()
 
-    def keys(self) -> Any:
-        """Get the settings keys."""
+    def keys(self) -> KeysView[str]:
+        """Get the settings keys.
+
+        Returns:
+            A view of the setting keys.
+        """
         return self._settings.keys()
 
-    def __iter__(self) -> Any:
-        """Iterate over settings keys."""
+    def __iter__(self) -> Iterator[str]:
+        """Iterate over settings keys.
+
+        Returns:
+            An iterator over the setting keys.
+        """
         return iter(self._settings)
 
     def __contains__(self, key: str) -> bool:
-        """Check if a key exists in settings."""
+        """Check if a key exists in settings.
+
+        Args:
+            key: The setting key to check.
+
+        Returns:
+            True if the key exists, False otherwise.
+        """
         return key in self._settings
 
     def _safe_float(self, key: str, default: float) -> float:
+        """Retrieve a setting as float, returning a default if conversion fails.
+
+        Args:
+            key (str): The setting key.
+            default (float): The default value to return.
+
+        Returns:
+            float: The setting value as a float, or the default value.
+        """
         val = self._settings.get(key)
         if val is None or val == "":
             return default
@@ -358,6 +259,15 @@ class GUISettings:
             return default
 
     def _safe_int(self, key: str, default: int) -> int:
+        """Retrieve a setting as int, returning a default if conversion fails.
+
+        Args:
+            key (str): The setting key.
+            default (int): The default value to return.
+
+        Returns:
+            int: The setting value as an integer, or the default value.
+        """
         val = self._settings.get(key)
         if val is None or val == "":
             return default
@@ -367,7 +277,15 @@ class GUISettings:
             return default
 
     def get_replication_settings(self) -> "ReplicationSettings":
-        """Get ReplicationSettings from the central settings."""
+        """Get ReplicationSettings from the central settings.
+
+        Constructs a ReplicationSettings object using the current GUI
+        settings values for primability/stability cutoffs, base-pair
+        weights, and Amplify4 compatibility mode.
+
+        Returns:
+            A ReplicationSettings instance configured from GUI settings.
+        """
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import BasePairWeightsTbl, ReplicationSettings
 
@@ -400,7 +318,15 @@ class GUISettings:
         )
 
     def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
-        """Get PrimerDimerSettings from the central settings."""
+        """Get PrimerDimerSettings from the central settings.
+
+        Constructs a PrimerDimerSettings object using the current GUI
+        settings values for minimum overlap, threshold, and base-pair
+        weights.
+
+        Returns:
+            A PrimerDimerSettings instance configured from GUI settings.
+        """
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import BasePairWeightsTbl, PrimerDimerSettings
 
@@ -430,10 +356,21 @@ class GUISettings:
         )
 
     def get_tm_settings(self) -> "TMSettings":
-        """Get TMSettings from the central settings."""
-        from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
+        """Get TMSettings from the central settings.
 
-        return TMSettings(
+        Constructs a TMSettings object using the current GUI settings
+        values for DNA concentration, salt concentrations, and dNTP
+        concentration used in melting temperature calculations.
+
+        Returns:
+            A TMSettings instance configured from GUI settings.
+        """
+        from amplifyp.settings import TMSettings
+
+        if self._cached_tm_settings is not None:
+            return self._cached_tm_settings
+
+        self._cached_tm_settings = TMSettings(
             dna_conc=self._safe_float(
                 "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
             ),
@@ -450,9 +387,21 @@ class GUISettings:
                 "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
             ),
         )
+        return self._cached_tm_settings
 
-    def calculate_primer_tm(self, primer: Any) -> float:
-        """Calculate the melting temperature of a primer based on settings."""
+    def calculate_primer_tm(self, primer: "Primer") -> float:
+        """Calculate the melting temperature of a primer based on settings.
+
+        Uses the configured TM method (SantaLucia 1998 / Owczarzy 2008
+        or Lander / Amplify 4) and current thermodynamic settings to
+        compute the melting temperature.
+
+        Args:
+            primer: The primer object to calculate Tm for.
+
+        Returns:
+            The melting temperature as a float.
+        """
         from amplifyp.melting import (
             calculate_tm_lander_amplify4,
             calculate_tm_santalucia_1998_owczarzy_2008,
@@ -467,11 +416,23 @@ class GUISettings:
         return calculate_tm_santalucia_1998_owczarzy_2008(primer, tm_settings)
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert settings to a dictionary for serialization."""
+        """Convert settings to a dictionary for serialisation.
+
+        Returns:
+            A copy of the internal settings dictionary.
+        """
         return dict(self._settings)
 
     def from_dict(self, settings_dict: dict[str, Any]) -> None:
-        """Update settings from a dictionary."""
+        """Update settings from a dictionary.
+
+        Applies values from the dictionary to matching keys, performing
+        type coercion as needed. Also updates GUIColours state for
+        colour_deficient and dark_mode settings.
+
+        Args:
+            settings_dict: Dictionary of setting key-value pairs to apply.
+        """
         for k in self._settings:
             if k in settings_dict:
                 v = settings_dict[k]
@@ -501,9 +462,103 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
-        GUIColors.color_deficient_mode = bool(
-            self._settings.get("color_deficient", False)
+        GUIColours.colour_deficient_mode = bool(
+            self._settings.get("colour_deficient", False)
         )
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
-            GUIColors.dark_mode = bool(dark_mode_val)
+            GUIColours.dark_mode = bool(dark_mode_val)
+        self._cached_tm_settings = None
+
+    def _get_config_path(self) -> Path:
+        """Get the OS-specific path for user settings configuration.
+
+        Returns:
+            Path object pointing to the settings.yaml file location:
+            - Windows: %APPDATA%/AmplifyP/settings.yaml
+            - macOS: ~/Library/Application Support/AmplifyP/settings.yaml
+            - Linux: $XDG_CONFIG_HOME/amplifyp/settings.yaml or
+                ~/.config/amplifyp/settings.yaml
+        """
+        if sys.platform.startswith("win"):
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                return Path(appdata) / "AmplifyP" / "settings.yaml"
+            return (
+                Path(os.path.expanduser("~"))
+                / "AppData"
+                / "Roaming"
+                / "AmplifyP"
+                / "settings.yaml"
+            )
+        elif sys.platform.startswith("darwin"):
+            home = os.environ.get("HOME") or os.path.expanduser("~")
+            return (
+                Path(home)
+                / "Library"
+                / "Application Support"
+                / "AmplifyP"
+                / "settings.yaml"
+            )
+        else:
+            xdg_config = os.environ.get("XDG_CONFIG_HOME")
+            if xdg_config:
+                return Path(xdg_config) / "amplifyp" / "settings.yaml"
+            home = os.environ.get("HOME") or os.path.expanduser("~")
+            return Path(home) / ".config" / "amplifyp" / "settings.yaml"
+
+    def load_from_local(self, page: ft.Page) -> None:
+        """Load settings from local storage.
+
+        On web platforms, uses page.client_storage.
+        On desktop platforms, reads from OS-specific YAML file.
+        """
+        if getattr(page, "web", False):
+            storage = getattr(page, "client_storage", None)
+            if storage is not None:
+                # Web browser path
+                settings_dict = {}
+                for k in self._settings.keys():
+                    storage_key = f"amplifyp.settings.{k}"
+                    if storage.contains_key(storage_key):
+                        settings_dict[k] = storage.get(storage_key)
+                if settings_dict:
+                    self.from_dict(settings_dict)
+            return
+
+        # Desktop path
+        config_path = self._get_config_path()
+        if config_path.exists():
+            try:
+                with open(config_path, encoding="utf-8") as f:
+                    data = yaml.safe_load(f)
+                if isinstance(data, dict):
+                    self.from_dict(data)
+            except (OSError, yaml.YAMLError, ValueError) as e:
+                logger.exception(
+                    "Error loading settings from %s: %s", config_path, e
+                )
+
+    def save_to_local(self, page: ft.Page) -> None:
+        """Save settings to local storage.
+
+        On web platforms, uses page.client_storage.
+        On desktop platforms, writes to OS-specific YAML file.
+        """
+        if getattr(page, "web", False):
+            storage = getattr(page, "client_storage", None)
+            if storage is not None:
+                # Web browser path
+                for k, v in self._settings.items():
+                    storage_key = f"amplifyp.settings.{k}"
+                    storage.set(storage_key, v)
+            return
+
+        # Desktop path
+        config_path = self._get_config_path()
+        try:
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(config_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
+        except (OSError, yaml.YAMLError, ValueError) as e:
+            logger.exception("Error saving settings to %s: %s", config_path, e)

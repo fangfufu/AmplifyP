@@ -16,15 +16,21 @@
 """Diagram panel widget for rendering PCR execution targets."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
 
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
+
 from .amplicon_drawing import DrawnAmplicon
+from .pcr_layout import PCRLayoutSolver
 from .primer_drawing import DrawnPrimer
 
 __all__ = ["PCRDrawingPanel"]
@@ -40,10 +46,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings,
-        on_primer_click: Callable[[str, int, Any, Any], None],
-        on_amplicon_click: Callable[[Any], None],
+        on_primer_click: Callable[[str, int, "Repliconf", "DirIdx"], None],
+        on_amplicon_click: Callable[["Amplicon"], None],
     ) -> None:
-        """Initialize the PCRDrawingPanel."""
+        """Initialise the PCRDrawingPanel.
+
+        Args:
+            page: The Flet page instance for UI updates.
+            settings: Application GUI settings instance.
+            on_primer_click: Callback invoked when a primer is clicked.
+                Receives (name, index, conf, var) arguments.
+            on_amplicon_click: Callback invoked when an amplicon is clicked.
+                Receives the amplicon object as argument.
+        """
         super().__init__(spacing=0, tight=True)
         self.app_page = page
         self.settings = settings
@@ -65,7 +80,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container = ft.Container(
             content=self.diagram_scrollable,
             visible=False,
-            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border=ft.Border.all(1, GUIColours.OUTLINE),
             border_radius=5,
             padding=10,
             height=300,
@@ -74,7 +89,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             on_pan_update=self._on_pan_update,
             content=ft.Container(
                 height=5,
-                bgcolor=GUIColors.DIVIDER_GREY,
+                bgcolor=GUIColours.DIVIDER_GREY,
                 border_radius=5,
                 margin=ft.Margin.symmetric(vertical=5),
             ),
@@ -88,22 +103,23 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         ]
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
-        """Handle vertical resizing of the diagram container."""
+        """Handle vertical resizing of the diagram container.
+
+        Args:
+            e: The Flet drag update event containing delta y.
+        """
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
         self.diagram_container.height = max(
             150.0, float(self.diagram_container.height or 300.0) + delta_y
         )
         self.app_page.update()
 
-    def handle_resize(self) -> None:
-        """Handle window resizing by redrawing if visible."""
-        if self.diagram_container.visible:
-            # We don't have direct access to the PCR object, but the parent
-            # PCRView handles calling run_pcr during resize.
-            pass
-
     def reset_ui(self) -> None:
-        """Reset the PCR view diagram canvas shapes and controls."""
+        """Reset the PCR view diagram canvas shapes and controls.
+
+        Clears all shapes, hides the diagram container and divider,
+        and resets the stack to contain only the canvas.
+        """
         self.diagram_canvas.shapes.clear()
         self.diagram_stack.controls.clear()
         self.diagram_stack.controls.append(self.diagram_canvas)
@@ -114,6 +130,12 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Perform coordinates calculations and render diagram elements.
 
         This draws baseline, primers, and amplicons.
+        Sorts amplicons by quality score and limits rendering to
+        MAX_AMPLICONS_RENDER if there are too many.
+
+        Args:
+            pcr: The PCR simulation instance containing amplicons and
+                template data.
         """
         amplicons = pcr.amplicons
         num_amplicons = len(amplicons)
@@ -135,15 +157,24 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
         target_length = len(pcr.template)
 
-        fwd_bindings, rev_bindings = self._collect_primer_bindings(
+        fwd_bindings, rev_bindings = PCRLayoutSolver.collect_primer_bindings(
             pcr, amplicons
         )
 
         v_target, h_margin, c_width, t_width, v_frag_start = (
-            self._calculate_canvas_dimensions(
-                target_length, num_amplicons, fwd_bindings, rev_bindings
+            PCRLayoutSolver.calculate_canvas_dimensions(
+                target_length,
+                num_amplicons,
+                fwd_bindings,
+                rev_bindings,
+                self.app_page.width,
             )
         )
+
+        # Apply dimensions directly to UI controls
+        self.diagram_canvas.width = c_width
+        self.diagram_canvas.height = v_frag_start + num_amplicons * 35 + 30.0
+        self.diagram_stack.height = self.diagram_canvas.height
 
         if target_length > 0:
             self._draw_template_baseline(
@@ -170,44 +201,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             v_frag_start=v_frag_start,
         )
 
-    def _calculate_canvas_dimensions(
-        self,
-        target_length: int,
-        num_amplicons: int,
-        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
-        rev_bindings: dict[int, tuple[str, float, Any, Any]],
-    ) -> tuple[float, float, float, float, float]:
-        """Calculate drawing coordinates and set canvas/stack heights."""
-        # Calculate dynamic margins based on label lengths (approx 8px per char)
-        max_fwd_len = max(
-            (len(name) for name, _, _, _ in fwd_bindings.values()), default=0
-        )
-        max_rev_len = max(
-            (len(name) for name, _, _, _ in rev_bindings.values()), default=0
-        )
-
-        fwd_px = max_fwd_len * 8.0
-        rev_px = max_rev_len * 8.0
-
-        v_target = max(100.0, 66.0 + fwd_px)  # Y position of target baseline
-        h_margin = 20.0  # X padding
-        c_width = (
-            max(600.0, self.app_page.width - 80.0)
-            if self.app_page.width
-            else 800.0
-        )
-        self.diagram_canvas.width = c_width
-        t_width = c_width - (2.0 * h_margin)
-
-        # Calculate vertical size based on number of amplicons
-        v_frag_start = v_target + 70.0 + rev_px
-        v_frag_step = 35
-        canvas_height = v_frag_start + num_amplicons * v_frag_step + 30.0
-        self.diagram_canvas.height = canvas_height
-        self.diagram_stack.height = canvas_height
-
-        return v_target, h_margin, c_width, t_width, v_frag_start
-
     def _draw_template_baseline(
         self,
         v_target: float,
@@ -216,10 +209,22 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         t_width: float,
         target_length: int,
     ) -> None:
-        """Draw boundary lines, baseline, ticks, and texts."""
+        """Draw boundary lines, baseline, ticks, and texts.
+
+        Draws vertical boundary lines at start/end, position labels (1
+        and target_length), the main baseline, and dynamic tick marks
+        scaled based on template length.
+
+        Args:
+            v_target: Vertical position of the baseline.
+            h_margin: Horizontal margin in pixels.
+            c_width: Total canvas width in pixels.
+            t_width: Template drawing width in pixels.
+            target_length: Total length of the template in base pairs.
+        """
         # Draw vertical boundary lines at start and end of template
         boundary_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.STROKE,
             stroke_width=1.0,
         )
@@ -251,7 +256,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_baseline", 16),
                     weight=ft.FontWeight.BOLD,
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
             )
         )
@@ -263,7 +268,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_baseline", 16),
                     weight=ft.FontWeight.BOLD,
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
                 alignment=ft.Alignment(1.0, -1.0),
             )
@@ -277,7 +282,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                     cv.Path.LineTo(c_width - h_margin, v_target),
                 ],
                 paint=ft.Paint(
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                     style=ft.PaintingStyle.STROKE,
                     stroke_width=2.5,
                 ),
@@ -292,7 +297,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             tick_interval = 500
 
         tick_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.STROKE,
             stroke_width=1.0,
         )
@@ -308,149 +313,53 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 )
             )
 
-    def _collect_primer_bindings(
-        self, pcr: PCR, amplicons: list[Any] | None = None
-    ) -> tuple[
-        dict[int, tuple[str, float, Any, Any]],
-        dict[int, tuple[str, float, Any, Any]],
-    ]:
-        """Collect and group unique forward and reverse primer binding sites."""
-        fwd_bindings = {}
-        rev_bindings = {}
-        if amplicons is None:
-            amplicons = pcr.amplicons
-        for amp in amplicons:
-            fwd_conf = next(
-                (
-                    c
-                    for c in pcr.amplicon_generator.repliconfs
-                    if c.primer is amp.fwd_origin
-                ),
-                None,
-            )
-            rev_conf = next(
-                (
-                    c
-                    for c in pcr.amplicon_generator.repliconfs
-                    if c.primer is amp.rev_origin
-                ),
-                None,
-            )
-            if fwd_conf is None or rev_conf is None:
-                continue
-            fwd_origin_point = fwd_conf.origin(amp.start)
-            rev_origin_point = rev_conf.origin(amp.end)
-            if fwd_origin_point is None or rev_origin_point is None:
-                continue
-            fwd_quality = fwd_origin_point.quality
-            rev_quality = rev_origin_point.quality
-
-            # Scale triangle size S based on quality score
-            fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
-            rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
-
-            fwd_bindings[amp.start.index] = (
-                amp.fwd_origin.name,
-                fwd_s,
-                fwd_conf,
-                amp.start,
-            )
-            rev_bindings[amp.end.index] = (
-                amp.rev_origin.name,
-                rev_s,
-                rev_conf,
-                amp.end,
-            )
-        return fwd_bindings, rev_bindings
-
-    def _calculate_shifted_x(
-        self,
-        bindings: dict[int, tuple[str, float, Any, Any]],
-        target_length: int,
-        t_width: float,
-        h_margin: float,
-        min_dist: float = 24.0,
-    ) -> dict[int, float]:
-        """Calculate shifted horizontal pixel positions to prevent overlap."""
-        if not bindings:
-            return {}
-
-        # List of (actual_idx, actual_x) sorted by X position
-        coords = []
-        for idx in bindings.keys():
-            x = (
-                h_margin + (idx / target_length * t_width)
-                if target_length
-                else h_margin
-            )
-            coords.append((idx, x))
-        coords.sort(key=lambda item: item[1])
-
-        # Simple cluster and distribute algorithm
-        n = len(coords)
-        shifted = dict(coords)
-
-        # We find overlapping segments/clusters
-        clusters = []
-        current_cluster = [coords[0]]
-
-        for i in range(1, n):
-            idx, x = coords[i]
-            _, prev_x = coords[i - 1]
-            # Check distance between original X of consecutive elements
-            if x - prev_x < min_dist:
-                current_cluster.append((idx, x))
-            else:
-                clusters.append(current_cluster)
-                current_cluster = [(idx, x)]
-        clusters.append(current_cluster)
-
-        # Now, spread out coordinates within each cluster
-        for cluster in clusters:
-            if len(cluster) <= 1:
-                continue
-            # Average X of the original positions in this cluster
-            avg_x = sum(x for _, x in cluster) / len(cluster)
-
-            # We want to space them evenly around avg_x
-            # Total width needed is (len - 1) * min_dist
-            k = len(cluster)
-            total_width = (k - 1) * min_dist
-            start_x = avg_x - total_width / 2.0
-
-            # Ensure we don't go out of canvas boundaries
-            min_canvas_x = h_margin
-            max_canvas_x = h_margin + t_width
-            if start_x < min_canvas_x:
-                start_x = min_canvas_x
-            elif start_x + total_width > max_canvas_x:
-                start_x = max_canvas_x - total_width
-
-            for idx_in_cluster, (idx, _) in enumerate(cluster):
-                shifted[idx] = start_x + idx_in_cluster * min_dist
-
-        return shifted
-
     def _draw_primers(
         self,
-        fwd_bindings: dict[int, tuple[str, float, Any, Any]],
-        rev_bindings: dict[int, tuple[str, float, Any, Any]],
+        fwd_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
+        rev_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
     ) -> None:
-        """Draw forward and reverse primers using DrawnPrimer instances."""
-        fwd_shifted = self._calculate_shifted_x(
+        """Draw forward and reverse primers using DrawnPrimer instances.
+
+        Calculates shifted x-positions to prevent overlap, then creates
+        and draws DrawnPrimer objects for each binding site.
+
+        Args:
+            fwd_bindings: Forward primer binding data dict.
+            rev_bindings: Reverse primer binding data dict.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+        """
+        fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
             fwd_bindings, target_length, t_width, h_margin
         )
-        rev_shifted = self._calculate_shifted_x(
+        rev_shifted = PCRLayoutSolver.calculate_shifted_x(
             rev_bindings, target_length, t_width, h_margin
         )
 
-        for start_idx, (name, S, fwd_conf, fwd_var) in fwd_bindings.items():
+        def make_click(
+            n_val: str, idx_val: int, c_val: "Repliconf", v_val: "DirIdx"
+        ) -> Callable[[], None]:
+            """Return a lambda that calls the on_primer_click callback."""
+            return lambda: self.on_primer_click(n_val, idx_val, c_val, v_val)
+
+        for (start_idx, name), (
+            name_val,
+            S,
+            fwd_conf,
+            fwd_var,
+        ) in fwd_bindings.items():
             drawn = DrawnPrimer(
-                name=name,
+                name=name_val,
                 index=start_idx,
                 conf=fwd_conf,
                 var=fwd_var,
@@ -460,16 +369,19 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=start_idx, c=fwd_conf, v=fwd_var: (  # type: ignore[misc]
-                    self.on_primer_click(n, idx, c, v)
-                ),
-                x_shifted=fwd_shifted.get(start_idx),
+                on_click=make_click(name_val, start_idx, fwd_conf, fwd_var),
+                x_shifted=fwd_shifted.get((start_idx, name)),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
-        for end_idx, (name, S, rev_conf, rev_var) in rev_bindings.items():
+        for (end_idx, name), (
+            name_val,
+            S,
+            rev_conf,
+            rev_var,
+        ) in rev_bindings.items():
             drawn = DrawnPrimer(
-                name=name,
+                name=name_val,
                 index=end_idx,
                 conf=rev_conf,
                 var=rev_var,
@@ -479,10 +391,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 h_margin=h_margin,
                 v_target=v_target,
                 settings=self.settings,
-                on_click=lambda n=name, idx=end_idx, c=rev_conf, v=rev_var: (  # type: ignore[misc]
-                    self.on_primer_click(n, idx, c, v)
-                ),
-                x_shifted=rev_shifted.get(end_idx),
+                on_click=make_click(name_val, end_idx, rev_conf, rev_var),
+                x_shifted=rev_shifted.get((end_idx, name)),
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
@@ -494,10 +404,23 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         h_margin: float,
         v_target: float,
         c_width: float,
-        amplicons: list[Any] | None = None,
+        amplicons: list["Amplicon"] | None = None,
         v_frag_start: float | None = None,
     ) -> None:
-        """Draw amplicons using DrawnAmplicon instances."""
+        """Draw amplicons using DrawnAmplicon instances.
+
+        Args:
+            pcr: The PCR simulation instance.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            c_width: Total canvas width in pixels.
+            amplicons: List of amplicon objects to draw, or None to use
+                pcr.amplicons.
+            v_frag_start: Vertical start position for fragment rows, or
+                None to use a default.
+        """
         if amplicons is None:
             amplicons = pcr.amplicons
         for idx, amp in enumerate(amplicons):

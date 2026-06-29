@@ -6,8 +6,11 @@ requires = [
 
 [project]
 name = "amplifyp"
-version = "v0.6.7"
-description = "Python rewrite of Amplify 4"
+version = "v0.95.5"
+description = """\
+Modern Python rewrite of Amplify4 for PCR simulation, \
+amplicon prediction, and primer dimer analysis\
+"""
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,12 +26,14 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-optional-dependencies.tests = [
+optional-dependencies.dev = [
   "pytest>=9.0.3",
   "pytest-asyncio>=1.4.0",
   "pytest-cov>=7.1.0",
   "pytest-testmon>=2.2.0",
   "pytest-playwright>=0.8.0",
+  "pyright>=1.1.410",
+  "pre-commit",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
@@ -68,11 +73,9 @@ lint.pydocstyle.convention = "google"
 
 [tool.pytest.ini_options]
 pythonpath = "src"
-norecursedirs = ["resources"]
+testpaths = ["tests"]
 addopts = [
   "--import-mode=importlib",
-  "--cov=src/amplifyp",
-  "--cov-report=xml",
   "-m", "not e2e",
 ]
 markers = [
@@ -91,3 +94,11 @@ mypy_path = "src"
 [tool.vulture]
 paths = ["src/"]
 min_confidence = 80
+
+[tool.pyright]
+include = ["src/"]
+exclude = ["tests/"]
+reportAttributeAccessIssue = false
+reportArgumentType = false
+reportCallIssue = false
+reportMissingImports = false

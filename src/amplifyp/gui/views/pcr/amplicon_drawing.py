@@ -16,14 +16,18 @@
 """Amplicon drawing class and detail card helpers for the PCRView."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 from .dismissible_detail_card import DismissibleDetailCard
+
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
 
 
 class DrawnAmplicon:
@@ -31,18 +35,32 @@ class DrawnAmplicon:
 
     def __init__(
         self,
-        amp: Any,
+        amp: "Amplicon",
         idx: int,
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
         c_width: float,
-        settings: Any,
+        settings: GUISettings,
         on_click: Callable[[], None],
         v_frag_start: float | None = None,
     ) -> None:
-        """Initialize the DrawnAmplicon."""
+        """Initialise the DrawnAmplicon.
+
+        Args:
+            amp: The amplicon object with start, end, product, and q_score.
+            idx: Zero-based index for vertical positioning of fragment rows.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            c_width: Total canvas width in pixels.
+            settings: Application GUI settings instance.
+            on_click: Callback invoked when the amplicon is clicked.
+            v_frag_start: Vertical start position for fragment rows, or
+                None to use a default.
+        """
         self.amp = amp
         self.idx = idx
         self.target_length = target_length
@@ -86,10 +104,19 @@ class DrawnAmplicon:
             self.bar_height = 1.0
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
-        """Draw the amplicon bar, text label, and gesture detector overlay."""
+        """Draw the amplicon bar, text label, and gesture detector overlay.
+
+        Draws a filled rectangle (or full-width bar for circular templates)
+        representing the amplicon, a length label below it, and a
+        transparent GestureDetector overlay for click handling.
+
+        Args:
+            canvas: The Flet canvas to draw shapes on.
+            stack: The Flet stack to add the gesture detector overlay to.
+        """
         # Amplicon Bar (Black, filling path)
         amp_paint = ft.Paint(
-            color=GUIColors.DIAGRAM_BLACK,
+            color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.FILL,
         )
         if self.amp.circular:
@@ -132,7 +159,7 @@ class DrawnAmplicon:
             )
             label_x = self.x_start + ((self.x_end - self.x_start) / 2.0)
 
-        # Amplicon Length Text (just number, black, centered)
+        # Amplicon Length Text (just number, black, centred)
         canvas.shapes.append(
             cv.Text(
                 label_x,
@@ -140,7 +167,7 @@ class DrawnAmplicon:
                 str(len(self.amp.product)),
                 style=ft.TextStyle(
                     size=self.settings.get("font_size_map_amplicon", 13),
-                    color=GUIColors.DIAGRAM_BLACK,
+                    color=GUIColours.DIAGRAM_BLACK,
                 ),
                 alignment=ft.Alignment(0.0, -1.0),
             )
@@ -159,7 +186,7 @@ class DrawnAmplicon:
                 mouse_cursor=ft.MouseCursor.CLICK,
                 on_tap=lambda _: self.on_click(),
                 content=ft.Container(
-                    bgcolor=GUIColors.TRANSPARENT,
+                    bgcolor=GUIColours.TRANSPARENT,
                     width=amp_width,
                     height=20 + self.bar_height,
                 ),
@@ -174,11 +201,21 @@ class AmpliconDetailCard(DismissibleDetailCard):
 
     def __init__(
         self,
-        amp: Any,
-        settings: Any,
+        amp: "Amplicon",
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialize the AmpliconDetailCard."""
+        """Initialise the AmpliconDetailCard.
+
+        Displays the amplicon length, forward/reverse primer names,
+        quality score, and amplified sequence with coloured primer regions.
+
+        Args:
+            amp: The amplicon object with fwd_origin, rev_origin, product,
+                and q_score attributes.
+            settings: Application GUI settings instance.
+            dismiss_callback: Callback invoked when the card is dismissed.
+        """
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"
@@ -207,20 +244,20 @@ class AmpliconDetailCard(DismissibleDetailCard):
                 ft.TextSpan(
                     fwd_part,
                     style=ft.TextStyle(
-                        color=GUIColors.FWD_PRIMER,
+                        color=GUIColours.FWD_PRIMER,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
                 ft.TextSpan(
                     mid_part,
                     style=ft.TextStyle(
-                        color=GUIColors.TEXT_ON_SURFACE,
+                        color=GUIColours.TEXT_ON_SURFACE,
                     ),
                 ),
                 ft.TextSpan(
                     rev_part,
                     style=ft.TextStyle(
-                        color=GUIColors.REV_LABEL,
+                        color=GUIColours.REV_LABEL,
                         weight=ft.FontWeight.BOLD,
                     ),
                 ),
@@ -237,7 +274,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                     ft.TextSpan(
                         amp.fwd_origin.name,
                         style=ft.TextStyle(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             weight=ft.FontWeight.BOLD,
                         ),
                     ),
@@ -245,7 +282,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                     ft.TextSpan(
                         amp.rev_origin.name,
                         style=ft.TextStyle(
-                            color=GUIColors.REV_LABEL,
+                            color=GUIColours.REV_LABEL,
                             weight=ft.FontWeight.BOLD,
                         ),
                     ),
@@ -266,7 +303,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                 content=sequence_text,
                 padding=12,
                 border_radius=6,
-                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+                border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             ),
         ]
 

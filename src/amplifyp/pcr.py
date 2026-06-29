@@ -13,7 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""This module contains the PCR class, which represents a PCR reaction."""
+"""PCR reaction simulation module.
+
+This module provides the `PCR` class, which represents a complete Polymerase
+Chain Reaction (PCR) simulation. It manages templates, primers, and the
+internal amplicon generator to predict all possible amplification products.
+"""
 
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import DNA, Primer
@@ -42,7 +47,13 @@ class PCR:
         template: DNA,
         settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ):
-        """Initialize a PCR reaction."""
+        """Initialise a PCR reaction.
+
+        Args:
+            template (DNA): The template DNA for the PCR reaction.
+            settings (ReplicationSettings, optional): The replication settings.
+                Defaults to GLOBAL_REPLICATION_SETTINGS.
+        """
         self.template = template
         self.settings = settings
         self.__primers: list[Primer] = []
@@ -67,7 +78,7 @@ class PCR:
             if p.seq.upper() == primer.seq.upper():
                 raise DuplicatedSequenceError(primer.seq)
         self.__primers.append(primer)
-        repliconf = Repliconf(self.template, primer)
+        repliconf = Repliconf(self.template, primer, self.settings)
         self.amplicon_generator.add_repliconf(repliconf)
 
     def remove_primer(self, primer: Primer) -> None:
@@ -82,7 +93,7 @@ class PCR:
         if primer not in self.__primers:
             raise PrimerNotFoundError(primer)
         self.__primers.remove(primer)
-        repliconf = Repliconf(self.template, primer)
+        repliconf = Repliconf(self.template, primer, self.settings)
         self.amplicon_generator.remove_repliconf(repliconf)
 
     def add_primers(self, primers: list[Primer]) -> None:
@@ -100,11 +111,22 @@ class PCR:
         return self.__primers.copy()
 
     def predict_amplicons(self) -> int:
-        """Predict the amplicons for the PCR reaction."""
+        """Predict the amplicons for the PCR reaction.
+
+        This updates the internal `amplicons` list by generating
+        possible amplicons based on the current template and primers.
+
+        Returns:
+            int: The number of amplicons predicted.
+        """
         self.__amplicons = self.amplicon_generator.get_amplicons()
         return len(self.__amplicons)
 
     @property
     def amplicons(self) -> list[Amplicon]:
-        """Get the predicted amplicons."""
+        """Get the predicted amplicons.
+
+        Returns:
+            list[Amplicon]: A list of predicted amplicon objects.
+        """
         return self.__amplicons.copy()

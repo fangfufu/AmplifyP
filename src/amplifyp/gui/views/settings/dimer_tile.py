@@ -5,15 +5,24 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """DimerTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings.base_score_tile import BaseScoreTile
-from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
 class DimerTile(BaseScoreTile):
@@ -21,26 +30,39 @@ class DimerTile(BaseScoreTile):
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
         font_size_default: int,
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialize the DimerTile."""
+        """Initialise the DimerTile.
+
+        Args:
+            settings: The settings object.
+            settings_map: A dictionary mapping setting keys to UI
+                components for population and retrieval.
+            on_change_handler: The handler to call when a setting changes.
+            header_size: The size of the expansion tile header text.
+            font_size_default: Default font size for text elements.
+            font_size_micro: Micro font size for small labels.
+            font_size_table_header: Font size for table header cells.
+        """
         from amplifyp.dna import Nucleotides
 
         self.set_pd_min_overlap = ft.TextField(
             label="Min Overlap",
             value="3",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_pd_threshold = ft.TextField(
             label="Threshold",
             value="60.0",
             on_change=on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         settings_map["pd_min_overlap"] = self.set_pd_min_overlap
@@ -66,8 +88,3 @@ class DimerTile(BaseScoreTile):
                 self.set_pd_threshold,
             ],
         )
-
-    @property
-    def pd_table(self) -> ScoreTable:
-        """Get the primer dimer weights table (for backwards compatibility)."""
-        return self.score_table

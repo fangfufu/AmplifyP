@@ -12,13 +12,15 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+"""Utility functions for sequence handling and state serialisation."""
 
-"""Utility functions for sequence handling and state serialization."""
-
+import asyncio
 import os
 import subprocess
 import threading
 from collections.abc import Callable
+from importlib.metadata import PackageNotFoundError
 from typing import Any
 
 import flet as ft
@@ -26,7 +28,17 @@ import yaml
 
 
 def clean_sequence(seq: str) -> str:
-    """Clean sequence of escaped and standard whitespaces."""
+    r"""Clean sequence of escaped and standard whitespaces.
+
+    Removes escaped newlines, tabs, carriage returns, and all standard
+    whitespace characters from the sequence.
+
+    Args:
+        seq: The sequence string to clean.
+
+    Returns:
+        The cleaned sequence with all whitespace removed.
+    """
     if not seq:
         return ""
     clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
@@ -67,17 +79,39 @@ def _resolve_font_family(font_family: str) -> str:
 
 
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
-    """Format sequence into lines of specified length."""
+    """Format sequence into lines of specified length.
+
+    First cleans the sequence, then wraps it into lines of the given
+    length.
+
+    Args:
+        seq: The sequence string to format.
+        wrap_length: Maximum number of characters per line.
+
+    Returns:
+        The formatted sequence with newlines at wrap boundaries.
+    """
     clean = clean_sequence(seq)
     return "\n".join(
         [clean[i : i + wrap_length] for i in range(0, len(clean), wrap_length)]
     )
 
 
-def serialize_state(state: dict[str, object]) -> str:
-    """Serialize state dict to YAML string, handling multiline strings."""
+def serialise_state(state: dict[str, object]) -> str:
+    """Serialise state dict to YAML string, handling multiline strings.
+
+    Uses a custom YAML dumper that represents multiline strings using
+    the '|' block style for better readability.
+
+    Args:
+        state: The state dictionary to serialise.
+
+    Returns:
+        A YAML string representation of the state.
+    """
 
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+        """Represent multiline strings using the '|' block style in YAML."""
         if "\n" in data:
             return dumper.represent_scalar(
                 "tag:yaml.org,2002:str", data, style="|"
@@ -85,7 +119,7 @@ def serialize_state(state: dict[str, object]) -> str:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
     class _StateDumper(yaml.Dumper):
-        pass
+        """Custom YAML dumper using multiline representer for strings."""
 
     _StateDumper.add_representer(str, multiline_presenter)
     return yaml.dump(state, Dumper=_StateDumper, sort_keys=False)
@@ -97,39 +131,116 @@ def create_overlapped_sequence_view(
     bottom_line: str,
     font_family: str = "Roboto Mono",
     font_size: int = 14,
+    is_dimer: bool = False,
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
-    Uses TextSpans for the visual representation.
+    Uses TextSpans for the visual representation with colour-coded
+    lines. For dimer view, displays three lines (top, middle, bottom).
+    For context map view, displays five lines (coordinates, primer row,
+    bonds, complement, template).
+
+    Args:
+        top_line: The top line content (coordinates/arrows for context map).
+        mid_line: The middle line content (primer row).
+        bottom_line: The bottom line content (bonds + template for context
+            map, or third line for dimer view).
+        font_family: The font family to use for the text.
+        font_size: The font size in pixels.
+        is_dimer: Whether this is a dimer view (True) or context map (False).
+
+    Returns:
+        A Flet Text control with styled TextSpans.
     """
-    from amplifyp.gui.settings import GUIColors
+    from amplifyp.gui.colours import GUIColours
 
     resolved = _resolve_font_family(font_family)
 
-    return ft.Text(
-        spans=[
+    if is_dimer:
+        spans = [
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 f"{mid_line}\n",
                 style=ft.TextStyle(
-                    color=GUIColors.SUCCESS_GREEN,
+                    color=GUIColours.FWD_PRIMER,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
             ft.TextSpan(
                 bottom_line,
                 style=ft.TextStyle(
-                    color=GUIColors.TEXT_ON_SURFACE,
+                    color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),
-        ],
+        ]
+    else:
+        # Context Map:
+        # top_line = coordinates / arrows (black)
+        # mid_line = primer row (black)
+        # bottom_line = bonds (blue) + template (black)
+        bottom_parts = bottom_line.split("\n")
+        if len(bottom_parts) == 3:
+            bonds_line = bottom_parts[0]
+            comp_line = bottom_parts[1]
+            template_line = bottom_parts[2]
+        elif len(bottom_parts) >= 2:
+            bonds_line = bottom_parts[0]
+            comp_line = ""
+            template_line = "\n".join(bottom_parts[1:])
+        else:
+            bonds_line = bottom_line
+            comp_line = ""
+            template_line = ""
+
+        comp_span_text = f"{comp_line}\n" if comp_line else ""
+
+        spans = [
+            ft.TextSpan(
+                f"{top_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColours.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                f"{mid_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColours.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                f"{bonds_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColours.FWD_PRIMER,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                comp_span_text,
+                style=ft.TextStyle(
+                    color=GUIColours.MUTED_GREY,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                template_line,
+                style=ft.TextStyle(
+                    color=GUIColours.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+        ]
+
+    return ft.Text(
+        spans=spans,
         font_family=resolved,
         size=font_size,
         selectable=True,
@@ -137,22 +248,31 @@ def create_overlapped_sequence_view(
 
 
 def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
-    """Show an error dialog popup."""
-    from typing import Any
+    """Show an error dialog popup.
 
-    from amplifyp.gui.settings import GUIColors
+    Creates and displays a modal AlertDialog with the given title and
+    message, styled with the error colour.
 
-    def close_dlg(e: Any) -> None:
+    Args:
+        page: The Flet page instance.
+        title: The dialog title.
+        message: The error message to display.
+    """
+    from amplifyp.gui.colours import GUIColours
+
+    def close_dlg(e: ft.Event[ft.Control]) -> None:
+        """Close the error dialog and update the page."""
         dialog.open = False
         page.update()
 
-    def on_dismiss(e: Any) -> None:
+    def on_dismiss(e: ft.Event[ft.Control]) -> None:
+        """Remove the dialog from the page overlay when dismissed."""
         if dialog in page.overlay:
             page.overlay.remove(dialog)
             page.update()
 
     dialog = ft.AlertDialog(
-        title=ft.Text(title, color=GUIColors.ERROR_RED),
+        title=ft.Text(title, color=GUIColours.ERROR_RED),
         content=ft.Text(message),
         actions=[ft.TextButton("OK", on_click=close_dlg)],
         actions_alignment=ft.MainAxisAlignment.END,
@@ -167,7 +287,11 @@ class Debouncer:
     """A thread-based debounce helper for delaying UI actions."""
 
     def __init__(self, delay_seconds: float = 0.15) -> None:
-        """Initialize the Debouncer."""
+        """Initialize the Debouncer.
+
+        Args:
+            delay_seconds: The delay in seconds before triggering the callback.
+        """
         self.delay_seconds = delay_seconds
         self._timer: threading.Timer | None = None
 
@@ -193,16 +317,29 @@ class Debouncer:
             self._timer = None
 
 
-def initialize_score_fields(
+def initialise_score_fields(
     settings_map: dict[str, Any],
     prefix: str,
     row_headers: list[str],
     col_headers: list[str],
-    on_change_handler: Any,
+    on_change_handler: Callable[[ft.Event[ft.Control] | None], None],
     font_size: int,
 ) -> None:
-    """Initialize a grid of text fields for a score table in settings_map."""
-    from amplifyp.gui.settings import GUIColors
+    """Initialise a grid of text fields for a score table in settings_map.
+
+    Creates ft.TextField controls for each combination of row and column
+    headers, storing them in settings_map with keys formatted as
+    '{prefix}_{row}_{col}'.
+
+    Args:
+        settings_map: Dictionary to store the created TextField controls.
+        prefix: The prefix for the field keys.
+        row_headers: List of row header characters.
+        col_headers: List of column header characters.
+        on_change_handler: Callback function for field change events.
+        font_size: The font size for the field text.
+    """
+    from amplifyp.gui.colours import GUIColours
 
     for r_char in row_headers:
         for c_char in col_headers:
@@ -212,11 +349,11 @@ def initialize_score_fields(
                 on_change=on_change_handler,
                 text_align=ft.TextAlign.CENTER,
                 dense=True,
-                width=48,
+                width=38,
                 height=36,
                 content_padding=4,
                 text_style=ft.TextStyle(
-                    color=GUIColors.DIAGRAM_BLACK, size=font_size
+                    color=GUIColours.DIAGRAM_BLACK, size=font_size
                 ),
             )
 
@@ -232,13 +369,13 @@ def get_git_sha() -> str:
         pass
 
     try:
-        import js
+        import js  # type: ignore[import-not-found, unused-ignore]
 
         if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
@@ -250,7 +387,7 @@ def get_git_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except OSError:
         pass
 
     try:
@@ -303,13 +440,13 @@ def get_full_sha() -> str:
         pass
 
     try:
-        import js
+        import js  # type: ignore[import-not-found, unused-ignore]
 
         if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
             sha = str(js.window.__APP_SHA__)
             if sha and sha != "unknown":
                 return sha
-    except Exception:  # noqa: S110
+    except (ImportError, AttributeError):
         pass
 
     try:
@@ -321,7 +458,7 @@ def get_full_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+    except OSError:
         pass
 
     try:
@@ -357,28 +494,46 @@ def get_full_sha() -> str:
 
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
+    import logging
+
+    logger = logging.getLogger(__name__)
     try:
         from amplifyp import __version__ as pkg_version
-    except Exception:
+    except ImportError:
         try:
             from importlib.metadata import version
 
             pkg_version = version("amplifyp")
-        except Exception:
+        except PackageNotFoundError:
+            logger.debug("amplifyp package version not found")
             pkg_version = "unknown"
 
     git_sha = get_git_sha()
     return f"{pkg_version} ({git_sha})"
 
 
+def _read_file(path: str) -> str:
+    """Synchronous file read helper for use with asyncio.to_thread."""
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def _write_file(path: str, content: str) -> None:
+    """Synchronous file write helper for use with asyncio.to_thread."""
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+
 async def pick_and_read_file(
     page: ft.Page,
-    file_picker: ft.FilePicker,
     dialog_title: str,
     allowed_extensions: list[str],
-    show_snackbar: Callable[[str], None],
+    show_notification: Callable[[str], None],
 ) -> str | None:
     """Open a file picker to load a file, and read its text content."""
+    file_picker = ft.FilePicker()
+    page.services.append(file_picker)
+    page.update()
     try:
         files = await file_picker.pick_files(
             dialog_title=dialog_title,
@@ -394,27 +549,33 @@ async def pick_and_read_file(
             return file.bytes.decode("utf-8")  # type: ignore[no-any-return]
         else:
             if not file.path:
-                show_snackbar("Error: Could not read file content.")
+                show_notification("Error: Could not read file content.")
                 return None
-            with open(file.path, encoding="utf-8") as f:
-                return f.read()
-    except Exception as ex:
-        show_snackbar(f"Error loading file: {ex}")
+            content = await asyncio.to_thread(_read_file, file.path)
+            return content
+    except OSError as ex:
+        show_notification(f"Error loading file: {ex}")
         return None
+    finally:
+        if file_picker in page.services:
+            page.services.remove(file_picker)
+            page.update()
 
 
 async def save_and_write_file(
     page: ft.Page,
-    file_picker: ft.FilePicker,
     dialog_title: str,
     file_name: str,
     allowed_extensions: list[str],
     content: str,
-    show_snackbar: Callable[[str], None],
+    show_notification: Callable[[str], None],
     success_message_desktop: str = "Saved successfully!",
     success_message_web: str = "Ready for download!",
 ) -> bool:
     """Save content using the file picker, supporting both Web and Desktop."""
+    file_picker = ft.FilePicker()
+    page.services.append(file_picker)
+    page.update()
     try:
         file_path = await file_picker.save_file(
             dialog_title=dialog_title,
@@ -424,15 +585,88 @@ async def save_and_write_file(
             src_bytes=content.encode("utf-8"),
         )
         if page.web:
-            show_snackbar(success_message_web)
+            show_notification(success_message_web)
             return True
         else:
             if file_path is None:
                 return False
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
-            show_snackbar(success_message_desktop)
+            await asyncio.to_thread(_write_file, file_path, content)
+            show_notification(success_message_desktop)
             return True
-    except Exception as ex:
-        show_snackbar(f"Error saving file: {ex}")
+    except OSError as ex:
+        show_notification(f"Error saving file: {ex}")
         return False
+    finally:
+        if file_picker in page.services:
+            page.services.remove(file_picker)
+            page.update()
+
+
+class NotificationHelper:
+    """Helper class to manage user notifications and messages.
+
+    Wraps flet SnackBar usage to allow easy swapping to dialogues or other
+    components.
+    """
+
+    def __init__(self, page: ft.Page) -> None:
+        """Initialize the NotificationHelper.
+
+        Args:
+            page: The Flet page instance for displaying notifications.
+        """
+        self.page = page
+        self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
+        self.page.overlay.append(self._snack_bar)
+
+    def show_message(self, message: str) -> None:
+        """Show a message to the user via a SnackBar.
+
+        Updates the SnackBar content and opens it on the page overlay.
+
+        Args:
+            message: The message to display.
+        """
+        self._snack_bar.content = ft.Text(message)
+        self._snack_bar.open = True
+        self.page.update()
+
+
+class BorderedCheckbox(ft.Container):  # type: ignore[misc]
+    """A checkbox wrapped in a container with a border matching input fields."""
+
+    def __init__(
+        self,
+        label: str,
+        value: bool = False,
+        on_change: Callable[[ft.Event[ft.Control] | None], None] | None = None,
+    ) -> None:
+        """Initialize the BorderedCheckbox."""
+        from amplifyp.gui.colours import GUIColours
+
+        self.checkbox = ft.Checkbox(
+            label=label,
+            value=value,
+            on_change=on_change,
+        )
+        super().__init__(
+            content=self.checkbox,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=ft.Padding(10, 0, 10, 0),
+            height=48,
+            alignment=ft.Alignment(-1, 0),
+        )
+
+    @property
+    def value(self) -> bool:
+        """Get the value of the inner checkbox."""
+        return bool(self.checkbox.value)
+
+    @value.setter
+    def value(self, val: ft.Control) -> None:
+        """Set the value of the inner checkbox."""
+        if isinstance(val, str):
+            self.checkbox.value = val.lower() == "true"
+        else:
+            self.checkbox.value = bool(val)
