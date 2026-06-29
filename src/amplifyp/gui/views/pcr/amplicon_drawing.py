@@ -128,12 +128,16 @@ class DrawnAmplicon:
                 cv.Path(
                     [
                         cv.Path.MoveTo(self.x_start, self.y_pos),
-                        cv.Path.LineTo(self.c_width - self.h_margin, self.y_pos),
+                        cv.Path.LineTo(
+                            self.c_width - self.h_margin, self.y_pos
+                        ),
                         cv.Path.LineTo(
                             self.c_width - self.h_margin,
                             self.y_pos + self.bar_height,
                         ),
-                        cv.Path.LineTo(self.x_start, self.y_pos + self.bar_height),
+                        cv.Path.LineTo(
+                            self.x_start, self.y_pos + self.bar_height
+                        ),
                         cv.Path.Close(),
                     ],
                     paint=amp_paint,
@@ -148,7 +152,9 @@ class DrawnAmplicon:
                         cv.Path.LineTo(
                             self.x_end, self.y_pos + self.bar_height
                         ),
-                        cv.Path.LineTo(self.h_margin, self.y_pos + self.bar_height),
+                        cv.Path.LineTo(
+                            self.h_margin, self.y_pos + self.bar_height
+                        ),
                         cv.Path.Close(),
                     ],
                     paint=amp_paint,
