@@ -125,6 +125,33 @@ class PrimerDimerGenerator:
         """Return whether the primers have been analysed."""
         return self.__analysed
 
+    def _calculate_dimer_stats(
+        self, s1: str, s2: str, n1: int, n2: int
+    ) -> tuple[float, int, int]:
+        best_quality: float = float("-inf")
+        best_pos: int = 0
+        weights = self.settings.weights
+
+        for left_end in range(n2):
+            q: float = 0.0
+            current_overlap = min(n1, n2 - left_end)
+
+            for offset in range(current_overlap):
+                c1 = s1[n1 - 1 - offset]
+                c2 = s2[left_end + offset]
+
+                try:
+                    q += weights[c1, c2]
+                except KeyError:
+                    pass
+
+            if q >= best_quality:
+                best_quality = q
+                best_pos = left_end
+
+        overlap_len = min(n1, n2 - best_pos)
+        return best_quality, best_pos, overlap_len
+
     def generate_primer_dimer(self, p1: Primer, p2: Primer) -> PrimerDimer:
         """Calculate the dimer potential (quality) between two primers.
 
@@ -148,44 +175,12 @@ class PrimerDimerGenerator:
         n1 = len(short_p)
         n2 = len(long_p)
 
-        seq1 = short_p.seq.upper()
-        seq2 = long_p.seq.upper()
+        seq1 = short_p._seq_upper
+        seq2 = long_p._seq_upper
 
-        best_quality: float = float("-inf")
-        best_pos: int = 0
-
-        # Iterate through all possible starting positions on p2
-        # leftEnd in Swift implementation.
-        for left_end in range(n2):
-            q: float = 0.0
-            # Overlap length
-            # Swift: for rightEnd in leftEnd..<min(leftEnd + n1 , n2)
-            # Length of segment = (min_end - left_end)
-
-            # We iterate offset from 0 to overlap_len
-            current_overlap = min(n1, n2 - left_end)
-
-            for offset in range(current_overlap):
-                # Align p1's 3' end (index n1-1) with p2 at (left_end)
-                # as offset increases, we move 5' on p1 and 3' on p2
-
-                # P1 index: n1 - 1 - offset
-                c1 = seq1[n1 - 1 - offset]
-
-                # P2 index: left_end + offset
-                c2 = seq2[left_end + offset]
-
-                # Sum weights
-                try:
-                    q += self.settings.weights[c1, c2]
-                except KeyError:
-                    pass
-
-            if q >= best_quality:
-                best_quality = q
-                best_pos = left_end
-
-        overlap_len = min(n1, n2 - best_pos)
+        best_quality, best_pos, overlap_len = self._calculate_dimer_stats(
+            seq1, seq2, n1, n2
+        )
 
         return PrimerDimer(
             primer_1=short_p,
@@ -204,12 +199,44 @@ class PrimerDimerGenerator:
         meet the specified quality and overlap thresholds.
         """
         self.primer_dimers.clear()
-        for p1, p2 in itertools.combinations_with_replacement(self.primers, 2):
-            res = self.generate_primer_dimer(p1, p2)
-            if (
-                res.quality > self.settings.threshold
-                and res.overlap > self.settings.min_overlap
-            ):
+
+        primer_props = [(p, len(p), p._seq_upper) for p in self.primers]
+        memo: dict[tuple[str, str], tuple[float, int, int]] = {}
+
+        threshold = self.settings.threshold
+        min_overlap = self.settings.min_overlap
+
+        for (p1, l1, seq1), (
+            p2,
+            l2,
+            seq2,
+        ) in itertools.combinations_with_replacement(primer_props, 2):
+            if l1 < l2:
+                short_p, long_p, n1, n2 = p1, p2, l1, l2
+                s1, s2 = seq1, seq2
+            else:
+                short_p, long_p, n1, n2 = p2, p1, l2, l1
+                s1, s2 = seq2, seq1
+
+            memo_key = (s1, s2)
+            if memo_key in memo:
+                best_quality, best_pos, overlap_len = memo[memo_key]
+            else:
+                best_quality, best_pos, overlap_len = (
+                    self._calculate_dimer_stats(s1, s2, n1, n2)
+                )
+                memo[memo_key] = (best_quality, best_pos, overlap_len)
+
+            if best_quality > threshold and overlap_len > min_overlap:
+                res = PrimerDimer(
+                    primer_1=short_p,
+                    primer_2=long_p,
+                    overlap=overlap_len,
+                    quality=best_quality,
+                    p1_pos=best_pos,
+                    settings=self.settings,
+                )
                 self.primer_dimers.append(res)
+
         self.primer_dimers.sort(key=lambda x: x.quality, reverse=True)
         self.__analysed = True
