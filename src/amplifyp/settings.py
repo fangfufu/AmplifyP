@@ -173,15 +173,17 @@ class BasePairWeightsTbl:
         if len(weight) != exp_row_len:
             raise RowLengthMismatchError()
 
+        gap = Nucleotides.GAP
+
         for i, row_val in enumerate(self.__row):
-            if row_val != Nucleotides.GAP:
+            if row_val != gap:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
                     raise ColumnLengthMismatchError()
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
                 val: float | int
-                if Nucleotides.GAP in [row_val, col_val]:
+                if row_val == gap or col_val == gap:
                     val = 0
                 else:
                     val = weight[i][j]
