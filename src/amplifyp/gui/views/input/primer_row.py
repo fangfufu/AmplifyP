@@ -109,7 +109,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 tm_val = "-"
 
         scheme = self.settings.get("tm_colour_scheme", "None")
-        from amplifyp.gui.colours import tm_colour
 
         _tm_colour = (
             tm_colour(self._tm_value, scheme)

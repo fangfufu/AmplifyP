@@ -365,7 +365,7 @@ class GUISettings:
         Returns:
             A TMSettings instance configured from GUI settings.
         """
-        from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
+        from amplifyp.settings import TMSettings
 
         if self._cached_tm_settings is not None:
             return self._cached_tm_settings
