@@ -87,6 +87,7 @@ class GUIController:
         self.notification_helper: NotificationHelper = cast(
             NotificationHelper, None
         )
+        self.input_view_dirty = False
 
     def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
@@ -397,9 +398,15 @@ class GUIController:
     ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
-        self.input_view.update_ui()
-        self.settings_view.update_ui()
         active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
+            self.settings_view.update_ui()
+
         if active_view == self.pcr_view:
             self.pcr_view.run_pcr(keep_cards=True)
         elif active_view == self.dimers_view:
@@ -498,7 +505,10 @@ class GUIController:
         active_view = self.view_container.content
         if active_view == self.input_view:
             self.input_view.update_ui()
-        elif active_view == self.settings_view:
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
             self.settings_view.update_ui()
 
         self.update_pcr_button_state()
@@ -627,13 +637,15 @@ class GUIController:
             _e: The event that triggered the view switch (unused).
             view: The Flet control to display as the new view.
         """
+        if view == self.input_view and self.input_view_dirty:
+            self.input_view.update_ui()
+            self.input_view_dirty = False
+
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
         self.visible_load_btn_control.visible = is_input
         self.visible_header_divider.visible = is_input
-        if hasattr(view, "update_ui"):
-            view.update_ui()
 
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
@@ -641,9 +653,6 @@ class GUIController:
             self.page.on_resize = self.pcr_view._handle_resize
         else:
             self.page.on_resize = None
-
-        if hasattr(view, "update_ui"):
-            view.update_ui()
 
         self.page.update()
 
