@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .dna import (
     DNA,
@@ -44,10 +44,22 @@ class DirIdx:
     Attributes:
         direction (DNADirection): The direction of the DNA strand.
         index (int): The integer index position.
+        primability (float | None): Cached primability score.
+        stability (float | None): Cached stability score.
     """
 
     direction: DNADirection
     index: int
+    primability: float | None = field(default=None, compare=False, repr=False)
+    stability: float | None = field(default=None, compare=False, repr=False)
+
+    def __hash__(self) -> int:
+        """Compute the hash of the DirIdx.
+
+        Returns:
+            int: The hash based on direction and index.
+        """
+        return hash((self.direction, self.index))
 
     def __int__(self) -> int:
         """Return the index value as an integer.
@@ -352,6 +364,8 @@ class Repliconf:
             target,
             self._rev_primer_seq,
             self.settings,
+            _cached_primability=var.primability,
+            _cached_stability=var.stability,
         )
 
     def origin_from_db(
@@ -488,7 +502,9 @@ class Repliconf:
                 stability = stab_num / stab_denom if stab_denom != 0 else 0.0
 
                 if primability > prim_cutoff and stability > stab_cutoff:
-                    origin_list.append(DirIdx(direction, i))
+                    origin_list.append(
+                        DirIdx(direction, i, primability, stability)
+                    )
 
         self.origin_db.searched = True
 
