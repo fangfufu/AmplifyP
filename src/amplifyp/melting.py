@@ -20,6 +20,7 @@ DNA primers using the Nearest-Neighbour thermodynamics model.
 """
 
 import math
+from itertools import pairwise
 from typing import Final
 
 from .dna import Primer
@@ -52,6 +53,12 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "GC": (-9800, -24.4),
     "GG": (-8000, -19.9),
     "CC": (-8000, -19.9),
+}
+
+# Optimization: Pre-compute tuple keys for faster lookup in loops
+# pairwise(seq) produces tuples of characters, e.g. ('A', 'A')
+_NN_THERMO_DATA_TUPLE: Final[dict[tuple[str, str], tuple[float, float]]] = {
+    (k[0], k[1]): v for k, v in NN_THERMO_DATA.items()
 }
 
 
@@ -120,11 +127,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbour steps
-    for i in range(n - 1):
-        dinuc = seq[i : i + 2]
-        if dinuc in NN_THERMO_DATA:
-            val = NN_THERMO_DATA[dinuc]
+    # Nearest neighbor steps
+    for dinuc in pairwise(seq):
+        if dinuc in _NN_THERMO_DATA_TUPLE:
+            val = _NN_THERMO_DATA_TUPLE[dinuc]
             dh += val[0]
             ds += val[1]
         else:
