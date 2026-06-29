@@ -120,16 +120,34 @@ class DrawnAmplicon:
             style=ft.PaintingStyle.FILL,
         )
         if self.amp.circular:
+            # Draw right segment (start to end of template)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(self.h_margin, self.y_pos),
+                        cv.Path.MoveTo(self.x_start, self.y_pos),
                         cv.Path.LineTo(
                             self.c_width - self.h_margin, self.y_pos
                         ),
                         cv.Path.LineTo(
                             self.c_width - self.h_margin,
                             self.y_pos + self.bar_height,
+                        ),
+                        cv.Path.LineTo(
+                            self.x_start, self.y_pos + self.bar_height
+                        ),
+                        cv.Path.Close(),
+                    ],
+                    paint=amp_paint,
+                )
+            )
+            # Draw left segment (start of template to end)
+            canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(self.h_margin, self.y_pos),
+                        cv.Path.LineTo(self.x_end, self.y_pos),
+                        cv.Path.LineTo(
+                            self.x_end, self.y_pos + self.bar_height
                         ),
                         cv.Path.LineTo(
                             self.h_margin, self.y_pos + self.bar_height
@@ -139,7 +157,14 @@ class DrawnAmplicon:
                     paint=amp_paint,
                 )
             )
-            label_x = self.h_margin + (self.t_width / 2.0)
+
+            w_right = (self.c_width - self.h_margin) - self.x_start
+            w_left = self.x_end - self.h_margin
+
+            if w_right >= w_left:
+                label_x = self.x_start + w_right / 2.0
+            else:
+                label_x = self.h_margin + w_left / 2.0
         else:
             canvas.shapes.append(
                 cv.Path(
@@ -174,26 +199,52 @@ class DrawnAmplicon:
         )
 
         # Click overlay for the amplicon
-        amp_width = max(
-            10.0,
-            (self.x_end - self.x_start)
-            if not self.amp.circular
-            else (self.c_width - 2 * self.h_margin),
-        )
-        amp_left = self.x_start if not self.amp.circular else self.h_margin
-        stack.controls.append(
-            ft.GestureDetector(
-                mouse_cursor=ft.MouseCursor.CLICK,
-                on_tap=lambda _: self.on_click(),
-                content=ft.Container(
-                    bgcolor=GUIColours.TRANSPARENT,
-                    width=amp_width,
-                    height=20 + self.bar_height,
-                ),
-                left=amp_left,
-                top=self.y_pos - 3,
+        if self.amp.circular:
+            # Right segment overlay
+            w_right = max(10.0, (self.c_width - self.h_margin) - self.x_start)
+            stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Container(
+                        bgcolor=GUIColours.TRANSPARENT,
+                        width=w_right,
+                        height=20 + self.bar_height,
+                    ),
+                    left=self.x_start,
+                    top=self.y_pos - 3,
+                )
             )
-        )
+            # Left segment overlay
+            w_left = max(10.0, self.x_end - self.h_margin)
+            stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Container(
+                        bgcolor=GUIColours.TRANSPARENT,
+                        width=w_left,
+                        height=20 + self.bar_height,
+                    ),
+                    left=self.h_margin,
+                    top=self.y_pos - 3,
+                )
+            )
+        else:
+            amp_width = max(10.0, self.x_end - self.x_start)
+            stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Container(
+                        bgcolor=GUIColours.TRANSPARENT,
+                        width=amp_width,
+                        height=20 + self.bar_height,
+                    ),
+                    left=self.x_start,
+                    top=self.y_pos - 3,
+                )
+            )
 
 
 class AmpliconDetailCard(DismissibleDetailCard):
