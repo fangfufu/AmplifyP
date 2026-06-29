@@ -119,27 +119,49 @@ class DrawnAmplicon:
             color=GUIColours.DIAGRAM_BLACK,
             style=ft.PaintingStyle.FILL,
         )
-        if self.amp.circular:
+
+        is_wrapped = self.amp.circular and (self.end_idx < self.start_idx)
+
+        if is_wrapped:
+            # Draw right part (start to end of template)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(self.h_margin, self.y_pos),
-                        cv.Path.LineTo(
-                            self.c_width - self.h_margin, self.y_pos
-                        ),
+                        cv.Path.MoveTo(self.x_start, self.y_pos),
+                        cv.Path.LineTo(self.c_width - self.h_margin, self.y_pos),
                         cv.Path.LineTo(
                             self.c_width - self.h_margin,
                             self.y_pos + self.bar_height,
                         ),
-                        cv.Path.LineTo(
-                            self.h_margin, self.y_pos + self.bar_height
-                        ),
+                        cv.Path.LineTo(self.x_start, self.y_pos + self.bar_height),
                         cv.Path.Close(),
                     ],
                     paint=amp_paint,
                 )
             )
-            label_x = self.h_margin + (self.t_width / 2.0)
+            # Draw left part (start of template to end)
+            canvas.shapes.append(
+                cv.Path(
+                    [
+                        cv.Path.MoveTo(self.h_margin, self.y_pos),
+                        cv.Path.LineTo(self.x_end, self.y_pos),
+                        cv.Path.LineTo(
+                            self.x_end, self.y_pos + self.bar_height
+                        ),
+                        cv.Path.LineTo(self.h_margin, self.y_pos + self.bar_height),
+                        cv.Path.Close(),
+                    ],
+                    paint=amp_paint,
+                )
+            )
+
+            len1 = (self.c_width - self.h_margin) - self.x_start
+            len2 = self.x_end - self.h_margin
+
+            if len1 >= len2:
+                label_x = self.x_start + (len1 / 2.0)
+            else:
+                label_x = self.h_margin + (len2 / 2.0)
         else:
             canvas.shapes.append(
                 cv.Path(
@@ -174,13 +196,13 @@ class DrawnAmplicon:
         )
 
         # Click overlay for the amplicon
-        amp_width = max(
-            10.0,
-            (self.x_end - self.x_start)
-            if not self.amp.circular
-            else (self.c_width - 2 * self.h_margin),
-        )
-        amp_left = self.x_start if not self.amp.circular else self.h_margin
+        if is_wrapped:
+            amp_width = max(10.0, self.c_width - 2 * self.h_margin)
+            amp_left = self.h_margin
+        else:
+            amp_width = max(10.0, self.x_end - self.x_start)
+            amp_left = self.x_start
+
         stack.controls.append(
             ft.GestureDetector(
                 mouse_cursor=ft.MouseCursor.CLICK,
