@@ -105,7 +105,7 @@ class DNA:
 
     This class encapsulates a DNA sequence and its properties, such as its type
     (linear, circular, or primer), name, and direction. It provides methods for
-    manipulating and analyzing the DNA sequence, such as complementing,
+    manipulating and analysing the DNA sequence, such as complementing,
     reversing, and padding.
 
     Attributes:
@@ -124,7 +124,7 @@ class DNA:
         name: str | None = None,
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
-        """Initializes a new DNA object.
+        """Initialises a new DNA object.
 
         Args:
             seq (str): The raw DNA sequence. Whitespace will be removed.
@@ -147,7 +147,7 @@ class DNA:
             raise InvalidDNATypeError()
 
         self.__seq: str = "".join(seq.split())
-        # Optimization: cache the uppercase sequence to avoid repeated
+        # Optimisation: cache the uppercase sequence to avoid repeated
         # allocations in _count_bases and other methods.
         seq_upper = self.__seq.upper()
         if seq_upper == self.__seq:
@@ -395,7 +395,7 @@ class Primer(DNA):
         sequence: str,
         name: str | None = None,
     ) -> None:
-        """Initializes a Primer object.
+        """Initialises a Primer object.
 
         Args:
             sequence (str): The nucleotide sequence of the primer.

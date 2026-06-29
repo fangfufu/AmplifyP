@@ -18,7 +18,8 @@
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.util import (
     create_overlapped_sequence_view,
 )
@@ -33,7 +34,13 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         settings: GUISettings,
         font_family: str = "Roboto Mono",
     ) -> None:
-        """Initialize the DimerCard."""
+        """Initialise the DimerCard.
+
+        Args:
+            d: The PrimerDimer object containing sequence alignment data.
+            settings: Application GUI settings instance.
+            font_family: Font family for sequence display.
+        """
         super().__init__()
         self.d = d
         self.settings = settings
@@ -52,23 +59,41 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             content=ft.Column(
                 [
                     header,
-                    ft.Container(height=8),
                     diagram,
-                ]
+                ],
+                spacing=8,
             ),
         )
 
     def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
-        """Build the visual alignment container control for a dimer."""
+        """Build the visual alignment container control for a dimer.
+
+        Creates a three-line text visualisation showing the two primer
+        sequences aligned at their binding interface with strength
+        indicators in the middle line.
+
+        Args:
+            font_size_default: Font size for the sequence display.
+
+        Returns:
+            A Container with the alignment diagram and border styling.
+        """
         seq1 = self.d.primer_1.seq
         seq2 = self.d.primer_2.seq
 
         middle_str = self.d.binding_strength_str
 
         # Build visually aligned lines.
-        p2_line = f"5'-{seq2}-3'"
-        mid_line = " " * (3 + self.d.p1_pos) + middle_str
-        p1_line = f"{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
+        p2_label = f"{self.d.primer_2.name}: "
+        p1_label = f"{self.d.primer_1.name}: "
+        label_width = max(len(p2_label), len(p1_label))
+
+        p2_prefix = p2_label.ljust(label_width)
+        p1_prefix = p1_label.ljust(label_width)
+
+        p2_line = f"{p2_prefix}5'-{seq2}-3'"
+        mid_line = f"{' ' * label_width}{' ' * (3 + self.d.p1_pos)}{middle_str}"
+        p1_line = f"{p1_prefix}{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
 
         # Create visual alignment stack using generic helper
         diagram_stack = create_overlapped_sequence_view(
@@ -77,6 +102,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             p1_line,
             font_family=self.font_family,
             font_size=font_size_default,
+            is_dimer=True,
         )
         return ft.Container(
             content=ft.Row(
@@ -85,14 +111,25 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             ),
             padding=12,
             border_radius=6,
-            border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+            border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             height=110,
         )
 
     def _build_card_header(
         self, font_size_subheader: int, font_size_small: int
-    ) -> ft.Row:
-        """Build the header row of the dimer card."""
+    ) -> ft.Column:
+        """Build the header row of the dimer card.
+
+        Displays the dimer title (primer names or self-dimer label),
+        overlap length, and quality score in styled containers.
+
+        Args:
+            font_size_subheader: Font size for the dimer title.
+            font_size_small: Font size for the overlap and quality labels.
+
+        Returns:
+            A Column containing the title and metric containers.
+        """
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
         seq1 = self.d.primer_1.seq
@@ -104,13 +141,18 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         )
         quality_text = f"Quality: {self.d.quality:.1f}"
 
-        return ft.Row(
+        return ft.Column(
             [
-                ft.Text(
-                    dimer_title,
-                    weight=ft.FontWeight.BOLD,
-                    size=font_size_subheader,
-                    selectable=True,
+                ft.Row(
+                    [
+                        ft.Text(
+                            dimer_title,
+                            weight=ft.FontWeight.BOLD,
+                            size=font_size_subheader,
+                            selectable=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.START,
                 ),
                 ft.Row(
                     [
@@ -118,10 +160,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 f"Overlap: {self.d.overlap} bp",
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.TEXT_ON_SURFACE,
+                                color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.CONTAINER_HIGHEST,
+                            bgcolor=GUIColours.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),
@@ -129,18 +171,18 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                             content=ft.Text(
                                 quality_text,
                                 weight=ft.FontWeight.BOLD,
-                                color=GUIColors.TEXT_ON_SURFACE,
+                                color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,
                             ),
-                            bgcolor=GUIColors.CONTAINER_HIGHEST,
+                            bgcolor=GUIColours.SELECTED_ROW_BG,
                             padding=ft.Padding(8, 4, 8, 4),
                             border_radius=4,
                         ),
                     ],
                     spacing=8,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.START,
                 ),
             ],
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=4,
         )

@@ -12,21 +12,17 @@ repos:
     rev: v0.21.0
     hooks:
       - id: yamlfmt
+        exclude: ^tests/examples/save_states/
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.16
+    rev: v0.15.20
     hooks:
       - id: ruff-format
       - id: ruff-check
         args: [--fix]
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+  - repo: https://github.com/crate-ci/typos
+    rev: v1
     hooks:
-      - id: codespell
-        args:
-          - --skip
-          - tests/examples/save_states/amplify_4_full_example.yaml
-          - --skip
-          - tests/examples/save_states/amplify_4_all_example_primers.tsv
+      - id: typos
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.16
     hooks:
@@ -39,26 +35,14 @@ repos:
           - --strict
           - --ignore-missing-imports
           - --explicit-package-bases
-        additional_dependencies: [tokenize-rt==3.2.0, types-PyYAML]
+        additional_dependencies: [tokenize-rt, types-PyYAML]
   - repo: local
     hooks:
       - id: pytest
         name: pytest
-        entry: pytest
-        language: python
-        additional_dependencies:
-          - .
-          - pytest
-          - pytest-cov
-          - pytest-testmon
-          - pytest-asyncio
-          - pytest-playwright
-          - pytesseract
-          - pillow
-          - flet
-          - pyyaml
+        entry: .venv/bin/pytest
+        language: system
         pass_filenames: false
-        always_run: true
   - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
     hooks:
@@ -66,6 +50,7 @@ repos:
         args: [--wrap, '80']
         exclude: ^\.agents/rules/
 ci:
+  skip: [pytest]
   autofix_commit_msg: |
     [pre-commit.ci] auto fixes from pre-commit.com hooks
 

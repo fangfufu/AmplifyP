@@ -187,7 +187,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
     """
 
     def __init__(self, target: str, primer: str) -> None:
-        """Initialize an Amplify4RevOrigin object.
+        """Initialise an Amplify4RevOrigin object.
 
         Args:
             target (str): The target DNA sequence. The complement will be used.
@@ -212,7 +212,7 @@ class Amplify4FwdOrigin(ReplicationOrigin):
     """
 
     def __init__(self, target: str, primer: str) -> None:
-        """Initialize an Amplify4FwdOrigin object.
+        """Initialise an Amplify4FwdOrigin object.
 
         Args:
             target (str): The target DNA sequence.

@@ -22,7 +22,7 @@ from amplifyp.errors import InvalidDNASequenceError, InvalidDNATypeError
 
 
 def test_dna_init() -> None:
-    """Test the initialization of a DNA object with a given sequence."""
+    """Test the initialisation of a DNA object with a given sequence."""
     dna = DNA("ATCG")
     assert dna.seq == "ATCG"
     assert dna.type == DNAType.LINEAR
@@ -96,7 +96,7 @@ def test_dna_str() -> None:
 
 
 def test_primer_init() -> None:
-    """Test the initialization of a Primer object."""
+    """Test the initialisation of a Primer object."""
     primer = Primer("ATCG")
     assert primer.seq == "ATCG"
     assert primer.type == DNAType.PRIMER
@@ -194,7 +194,6 @@ def test_primer_redundancy_fold_wildcard() -> None:
 
 def test_primer_redundancy_mixed() -> None:
     """Test redundancy calculation with mixed degenerate bases."""
-    # R (2) * N (4) * Y (2) = 16
     primer = Primer("RNY")
     assert primer.redundancy_fold == 16
     assert primer.redundant_base_count == 3

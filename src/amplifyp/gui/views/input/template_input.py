@@ -5,18 +5,26 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Input component for DNA template sequence."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence
-
-from .template_file_manager import TemplateFileManager
+from amplifyp.gui.util import NotificationHelper, clean_sequence
 
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
@@ -27,26 +35,18 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_template_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
+        clear_template_callback: Callable[[ft.Event | None], None],
     ) -> None:
-        """Initialize the TemplateInput component."""
+        """Initialise the TemplateInput component."""
         super().__init__(expand=5)
         self.app_page = page
         self.settings = settings
         self.input_data = input_data
-
-        # Template File Manager
-        self.file_manager = TemplateFileManager(
-            page=self.app_page,
-            input_data=self.input_data,
-            on_update_ui=self.update_ui,
-            on_change_handler=on_change_handler,
-            show_snackbar=self._show_snackbar,
-        )
+        self.on_change_handler = on_change_handler
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence = ft.TextField(
@@ -69,11 +69,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
         self.circular_container = ft.Container(
             content=self.template_circular,
-            border=ft.Border.all(1, GUIColors.OUTLINE),
+            border=ft.Border.all(1, GUIColours.OUTLINE),
             border_radius=5,
-            padding=ft.Padding(0, 0, 10, 0),
+            padding=ft.Padding(0, 0, 0, 0),
             height=32,
-            width=110,
+            width=100,
         )
 
         self.save_template_button = ft.FilledTonalButton(
@@ -155,7 +155,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         scroll=ft.ScrollMode.ALWAYS,
                     ),
                     expand=True,
-                    border=ft.Border.all(1, GUIColors.OUTLINE),
+                    border=ft.Border.all(1, GUIColours.OUTLINE),
                     border_radius=5,
                     padding=0,
                 ),
@@ -164,25 +164,68 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             spacing=5,
         )
 
-    async def _load_template_click(self, e: ft.ControlEvent) -> None:
-        """Open file picker to load template sequence."""
-        await self.file_manager.load_template_click(e)
+    async def _load_template_click(self, e: ft.Event) -> None:
+        """Open file picker to load template sequence from a TXT file.
 
-    async def _save_template_click(self, e: ft.ControlEvent) -> None:
-        """Save template sequence."""
-        await self.file_manager.save_template_click(e)
+        Args:
+            e: The Flet control event triggered by the load button click.
+        """
+        from amplifyp.gui.util import pick_and_read_file
 
-    def _show_snackbar(self, message: str) -> None:
-        """Show a snackbar message."""
-        if not hasattr(self, "_snack_bar"):
-            self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
-            self.app_page.overlay.append(self._snack_bar)
-        self._snack_bar.content = ft.Text(message)
-        self._snack_bar.open = True
-        self.app_page.update()
+        content = await pick_and_read_file(
+            page=self.app_page,
+            dialog_title="Load",
+            allowed_extensions=["txt"],
+            show_notification=self._show_notification,
+        )
+        if content is None:
+            return
+
+        self.input_data.template = content
+        self.update_ui()
+        self.on_change_handler(None)
+        self._show_notification("Template loaded successfully.")
+
+    async def _save_template_click(self, e: ft.Event) -> None:
+        """Save template sequence to a TXT file.
+
+        Args:
+            e: The Flet control event triggered by the save button click.
+        """
+        template_content = self.input_data.template
+        if not template_content.strip():
+            self._show_notification("No template to save.")
+            return
+
+        from amplifyp.gui.util import save_and_write_file
+
+        await save_and_write_file(
+            page=self.app_page,
+            dialog_title="Save",
+            file_name="template.txt",
+            allowed_extensions=["txt"],
+            content=template_content,
+            show_notification=self._show_notification,
+            success_message_desktop="Template saved successfully.",
+            success_message_web="Template ready for download!",
+        )
+
+    def _show_notification(self, message: str) -> None:
+        """Show a notification message.
+
+        Args:
+            message: The message to display in the notification.
+        """
+        if not hasattr(self, "_notification_helper"):
+            self._notification_helper = NotificationHelper(self.app_page)
+        self._notification_helper.show_message(message)
 
     def sync_to_state(self) -> None:
-        """Sync template text field to the central state."""
+        """Sync template text field to the central state.
+
+        Reads the current UI values and writes them into the central
+        ``GUIInput`` state object.
+        """
         self.template_sequence.value = self.template_sequence.value or ""
         self.input_data.template = clean_sequence(
             str(self.template_sequence.value)
@@ -190,7 +233,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.input_data.template_circular = bool(self.template_circular.value)
 
     def update_ui(self) -> None:
-        """Update template UI elements to match central state."""
+        """Update template UI elements to match central state.
+
+        Applies values from the central ``GUIInput`` state object to the
+        template text field and circular checkbox controls.
+        """
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family

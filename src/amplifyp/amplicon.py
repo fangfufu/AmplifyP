@@ -77,7 +77,7 @@ class Amplicon:
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
 
-        Uses a set of predefined thresholds to categorize the quality score
+        Uses a set of predefined thresholds to categorise the quality score
         into descriptive strings ranging from "good" to "very weak".
 
         Args:
@@ -129,7 +129,7 @@ class AmpliconGenerator:
     """
 
     def __init__(self, template: DNA) -> None:
-        """Initialize an AmpliconGenerator.
+        """Initialise an AmpliconGenerator.
 
         Args:
             template (DNA): The template DNA sequence.
@@ -173,7 +173,7 @@ class AmpliconGenerator:
         rev_conf: Repliconf,
         start: DirIdx,
         end: DirIdx,
-        len: int,
+        length: int,
     ) -> float:
         """Calculate a quality score for a potential amplicon.
 
@@ -187,14 +187,14 @@ class AmpliconGenerator:
                 primer.
             start (DirIdx): The start index of the forward primer.
             end (DirIdx): The end index of the reverse primer.
-            len (int): The length of the amplicon.
+            length (int): The length of the amplicon.
 
         Returns:
             float: The calculated quality score.
         """
         fwd_quality = fwd_conf.origin(start).quality
         rev_quality = rev_conf.origin(end).quality
-        return len / (fwd_quality * rev_quality) ** 2
+        return length / (fwd_quality * rev_quality) ** 2
 
     def _construct_amplicon_sequence(
         self,

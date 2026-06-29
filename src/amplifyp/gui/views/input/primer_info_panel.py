@@ -5,36 +5,62 @@
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """Flet component displaying details of a selected DNA primer."""
 
-from typing import Any
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
 
 import flet as ft
 
-from amplifyp.gui.settings import GUIColors, GUISettings
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import clean_sequence
 
+logger = logging.getLogger(__name__)
 
-class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
+
+class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
-        """Initialize the PrimerInfoPanel."""
-        self.settings = settings
+        """Initialise the PrimerInfoPanel.
 
+        Args:
+            settings: Application GUI settings instance.
+            font_family: Font family for sequence display.
+        """
+        super().__init__()
+        self.settings = settings
+        self._on_dismiss_callback: Callable[[], None] | None = None
+
+        self.info_header_text = ft.Text(
+            "Primer: -",
+            weight=ft.FontWeight.BOLD,
+            size=self.settings.get("font_size_subheader", 16),
+            color=GUIColours.TEXT_ON_SURFACE,
+            selectable=True,
+        )
         self.info_header = ft.Container(
-            content=ft.Text(
-                "Primer: -",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_default", 14),
-                color=GUIColors.DIAGRAM_BLACK,
-                selectable=True,
-            ),
-            bgcolor=GUIColors.INFO_HEADER_BG,
-            padding=ft.Padding(10, 5, 10, 5),
+            content=self.info_header_text,
             alignment=ft.Alignment(-1, 0),
+        )
+
+        self.close_button = ft.IconButton(
+            icon=ft.Icons.CLOSE,
+            icon_size=18,
+            tooltip="Dismiss",
+            on_click=self._on_close_click,
         )
 
         self.info_seq_text = ft.Text(
@@ -60,44 +86,70 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
         )
         self.info_dimer_text = ft.Text(
             "",
-            color=GUIColors.ERROR_RED,
+            color=GUIColours.ERROR_RED,
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
 
-        super().__init__(
+        self.content = ft.Container(
+            padding=10,
             content=ft.Column(
                 [
-                    self.info_header,
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                self.info_seq_text,
-                                self.info_tm_text,
-                                self.info_pairs_text,
-                                self.info_redundancy_text,
-                                self.info_dimer_text,
-                            ],
-                            spacing=3,
-                        ),
-                        padding=ft.Padding(10, 5, 10, 10),
+                    ft.Row(
+                        [
+                            self.info_header,
+                            self.close_button,
+                        ],
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    ),
+                    ft.Column(
+                        [
+                            self.info_seq_text,
+                            self.info_tm_text,
+                            self.info_pairs_text,
+                            self.info_redundancy_text,
+                            self.info_dimer_text,
+                        ],
+                        spacing=3,
                     ),
                 ],
-                spacing=0,
+                spacing=10,
             ),
-            border=ft.Border.all(1, GUIColors.OUTLINE),
-            border_radius=5,
-            visible=False,
         )
+        self.visible = False
+
+    def _on_close_click(self, e: ft.Event) -> None:
+        """Handle close button click: clear focus and hide panel.
+
+        Args:
+            e: The Flet control event triggered by the close button click.
+        """
+        self.visible = False
+        if self._on_dismiss_callback:
+            self._on_dismiss_callback()
 
     def update_panel(
         self,
         focused_idx: int | None,
         input_data: GUIInput,
         app_page: ft.Page,
-        on_update_highlights: Any,
+        on_update_highlights: Callable[[], None],
+        on_dismiss: Callable[[], None] | None = None,
     ) -> None:
-        """Update the primer information panel based on the focused primer."""
+        """Update the primer information panel based on the focused primer.
+
+        Displays Tm, sequence details, base counts, redundancy, and
+        self-dimer potential for the specified primer.
+
+        Args:
+            focused_idx: Zero-based index of the focused primer, or None
+                to hide the panel.
+            input_data: Central GUI input state containing primer list.
+            app_page: The Flet page instance for UI updates.
+            on_update_highlights: Callback to update row highlight colours.
+            on_dismiss: Callback invoked when the panel is dismissed.
+        """
+        self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
             self.visible = False
             on_update_highlights()
@@ -129,7 +181,7 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
             header_text = (
                 f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
             )
-            self.info_header.content.value = header_text
+            self.info_header_text.value = header_text
 
             # Sequence details
             self.info_seq_text.value = (
@@ -184,7 +236,8 @@ class PrimerInfoPanel(ft.Container):  # type: ignore[misc]
 
             self.visible = True
 
-        except Exception:
+        except (ValueError, AttributeError, ArithmeticError):
+            logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
 
         app_page.update()

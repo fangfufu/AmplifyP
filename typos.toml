@@ -1,0 +1,10 @@
+[default.extend-identifiers]
+# Flet library API references
+Colors = "Colors"
+CENTER = "CENTER"
+[default.extend-words]
+# Flet library API references
+color = "color"
+
+[files]
+extend-exclude = ["LICENSE"]

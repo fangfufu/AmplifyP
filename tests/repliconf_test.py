@@ -121,14 +121,14 @@ def test_dir_idx_methods() -> None:
 
     # le
     assert d2 <= d1
-    assert d1 <= d1
+    assert d1 <= d1  # reflexivity
     assert d2 <= 10
     with pytest.raises(TypeError):
         _ = d1 <= "a"
 
     # ge
     assert d1 >= d2
-    assert d1 >= d1
+    assert d1 >= d1  # reflexivity
     assert d1 >= 5
     with pytest.raises(TypeError):
         _ = d1 >= "a"

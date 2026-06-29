@@ -16,15 +16,20 @@
 """Primer drawing class and context card helpers for the PCRView."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType
-from amplifyp.gui.settings import GUIColors
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+from amplifyp.repliconf import DirIdx, Repliconf
 
 from .dismissible_detail_card import DismissibleDetailCard
+
+if TYPE_CHECKING:
+    from amplifyp.origin import ReplicationOrigin
 
 
 class DrawnPrimer:
@@ -34,18 +39,34 @@ class DrawnPrimer:
         self,
         name: str,
         index: int,
-        conf: Any,
-        var: Any,
+        conf: Repliconf,
+        var: DirIdx,
         S: float,
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
-        settings: Any,
+        settings: GUISettings,
         on_click: Callable[[], None],
         x_shifted: float | None = None,
     ) -> None:
-        """Initialize the DrawnPrimer."""
+        """Initialise the DrawnPrimer.
+
+        Args:
+            name: The primer name for display.
+            index: The binding position index on the template.
+            conf: The Repliconf configuration object for this primer.
+            var: The variable containing direction information.
+            S: Triangle size factor based on quality score.
+            target_length: Total length of the template in base pairs.
+            t_width: Template drawing width in pixels.
+            h_margin: Horizontal margin in pixels.
+            v_target: Vertical position of the baseline.
+            settings: Application GUI settings instance.
+            on_click: Callback invoked when the primer is clicked.
+            x_shifted: Optional overridden x-coordinate for shifted
+                positioning to prevent overlap.
+        """
         self.name = name
         self.index = index
         self.conf = conf
@@ -68,7 +89,16 @@ class DrawnPrimer:
         self.direction = var.direction
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
-        """Draw the primer indicator elements onto the canvas and stack."""
+        """Draw the primer indicator elements onto the canvas and stack.
+
+        Draws connector lines (straight or bent if shifted), direction-
+        specific triangles (down-pointing blue for forward, up-pointing
+        red for reverse), rotated labels, and click overlays.
+
+        Args:
+            canvas: The Flet canvas to draw shapes on.
+            stack: The Flet stack to add labels and gesture detectors to.
+        """
         x_render = self.x_shifted if self.x_shifted is not None else self.x_pos
 
         if self.direction == DNADirection.FWD:
@@ -87,7 +117,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(x_render, self.v_target - 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -102,7 +132,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(self.x_pos, self.v_target - 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.FWD_PRIMER,
+                            color=GUIColours.FWD_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -125,18 +155,22 @@ class DrawnPrimer:
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
-                        color=GUIColors.FWD_PRIMER,
+                        color=GUIColours.FWD_PRIMER,
                         style=ft.PaintingStyle.FILL,
                     ),
                 )
             )
             # Add rotated label in the stack
             stack.controls.append(
-                ft.Text(
-                    self.name,
-                    color=GUIColors.FWD_PRIMER,
-                    size=self.settings.get("font_size_map_primer", 13),
-                    weight=ft.FontWeight.BOLD,
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Text(
+                        self.name,
+                        color=GUIColours.FWD_PRIMER,
+                        size=self.settings.get("font_size_map_primer", 13),
+                        weight=ft.FontWeight.BOLD,
+                    ),
                     left=x_render,
                     top=self.v_target - 25 - self.S - 13,
                     rotate=ft.Rotate(-1.5708, alignment=ft.Alignment(-1, 0)),
@@ -148,7 +182,7 @@ class DrawnPrimer:
                     mouse_cursor=ft.MouseCursor.CLICK,
                     on_tap=lambda _: self.on_click(),
                     content=ft.Container(
-                        bgcolor=GUIColors.TRANSPARENT,
+                        bgcolor=GUIColours.TRANSPARENT,
                         width=20,
                         height=25 + self.S,
                     ),
@@ -172,7 +206,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(x_render, self.v_target + 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.REV_PRIMER,
+                            color=GUIColours.REV_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -187,7 +221,7 @@ class DrawnPrimer:
                             cv.Path.LineTo(self.x_pos, self.v_target + 25),
                         ],
                         paint=ft.Paint(
-                            color=GUIColors.REV_PRIMER,
+                            color=GUIColours.REV_PRIMER,
                             style=ft.PaintingStyle.STROKE,
                             stroke_width=1.0,
                         ),
@@ -210,18 +244,22 @@ class DrawnPrimer:
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
-                        color=GUIColors.REV_PRIMER,
+                        color=GUIColours.REV_PRIMER,
                         style=ft.PaintingStyle.FILL,
                     ),
                 )
             )
             # Add rotated label in the stack
             stack.controls.append(
-                ft.Text(
-                    self.name,
-                    color=GUIColors.REV_LABEL,
-                    size=self.settings.get("font_size_map_primer", 13),
-                    weight=ft.FontWeight.BOLD,
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=ft.Text(
+                        self.name,
+                        color=GUIColours.REV_LABEL,
+                        size=self.settings.get("font_size_map_primer", 13),
+                        weight=ft.FontWeight.BOLD,
+                    ),
                     left=x_render,
                     top=self.v_target + 25 + self.S - 3,
                     rotate=ft.Rotate(1.5708, alignment=ft.Alignment(-1, 0)),
@@ -233,7 +271,7 @@ class DrawnPrimer:
                     mouse_cursor=ft.MouseCursor.CLICK,
                     on_tap=lambda _: self.on_click(),
                     content=ft.Container(
-                        bgcolor=GUIColors.TRANSPARENT,
+                        bgcolor=GUIColours.TRANSPARENT,
                         width=20,
                         height=25 + self.S,
                     ),
@@ -244,7 +282,17 @@ class DrawnPrimer:
 
 
 def get_template_substring(template: DNA, start: int, length: int) -> str:
-    """Get substring of template DNA, supporting circular wrapping."""
+    """Get substring of template DNA, supporting circular wrapping.
+
+    Args:
+        template: The DNA template object.
+        start: The starting index for the substring.
+        length: The number of bases to extract.
+
+    Returns:
+        A string of the requested DNA substring, with '-' for out-of-
+        bounds positions on linear templates.
+    """
     N_len = len(template)
     if template.type == DNAType.CIRCULAR:
         return "".join(
@@ -260,17 +308,38 @@ def get_template_substring(template: DNA, start: int, length: int) -> str:
 def format_context_lines(
     primer_name: str,
     padded_idx: int,
-    conf: Any,
-    origin: Any,
+    conf: Repliconf,
+    origin: "ReplicationOrigin",
     L: int,
     N: int,
     direction: DNADirection,
+    improved_visualisation: bool = False,
 ) -> tuple[str, str, str]:
-    """Format context alignment lines for binding site context map."""
+    """Format context alignment lines for binding site context map.
+
+    Constructs multi-line text visualisation showing the primer binding
+    site with upstream/downstream context, pipe markers, arrows, and
+    optional complementary strand display.
+
+    Args:
+        primer_name: The name of the primer.
+        padded_idx: The padded binding index on the template.
+        conf: The Repliconf configuration object.
+        origin: The replication origin object.
+        L: Length of the primer.
+        N: Length of the template.
+        direction: The DNA direction (FWD or REV).
+        improved_visualisation: If True, includes complementary strand
+            display for forward primers.
+
+    Returns:
+        A tuple of (top_line, primer_line, bottom_line) strings for
+        the context map visualisation.
+    """
     if direction == DNADirection.FWD:
         start_genomic = (padded_idx - L) % N
         primer_display_seq = conf.primer.seq
-        primer_label = f"{primer_name} (Forward)"
+        primer_label = primer_name
         primer_ends = ("5'", "3'")
         strength_display = origin.binding_strength_str[::-1]
     else:
@@ -284,30 +353,34 @@ def format_context_lines(
     start_num_str = str(((start_genomic) % N) + 1)
     end_num_str = str(((end_genomic - 1) % N) + 1)
 
+    label_width = max(29, len(primer_label))
+    extra_spaces = label_width - 29
+
     # Construct primer line:
     primer_line = (
-        f"{primer_label:<29}"
+        f"{primer_label:<{label_width}}"
         f"{primer_ends[0]}-{primer_display_seq}-{primer_ends[1]}"
     )
 
     # Construct strength line:
-    bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
+    bonds_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}{strength_display}"
 
-    # Construct arrows:
-    arrow_line = f"{' ' * 12}{' ' * 20}↓{' ' * (L - 2)}↓"
+    # Construct pipes and arrows:
+    pipe_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}|{' ' * (L - 2)}|"
+    arrow_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}V{' ' * (L - 2)}V"
 
     # Construct numbers:
-    num_line_chars = [" "] * (12 + 20 + L + 20)
-    col1 = 12 + 20 - len(start_num_str) // 2
+    num_line_chars = [" "] * (12 + 20 + extra_spaces + L + 20)
+    col1 = 12 + 20 + extra_spaces - len(start_num_str) // 2
     for idx, char in enumerate(start_num_str):
         num_line_chars[col1 + idx] = char
-    col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
+    col2 = (12 + 20 + extra_spaces + L - 1) - len(end_num_str) // 2
     for idx, char in enumerate(end_num_str):
         num_line_chars[col2 + idx] = char
     top_line = "".join(num_line_chars).rstrip()
 
     # Combined top line:
-    top_line = f"{top_line}\n{arrow_line}"
+    top_line = f"{top_line}\n{pipe_line}\n{arrow_line}"
 
     upstream_seq = get_template_substring(conf.template, start_genomic - 20, 20)
     binding_seq = get_template_substring(conf.template, start_genomic, L)
@@ -316,11 +389,28 @@ def format_context_lines(
     )
 
     context_line_prefix = "Context  "
-    bottom_line = (
-        f"{bonds_line}\n"
-        f"{context_line_prefix}5'-{upstream_seq}"
-        f"{binding_seq}{downstream_seq}-3'"
-    )
+    if improved_visualisation and direction == DNADirection.FWD:
+        from amplifyp.dna import GLOBAL_COMPLEMENT_TABLE
+
+        comp_upstream = upstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        comp_line = (
+            f"{' ' * (9 + extra_spaces)}3'-"
+            f"{comp_upstream}{comp_binding}{comp_downstream}-5'"
+        )
+        bottom_line = (
+            f"{bonds_line}\n"
+            f"{comp_line}\n"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+        )
+    else:
+        bottom_line = (
+            f"{bonds_line}\n"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+        )
 
     return top_line, primer_line, bottom_line
 
@@ -332,17 +422,32 @@ class ReplicationContextCard(DismissibleDetailCard):
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
-        settings: Any,
+        conf: Repliconf,
+        var: DirIdx,
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
-        """Initialize the ReplicationContextCard."""
+        """Initialise the ReplicationContextCard.
+
+        Displays primability, stability, quality scores, and a visually
+        aligned replication context map for the specified primer binding
+        site.
+
+        Args:
+            primer_name: The name of the primer.
+            padded_idx: The padded binding index on the template.
+            conf: The Repliconf configuration object.
+            var: The variable containing direction information.
+            settings: Application GUI settings instance.
+            dismiss_callback: Callback invoked when the card is dismissed.
+        """
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
         if origin is None:
-            body_controls = [ft.Text("Error: Replication origin not found")]
+            body_controls = list[ft.Control](
+                [ft.Text("Error: Replication origin not found")]
+            )
             super().__init__(
                 card_id=card_id,
                 title="Error",
@@ -352,11 +457,7 @@ class ReplicationContextCard(DismissibleDetailCard):
             )
             return
 
-        primer_type = (
-            "Forward Primer"
-            if var.direction == DNADirection.FWD
-            else "Reverse Primer"
-        )
+        primer_type = "" if var.direction == DNADirection.FWD else "Reverse"
         L = len(conf.primer)
         N = len(conf.template)
 
@@ -370,6 +471,9 @@ class ReplicationContextCard(DismissibleDetailCard):
             L=L,
             N=N,
             direction=var.direction,
+            improved_visualisation=bool(
+                settings.get("improved_visualisation", False)
+            ),
         )
 
         font_family = settings.get("font_family", "Roboto Mono")
@@ -382,27 +486,54 @@ class ReplicationContextCard(DismissibleDetailCard):
             font_size=font_size,
         )
 
+        if origin.settings.amplify4_compatibility_mode:
+            prim_str = f"{int(origin.primability * 100)}%"
+            stab_str = f"{int(origin.stability * 100)}%"
+        else:
+            prim_str = f"{origin.primability:.3f}"
+            stab_str = f"{origin.stability:.3f}"
+
+        font_size_small = settings.get("font_size_small", 12)
         body_controls = [
-            ft.Text(
-                spans=[
-                    ft.TextSpan("Primeability = "),
-                    ft.TextSpan(
-                        f"{origin.primability:.3f}",
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+            ft.Row(
+                [
+                    ft.Container(
+                        content=ft.Text(
+                            f"Primeability: {prim_str}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColours.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
-                    ft.TextSpan("      Stability = "),
-                    ft.TextSpan(
-                        f"{origin.stability:.3f}",
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ft.Container(
+                        content=ft.Text(
+                            f"Stability: {stab_str}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColours.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
-                    ft.TextSpan("      Quality = "),
-                    ft.TextSpan(
-                        f"{origin.quality:.3f}",
-                        style=ft.TextStyle(weight=ft.FontWeight.BOLD),
+                    ft.Container(
+                        content=ft.Text(
+                            f"Quality: {origin.quality:.4f}",
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColours.DIAGRAM_BLACK,
+                            size=font_size_small,
+                        ),
+                        bgcolor=GUIColours.SELECTED_ROW_BG,
+                        padding=ft.Padding(8, 4, 8, 4),
+                        border_radius=4,
                     ),
                 ],
-                selectable=True,
-                size=settings.get("font_size_body", 13),
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.START,
             ),
             ft.Container(
                 content=ft.Row(
@@ -411,13 +542,18 @@ class ReplicationContextCard(DismissibleDetailCard):
                 ),
                 padding=12,
                 border_radius=6,
-                border=ft.Border.all(1, GUIColors.OUTLINE_VARIANT),
+                border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             ),
         ]
 
+        title = (
+            f"Context Map - {primer_name} ({primer_type}) Binding Site"
+            if primer_type
+            else f"Context Map - {primer_name} Binding Site"
+        )
         super().__init__(
             card_id=card_id,
-            title=(f"Context Map - {primer_name} ({primer_type}) Binding Site"),
+            title=title,
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,

@@ -20,8 +20,9 @@ from unittest.mock import MagicMock
 import flet as ft
 import yaml
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.views.input import InputView
-from amplifyp.gui.views.settings_view import SettingsView
+from amplifyp.gui.views.settings import SettingsView
 
 
 def test_gui_state_save_load() -> None:
@@ -47,10 +48,12 @@ def test_gui_state_save_load() -> None:
     settings_view = SettingsView(mock_page)
     settings_view.set_primability_cutoff.value = "0.9"
     settings_view.set_amp4_compat.value = True
+    settings_view.set_improved_visualisation.value = True
+    settings_view.set_show_primer_temperature.value = True
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
-    settings_view.appearance_tile.set_color_scheme.value = (
+    settings_view.appearance_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
     )
     settings_view.settings_map["bp_score_G_G"].value = "99.0"
@@ -66,7 +69,7 @@ def test_gui_state_save_load() -> None:
         "settings": settings_state,
     }
 
-    # 4. Serialize (replicating main.py logic)
+    # 4. Serialise (replicating main.py logic)
     def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
         if "\n" in data:
             return dumper.represent_scalar(
@@ -120,37 +123,35 @@ def test_gui_state_save_load() -> None:
     # Verify SettingsView
     assert new_settings_view.set_primability_cutoff.value == "0.9"
     assert new_settings_view.set_amp4_compat.value
+    assert new_settings_view.set_improved_visualisation.value
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
     assert (
-        new_settings_view.appearance_tile.set_color_scheme.value
+        new_settings_view.appearance_tile.set_colour_scheme.value
         == "Dark (Colour Deficient Friendly)"
     )
     assert new_settings_view.settings["dark_mode"] is True
-    assert new_settings_view.settings["color_deficient"] is True
+    assert new_settings_view.settings["colour_deficient"] is True
+    assert new_settings_view.settings["improved_visualisation"] is True
+    assert new_settings_view.settings["show_primer_temperature"] is True
+    assert new_settings_view.set_show_primer_temperature.value
     assert new_settings_view.settings_map["bp_score_G_G"].value == "99.0"
     assert new_settings_view.settings_map["pd_score_G_G"].value == "99.0"
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
-    # Reset GUIColors to avoid test contamination
-    from amplifyp.gui.settings import GUIColors
+    # Reset GUIColours to avoid test contamination
 
-    GUIColors.color_deficient_mode = False
-    GUIColors.dark_mode = False
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
 
 
 def test_settings_view_buttons() -> None:
-    """Test Apply and Reset to Default buttons in SettingsView."""
+    """Test Reset to Default button in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
 
-    apply_called = False
     reset_called = False
-
-    def on_apply_callback(e: ft.ControlEvent) -> None:
-        nonlocal apply_called
-        apply_called = True
 
     def on_reset_callback(e: ft.ControlEvent) -> None:
         nonlocal reset_called
@@ -158,34 +159,23 @@ def test_settings_view_buttons() -> None:
 
     settings_view = SettingsView(
         mock_page,
-        on_apply=on_apply_callback,
         on_reset=on_reset_callback,
     )
 
     # Change some values
     settings_view.set_primability_cutoff.value = "0.95"
     settings_view.set_amp4_compat.value = True
-    settings_view.set_tm_method.value = "Lander / Amplify 4"
+    settings_view.set_improved_visualisation.value = True
+    settings_view.set_show_primer_temperature.value = True
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
-    # Find the Row containing the Apply and Reset buttons
+    # Find the Row containing the Reset button
     buttons_row = settings_view.controls[-1]
     assert isinstance(buttons_row, ft.Row)
-    apply_btn = buttons_row.controls[0]
-    reset_btn = buttons_row.controls[1]
+    reset_btn = buttons_row.controls[0]
 
-    assert apply_btn.content == "Apply"
     assert reset_btn.content == "Reset to Default"
-
-    # Trigger Apply
-    apply_btn.on_click(MagicMock(spec=ft.ControlEvent))
-    assert apply_called
-    assert settings_view.settings["primability_cutoff"] == "0.95"
-    assert settings_view.settings["amp4_compat"] is True
-    assert settings_view.settings["tm_method"] == "Lander / Amplify 4"
-    assert settings_view.settings["bp_score_G_G"] == "50.0"
-    assert settings_view.settings["pd_score_G_G"] == "50.0"
 
     # Trigger Reset
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
@@ -196,9 +186,15 @@ def test_settings_view_buttons() -> None:
     )
     assert settings_view.settings["bp_score_G_G"] == "100"
     assert settings_view.settings["pd_score_G_G"] == "-20"
+    assert settings_view.settings["improved_visualisation"] is True
+    assert settings_view.settings["show_primer_temperature"] is False
+    assert settings_view.settings["tm_colour_scheme"] == "None"
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
+    assert settings_view.set_improved_visualisation.value is True
+    assert settings_view.set_show_primer_temperature.value is False
+    assert settings_view.set_tm_colour_scheme.value == "None"
     assert (
         settings_view.set_tm_method.value
         == "SantaLucia 1998 / Owczarzy 2008 (Default)"
@@ -207,64 +203,138 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings_map["pd_score_G_G"].value == "-20"
 
 
-def test_color_deficient_mode_switching() -> None:
-    """Test toggling color deficient setting shifts GUIColors."""
-    from amplifyp.gui.settings import GUIColors, GUISettings
+def test_settings_backup_and_restore() -> None:
+    """Test saving and loading settings in SettingsView via BackupTile."""
+    import asyncio
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings_view = SettingsView(mock_page)
+
+    # 1. Modify settings view controls
+    settings_view.set_primability_cutoff.value = "0.95"
+    settings_view.set_amp4_compat.value = True
+    settings_view.set_tm_dna_conc.value = "150.0"
+    settings_view.settings_map["bp_score_G_G"].value = "88.0"
+
+    # Save to state
+    settings_view.sync_to_state()
+
+    # 2. Mock saving
+    serialised_yaml = ""
+
+    from typing import Any
+
+    def mock_save_and_write_file(
+        page: Any,
+        dialog_title: Any,
+        file_name: Any,
+        allowed_extensions: Any,
+        content: Any,
+        show_notification: Any,
+        success_message_desktop: Any,
+        success_message_web: Any,
+    ) -> bool:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+        return True
+
+    # Click save button
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        asyncio.run(settings_view.backup_tile._save_settings_async(MagicMock()))
+
+    # Verify saved YAML contains settings and the modified values
+    parsed = yaml.safe_load(serialised_yaml)
+    assert "settings" in parsed
+    assert parsed["settings"]["primability_cutoff"] == "0.95"
+    assert parsed["settings"]["amp4_compat"] is True
+    assert parsed["settings"]["tm_dna_conc"] == "150.0"
+    assert parsed["settings"]["bp_score_G_G"] == "88.0"
+    # Ensure there is no input data in the backup
+    assert "input" not in parsed
+
+    # 3. Modify controls again to prepare for load
+    settings_view.set_primability_cutoff.value = "0.50"
+    settings_view.set_amp4_compat.value = False
+    settings_view.set_tm_dna_conc.value = "50.0"
+    settings_view.settings_map["bp_score_G_G"].value = "10.0"
+    settings_view.sync_to_state()
+
+    # 4. Mock loading
+    with patch(
+        "amplifyp.gui.views.settings.backup_tile.pick_and_read_file",
+        new=AsyncMock(return_value=serialised_yaml),
+    ):
+        asyncio.run(settings_view.backup_tile._load_settings_async(MagicMock()))
+
+    # Verify values have been restored to the controls
+    assert settings_view.set_primability_cutoff.value == "0.95"
+    assert settings_view.set_amp4_compat.value is True
+    assert settings_view.set_tm_dna_conc.value == "150.0"
+    assert settings_view.settings_map["bp_score_G_G"].value == "88.0"
+
+
+def test_colour_deficient_mode_switching() -> None:
+    """Test toggling colour deficient setting shifts GUIColours."""
+    from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
     # 1. Initially false/standard
-    assert settings["color_deficient"] is False
-    assert GUIColors.color_deficient_mode is False
-    standard_success = GUIColors.SUCCESS_GREEN
-    standard_error = GUIColors.ERROR_RED
-    standard_fwd = GUIColors.FWD_PRIMER
-    standard_rev = GUIColors.REV_PRIMER
+    assert settings["colour_deficient"] is False
+    assert GUIColours.colour_deficient_mode is False
+    standard_success = GUIColours.SUCCESS_GREEN
+    standard_error = GUIColours.ERROR_RED
+    standard_fwd = GUIColours.FWD_PRIMER
+    standard_rev = GUIColours.REV_PRIMER
 
     # 2. Toggle setting to True
-    settings["color_deficient"] = True
-    assert GUIColors.color_deficient_mode is True
-    assert GUIColors.SUCCESS_GREEN != standard_success
-    assert GUIColors.ERROR_RED != standard_error
-    assert GUIColors.FWD_PRIMER != standard_fwd
-    assert GUIColors.REV_PRIMER != standard_rev
+    settings["colour_deficient"] = True
+    assert GUIColours.colour_deficient_mode is True
+    assert GUIColours.SUCCESS_GREEN != standard_success
+    assert GUIColours.ERROR_RED != standard_error
+    assert GUIColours.FWD_PRIMER != standard_fwd
+    assert GUIColours.REV_PRIMER != standard_rev
 
     # 3. Toggle back
-    settings["color_deficient"] = False
-    assert GUIColors.color_deficient_mode is False
-    assert GUIColors.SUCCESS_GREEN == standard_success
-    assert GUIColors.ERROR_RED == standard_error
-    assert GUIColors.FWD_PRIMER == standard_fwd
-    assert GUIColors.REV_PRIMER == standard_rev
+    settings["colour_deficient"] = False
+    assert GUIColours.colour_deficient_mode is False
+    assert GUIColours.SUCCESS_GREEN == standard_success
+    assert GUIColours.ERROR_RED == standard_error
+    assert GUIColours.FWD_PRIMER == standard_fwd
+    assert GUIColours.REV_PRIMER == standard_rev
 
 
 def test_dark_mode_switching() -> None:
-    """Test toggling dark mode setting shifts GUIColors."""
-    from amplifyp.gui.settings import GUIColors, GUISettings
+    """Test toggling dark mode setting shifts GUIColours."""
+    from amplifyp.gui.settings import GUISettings
 
     settings = GUISettings()
     # 1. Initially false/standard
     assert settings["dark_mode"] == "system"
-    assert GUIColors.dark_mode is False
-    standard_selected_bg = GUIColors.SELECTED_ROW_BG
-    standard_info_header = GUIColors.INFO_HEADER_BG
-    standard_fwd = GUIColors.FWD_PRIMER
-    standard_rev = GUIColors.REV_PRIMER
+    assert GUIColours.dark_mode is False
+    standard_selected_bg = GUIColours.SELECTED_ROW_BG
+    standard_info_header = GUIColours.INFO_HEADER_BG
+    standard_fwd = GUIColours.FWD_PRIMER
+    standard_rev = GUIColours.REV_PRIMER
 
     # 2. Toggle setting to True
     settings["dark_mode"] = True
-    assert GUIColors.dark_mode is True
-    assert GUIColors.SELECTED_ROW_BG != standard_selected_bg
-    assert GUIColors.INFO_HEADER_BG != standard_info_header
-    assert GUIColors.FWD_PRIMER != standard_fwd
-    assert GUIColors.REV_PRIMER != standard_rev
+    assert GUIColours.dark_mode is True
+    assert GUIColours.SELECTED_ROW_BG != standard_selected_bg
+    assert GUIColours.INFO_HEADER_BG != standard_info_header
+    assert GUIColours.FWD_PRIMER != standard_fwd
+    assert GUIColours.REV_PRIMER != standard_rev
 
     # 3. Toggle back
     settings["dark_mode"] = False
-    assert GUIColors.dark_mode is False
-    assert GUIColors.SELECTED_ROW_BG == standard_selected_bg
-    assert GUIColors.INFO_HEADER_BG == standard_info_header
-    assert GUIColors.FWD_PRIMER == standard_fwd
-    assert GUIColors.REV_PRIMER == standard_rev
+    assert GUIColours.dark_mode is False
+    assert GUIColours.SELECTED_ROW_BG == standard_selected_bg
+    assert GUIColours.INFO_HEADER_BG == standard_info_header
+    assert GUIColours.FWD_PRIMER == standard_fwd
+    assert GUIColours.REV_PRIMER == standard_rev
 
 
 def test_system_theme_saving_loading() -> None:
@@ -273,47 +343,46 @@ def test_system_theme_saving_loading() -> None:
     settings_view = SettingsView(mock_page)
 
     # 1. Select System dropdown
-    settings_view.appearance_tile.set_color_scheme.value = "System"
+    settings_view.appearance_tile.set_colour_scheme.value = "System"
     settings_view.sync_to_state()
 
     assert settings_view.settings["dark_mode"] == "system"
-    assert settings_view.settings["color_deficient"] is False
+    assert settings_view.settings["colour_deficient"] is False
 
-    # 2. Serialize / deserialize settings state
+    # 2. Serialise / deserialize settings state
     settings_state = settings_view.get_state()
     new_settings_view = SettingsView(mock_page)
     new_settings_view.set_state(settings_state)
 
     # 3. Assertions
-    assert new_settings_view.appearance_tile.set_color_scheme.value == "System"
+    assert new_settings_view.appearance_tile.set_colour_scheme.value == "System"
     assert new_settings_view.settings["dark_mode"] == "system"
-    assert new_settings_view.settings["color_deficient"] is False
+    assert new_settings_view.settings["colour_deficient"] is False
 
     # 4. Now with Colour Deficient Friendly System option
-    settings_view.appearance_tile.set_color_scheme.value = (
+    settings_view.appearance_tile.set_colour_scheme.value = (
         "System (Colour Deficient Friendly)"
     )
     settings_view.sync_to_state()
 
     assert settings_view.settings["dark_mode"] == "system"
-    assert settings_view.settings["color_deficient"] is True
+    assert settings_view.settings["colour_deficient"] is True
 
     settings_state_2 = settings_view.get_state()
     new_settings_view_2 = SettingsView(mock_page)
     new_settings_view_2.set_state(settings_state_2)
 
     assert (
-        new_settings_view_2.appearance_tile.set_color_scheme.value
+        new_settings_view_2.appearance_tile.set_colour_scheme.value
         == "System (Colour Deficient Friendly)"
     )
     assert new_settings_view_2.settings["dark_mode"] == "system"
-    assert new_settings_view_2.settings["color_deficient"] is True
+    assert new_settings_view_2.settings["colour_deficient"] is True
 
-    # Reset GUIColors to avoid test contamination
-    from amplifyp.gui.settings import GUIColors
+    # Reset GUIColours to avoid test contamination
 
-    GUIColors.color_deficient_mode = False
-    GUIColors.dark_mode = False
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
 
 
 def test_simple_state_font_sizes_are_integers() -> None:
@@ -354,3 +423,141 @@ def test_simple_state_font_sizes_are_integers() -> None:
     settings["font_size_map_baseline"] = "20"
     assert isinstance(settings.get("font_size_map_baseline"), int)
     assert settings.get("font_size_map_baseline") == 20
+
+
+def test_tm_colour_scheme_application() -> None:
+    """Test colour scheme changes in SettingsView colour PrimerRow Tm text."""
+    from unittest.mock import MagicMock
+
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.views.input import InputView
+    from amplifyp.gui.views.settings import SettingsView
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    # P1 has Tm around 50-60C, seq must be valid DNA to calculate Tm
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGCATGCATGCAT", "active": True}
+    ]
+
+    # 1. Create the views sharing the same settings and page
+    input_view = InputView(mock_page, input_data, settings)
+
+    # Enable show primer temperature so Tm column is shown
+    settings["show_primer_temperature"] = True
+    input_view.update_ui()
+
+    # The row initially has tm_colour_scheme = None, so color should be None
+    row = input_view.primers_list.controls[0]
+    assert row.tm_text.color is None
+
+    # 2. Open SettingsView and select a colour scheme
+    settings_view = SettingsView(mock_page, settings)
+    settings_view.set_tm_colour_scheme.value = "Traffic Light"
+    settings_view.sync_to_state()
+    assert settings["tm_colour_scheme"] == "Traffic Light"
+
+    # 3. Simulate controller.run_apply_settings -> input_view.update_ui()
+    input_view.update_ui()
+
+    # 4. Check that the row now has the correct color scheme color applied
+    row = input_view.primers_list.controls[0]
+    assert row.tm_text.color is not None
+
+
+def test_controller_load_save_only_affects_input() -> None:
+    """Test that controller save and load only affect input state.
+
+    Settings should be ignored.
+    """
+    from typing import Any
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.controller import GUIController
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    controller = GUIController(mock_page)
+    controller.input_view = MagicMock()
+    controller.settings_view = MagicMock()
+    controller.notification_helper = MagicMock()
+    # Set mock settings
+    controller.settings["tm_method"] = "Lander / Amplify 4"
+    controller.settings["dark_mode"] = True
+
+    # Set mock input
+    controller.input_data.template = "ATGCT"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True},
+        {"name": "P2", "seq": "TGC", "active": False},
+    ]
+
+    # Mock pick_and_read_file and save_and_write_file
+    serialised_yaml = ""
+
+    def mock_save_and_write_file(
+        page: ft.Page,
+        dialog_title: str,
+        file_name: str,
+        allowed_extensions: list[str],
+        content: str,
+        show_notification: Any,
+        success_message_desktop: str,
+        success_message_web: str,
+    ) -> None:
+        nonlocal serialised_yaml
+        serialised_yaml = content
+
+    with patch(
+        "amplifyp.gui.util.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        import asyncio
+
+        asyncio.run(controller.save_state(MagicMock()))
+
+    # Check serialised yaml content
+    parsed_yaml = yaml.safe_load(serialised_yaml)
+    assert "input" in parsed_yaml
+    assert "settings" not in parsed_yaml
+    assert parsed_yaml["input"]["template"] == "ATGCT"
+    assert parsed_yaml["input"]["template_circular"] is True
+    assert len(parsed_yaml["input"]["primers"]) == 2
+    assert parsed_yaml["input"]["primers"][0]["name"] == "P1"
+    assert parsed_yaml["input"]["primers"][0]["active"] is True
+    assert parsed_yaml["input"]["primers"][1]["active"] is False
+
+    # Now let's test load_state. If the loaded YAML contains both input
+    # and settings, settings should be ignored (not applied to settings).
+    test_yaml = """
+input:
+  template: "CGTAC"
+  template_circular: false
+  primers:
+    - name: "P3"
+      seq: "CGT"
+      active: true
+settings:
+  tm_method: "SantaLucia 1998 / Owczarzy 2008 (Default)"
+  dark_mode: false
+"""
+    with patch(
+        "amplifyp.gui.util.pick_and_read_file",
+        new=AsyncMock(return_value=test_yaml),
+    ):
+        asyncio.run(controller.load_state(MagicMock()))
+
+    # Input state should be updated
+    assert controller.input_data.template == "CGTAC"
+    assert controller.input_data.template_circular is False
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == "P3"
+
+    # Settings should remain unchanged (ignored)
+    assert controller.settings["tm_method"] == "Lander / Amplify 4"
+    assert controller.settings["dark_mode"] is True

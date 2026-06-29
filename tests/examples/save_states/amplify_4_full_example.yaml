@@ -775,7 +775,7 @@ settings:
   pd_min_overlap: '3'
   pd_threshold: '60.0'
   font_family: Roboto Mono
-  color_deficient: false
+  colour_deficient: false
   dark_mode: system
   font_size_map_baseline: 16
   font_size_map_primer: 13

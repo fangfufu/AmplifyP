@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Centralized GUI state and user data orchestrator."""
+"""Centralised GUI state and user data orchestrator."""
 
 from typing import Any
 
@@ -29,7 +29,7 @@ class GUIInput:
         template_circular: bool = False,
         primers: list[dict[str, Any]] | None = None,
     ) -> None:
-        """Initialize GUIInput."""
+        """Initialise GUIInput."""
         self.template: str = template
         self.template_circular: bool = template_circular
         self.primers: list[dict[str, Any]] = (
@@ -61,7 +61,7 @@ class GUIInput:
             )
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert input data to a dictionary for serialization."""
+        """Convert input data to a dictionary for serialisation."""
         return {
             "template": format_sequence(self.template),
             "template_circular": self.template_circular,

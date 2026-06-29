@@ -16,13 +16,14 @@
 """Primer melting temperature calculation module.
 
 This module provides functions to calculate the melting temperature (Tm) of
-DNA primers using the Nearest-Neighbor thermodynamics model.
+DNA primers using the Nearest-Neighbour thermodynamics model.
 """
 
 import math
 from typing import Final
 
 from .dna import Primer
+from .errors import InsufficientThermodynamicDataError
 from .settings import (
     GLOBAL_TM_SETTINGS,
     TMSettings,
@@ -33,7 +34,7 @@ from .settings import (
 # Keys are dinucleotides (5'->3')
 # Source: SantaLucia, J. (1998). "A unified view of polymer, dumbbell, and
 # oligonucleotide DNA
-# nearest-neighbor thermodynamics". PNAS, 95(4), 1460-1465.
+# nearest-neighbour thermodynamics". PNAS, 95(4), 1460-1465.
 NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "AA": (-7900, -22.2),
     "TT": (-7900, -22.2),
@@ -59,7 +60,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 ) -> float:
     """Calculate the melting temperature (Tm) of a primer sequence.
 
-    Uses the Nearest-Neighbor model with SantaLucia 1998 thermodynamic
+    Uses the Nearest-Neighbour model with SantaLucia 1998 thermodynamic
     parameters and salt corrections.
 
     Formula used:
@@ -119,7 +120,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbor steps
+    # Nearest neighbour steps
     for i in range(n - 1):
         dinuc = seq[i : i + 2]
         if dinuc in NN_THERMO_DATA:
@@ -150,7 +151,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
     # Ratio R = sqrt([Mg2+]) / [Mon+]
-    if mono_M == 0:
+    if math.isclose(mono_M, 0.0, abs_tol=1e-9):
         ratio = 999.0  # Large number, Divalent dominant
     else:
         ratio = math.sqrt(div_M) / mono_M
@@ -172,19 +173,32 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         total_dna_conc_M = 50e-9
 
     denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
-    if denom_1M == 0:  # pragma: no cover
-        return 0.0
+    if math.isclose(denom_1M, 0.0, abs_tol=1e-9):  # pragma: no cover
+        raise InsufficientThermodynamicDataError(
+            "Denominator is zero in Tm calculation"
+        )
+
+    if math.isclose(dh, 0.0, abs_tol=1e-9):
+        raise InsufficientThermodynamicDataError(
+            "Invalid sequence: lacks standard thermodynamic base pairs"
+        )
 
     tm_1m_K = dh / denom_1M
+    if math.isclose(tm_1m_K, 0.0, abs_tol=1e-9):
+        raise InsufficientThermodynamicDataError("Calculated base Tm is zero")
 
     # Now apply corrections
-    if div_M == 0:
+    if math.isclose(div_M, 0.0, abs_tol=1e-9):
         # Monovalent only (SantaLucia 1998)
         # Apply strict SantaLucia 1998 entropy correction
         # This effectively modifies the denom.
         if mono_M > 0:
             ds_corr = 0.368 * (n - 1) * math.log(mono_M)
             denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+            if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
+                raise InsufficientThermodynamicDataError(
+                    "Denominator with salt correction is zero"
+                )
             tm_final_K = dh / denom_corr
         else:
             tm_final_K = tm_1m_K
@@ -197,6 +211,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # We will use the SantaLucia correction with [Mon+]
         ds_corr = 0.368 * (n - 1) * math.log(mono_M)
         denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+        if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
+            raise InsufficientThermodynamicDataError(
+                "Denominator with salt correction is zero"
+            )
         tm_final_K = dh / denom_corr
 
     else:
@@ -233,6 +251,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # well.
 
         tm_inv = (1.0 / tm_1m_K) + corr
+        if math.isclose(tm_inv, 0.0, abs_tol=1e-9):
+            raise InsufficientThermodynamicDataError(
+                "Inverse Tm with salt correction is zero"
+            )
         tm_final_K = 1.0 / tm_inv
 
     return tm_final_K - 273.15
@@ -244,7 +266,7 @@ def calculate_tm_lander_amplify4(
 ) -> float:
     """Calculate Tm using the original Amplify4 algorithm.
 
-    This method is a direct port of the ``calcTm`` method from the Swift
+    This method is a direct port of the `calcTm` method from the Swift
     codebase (Primer.swift). It uses its own set of entropy and enthalpy
     tables (typically 5x5 matrices) and specific correction factors.
 
@@ -267,7 +289,7 @@ def calculate_tm_lander_amplify4(
     entr: float = 108.0
     enth: float = 0.0
 
-    # Sum neighbors
+    # Sum neighbours
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
     for i in range(seq_len - 1):
@@ -297,5 +319,11 @@ def calculate_tm_lander_amplify4(
 
     log_salt = 16.6 * math.log10(salt_conc_val / 1000.0)
 
-    tm = (enth * 1000.0) / (entr + log_dna) - 273.15 + log_salt
+    denom = entr + log_dna
+    if math.isclose(denom, 0.0, abs_tol=1e-9):
+        raise InsufficientThermodynamicDataError(
+            "Denominator is zero in Tm calculation (Amplify4)"
+        )
+
+    tm = (enth * 1000.0) / denom - 273.15 + log_salt
     return tm
