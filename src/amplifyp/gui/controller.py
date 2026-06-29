@@ -425,11 +425,6 @@ class GUIController:
         self.switch_view(e, self.pcr_view)
         if not self.pcr_view.run_pcr():
             self.switch_view(e, self.input_view)
-        if self.pcr_button_ref.current:
-            self.pcr_button_ref.current.text = "PCR"
-        if self.visible_pcr_button_ref.current:
-            self.visible_pcr_button_ref.current.text = "PCR"
-        self.page.update()
 
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
         """Handle dimers click: switch view then run analysis."""
@@ -437,7 +432,6 @@ class GUIController:
         self.switch_view(e, self.dimers_view)
         if not self.dimers_view.run_analysis():
             self.switch_view(e, self.input_view)
-        self.page.update()
 
     def update_pcr_button_state(self, sync: bool = True) -> None:
         """Enable PCR and dimers buttons only if input is valid."""

@@ -17,10 +17,11 @@
 
 import logging
 import traceback
+from typing import Any
 
 import flet as ft
 
-from amplifyp.dimer import PrimerDimerGenerator
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
@@ -45,6 +46,10 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
+        self._cached_dimers: list[PrimerDimer] | None = None
+        self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
+            None
+        )
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -58,16 +63,28 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.result_list.controls.clear()
         success = True
         try:
-            pd_settings = self.settings.get_primer_dimer_settings()
-            generator = PrimerDimerGenerator(settings=pd_settings)
-            primers = self.input_data.get_active_primers()
-            for p in primers:
-                name = p["name"]
-                seq = clean_sequence(p["seq"])
-                generator.add_primer(Primer(sequence=seq, name=name))
+            current_state_key = (
+                self.input_data.to_dict(),
+                self.settings.to_dict(),
+            )
+            if (
+                self._cached_state_key == current_state_key
+                and self._cached_dimers is not None
+            ):
+                dimers = self._cached_dimers
+            else:
+                pd_settings = self.settings.get_primer_dimer_settings()
+                generator = PrimerDimerGenerator(settings=pd_settings)
+                primers = self.input_data.get_active_primers()
+                for p in primers:
+                    name = p["name"]
+                    seq = clean_sequence(p["seq"])
+                    generator.add_primer(Primer(sequence=seq, name=name))
 
-            generator.analyse_primers()
-            dimers = generator.primer_dimers
+                generator.analyse_primers()
+                dimers = generator.primer_dimers
+                self._cached_dimers = dimers
+                self._cached_state_key = current_state_key
 
             if not dimers:
                 self.result_list.controls.append(

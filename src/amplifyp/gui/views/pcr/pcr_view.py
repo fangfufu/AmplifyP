@@ -53,6 +53,10 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
+        self._cached_pcr: PCR | None = None
+        self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
+            None
+        )
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -116,7 +120,19 @@ class PCRView(ft.Column):  # type: ignore[misc]
         saved_cards = self._reset_pcr_ui(keep_cards)
         success = True
         try:
-            pcr = self._execute_pcr_simulation()
+            current_state_key = (
+                self.input_data.to_dict(),
+                self.settings.to_dict(),
+            )
+            if (
+                self._cached_state_key == current_state_key
+                and self._cached_pcr is not None
+            ):
+                pcr = self._cached_pcr
+            else:
+                pcr = self._execute_pcr_simulation()
+                self._cached_pcr = pcr
+                self._cached_state_key = current_state_key
             num_amplicons = len(pcr.amplicons)
 
             if num_amplicons == 0:
