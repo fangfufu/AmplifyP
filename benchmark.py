@@ -1,5 +1,4 @@
 import timeit
-from src.amplifyp.dna import Nucleotides
 
 setup_code = """
 from src.amplifyp.dna import Nucleotides

@@ -65,6 +65,27 @@ col = Nucleotides.TEMPLATE
 weight = DEFAULT_BASE_PAIR_WEIGHTS._BasePairWeightsTbl__matrix
 """
 
-print("Old INIT:", timeit.timeit("BasePairWeightsTbl_OLD(row, col, weight)", setup=setup_code, number=100000))
-print("New INIT OR_LITERAL_LOCAL:", timeit.timeit("BasePairWeightsTbl_NEW_OR_LITERAL_LOCAL(row, col, weight)", setup=setup_code, number=100000))
-print("New INIT OR_LITERAL:", timeit.timeit("BasePairWeightsTbl_NEW_OR_LITERAL(row, col, weight)", setup=setup_code, number=100000))
+print(
+    "Old INIT:",
+    timeit.timeit(
+        "BasePairWeightsTbl_OLD(row, col, weight)",
+        setup=setup_code,
+        number=100000,
+    ),
+)
+print(
+    "New INIT OR_LITERAL_LOCAL:",
+    timeit.timeit(
+        "BasePairWeightsTbl_NEW_OR_LITERAL_LOCAL(row, col, weight)",
+        setup=setup_code,
+        number=100000,
+    ),
+)
+print(
+    "New INIT OR_LITERAL:",
+    timeit.timeit(
+        "BasePairWeightsTbl_NEW_OR_LITERAL(row, col, weight)",
+        setup=setup_code,
+        number=100000,
+    ),
+)
