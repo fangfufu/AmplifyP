@@ -280,7 +280,7 @@ class _SettingsWrapper:
 @lru_cache(maxsize=128)
 def _get_scoring_tables(
     primer_rev_seq: str, settings_wrapper: _SettingsWrapper
-) -> tuple[float, float, list[dict[str, float]], list[dict[str, float]]]:
+) -> tuple[float, float, tuple[tuple[tuple[float, float], ...], ...]]:
     """Calculate scoring tables and denominators.
 
     This function caches the expensive table construction for primer scoring.
@@ -290,7 +290,7 @@ def _get_scoring_tables(
         settings_wrapper (_SettingsWrapper): Wrapped replication settings.
 
     Returns:
-        tuple: (prim_denom, stab_denom, prim_score_lookup, stab_score_lookup)
+        tuple: (prim_denom, stab_denom, score_lookup)
     """
     settings = settings_wrapper.settings
     m = settings.match_weight
@@ -300,8 +300,7 @@ def _get_scoring_tables(
     prim_denom = 0.0
     stab_denom_base = 0.0
 
-    prim_score_lookup: list[dict[str, float]] = []
-    stab_score_lookup: list[dict[str, float]] = []
+    lookup_list = []
 
     # Prepare set of characters for lookup keys
     lookup_keys = set(Nucleotides.TEMPLATE)
@@ -312,20 +311,17 @@ def _get_scoring_tables(
         prim_denom += m[k] * row_max
         stab_denom_base += row_max
 
-        p_dict = {}
-        s_dict = {}
-
+        k_lookup = [(0.0, 0.0)] * 128
         for base_t in lookup_keys:
             score = S[base_p, base_t]
-            p_dict[base_t] = m[k] * score
-            s_dict[base_t] = score
+            k_lookup[ord(base_t)] = (m[k] * score, score)
 
-        prim_score_lookup.append(p_dict)
-        stab_score_lookup.append(s_dict)
+        lookup_list.append(tuple(k_lookup))
 
+    score_lookup = tuple(lookup_list)
     stab_denom = stab_denom_base * r[int(max(0, len(primer_rev_seq) - 1))]
 
-    return prim_denom, stab_denom, prim_score_lookup, stab_score_lookup
+    return prim_denom, stab_denom, score_lookup
 
 
 class Repliconf:
@@ -490,8 +486,7 @@ class Repliconf:
         (
             prim_denom,
             stab_denom,
-            prim_score_lookup,
-            stab_score_lookup,
+            score_lookup,
         ) = _get_scoring_tables(primer_rev, _SettingsWrapper(self.settings))
 
         prim_cutoff = self.settings.primability_cutoff
@@ -516,6 +511,7 @@ class Repliconf:
             #   against the Antisense strand.
 
             seq = self.template_seq[direction]
+            seq_bytes = seq.encode("ascii")
             origin_list = (
                 self.origin_db.fwd
                 if direction == DNADirection.FWD
@@ -540,13 +536,11 @@ class Repliconf:
                 seq_idx = i + start_offset
 
                 for k in k_range:
-                    base_t = seq[seq_idx]
+                    base_t = seq_bytes[seq_idx]
 
-                    # Primability
-                    prim_num += prim_score_lookup[k][base_t]
-
-                    # Stability
-                    val = stab_score_lookup[k][base_t]
+                    # Primability and Stability lookup
+                    prim_val, val = score_lookup[k][base_t]
+                    prim_num += prim_val
                     if val > 0:
                         run_len += 1
                         run_score += val
