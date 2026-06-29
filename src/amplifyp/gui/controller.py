@@ -670,7 +670,7 @@ class GUIController:
             await self._auto_close_and_quit_delayed()
 
     async def _auto_close_and_quit_delayed(
-        self, e: ft.ControlEvent | None = None
+        self, _event: ft.ControlEvent | None = None
     ) -> None:
         """Run PCR/dimer analysis then quit for performance regression testing.
 
@@ -678,7 +678,7 @@ class GUIController:
         then destroys the window automatically.
 
         Args:
-            e: Unused event parameter for task compatibility.
+            _event: Unused event parameter for task compatibility.
         """
         try:
             # Yield to event loop to let the initial page render complete

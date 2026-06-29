@@ -225,7 +225,7 @@ def test_settings_backup_and_restore() -> None:
 
     from typing import Any
 
-    async def mock_save_and_write_file(
+    def mock_save_and_write_file(
         page: Any,
         dialog_title: Any,
         file_name: Any,
@@ -500,7 +500,7 @@ def test_controller_load_save_only_affects_input() -> None:
     # Mock pick_and_read_file and save_and_write_file
     serialised_yaml = ""
 
-    async def mock_save_and_write_file(
+    def mock_save_and_write_file(
         page: ft.Page,
         dialog_title: str,
         file_name: str,

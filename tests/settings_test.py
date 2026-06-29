@@ -139,11 +139,11 @@ def test_base_pair_weights_tbl_invalid_chars() -> None:
     tbl = BasePairWeightsTbl(row, col, weights)
 
     # Should work via fallback
-    assert tbl[weird_char, "A"] == 2.0
+    assert tbl[weird_char, "A"] == pytest.approx(2.0)
 
     # Setter should also work via fallback
     tbl[weird_char, "A"] = 3.0
-    assert tbl[weird_char, "A"] == 3.0
+    assert tbl[weird_char, "A"] == pytest.approx(3.0)
 
     # Also test completely invalid lookup
     with pytest.raises(KeyError):
