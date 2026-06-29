@@ -206,7 +206,11 @@ class PrimerDimerGenerator:
         threshold = self.settings.threshold
         min_overlap = self.settings.min_overlap
 
-        for (p1, l1, seq1), (p2, l2, seq2) in itertools.combinations_with_replacement(primer_props, 2):
+        for (p1, l1, seq1), (
+            p2,
+            l2,
+            seq2,
+        ) in itertools.combinations_with_replacement(primer_props, 2):
             if l1 < l2:
                 short_p, long_p, n1, n2 = p1, p2, l1, l2
                 s1, s2 = seq1, seq2
@@ -218,8 +222,8 @@ class PrimerDimerGenerator:
             if memo_key in memo:
                 best_quality, best_pos, overlap_len = memo[memo_key]
             else:
-                best_quality, best_pos, overlap_len = self._calculate_dimer_stats(
-                    s1, s2, n1, n2
+                best_quality, best_pos, overlap_len = (
+                    self._calculate_dimer_stats(s1, s2, n1, n2)
                 )
                 memo[memo_key] = (best_quality, best_pos, overlap_len)
 
