@@ -97,17 +97,17 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
     @property
     def diagram_stack(self) -> ft.Stack:
-        """Shortcut property to the diagram stack for test compatibility."""
+        """Shortcut property to the diagram stack for test compat."""
         return self.diagram_panel.diagram_stack
 
     @property
     def diagram_container(self) -> ft.Container:
-        """Shortcut property to the diagram container for test compatibility."""
+        """Shortcut property to the diagram container for test compat."""
         return self.diagram_panel.diagram_container
 
     @property
     def divider(self) -> ft.GestureDetector:
-        """Shortcut property to the divider resizer for test compatibility."""
+        """Shortcut property to the divider resizer for test compat."""
         return self.diagram_panel.divider
 
     def _handle_resize(self, e: ft.ControlEvent) -> None:
@@ -186,7 +186,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         return saved_cards
 
     def _execute_pcr_simulation(self) -> PCR:
-        """Clean sequences, build DNA and PCR objects, and run simulation."""
+        """Clean sequences, build DNA/PCR objects, run simulation."""
         from amplifyp.gui.util import clean_sequence
 
         clean_template = clean_sequence(self.input_data.template)
@@ -245,7 +245,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.app_page.update()
 
     def _show_amplicon_dialog(self, amp: "Amplicon") -> None:
-        """Show details card of the selected amplicon below the overview map."""
+        """Show details card of the selected amplicon."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"

@@ -17,11 +17,11 @@
 
 import logging
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import flet as ft
 
-from amplifyp.dimer import PrimerDimerGenerator
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
@@ -30,9 +30,6 @@ from amplifyp.gui.util import clean_sequence, show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from amplifyp.dimer import PrimerDimer
 
 
 class DimerView(ft.Column):  # type: ignore[misc]
@@ -110,11 +107,11 @@ class DimerView(ft.Column):  # type: ignore[misc]
                     self.result_list.controls.append(
                         ft.Container(
                             content=ft.Text(
-                                f"Warning: {num_dimers} primer dimers "
-                                "detected. Only the top "
-                                f"{MAX_DIMERS_RENDER} strongest binding "
-                                "dimers are displayed to prevent "
-                                "UI freeze.",
+                                f"Warning: {num_dimers} primer "
+                                "dimers detected. Only the top "
+                                f"{MAX_DIMERS_RENDER} strongest "
+                                "binding dimers are displayed to "
+                                "prevent UI freeze.",
                                 color=GUIColours.ERROR_RED,
                                 weight=ft.FontWeight.BOLD,
                             ),

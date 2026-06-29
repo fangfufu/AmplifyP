@@ -87,6 +87,7 @@ class GUIController:
         self.notification_helper: NotificationHelper = cast(
             NotificationHelper, None
         )
+        self.input_view_dirty = False
 
     def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
@@ -397,34 +398,46 @@ class GUIController:
     ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
-        self.input_view.update_ui()
-        self.settings_view.update_ui()
-        if self.pcr_view.diagram_panel.diagram_container.visible:
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
+            self.settings_view.update_ui()
+
+        if active_view == self.pcr_view:
             self.pcr_view.run_pcr(keep_cards=True)
-        if len(self.dimers_view.result_list.controls) > 0:
+        elif active_view == self.dimers_view:
             self.dimers_view.run_analysis()
         self.page.update()
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
-        """Handle PCR click: run PCR and switch view if successful."""
-        if self.pcr_view.run_pcr():
-            self.switch_view(e, self.pcr_view)
-            if self.pcr_button_ref.current:
-                self.pcr_button_ref.current.text = "PCR"
-            if self.visible_pcr_button_ref.current:
-                self.visible_pcr_button_ref.current.text = "PCR"
-            self.page.update()
+        """Handle PCR click: switch view then run PCR.
+
+        The view is switched first so the diagram canvas renders
+        while the PCR view is the active content.  This avoids
+        Flet's diff algorithm marking canvas shapes as 'already
+        sent' before the view becomes visible.
+        """
+        self.update_pcr_button_state(sync=True)
+        self.switch_view(e, self.pcr_view)
+        if not self.pcr_view.run_pcr():
+            self.switch_view(e, self.input_view)
 
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
-        """Handle dimers click: run analysis and switch view if successful."""
-        if self.dimers_view.run_analysis():
-            self.switch_view(e, self.dimers_view)
-            self.page.update()
+        """Handle dimers click: switch view then run analysis."""
+        self.update_pcr_button_state(sync=True)
+        self.switch_view(e, self.dimers_view)
+        if not self.dimers_view.run_analysis():
+            self.switch_view(e, self.input_view)
 
     def update_pcr_button_state(self, sync: bool = True) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
         if sync:
             self.input_view.sync_to_state()
+
         has_template = bool(self.input_data.template.strip())
         active_primers = self.input_data.get_active_primers()
         has_enough_primers = len(active_primers) >= 1
@@ -486,7 +499,10 @@ class GUIController:
         active_view = self.view_container.content
         if active_view == self.input_view:
             self.input_view.update_ui()
-        elif active_view == self.settings_view:
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
             self.settings_view.update_ui()
 
         self.update_pcr_button_state()
@@ -615,13 +631,15 @@ class GUIController:
             _e: The event that triggered the view switch (unused).
             view: The Flet control to display as the new view.
         """
+        if view == self.input_view and self.input_view_dirty:
+            self.input_view.update_ui()
+            self.input_view_dirty = False
+
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
         self.visible_load_btn_control.visible = is_input
         self.visible_header_divider.visible = is_input
-        if hasattr(view, "update_ui"):
-            view.update_ui()
 
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
@@ -629,9 +647,6 @@ class GUIController:
             self.page.on_resize = self.pcr_view._handle_resize
         else:
             self.page.on_resize = None
-
-        if hasattr(view, "update_ui"):
-            view.update_ui()
 
         self.page.update()
 

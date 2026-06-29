@@ -1,0 +1,692 @@
+input:
+  template: |-
+    CATGATGAAATAACATAAGGTGGTCCCGTCGAAAGCCGAAGCGCAGAGCTGTCATACTCGAAGGCAGCAGCGACCTTCAT
+    CTCGTCGAAAGCGAGTACGCAAAGCTTGTCGGCGTCATCAACTCCATCACTGTCCATTAGGTCTATGACCACATCCAAAC
+    ATCCTCTTTTTATGTCCACATCTGATAACCATCTGTACAAAGTCGTACGACTGGGCAAAGGAAATCCTTTTTTGTACAGA
+    TGGTTATACGCTCGAGGGCCTGCGGTGTGGAGACAAATAGCTGTAGAAATGTCGTCGGAATTGAACGTAGCTCTTTGTCC
+    ACCATTCTTCAGTATCCGTATCTGCGTGTCCGTGAAGATTTTGCGTAGAGACTCCTCCAACTGTTGAGACTCCCTCAGCT
+    GCTGCTCTAAACGACGCATTTCGTACTCCAAAGTACGAATTTTTTCCCTCAAGCTCTTATTTTCATTAAACAATGAACAG
+    GACCTAACGCACAGTCACGTTATTGTTTACATAAATGATTTTTTTTACTATTCAAACTTACTCTGTTTGTGTACTCCCAC
+    TGGTATAGCCTTCTTTTATCTTTTCTGGTTCAGGCTCTATCACTTTACTAGGTACGGCATCTGCGTTGAGTCGCCTCCTT
+    TTAAATGTCTGACCTTTTGCAGGTGCAGCCTTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACC
+    AAGGCTGCACCCAAGGCTCTGCTCCCACAATTTTCTCTTAATAGCACACTTCGGCACGTGAATTAATTTTACTTTTTTNT
+    TCCAGTCACAGCTTTGCAGCTAAAATTTGCAATATTTCATTTTTTTTTATTCCACGTAAGGGTTAATGTTTTCAAAAAAA
+    AATTCGTCCGCACACAACCTTTCCTCTCAACAAGCAAACGTGCACTGAATTTAAGTGTATACTTCGGTAATGATATTGTT
+    TACGAGCCAAGCGACTATGTCCAACTGGCTATTGTTCGTGGTCTAAAAAAATCGTGGAAGCAGCCAGTTTTTTTCGATTT
+    TAATACCCGAATGGACCCGGATACTCTTAACAATATATTAAGGAAACTGCATAGGAAAGGATATTTAGTAGTTGCTATTG
+    TATCCGATTTAGGTACCGGAAACCAAAAGCTATGGACAGAGCTCGGTATATCAGAATGTAAGTTTCGTATATTACAAAAA
+    TCAGATAATCCTTGAAATTCCATTTTTTAGCAAAAACCTGGTTTAGCCATCCTGCAGATGACCATTTAAAGATTTTCGTT
+    TTTTCGGATACGCCACATTTAATTAAGTTAGTCCGTAACCACTATGTGGATTCCGGATTAACAATAAATGGGAAAAAATT
+    AACAAAAAAAACAATTCAGGAGGCACTTCATCTTTGCAACAAGTCCGATCTGTCTATCCTCTTTAAAATTAATGAAAATC
+    ACATTAATGTTCGATCGCTCGCAAAACAGAAGGTTAAATTGGCTACCCAGCTGTTTTCGAATACCACCGCTAGCTCGATC
+    AGACGCTGCTATTCATTGGGGTATGACATTGAAAATGCCACCGAAACTGCGGACTTCTTCAAATTGATGAATGATTGGTT
+    CGACATTTTTAATTCTAAATTGTCCACATCCAATTGCATTGAGTGCTCGCAACCTTATGGCAAGCAGTTGGATATACAGA
+    ATGATATTTTGAATCGAATGTCGGAAATTATGCGAACAGGAATTCTGGATAAACCCAAAAGGCTCCCATTTCAAAAAGGT
+    ATCATTGTGAATAATGCTTCGCTTGATGGCTTGTATAAATATTTGCAAGAAAACTTCAGTATGCAATACATATTAACAAG
+    CCGTCTCAACCAAGACATTGTGGAGCATTTTTTTGGCAGCATGCGATCGAGAGGTGGACAATTCGACCATCCCACTCCAC
+    TGCAGTTTAAGTATAGGTTAAGAAAATATATAATAGGTATGACAAATTTAAAAGAATGCGTAAACAAAAATGTAATTCCA
+    TGATTTATAATTGTTTAATGTTTAGCTATATGTTTCAGGAAAGTTTCAGTTGAGAATGTAGGTAGTTATGTGCTGTCTAT
+    TGTGTTTTGTCTTTTATCTGTTTCTTTTCATTTTATTATTTAATCATTATCCTTTTGCTTATCCAGCCAGGAATACAGAA
+    ATGTTAAGAAATTCGGGAAATATCGAAGAGGACAACTCTGAAAGCTGGCTTAATTTAGATTTCAGTTCTAAAGAAAACGA
+    AAATAAAAGTAAAGATGATGAGCCTGTCGATGATGAGCCTGTCGATGAGATGTTAAGCAATATAGATTTCACCGAAATGG
+    ATGAGTTGACGGAGGATGCGATGGAATATATCGCGGGCTATGTCATTAAAAAATTGAGAATCAGTGACAAAGTAAAAGAA
+    AAAAGAGACATCCACTTAACGTATGCTTGCAATAAGTGCGAGTGAAAGGAATAGTATTCTGAGTGTCGTATTGAGTCTGA
+    GTGAGACAGCGATATGATTGTTGATTAACCCTTAGCATGTCCGTGGGGTTTGAATTAACTCATAATATTAATTAGACGAA
+    ATTATTTTTAAAGTTTTATTTTTAATAATTTGGAGTTTCCAATTAACTTTTGTTTTTGATTTTTAATTTCAATTTTTTTG
+    TTGAAGTACTTAATTCTAAAATATATTCTAATTTTAAAATAAAAAGATTTTACTTGTTTATCAACATCGACGTTTCGCGC
+    TGCTAATATTAATTTTTCCTTTACATTATTTGTAATTTCAAAATTATTATTATTTGTATAATGCAAAAAAATACATTCTA
+    GCTCTTTTAACTTCTCTTGAAATTTTTCGGACGGCTTAATAAGTCCGCCGTGAGACACCTCGTCGACGTATGTAAATGTC
+    AAAGCCGACGGGACCACCTTATGTTATTTCATCATG
+  template_circular: false
+  primers:
+  - name: sn-hot
+    seq: TTCATTCCcactggagCATG
+    active: true
+  - name: anch-2
+    seq: GATCGTAGCGTCACAAGTACCGAT
+    active: true
+  - name: sn-1000
+    seq: AGCAGAGCGCGCGCTGCTAG
+    active: true
+  - name: anch-1
+    seq: ATCGGTACTTGTGACGCTAC
+    active: true
+  - name: sn+6450
+    seq: TTTCAACGATATGCACGATG
+    active: true
+  - name: sn+3900>
+    seq: CAATGGCCCGCGTTGACTTC
+    active: true
+  - name: Nest-a
+    seq: acataaggtggtccCATG
+    active: true
+  - name: '2554'
+    seq: GCAGCGCGAAACGTCGATGT
+    active: true
+  - name: '293'
+    seq: GTGGGTATCACAAATTTGGG
+    active: true
+  - name: 11bp
+    seq: ATTAACCCTTA
+    active: true
+  - name: yellow
+    seq: GCCAAAGTGTGTTGGC
+    active: true
+  - name: '757'
+    seq: GGATTTCCTTTGCCCAGTCG
+    active: true
+  - name: '776'
+    seq: CGACTGGGCAAAGGAAATCC
+    active: true
+  - name: D50-rit
+    seq: CAGATGTGGACATAAAAAGACAAT
+    active: true
+  - name: D50-lft
+    seq: TTTCCTTTACATTATTGTCT
+    active: true
+  - name: sn+4000
+    seq: AACACACCCGCCGGTCCAAG
+    active: true
+  - name: '2816'
+    seq: GAGTGTCGTATTGAGTCTGAG
+    active: true
+  - name: '90'
+    seq: GAAAGGTTGTGTGCGGACGA
+    active: true
+  - name: D2-3
+    seq: CATTTCTGTATTCCTGGCTA
+    active: true
+  - name: 108 (a.k.a. 3312)
+    seq: CGTCCGCACACAACCTTTCC
+    active: true
+  - name: '171'
+    seq: TGCTGCAAAGCTGTGACTGG
+    active: true
+  - name: '1471'
+    seq: TGGCTACCCAGCTGTTTTCG
+    active: true
+  - name: '1514'
+    seq: TCTGATCGAGCTAGCGGTGG
+    active: true
+  - name: '1054'
+    seq: TATCCGGGTCCATTCGGGTA
+    active: true
+  - name: 2785 (a.k.a. 3313)
+    seq: TCGCTGTCTCACTCAGACTC
+    active: true
+  - name: whitetowardP3
+    seq: GTCGGCTACTCCTTGCGTCG
+    active: true
+  - name: '763'
+    seq: CCTTTGCCCAGTCGTACGAC
+    active: true
+  - name: '1627'
+    seq: GCATTGAGTGCTCGCAACCT
+    active: true
+  - name: '1569'
+    seq: AGAAGTCCGCAGTTTCGGTG
+    active: true
+  - name: '35'
+    seq: GCCGAAGCTTACCGAAGTAT
+    active: true
+  - name: '2857'
+    seq: CGTATGCTTGCAATAAGTGC
+    active: true
+  - name: lacZ
+    seq: GCTGCAAGGCGATTAAGTTG
+    active: true
+  - name: w11<-30
+    seq: CGCAGTCGGCTGATCTGTGT
+    active: true
+  - name: KP
+    seq: ATCAACATCGACGTTTCCAC
+    active: true
+  - name: hobo3
+    seq: GGGGATCCTTGTGGGTATACCGTT
+    active: true
+  - name: hobo4
+    seq: GGGGATCCAGTTACTGGCTTTGGG
+    active: true
+  - name: G6A
+    seq: CTTCGGTTCCGCTCGCTTCG
+    active: true
+  - name: P188
+    seq: CTCAGCTGTGACGGAGTCACAGCTTTGCAGCA
+    active: true
+  - name: P2735
+    seq: CCGTCACAGCTGAGTTAATTCAAACCCCACG
+    active: true
+  - name: 17C-1
+    seq: CTGGATCCCAATCCGCATCGAA
+    active: true
+  - name: 17C-4490
+    seq: CTGGATCCCCACCGATCACTGTTC
+    active: true
+  - name: whitetowardP5
+    seq: GGTCATCCTGGAGACGC
+    active: true
+  - name: '414'
+    seq: GGCTATACCAGTGGGAGTAC
+    active: true
+  - name: '594'
+    seq: CTCCCTCAGCTGCTGCTCTA
+    active: true
+  - name: '954'
+    seq: CGAGCCAAGCGACTATGTCC
+    active: true
+  - name: '1864'
+    seq: TTGGCAGCATGCGATCGAGA
+    active: true
+  - name: '1918'
+    seq: AACTGCAGTGGAGTGGGATG
+    active: true
+  - name: '2316'
+    seq: GTTGACGGAGGATGCGATGG
+    active: true
+  - name: '2449'
+    seq: CGGACGGCTTAATAAGTCCG
+    active: true
+  - name: '2767'
+    seq: CCTTAGCATGTCCGTGGGGT
+    active: true
+  - name: '12'
+    seq: AACATAAGGTGGTCCCGTCG
+    active: true
+  - name: white1562->1582
+    seq: GGCAAAACGATTGCCGAATTG
+    active: true
+  - name: P-out
+    seq: CCTTATGTTATTTCATCAT
+    active: true
+  - name: T32
+    seq: ACATAAGGTGGTCCCGTCGT
+    active: true
+  - name: J75only
+    seq: ATGTTTAGCTATAGGTGAGG
+    active: true
+  - name: 589 T7 Pro
+    seq: GGTACCTAATACGACTCACTATAGGGAGTCTCAACAG
+    active: true
+  - name: KP6D
+    seq: GACTGCGGCTGTACAAATGC
+    active: true
+  - name: TR1H
+    seq: CGGCCGAATTCGACCG
+    active: true
+  - name: HR1T
+    seq: CGGTCGAATTCGGCCG
+    active: true
+  - name: to detect 45-bp Y/Z junction
+    seq: AGTCCCATATTCCGTGCTGC
+    active: true
+  - name: HP6.1
+    seq: AGCTTTGCGTACTCGCAAAT
+    active: true
+  - name: sn-2450
+    seq: AAGCTTTCCAGCTGCCCTTC
+    active: true
+  - name: sn+2000
+    seq: AATACTCTACCGAGTCGCAG
+    active: true
+  - name: sn+1000
+    seq: CTGGAAGTAGAGATGGTCGC
+    active: true
+  - name: Nest-b
+    seq: TCGACGggaccaccCATG
+    active: true
+  - name: Nest-c
+    seq: TGTTATTTCATCATGggacc
+    active: true
+  - name: Nest-d
+    seq: TGTTATTTCATCATGggtgg
+    active: true
+  - name: BC+
+    seq: AGCCCACCTCCGGACTGGAC
+    active: true
+  - name: '2948'
+    seq: ATGCCTGGCACAATATGGAC
+    active: true
+  - name: A-
+    seq: catattgtgccaggcatagg
+    active: true
+  - name: A88.1bp
+    seq: CATGATGAAATAACATATGATG
+    active: true
+  - name: '2949'
+    seq: CTTGCCTTTCGgTCGCCGCA
+    active: true
+  - name: '4488'
+    seq: CTGCGGCGAcCGAAAGGCAA
+    active: true
+  - name: B41.1bp
+    seq: CATGATGAAATAACTCTT
+    active: true
+  - name: B42.1bp
+    seq: CTACGTGGGTCTGGCCCAAG
+    active: true
+  - name: B7.1bp
+    seq: GGCCCATGATGAAATATTGT
+    active: true
+  - name: BC-
+    seq: AGGTGTTCCCTGGCCGTTAG
+    active: true
+  - name: BCD
+    seq: AGGTGTTGGCCGTTGTGCCC
+    active: true
+  - name: to add Bgl site
+    seq: ACGTaGaTCTGGCCATTCTC
+    active: true
+  - name: BglG
+    seq: GGCCAGATCTACGTAGTCC
+    active: true
+  - name: bif16
+    seq: ataaccatctatacaa
+    active: true
+  - name: BPd
+    seq: GGATATTTAGTAGTTGcCCAC
+    active: true
+  - name: BPg
+    seq: TTAGCATGTCCGTGGgCAAC
+    active: true
+  - name: '4489'
+    seq: CTGTGGCGgTCCTGGCTGTC
+    active: true
+  - name: '4490'
+    seq: ACAGCCAGGAcCGCCACAGG
+    active: true
+  - name: CaS Rt
+    seq: CGCAGCGGCGAAAGAGACGG
+    active: true
+  - name: CasRt2
+    seq: AAGAGATAGCGGACGCAGCG
+    active: true
+  - name: CasRt3
+    seq: ACTAGAATTCGAGCTCGCCC
+    active: true
+  - name: w1not
+    seq: TGGGTGTTTGCTGCCTCCGC
+    active: true
+  - name: cd-
+    seq: TAAAGTCGACTTCGGGCCTC
+    active: true
+  - name: cd2+
+    seq: TGCAGATGGTTGCCATCTTG
+    active: true
+  - name: cd2-
+    seq: TCAAGATGGCAACCATCTGC
+    active: true
+  - name: '2950'
+    seq: GATGATtGGACTGCGGGCCG
+    active: true
+  - name: '2951'
+    seq: CCGCAGTCCaATCATCGGAT
+    active: true
+  - name: D0-50C
+    seq: GCAAACGCAAACTCAATCGC
+    active: true
+  - name: D1-50C
+    seq: AATCACAGCTCCCTTGGTGC
+    active: true
+  - name: D2-
+    seq: AGTCCAATCATCGGATAGGC
+    active: true
+  - name: D2-50C
+    seq: ACGTCGTTGGTTCTCGTTGC
+    active: true
+  - name: D2a
+    seq: CTCCTCCTCCTGGCACTTGT
+    active: true
+  - name: D2b
+    seq: TCTATATATTGCGCTCTGCAC
+    active: true
+  - name: D3-50C
+    seq: GTAGGCCAACCAATTTGGAG
+    active: true
+  - name: D4-50C
+    seq: CTGACTGTTGGCGATAAGAA
+    active: true
+  - name: D4a-50C
+    seq: GACGCTTGGCACGGAACTATTCA
+    active: true
+  - name: D4d-50C
+    seq: AGACGACACTAGGGGCGCAT
+    active: true
+  - name: 50C 5 outward
+    seq: CTAACGAGCAAAATCACTGC
+    active: true
+  - name: DEG
+    seq: CCATTTGAGGTATACTGGCACCG
+    active: true
+  - name: ordered 18 January 1994
+    seq: TTAAATCGGCTGCCATGTGC
+    active: true
+  - name: DL6
+    seq: AAGAGAGAATGCTTTAGTCG
+    active: true
+  - name: DL7
+    seq: ACCGATGGAAGCTGAGCGTG
+    active: true
+  - name: DL8
+    seq: TCAAGAGCATCAGCATCGAC
+    active: true
+  - name: DocD1
+    seq: TGCTATTCTTCACATCTGCC
+    active: true
+  - name: docD2
+    seq: TGCCTGTTGTTCAACGCAAT
+    active: true
+  - name: DocG
+    seq: TTAAGTACTACCTGTAGCCC
+    active: true
+  - name: '2952'
+    seq: GTCTGCTGATCAACCAATGG
+    active: true
+  - name: '2955'
+    seq: CCATTGGTTgATCAGCAGAC
+    active: true
+  - name: ECO+
+    seq: TCCGGGTCCTCGCATATCTG
+    active: true
+  - name: ECO-
+    seq: GATATGCGAGGACCCGGAAG
+    active: true
+  - name: ef+
+    seq: GGTTGTCGTACCTCTCATGG
+    active: true
+  - name: '4491'
+    seq: ACGTGGGTCTaGCCATTCTCATCGTGAGCTTCCGGGTaCTCGCATATCT
+    active: true
+  - name: '4492'
+    seq: ATGAGAATGGCtAGACCCACGTAGTCCAGCGGCAGgTCGGCGGCGGAGA
+    active: true
+  - name: ordered 14 February 1994
+    seq: ACGTGGGTCTaGCCATTCTC
+    active: true
+  - name: F6o-
+    seq: GAATGGCtAGACCCACGTAGTCC
+    active: true
+  - name: fg-
+    seq: AAACACGATGGTAATAATGG
+    active: true
+  - name: '4493'
+    seq: GCCGACATAgATCCGAAATAACTG
+    active: true
+  - name: '2953'
+    seq: CAGTTATTTCGGATcTATGTCGGC
+    active: true
+  - name: G0-50C
+    seq: GCCATCCTCCAAATTGGTTG
+    active: true
+  - name: G1-50C
+    seq: TCATTTTGCTGCAAGTCTCG
+    active: true
+  - name: G2-50C
+    seq: ATTTCGATTTCGGCGATACG
+    active: true
+  - name: G3-50C
+    seq: TTCTTATCGCCAACAGTCAG
+    active: true
+  - name: G3a
+    seq: ATTTGAATAGCTCGCCTGAA
+    active: true
+  - name: G4-50C
+    seq: CTATTGCTAGACTCAGATTGC
+    active: true
+  - name: G4a-50C
+    seq: TTCGTAACAGACATGGTTTTG
+    active: true
+  - name: gh+
+    seq: GACTTACACACCTGCATACC
+    active: true
+  - name: GHG
+    seq: AGGTATGCAGGTGTGTAAGTC
+    active: true
+  - name: 50C 1 outward
+    seq: GCACCAAGGGAGCTGTGATT
+    active: true
+  - name: '2954'
+    seq: CTCGTTTATCGgTACATAAAACAC
+    active: true
+  - name: '2958'
+    seq: GTGTTTTATGTAcCGATAAACGAG
+    active: true
+  - name: for making w-hdf
+    seq: GCATGGTCTGGCCATTCTCATC
+    active: true
+  - name: hdfG
+    seq: GAGAATGGCCAGACCATGCATGGGCCAGACCCACGTAGTCCA
+    active: true
+  - name: Hi+
+    seq: TTTTTTGTGACCTGTTCGGAGTGA
+    active: true
+  - name: HID
+    seq: GCGACTGTCGTTAGTTCCGC
+    active: true
+  - name: hobo0
+    seq: GGGGATCCACCCGATAAACACTCGG
+    active: true
+  - name: hobo1
+    seq: GGGGATCCAGAGAACTGCAAGGG
+    active: true
+  - name: hobo2
+    seq: GGGGATCCAGAGAACTGCAGCCCGCCAC
+    active: true
+  - name: hobo6
+    seq: GGGGATCCAGAGAACTGCAGCCCG
+    active: true
+  - name: weak 17C match
+    seq: CCTGAAGATGTGCTGCGGGTGG
+    active: true
+  - name: hobo9
+    seq: GACAAAGAGTTCCATTGTCTC
+    active: true
+  - name: g20138.1c but not g112.1a
+    seq: CGACAGTCGCTCCAAGGCAT
+    active: true
+  - name: '4496'
+    seq: GGTTGGCGCGaTCTCGCGCTCT
+    active: true
+  - name: '4409'
+    seq: CGAGAtCGCGCCAACCAAGTAGCGATAGAT
+    active: true
+  - name: IG
+    seq: CGCGCCAACCAAGTAGCGATAG
+    active: true
+  - name: insert with NdeI
+    seq: CATGATGAAATAACATAtgTAGGGATAACAGGGTAATTATGTTATTTCATCATG
+    active: true
+  - name: ordered 8 September 1997
+    seq: tgTAGGGATAACAGGGTAATTATGTTATTTCATCATG
+    active: true
+  - name: isecI18
+    seq: TAGGGATAACAGGGTAAT
+    active: true
+  - name: '2957'
+    seq: TTACGAATTCAGGACCTATTTCCGCTGCAC
+    active: true
+  - name: J+2
+    seq: AGTGCAGCGGAAATAGGACC
+    active: true
+  - name: J-D
+    seq: GTGCAGCGGAAATAGGACCTAAC
+    active: true
+  - name: J-plus
+    seq: GTGCAGCGGAAATAGTTAATAAC
+    active: true
+  - name: jockey1
+    seq: GGATTAAAAATCTGTTAGTC
+    active: true
+  - name: jockey2
+    seq: TAGGTCAAAACCAGGTTAGG
+    active: true
+  - name: Jockey3
+    seq: TAGGGAGGTCATGAGGGTGG
+    active: true
+  - name: jockeyD
+    seq: TCTACTCTTACAACCCTTTG
+    active: true
+  - name: JockeyG
+    seq: ctagcttccttgctaggctg
+    active: true
+  - name: kimer
+    seq: CCCCAGTTCGGGCAAGGTCATCCTG
+    active: true
+  - name: left end
+    seq: ACCTTATGTTATTTCATCAT
+    active: true
+  - name: mam-Da
+    seq: GCATCAGCAACACTTGGGCCTC
+    active: true
+  - name: mam-Db
+    seq: CAGCAGCAGCAGATCCAAGTTC
+    active: true
+  - name: mam-Dc
+    seq: CGTCGATCTCAAGCGTCTGC
+    active: true
+  - name: mam-GA
+    seq: GTGGGTACCGCTCCTGGATTTGTAG
+    active: true
+  - name: mam-Gc
+    seq: GGAAGTTGGCCGCCGCATTG
+    active: true
+  - name: middle
+    seq: TGGGTTTATCCAGAATTCC
+    active: true
+  - name: Nest-a3
+    seq: gaaataacataaggtggtccCAT
+    active: true
+  - name: Nest-a6
+    seq: acataaggtggtccCATGat
+    active: true
+  - name: Nest-b3
+    seq: CGGCTTTCGACGggaccaccCAT
+    active: true
+  - name: Nest-b6
+    seq: TCGACGggaccaccCATGat
+    active: true
+  - name: out
+    seq: TGCAAGCATACGTTAAGTGG
+    active: true
+  - name: Afl II
+    seq: CGTGGGTCTtaagCATGATGAAATAACATAAGGTGGTCCCGTCGAAAGC
+    active: true
+  - name: P-out3
+    seq: CGGGACCACCTTATGTTATTTCATC
+    active: true
+  - name: P19
+    seq: CATGATGAAATAACATAAG
+    active: true
+  - name: P2573G
+    seq: ACATCGACGTTTCGCGCTGC
+    active: true
+  - name: PoutD-50C
+    seq: TATGTTATTTCATCATGgccc
+    active: true
+  - name: puc19D
+    seq: GTAAAACGACGGCCAGT
+    active: true
+  - name: adds BamHI site
+    seq: GCGCGGATCCAAGCTTGCATGCCTGC
+    active: true
+  - name: right end
+    seq: TGATGAAATAACATAA
+    active: true
+  - name: ry1
+    seq: TCTCCCTTTGGGTGCCCTCAT
+    active: true
+  - name: ordered 20 April 1998
+    seq: CATGATGAAATAACATAtgTAGGGATAACAGGGTAAT
+    active: true
+  - name: singed
+    seq: TTcacgattcgagattactG
+    active: true
+  - name: t'ase
+    seq: ATMCACTTAA
+    active: true
+  - name: T33
+    seq: CATAAGGTGGTCCCGTCGAT
+    active: true
+  - name: tigA
+    seq: TGAAGGCATTAGCTCTCCAC
+    active: true
+  - name: 15 November 1996
+    seq: ACATGTGGATGTCGTTGCGA
+    active: true
+  - name: tigD
+    seq: GCAGCTCCCTAACAGCCATC
+    active: true
+  - name: U1aD
+    seq: GGGTCTTTCTGCTTCAGTTACC
+    active: true
+  - name: U1aG
+    seq: GGAATACACGAATCCCCCTT
+    active: true
+  - name: Eco RI
+    seq: AgttAACAgAAttCACACTGCCCACACGCACAC
+    active: true
+  - name: w-1D
+    seq: CTGCACTGGACATCATTG
+    active: true
+  - name: w-1D20
+    seq: AGTCAGCGCTGTTTGCCTCC
+    active: true
+  - name: w-1G
+    seq: GTTAGTTGTGCAAACTGCAC
+    active: true
+  - name: w-exn1
+    seq: CATCTGCCGAGCATCTGAAC
+    active: true
+  - name: w-int1
+    seq: GATTAGCCAGGCTGGGCTAG
+    active: true
+  - name: wallyD
+    seq: TACGCAATTTTCTTGAGCGG
+    active: true
+  - name: wallyG
+    seq: TTAATAGTCGAGGATCCTGC
+    active: true
+  - name: whd+
+    seq: CTACGTGGGTCTGGCCCATGA
+    active: true
+  - name: whd-
+    seq: ATGAGAATGGCCAGACCATGA
+    active: true
+  - name: white intron G
+    seq: GGTCGATGTATAACGTAGTG
+    active: true
+  - name: from GG 18 November 1993
+    seq: CAACACAACTTATGCCGCGT
+    active: true
+  - name: Y/Z
+    seq: tttcagctttccgcaacagtaTaa
+    active: true
+  - name: YD1
+    seq: GCGAATTCGGAGATACGAGC
+    active: true
+  - name: yD2
+    seq: ATATGTTCTTAAGCAGTCCG
+    active: true
+  - name: yD3
+    seq: ATGCATTCTATGCACGAGCC
+    active: true
+  - name: yD4
+    seq: CGATCGCATCATTAGTTGCG
+    active: true
+  - name: yG1
+    seq: ATTACCGGCAATGCTGCTCG
+    active: true
+  - name: yG2
+    seq: CTTTACATGAGGGTGCTCTC
+    active: true
+  - name: yG3
+    seq: TATCGATTTACCGACCCATC
+    active: true
+  - name: yz1
+    seq: ccctggttttggttttgtagagt
+    active: true
+  - name: yz2
+    seq: actctacaaaaccaaaaccaggg
+    active: true
+  - name: ''
+    seq: ''
+    active: false

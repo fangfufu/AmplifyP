@@ -120,7 +120,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         Clears all shapes, hides the diagram container and divider,
         and resets the stack to contain only the canvas.
         """
-        self.diagram_canvas.shapes.clear()
+        self.diagram_canvas.shapes = []
         self.diagram_stack.controls.clear()
         self.diagram_stack.controls.append(self.diagram_canvas)
         self.diagram_container.visible = False
@@ -200,6 +200,10 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             amplicons=amplicons,
             v_frag_start=v_frag_start,
         )
+
+        # Force a new list reference for canvas shapes to trigger
+        # Flet change detection
+        self.diagram_canvas.shapes = list(self.diagram_canvas.shapes)
 
     def _draw_template_baseline(
         self,
