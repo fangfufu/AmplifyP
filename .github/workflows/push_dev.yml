@@ -21,12 +21,12 @@ jobs:
           python-version: '3.13'
       - name: Install dependencies
         run: |
-          pip install .[dev,e2e] pre-commit
+          pip install .[dev,e2e] prek
       - name: Run pre-commit checks
         env:
           SKIP: pytest
         run: |
-          pre-commit run --all-files --show-diff-on-failure
+          prek run --all-files --show-diff-on-failure
       - name: Run unit tests
         run: |
           pytest -v --cov=src/amplifyp --cov-report=xml

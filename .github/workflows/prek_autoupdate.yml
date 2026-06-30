@@ -1,0 +1,50 @@
+name: Prek Auto-update Hooks
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Mondays at 00:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  auto-update:
+    name: Auto-update prek hooks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install prek
+        run: |
+          pip install prek
+      - name: Run prek auto-update
+        run: |
+          prek auto-update
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain prek.toml)" ]; then
+            git checkout -b prek-autoupdate
+            git add prek.toml
+            git commit -m "chore: update prek hooks"
+            git push origin prek-autoupdate --force
+
+            if gh pr list --head prek-autoupdate --state open --json number | grep -q '"number"'; then
+              echo "Pull request already exists."
+            else
+              gh pr create \
+                --title "chore: update prek hooks" \
+                --body "This PR automatically updates the versions of configured \`prek\` hooks in \`prek.toml\`." \
+                --base dev \
+                --head prek-autoupdate
+            fi
+          else
+            echo "No updates available."
+          fi

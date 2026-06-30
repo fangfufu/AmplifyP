@@ -25,7 +25,7 @@ jobs:
           python-version: '3.13'
       - name: Install dependencies
         run: |
-          pip install .[dev,e2e] pre-commit
+          pip install .[dev,e2e] prek
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -108,17 +108,15 @@ jobs:
           pattern: amplifyp-*
           merge-multiple: true
       - name: Create Pre-release
-        uses: softprops/action-gh-release@v3
-        with:
-          prerelease: true
-          tag_name: >-
-            ${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}
-          name: >-
-            Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})
-          files: |
-            amplifyp-linux.tar.gz
-            amplifyp-macos.dmg
-            amplifyp-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}" \
+            --prerelease \
+            --title "Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})" \
+            amplifyp-linux.tar.gz \
+            amplifyp-macos.dmg \
+            amplifyp-windows.zip \
             amplifyp-web.tar.gz
   deploy:
     name: Deploy to GitHub Pages
