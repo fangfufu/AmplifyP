@@ -25,7 +25,7 @@ jobs:
           python-version: '3.13'
       - name: Install dependencies
         run: |
-          pip install .[dev,e2e] pre-commit
+          pip install .[dev,e2e] prek
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
         run: |
