@@ -26,7 +26,8 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import NotificationHelper
 
 from .primer_action_controller import PrimerActionController
 from .primer_file_manager import PrimerFileManager
@@ -36,7 +37,11 @@ from .primer_layout_manager import PrimerLayoutManager
 from .primer_list import PrimerList
 from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
-from .primer_validation import validate_primers
+from .primer_validation import (
+    get_duplicate_primer_indices,
+    reconcile_primer_states,
+    validate_primers,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -278,51 +283,17 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             ui_primers = self.input_data.primers
         else:
             ui_primers = self._extract_primer_data_from_ui()
-        primers = []
-        for i, p in enumerate(ui_primers):
-            prev_p = (
-                self.input_data.primers[i]
-                if i < len(self.input_data.primers)
-                else {}
-            )
-            # Auto-activate when transitioning from empty to filled
-            is_filled = bool(p["name"].strip() and p["seq"].strip())
-            was_empty = (
-                not prev_p.get("name", "").strip()
-                or not prev_p.get("seq", "").strip()
-            )
-            was_active = prev_p.get("active", False)
-            is_active = p["active"]
 
-            show_empty_errors = prev_p.get("show_empty_errors", False)
-            if is_active and not is_filled:
-                is_active = False
-                show_empty_errors = True
-                checkbox = p.get("checkbox")
-                if checkbox:
-                    checkbox.value = False
-            elif not is_active:
-                show_empty_errors = False
+        primers = reconcile_primer_states(ui_primers, self.input_data.primers)
 
-            if is_filled and was_empty and not was_active:
-                is_active = True
-                show_empty_errors = False
-                checkbox = p.get("checkbox")
-                if checkbox:
-                    checkbox.value = True
+        # Update checkbox values in-place on UI controls if they
+        # were updated during reconciliation.
+        for reconciled_p, ui_p in zip(primers, ui_primers, strict=True):
+            checkbox = ui_p.get("checkbox")
+            if checkbox:
+                checkbox.value = reconciled_p["active"]
 
-            primers.append(
-                {
-                    "name": p["name"],
-                    "seq": p["seq"],
-                    "active": is_active,
-                    "show_empty_errors": show_empty_errors,
-                    "name_touched": prev_p.get("name_touched", False),
-                    "seq_touched": prev_p.get("seq_touched", False),
-                }
-            )
-
-        dup_indices = self._get_duplicate_indices_for_list(ui_primers)
+        dup_indices = get_duplicate_primer_indices(ui_primers)
         for p in ui_primers:
             container = p.get("container")
             if container is None:
@@ -477,44 +448,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if self.app_page:
             self.app_page.update()
 
-    def _get_duplicate_indices_for_list(
-        self, primers: list[dict[str, Any]]
-    ) -> set[int]:
-        """Find and return indices of duplicate primers by name/sequence.
-
-        Args:
-            primers: List of primer dicts to check for duplicates.
-
-        Returns:
-            Set of indices corresponding to primers with duplicate names
-            or sequences.
-        """
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        dup_indices = set()
-        for idx, p in enumerate(primers):
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if (n_lower and names_count.get(n_lower, 0) > 1) or (
-                s_lower and seqs_count.get(s_lower, 0) > 1
-            ):
-                # If the item has a container reference, use container.data,
-                # otherwise use idx
-                c = p.get("container")
-                c_idx = (
-                    c.data if (c is not None and hasattr(c, "data")) else idx
-                )
-                dup_indices.add(c_idx)
-        return dup_indices
-
     def _get_duplicate_indices(self) -> set[int]:
         """Find indices of primers with duplicate names or sequences.
 
@@ -522,7 +455,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             Set of indices corresponding to primers with duplicate names
             or sequences in the central state.
         """
-        return self._get_duplicate_indices_for_list(self.input_data.primers)
+        return get_duplicate_primer_indices(self.input_data.primers)
 
     def _update_row_highlights(self) -> None:
         """Update background colours of all row containers.
@@ -626,39 +559,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._show_notification("Clipboard is empty.")
             return
 
-        parsed = []
-        for line in clipboard_text.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                name = parts[0].strip()
-                seq = parts[1].strip()
-            elif len(parts) == 1:
-                subparts = line.split(",")
-                if len(subparts) >= 2:
-                    name = subparts[0].strip()
-                    seq = subparts[1].strip()
-                else:
-                    val = line.strip()
-                    cleaned = clean_sequence(val)
-                    is_seq = False
-                    if cleaned:
-                        is_seq = all(
-                            c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
-                            for c in cleaned
-                        )
-                    if is_seq:
-                        name = ""
-                        seq = val
-                    else:
-                        name = val
-                        seq = ""
-            else:
-                continue
-            parsed.append({"name": name, "seq": seq, "active": True})
+        from .primer_clipboard import parse_primer_clipboard_text
 
+        parsed = parse_primer_clipboard_text(clipboard_text)
         if not parsed:
             self._show_notification("No valid primers found in clipboard.")
             return

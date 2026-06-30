@@ -506,7 +506,7 @@ def test_controller_load_save_only_affects_input() -> None:
         serialised_yaml = content
 
     with patch(
-        "amplifyp.gui.util.save_and_write_file",
+        "amplifyp.gui.utils.io.save_and_write_file",
         new=AsyncMock(side_effect=mock_save_and_write_file),
     ):
         import asyncio
@@ -539,7 +539,7 @@ settings:
   dark_mode: false
 """
     with patch(
-        "amplifyp.gui.util.pick_and_read_file",
+        "amplifyp.gui.utils.io.pick_and_read_file",
         new=AsyncMock(return_value=test_yaml),
     ):
         asyncio.run(controller.load_state(MagicMock()))

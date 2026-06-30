@@ -20,9 +20,7 @@ import flet as ft
 from amplifyp.dimer import PrimerDimer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.util import (
-    create_overlapped_sequence_view,
-)
+from amplifyp.gui.utils.sequence import create_overlapped_sequence_view
 
 
 class DimerCard(ft.Card):  # type: ignore[misc]

@@ -25,7 +25,7 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
 
 logger = logging.getLogger(__name__)
 

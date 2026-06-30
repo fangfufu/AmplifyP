@@ -19,7 +19,8 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.util import clean_sequence, format_sequence, show_error_dialog
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
+from amplifyp.gui.utils.ui import show_error_dialog
 
 
 def test_clean_sequence() -> None:
@@ -68,7 +69,7 @@ def test_get_version_and_sha() -> None:
     import sys
     from unittest.mock import MagicMock, patch
 
-    from amplifyp.gui.util import get_full_sha, get_git_sha, get_version
+    from amplifyp.gui.utils.git import get_full_sha, get_git_sha, get_version
 
     # Test under mocked 'amplifyp.gui.git_sha' module
     mock_git_sha = MagicMock()
@@ -94,3 +95,74 @@ def test_get_version_and_sha() -> None:
 
     version_str = get_version()
     assert __version__ in version_str
+
+
+def test_git_fallback_to_dot_git() -> None:
+    """Test git utility fallback to reading .git directory directly."""
+    import subprocess
+    import sys
+    from typing import Any
+    from unittest.mock import mock_open, patch
+
+    # Mock subprocess.run to raise SubprocessError.
+    # Mock sys.modules to remove git_sha and js.
+    # Mock os.path.exists and open to simulate .git.
+    with (
+        patch("subprocess.run") as mock_run,
+        patch("os.path.exists") as mock_exists,
+        patch(
+            "builtins.open", mock_open(read_data="ref: refs/heads/main\n")
+        ) as mock_file_open,
+        patch.dict(sys.modules, {"amplifyp.gui.git_sha": None, "js": None}),
+    ):
+        mock_run.side_effect = subprocess.SubprocessError("git failed")
+
+        # Make os.path.exists return True for HEAD and ref file.
+        def exists_side_effect(path: str) -> bool:
+            return ".git" in path or "git-sha" in path
+
+        mock_exists.side_effect = exists_side_effect
+
+        # Let's customize the file contents read
+        file_contents = {
+            "HEAD": "ref: refs/heads/test-branch\n",
+            "test-branch": "a1b2c3d4e5f6g7h8i9j0a1b2c3d4e5f6g7h8i9j0\n",
+        }
+
+        # We can implement a side effect for mock_file_open
+        def open_side_effect(file: Any, *args: Any, **kwargs: Any) -> Any:
+            filename = str(file)
+            for key, val in file_contents.items():
+                if filename.endswith(key):
+                    # Return mock file handle supporting context manager.
+                    mo = mock_open(read_data=val)
+                    return mo.return_value
+            raise FileNotFoundError(f"File not found: {filename}")
+
+        mock_file_open.side_effect = open_side_effect
+
+        from amplifyp.gui.utils.git import get_full_sha, get_git_sha
+
+        # Verify it resolves correctly
+        assert get_git_sha() == "a1b2c3d"
+        assert get_full_sha() == "a1b2c3d4e5f6g7h8i9j0a1b2c3d4e5f6g7h8i9j0"
+
+        # Detached HEAD state
+        file_contents_detached = {
+            "HEAD": "9999999999999999999999999999999999999999\n"
+        }
+
+        def open_side_effect_detached(
+            file: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            filename = str(file)
+            for key, val in file_contents_detached.items():
+                if filename.endswith(key):
+                    mo = mock_open(read_data=val)
+                    return mo.return_value
+            raise FileNotFoundError(f"File not found: {filename}")
+
+        mock_file_open.side_effect = open_side_effect_detached
+
+        assert get_git_sha() == "9999999"
+        assert get_full_sha() == "9999999999999999999999999999999999999999"

@@ -22,12 +22,9 @@ import flet as ft
 import yaml
 
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.util import (
-    NotificationHelper,
-    pick_and_read_file,
-    save_and_write_file,
-    serialise_state,
-)
+from amplifyp.gui.util import serialise_state
+from amplifyp.gui.utils.io import pick_and_read_file, save_and_write_file
+from amplifyp.gui.utils.ui import NotificationHelper
 
 logger = logging.getLogger(__name__)
 

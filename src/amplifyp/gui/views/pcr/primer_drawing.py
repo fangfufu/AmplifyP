@@ -461,7 +461,7 @@ class ReplicationContextCard(DismissibleDetailCard):
         L = len(conf.primer)
         N = len(conf.template)
 
-        from amplifyp.gui.util import create_overlapped_sequence_view
+        from amplifyp.gui.utils.sequence import create_overlapped_sequence_view
 
         top_line, primer_line, bottom_line = format_context_lines(
             primer_name=primer_name,

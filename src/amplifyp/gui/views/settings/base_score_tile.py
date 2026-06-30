@@ -252,7 +252,7 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
         self.on_change_handler = on_change_handler
 
         # Map initialisation (must happen before building ScoreTable)
-        from amplifyp.gui.util import initialise_score_fields
+        from amplifyp.gui.utils.ui import initialise_score_fields
 
         initialise_score_fields(
             settings_map=self.settings_map,

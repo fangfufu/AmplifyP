@@ -25,7 +25,7 @@ import flet as ft
 from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours, tm_colour
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
 
 logger = logging.getLogger(__name__)
 
