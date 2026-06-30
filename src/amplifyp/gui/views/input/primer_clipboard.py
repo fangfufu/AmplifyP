@@ -16,6 +16,7 @@
 """Helper function for parsing primer clipboard text."""
 
 from typing import Any
+
 from amplifyp.gui.util import clean_sequence
 
 
@@ -48,8 +49,7 @@ def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
                 is_seq = False
                 if cleaned:
                     is_seq = all(
-                        c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
-                        for c in cleaned
+                        c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn" for c in cleaned
                     )
                 if is_seq:
                     name = ""

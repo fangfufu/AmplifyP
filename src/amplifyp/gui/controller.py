@@ -26,7 +26,6 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialise_state
-from amplifyp.gui.utils.git import get_version
 from amplifyp.gui.utils.ui import NotificationHelper
 from amplifyp.gui.views import (
     AboutView,
@@ -93,31 +92,7 @@ class GUIController:
 
     def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
-        self.page.overlay.clear()
-        self.page.title = "AmplifyP"
-        self.page.vertical_alignment = ft.MainAxisAlignment.START
-        self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
-        self.page.padding = 0
-        self.page.spacing = 0
-        self.page.window.icon = "/images/icon.png"
-
-        # Handle close / reload warnings
-        if self.page.web:
-            if hasattr(self.page, "run_javascript"):
-                self.page.run_javascript(
-                    """
-                    window.addEventListener('beforeunload', (event) => {
-                        event.preventDefault();
-                        event.returnValue = '';
-                    });
-                    """
-                )
-        else:
-            self.page.window.prevent_close = False
-            if not self.auto_close:
-                self.page.window.prevent_close = True
-                self._confirm_dialog = None
-                self.page.window.on_event = self.on_window_event
+        self._configure_page_and_window()
 
         self.settings.load_from_local(self.page)
         self.page.on_platform_brightness_change = (
@@ -157,208 +132,72 @@ class GUIController:
         # Header controls & routing buttons setup
         self._setup_navigation_controls()
 
+    def _configure_page_and_window(self) -> None:
+        """Set up page properties, window styling, and event handlers."""
+        self.page.overlay.clear()
+        self.page.title = "AmplifyP"
+        self.page.vertical_alignment = ft.MainAxisAlignment.START
+        self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
+        self.page.padding = 0
+        self.page.spacing = 0
+        self.page.window.icon = "/images/icon.png"
+
+        # Handle close / reload warnings
+        if self.page.web:
+            if hasattr(self.page, "run_javascript"):
+                self.page.run_javascript(
+                    """
+                    window.addEventListener('beforeunload', (event) => {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    });
+                    """
+                )
+        else:
+            self.page.window.prevent_close = False
+            if not self.auto_close:
+                self.page.window.prevent_close = True
+                self._confirm_dialog = None
+                self.page.window.on_event = self.on_window_event
+
     def _setup_navigation_controls(self) -> None:
         """Configure navigation controls for the main application window.
 
         Creates and sets up the AppBar buttons and the visible top header
         buttons (Input, PCR, Primer Dimers, Settings, Save, Load).
         """
-        # AppBar buttons (for test compatibility)
-        input_button = ft.FilledButton(
-            "Input",
-            icon=ft.Icons.INPUT,
-            on_click=lambda e: self.switch_view(e, self.input_view),
-            tooltip="Input",
-        )
-        input_button.tooltip = "Input"
+        from amplifyp.gui.views.header import AppHeader
 
-        pcr_button = ft.FilledButton(
-            "PCR",
-            ref=self.pcr_button_ref,
-            on_click=self.on_pcr_click,
-            disabled=True,
-            icon=ft.Icons.ANALYTICS,
-            tooltip="PCR",
+        self.header = AppHeader(
+            settings=self.settings,
+            on_switch_input=lambda e: self.switch_view(e, self.input_view),
+            on_switch_settings=lambda e: self.switch_view(
+                e, self.settings_view
+            ),
+            on_switch_about=lambda e: self.switch_view(e, self.about_view),
+            on_pcr_click=self.on_pcr_click,
+            on_dimers_click=self.on_dimers_click,
+            on_save=self.save_state,
+            on_load=self.load_state,
+            pcr_button_ref=self.pcr_button_ref,
+            dimers_button_ref=self.dimers_button_ref,
+            visible_pcr_button_ref=self.visible_pcr_button_ref,
+            visible_dimers_button_ref=self.visible_dimers_button_ref,
         )
-        pcr_button.tooltip = "PCR"
 
-        dimers_button = ft.FilledButton(
-            "Primer Dimers",
-            ref=self.dimers_button_ref,
-            on_click=self.on_dimers_click,
-            disabled=True,
-            icon=ft.Icons.COMPARE_ARROWS,
-            tooltip="Primer Dimers",
-        )
-        dimers_button.tooltip = "Primer Dimers"
+        # Store aliases for backward compatibility or direct accesses
+        self.visible_save_btn_control = self.header.visible_save_btn_control
+        self.visible_load_btn_control = self.header.visible_load_btn_control
+        self.visible_header_divider = self.header.visible_header_divider
 
-        settings_button = ft.FilledButton(
-            "Settings",
-            icon=ft.Icons.SETTINGS,
-            on_click=lambda e: self.switch_view(e, self.settings_view),
-            tooltip="Settings",
-        )
-        settings_button.tooltip = "Settings"
-
-        about_button = ft.FilledButton(
-            "About",
-            icon=ft.Icons.INFO,
-            on_click=lambda e: self.switch_view(e, self.about_view),
-            tooltip="About",
-        )
-        about_button.tooltip = "About"
-
-        save_btn_control = ft.FilledButton(
-            "Save all",
-            icon=ft.Icons.SAVE,
-            tooltip="Save all",
-            on_click=self.save_state,
-        )
-        save_btn_control.tooltip = "Save all"
-
-        load_btn_control = ft.FilledButton(
-            "Load all",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load all",
-            on_click=self.load_state,
-        )
-        load_btn_control.tooltip = "Load all"
-
+        # Configure page appbar
         self.page.appbar = ft.AppBar(
             visible=False,
-            actions=[
-                input_button,
-                pcr_button,
-                dimers_button,
-                settings_button,
-                about_button,
-                save_btn_control,
-                load_btn_control,
-            ],
-        )
-
-        # Visible navigation controls (Responsive header)
-        visible_input_button = ft.FilledButton(
-            "Input",
-            icon=ft.Icons.INPUT,
-            on_click=lambda e: self.switch_view(e, self.input_view),
-            tooltip="Input",
-        )
-        visible_input_button.tooltip = "Input"
-
-        visible_pcr_button = ft.FilledButton(
-            "PCR",
-            ref=self.visible_pcr_button_ref,
-            on_click=self.on_pcr_click,
-            disabled=True,
-            icon=ft.Icons.ANALYTICS,
-            tooltip="PCR",
-        )
-        visible_pcr_button.tooltip = "PCR"
-
-        visible_dimers_button = ft.FilledButton(
-            "Primer Dimers",
-            ref=self.visible_dimers_button_ref,
-            on_click=self.on_dimers_click,
-            disabled=True,
-            icon=ft.Icons.COMPARE_ARROWS,
-            tooltip="Primer Dimers",
-        )
-        visible_dimers_button.tooltip = "Primer Dimers"
-
-        visible_settings_button = ft.FilledButton(
-            "Settings",
-            icon=ft.Icons.SETTINGS,
-            on_click=lambda e: self.switch_view(e, self.settings_view),
-            tooltip="Settings",
-        )
-        visible_settings_button.tooltip = "Settings"
-
-        visible_about_button = ft.FilledButton(
-            "About",
-            icon=ft.Icons.INFO,
-            on_click=lambda e: self.switch_view(e, self.about_view),
-            tooltip="About",
-        )
-        visible_about_button.tooltip = "About"
-
-        self.visible_save_btn_control = ft.FilledButton(
-            "Save all",
-            icon=ft.Icons.SAVE,
-            tooltip="Save all",
-            on_click=self.save_state,
-        )
-        self.visible_save_btn_control.tooltip = "Save all"
-
-        self.visible_load_btn_control = ft.FilledButton(
-            "Load all",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load all",
-            on_click=self.load_state,
-        )
-        self.visible_load_btn_control.tooltip = "Load all"
-
-        self.visible_header_divider = ft.Container(
-            width=1,
-            height=20,
-            bgcolor=GUIColours.OUTLINE,
-        )
-
-        app_version = get_version()
-        version_text = ft.Text(
-            app_version,
-            size=14,
-            color=GUIColours.TEXT_ON_SURFACE,
-            opacity=0.5,
-            weight=ft.FontWeight.W_400,
-            selectable=True,
+            actions=self.header.appbar_actions,
         )
 
         self.header_container = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Image(
-                                src="/images/favicon.png",
-                                height=32,
-                                fit=ft.BoxFit.CONTAIN,
-                            ),
-                            ft.Text(
-                                "AmplifyP",
-                                size=20,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            ft.Container(width=12),
-                            version_text,
-                        ],
-                        spacing=8,
-                        tight=True,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                visible_input_button,
-                                visible_pcr_button,
-                                visible_dimers_button,
-                                visible_settings_button,
-                                visible_about_button,
-                                self.visible_header_divider,
-                                self.visible_save_btn_control,
-                                self.visible_load_btn_control,
-                            ],
-                            spacing=10,
-                            tight=True,
-                            wrap=True,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        alignment=ft.Alignment(1, 0),
-                    ),
-                ],
-                spacing=8,
-                horizontal_alignment=ft.CrossAxisAlignment.START,
-            ),
+            content=self.header,
             padding=ft.Padding(16, 8, 16, 8),
             bgcolor=GUIColours.SURFACE,
         )
