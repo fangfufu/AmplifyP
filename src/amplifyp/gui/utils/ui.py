@@ -195,7 +195,7 @@ class BorderedCheckbox(ft.Container):  # type: ignore[misc]
         return bool(self.checkbox.value)
 
     @value.setter
-    def value(self, val: ft.Control) -> None:
+    def value(self, val: bool | str) -> None:
         """Set the value of the inner checkbox."""
         if isinstance(val, str):
             self.checkbox.value = val.lower() == "true"

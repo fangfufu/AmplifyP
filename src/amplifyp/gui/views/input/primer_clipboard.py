@@ -17,7 +17,7 @@
 
 from typing import Any
 
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
 
 
 def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
@@ -37,12 +37,12 @@ def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
         parts = line.split("\t")
         if len(parts) >= 2:
             name = parts[0].strip()
-            seq = parts[1].strip()
+            seq = clean_sequence(parts[1])
         elif len(parts) == 1:
             subparts = line.split(",")
             if len(subparts) >= 2:
                 name = subparts[0].strip()
-                seq = subparts[1].strip()
+                seq = clean_sequence(subparts[1])
             else:
                 val = line.strip()
                 cleaned = clean_sequence(val)
@@ -53,7 +53,7 @@ def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
                     )
                 if is_seq:
                     name = ""
-                    seq = val
+                    seq = cleaned
                 else:
                     name = val
                     seq = ""

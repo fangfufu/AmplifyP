@@ -49,7 +49,7 @@ def get_git_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except OSError:
+    except (OSError, subprocess.SubprocessError):
         pass
 
     try:
@@ -63,13 +63,13 @@ def get_git_sha() -> str:
         )
         head_path = os.path.join(git_dir, "HEAD")
         if os.path.exists(head_path):
-            with open(head_path) as f:
+            with open(head_path, encoding="utf-8") as f:
                 head_content = f.read().strip()
             if head_content.startswith("ref: refs/heads/"):
                 ref_path = head_content.replace("ref: refs/heads/", "")
                 ref_file = os.path.join(git_dir, ref_path)
                 if os.path.exists(ref_file):
-                    with open(ref_file) as f:
+                    with open(ref_file, encoding="utf-8") as f:
                         full_sha = f.read().strip()
                     return full_sha[:7]
             else:
@@ -83,7 +83,7 @@ def get_git_sha() -> str:
         )
         dist_sha_path = os.path.normpath(dist_sha_path)
         if os.path.exists(dist_sha_path):
-            with open(dist_sha_path) as f:
+            with open(dist_sha_path, encoding="utf-8") as f:
                 return f.read().strip()
     except OSError:
         pass
@@ -120,7 +120,7 @@ def get_full_sha() -> str:
         )
         if result.returncode == 0 and result.stdout.strip():
             return result.stdout.strip()
-    except OSError:
+    except (OSError, subprocess.SubprocessError):
         pass
 
     try:
@@ -132,11 +132,18 @@ def get_full_sha() -> str:
             ),
             ".git",
         )
-        for ref in ("refs/heads/main", "refs/heads/master"):
-            ref_file = os.path.join(git_dir, ref)
-            if os.path.exists(ref_file):
-                with open(ref_file) as f:
-                    return f.read().strip()
+        head_path = os.path.join(git_dir, "HEAD")
+        if os.path.exists(head_path):
+            with open(head_path, encoding="utf-8") as f:
+                head_content = f.read().strip()
+            if head_content.startswith("ref: refs/heads/"):
+                ref_path = head_content.replace("ref: refs/heads/", "")
+                ref_file = os.path.join(git_dir, ref_path)
+                if os.path.exists(ref_file):
+                    with open(ref_file, encoding="utf-8") as f:
+                        return f.read().strip()
+            else:
+                return head_content
     except OSError:
         pass
 
@@ -146,7 +153,7 @@ def get_full_sha() -> str:
         )
         dist_sha_path = os.path.normpath(dist_sha_path)
         if os.path.exists(dist_sha_path):
-            with open(dist_sha_path) as f:
+            with open(dist_sha_path, encoding="utf-8") as f:
                 return f.read().strip()
     except OSError:
         pass

@@ -62,7 +62,7 @@ async def pick_and_read_file(
                 return None
             content = await asyncio.to_thread(_read_file, file.path)
             return content
-    except OSError as ex:
+    except (OSError, ValueError) as ex:
         show_notification(f"Error loading file: {ex}")
         return None
     finally:
