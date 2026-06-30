@@ -55,6 +55,98 @@ def validate_primer(
     return name_err, seq_err
 
 
+def _count_names_and_sequences(
+    primers: list[dict[str, Any]],
+) -> tuple[dict[str, int], dict[str, int]]:
+    """Count occurrences of primer names and sequences."""
+    names_count: dict[str, int] = {}
+    seqs_count: dict[str, int] = {}
+    for p in primers:
+        n_lower = str(p.get("name", "")).strip().lower()
+        s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+        if n_lower:
+            names_count[n_lower] = names_count.get(n_lower, 0) + 1
+        if s_lower:
+            seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+    return names_count, seqs_count
+
+
+def get_duplicate_primer_indices(primers: list[dict[str, Any]]) -> set[int]:
+    """Find and return indices of duplicate primers by name/sequence.
+
+    Args:
+        primers: List of primer dicts to check for duplicates.
+
+    Returns:
+        Set of indices corresponding to primers with duplicate names
+        or sequences.
+    """
+    names_count, seqs_count = _count_names_and_sequences(primers)
+
+    dup_indices = set()
+    for idx, p in enumerate(primers):
+        n_lower = str(p.get("name", "")).strip().lower()
+        s_lower = clean_sequence(str(p.get("seq", ""))).lower()
+        if (n_lower and names_count.get(n_lower, 0) > 1) or (
+            s_lower and seqs_count.get(s_lower, 0) > 1
+        ):
+            c = p.get("container")
+            c_idx = c.data if (c is not None and hasattr(c, "data")) else idx
+            dup_indices.add(c_idx)
+    return dup_indices
+
+
+def reconcile_primer_states(
+    ui_primers: list[dict[str, Any]], prev_primers: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Reconcile UI primer state with the previous central state.
+
+    Handles auto-activation transitions, touched flags, and empty
+    error visibility.
+
+    Args:
+        ui_primers: List of primer dicts extracted from UI.
+        prev_primers: List of primer dicts representing the previous
+            central state.
+
+    Returns:
+        A list of reconciled primer dicts.
+    """
+    primers = []
+    for i, p in enumerate(ui_primers):
+        prev_p = prev_primers[i] if i < len(prev_primers) else {}
+        is_filled = bool(p["name"].strip() and p["seq"].strip())
+        was_empty = (
+            not prev_p.get("name", "").strip()
+            or not prev_p.get("seq", "").strip()
+        )
+        was_active = prev_p.get("active", False)
+        is_active = p["active"]
+
+        show_empty_errors = prev_p.get("show_empty_errors", False)
+        if is_active and not is_filled:
+            is_active = False
+            show_empty_errors = True
+        elif not is_active:
+            show_empty_errors = False
+
+        if is_filled and was_empty and not was_active:
+            is_active = True
+            show_empty_errors = False
+
+        primers.append(
+            {
+                "name": p["name"],
+                "seq": p["seq"],
+                "active": is_active,
+                "show_empty_errors": show_empty_errors,
+                "name_touched": prev_p.get("name_touched", False),
+                "seq_touched": prev_p.get("seq_touched", False),
+            }
+        )
+    return primers
+
+
 def validate_primers(
     primers: list[dict[str, Any]],
 ) -> list[dict[str, str | None]]:
@@ -71,15 +163,7 @@ def validate_primers(
         List of error dicts, one per primer, with 'name' and 'seq' keys
         containing error message strings or None.
     """
-    names_count: dict[str, int] = {}
-    seqs_count: dict[str, int] = {}
-    for p in primers:
-        n_lower = str(p.get("name", "")).strip().lower()
-        s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-        if n_lower:
-            names_count[n_lower] = names_count.get(n_lower, 0) + 1
-        if s_lower:
-            seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
+    names_count, seqs_count = _count_names_and_sequences(primers)
 
     errors = []
     for p in primers:

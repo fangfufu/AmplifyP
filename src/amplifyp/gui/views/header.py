@@ -44,7 +44,9 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_dimers_button_ref: ft.Ref[ft.FilledButton],
     ) -> None:
         """Initialise the AppHeader navigation component."""
-        super().__init__(spacing=8, horizontal_alignment=ft.CrossAxisAlignment.START)
+        super().__init__(
+            spacing=8, horizontal_alignment=ft.CrossAxisAlignment.START
+        )
         self.settings = settings
 
         # AppBar buttons (for test compatibility)
