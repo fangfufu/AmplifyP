@@ -103,7 +103,7 @@ hooks = [
       "--wrap",
       "80"
     ],
-    exclude = '^\.agents/rules/',
+    exclude = '^(\.agents/rules/|CHANGELOG\.md$)',
     additional_dependencies = [
       "mdformat-gfm",
       "mdformat-gfm-alerts"
