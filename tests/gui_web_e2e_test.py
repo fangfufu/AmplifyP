@@ -200,6 +200,17 @@ def e2e_timeout() -> Generator[None, None, None]:
             alarm(0)
 
 
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def cleanup_debug_checkboxes() -> Generator[None, None, None]:
+    """Clean up debug_checkboxes.png after each test."""
+    yield
+    if os.path.exists("debug_checkboxes.png"):
+        try:
+            os.remove("debug_checkboxes.png")
+        except OSError:
+            pass
+
+
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     sys.platform != "linux", reason="E2E tests only run on Linux"
