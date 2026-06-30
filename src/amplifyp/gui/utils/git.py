@@ -64,7 +64,11 @@ def _get_sha(full: bool = False) -> str:
         git_dir = os.path.join(
             os.path.dirname(
                 os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    os.path.dirname(
+                        os.path.dirname(
+                            os.path.dirname(os.path.abspath(__file__))
+                        )
+                    )
                 )
             ),
             ".git",
