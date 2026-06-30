@@ -166,9 +166,10 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             )
 
         controls = [
+            ft.Container(width=25),
             ft.Container(
                 content=self.all_primers_checkbox,
-                width=55,
+                width=30,
                 alignment=ft.Alignment(0, 0),
             ),
             ft.Container(

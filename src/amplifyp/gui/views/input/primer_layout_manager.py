@@ -131,7 +131,7 @@ class PrimerLayoutManager:
 
         # Update the width of the Name header control
         self.owner.primers_header.controls[
-            2
+            3
         ].width = self.owner.name_column_width
         self.owner.primer_header.update()
 
@@ -157,7 +157,7 @@ class PrimerLayoutManager:
 
         # Ensure the final exact width is applied to header and all rows in sync
         self.owner.primers_header.controls[
-            2
+            3
         ].width = self.owner.name_column_width
         self.owner.primer_header.update()
 
@@ -198,10 +198,10 @@ class PrimerLayoutManager:
         if (
             hasattr(self.owner, "primers_header")
             and self.owner.primers_header
-            and len(self.owner.primers_header.controls) > 2
+            and len(self.owner.primers_header.controls) > 3
         ):
             self.owner.primers_header.controls[
-                2
+                3
             ].width = self.owner.name_column_width
             self.owner.primer_header.update()
 

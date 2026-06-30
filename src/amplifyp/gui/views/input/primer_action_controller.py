@@ -37,6 +37,8 @@ class PrimerActionController:
             owner: The parent PrimerInput component that owns this controller.
         """
         self.owner = owner
+        self.current_drag_y = 0.0
+        self.drag_start_index = 0
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle clicking on the row container.
@@ -48,16 +50,25 @@ class PrimerActionController:
             idx: Zero-based index of the clicked primer row.
             name_edit: The name TextField control to focus.
         """
-        self.owner.focused_primer_index = idx
+        if idx in self.owner.selected_indices:
+            self.owner.selected_indices.remove(idx)
+            if self.owner.focused_primer_index == idx:
+                self.owner.focused_primer_index = None
+        else:
+            self.owner.selected_indices.add(idx)
+            self.owner.focused_primer_index = idx
+
+            res = name_edit.focus()
+            if inspect.iscoroutine(res) and self.owner.app_page:
+
+                async def do_focus() -> None:
+                    await res
+
+                self.owner.app_page.run_task(do_focus)
+
         self.owner._update_row_highlights()
         self.owner._update_primer_info_panel()
-        res = name_edit.focus()
-        if inspect.iscoroutine(res) and self.owner.app_page:
-
-            async def do_focus() -> None:
-                await res
-
-            self.owner.app_page.run_task(do_focus)
+        self.owner._update_delete_button_disabled_state()
 
     def on_add_primer_row(self, idx: int) -> None:
         """Add a new empty primer row immediately below the row at idx.
@@ -76,34 +87,38 @@ class PrimerActionController:
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
 
-    def move_primer(self, idx: int, direction: int) -> None:
-        """Move primer at idx up (direction=-1) or down (direction=1).
-
-        Swaps the primer at idx with its neighbour and adjusts the
-        focused index accordingly.
+    def move_primers(self, indices: set[int], direction: int) -> None:
+        """Move multiple primers at indices up or down.
 
         Args:
-            idx: Zero-based index of the primer to move.
+            indices: Set of zero-based indices of the primers to move.
             direction: -1 to move up, 1 to move down.
         """
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
-        target_idx = idx + direction
 
-        # Swap only if both indices are valid filled primers.
-        if 0 <= idx < len(primers) and 0 <= target_idx < len(primers):
-            primers[idx], primers[target_idx] = (
-                primers[target_idx],
-                primers[idx],
-            )
-            if self.owner.focused_primer_index == idx:
-                self.owner.focused_primer_index = target_idx
-            elif self.owner.focused_primer_index == target_idx:
-                self.owner.focused_primer_index = idx
+        if direction == -1:
+            sorted_sel = sorted(indices)
+            if sorted_sel and sorted_sel[0] == 0:
+                return
+            for idx in sorted_sel:
+                primers[idx], primers[idx - 1] = primers[idx - 1], primers[idx]
+            self.owner.selected_indices = {i - 1 for i in indices}
+            if self.owner.focused_primer_index is not None:
+                self.owner.focused_primer_index -= 1
+        elif direction == 1:
+            sorted_sel = sorted(indices, reverse=True)
+            if sorted_sel and sorted_sel[0] == len(primers) - 1:
+                return
+            for idx in sorted_sel:
+                primers[idx], primers[idx + 1] = primers[idx + 1], primers[idx]
+            self.owner.selected_indices = {i + 1 for i in indices}
+            if self.owner.focused_primer_index is not None:
+                self.owner.focused_primer_index += 1
 
-            self.owner.update_ui()
-            if self.owner.on_change_handler is not None:
-                self.owner.on_change_handler(None)
+        self.owner.update_ui()
+        if self.owner.on_change_handler is not None:
+            self.owner.on_change_handler(None)
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
         """Delete primers at indices and re-index controls in-place.
@@ -129,16 +144,19 @@ class PrimerActionController:
         self.owner.input_data.primers = new_primers
 
         # Adjust focus index
-        if self.owner.focused_primer_index in indices_to_delete:
+        min_deleted = min(indices_to_delete)
+        new_len = len(new_primers)
+        if new_len == 0 or (
+            new_len == 1
+            and not new_primers[0].get("name")
+            and not new_primers[0].get("seq")
+        ):
             self.owner.focused_primer_index = None
-        elif self.owner.focused_primer_index is not None:
-            # Shift focus index down for each deleted index that was before it
-            shift = sum(
-                1
-                for i in indices_to_delete
-                if i < self.owner.focused_primer_index
-            )
-            self.owner.focused_primer_index -= shift
+            self.owner.selected_indices = set()
+        else:
+            new_focus = min(min_deleted, new_len - 1)
+            self.owner.focused_primer_index = new_focus
+            self.owner.selected_indices = {new_focus}
 
         from .primer_row import PrimerRow
 
@@ -177,3 +195,80 @@ class PrimerActionController:
 
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
+
+    def handle_drag_start(self, start_idx: int, e: ft.DragStartEvent) -> None:
+        """Handle start of drag selection on a primer row."""
+        self.drag_start_index = start_idx
+        self.current_drag_y = 0.0
+        ctrl = getattr(self.owner, "ctrl_pressed", False)
+        if not ctrl:
+            self.owner.selected_indices = {start_idx}
+        else:
+            self.owner.selected_indices.add(start_idx)
+        self.owner.focused_primer_index = start_idx
+        self.owner._update_row_highlights()
+        self.owner._update_delete_button_disabled_state()
+
+    def handle_drag_update(self, start_idx: int, e: ft.DragUpdateEvent) -> None:
+        """Handle drag selection update over primer rows."""
+        from .primer_row import PrimerRow
+
+        intervals = []
+        current_y = 0.0
+        for row in self.owner.primers_list.controls:
+            if isinstance(row, PrimerRow):
+                h = (
+                    55.0
+                    if (row.name_field.error or row.seq_field.error)
+                    else 30.0
+                )
+                intervals.append((current_y, current_y + h))
+                current_y += h
+
+        if not intervals or start_idx >= len(intervals):
+            return
+
+        delta_y = (
+            getattr(e.local_delta, "y", 0.0)
+            if getattr(e, "local_delta", None)
+            else 0.0
+        )
+        self.current_drag_y += delta_y
+
+        start_top_y = intervals[start_idx][0]
+        start_bottom_y = intervals[start_idx][1]
+        start_center_y = (start_top_y + start_bottom_y) / 2.0
+
+        current_y_pos = start_center_y + self.current_drag_y
+
+        target_idx = start_idx
+        for idx, (top, bottom) in enumerate(intervals):
+            if top <= current_y_pos < bottom:
+                target_idx = idx
+                break
+        else:
+            if current_y_pos < 0:
+                target_idx = 0
+            elif current_y_pos >= intervals[-1][1]:
+                target_idx = len(intervals) - 1
+
+        start = min(start_idx, target_idx)
+        end = max(start_idx, target_idx)
+
+        ctrl = getattr(self.owner, "ctrl_pressed", False)
+        if not ctrl:
+            self.owner.selected_indices = set(range(start, end + 1))
+        else:
+            for i in range(start, end + 1):
+                self.owner.selected_indices.add(i)
+
+        self.owner._update_row_highlights()
+        self.owner._update_delete_button_disabled_state()
+
+    def handle_drag_end(self, start_idx: int, e: ft.DragEndEvent) -> None:
+        """Handle end of drag selection on a primer row."""
+        self.owner._update_row_highlights()
+        self.owner._update_primer_info_panel()
+        self.owner._update_delete_button_disabled_state()
+        if self.owner.app_page:
+            self.owner.app_page.update()

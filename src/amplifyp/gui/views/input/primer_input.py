@@ -89,6 +89,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.action_controller = PrimerActionController(self)
 
         self.focused_primer_index: int | None = None
+        self.selected_indices: set[int] = set()
         self.validation_errors: list[dict[str, str | None]] = []
         self._prev_header_checkbox_value: bool | None = None
         self._visible_rows_cache: list[PrimerRow] | None = None
@@ -374,10 +375,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         The delete button is enabled only when at least one primer is
         active (selected).
         """
-        has_selected = any(
-            p.get("active", False) for p in self.input_data.primers
-        )
-        self.delete_selected_button.disabled = not has_selected
+        self.delete_selected_button.disabled = not bool(self.selected_indices)
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
 
@@ -521,9 +519,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     async def _copy_primers_click(self, e: ft.Event | None) -> None:
         """Copy selected or focused primers to clipboard in TSV format."""
         primers = self.input_data.primers
-        selected_primers = [p for p in primers if p.get("active", False)]
+        selected_primers = (
+            [primers[i] for i in sorted(self.selected_indices)]
+            if self.selected_indices
+            else []
+        )
 
-        # Fallback to focused primer if no checked boxes
+        # Fallback to focused primer if no selected rows
         if not selected_primers and self.focused_primer_index is not None:
             if 0 <= self.focused_primer_index < len(primers):
                 selected_primers = [primers[self.focused_primer_index]]
@@ -567,11 +569,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             return
 
         primers = self.input_data.primers
-        start_idx = (
-            self.focused_primer_index
-            if self.focused_primer_index is not None
-            else len(primers)
-        )
+        if self.selected_indices:
+            start_idx = min(self.selected_indices)
+        elif self.focused_primer_index is not None:
+            start_idx = self.focused_primer_index
+        else:
+            start_idx = len(primers)
 
         # Replace single empty row
         if (
@@ -603,19 +606,20 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "primer_header") or self.primer_header is None:
             return
 
-        idx = self.focused_primer_index
         num_primers = len(self.input_data.primers)
+        has_sel = bool(self.selected_indices)
 
-        if idx is None:
-            self.primer_header.add_button.disabled = False
-            self.primer_header.delete_button.disabled = True
+        self.primer_header.add_button.disabled = False
+        self.primer_header.delete_button.disabled = not has_sel
+
+        if has_sel:
+            min_idx = min(self.selected_indices)
+            max_idx = max(self.selected_indices)
+            self.primer_header.up_button.disabled = min_idx == 0
+            self.primer_header.down_button.disabled = max_idx == num_primers - 1
+        else:
             self.primer_header.up_button.disabled = True
             self.primer_header.down_button.disabled = True
-        else:
-            self.primer_header.add_button.disabled = False
-            self.primer_header.delete_button.disabled = False
-            self.primer_header.up_button.disabled = idx == 0
-            self.primer_header.down_button.disabled = idx == num_primers - 1
 
         try:
             if self.primer_header.page:
@@ -625,35 +629,35 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _header_add_click(self, e: ft.Event | None) -> None:
         """Handle header Add button click."""
-        idx = (
-            self.focused_primer_index
-            if self.focused_primer_index is not None
-            else len(self.input_data.primers) - 1
-        )
+        if self.selected_indices:
+            idx = max(self.selected_indices)
+        elif self.focused_primer_index is not None:
+            idx = self.focused_primer_index
+        else:
+            idx = len(self.input_data.primers) - 1
+
         self.action_controller.on_add_primer_row(idx)
+        self.selected_indices = {idx + 1}
         self.focused_primer_index = idx + 1
         self._update_header_buttons_state()
 
     def _header_delete_click(self, e: ft.Event | None) -> None:
         """Handle header Delete button click."""
-        if self.focused_primer_index is not None:
-            self.action_controller.delete_primers({self.focused_primer_index})
+        if self.selected_indices:
+            self.action_controller.delete_primers(self.selected_indices.copy())
             self._update_header_buttons_state()
 
     def _header_up_click(self, e: ft.Event | None) -> None:
         """Handle header Move Up button click."""
-        if (
-            self.focused_primer_index is not None
-            and self.focused_primer_index > 0
-        ):
-            self.action_controller.move_primer(self.focused_primer_index, -1)
+        if self.selected_indices and min(self.selected_indices) > 0:
+            self.action_controller.move_primers(self.selected_indices, -1)
             self._update_header_buttons_state()
 
     def _header_down_click(self, e: ft.Event | None) -> None:
         """Handle header Move Down button click."""
         if (
-            self.focused_primer_index is not None
-            and self.focused_primer_index < len(self.input_data.primers) - 1
+            self.selected_indices
+            and max(self.selected_indices) < len(self.input_data.primers) - 1
         ):
-            self.action_controller.move_primer(self.focused_primer_index, 1)
+            self.action_controller.move_primers(self.selected_indices, 1)
             self._update_header_buttons_state()

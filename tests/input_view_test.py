@@ -45,14 +45,16 @@ def test_input_view_row_boxes_editing() -> None:
     row = container.content
     assert isinstance(row, ft.Row)
 
-    checkbox_container = row.controls[0]
+    drag_handle = row.controls[0]
+    checkbox_container = row.controls[1]
+    active_divider = row.controls[2]
+    name_scroll = row.controls[3]
+    divider = row.controls[4]
+    seq_scroll = row.controls[5]
+
+    assert isinstance(drag_handle, ft.GestureDetector)
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
-    active_divider = row.controls[1]
-    name_scroll = row.controls[2]
-    divider = row.controls[3]
-    seq_scroll = row.controls[4]
-
     assert isinstance(checkbox, ft.Checkbox)
     assert isinstance(active_divider, ft.Container)
     assert isinstance(name_scroll, ft.ListView)
@@ -366,7 +368,8 @@ def test_input_view_primer_reordering() -> None:
 
     # Select/focus Row 1 (P2)
     view.focused_primer_index = 1
-    view._update_row_highlights()
+    view.primer_input.selected_indices = {1}
+    view.primer_input._update_header_buttons_state()
 
     # Now header reorder controls should be enabled for Row 1
     assert header.add_button.disabled is False
@@ -1013,13 +1016,14 @@ def test_delete_button_disabled_state() -> None:
     assert view.delete_selected_button.visible is not False  # Always visible
     assert view.delete_selected_button.disabled is True
 
-    # 2. Add an active primer, should become enabled (disabled = False)
+    # 2. Add an active primer, select it, should become enabled
     input_data.primers = [{"name": "P1", "seq": "GCATGCATGC", "active": True}]
+    view.primer_input.selected_indices = {0}
     view.update_ui()
     assert view.delete_selected_button.disabled is False
 
-    # 3. Setting active to False should disable it again
-    input_data.primers[0]["active"] = False
+    # 3. Deselecting it should disable it again
+    view.primer_input.selected_indices = set()
     view.update_ui()
     assert view.delete_selected_button.disabled is True
 
@@ -1037,6 +1041,9 @@ def test_delete_selected_primers() -> None:
     view.update_ui()
 
     assert len(input_data.primers) == 3
+
+    view.primer_input.selected_indices = {0, 2}
+    view.primer_input._update_delete_button_disabled_state()
     assert view.delete_selected_button.disabled is False
 
     # Click delete
@@ -1046,7 +1053,8 @@ def test_delete_selected_primers() -> None:
     assert len(input_data.primers) == 1
     assert input_data.primers[0]["name"] == "P2"
     assert input_data.primers[0]["seq"] == "AAAAAAAAAA"
-    assert view.delete_selected_button.disabled is True
+    assert view.primer_input.selected_indices == {0}
+    assert view.delete_selected_button.disabled is False
 
     # If all remaining are deleted, fallback to a single empty inactive row
     input_data.primers[0]["active"] = True
