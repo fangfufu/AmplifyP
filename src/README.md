@@ -164,7 +164,7 @@ ______________________________________________________________________
 
 ## 6. Automated Release Process
 
-The release process is automated via GitHub Actions using [release-please]
-(https://github.com/googleapis/release-please). Version bumps in
+The release process is automated via GitHub Actions using
+[release-please](https://github.com/googleapis/release-please). Version bumps in
 `pyproject.toml` and `src/amplifyp/__init__.py` are handled automatically based
 on conventional commits.
