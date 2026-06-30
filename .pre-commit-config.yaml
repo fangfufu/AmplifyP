@@ -47,8 +47,11 @@ repos:
     rev: 1.0.0
     hooks:
       - id: mdformat
-        args: [--wrap, '80']
+        args: [--wrap, "80"]
         exclude: ^\.agents/rules/
+        additional_dependencies:
+          - mdformat-gfm
+          - mdformat-gfm-alerts
 ci:
   skip: [pytest]
   autofix_commit_msg: |
