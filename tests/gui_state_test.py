@@ -391,16 +391,16 @@ def test_simple_state_font_sizes_are_integers() -> None:
 
     settings = GUISettings()
     font_size_keys = {
-        "font_size_map_baseline": 16,
-        "font_size_map_primer": 13,
-        "font_size_map_amplicon": 13,
-        "font_size_header": 18,
-        "font_size_subheader": 16,
-        "font_size_body": 13,
-        "font_size_small": 12,
-        "font_size_default": 14,
-        "font_size_micro": 10,
-        "font_size_table_header": 15,
+        "font_size_map_baseline": "16",
+        "font_size_map_primer": "13",
+        "font_size_map_amplicon": "13",
+        "font_size_header": "18",
+        "font_size_subheader": "16",
+        "font_size_body": "13",
+        "font_size_small": "12",
+        "font_size_default": "14",
+        "font_size_micro": "10",
+        "font_size_table_header": "15",
     }
     settings.from_dict(font_size_keys)
 
