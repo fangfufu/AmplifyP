@@ -15,8 +15,6 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
-        with:
-          release-type: python
   build:
     name: Build artifacts (${{ matrix.os }})
     needs: [release-please]
