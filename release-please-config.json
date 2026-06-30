@@ -6,7 +6,6 @@
       "extra-files": [
         "src/amplifyp/__init__.py"
       ],
-      "release-as": "1.0.0",
       "include-component-in-tag": false
     }
   },
