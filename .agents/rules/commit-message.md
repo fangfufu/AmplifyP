@@ -2,4 +2,4 @@
 trigger: always_on
 ---
 
-Commit message must follow the 50/72 format.
+Commit messages must follow the Conventional Commits format and the 50/72 format.
