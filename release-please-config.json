@@ -1,0 +1,13 @@
+{
+  "packages": {
+    ".": {
+      "release-type": "python",
+      "package-name": "amplifyp",
+      "extra-files": [
+        "src/amplifyp/__init__.py"
+      ],
+      "release-as": "1.0.0"
+    }
+  },
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
+}
