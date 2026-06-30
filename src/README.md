@@ -170,9 +170,9 @@ the following files:
 1. **`pyproject.toml`**: Update the `version` field under `[project]`
    ```toml
    [project]
-   version = "v0.95.5"
+   version = "1.0.0"
    ```
 1. **`src/amplifyp/__init__.py`**: Update the `__version__` variable
    ```python
-   __version__ = "v0.95.5"
+   __version__ = "1.0.0"
    ```
