@@ -162,17 +162,9 @@ pytest --run-slow -m e2e
 
 ______________________________________________________________________
 
-## 6. Version Release Checklist
+## 6. Automated Release Process
 
-When preparing a new release of AmplifyP, you must update the version string in
-the following files:
-
-1. **`pyproject.toml`**: Update the `version` field under `[project]`
-   ```toml
-   [project]
-   version = "v0.95.5"
-   ```
-1. **`src/amplifyp/__init__.py`**: Update the `__version__` variable
-   ```python
-   __version__ = "v0.95.5"
-   ```
+The release process is automated via GitHub Actions using [release-please]
+(https://github.com/googleapis/release-please). Version bumps in
+`pyproject.toml` and `src/amplifyp/__init__.py` are handled automatically based
+on conventional commits.

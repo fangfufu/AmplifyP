@@ -4,8 +4,23 @@ on:
     branches: [stable]
   workflow_dispatch:
 jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: python
   build:
     name: Build artifacts (${{ matrix.os }})
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.release_created }}
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -86,41 +101,30 @@ jobs:
             amplifyp-macos.dmg
             amplifyp-windows.zip
           if-no-files-found: ignore
-  release:
-    name: Create GitHub Release
-    needs: [build]
+  upload-assets:
+    name: Upload Assets to GitHub Release
+    needs: [release-please, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v7
-      - name: Get version and short SHA
-        id: info
-        shell: bash
-        run: |
-          VERSION=$(grep -m 1 'version =' pyproject.toml | cut -d '"' -f 2)
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
       - name: Download all workflow artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: amplifyp-*
           merge-multiple: true
-      - name: Create Pre-release
+      - name: Upload assets to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.info.outputs.version }}-${{ steps.info.outputs.sha }}" \
-            --prerelease \
-            --title "Release ${{ steps.info.outputs.version }} (${{ steps.info.outputs.sha }})" \
+          gh release upload ${{ needs.release-please.outputs.tag_name }} \
             amplifyp-linux.tar.gz \
             amplifyp-macos.dmg \
             amplifyp-windows.zip \
             amplifyp-web.tar.gz
   deploy:
     name: Deploy to GitHub Pages
-    needs: [build]
+    needs: [release-please, build]
     runs-on: ubuntu-latest
     permissions:
       pages: write
