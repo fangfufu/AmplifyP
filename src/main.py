@@ -30,7 +30,9 @@ def main(page: ft.Page) -> None:
     app_main(page, state_file=state_file, auto_close=auto_close)
 
 
-if __name__ == "__main__":  # pragma: no cover
+def cli(args_list: list[str] | None = None) -> None:
+    """CLI entry point for argparse and running the Flet app."""
+    global state_file, auto_close
     parser = argparse.ArgumentParser(
         description="AmplifyP - Primer design and PCR simulation tool"
     )
@@ -45,11 +47,30 @@ if __name__ == "__main__":  # pragma: no cover
         action="store_true",
         help="Auto-quit after rendering completes (requires --state)",
     )
-    args = parser.parse_args()
-    if args.auto_close and not args.state:
+    parser.add_argument(
+        "--web",
+        action="store_true",
+        help="Launch in web browser mode",
+    )
+    parsed_args = parser.parse_args(args_list)
+    if parsed_args.auto_close and not parsed_args.state:
         parser.error("--auto-close requires --state")
-    state_file = args.state
-    auto_close = args.auto_close
+    state_file = parsed_args.state
+    auto_close = parsed_args.auto_close
 
     assets_dir = os.path.join(os.path.dirname(__file__), "assets")
-    ft.run(main, upload_dir="uploads", assets_dir=assets_dir)
+    view_mode = (
+        ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
+    )
+    port_number = 34521 if parsed_args.web else 0
+    ft.run(
+        main,
+        upload_dir="uploads",
+        assets_dir=assets_dir,
+        view=view_mode,
+        port=port_number,
+    )
+
+
+if __name__ == "__main__":  # pragma: no cover
+    cli()
