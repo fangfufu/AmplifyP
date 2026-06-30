@@ -1,270 +1,164 @@
 # AmplifyP
 
+[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![Python Version](https://img.shields.io/badge/Python-3.12%20%7C%203.13-blue.svg)](pyproject.toml)
+
 AmplifyP is a modern, high-performance Python rewrite of William Engels's
-classic [Amplify4](https://github.com/wrengels/Amplify4) tool for simulating
-**Polymerase Chain Reaction (PCR)**, with a web version available on
-[GitHub Pages](https://fangfufu.github.io/AmplifyP/). It allows molecular
-biologists and researchers to predict DNA amplification products (amplicons)
-from a template sequence and primer set, accurately factoring in primability,
-stability, and melting properties of primer binding sites.
+classic **Amplify4** software for simulating **Polymerase Chain Reaction
+(PCR)**. By accurately modeling primer binding kinetics, primability, and
+thermal melting properties, AmplifyP helps molecular biologists and researchers
+predict DNA amplification products (amplicons) and detect primer-dimer formation
+risks.
+
+A live web version is available on
+**[GitHub Pages](https://fangfufu.github.io/AmplifyP/)**.
 
 ______________________________________________________________________
 
-## Table of Contents
+## Key Features
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Web Version (Static)](#web-version-static)
-  - [Local Graphical User Interface (GUI)](#local-graphical-user-interface-gui)
-  - [Python API](#python-api)
-    - [Basic PCR Simulation](#basic-pcr-simulation)
-    - [Primer Dimer Analysis](#primer-dimer-analysis)
-    - [Thermodynamic Melting Calculations](#thermodynamic-melting-calculations)
-- [Project Structure](#project-structure)
-- [Development](#development)
-- [Attribution](#attribution)
-- [License](#license)
-
-______________________________________________________________________
-
-## Features
-
-- **PCR Simulation**: Predict potential amplicons, product sequences, and
-  lengths using rigorous primer-template binding models. Supports both linear
-  and circular DNA templates.
-- **Cross-Platform GUI**: Built with [Flet](https://flet.dev/) (a modern
-  Flutter-based UI framework) providing a beautiful, fully responsive app for
-  desktop and web browsers.
-- **Scoring Engine**: Calculates primability and stability scores using highly
-  customisable length-wise and pairwise weight tables.
-- **State Serialisation**: Save and load templates, primers, cutoffs, and
-  replication configurations seamlessly using YAML files.
-- **Programmatic Python API**: A developer-friendly, fully typed API to run
-  simulations, dimer analyses, or thermodynamic melting calculations within your
-  pipelines.
-- **Primer Dimer Analysis**: Detect and score primer-dimer formation risks
-  between primer pairs, including self-dimers and cross-dimers.
-- **Melting Temperature Calculations**: Compute thermodynamic melting properties
-  of primer-template and primer-primer hybrids using nearest-neighbor models.
+- **PCR Simulation**: Predict amplicons, product sequences, and lengths using
+  rigorous primer-template binding models. Supports linear and circular
+  (plasmid) templates.
+- **Cross-Platform GUI**: Built with [Flet](https://flet.dev/) (a Flutter-based
+  UI framework) providing a beautiful, responsive interface for desktop (macOS,
+  Windows, Linux) and web browsers.
+- **Biophysical Scoring Engine**: Evaluates binding sites using length-wise and
+  pairwise weight tables to compute primability, stability, and quality.
+- **Primer Dimer Analysis**: Detects and scores self-dimers and cross-dimers
+  between primer pairs.
+- **Thermodynamic melting calculations**: Calculates Tm of hybrids using
+  nearest-neighbour thermodynamics with modern salt corrections.
+- **Programmatic Python API**: Fully typed and structured developer-friendly API
+  for integration into bioinformatics pipelines.
+- **State Serialisation**: Easily save and load templates, primers, settings,
+  and replication parameters using standard YAML files.
 
 ______________________________________________________________________
 
-## Installation
+## Quick Start: Download Pre-built Binaries (No Python Required)
 
-AmplifyP requires Python 3.12 or higher.
+If you only want to use the graphical application and do not wish to clone the
+repository, install Python, or configure virtual environments, you can download
+pre-built, standalone executable binaries directly.
 
-First, clone the repository and set up your Python virtual environment under
-`.venv` at the root of the repository:
+Go to the **[GitHub Releases](https://github.com/fangfufu/AmplifyP/releases)**
+page to download the latest version for your platform:
 
-```bash
-git clone https://github.com/fangfufu/AmplifyP.git
-cd AmplifyP
+- **Windows**: Download the `.zip` archive, extract it, and run `AmplifyP.exe`.
+- **Linux**: Download the `.tar.gz` archive, extract it, and run the binary.
+- **macOS**: Download the `.dmg` installer (untested as the author does not have
+  a Mac).
 
-# Set up and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate
-```
+______________________________________________________________________
 
-Install the package and its runtime dependencies:
+## Installation from Source
 
-```bash
-pip install .
-```
+AmplifyP requires **Python 3.12** or higher.
 
-For developer setup and running tests, please refer to the
-[Development Guide](src/README.md).
+To install the package and run it from source:
+
+1. Clone the repository and navigate to the directory:
+
+   ```bash
+   git clone https://github.com/fangfufu/AmplifyP.git
+   cd AmplifyP
+   ```
+
+1. Set up and source your Python virtual environment under `.venv` at the root
+   of the repository:
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+
+1. Install the application and its runtime dependencies:
+
+   ```bash
+   pip install .
+   ```
 
 ______________________________________________________________________
 
 ## Usage
 
-### Web Version (Static)
+### 1. Launching the Graphical User Interface (GUI)
 
-Run AmplifyP entirely in your browser without any local installation! Visit the
-live static web app:
+Run the application from source:
+
+```bash
+python src/main.py
+```
+
+To launch it locally as a web application in your browser at port `34521`:
+
+```bash
+python src/main.py --web
+```
+
+To load a saved session state on startup:
+
+```bash
+python src/main.py --state tests/examples/save_states/simple.yaml
+```
+
+### 2. Live Web Version
+
+Access the fully client-side static web application compiled to Pyodide:
 **[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)**
 
-To build and test the static web app locally, or to run the application with
-hot-reload for development, see the [Development Guide](src/README.md).
-
-### Local Graphical User Interface (GUI)
-
-You can run AmplifyP locally either by downloading a pre-built standalone binary
-or by running it from source.
-
-#### Pre-built Binaries
-
-Standalone binaries for macOS (`.dmg`), Linux (`.tar.gz`), and Windows (`.zip`)
-are automatically generated by the CI build job for each stable build. You can
-download the latest version from the
-[GitHub Releases](https://github.com/fangfufu/AmplifyP/releases) page.
-
-> [!NOTE]
-> The macOS build is untested because the author does not have a Mac.
-
-#### Running from Source
-
-You can launch the Flet GUI application locally using Python.
-
-##### 1. Launching the App
-
-- **Desktop Application (via Python)**:
-  ```bash
-  python src/main.py
-  ```
-
-#### 2. Features and Workflows
-
-The GUI offers intuitive workflows to:
-
-1. **Input template DNA sequences** and configure linear/circular topologies.
-1. **Manage multiple primers** with individual sequences and custom names.
-1. **Customise thresholds** for primability and stability cutoffs.
-1. **Simulate PCR** to visualise products, lanes, and details of binding sites.
-1. **Analyze primer dimers** to identify potential primer-dimer formation risks.
-1. **Save/Load projects** to resume work easily via YAML configuration files.
-
-### Python API
-
-Integrate AmplifyP into your custom bioinformatics workflows using the Python
-API.
-
-#### Basic PCR Simulation
+### 3. Programmatic Python API
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType
-from amplifyp.repliconf import Repliconf
-from amplifyp.amplicon import AmpliconGenerator
-from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
+from amplifyp.pcr import PCR
 
-# 1. Define your DNA template and primers
-template_seq = "AGCT..."  # Replace with your actual sequence
-template = DNA(template_seq, DNAType.LINEAR, name="MyTemplate")
+template = DNA("CATGATGA...", DNAType.LINEAR, name="Template")
+primer_fwd = Primer("CGACTGGGCAAAGGAAATCC", name="FwdPrimer")
+primer_rev = Primer("GTGGGTATCACAAATTTGGG", name="RevPrimer")
 
-primer_fwd = Primer("AGCT...", name="FwdPrimer")
-primer_rev = Primer("TCGA...", name="RevPrimer")
+pcr = PCR(template)
+pcr.add_primer(primer_fwd)
+pcr.add_primer(primer_rev)
+pcr.predict_amplicons()
 
-# 2. Initialise the Amplicon Generator
-generator = AmpliconGenerator(template)
-
-# 3. Create Replication Configurations for each primer
-# This step calculates potential binding sites on the template
-conf_fwd = Repliconf(template, primer_fwd, GLOBAL_REPLICATION_SETTINGS)
-conf_rev = Repliconf(template, primer_rev, GLOBAL_REPLICATION_SETTINGS)
-
-# 4. Search for origins (binding sites)
-conf_fwd.search()
-conf_rev.search()
-
-# 5. Add configurations to the generator
-generator.add(conf_fwd)
-generator.add(conf_rev)
-
-# 6. Generate amplicons
-amplicons = generator.get_amplicons()
-
-for amp in amplicons:
-    print(f"Product: {amp.product.name}")
-    print(f"Sequence: {amp.product.seq}")
-    print(f"Length: {len(amp.product)}")
-    print(f"Quality Score: {amp.q_score}")
-    print("-" * 20)
-```
-
-#### Primer Dimer Analysis
-
-```python
-from amplifyp.dna import DNA, Primer, DNAType
-from amplifyp.repliconf import Repliconf
-from amplifyp.dimer import DimerGenerator
-from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
-
-template = DNA("AGCT...", DNAType.LINEAR, name="Template")
-primer_a = Primer("AGCT...", name="PrimerA")
-primer_b = Primer("TCGA...", name="PrimerB")
-
-# Create replication configurations
-conf_a = Repliconf(template, primer_a, GLOBAL_REPLICATION_SETTINGS)
-conf_b = Repliconf(template, primer_b, GLOBAL_REPLICATION_SETTINGS)
-conf_a.search()
-conf_b.search()
-
-# Generate dimer analysis
-dimer_gen = DimerGenerator()
-dimer_gen.add(conf_a)
-dimer_gen.add(conf_b)
-
-dimers = dimer_gen.get_dimers()
-for dimer in dimers:
-    print(f"Dimer: {dimer.primer1.name}-{dimer.primer2.name}")
-    print(f"Score: {dimer.score}")
-    print(f"Product: {dimer.product.seq}")
-```
-
-#### Thermodynamic Melting Calculations
-
-```python
-from amplifyp.dna import DNA, Primer
-from amplifyp.melting import MeltingCalculator
-
-primer = Primer("AGCTTCGAA", name="TestPrimer")
-template = DNA("TTTCTAGCTTCGAAAGGG", name="Template")
-
-calculator = MeltingCalculator()
-
-# Calculate melting temperature of primer-template hybrid
-tm = calculator.calculate_tm(primer, template)
-print(f"Melting Temperature: {tm:.2f}°C")
+for amplicon in pcr.amplicons:
+    print(f"Product length: {len(amplicon.product)} bp, Q-score: {amplicon.q_score:.2f}")
 ```
 
 ______________________________________________________________________
 
-## Project Structure
+## Graphical User Interface Preview
 
-```
-AmplifyP/
-├── pyproject.toml              # Package configuration and dependencies
-├── README.md                   # This file
-├── src/
-│   ├── main.py                 # GUI application entry point
-│   ├── amplifyp/               # Core package
-│   │   ├── amplicon.py         # Amplicon generation logic
-│   │   ├── dimer.py            # Primer dimer analysis
-│   │   ├── dna.py              # DNA/Primer sequence classes
-│   │   ├── errors.py           # Custom exception types
-│   │   ├── gui/                # Flet-based GUI components
-│   │   ├── melting.py          # Thermodynamic melting calculations
-│   │   ├── origin.py           # Primer binding site detection
-│   │   ├── pcr.py              # PCR simulation engine
-│   │   ├── repliconf.py        # Replication configuration
-│   │   └── settings.py         # Global replication settings
-│   └── README.md               # Development guide
-├── tests/                      # Unit and integration tests
-└── scripts/                    # Utility scripts
-```
+### Substrate View (Template & Primer Management)
+
+![Substrate View](docs/images/substrate.png)
+
+### PCR Results View (Amplicon Prediction & Binding Alignment)
+
+![PCR Results View](docs/images/pcr_results.png)
 
 ______________________________________________________________________
 
-## Development
+## Documentation Directory
 
-For development setup, running the app with hot-reload, building the static web
-version, and running tests, see the [Development Guide](src/README.md).
+For complete documentation, please refer to:
 
-______________________________________________________________________
-
-## Attribution
-
-- **[Amplify4](https://engels.genetics.wisc.edu/amplify/)**: This project is
-  based on the original [Amplify4](https://github.com/wrengels/Amplify4)
-  software by William Engels.
-- **[Roboto Mono Font](https://fonts.google.com/specimen/Roboto+Mono)**:
-  Licenced under the SIL Open Font License, Version 1.1. Copyright 2015 The
-  Roboto Mono Project Authors.
+- **[GUI User Guide](docs/gui_guide.md)**: A detailed manual for running
+  simulations, primer management, and configuration in the graphical
+  application.
+- **[Python API Guide](docs/api_guide.md)**: A developer guide with code
+  snippets demonstrating programmatic PCR simulation, dimer analyses, and Tm
+  calculations.
+- **[Development Guide](src/README.md)**: Information on setting up development
+  dependencies, linters, hot-reload, and Pyodide web builds.
 
 ______________________________________________________________________
 
-## License
+## Attribution & License
 
-This project is licensed under the GPL-3.0 License - see the [LICENSE](LICENSE)
-file for details.
+- **William Engels (Amplify4)**: This project is based on the original
+  [Amplify4](https://github.com/wrengels/Amplify4) software.
+- **License**: This project is licensed under the GPL-3.0 License. See the
+  [LICENSE](LICENSE) file for details.
