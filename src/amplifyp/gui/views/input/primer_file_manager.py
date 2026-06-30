@@ -127,7 +127,7 @@ class PrimerFileManager:
         Args:
             _e: The Flet control event (unused).
         """
-        from amplifyp.gui.util import pick_and_read_file
+        from amplifyp.gui.utils.io import pick_and_read_file
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -185,7 +185,7 @@ class PrimerFileManager:
 
         tsv_content = self._serialise_primers_to_tsv(primers_to_save)
 
-        from amplifyp.gui.util import save_and_write_file
+        from amplifyp.gui.utils.io import save_and_write_file
 
         await save_and_write_file(
             page=self.app_page,

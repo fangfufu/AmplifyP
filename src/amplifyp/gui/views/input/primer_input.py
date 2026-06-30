@@ -26,7 +26,8 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import NotificationHelper
 
 from .primer_action_controller import PrimerActionController
 from .primer_file_manager import PrimerFileManager
@@ -626,39 +627,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self._show_notification("Clipboard is empty.")
             return
 
-        parsed = []
-        for line in clipboard_text.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                name = parts[0].strip()
-                seq = parts[1].strip()
-            elif len(parts) == 1:
-                subparts = line.split(",")
-                if len(subparts) >= 2:
-                    name = subparts[0].strip()
-                    seq = subparts[1].strip()
-                else:
-                    val = line.strip()
-                    cleaned = clean_sequence(val)
-                    is_seq = False
-                    if cleaned:
-                        is_seq = all(
-                            c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
-                            for c in cleaned
-                        )
-                    if is_seq:
-                        name = ""
-                        seq = val
-                    else:
-                        name = val
-                        seq = ""
-            else:
-                continue
-            parsed.append({"name": name, "seq": seq, "active": True})
+        from .primer_clipboard import parse_primer_clipboard_text
 
+        parsed = parse_primer_clipboard_text(clipboard_text)
         if not parsed:
             self._show_notification("No valid primers found in clipboard.")
             return

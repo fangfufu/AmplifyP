@@ -18,7 +18,7 @@
 from typing import Any
 
 from amplifyp.dna import Primer
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
 
 
 def validate_primer(

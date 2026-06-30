@@ -24,7 +24,8 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import NotificationHelper
 
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
@@ -170,7 +171,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         Args:
             e: The Flet control event triggered by the load button click.
         """
-        from amplifyp.gui.util import pick_and_read_file
+        from amplifyp.gui.utils.io import pick_and_read_file
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -197,7 +198,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             self._show_notification("No template to save.")
             return
 
-        from amplifyp.gui.util import save_and_write_file
+        from amplifyp.gui.utils.io import save_and_write_file
 
         await save_and_write_file(
             page=self.app_page,

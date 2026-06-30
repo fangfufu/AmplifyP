@@ -25,7 +25,9 @@ import yaml
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, get_version, serialise_state
+from amplifyp.gui.util import serialise_state
+from amplifyp.gui.utils.git import get_version
+from amplifyp.gui.utils.ui import NotificationHelper
 from amplifyp.gui.views import (
     AboutView,
     DimerView,
@@ -571,7 +573,7 @@ class GUIController:
             }
             yaml_str = serialise_state(combined)
 
-            from amplifyp.gui.util import save_and_write_file
+            from amplifyp.gui.utils.io import save_and_write_file
 
             await save_and_write_file(
                 page=self.page,
@@ -594,7 +596,7 @@ class GUIController:
             return
         self.filepicker_open = True
         try:
-            from amplifyp.gui.util import pick_and_read_file
+            from amplifyp.gui.utils.io import pick_and_read_file
 
             content = await pick_and_read_file(
                 page=self.page,

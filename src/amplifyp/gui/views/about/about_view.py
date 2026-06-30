@@ -36,7 +36,7 @@ class AboutView(ft.ListView):  # type: ignore[misc]
         self.app_page = page
         self.settings = settings if settings is not None else GUISettings()
 
-        from amplifyp.gui.util import get_full_sha, get_version
+        from amplifyp.gui.utils.git import get_full_sha, get_version
 
         full_sha = get_full_sha()
         app_version = get_version()

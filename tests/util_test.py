@@ -19,7 +19,8 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.util import clean_sequence, format_sequence, show_error_dialog
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
+from amplifyp.gui.utils.ui import show_error_dialog
 
 
 def test_clean_sequence() -> None:
@@ -68,7 +69,7 @@ def test_get_version_and_sha() -> None:
     import sys
     from unittest.mock import MagicMock, patch
 
-    from amplifyp.gui.util import get_full_sha, get_git_sha, get_version
+    from amplifyp.gui.utils.git import get_full_sha, get_git_sha, get_version
 
     # Test under mocked 'amplifyp.gui.git_sha' module
     mock_git_sha = MagicMock()

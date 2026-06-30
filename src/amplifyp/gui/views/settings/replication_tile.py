@@ -64,7 +64,7 @@ class ReplicationTile(BaseScoreTile):
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
-        from amplifyp.gui.util import BorderedCheckbox
+        from amplifyp.gui.utils.ui import BorderedCheckbox
 
         self.set_amp4_compat = BorderedCheckbox(
             label="Amplify4 Compatibility Mode",

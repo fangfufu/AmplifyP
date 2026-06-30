@@ -26,7 +26,8 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
+from amplifyp.gui.utils.ui import Debouncer
 
 from .primer_input import PrimerInput
 from .primer_row import PrimerRow
@@ -394,39 +395,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         self, text: str, idx: int, field: str, control: ft.TextField
     ) -> None:
         """Parse pasted text and insert into the primer list."""
-        parsed = []
-        for line in text.splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = line.split("\t")
-            if len(parts) >= 2:
-                name = parts[0].strip()
-                seq = parts[1].strip()
-            elif len(parts) == 1:
-                subparts = line.split(",")
-                if len(subparts) >= 2:
-                    name = subparts[0].strip()
-                    seq = subparts[1].strip()
-                else:
-                    val = line.strip()
-                    cleaned = clean_sequence(val)
-                    is_seq = False
-                    if cleaned:
-                        is_seq = all(
-                            c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn"
-                            for c in cleaned
-                        )
-                    if is_seq:
-                        name = ""
-                        seq = val
-                    else:
-                        name = val
-                        seq = ""
-            else:
-                continue
-            parsed.append({"name": name, "seq": seq, "active": True})
+        from .primer_clipboard import parse_primer_clipboard_text
 
+        parsed = parse_primer_clipboard_text(text)
         if not parsed:
             return
 

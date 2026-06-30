@@ -87,7 +87,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
-        from amplifyp.gui.util import BorderedCheckbox
+        from amplifyp.gui.utils.ui import BorderedCheckbox
 
         self.set_show_primer_temperature = BorderedCheckbox(
             label="Show Primer Temperature in List",
