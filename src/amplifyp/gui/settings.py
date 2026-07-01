@@ -94,6 +94,8 @@ class GUISettings:
             "font_size_table_header": 15,
             "improved_visualisation": True,
             "show_primer_temperature": False,
+            "ignore_inactive_name_dup_warn": True,
+            "ignore_inactive_seq_dup_warn": True,
             "tm_colour_scheme": "None",
             "log_level_amplifyp": "INFO",
             "log_level_flet": "INFO",
