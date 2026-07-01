@@ -181,17 +181,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                     self.primer_input, "selected_indices", set()
                 )
 
-                old_bgcolor = row.bgcolor
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup
                 )
-
-                if row.bgcolor != old_bgcolor:
-                    try:
-                        if row.page:
-                            row.update()
-                    except RuntimeError:
-                        pass
         try:
             if self.page:
                 self.update()
