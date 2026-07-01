@@ -37,6 +37,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_micro: int,
         font_size_table_header: int,
+        width: int = 810,
     ) -> None:
         """Initialise the ScoreTable.
 
@@ -52,6 +53,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             font_size_default: Default font size for the label.
             font_size_micro: Font size for the diagonal header labels.
             font_size_table_header: Font size for row and column headers.
+            width: Total table container width in pixels. Defaults to 810.
         """
         self.label = label
         self.row_headers = row_headers
@@ -191,7 +193,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             border=ft.Border.all(1, GUIColours.OUTLINE),
                             border_radius=5,
                             padding=0,
-                            width=810,
+                            width=width,
                         )
                     ],
                     scroll=ft.ScrollMode.ALWAYS,

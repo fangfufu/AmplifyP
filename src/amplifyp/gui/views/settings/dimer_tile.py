@@ -93,6 +93,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
+            width=700,
         )
 
         super().__init__(
