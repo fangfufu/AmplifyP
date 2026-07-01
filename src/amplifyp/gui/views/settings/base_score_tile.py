@@ -13,15 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Base score settings tile and score table for Flet settings view."""
+"""Score table for Flet settings view."""
 
-from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
-from amplifyp.gui.settings import GUISettings
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]
@@ -203,119 +201,3 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             spacing=10,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
-
-
-class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
-    """Base settings tile with a ScoreTable and parameter controls."""
-
-    def __init__(
-        self,
-        settings: GUISettings,
-        settings_map: dict[str, Any],
-        on_change_handler: Callable[[ft.Event | None], None],
-        header_size: int,
-        font_size_default: int,
-        font_size_micro: int,
-        font_size_table_header: int,
-        title: str,
-        score_table_label: str,
-        score_table_prefix: str,
-        row_headers: list[str],
-        col_headers: list[str],
-        row_label: str,
-        col_label: str,
-        parameter_controls: list[ft.Control],
-    ) -> None:
-        """Initialise the BaseScoreTile.
-
-        Args:
-            settings: The settings object.
-            settings_map: A dictionary mapping setting keys to UI
-                components for population and retrieval.
-            on_change_handler: The handler to call when a setting changes.
-            header_size: The size of the expansion tile header text.
-            font_size_default: Default font size for text elements.
-            font_size_micro: Micro font size for small labels.
-            font_size_table_header: Font size for table header cells.
-            title: The expansion tile title text.
-            score_table_label: Label for the score table section.
-            score_table_prefix: Key prefix for score table fields in
-                settings_map.
-            row_headers: List of row header labels for the score table.
-            col_headers: List of column header labels for the score table.
-            row_label: Label for the row header column.
-            col_label: Label for the column header row.
-            parameter_controls: List of additional parameter controls to
-                display alongside the score table.
-        """
-        self.settings = settings
-        self.settings_map = settings_map
-        self.on_change_handler = on_change_handler
-
-        # Map initialisation (must happen before building ScoreTable)
-        from amplifyp.gui.utils.ui import initialise_score_fields
-
-        initialise_score_fields(
-            settings_map=self.settings_map,
-            prefix=score_table_prefix,
-            row_headers=row_headers,
-            col_headers=col_headers,
-            on_change_handler=self.on_change_handler,
-            font_size=font_size_default,
-        )
-
-        self.score_table = ScoreTable(
-            label=score_table_label,
-            row_headers=row_headers,
-            col_headers=col_headers,
-            row_label=row_label,
-            col_label=col_label,
-            prefix=score_table_prefix,
-            settings_map=self.settings_map,
-            font_size_default=font_size_default,
-            font_size_micro=font_size_micro,
-            font_size_table_header=font_size_table_header,
-        )
-
-        super().__init__(
-            title=ft.Text(
-                title,
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
-            ),
-            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-            controls=[
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            self.score_table,
-                            ft.Container(height=10),
-                            ft.Container(
-                                content=ft.Column(
-                                    [
-                                        ft.Text(
-                                            "Parameters",
-                                            weight=ft.FontWeight.BOLD,
-                                            size=self.settings.get(
-                                                "font_size_default", 14
-                                            ),
-                                        ),
-                                        *parameter_controls,
-                                    ],
-                                    spacing=15,
-                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                                ),
-                                width=500,
-                            ),
-                        ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=10,
-                    ),
-                    padding=ft.Padding(0, 20, 0, 10),
-                )
-            ],
-        )
-
-    def update_ui(self) -> None:
-        """Update Flet UI controls to match theme/settings."""
-        self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
