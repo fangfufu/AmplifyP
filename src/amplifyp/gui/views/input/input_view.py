@@ -224,6 +224,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 else None
             )
 
+            if idx not in self.primer_input.selected_indices:
+                self.primer_input.selected_indices = {idx}
+                self.primer_input._update_delete_button_disabled_state()
             self.primer_input.focused_primer_index = idx
 
             # Set touched status in state
@@ -452,10 +455,11 @@ class InputView(ft.Row):  # type: ignore[misc]
         Args:
             e: The Flet control event containing click information.
         """
-        active_indices = {
-            i for i, p in enumerate(self.input_data.primers) if p.get("active")
-        }
-        self.primer_input.action_controller.delete_primers(active_indices)
+        active_indices = self.primer_input.selected_indices
+        if active_indices:
+            self.primer_input.action_controller.delete_primers(
+                active_indices.copy()
+            )
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:

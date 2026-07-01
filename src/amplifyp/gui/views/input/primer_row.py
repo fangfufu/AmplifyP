@@ -54,6 +54,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         is_focused: bool,
         is_last_row: bool,
+        on_drag_start: Callable[[int, ft.DragStartEvent], None] | None = None,
+        on_drag_update: Callable[[int, ft.DragUpdateEvent], None] | None = None,
+        on_drag_end: Callable[[int, ft.DragEndEvent], None] | None = None,
     ) -> None:
         """Initialise the PrimerRow.
 
@@ -77,6 +80,9 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_divider_pan_end: Callback for ending the divider drag.
             is_focused: Whether this row is currently focused.
             is_last_row: Whether this is the last row in the list.
+            on_drag_start: Callback for starting a drag-selection.
+            on_drag_update: Callback for updating a drag-selection.
+            on_drag_end: Callback for ending a drag-selection.
         """
         has_err = bool(name_error or seq_error)
         super().__init__(
@@ -139,15 +145,37 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.checkbox = ft.Checkbox(
             value=is_active,
             on_change=on_change_handler,
-            disabled=False,
-            visible=True,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
-            width=55,
-            height=30,
             alignment=ft.Alignment(0, 0),
+            width=30,
+            padding=0,
         )
+
+        self.drag_handle = ft.GestureDetector(
+            on_pan_start=lambda e: (
+                on_drag_start(self.idx, e) if on_drag_start else None
+            ),
+            on_pan_update=lambda e: (
+                on_drag_update(self.idx, e) if on_drag_update else None
+            ),
+            on_pan_end=lambda e: (
+                on_drag_end(self.idx, e) if on_drag_end else None
+            ),
+            on_tap=lambda e: on_row_click(self.idx, self.name_field),  # type: ignore[has-type]
+            mouse_cursor=ft.MouseCursor.CLICK,
+            content=ft.Container(
+                content=ft.Icon(
+                    ft.Icons.DRAG_INDICATOR, size=16, color=ft.Colors.GREY_400
+                ),
+                alignment=ft.Alignment(0, 0),
+                width=25,
+                padding=0,
+                height=30,
+            ),
+        )
+
         self.name_field = ft.TextField(
             value=name,
             dense=True,
@@ -224,6 +252,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
 
         controls = [
+            self.drag_handle,
             self.checkbox_container,
             self.active_divider,
             self.name_scroll,
@@ -238,7 +267,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
-        self.on_click = lambda e: on_row_click(idx, self.name_field)
+
+        self.on_click = lambda e: on_row_click(self.idx, self.name_field)
 
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
@@ -315,8 +345,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq_val = self.seq_field.value
         name_val = self.name_field.value
         tm_val = ""
-        self._tm_value = None
         show_temp = settings.get("show_primer_temperature", False)
+        scheme = settings.get("tm_colour_scheme", "None")
+
+        # Check cache before recomputing
+        cache_key = (seq_val, name_val, show_temp, scheme)
+        if getattr(self, "_last_tm_cache_key", None) == cache_key:
+            return
+
+        self._last_tm_cache_key = cache_key
+        self._tm_value = None
+
         if show_temp and seq_val and seq_val.strip():
             try:
                 cleaned_seq = clean_sequence(seq_val)
@@ -333,7 +372,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 )
                 tm_val = "-"
         self.tm_text.value = tm_val
-        scheme = settings.get("tm_colour_scheme", "None")
 
         self.tm_text.color = (
             tm_colour(self._tm_value, scheme)

@@ -84,6 +84,17 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             self.primer_input.input_data.primers
         )
         num_primers = len(self.primer_input.input_data.primers)
+
+        # Clamp selection indices in case the list was truncated externally
+        self.primer_input.selected_indices = {
+            i for i in self.primer_input.selected_indices if i < num_primers
+        }
+        if (
+            self.primer_input.focused_primer_index is not None
+            and self.primer_input.focused_primer_index >= num_primers
+        ):
+            self.primer_input.focused_primer_index = None
+
         num_controls = len(self.controls)
 
         # 1. Adjust length of controls to match num_primers
@@ -111,6 +122,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                     on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
                     is_focused=False,
                     is_last_row=(idx == num_primers - 1),
+                    on_drag_start=self.primer_input.action_controller.handle_drag_start,
+                    on_drag_update=self.primer_input.action_controller.handle_drag_update,
+                    on_drag_end=self.primer_input.action_controller.handle_drag_end,
                 )
                 self.controls.append(row)
 
@@ -155,7 +169,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             if isinstance(row, PrimerRow) and row.data is not None:
                 c_idx = row.data
                 is_dup = c_idx in dup_indices
-                is_focused = c_idx == self.primer_input.focused_primer_index
+                is_focused = c_idx in getattr(
+                    self.primer_input, "selected_indices", set()
+                )
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup
                 )
