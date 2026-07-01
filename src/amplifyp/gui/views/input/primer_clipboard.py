@@ -59,5 +59,5 @@ def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
                     seq = ""
         else:
             continue
-        parsed.append({"name": name, "seq": seq, "active": True})
+        parsed.append({"name": name, "seq": seq, "active": False})
     return parsed

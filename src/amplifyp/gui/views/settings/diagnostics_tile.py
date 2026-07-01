@@ -56,7 +56,9 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         self.on_change_handler = on_change_handler
         self.is_web = self._page.web
 
-        self.log_console_enabled = ft.Checkbox(
+        from amplifyp.gui.utils.ui import BorderedCheckbox
+
+        self.log_console_enabled = BorderedCheckbox(
             label="Console Output",
             value=settings.get("log_console_enabled", True),
             on_change=self.on_change_handler,
@@ -66,7 +68,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             label="AmplifyP Log Level",
             options=[ft.dropdown.Option(level) for level in LOG_LEVELS],
             value=settings.get("log_level_amplifyp", "INFO"),
-            width=350,
+            width=500,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -79,18 +81,18 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                 if level != "DEBUG"
             ],
             value=settings.get("log_level_flet", "INFO"),
-            width=350,
+            width=500,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
 
-        self.log_file_enabled = ft.Checkbox(
+        self.log_file_enabled = BorderedCheckbox(
             label="File Logging",
             value=settings.get("log_file_enabled", True),
             on_change=self._on_file_logging_change,
         )
 
-        self.log_rotation_enabled = ft.Checkbox(
+        self.log_rotation_enabled = BorderedCheckbox(
             label="Log Rotation",
             value=settings.get("log_rotation_enabled", True),
             on_change=self.on_change_handler,
@@ -108,7 +110,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Max Log Size (MB)",
             options=[ft.dropdown.Option(mb) for mb in mb_options],
             value=current_max_mb,
-            width=350,
+            width=500,
             disabled=True,
             border_color=GUIColours.OUTLINE,
             on_select=self.on_change_handler,
@@ -117,7 +119,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         current_path = settings.get("log_file_path", "(Default)")
         self.log_file_path = ft.Dropdown(
             label="Log File Path",
-            width=350,
+            width=500,
             on_select=self._on_log_file_path_change,
             border_color=GUIColours.OUTLINE,
         )
@@ -170,7 +172,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=350,
+                                width=500,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,

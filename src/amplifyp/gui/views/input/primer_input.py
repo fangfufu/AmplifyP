@@ -147,7 +147,8 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.error_message_text = ft.Text(
             value=(
                 "PCR and Primer Dimer views are disabled because "
-                "one or more selected (active) primers are invalid."
+                "one or more selected primers are invalid, or "
+                "have duplicated names/sequences."
             ),
             color=ft.Colors.ON_ERROR_CONTAINER,
             weight=ft.FontWeight.BOLD,
@@ -294,7 +295,16 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             if checkbox:
                 checkbox.value = reconciled_p["active"]
 
-        dup_indices = get_duplicate_primer_indices(ui_primers)
+        ignore_inactive_name_dup = self.settings.get(
+            "ignore_inactive_name_dup_warn", True
+        )
+        ignore_inactive_seq_dup = self.settings.get(
+            "ignore_inactive_seq_dup_warn", True
+        )
+
+        dup_indices = get_duplicate_primer_indices(
+            ui_primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
+        )
         for p in ui_primers:
             container = p.get("container")
             if container is None:
@@ -306,7 +316,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 container.bgcolor = new_color
 
         # Run background primer construction/validation
-        new_validation_errors = validate_primers(primers)
+        new_validation_errors = validate_primers(
+            primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
+        )
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
@@ -453,7 +465,17 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             Set of indices corresponding to primers with duplicate names
             or sequences in the central state.
         """
-        return get_duplicate_primer_indices(self.input_data.primers)
+        ignore_inactive_name_dup = self.settings.get(
+            "ignore_inactive_name_dup_warn", True
+        )
+        ignore_inactive_seq_dup = self.settings.get(
+            "ignore_inactive_seq_dup_warn", True
+        )
+        return get_duplicate_primer_indices(
+            self.input_data.primers,
+            ignore_inactive_name_dup,
+            ignore_inactive_seq_dup,
+        )
 
     def _update_row_highlights(self) -> None:
         """Update background colours of all row containers.
@@ -593,7 +615,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             insert_idx = 0
 
         for i, new_p in enumerate(parsed):
-            new_p["active"] = True
+            new_p["active"] = False
             primers.insert(insert_idx + i, new_p)
 
         self.selected_indices = set(range(insert_idx, insert_idx + len(parsed)))

@@ -59,39 +59,73 @@ def validate_primer(
 
 def _count_names_and_sequences(
     primers: list[dict[str, Any]],
-) -> tuple[dict[str, int], dict[str, int]]:
-    """Count occurrences of primer names and sequences."""
+) -> tuple[dict[str, int], dict[str, int], dict[str, int], dict[str, int]]:
+    """Count occurrences of primer names and sequences (total and active)."""
     names_count: dict[str, int] = {}
     seqs_count: dict[str, int] = {}
+    active_names_count: dict[str, int] = {}
+    active_seqs_count: dict[str, int] = {}
+
     for p in primers:
         n_lower = str(p.get("name") or "").strip().lower()
         s_lower = clean_sequence(str(p.get("seq") or "")).lower()
+        is_active = p.get("active", True)
+
         if n_lower:
             names_count[n_lower] = names_count.get(n_lower, 0) + 1
+            if is_active:
+                active_names_count[n_lower] = (
+                    active_names_count.get(n_lower, 0) + 1
+                )
         if s_lower:
             seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-    return names_count, seqs_count
+            if is_active:
+                active_seqs_count[s_lower] = (
+                    active_seqs_count.get(s_lower, 0) + 1
+                )
+
+    return names_count, seqs_count, active_names_count, active_seqs_count
 
 
-def get_duplicate_primer_indices(primers: list[dict[str, Any]]) -> set[int]:
+def get_duplicate_primer_indices(
+    primers: list[dict[str, Any]],
+    ignore_inactive_name_dup: bool = True,
+    ignore_inactive_seq_dup: bool = True,
+) -> set[int]:
     """Find and return indices of duplicate primers by name/sequence.
 
     Args:
         primers: List of primer dicts to check for duplicates.
+        ignore_inactive_name_dup: If True, ignore inactive primers
+            when checking for duplicate names.
+        ignore_inactive_seq_dup: If True, ignore inactive primers
+            when checking for duplicate sequences.
 
     Returns:
         Set of indices corresponding to primers with duplicate names
         or sequences.
     """
-    names_count, seqs_count = _count_names_and_sequences(primers)
+    counts = _count_names_and_sequences(primers)
+    names_count, seqs_count, active_names_count, active_seqs_count = counts
 
     dup_indices = set()
     for idx, p in enumerate(primers):
         n_lower = str(p.get("name") or "").strip().lower()
         s_lower = clean_sequence(str(p.get("seq") or "")).lower()
-        if (n_lower and names_count.get(n_lower, 0) > 1) or (
-            s_lower and seqs_count.get(s_lower, 0) > 1
-        ):
+        is_active = p.get("active", True)
+
+        is_name_dup = bool(n_lower) and (
+            (is_active and active_names_count.get(n_lower, 0) > 1)
+            if ignore_inactive_name_dup
+            else (names_count.get(n_lower, 0) > 1)
+        )
+
+        is_seq_dup = bool(s_lower) and (
+            (is_active and active_seqs_count.get(s_lower, 0) > 1)
+            if ignore_inactive_seq_dup
+            else (seqs_count.get(s_lower, 0) > 1)
+        )
+        if is_name_dup or is_seq_dup:
             c = p.get("container")
             c_idx = (
                 c.data
@@ -157,6 +191,8 @@ def reconcile_primer_states(
 
 def validate_primers(
     primers: list[dict[str, Any]],
+    ignore_inactive_name_dup: bool = True,
+    ignore_inactive_seq_dup: bool = True,
 ) -> list[dict[str, str | None]]:
     """Validate a list of primers, detecting format and duplicate errors.
 
@@ -166,12 +202,17 @@ def validate_primers(
     Args:
         primers: List of primer dicts with 'name', 'seq', 'name_touched',
             and 'seq_touched' keys.
+        ignore_inactive_name_dup: If True, ignore inactive primers
+            when checking for duplicate names.
+        ignore_inactive_seq_dup: If True, ignore inactive primers
+            when checking for duplicate sequences.
 
     Returns:
         List of error dicts, one per primer, with 'name' and 'seq' keys
         containing error message strings or None.
     """
-    names_count, seqs_count = _count_names_and_sequences(primers)
+    counts = _count_names_and_sequences(primers)
+    names_count, seqs_count, active_names_count, active_seqs_count = counts
 
     errors = []
     for p in primers:
@@ -185,11 +226,25 @@ def validate_primers(
 
         n_lower = name_val.lower()
         s_lower = seq_val.lower()
+        is_active = p.get("active", True)
 
-        if not seq_err and s_lower and seqs_count.get(s_lower, 0) > 1:
-            seq_err = "Duplicate primer sequence"
-        if not name_err and n_lower and names_count.get(n_lower, 0) > 1:
-            name_err = "Duplicate primer name"
+        if not seq_err and s_lower:
+            is_seq_dup = (
+                (is_active and active_seqs_count.get(s_lower, 0) > 1)
+                if ignore_inactive_seq_dup
+                else (seqs_count.get(s_lower, 0) > 1)
+            )
+            if is_seq_dup:
+                seq_err = "Duplicate primer sequence"
+
+        if not name_err and n_lower:
+            is_name_dup = (
+                (is_active and active_names_count.get(n_lower, 0) > 1)
+                if ignore_inactive_name_dup
+                else (names_count.get(n_lower, 0) > 1)
+            )
+            if is_name_dup:
+                name_err = "Duplicate primer name"
 
         errors.append({"name": name_err, "seq": seq_err})
     return errors

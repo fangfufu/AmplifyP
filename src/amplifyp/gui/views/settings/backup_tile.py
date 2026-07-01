@@ -88,11 +88,11 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
                                     self.load_button,
                                 ],
                                 spacing=15,
-                                alignment=ft.MainAxisAlignment.START,
+                                alignment=ft.MainAxisAlignment.CENTER,
                             ),
                         ],
                         spacing=10,
-                        horizontal_alignment=ft.CrossAxisAlignment.START,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(20, 20, 20, 20),
                 )

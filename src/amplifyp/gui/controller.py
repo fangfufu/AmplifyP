@@ -284,14 +284,16 @@ class GUIController:
         has_enough_primers = len(active_primers) >= 1
 
         # Check if any selected (active) primer has validation errors
+        # or duplicates
         has_invalid_selected = False
         for idx, p in enumerate(self.input_data.primers):
-            if p.get("active", False):
-                if idx < len(self.input_view.primer_input.validation_errors):
-                    err = self.input_view.primer_input.validation_errors[idx]
-                    if err.get("name") or err.get("seq"):
-                        has_invalid_selected = True
-                        break
+            if p.get("active", False) and idx < len(
+                self.input_view.primer_input.validation_errors
+            ):
+                err = self.input_view.primer_input.validation_errors[idx]
+                if err.get("name") or err.get("seq"):
+                    has_invalid_selected = True
+                    break
 
         if hasattr(self.input_view.primer_input, "error_banner"):
             self.input_view.primer_input.error_banner.visible = (

@@ -24,6 +24,6 @@ and this project adheres to
 
 * **chore:** Various refactorings.
 
-## [1.0.0] - 2026-06-30
+## [1.0.0](https://github.com/fangfufu/AmplifyP/commit/19d347b9a3efce223385f54777efd97694919022) - 2026-06-30
 
 Initial release

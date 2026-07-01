@@ -22,6 +22,7 @@ import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.ui import BorderedCheckbox
 
 
 class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -55,7 +56,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
-            width=350,
+            width=500,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -70,15 +71,33 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
-            width=350,
+            width=500,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
+        self.ignore_inactive_name_dup_checkbox = BorderedCheckbox(
+            label="Ignore inactive primers when checking for duplicate names",
+            on_change=self.on_change_handler,
+        )
+
+        self.ignore_inactive_seq_dup_checkbox = BorderedCheckbox(
+            label=(
+                "Ignore inactive primers when checking for duplicate sequences"
+            ),
+            on_change=self.on_change_handler,
+        )
+
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
+        self.settings_map["ignore_inactive_name_dup_warn"] = (
+            self.ignore_inactive_name_dup_checkbox
+        )
+        self.settings_map["ignore_inactive_seq_dup_warn"] = (
+            self.ignore_inactive_seq_dup_checkbox
+        )
 
         super().__init__(
             title=ft.Text(
@@ -96,12 +115,14 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_font_family,
                                         self.set_colour_scheme,
+                                        self.ignore_inactive_name_dup_checkbox,
+                                        self.ignore_inactive_seq_dup_checkbox,
                                         self._dummy_colour_deficient,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=350,
+                                width=500,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
