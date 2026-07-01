@@ -324,11 +324,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.height = 30 if not has_err else None
 
         self.tm_divider.height = 30 if not has_err else 42
-        if hasattr(self.divider, "content"):
-            self.divider.content.height = 30 if not has_err else 42
+        if (divider_content := self.divider.content) is not None:
+            divider_content.height = 30 if not has_err else 42
         self.active_divider.height = 30 if not has_err else 42
-        if hasattr(self.drag_handle, "content"):
-            self.drag_handle.content.height = 30 if not has_err else 42
+        if (drag_content := self.drag_handle.content) is not None:
+            drag_content.height = 30 if not has_err else 42
 
         self.checkbox.disabled = False
 
