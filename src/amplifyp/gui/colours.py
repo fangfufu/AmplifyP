@@ -102,9 +102,26 @@ class _GUIColoursMeta(type):
         if cls._dark_mode:
             return cast(
                 str,
-                ft.Colors.ORANGE_900
+                ft.Colors.ORANGE_800
                 if cls._colour_deficient_mode
-                else ft.Colors.RED_900,
+                else ft.Colors.RED_800,
+            )
+        return cast(
+            str,
+            ft.Colors.ORANGE_50
+            if cls._colour_deficient_mode
+            else ft.Colors.RED_50,
+        )
+
+    @property
+    def FOCUSED_DUPLICATE_BG(cls) -> str:
+        """Get background colour for a duplicate warning row that is focused."""
+        if cls._dark_mode:
+            return cast(
+                str,
+                ft.Colors.ORANGE_600
+                if cls._colour_deficient_mode
+                else ft.Colors.RED_600,
             )
         return cast(
             str,
@@ -118,7 +135,7 @@ class _GUIColoursMeta(type):
         """Get selected/focused row background colour."""
         return cast(
             str,
-            ft.Colors.BLUE_900 if cls._dark_mode else ft.Colors.BLUE_50,
+            ft.Colors.BLUE_900 if cls._dark_mode else "#d0ebfc",
         )
 
     @property

@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.input import InputView
 
@@ -91,7 +92,11 @@ def test_input_view_duplicate_warning() -> None:
         {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
     ]
 
-    view = InputView(mock_page, input_data)
+    settings = GUISettings()
+    settings["ignore_inactive_name_dup_warn"] = False
+    settings["ignore_inactive_seq_dup_warn"] = False
+
+    view = InputView(mock_page, input_data, settings=settings)
 
     # Verify no duplicate highlights initially
     assert view.primers_list.controls[0].bgcolor is None
@@ -102,17 +107,17 @@ def test_input_view_duplicate_warning() -> None:
     second_row.name_field.value = "P1"
     view.sync_to_state()
 
-    # Both rows should have colour warning set to RED_100
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_100
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
+    # Both rows should have colour warning set to RED_50
+    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
+    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
 
     # Resolve duplicate name, introduce duplicate sequence (case-insensitive)
     second_row.name_field.value = "P2"
     second_row.seq_field.value = "gcatgcatgc"
     view.sync_to_state()
 
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_100
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_100
+    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
+    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
 
 
 def test_input_view_activation_validation() -> None:
@@ -456,7 +461,11 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
         {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
     ]
 
-    view = InputView(mock_page, input_data)
+    settings = GUISettings()
+    settings["ignore_inactive_name_dup_warn"] = False
+    settings["ignore_inactive_seq_dup_warn"] = False
+
+    view = InputView(mock_page, input_data, settings=settings)
     view.update_ui()
 
     # Verify initially valid and active
