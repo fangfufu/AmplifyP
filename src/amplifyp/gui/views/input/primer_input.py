@@ -535,7 +535,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 selected_primers = [primers[self.focused_primer_index]]
 
         if not selected_primers:
-            self._show_notification("No primers selected or focused to copy.")
+            self._show_notification(
+                "No primers highlighted or focused to copy."
+            )
             return
 
         lines = []

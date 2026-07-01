@@ -68,7 +68,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         self.delete_selected_button = ft.OutlinedButton(
             "Delete",
             icon=ft.Icons.DELETE_SWEEP,
-            tooltip="Delete Selected Primers",
+            tooltip="Delete Highlighted Primers",
             on_click=on_delete_selected,
             height=32,
             disabled=True,
@@ -76,7 +76,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         self.copy_button = ft.OutlinedButton(
             "Copy",
             icon=ft.Icons.CONTENT_COPY,
-            tooltip="Copy Selected Primers to Clipboard",
+            tooltip="Copy Highlighted Primers to Clipboard",
             on_click=on_copy,
             height=32,
         )
