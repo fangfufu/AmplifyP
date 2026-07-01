@@ -541,7 +541,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             lines.append(f"{name}\t{seq}")
 
         tsv_text = "\n".join(lines)
-        await ft.Clipboard().set(tsv_text)
+        await self.app_page.clipboard.set(tsv_text)
         self._show_notification(
             f"Copied {len(selected_primers)} primer(s) to clipboard."
         )
@@ -549,7 +549,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     async def _paste_primers_click(self, e: ft.Event | None) -> None:
         """Paste primers from clipboard starting at focused index or end."""
         try:
-            clipboard_text = await ft.Clipboard().get()
+            clipboard_text = await self.app_page.clipboard.get()
         except Exception as ex:
             logger.warning("Failed to access clipboard: %s", ex)
             self._show_notification(
@@ -570,11 +570,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         primers = self.input_data.primers
         if self.selected_indices:
-            start_idx = min(self.selected_indices)
-        elif self.focused_primer_index is not None:
-            start_idx = self.focused_primer_index
+            insert_idx = max(self.selected_indices) + 1
         else:
-            start_idx = len(primers)
+            insert_idx = len(primers)
 
         # Replace single empty row
         if (
@@ -583,16 +581,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             and not primers[0].get("seq")
         ):
             primers.clear()
-            start_idx = 0
+            insert_idx = 0
 
         for i, new_p in enumerate(parsed):
-            target_idx = start_idx + i
-            if target_idx < len(primers):
-                primers[target_idx]["name"] = new_p["name"]
-                primers[target_idx]["seq"] = new_p["seq"]
-                primers[target_idx]["active"] = True
-            else:
-                primers.append(new_p)
+            new_p["active"] = True
+            primers.insert(insert_idx + i, new_p)
+
+        self.selected_indices = set(range(insert_idx, insert_idx + len(parsed)))
+        self.focused_primer_index = insert_idx
 
         self.update_ui()
         self.sync_to_state(rebuild_if_needed=True)
