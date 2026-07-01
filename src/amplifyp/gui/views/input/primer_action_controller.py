@@ -197,78 +197,131 @@ class PrimerActionController:
             self.owner.on_change_handler(None)
 
     def handle_drag_start(self, start_idx: int, e: ft.DragStartEvent) -> None:
-        """Handle start of drag selection on a primer row."""
-        self.drag_start_index = start_idx
-        self.current_drag_y = 0.0
-        ctrl = getattr(self.owner, "ctrl_pressed", False)
-        if not ctrl:
+        """Handle start of drag reordering on a primer row."""
+        if start_idx not in self.owner.selected_indices:
             self.owner.selected_indices = {start_idx}
-        else:
-            self.owner.selected_indices.add(start_idx)
-        self.owner.focused_primer_index = start_idx
+            self.owner.focused_primer_index = start_idx
+
+        # Find the contiguous block of highlighted rows containing start_idx
+        selected = sorted(self.owner.selected_indices)
+        block_start = start_idx
+        block_end = start_idx
+
+        idx_pos = selected.index(start_idx)
+        for i in range(idx_pos - 1, -1, -1):
+            if selected[i] == block_start - 1:
+                block_start = selected[i]
+            else:
+                break
+
+        for i in range(idx_pos + 1, len(selected)):
+            if selected[i] == block_end + 1:
+                block_end = selected[i]
+            else:
+                break
+
+        self.drag_block = list(range(block_start, block_end + 1))
+        self.current_drag_y = 0.0
+
         self.owner._update_row_highlights()
         self.owner._update_delete_button_disabled_state()
 
     def handle_drag_update(self, start_idx: int, e: ft.DragUpdateEvent) -> None:
-        """Handle drag selection update over primer rows."""
-        from .primer_row import PrimerRow
-
-        intervals = []
-        current_y = 0.0
-        for row in self.owner.primers_list.controls:
-            if isinstance(row, PrimerRow):
-                h = (
-                    55.0
-                    if (row.name_field.error or row.seq_field.error)
-                    else 30.0
-                )
-                intervals.append((current_y, current_y + h))
-                current_y += h
-
-        if not intervals or start_idx >= len(intervals):
+        """Handle live drag-and-drop reordering of contiguous rows."""
+        if not hasattr(self, "drag_block") or not self.drag_block:
             return
 
         delta_y = (
             getattr(e.local_delta, "y", 0.0)
             if getattr(e, "local_delta", None)
-            else 0.0
+            else getattr(e, "delta_y", 0.0)
         )
         self.current_drag_y += delta_y
 
-        start_top_y = intervals[start_idx][0]
-        start_bottom_y = intervals[start_idx][1]
-        start_center_y = (start_top_y + start_bottom_y) / 2.0
+        primers = self.owner.input_data.primers
+        changed = False
 
-        current_y_pos = start_center_y + self.current_drag_y
+        from .primer_row import PrimerRow
 
-        target_idx = start_idx
-        for idx, (top, bottom) in enumerate(intervals):
-            if top <= current_y_pos < bottom:
-                target_idx = idx
+        controls = self.owner.primers_list.controls
+
+        def get_row_height(idx: int) -> float:
+            if 0 <= idx < len(controls):
+                row = controls[idx]
+                if isinstance(row, PrimerRow):
+                    return (
+                        55.0
+                        if (row.name_field.error or row.seq_field.error)
+                        else 30.0
+                    )
+            return 30.0
+
+        # Try to move block down
+        while True:
+            block_end = self.drag_block[-1]
+            if block_end >= len(primers) - 1:
                 break
-        else:
-            if current_y_pos < 0:
-                target_idx = 0
-            elif current_y_pos >= intervals[-1][1]:
-                target_idx = len(intervals) - 1
 
-        start = min(start_idx, target_idx)
-        end = max(start_idx, target_idx)
+            row_below_height = get_row_height(block_end + 1)
+            if self.current_drag_y > row_below_height / 2.0:
+                target_idx = block_end + 1
+                if target_idx >= len(primers) or self.drag_block[0] >= len(
+                    primers
+                ):
+                    break
+                target_primer = primers[target_idx]
 
-        ctrl = getattr(self.owner, "ctrl_pressed", False)
-        if not ctrl:
-            self.owner.selected_indices = set(range(start, end + 1))
-        else:
-            for i in range(start, end + 1):
-                self.owner.selected_indices.add(i)
+                for i in range(block_end, self.drag_block[0] - 1, -1):
+                    primers[i + 1] = primers[i]
+                primers[self.drag_block[0]] = target_primer
 
-        self.owner._update_row_highlights()
-        self.owner._update_delete_button_disabled_state()
+                self.drag_block = [i + 1 for i in self.drag_block]
+                self.current_drag_y -= row_below_height
+                changed = True
+            else:
+                break
+
+        # Try to move block up
+        while True:
+            block_start = self.drag_block[0]
+            if block_start <= 0 or block_start > len(primers):
+                break
+
+            row_above_height = get_row_height(block_start - 1)
+            if self.current_drag_y < -row_above_height / 2.0:
+                target_idx = block_start - 1
+                if target_idx >= len(primers) or self.drag_block[-1] >= len(
+                    primers
+                ):
+                    break
+                target_primer = primers[target_idx]
+
+                for i in range(block_start, self.drag_block[-1] + 1):
+                    primers[i - 1] = primers[i]
+                primers[self.drag_block[-1]] = target_primer
+
+                self.drag_block = [i - 1 for i in self.drag_block]
+                self.current_drag_y += row_above_height
+                changed = True
+            else:
+                break
+
+        if changed:
+            self.owner.selected_indices = set(self.drag_block)
+            if self.owner.focused_primer_index is not None:
+                self.owner.focused_primer_index = self.drag_block[0]
+            self.owner.update_ui()
 
     def handle_drag_end(self, start_idx: int, e: ft.DragEndEvent) -> None:
-        """Handle end of drag selection on a primer row."""
+        """Handle end of drag reordering on a primer row."""
+        if hasattr(self, "drag_block"):
+            delattr(self, "drag_block")
+
         self.owner._update_row_highlights()
         self.owner._update_primer_info_panel()
         self.owner._update_delete_button_disabled_state()
         if self.owner.app_page:
             self.owner.app_page.update()
+
+        if self.owner.on_change_handler is not None:
+            self.owner.on_change_handler(None)
