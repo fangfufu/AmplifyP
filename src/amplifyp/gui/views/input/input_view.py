@@ -420,7 +420,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             if target_idx < len(primers):
                 primers[target_idx]["name"] = new_p["name"]
                 primers[target_idx]["seq"] = new_p["seq"]
-                primers[target_idx]["active"] = True
+                primers[target_idx]["active"] = False
             else:
                 primers.append(new_p)
 

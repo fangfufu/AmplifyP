@@ -283,15 +283,31 @@ class GUIController:
         active_primers = self.input_data.get_active_primers()
         has_enough_primers = len(active_primers) >= 1
 
-        # Check if any selected (active) primer has validation errors
-        has_invalid_selected = False
-        for idx, p in enumerate(self.input_data.primers):
-            if p.get("active", False):
-                if idx < len(self.input_view.primer_input.validation_errors):
-                    err = self.input_view.primer_input.validation_errors[idx]
-                    if err.get("name") or err.get("seq"):
-                        has_invalid_selected = True
-                        break
+        from amplifyp.gui.views.input.primer_validation import (
+            get_duplicate_primer_indices,
+        )
+
+        dup_indices = get_duplicate_primer_indices(
+            active_primers,
+            ignore_inactive_name_dup=False,
+            ignore_inactive_seq_dup=False,
+        )
+
+        # Check if any selected (active) primer has validation errors or
+        # duplicates
+        has_invalid_selected = len(dup_indices) > 0
+        if not has_invalid_selected:
+            for idx, p in enumerate(self.input_data.primers):
+                if p.get("active", False):
+                    if idx < len(
+                        self.input_view.primer_input.validation_errors
+                    ):
+                        err = self.input_view.primer_input.validation_errors[
+                            idx
+                        ]
+                        if err.get("name") or err.get("seq"):
+                            has_invalid_selected = True
+                            break
 
         if hasattr(self.input_view.primer_input, "error_banner"):
             self.input_view.primer_input.error_banner.visible = (

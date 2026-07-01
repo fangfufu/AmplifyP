@@ -80,8 +80,17 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 {"name": "", "seq": "", "active": False}
             ]
 
+        ignore_inactive_name_dup = self.primer_input.settings.get(
+            "ignore_inactive_name_dup_warn", True
+        )
+        ignore_inactive_seq_dup = self.primer_input.settings.get(
+            "ignore_inactive_seq_dup_warn", True
+        )
+
         self.primer_input.validation_errors = validate_primers(
-            self.primer_input.input_data.primers
+            self.primer_input.input_data.primers,
+            ignore_inactive_name_dup,
+            ignore_inactive_seq_dup,
         )
         num_primers = len(self.primer_input.input_data.primers)
 
@@ -164,7 +173,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         duplicates (by name or sequence).
         """
         dup_indices = self.primer_input._get_duplicate_indices()
-
         for row in self.controls:
             if isinstance(row, PrimerRow) and row.data is not None:
                 c_idx = row.data
@@ -172,9 +180,18 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 is_focused = c_idx in getattr(
                     self.primer_input, "selected_indices", set()
                 )
+
+                old_bgcolor = row.bgcolor
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup
                 )
+
+                if row.bgcolor != old_bgcolor:
+                    try:
+                        if row.page:
+                            row.update()
+                    except RuntimeError:
+                        pass
         try:
             if self.page:
                 self.update()
