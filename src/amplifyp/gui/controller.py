@@ -298,16 +298,13 @@ class GUIController:
         has_invalid_selected = len(dup_indices) > 0
         if not has_invalid_selected:
             for idx, p in enumerate(self.input_data.primers):
-                if p.get("active", False):
-                    if idx < len(
-                        self.input_view.primer_input.validation_errors
-                    ):
-                        err = self.input_view.primer_input.validation_errors[
-                            idx
-                        ]
-                        if err.get("name") or err.get("seq"):
-                            has_invalid_selected = True
-                            break
+                if p.get("active", False) and idx < len(
+                    self.input_view.primer_input.validation_errors
+                ):
+                    err = self.input_view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        has_invalid_selected = True
+                        break
 
         if hasattr(self.input_view.primer_input, "error_banner"):
             self.input_view.primer_input.error_banner.visible = (
