@@ -193,6 +193,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             border=ft.Border.all(1, GUIColours.OUTLINE),
                             border_radius=5,
                             padding=0,
+                            width=810,
                         )
                     ],
                     scroll=ft.ScrollMode.ALWAYS,
@@ -304,7 +305,7 @@ class BaseScoreTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=350,
+                                width=500,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
