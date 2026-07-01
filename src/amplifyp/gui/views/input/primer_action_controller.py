@@ -38,36 +38,96 @@ class PrimerActionController:
         """
         self.owner = owner
         self.current_drag_y = 0.0
+        self._click_a: int | None = None
+        self._click_b: int | None = None
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
-        """Handle clicking on the row container.
+        """Handle single click on the row container.
 
-        Selects the row, focuses the name field, updates highlights,
-        and displays primer info.
+        Immediately toggles selection of the row and resets
+        click_a/click_b, clearing any pending double-click range.
 
         Args:
             idx: Zero-based index of the clicked primer row.
             name_edit: The name TextField control to focus.
         """
-        if idx in self.owner.selected_indices:
-            self.owner.selected_indices.remove(idx)
-            if self.owner.focused_primer_index == idx:
-                self.owner.focused_primer_index = None
+        owner = self.owner
+        self._click_a = None
+        self._click_b = None
+
+        if idx in owner.selected_indices:
+            owner.selected_indices.discard(idx)
+            if owner.focused_primer_index == idx:
+                owner.focused_primer_index = None
         else:
-            self.owner.selected_indices.add(idx)
-            self.owner.focused_primer_index = idx
+            owner.selected_indices.add(idx)
+            owner.focused_primer_index = idx
 
             res = name_edit.focus()
-            if inspect.iscoroutine(res) and self.owner.app_page:
+            if inspect.iscoroutine(res) and owner.app_page:
 
                 async def do_focus() -> None:
                     await res
 
-                self.owner.app_page.run_task(do_focus)
+                owner.app_page.run_task(do_focus)
 
-        self.owner._update_row_highlights()
-        self.owner._update_primer_info_panel()
-        self.owner._update_delete_button_disabled_state()
+        owner._update_row_highlights()
+        owner._update_primer_info_panel()
+        owner._update_delete_button_disabled_state()
+
+    def handle_row_double_click(
+        self, idx: int, _name_edit: ft.TextField
+    ) -> None:
+        """Handle double click on the row container.
+
+        On the first double-click, toggles selection of the clicked row
+        and sets click_a. On the second double-click, sets click_b,
+        toggles highlighting between click_a (exclusive) and click_b
+        (inclusive), then resets both to None.
+
+        Flet (via Flutter) does not fire on_tap before on_double_tap,
+        so the double-click handler is solely responsible for
+        managing click_a/click_b state.
+
+        Args:
+            idx: Zero-based index of the clicked primer row.
+            _name_edit: The name TextField control (unused).
+        """
+        owner = self.owner
+
+        # Reset anchor if it is out of bounds due to list mutations
+        if self._click_a is not None and not (
+            0 <= self._click_a < len(owner.input_data.primers)
+        ):
+            self._click_a = None
+
+        if self._click_a is None:
+            # First double-click: toggle the row, set click_a
+            if idx in owner.selected_indices:
+                owner.selected_indices.discard(idx)
+            else:
+                owner.selected_indices.add(idx)
+            self._click_a = idx
+        else:
+            # Second double-click: set click_b, toggle range
+            # exclusive of click_a (already selected)
+            self._click_b = idx
+            click_a = self._click_a
+            start = min(click_a, self._click_b)
+            end = max(click_a, self._click_b)
+            for i in range(start, end + 1):
+                if i == click_a:
+                    continue
+                if i in owner.selected_indices:
+                    owner.selected_indices.discard(i)
+                else:
+                    owner.selected_indices.add(i)
+            self._click_a = None
+            self._click_b = None
+
+        owner._update_row_highlights()
+        owner._update_primer_info_panel()
+        owner._update_delete_button_disabled_state()
 
     def on_add_primer_row(self, idx: int) -> None:
         """Add a new empty primer row immediately below the row at idx.
@@ -78,6 +138,8 @@ class PrimerActionController:
         Args:
             idx: Zero-based index of the row below which to insert.
         """
+        self._click_a = None
+        self._click_b = None
         self.owner.sync_to_state(rebuild_if_needed=False)
         self.owner.input_data.primers.insert(
             idx + 1, {"name": "", "seq": "", "active": False}
@@ -93,6 +155,8 @@ class PrimerActionController:
             indices: Set of zero-based indices of the primers to move.
             direction: -1 to move up, 1 to move down.
         """
+        self._click_a = None
+        self._click_b = None
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
         valid_indices = {i for i in indices if 0 <= i < len(primers)}
@@ -131,6 +195,8 @@ class PrimerActionController:
         Args:
             indices_to_delete: Set of zero-based indices to remove.
         """
+        self._click_a = None
+        self._click_b = None
         if not indices_to_delete:
             return
 
@@ -191,6 +257,7 @@ class PrimerActionController:
                 row.update_index(
                     new_idx=new_idx,
                     on_row_click=self.handle_row_click,
+                    on_row_double_click=self.handle_row_double_click,
                 )
 
         self.owner._update_row_highlights()
@@ -241,6 +308,8 @@ class PrimerActionController:
         self, _start_idx: int, e: ft.DragUpdateEvent
     ) -> None:
         """Handle live drag-and-drop reordering of contiguous rows."""
+        self._click_a = None
+        self._click_b = None
         if not hasattr(self, "drag_block") or not self.drag_block:
             return
 
