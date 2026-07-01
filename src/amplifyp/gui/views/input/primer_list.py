@@ -84,6 +84,17 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             self.primer_input.input_data.primers
         )
         num_primers = len(self.primer_input.input_data.primers)
+
+        # Clamp selection indices in case the list was truncated externally
+        self.primer_input.selected_indices = {
+            i for i in self.primer_input.selected_indices if i < num_primers
+        }
+        if (
+            self.primer_input.focused_primer_index is not None
+            and self.primer_input.focused_primer_index >= num_primers
+        ):
+            self.primer_input.focused_primer_index = None
+
         num_controls = len(self.controls)
 
         # 1. Adjust length of controls to match num_primers

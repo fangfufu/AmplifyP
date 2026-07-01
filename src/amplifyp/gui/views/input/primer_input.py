@@ -520,7 +520,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Copy selected or focused primers to clipboard in TSV format."""
         primers = self.input_data.primers
         selected_primers = (
-            [primers[i] for i in sorted(self.selected_indices)]
+            [
+                primers[i]
+                for i in sorted(self.selected_indices)
+                if 0 <= i < len(primers)
+            ]
             if self.selected_indices
             else []
         )
