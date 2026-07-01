@@ -452,6 +452,73 @@ def test_input_view_block_invalid_primer() -> None:
     assert checkbox.disabled is False
 
 
+def test_input_view_ignore_inactive_dup_warn() -> None:
+    """Test ignore_inactive_dup_warn suppresses inactive primer duplicates."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P1", "seq": "AAAAAAAAAA", "active": False},
+    ]
+
+    settings = GUISettings()
+    settings["ignore_inactive_name_dup_warn"] = True
+    settings["ignore_inactive_seq_dup_warn"] = True
+
+    view = InputView(mock_page, input_data, settings=settings)
+    view.update_ui()
+
+    # With ignore_inactive_name_dup_warn=True, the inactive P1 should not
+    # conflict with the active P1 - no duplicate warning
+    assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
+    assert view.primer_input.validation_errors[1] == {"name": None, "seq": None}
+    assert view.primers_list.controls[0].bgcolor is None
+    assert view.primers_list.controls[1].bgcolor is None
+
+    # Now test with ignore_inactive_name_dup_warn=False - should show duplicate
+    settings["ignore_inactive_name_dup_warn"] = False
+    view2 = InputView(mock_page, input_data, settings=settings)
+    view2.update_ui()
+
+    # Both primers should have duplicate name error
+    assert view2.primer_input.validation_errors[0] == {
+        "name": "Duplicate primer name",
+        "seq": None,
+    }
+    assert view2.primer_input.validation_errors[1] == {
+        "name": "Duplicate primer name",
+        "seq": None,
+    }
+    assert view2.primers_list.controls[0].bgcolor == ft.Colors.RED_50
+    assert view2.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+
+    # Test sequence duplicates with ignore_inactive_seq_dup_warn=True
+    input_data2 = GUIInput()
+    input_data2.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "gcatgcatgc", "active": False},
+    ]
+
+    settings2 = GUISettings()
+    settings2["ignore_inactive_name_dup_warn"] = True
+    settings2["ignore_inactive_seq_dup_warn"] = True
+
+    view3 = InputView(mock_page, input_data2, settings=settings2)
+    view3.update_ui()
+
+    # With ignore_inactive_seq_dup_warn=True, no duplicate sequence error
+    assert view3.primer_input.validation_errors[0] == {
+        "name": None,
+        "seq": None,
+    }
+    assert view3.primer_input.validation_errors[1] == {
+        "name": None,
+        "seq": None,
+    }
+    assert view3.primers_list.controls[0].bgcolor is None
+    assert view3.primers_list.controls[1].bgcolor is None
+
+
 def test_input_view_duplicate_validation_and_enabling() -> None:
     """Test duplicate name/sequence is invalid but checkbox remains enabled."""
     mock_page = MagicMock(spec=ft.Page)

@@ -96,8 +96,10 @@ def get_duplicate_primer_indices(
 
     Args:
         primers: List of primer dicts to check for duplicates.
-        ignore_inactive_name_dup: If True, do not warn about name duplicates.
-        ignore_inactive_seq_dup: If True, do not warn about sequence duplicates.
+        ignore_inactive_name_dup: If True, ignore inactive primers
+            when checking for duplicate names.
+        ignore_inactive_seq_dup: If True, ignore inactive primers
+            when checking for duplicate sequences.
 
     Returns:
         Set of indices corresponding to primers with duplicate names
@@ -112,19 +114,17 @@ def get_duplicate_primer_indices(
         s_lower = clean_sequence(str(p.get("seq") or "")).lower()
         is_active = p.get("active", True)
 
-        if ignore_inactive_name_dup:
-            is_name_dup = (
-                is_active and n_lower and active_names_count.get(n_lower, 0) > 1
-            )
-        else:
-            is_name_dup = n_lower and names_count.get(n_lower, 0) > 1
+        is_name_dup = bool(n_lower) and (
+            (is_active and active_names_count.get(n_lower, 0) > 1)
+            if ignore_inactive_name_dup
+            else (names_count.get(n_lower, 0) > 1)
+        )
 
-        if ignore_inactive_seq_dup:
-            is_seq_dup = (
-                is_active and s_lower and active_seqs_count.get(s_lower, 0) > 1
-            )
-        else:
-            is_seq_dup = s_lower and seqs_count.get(s_lower, 0) > 1
+        is_seq_dup = bool(s_lower) and (
+            (is_active and active_seqs_count.get(s_lower, 0) > 1)
+            if ignore_inactive_seq_dup
+            else (seqs_count.get(s_lower, 0) > 1)
+        )
         if is_name_dup or is_seq_dup:
             c = p.get("container")
             c_idx = (
@@ -202,8 +202,10 @@ def validate_primers(
     Args:
         primers: List of primer dicts with 'name', 'seq', 'name_touched',
             and 'seq_touched' keys.
-        ignore_inactive_name_dup: If True, do not warn about name duplicates.
-        ignore_inactive_seq_dup: If True, do not warn about sequence duplicates.
+        ignore_inactive_name_dup: If True, ignore inactive primers
+            when checking for duplicate names.
+        ignore_inactive_seq_dup: If True, ignore inactive primers
+            when checking for duplicate sequences.
 
     Returns:
         List of error dicts, one per primer, with 'name' and 'seq' keys
@@ -227,17 +229,21 @@ def validate_primers(
         is_active = p.get("active", True)
 
         if not seq_err and s_lower:
-            if ignore_inactive_seq_dup:
-                if is_active and active_seqs_count.get(s_lower, 0) > 1:
-                    seq_err = "Duplicate primer sequence"
-            elif seqs_count.get(s_lower, 0) > 1:
+            is_seq_dup = (
+                (is_active and active_seqs_count.get(s_lower, 0) > 1)
+                if ignore_inactive_seq_dup
+                else (seqs_count.get(s_lower, 0) > 1)
+            )
+            if is_seq_dup:
                 seq_err = "Duplicate primer sequence"
 
         if not name_err and n_lower:
-            if ignore_inactive_name_dup:
-                if is_active and active_names_count.get(n_lower, 0) > 1:
-                    name_err = "Duplicate primer name"
-            elif names_count.get(n_lower, 0) > 1:
+            is_name_dup = (
+                (is_active and active_names_count.get(n_lower, 0) > 1)
+                if ignore_inactive_name_dup
+                else (names_count.get(n_lower, 0) > 1)
+            )
+            if is_name_dup:
                 name_err = "Duplicate primer name"
 
         errors.append({"name": name_err, "seq": seq_err})
