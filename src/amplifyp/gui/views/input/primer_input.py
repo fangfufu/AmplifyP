@@ -375,7 +375,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         The delete button is enabled only when at least one primer is
         active (selected).
         """
-        self.delete_selected_button.disabled = not bool(self.selected_indices)
+        self.delete_selected_button.disabled = not self.selected_indices
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
 
@@ -547,7 +547,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             lines.append(f"{name}\t{seq}")
 
         tsv_text = "\n".join(lines)
-        await self.app_page.clipboard.set(tsv_text)
+        await ft.Clipboard().set(tsv_text)
         self._show_notification(
             f"Copied {len(selected_primers)} primer(s) to clipboard."
         )
@@ -555,7 +555,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     async def _paste_primers_click(self, e: ft.Event | None) -> None:
         """Paste primers from clipboard starting at focused index or end."""
         try:
-            clipboard_text = await self.app_page.clipboard.get()
+            clipboard_text = await ft.Clipboard().get()
         except Exception as ex:
             logger.warning("Failed to access clipboard: %s", ex)
             self._show_notification(
@@ -575,8 +575,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             return
 
         primers = self.input_data.primers
-        if self.selected_indices:
-            insert_idx = max(self.selected_indices) + 1
+        valid_selected = {
+            i for i in self.selected_indices if 0 <= i < len(primers)
+        }
+        if valid_selected:
+            insert_idx = max(valid_selected) + 1
         else:
             insert_idx = len(primers)
 
@@ -596,8 +599,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.selected_indices = set(range(insert_idx, insert_idx + len(parsed)))
         self.focused_primer_index = insert_idx
 
-        self.update_ui()
-        self.sync_to_state(rebuild_if_needed=True)
+        self.sync_to_state(rebuild_if_needed=True, skip_extract=True)
         if self.on_change_handler is not None:
             self.on_change_handler(None)
 
@@ -631,17 +633,20 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _header_add_click(self, e: ft.Event | None) -> None:
         """Handle header Add button click."""
+        num_primers = len(self.input_data.primers)
         if self.selected_indices:
-            idx = max(self.selected_indices)
+            idx = min(max(self.selected_indices), num_primers - 1)
         elif self.focused_primer_index is not None:
-            idx = self.focused_primer_index
+            idx = min(self.focused_primer_index, num_primers - 1)
         else:
-            idx = len(self.input_data.primers) - 1
+            idx = num_primers - 1
 
         self.action_controller.on_add_primer_row(idx)
         self.selected_indices = {idx + 1}
         self.focused_primer_index = idx + 1
-        self._update_header_buttons_state()
+        self._update_row_highlights()
+        self._update_primer_info_panel()
+        self._update_delete_button_disabled_state()
 
     def _header_delete_click(self, e: ft.Event | None) -> None:
         """Handle header Delete button click."""

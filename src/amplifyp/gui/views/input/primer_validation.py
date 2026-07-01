@@ -15,12 +15,14 @@
 
 """Validation logic for DNA primers."""
 
+import functools
 from typing import Any
 
 from amplifyp.dna import Primer
 from amplifyp.gui.utils.sequence import clean_sequence
 
 
+@functools.lru_cache(maxsize=4096)
 def validate_primer(
     name: str, seq: str, show_empty_errors: bool = False
 ) -> tuple[str | None, str | None]:

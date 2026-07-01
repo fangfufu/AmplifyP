@@ -226,9 +226,8 @@ class InputView(ft.Row):  # type: ignore[misc]
 
             if idx not in self.primer_input.selected_indices:
                 self.primer_input.selected_indices = {idx}
-                self.primer_input.focused_primer_index = idx
-            else:
-                self.primer_input.focused_primer_index = idx
+                self.primer_input._update_delete_button_disabled_state()
+            self.primer_input.focused_primer_index = idx
 
             # Set touched status in state
             if 0 <= idx < len(self.input_data.primers):

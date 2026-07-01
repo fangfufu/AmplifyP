@@ -38,7 +38,6 @@ class PrimerActionController:
         """
         self.owner = owner
         self.current_drag_y = 0.0
-        self.drag_start_index = 0
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle clicking on the row container.
@@ -96,24 +95,27 @@ class PrimerActionController:
         """
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
+        valid_indices = {i for i in indices if 0 <= i < len(primers)}
+        if not valid_indices:
+            return
 
         if direction == -1:
-            sorted_sel = sorted(indices)
+            sorted_sel = sorted(valid_indices)
             if sorted_sel and sorted_sel[0] == 0:
                 return
             for idx in sorted_sel:
                 primers[idx], primers[idx - 1] = primers[idx - 1], primers[idx]
-            self.owner.selected_indices = {i - 1 for i in indices}
-            if self.owner.focused_primer_index is not None:
+            self.owner.selected_indices = {i - 1 for i in valid_indices}
+            if self.owner.focused_primer_index in valid_indices:
                 self.owner.focused_primer_index -= 1
         elif direction == 1:
-            sorted_sel = sorted(indices, reverse=True)
+            sorted_sel = sorted(valid_indices, reverse=True)
             if sorted_sel and sorted_sel[0] == len(primers) - 1:
                 return
             for idx in sorted_sel:
                 primers[idx], primers[idx + 1] = primers[idx + 1], primers[idx]
-            self.owner.selected_indices = {i + 1 for i in indices}
-            if self.owner.focused_primer_index is not None:
+            self.owner.selected_indices = {i + 1 for i in valid_indices}
+            if self.owner.focused_primer_index in valid_indices:
                 self.owner.focused_primer_index += 1
 
         self.owner.update_ui()
@@ -134,6 +136,11 @@ class PrimerActionController:
 
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
+        indices_to_delete = {
+            i for i in indices_to_delete if 0 <= i < len(primers)
+        }
+        if not indices_to_delete:
+            return
 
         # Keep only indices NOT in the deleted set
         new_primers = [
@@ -196,8 +203,12 @@ class PrimerActionController:
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
 
-    def handle_drag_start(self, start_idx: int, e: ft.DragStartEvent) -> None:
+    def handle_drag_start(self, start_idx: int, _e: ft.DragStartEvent) -> None:
         """Handle start of drag reordering on a primer row."""
+        primers = self.owner.input_data.primers
+        self.owner.selected_indices = {
+            i for i in self.owner.selected_indices if 0 <= i < len(primers)
+        }
         if start_idx not in self.owner.selected_indices:
             self.owner.selected_indices = {start_idx}
             self.owner.focused_primer_index = start_idx
@@ -226,7 +237,9 @@ class PrimerActionController:
         self.owner._update_row_highlights()
         self.owner._update_delete_button_disabled_state()
 
-    def handle_drag_update(self, start_idx: int, e: ft.DragUpdateEvent) -> None:
+    def handle_drag_update(
+        self, _start_idx: int, e: ft.DragUpdateEvent
+    ) -> None:
         """Handle live drag-and-drop reordering of contiguous rows."""
         if not hasattr(self, "drag_block") or not self.drag_block:
             return
@@ -269,11 +282,8 @@ class PrimerActionController:
                     primers
                 ):
                     break
-                target_primer = primers[target_idx]
-
-                for i in range(block_end, self.drag_block[0] - 1, -1):
-                    primers[i + 1] = primers[i]
-                primers[self.drag_block[0]] = target_primer
+                # Move the row below the block to above the block
+                primers.insert(self.drag_block[0], primers.pop(target_idx))
 
                 self.drag_block = [i + 1 for i in self.drag_block]
                 self.current_drag_y -= row_below_height
@@ -284,7 +294,7 @@ class PrimerActionController:
         # Try to move block up
         while True:
             block_start = self.drag_block[0]
-            if block_start <= 0 or block_start > len(primers):
+            if block_start <= 0 or block_start >= len(primers):
                 break
 
             row_above_height = get_row_height(block_start - 1)
@@ -294,11 +304,8 @@ class PrimerActionController:
                     primers
                 ):
                     break
-                target_primer = primers[target_idx]
-
-                for i in range(block_start, self.drag_block[-1] + 1):
-                    primers[i - 1] = primers[i]
-                primers[self.drag_block[-1]] = target_primer
+                # Move the row above the block to below the block
+                primers.insert(self.drag_block[-1], primers.pop(target_idx))
 
                 self.drag_block = [i - 1 for i in self.drag_block]
                 self.current_drag_y += row_above_height
@@ -312,7 +319,7 @@ class PrimerActionController:
                 self.owner.focused_primer_index = self.drag_block[0]
             self.owner.update_ui()
 
-    def handle_drag_end(self, start_idx: int, e: ft.DragEndEvent) -> None:
+    def handle_drag_end(self, _start_idx: int, _e: ft.DragEndEvent) -> None:
         """Handle end of drag reordering on a primer row."""
         if hasattr(self, "drag_block"):
             delattr(self, "drag_block")

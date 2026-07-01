@@ -144,7 +144,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         self.checkbox = ft.Checkbox(
             value=is_active,
-            on_change=lambda e: on_change_handler(e),
+            on_change=on_change_handler,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
@@ -345,8 +345,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq_val = self.seq_field.value
         name_val = self.name_field.value
         tm_val = ""
-        self._tm_value = None
         show_temp = settings.get("show_primer_temperature", False)
+        scheme = settings.get("tm_colour_scheme", "None")
+
+        # Check cache before recomputing
+        cache_key = (seq_val, name_val, show_temp, scheme)
+        if getattr(self, "_last_tm_cache_key", None) == cache_key:
+            return
+
+        self._last_tm_cache_key = cache_key
+        self._tm_value = None
+
         if show_temp and seq_val and seq_val.strip():
             try:
                 cleaned_seq = clean_sequence(seq_val)
@@ -363,7 +372,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 )
                 tm_val = "-"
         self.tm_text.value = tm_val
-        scheme = settings.get("tm_colour_scheme", "None")
 
         self.tm_text.color = (
             tm_colour(self._tm_value, scheme)
