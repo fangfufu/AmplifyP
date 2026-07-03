@@ -421,3 +421,27 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self.tm_text.update()
         except RuntimeError:
             logger.debug("Tm text page detached, skipping update")
+
+        if show_temp != getattr(self, "_last_show_temp", None):
+            self._last_show_temp = show_temp
+            self.tm_container.visible = show_temp
+            self.tm_divider.visible = show_temp
+            controls = [
+                self.drag_handle,
+                self.checkbox_container,
+                self.active_divider,
+                self.name_scroll,
+                self.divider,
+                self.seq_scroll,
+            ]
+            if show_temp:
+                controls.extend([self.tm_divider, self.tm_container])
+            self.content = ft.Row(
+                controls,
+                spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            )
+            try:
+                self.update()
+            except RuntimeError:
+                logger.debug("Row page detached, skipping update")
