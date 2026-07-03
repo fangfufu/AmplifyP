@@ -90,6 +90,14 @@ jobs:
           import shutil
           shutil.make_archive('amplifyp-windows', 'zip', 'build', 'AmplifyP')
           "
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup -y
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        run: |
+          $version = "${{ needs.release-please.outputs.tag_name }}".Substring(1)
+          iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
@@ -98,6 +106,7 @@ jobs:
             amplifyp-linux.tar.gz
             amplifyp-macos.dmg
             amplifyp-windows.zip
+            amplifyp-windows-setup-*.exe
           if-no-files-found: ignore
   upload-assets:
     name: Upload Assets to GitHub Release
@@ -120,6 +129,7 @@ jobs:
             amplifyp-linux.tar.gz \
             amplifyp-macos.dmg \
             amplifyp-windows.zip \
+            amplifyp-windows-setup-*.exe \
             amplifyp-web.tar.gz
   deploy:
     name: Deploy to GitHub Pages
