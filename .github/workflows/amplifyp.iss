@@ -10,6 +10,7 @@ DefaultGroupName=AmplifyP
 SetupIconFile=src/assets/icon.png
 UninstallDisplayIcon={app}\AmplifyP.exe
 LicenseFile=LICENSE
+SourceDir=..\..
 OutputBaseFilename=amplifyp-windows-setup-{#Version}
 Compression=lzma2/ultra64
 SolidCompression=yes

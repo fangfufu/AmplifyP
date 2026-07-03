@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -18,7 +19,10 @@ jobs:
   build:
     name: Build artifacts (${{ matrix.os }})
     needs: [release-please]
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: |-
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -42,7 +46,8 @@ jobs:
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
         run: |
-          bash ./build_static.sh --base-url /${{ github.event.repository.name }}/
+          bash ./build_static.sh \
+            --base-url /${{ github.event.repository.name }}/
       - name: Archive and Upload Web Release (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -96,7 +101,12 @@ jobs:
       - name: Build Windows installer
         if: runner.os == 'Windows'
         run: |
-          $version = "${{ needs.release-please.outputs.tag_name }}".Substring(1)
+          $tag_name = "${{ needs.release-please.outputs.tag_name }}"
+          if ([string]::IsNullOrEmpty($tag_name)) {
+            $version = "0.0.0"
+          } else {
+            $version = $tag_name.Substring(1)
+          }
           iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
@@ -111,6 +121,7 @@ jobs:
   upload-assets:
     name: Upload Assets to GitHub Release
     needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -134,6 +145,7 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
