@@ -50,6 +50,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
         handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
         on_row_click: Callable[[int, ft.TextField], None],
+        on_row_double_click: Callable[[int, ft.TextField], None],
         on_divider_pan: Callable[[ft.DragUpdateEvent], None],
         on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         is_focused: bool,
@@ -75,7 +76,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             handle_field_focus: Callback for field focus events.
             handle_field_blur: Callback for field blur events.
             handle_field_submit: Callback for field submit events.
-            on_row_click: Callback when the row container is clicked.
+            on_row_click: Callback when the row container is single-clicked.
+            on_row_double_click: Callback for double-click on row.
             on_divider_pan: Callback for dragging the name/sequence divider.
             on_divider_pan_end: Callback for ending the divider drag.
             is_focused: Whether this row is currently focused.
@@ -166,6 +168,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 on_drag_end(self.idx, e) if on_drag_end else None
             ),
             on_tap=lambda e: on_row_click(self.idx, self.name_field),  # type: ignore[has-type]
+            on_double_tap=lambda e: on_row_double_click(
+                self.idx,
+                self.name_field,  # type: ignore[has-type]
+            ),
             mouse_cursor=ft.MouseCursor.CLICK,
             content=ft.Container(
                 content=ft.Icon(
@@ -253,8 +259,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not has_err else 42,
         )
 
-        controls = [
-            self.drag_handle,
+        row_body = [
             self.checkbox_container,
             self.active_divider,
             self.name_scroll,
@@ -262,15 +267,25 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self.seq_scroll,
         ]
         if show_temp:
-            controls.extend([self.tm_divider, self.tm_container])
+            row_body.extend([self.tm_divider, self.tm_container])
 
-        self.content = ft.Row(
-            controls,
+        row_content = ft.Row(
+            row_body,
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
 
-        self.on_click = lambda e: on_row_click(self.idx, self.name_field)
+        self._row_gesture_detector = ft.GestureDetector(
+            on_tap=lambda e: on_row_click(self.idx, self.name_field),
+            mouse_cursor=ft.MouseCursor.CLICK,
+            content=row_content,
+        )
+
+        self.content = ft.Row(
+            [self.drag_handle, self._row_gesture_detector],
+            spacing=0,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+        )
 
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
@@ -336,12 +351,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self,
         new_idx: int,
         on_row_click: Callable[[int, ft.TextField], None],
+        on_row_double_click: Callable[[int, ft.TextField], None],
     ) -> None:
         """Update the index of the row and refresh its handlers and controls.
 
         Args:
-            new_idx: The new zero-based index for this primer row.
+            new_idx: The zero-based index for this primer row.
             on_row_click: Callback when the row container is clicked.
+            on_row_double_click: Callback for double-click on row.
         """
         self.data = new_idx
         self.idx = new_idx
@@ -349,7 +366,18 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.seq_field.data = {"idx": new_idx, "field": "seq"}
 
         # Update click handler with the new index
-        self.on_click = lambda e: on_row_click(new_idx, self.name_field)
+        self._row_gesture_detector.on_tap = lambda e: on_row_click(
+            new_idx, self.name_field
+        )
+        self._row_gesture_detector.on_double_tap = lambda e: (
+            on_row_double_click(new_idx, self.name_field)
+        )
+        self.drag_handle.on_tap = lambda e: on_row_click(
+            new_idx, self.name_field
+        )
+        self.drag_handle.on_double_tap = lambda e: on_row_double_click(
+            new_idx, self.name_field
+        )
 
     def update_tm(self, settings: GUISettings) -> None:
         """Update the displayed Tm in-place based on the current sequence."""
