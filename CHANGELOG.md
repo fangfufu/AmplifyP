@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2](https://github.com/fangfufu/AmplifyP/compare/v1.3.0...v1.3.2) (2026-07-03)
+
+
+### Bug Fixes
+
+* toggle Show Primer Temperature in List without restart ([c276228](https://github.com/fangfufu/AmplifyP/commit/c2762282a1eb8789b7e421d17044545dd880d01d))
+
+
+### Miscellaneous Chores
+
+* force release ([6ebd734](https://github.com/fangfufu/AmplifyP/commit/6ebd734bc2bcbdfff3baff6e61c04cd9c9f84c8c))
+
 ## [1.3.0](https://github.com/fangfufu/AmplifyP/compare/v1.2.0...v1.3.0) (2026-07-03)
 
 
