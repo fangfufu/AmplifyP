@@ -48,18 +48,13 @@ def test_input_view_row_boxes_editing() -> None:
     assert isinstance(outer_row, ft.Row)
 
     drag_handle = outer_row.controls[0]
-    gesture_detector = outer_row.controls[1]
     assert isinstance(drag_handle, ft.GestureDetector)
-    assert isinstance(gesture_detector, ft.GestureDetector)
 
-    row_body = gesture_detector.content
-    assert isinstance(row_body, ft.Row)
-
-    checkbox_container = row_body.controls[0]
-    active_divider = row_body.controls[1]
-    name_scroll = row_body.controls[2]
-    divider = row_body.controls[3]
-    seq_scroll = row_body.controls[4]
+    checkbox_container = outer_row.controls[1]
+    active_divider = outer_row.controls[2]
+    name_scroll = outer_row.controls[3]
+    divider = outer_row.controls[4]
+    seq_scroll = outer_row.controls[5]
 
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
