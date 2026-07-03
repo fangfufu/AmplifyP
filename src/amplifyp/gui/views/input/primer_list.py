@@ -127,6 +127,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                     handle_field_blur=self.primer_input.handle_field_blur,
                     handle_field_submit=self.primer_input.handle_field_submit,
                     on_row_click=self.primer_input.action_controller.handle_row_click,
+                    on_row_double_click=self.primer_input.action_controller.handle_row_double_click,
                     on_divider_pan=self.primer_input.layout_manager.on_primer_divider_pan,
                     on_divider_pan_end=self.primer_input.layout_manager.on_primer_divider_pan_end,
                     is_focused=False,
@@ -149,7 +150,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 continue
 
             row.update_index(
-                idx, self.primer_input.action_controller.handle_row_click
+                idx,
+                self.primer_input.action_controller.handle_row_click,
+                self.primer_input.action_controller.handle_row_double_click,
             )
 
             if row.name_field.value != name_val:
