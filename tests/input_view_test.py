@@ -43,17 +43,24 @@ def test_input_view_row_boxes_editing() -> None:
     container = view.primers_list.controls[0]
     assert isinstance(container, ft.Container)
 
-    row = container.content
-    assert isinstance(row, ft.Row)
+    # Content is a Row with drag handle + GestureDetector-wrapped row body
+    outer_row = container.content
+    assert isinstance(outer_row, ft.Row)
 
-    drag_handle = row.controls[0]
-    checkbox_container = row.controls[1]
-    active_divider = row.controls[2]
-    name_scroll = row.controls[3]
-    divider = row.controls[4]
-    seq_scroll = row.controls[5]
-
+    drag_handle = outer_row.controls[0]
+    gesture_detector = outer_row.controls[1]
     assert isinstance(drag_handle, ft.GestureDetector)
+    assert isinstance(gesture_detector, ft.GestureDetector)
+
+    row_body = gesture_detector.content
+    assert isinstance(row_body, ft.Row)
+
+    checkbox_container = row_body.controls[0]
+    active_divider = row_body.controls[1]
+    name_scroll = row_body.controls[2]
+    divider = row_body.controls[3]
+    seq_scroll = row_body.controls[4]
+
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
     assert isinstance(checkbox, ft.Checkbox)
@@ -340,12 +347,89 @@ def test_input_view_row_single_click() -> None:
     # Mock focus method on TextField
     name_field.focus = MagicMock()
 
-    # Trigger row container click
-    container.on_click(MagicMock())
+    # Trigger row container click via gesture detector
+    gesture_detector = container._row_gesture_detector
+    gesture_detector.on_tap(MagicMock())
 
     assert view.focused_primer_index == 0
     assert container.bgcolor == GUIColours.SELECTED_ROW_BG
     name_field.focus.assert_called_once()
+
+
+def test_input_view_double_click_anchor_and_range() -> None:
+    """Test double-click anchor setting and range selection."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": True},
+        {"name": "P3", "seq": "GGGGG", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    controller = view.primer_input.action_controller
+    dc = controller.handle_row_double_click
+
+    # First double-click toggles and sets anchor
+    assert controller._click_a is None
+    assert view.primer_input.selected_indices == set()
+    dc(0, MagicMock(spec=ft.TextField))
+    assert controller._click_a == 0
+    assert controller._click_b is None
+    assert view.primer_input.selected_indices == {0}
+
+    # Second double-click toggles range exclusive of click_a
+    dc(2, MagicMock(spec=ft.TextField))
+    assert controller._click_a is None
+    assert controller._click_b is None
+    assert view.primer_input.selected_indices == {0, 1, 2}
+
+    # Reverse order: click_b < click_a (simulate click_a set from prior dc)
+    controller._click_a = 2
+    view.primer_input.selected_indices = {0, 1, 2}
+    dc(0, MagicMock(spec=ft.TextField))
+    assert controller._click_a is None
+    assert controller._click_b is None
+    # Range 0..1 toggled (exclusive of click_a=2, both removed)
+    assert view.primer_input.selected_indices == {2}
+
+    # Same index as click_a: no range, selection unchanged
+    controller._click_a = 1
+    view.primer_input.selected_indices = {1}
+    dc(1, MagicMock(spec=ft.TextField))
+    assert controller._click_a is None
+    assert controller._click_b is None
+    assert view.primer_input.selected_indices == {1}
+
+
+def test_input_view_single_click_clears_double_click_state() -> None:
+    """Test that single click resets click_a and click_b."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "AAAAA", "active": True},
+        {"name": "P2", "seq": "TTTTT", "active": True},
+        {"name": "P3", "seq": "GGGGG", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    controller = view.primer_input.action_controller
+    dc = controller.handle_row_double_click
+
+    dc(0, MagicMock(spec=ft.TextField))
+    assert controller._click_a == 0
+
+    name_field = view.primers_list.controls[2].name_field
+    name_field.focus = MagicMock()
+    controller.handle_row_click(2, name_field)
+
+    assert controller._click_a is None
+    assert controller._click_b is None
+    assert view.primer_input.selected_indices == {0, 2}
 
 
 def test_input_view_primer_reordering() -> None:
@@ -709,224 +793,99 @@ def test_app_views_disabled_on_invalid_selected() -> None:
     assert view.primer_input.error_banner.visible is True
 
 
-def test_header_checkbox_indeterminate_empty() -> None:
-    """Test header checkbox is indeterminate when primer list is empty."""
+def test_header_checkbox_state() -> None:
+    """Test header checkbox value based on primer active states."""
+    from itertools import product
+
     mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    view = InputView(mock_page, input_data)
 
-    assert view.primer_input.all_primers_checkbox.value is None
+    for active_states in product([True, False], repeat=3):
+        input_data = GUIInput()
+        input_data.primers = [
+            {"name": f"P{i}", "seq": "AAAAA", "active": active}
+            for i, active in enumerate(active_states, 1)
+        ]
+        view = InputView(mock_page, input_data)
+        view.sync_to_state()
+
+        all_active = all(active_states)
+        any_active = any(active_states)
+        if all_active:
+            expected = True
+        elif any_active:
+            expected = None
+        else:
+            expected = False
+        assert view.primer_input.all_primers_checkbox.value is expected, (
+            f"active={active_states}"
+        )
 
 
-def test_header_checkbox_all_active() -> None:
-    """Test header checkbox is checked when all primers are active."""
+def test_header_checkbox_click_cycle() -> None:
+    """Test checkbox value is authoritative: True→activate, False→deactivate.
+
+    Covers all-active, all-inactive, and mixed starting states.
+    Also verifies _prev_header_checkbox_value tracking across the full
+    Flet tri-state cycle: None→True→None→False→None.
+    """
     mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": True},
-        {"name": "P2", "seq": "TTTTT", "active": True},
+
+    cases = [
+        # (starting_states, initial_cb, transitions, expected_states,
+        #  expected_prev_values)
+        (
+            [True, True],
+            True,
+            [None, False],
+            [False, False],
+            [False, False],
+        ),
+        (
+            [True, False],
+            None,
+            [True, None],
+            [True, False],
+            [True, False],
+        ),
+        (
+            [False, False],
+            False,
+            [None, True],
+            [True, True],
+            [True, True],
+        ),
     ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
 
-    assert view.primer_input.all_primers_checkbox.value is True
+    for (
+        starting_states,
+        initial_cb,
+        transitions,
+        expected_all,
+        expected_prev,
+    ) in cases:
+        input_data = GUIInput()
+        input_data.primers = [
+            {"name": f"P{i}", "seq": "AAAAA", "active": s}
+            for i, s in enumerate(starting_states, 1)
+        ]
+        view = InputView(mock_page, input_data)
+        view.sync_to_state()
 
+        assert view.primer_input.all_primers_checkbox.value is initial_cb
 
-def test_header_checkbox_all_inactive() -> None:
-    """Test header checkbox is unchecked when all primers are inactive."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": False},
-        {"name": "P2", "seq": "TTTTT", "active": False},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    assert view.primer_input.all_primers_checkbox.value is False
-
-
-def test_header_checkbox_mixed() -> None:
-    """Test header checkbox is indeterminate when some primers are active."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": True},
-        {"name": "P2", "seq": "TTTTT", "active": False},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    assert view.primer_input.all_primers_checkbox.value is None
-
-
-def test_header_checkbox_click_all_active() -> None:
-    """Test checkbox value is authoritative: True→activate, False→deactivate."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": True},
-        {"name": "P2", "seq": "TTTTT", "active": True},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    assert view.primer_input.all_primers_checkbox.value is True
-
-    # Simulate Flet cycle: True → None (first click from all-active state)
-    view.primer_input.all_primers_checkbox.value = None
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(not p["active"] for p in non_empty)
-
-    # Simulate Flet cycle: None → False (second click)
-    view.primer_input.all_primers_checkbox.value = False
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(not p["active"] for p in non_empty)
-
-
-def test_header_checkbox_click_partial() -> None:
-    """Test checkbox value is authoritative: True→activate, False→deactivate."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": True},
-        {"name": "P2", "seq": "TTTTT", "active": False},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    assert view.primer_input.all_primers_checkbox.value is None
-
-    # Simulate Flet cycle: None → True (first click from mixed state)
-    view.primer_input.all_primers_checkbox.value = True
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(p["active"] for p in non_empty)
-
-    # Simulate Flet cycle: True → None (second click)
-    view.primer_input.all_primers_checkbox.value = None
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(not p["active"] for p in non_empty)
-
-
-def test_header_checkbox_click_all_inactive() -> None:
-    """Test checkbox value is authoritative: True→activate, False→deactivate."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": False},
-        {"name": "P2", "seq": "TTTTT", "active": False},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    assert view.primer_input.all_primers_checkbox.value is False
-
-    # Simulate Flet cycle: False → None (first click from all-inactive state)
-    view.primer_input.all_primers_checkbox.value = None
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(p["active"] for p in non_empty)
-
-    # Simulate Flet cycle: None → True (second click)
-    view.primer_input.all_primers_checkbox.value = True
-    view.primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-
-    non_empty = [
-        p
-        for p in input_data.primers
-        if str(p.get("name", "")).strip() or p.get("seq", "").strip()
-    ]
-    assert all(p["active"] for p in non_empty)
-
-
-def test_header_checkbox_tristate_cycle() -> None:
-    """Test the Flet tri-state cycle: None→True→None→False→None."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    input_data.primers = [
-        {"name": "P1", "seq": "AAAAA", "active": True},
-        {"name": "P2", "seq": "TTTTT", "active": False},
-    ]
-    view = InputView(mock_page, input_data)
-    view.sync_to_state()
-
-    primer_input = view.primer_input
-    cb = primer_input.all_primers_checkbox
-
-    # Simulating Flet's tri-state cycle on click:
-    # None→True→None→False→None→True...
-    # The on_change handler fires AFTER Flet updates the checkbox value.
-
-    # Click 1: Flet cycles None → True, handler sees cb_value=True
-    cb.value = True
-    primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-    assert all(
-        p["active"] for p in input_data.primers if p.get("seq", "").strip()
-    )
-    assert primer_input._prev_header_checkbox_value is True
-
-    # Click 2: Flet cycles True → None, handler sees None, prev=True
-    # → deactivate
-    cb.value = None
-    primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-    assert all(
-        not p["active"] for p in input_data.primers if p.get("seq", "").strip()
-    )
-    assert primer_input._prev_header_checkbox_value is False
-
-    # Click 3: Flet cycles None → False, handler sees False → deactivate
-    cb.value = False
-    primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-    assert all(
-        not p["active"] for p in input_data.primers if p.get("seq", "").strip()
-    )
-    assert primer_input._prev_header_checkbox_value is False
-
-    # Click 4: Flet cycles False → None, handler sees None, prev=False
-    # → activate
-    cb.value = None
-    primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-    assert all(
-        p["active"] for p in input_data.primers if p.get("seq", "").strip()
-    )
-    assert primer_input._prev_header_checkbox_value is True
-
-    # Click 5: Flet cycles None → True, handler sees cb_value=True → activate
-    cb.value = True
-    primer_input._on_toggle_all_primers(MagicMock(spec=ft.ControlEvent))
-    assert all(
-        p["active"] for p in input_data.primers if p.get("seq", "").strip()
-    )
-    assert primer_input._prev_header_checkbox_value is True
+        for transition, expected_all_state, expected_prev_state in zip(
+            transitions, expected_all, expected_prev, strict=True
+        ):
+            view.primer_input.all_primers_checkbox.value = transition
+            view.primer_input._on_toggle_all_primers(
+                MagicMock(spec=ft.ControlEvent)
+            )
+            for p in input_data.primers:
+                assert p["active"] is expected_all_state
+            assert (
+                view.primer_input._prev_header_checkbox_value
+                is expected_prev_state
+            )
 
 
 def _run_async(coro: object) -> None:
