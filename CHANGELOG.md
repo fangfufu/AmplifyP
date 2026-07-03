@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0](https://github.com/fangfufu/AmplifyP/compare/v1.2.0...v1.3.0) (2026-07-03)
+
+
+### Features
+
+* add double-click range selection for primer rows ([8271ef3](https://github.com/fangfufu/AmplifyP/commit/8271ef371b4ddf15c95b37cf09e5c036fde0ea61))
+* add double-click range selection for primer rows ([bec49e5](https://github.com/fangfufu/AmplifyP/commit/bec49e54ecdc3651eecf4c1a893b3c311ed91724))
+
 ## [1.2.0](https://github.com/fangfufu/AmplifyP/compare/v1.1.0...v1.2.0) (2026-07-01)
 
 
