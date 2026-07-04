@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0](https://github.com/fangfufu/AmplifyP/compare/v1.3.2...v1.4.0) (2026-07-04)
+
+
+### Features
+
+* add configurable background version checking ([32832fc](https://github.com/fangfufu/AmplifyP/commit/32832fc3f522b08384299238d49e870417fe6911))
+* add Inno Setup installer build for Windows ([79dc79d](https://github.com/fangfufu/AmplifyP/commit/79dc79d275bf93e8441c358534abfab5f6205cee))
+
+
+### Bug Fixes
+
+* **build:** correct src path in gen_git_sha ([2424843](https://github.com/fangfufu/AmplifyP/commit/2424843059438373aad7bb64ff50a75fb15242ae))
+* **ci:** fallback to pyproject.toml version ([aed7515](https://github.com/fangfufu/AmplifyP/commit/aed7515fc5b604f43df2adb8b93d40ed29b28c2e))
+* **ci:** remove backticks from installer version ([a87c405](https://github.com/fangfufu/AmplifyP/commit/a87c40580eb15300bcf578bc4b622bd6539318c4))
+* **ci:** use icon.ico for installer icon ([58fb80b](https://github.com/fangfufu/AmplifyP/commit/58fb80b5d52dad00da633e61e004728cf693f80e))
+* **gui:** fix mixed-precision version comparison ([5546151](https://github.com/fangfufu/AmplifyP/commit/554615129c99d4aad45beebc0cb111be4afd6ee7))
+* use [[ instead of [ for shell conditionals (SonarQube shelldre:S7688) ([96ec98a](https://github.com/fangfufu/AmplifyP/commit/96ec98a1de9baff581c3529dbb9a93655fa4504e))
+
 ## [1.3.2](https://github.com/fangfufu/AmplifyP/compare/v1.3.0...v1.3.2) (2026-07-03)
 
 
