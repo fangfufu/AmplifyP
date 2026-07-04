@@ -48,15 +48,20 @@ def _parse_to_tuple(v: str) -> tuple[int, ...]:
     if v.startswith("v"):
         v = v[1:]
 
-    match = re.match(r"^([0-9.]+)(.*)$", v)
+    match = re.match(r"^([\d.]+)(.*)$", v)
     if not match:
-        return (0,)
+        return (0, 0, 0, 0, 0, 0)
 
     release_str, pre_str = match.groups()
-    release_tuple = tuple(int(x) for x in release_str.split(".") if x.isdigit())
+    release_list = [int(x) for x in release_str.split(".") if x.isdigit()]
 
-    while release_tuple and release_tuple[-1] == 0:
-        release_tuple = release_tuple[:-1]
+    while release_list and release_list[-1] == 0:
+        release_list.pop()
+
+    # Pad release list to a fixed length of 4 to ensure consistent
+    # tuple comparison
+    while len(release_list) < 4:
+        release_list.append(0)
 
     if not pre_str or pre_str.startswith("+"):
         pre_type = 4
@@ -77,10 +82,10 @@ def _parse_to_tuple(v: str) -> tuple[int, ...]:
         else:
             pre_type = 0
 
-        num_match = re.search(r"([0-9]+)", pre_str)
+        num_match = re.search(r"(\d+)", pre_str)
         pre_num = int(num_match.group(1)) if num_match else 0
 
-    return (*release_tuple, pre_type, pre_num)
+    return (*release_list, pre_type, pre_num)
 
 
 def is_newer_version(latest_tag: str, current_ver: str) -> bool:
