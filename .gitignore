@@ -145,3 +145,8 @@ uv.lock
 
 # Generated git SHA file
 src/amplifyp/gui/git_sha.py
+
+# Binaries generated under Linux
+amplifyp-linux.AppImage
+amplifyp-linux.tar.gz
+appimagetool-x86_64.AppImage
