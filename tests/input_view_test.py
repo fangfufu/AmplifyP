@@ -18,6 +18,7 @@
 import asyncio
 import concurrent.futures
 import itertools
+import typing
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -884,7 +885,7 @@ def test_header_checkbox_click_cycle() -> None:
             )
 
 
-def _run_async(coro: object) -> None:
+def _run_async(coro: typing.Any) -> None:
     """Run an async coroutine in a fresh event loop in a separate thread."""
 
     def _run() -> None:

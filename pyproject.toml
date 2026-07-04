@@ -90,6 +90,9 @@ omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 
 [tool.mypy]
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "amplifyp.gui.*"
 disable_error_code = ["arg-type", "attr-defined", "call-arg", "assignment"]
 
 [tool.vulture]
