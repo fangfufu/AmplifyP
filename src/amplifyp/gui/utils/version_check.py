@@ -31,10 +31,11 @@ def fetch_latest_release_version() -> str | None:
     )
     try:
         with urllib.request.urlopen(req, timeout=5) as response:  # noqa: S310
-            data = json.loads(response.read().decode())
-            tag_name = data.get("tag_name")
-            if isinstance(tag_name, str):
-                return tag_name.strip()
+            data = json.loads(response.read().decode("utf-8"))
+            if isinstance(data, dict):
+                tag_name = data.get("tag_name")
+                if isinstance(tag_name, str):
+                    return tag_name.strip()
     except Exception as e:
         logger.warning("Failed to check for updates: %s", e)
     return None
