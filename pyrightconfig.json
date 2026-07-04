@@ -16,7 +16,17 @@
   "reportOptionalSubscript": "error",
   "reportPrivateImportUsage": "error",
   "reportUnboundVariable": "error",
-  "reportUnknownMemberType": false,
-  "reportUnknownParameterType": false,
-  "reportUnknownVariableType": false
+  "reportUnknownMemberType": "error",
+  "reportUnknownParameterType": "error",
+  "reportUnknownVariableType": "error",
+  "executionEnvironments": [
+    {
+      "root": "src/amplifyp/gui",
+      "reportUnknownMemberType": false,
+      "reportUnknownParameterType": false,
+      "reportUnknownVariableType": false,
+      "reportArgumentType": false,
+      "reportAttributeAccessIssue": false
+    }
+  ]
 }

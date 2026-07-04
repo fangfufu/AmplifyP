@@ -62,7 +62,7 @@ class PrimerDimer:
         seq2 = long_p.seq.upper()
         n1 = len(short_p)
 
-        bonds = []
+        bonds: list[str] = []
         for offset in range(self.overlap):
             c1 = seq1[n1 - 1 - offset]
             c2 = seq2[self.p1_pos + offset]

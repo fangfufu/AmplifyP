@@ -172,7 +172,7 @@ class ReplicationOrigin:
         S = self.settings.base_pair_scores
         # Use the maximum score in the entire base pair weights table
         top_score = max(S.row_max(r) for r in S.row())
-        bonds = []
+        bonds: list[str] = []
         for p_base, t_base in zip(self.primer, self.target, strict=False):
             try:
                 score = S[p_base, t_base]
