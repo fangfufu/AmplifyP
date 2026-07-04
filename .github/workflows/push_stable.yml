@@ -46,8 +46,11 @@ jobs:
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
         run: |
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
           bash ./build_static.sh \
-            --base-url /${{ github.event.repository.name }}/
+            --base-url "/${REPO_NAME}/"
       - name: Archive and Upload Web Release (Linux only)
         if: runner.os == 'Linux'
         run: |
