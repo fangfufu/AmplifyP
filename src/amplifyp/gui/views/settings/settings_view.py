@@ -69,7 +69,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.replication_tile = ReplicationTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -79,14 +79,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.tm_tile = TmTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
         self.dimer_tile = DimerTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -96,7 +96,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.appearance_tile = AppearanceTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
@@ -104,7 +104,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             page=self.app_page,
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
@@ -113,7 +113,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             settings=self.settings,
             sync_to_state_callback=self.sync_to_state,
             update_ui_callback=self.update_ui,
-            on_change_callback=self.on_change,
+            on_change_callback=self.on_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
         )
@@ -122,7 +122,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             page=self.app_page,
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             on_update_found=self.on_update_found,
         )

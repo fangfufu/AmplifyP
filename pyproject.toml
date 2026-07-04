@@ -99,7 +99,7 @@ min_confidence = 80
 [tool.pyright]
 include = ["src/"]
 exclude = ["tests/"]
-reportAttributeAccessIssue = false
-reportArgumentType = false
+reportAttributeAccessIssue = "error"
+reportArgumentType = "error"
 reportCallIssue = "error"
 reportMissingImports = "error"

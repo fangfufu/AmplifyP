@@ -69,9 +69,9 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         # Diagonal line canvas header
         header_stack = ft.Stack(
             [
-                ft.canvas.Canvas(
+                ft.canvas.Canvas(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     [
-                        ft.canvas.Line(
+                        ft.canvas.Line(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                             0,
                             8,
                             70,

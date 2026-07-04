@@ -5,8 +5,8 @@
   "exclude": [
     "tests/"
   ],
-  "reportArgumentType": false,
-  "reportAttributeAccessIssue": false,
+  "reportArgumentType": "error",
+  "reportAttributeAccessIssue": "error",
   "reportCallIssue": "error",
   "reportMissingImports": "error",
   "reportMissingTypeStubs": "error",

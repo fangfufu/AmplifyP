@@ -150,7 +150,7 @@ class GUIController:
         # Handle close / reload warnings
         if self.page.web:
             if hasattr(self.page, "run_javascript"):
-                self.page.run_javascript(
+                self.page.run_javascript(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     """
                     window.addEventListener('beforeunload', (event) => {
                         event.preventDefault();
@@ -183,7 +183,7 @@ class GUIController:
             on_pcr_click=self.on_pcr_click,
             on_dimers_click=self.on_dimers_click,
             on_save=self.save_state,
-            on_load=self.load_state,
+            on_load=self.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             pcr_button_ref=self.pcr_button_ref,
             dimers_button_ref=self.dimers_button_ref,
             visible_pcr_button_ref=self.visible_pcr_button_ref,
@@ -198,7 +198,7 @@ class GUIController:
         # Configure page appbar
         self.page.appbar = ft.AppBar(
             visible=False,
-            actions=self.header.appbar_actions,
+            actions=self.header.appbar_actions,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
         self.header_container = ft.Container(
@@ -221,7 +221,7 @@ class GUIController:
         is_dark = False
         if str(dark_mode_setting).lower() == "system":
             self.page.theme_mode = ft.ThemeMode.SYSTEM
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = str(self.page.platform_brightness).lower() == "dark"
         elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
             "false",
@@ -229,11 +229,11 @@ class GUIController:
             "no",
         ):
             self.page.theme_mode = ft.ThemeMode.DARK
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = True
         else:
             self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = GUIColours.WHITE
+            self.page.bg_color = GUIColours.WHITE  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = False
         GUIColours.dark_mode = is_dark
         if hasattr(self, "header_container") and self.header_container:
@@ -312,12 +312,12 @@ class GUIController:
         btn = self.pcr_button_ref.current
         if btn:
             btn.disabled = not pcr_is_enabled
-            btn.text = "PCR"
+            btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         visible_btn = self.visible_pcr_button_ref.current
         if visible_btn:
             visible_btn.disabled = not pcr_is_enabled
-            visible_btn.text = "PCR"
+            visible_btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         dimers_btn = self.dimers_button_ref.current
         if dimers_btn:
@@ -492,7 +492,7 @@ class GUIController:
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
         elif view == self.pcr_view:
-            self.page.on_resize = self.pcr_view._handle_resize
+            self.page.on_resize = self.pcr_view._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         else:
             self.page.on_resize = None
 
@@ -591,9 +591,9 @@ class GUIController:
                         "Are you sure you want to close AmplifyP? "
                         "Unsaved changes will be lost."
                     ),
-                    actions=[
-                        ft.TextButton("Yes", on_click=self.confirm_exit),
-                        ft.TextButton("No", on_click=self.confirm_dismiss),
+                    actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("Yes", on_click=self.confirm_exit),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("No", on_click=self.confirm_dismiss),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     ],
                     actions_alignment=ft.MainAxisAlignment.END,
                 )

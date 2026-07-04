@@ -54,14 +54,14 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
         self.save_button = ft.FilledButton(
             "Save Settings",
             icon=ft.Icons.SAVE,
-            on_click=self._save_settings_async,
+            on_click=self._save_settings_async,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Save settings to a YAML file",
         )
 
         self.load_button = ft.OutlinedButton(
             "Load Settings",
             icon=ft.Icons.UPLOAD_FILE,
-            on_click=self._load_settings_async,
+            on_click=self._load_settings_async,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Load settings from a YAML file",
         )
 

@@ -55,14 +55,14 @@ class UpdatesTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Disabled"),
             ],
             width=500,
-            on_select=self.on_change_handler,
+            on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
 
         self.check_button = ft.OutlinedButton(
             "Check for Updates",
             icon=ft.Icons.REFRESH,
-            on_click=self._on_manual_check_click,
+            on_click=self._on_manual_check_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
         self.status_text = ft.Text(
