@@ -33,7 +33,7 @@ class UpdatesTile(ft.ExpansionTile):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Callable[[ft.Event | None], None],
+        on_change_handler: Callable[[ft.ControlEvent | None], None],
         header_size: int,
         on_update_found: Callable[[str], None] | None = None,
     ) -> None:

@@ -42,14 +42,45 @@ def fetch_latest_release_version() -> str | None:
 
 
 def _parse_to_tuple(v: str) -> tuple[int, ...]:
-    """Parse version string into integer tuple, stripping trailing zeros."""
+    """Parse a version string into a comparable tuple of integers."""
+    import re
+
     if v.startswith("v"):
         v = v[1:]
-    base = v.split("-")[0].split("+")[0]
-    t = tuple(int(x) for x in base.split(".") if x.isdigit())
-    while t and t[-1] == 0:
-        t = t[:-1]
-    return t if t else (0,)
+
+    match = re.match(r"^([0-9.]+)(.*)$", v)
+    if not match:
+        return (0,)
+
+    release_str, pre_str = match.groups()
+    release_tuple = tuple(int(x) for x in release_str.split(".") if x.isdigit())
+
+    while release_tuple and release_tuple[-1] == 0:
+        release_tuple = release_tuple[:-1]
+
+    if not pre_str or pre_str.startswith("+"):
+        pre_type = 4
+        pre_num = 0
+    else:
+        pre_str = pre_str.lower()
+        pre_word_match = re.search(r"([a-z]+)", pre_str)
+        if pre_word_match:
+            pre_word = pre_word_match.group(1)
+            if pre_word in ("a", "alpha"):
+                pre_type = 1
+            elif pre_word in ("b", "beta"):
+                pre_type = 2
+            elif pre_word in ("rc", "preview"):
+                pre_type = 3
+            else:
+                pre_type = 0
+        else:
+            pre_type = 0
+
+        num_match = re.search(r"([0-9]+)", pre_str)
+        pre_num = int(num_match.group(1)) if num_match else 0
+
+    return (*release_tuple, pre_type, pre_num)
 
 
 def is_newer_version(latest_tag: str, current_ver: str) -> bool:
