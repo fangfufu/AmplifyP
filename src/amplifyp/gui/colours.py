@@ -97,7 +97,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.BLUE_ACCENT
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.GREEN_ACCENT_400,
         )
 
