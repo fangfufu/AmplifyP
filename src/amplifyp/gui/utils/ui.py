@@ -49,9 +49,9 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     dialog = ft.AlertDialog(
         title=ft.Text(title, color=GUIColours.ERROR_RED),
         content=ft.Text(message),
-        actions=[ft.TextButton("OK", on_click=close_dlg)],
+        actions=[ft.TextButton("OK", on_click=close_dlg)],  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         actions_alignment=ft.MainAxisAlignment.END,
-        on_dismiss=on_dismiss,
+        on_dismiss=on_dismiss,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
     )
     page.overlay.append(dialog)
     dialog.open = True
@@ -121,7 +121,7 @@ def initialise_score_fields(
             key = f"{prefix}_{r_char}_{c_char}"
             settings_map[key] = ft.TextField(
                 value="0",
-                on_change=on_change_handler,
+                on_change=on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                 text_align=ft.TextAlign.CENTER,
                 dense=True,
                 width=38,
@@ -178,7 +178,7 @@ class BorderedCheckbox(ft.Container):  # type: ignore[misc]
         self.checkbox = ft.Checkbox(
             label=label,
             value=value,
-            on_change=on_change,
+            on_change=on_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
         super().__init__(
             content=self.checkbox,

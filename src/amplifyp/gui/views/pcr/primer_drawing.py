@@ -444,18 +444,6 @@ class ReplicationContextCard(DismissibleDetailCard):
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
-        if origin is None:
-            body_controls = list[ft.Control](
-                [ft.Text("Error: Replication origin not found")]
-            )
-            super().__init__(
-                card_id=card_id,
-                title="Error",
-                settings=settings,
-                dismiss_callback=dismiss_callback,
-                body_controls=body_controls,
-            )
-            return
 
         primer_type = "" if var.direction == DNADirection.FWD else "Reverse"
         L = len(conf.primer)

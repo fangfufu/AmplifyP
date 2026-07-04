@@ -91,6 +91,10 @@ omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 [tool.mypy]
 mypy_path = "src"
 
+[[tool.mypy.overrides]]
+module = "amplifyp.gui.*"
+disable_error_code = ["arg-type", "attr-defined", "call-arg", "assignment"]
+
 [tool.vulture]
 paths = ["src/"]
 min_confidence = 80
@@ -98,7 +102,7 @@ min_confidence = 80
 [tool.pyright]
 include = ["src/"]
 exclude = ["tests/"]
-reportAttributeAccessIssue = false
-reportArgumentType = false
-reportCallIssue = false
-reportMissingImports = false
+reportAttributeAccessIssue = "error"
+reportArgumentType = "error"
+reportCallIssue = "error"
+reportMissingImports = "error"

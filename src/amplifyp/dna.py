@@ -175,6 +175,11 @@ class DNA:
         return self.__seq
 
     @property
+    def seq_upper(self) -> str:
+        """The uppercase DNA sequence as a string."""
+        return self._seq_upper
+
+    @property
     def type(self) -> DNAType:
         """The DNA type (LINEAR, CIRCULAR, or PRIMER)."""
         return self.__type

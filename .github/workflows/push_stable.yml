@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -18,7 +19,10 @@ jobs:
   build:
     name: Build artifacts (${{ matrix.os }})
     needs: [release-please]
-    if: ${{ needs.release-please.outputs.release_created }}
+    if: |-
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -41,8 +45,11 @@ jobs:
           pip install .[dev,e2e] prek
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          bash ./build_static.sh --base-url /${{ github.event.repository.name }}/
+          bash ./build_static.sh \
+            --base-url "/${REPO_NAME}/"
       - name: Archive and Upload Web Release (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -56,17 +63,7 @@ jobs:
       - name: Build Flet Linux binary
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            binutils clang cmake llvm lld ninja-build pkg-config \
-            libgtk-3-dev libsecret-1-0 libsecret-1-dev libunwind-dev \
-            libasound2-dev libgstreamer1.0-dev \
-            libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
-            libmpv-dev mpv
-          python scripts/gen_git_sha.py
-          flet build linux src -o build/linux --project AmplifyP --yes
-          mv build/linux build/AmplifyP
-          tar -czf amplifyp-linux.tar.gz -C build AmplifyP
+          ./build_linux.sh --install-deps
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
         run: |
@@ -90,18 +87,36 @@ jobs:
           import shutil
           shutil.make_archive('amplifyp-windows', 'zip', 'build', 'AmplifyP')
           "
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        run: choco install innosetup -y
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        env:
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          $tag_name = "$env:TAG_NAME"
+          if ([string]::IsNullOrEmpty($tag_name)) {
+            $version = (python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          } else {
+            $version = $tag_name -replace '^v', ''
+          }
+          iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: amplifyp-${{ runner.os }}
           path: |
             amplifyp-linux.tar.gz
+            amplifyp-linux.AppImage
             amplifyp-macos.dmg
             amplifyp-windows.zip
+            amplifyp-windows-setup-*.exe
           if-no-files-found: ignore
   upload-assets:
     name: Upload Assets to GitHub Release
     needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -118,12 +133,15 @@ jobs:
         run: |
           gh release upload ${{ needs.release-please.outputs.tag_name }} \
             amplifyp-linux.tar.gz \
+            amplifyp-linux.AppImage \
             amplifyp-macos.dmg \
             amplifyp-windows.zip \
+            amplifyp-windows-setup-*.exe \
             amplifyp-web.tar.gz
   deploy:
     name: Deploy to GitHub Pages
     needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
       pages: write

@@ -15,6 +15,8 @@
 
 """Tests for GUI utility functions."""
 
+import subprocess
+import sys
 from unittest.mock import MagicMock
 
 import flet as ft
@@ -66,7 +68,6 @@ def test_show_error_dialog() -> None:
 
 def test_get_version_and_sha() -> None:
     """Test get_git_sha, get_full_sha, and get_version."""
-    import sys
     from unittest.mock import MagicMock, patch
 
     from amplifyp.gui.utils.git import get_full_sha, get_git_sha, get_version
@@ -99,8 +100,6 @@ def test_get_version_and_sha() -> None:
 
 def test_git_fallback_to_dot_git() -> None:
     """Test git utility fallback to reading .git directory directly."""
-    import subprocess
-    import sys
     from typing import Any
     from unittest.mock import mock_open, patch
 

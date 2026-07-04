@@ -19,8 +19,12 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
+from amplifyp.dna import DNA, DNADirection, Primer
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.pcr import PCRView
+from amplifyp.gui.views.pcr.primer_drawing import format_context_lines
+from amplifyp.repliconf import Repliconf
 
 
 def test_pcr_view_click_context_map() -> None:
@@ -391,8 +395,6 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
 
     # Check spans
     # It should have a span for the comp_line with MUTED_GREY colour
-    from amplifyp.gui.colours import GUIColours
-
     comp_spans = [
         span
         for span in diagram_text.spans
@@ -407,10 +409,6 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
 
 def test_format_context_lines_alignment_long_label() -> None:
     """Test format_context_lines aligns elements for long primer labels."""
-    from amplifyp.dna import DNA, DNADirection, Primer
-    from amplifyp.gui.views.pcr.primer_drawing import format_context_lines
-    from amplifyp.repliconf import Repliconf
-
     template = DNA("A" * 100)
     primer = Primer("C" * 20)
     conf = Repliconf(template, primer)

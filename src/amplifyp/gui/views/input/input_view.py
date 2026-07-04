@@ -263,7 +263,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.sync_to_state(rebuild_if_needed=False)
 
-        if isinstance(e.control, ft.TextField) and e.control.data is not None:
+        if e.control.data is not None:
             idx = (
                 e.control.data["idx"]
                 if isinstance(e.control.data, dict)

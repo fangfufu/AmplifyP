@@ -63,7 +63,7 @@ def cli(args_list: list[str] | None = None) -> None:
         ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
     )
     port_number = 34521 if parsed_args.web else 0
-    ft.run(
+    ft.run(  # pyright: ignore[reportUnknownMemberType]
         main,
         upload_dir="uploads",
         assets_dir=assets_dir,

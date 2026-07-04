@@ -1,0 +1,22 @@
+{
+  "include": [
+    "src/"
+  ],
+  "exclude": [
+    "tests/"
+  ],
+  "typeCheckingMode": "strict",
+  "executionEnvironments": [
+    {
+      "root": "src/amplifyp/gui",
+      "reportUnknownMemberType": false,
+      "reportUnknownParameterType": false,
+      "reportUnknownVariableType": false,
+      "reportArgumentType": false,
+      "reportUnknownArgumentType": false,
+      "reportMissingTypeArgument": false,
+      "reportPrivateUsage": false,
+      "reportUnknownLambdaType": false
+    }
+  ]
+}
