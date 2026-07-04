@@ -20,12 +20,17 @@ DisableDirPage=no
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "startmenuicon"; Description: "Create a Start Menu shortcut"; GroupDescription: "{cm:AdditionalIcons}"
+
 [Files]
 Source: "build\AmplifyP\*"; DestDir: "{app}"; Flags: recursesubdirs
+Source: "src\assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\AmplifyP"; Filename: "{app}\AmplifyP.exe"
-Name: "{autodesktop}\AmplifyP"; Filename: "{app}\AmplifyP.exe"
+Name: "{group}\AmplifyP"; Filename: "{app}\AmplifyP.exe"; IconFilename: "{app}\icon.ico"; Tasks: startmenuicon
+Name: "{autodesktop}\AmplifyP"; Filename: "{app}\AmplifyP.exe"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\AmplifyP.exe"; Description: "Launch AmplifyP"; Flags: nowait postinstall skipifsilent
