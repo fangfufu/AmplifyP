@@ -303,7 +303,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         elif is_focused:
             self.bgcolor = GUIColours.SELECTED_ROW_BG
         else:
-            self.bgcolor = None  # type: ignore[assignment]
+            self.bgcolor = None
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.

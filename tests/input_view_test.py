@@ -889,7 +889,7 @@ def _run_async(coro: object) -> None:
     import concurrent.futures
 
     def _run() -> None:
-        asyncio.run(coro)  # type: ignore[arg-type]
+        asyncio.run(coro)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         executor.submit(_run).result()

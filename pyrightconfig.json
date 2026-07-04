@@ -1,0 +1,22 @@
+{
+  "include": [
+    "src/"
+  ],
+  "exclude": [
+    "tests/"
+  ],
+  "reportArgumentType": false,
+  "reportAttributeAccessIssue": false,
+  "reportCallIssue": false,
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "reportAssignmentType": false,
+  "reportGeneralTypeIssues": false,
+  "reportOptionalMemberAccess": false,
+  "reportOptionalSubscript": false,
+  "reportPrivateImportUsage": false,
+  "reportUnboundVariable": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownVariableType": false
+}
