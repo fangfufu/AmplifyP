@@ -42,7 +42,7 @@ def fetch_latest_release_version() -> str | None:
 
 
 def _parse_to_tuple(v: str) -> tuple[int, ...]:
-    """Parse a version string into a tuple of integers, stripping trailing zeros."""
+    """Parse version string into integer tuple, stripping trailing zeros."""
     if v.startswith("v"):
         v = v[1:]
     base = v.split("-")[0].split("+")[0]
