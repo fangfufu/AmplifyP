@@ -16,9 +16,6 @@
       "reportUnknownArgumentType": false,
       "reportMissingTypeArgument": false,
       "reportPrivateUsage": false,
-      "reportUnnecessaryComparison": false,
-      "reportUnnecessaryIsInstance": false,
-      "reportConstantRedefinition": false,
       "reportUnknownLambdaType": false
     }
   ]

@@ -380,7 +380,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
         for (end_idx, name), (
             name_val,
-            S,
+            s,
             rev_conf,
             rev_var,
         ) in rev_bindings.items():
@@ -389,7 +389,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 index=end_idx,
                 conf=rev_conf,
                 var=rev_var,
-                S=S,
+                S=s,
                 target_length=target_length,
                 t_width=t_width,
                 h_margin=h_margin,
