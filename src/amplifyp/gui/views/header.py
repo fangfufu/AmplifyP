@@ -53,7 +53,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         input_button = ft.FilledButton(
             "Input",
             icon=ft.Icons.INPUT,
-            on_click=on_switch_input,
+            on_click=on_switch_input,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Input",
         )
         input_button.tooltip = "Input"
@@ -61,7 +61,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         pcr_button = ft.FilledButton(
             "PCR",
             ref=pcr_button_ref,
-            on_click=on_pcr_click,
+            on_click=on_pcr_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             disabled=True,
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
@@ -71,7 +71,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         dimers_button = ft.FilledButton(
             "Primer Dimers",
             ref=dimers_button_ref,
-            on_click=on_dimers_click,
+            on_click=on_dimers_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             disabled=True,
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
@@ -81,7 +81,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         settings_button = ft.FilledButton(
             "Settings",
             icon=ft.Icons.SETTINGS,
-            on_click=on_switch_settings,
+            on_click=on_switch_settings,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Settings",
         )
         settings_button.tooltip = "Settings"
@@ -89,7 +89,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         about_button = ft.FilledButton(
             "About",
             icon=ft.Icons.INFO,
-            on_click=on_switch_about,
+            on_click=on_switch_about,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="About",
         )
         about_button.tooltip = "About"
@@ -98,7 +98,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "Save all",
             icon=ft.Icons.SAVE,
             tooltip="Save all",
-            on_click=on_save,
+            on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
         save_btn_control.tooltip = "Save all"
 
@@ -106,7 +106,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Load all",
-            on_click=on_load,
+            on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
         load_btn_control.tooltip = "Load all"
 
@@ -125,7 +125,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_input_button = ft.FilledButton(
             "Input",
             icon=ft.Icons.INPUT,
-            on_click=on_switch_input,
+            on_click=on_switch_input,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Input",
         )
         visible_input_button.tooltip = "Input"
@@ -133,7 +133,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_pcr_button = ft.FilledButton(
             "PCR",
             ref=visible_pcr_button_ref,
-            on_click=on_pcr_click,
+            on_click=on_pcr_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             disabled=True,
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
@@ -143,7 +143,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_dimers_button = ft.FilledButton(
             "Primer Dimers",
             ref=visible_dimers_button_ref,
-            on_click=on_dimers_click,
+            on_click=on_dimers_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             disabled=True,
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
@@ -153,7 +153,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_settings_button = ft.FilledButton(
             "Settings",
             icon=ft.Icons.SETTINGS,
-            on_click=on_switch_settings,
+            on_click=on_switch_settings,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Settings",
         )
         visible_settings_button.tooltip = "Settings"
@@ -161,7 +161,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_about_button = ft.FilledButton(
             "About",
             icon=ft.Icons.INFO,
-            on_click=on_switch_about,
+            on_click=on_switch_about,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="About",
         )
         visible_about_button.tooltip = "About"
@@ -170,7 +170,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "Save all",
             icon=ft.Icons.SAVE,
             tooltip="Save all",
-            on_click=on_save,
+            on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
         self.visible_save_btn_control.tooltip = "Save all"
 
@@ -178,7 +178,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Load all",
-            on_click=on_load,
+            on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
         self.visible_load_btn_control.tooltip = "Load all"
 
@@ -189,7 +189,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
 
         app_version = get_version()
-        version_text = ft.Text(
+        self.version_text = ft.Text(
             app_version,
             size=14,
             color=GUIColours.TEXT_ON_SURFACE,
@@ -212,7 +212,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                     ),
                     ft.Container(width=12),
-                    version_text,
+                    self.version_text,
                 ],
                 spacing=8,
                 tight=True,
@@ -238,3 +238,18 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                 alignment=ft.Alignment(1, 0),
             ),
         ]
+
+    def set_update_available(self, new_version: str) -> None:
+        """Update the version text to show that a new version is available."""
+        current_version = get_version()
+        self.version_text.value = (
+            f"{current_version} (Update {new_version} available!)"
+        )
+        self.version_text.color = GUIColours.UPDATE_AVAILABLE_COLOUR
+        self.version_text.opacity = 1.0
+        self.version_text.tooltip = "Click to open download page"
+        self.version_text.cursor = ft.MouseCursor.CLICK  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        self.version_text.on_click = lambda e: self.page.launch_url(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            "https://github.com/fangfufu/AmplifyP/releases"
+        )
+        self.version_text.update()

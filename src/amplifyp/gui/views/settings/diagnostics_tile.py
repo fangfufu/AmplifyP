@@ -89,7 +89,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         self.log_file_enabled = BorderedCheckbox(
             label="File Logging",
             value=settings.get("log_file_enabled", True),
-            on_change=self._on_file_logging_change,
+            on_change=self._on_file_logging_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
         self.log_rotation_enabled = BorderedCheckbox(
@@ -120,7 +120,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         self.log_file_path = ft.Dropdown(
             label="Log File Path",
             width=500,
-            on_select=self._on_log_file_path_change,
+            on_select=self._on_log_file_path_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
         self._update_log_file_path_options(current_path)

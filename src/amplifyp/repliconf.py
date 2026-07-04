@@ -300,7 +300,7 @@ def _get_scoring_tables(
     prim_denom = 0.0
     stab_denom_base = 0.0
 
-    lookup_list = []
+    lookup_list: list[tuple[tuple[float, float], ...]] = []
 
     # Prepare set of characters for lookup keys
     lookup_keys = set(Nucleotides.TEMPLATE)

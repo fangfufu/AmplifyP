@@ -15,6 +15,7 @@
 
 """Git commitment details and versioning utilities."""
 
+import logging
 import os
 import subprocess
 from importlib.metadata import PackageNotFoundError
@@ -24,9 +25,13 @@ def _get_sha(full: bool = False) -> str:
     """Retrieve the git commit SHA (either 40-char full or 7-char short)."""
     try:
         if full:
-            from amplifyp.gui.git_sha import GIT_FULL_SHA as imported_sha
+            from amplifyp.gui.git_sha import (  # pyright: ignore[reportMissingImports]
+                GIT_FULL_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
+            )
         else:
-            from amplifyp.gui.git_sha import GIT_SHA as imported_sha
+            from amplifyp.gui.git_sha import (  # pyright: ignore[reportMissingImports]
+                GIT_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
+            )
 
         if imported_sha and imported_sha != "unknown":
             return str(imported_sha)
@@ -115,8 +120,6 @@ def get_full_sha() -> str:
 
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
-    import logging
-
     logger = logging.getLogger(__name__)
     try:
         from amplifyp import __version__ as pkg_version

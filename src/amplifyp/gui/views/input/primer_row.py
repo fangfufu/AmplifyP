@@ -303,7 +303,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         elif is_focused:
             self.bgcolor = GUIColours.SELECTED_ROW_BG
         else:
-            self.bgcolor = None  # type: ignore[assignment]
+            self.bgcolor = None
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
@@ -340,10 +340,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
         self.tm_divider.height = 30 if not has_err else 42
         if (divider_content := self.divider.content) is not None:
-            divider_content.height = 30 if not has_err else 42
+            divider_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         self.active_divider.height = 30 if not has_err else 42
         if (drag_content := self.drag_handle.content) is not None:
-            drag_content.height = 30 if not has_err else 42
+            drag_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         self.checkbox.disabled = False
 

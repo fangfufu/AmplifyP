@@ -15,7 +15,9 @@
 
 """Tests for GUI state saving and loading."""
 
-from unittest.mock import MagicMock
+import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
 import yaml
@@ -205,9 +207,6 @@ def test_settings_view_buttons() -> None:
 
 def test_settings_backup_and_restore() -> None:
     """Test saving and loading settings in SettingsView via BackupTile."""
-    import asyncio
-    from unittest.mock import AsyncMock, MagicMock, patch
-
     mock_page = MagicMock(spec=ft.Page)
     settings_view = SettingsView(mock_page)
 
@@ -222,8 +221,6 @@ def test_settings_backup_and_restore() -> None:
 
     # 2. Mock saving
     serialised_yaml = ""
-
-    from typing import Any
 
     def mock_save_and_write_file(
         page: Any,
@@ -419,8 +416,6 @@ def test_simple_state_font_sizes_are_integers() -> None:
 
 def test_tm_colour_scheme_application() -> None:
     """Test colour scheme changes in SettingsView colour PrimerRow Tm text."""
-    from unittest.mock import MagicMock
-
     from amplifyp.gui.settings import GUISettings
     from amplifyp.gui.user_data import GUIInput
     from amplifyp.gui.views.input import InputView
@@ -464,9 +459,6 @@ def test_controller_load_save_only_affects_input() -> None:
 
     Settings should be ignored.
     """
-    from typing import Any
-    from unittest.mock import AsyncMock, patch
-
     from amplifyp.gui.controller import GUIController
 
     mock_page = MagicMock(spec=ft.Page)
@@ -509,8 +501,6 @@ def test_controller_load_save_only_affects_input() -> None:
         "amplifyp.gui.utils.io.save_and_write_file",
         new=AsyncMock(side_effect=mock_save_and_write_file),
     ):
-        import asyncio
-
         asyncio.run(controller.save_state(MagicMock()))
 
     # Check serialised yaml content

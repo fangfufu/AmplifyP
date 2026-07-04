@@ -439,7 +439,7 @@ def reconfigure_logging(
     # Remove existing file handlers if path changed, logging disabled,
     # web mode, or rotation type changed
     rotation_changed = False
-    if old_path is not None and _current_file_path is not None:
+    if old_path is not None:
         old_rotating = _find_handler_by_type(
             root_logger, logging.handlers.RotatingFileHandler
         )
