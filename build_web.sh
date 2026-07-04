@@ -11,6 +11,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # build's app.tar.gz back into the new tarball.
 DIST_DIR="${SCRIPT_DIR}/dist"
 
+# Disable rich output/animations under CI
+if [[ "${CI:-}" = "true" ]]; then
+  export FLET_CLI_NO_RICH_OUTPUT=1
+fi
+
 echo "==> Clearing Python bytecode cache..."
 find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 

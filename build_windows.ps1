@@ -8,6 +8,11 @@ if ($null -eq $env:VIRTUAL_ENV -and (Test-Path ".venv")) {
     . .venv\Scripts\Activate.ps1
 }
 
+# Disable rich output/animations under CI
+if ($env:CI -eq "true") {
+    $env:FLET_CLI_NO_RICH_OUTPUT = "1"
+}
+
 # Determine the version
 $version = $env:VERSION
 if ([string]::IsNullOrEmpty($version)) {
