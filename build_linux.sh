@@ -63,7 +63,7 @@ echo "==> Creating AppRun script..."
 cat << 'EOF' | sed 's/^ *//' > build/AmplifyP/AppRun
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "${0}")")"
-export LD_LIBRARY_PATH="${HERE}/lib:${LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="${HERE}/lib${LD_LIBRARY_PATH+:${LD_LIBRARY_PATH}}"
 exec "${HERE}/AmplifyP" "$@"
 EOF
 chmod +x build/AmplifyP/AppRun
