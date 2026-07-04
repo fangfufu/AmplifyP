@@ -623,9 +623,12 @@ class GUIController:
         frequency = self.settings.get(
             "version_checking_frequency", "Once per Month"
         )
-        last_check = float(
-            self.settings.get("last_version_check_timestamp", 0.0)
-        )
+        try:
+            last_check = float(
+                self.settings.get("last_version_check_timestamp", 0.0)
+            )
+        except (TypeError, ValueError):
+            last_check = 0.0
         current_time = float(time.time())
 
         if not should_check_for_updates(frequency, last_check, current_time):
