@@ -76,6 +76,8 @@ def _parse_to_tuple(v: str) -> tuple[int, ...]:
                 pre_type = 2
             elif pre_word in ("rc", "preview"):
                 pre_type = 3
+            elif pre_word in ("post", "rev", "patch"):
+                pre_type = 5
             else:
                 pre_type = 0
         else:
