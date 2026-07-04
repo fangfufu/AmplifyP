@@ -101,5 +101,5 @@ include = ["src/"]
 exclude = ["tests/"]
 reportAttributeAccessIssue = false
 reportArgumentType = false
-reportCallIssue = false
-reportMissingImports = false
+reportCallIssue = "error"
+reportMissingImports = "error"

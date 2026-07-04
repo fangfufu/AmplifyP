@@ -112,11 +112,11 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             height=36,
         )
 
-        columns = [ft.DataColumn(header_stack)]
+        columns = [ft.DataColumn(label=header_stack)]
         for c_char in self.col_headers:
             columns.append(
                 ft.DataColumn(
-                    ft.Container(
+                    label=ft.Container(
                         content=ft.Text(
                             c_char,
                             weight=ft.FontWeight.BOLD,
