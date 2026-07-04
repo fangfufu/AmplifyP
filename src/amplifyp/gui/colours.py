@@ -56,7 +56,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.BLUE_400
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.GREEN_400,
         )
 
@@ -82,7 +82,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.ORANGE_800
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.RED,
         )
 
@@ -113,13 +113,13 @@ class _GUIColoursMeta(type):
             return cast(
                 str,
                 ft.Colors.ORANGE_800
-                if cls._colour_deficient_mode
+                if cls.colour_deficient_mode
                 else ft.Colors.RED_800,
             )
         return cast(
             str,
             ft.Colors.ORANGE_50
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.RED_50,
         )
 
@@ -130,13 +130,13 @@ class _GUIColoursMeta(type):
             return cast(
                 str,
                 ft.Colors.ORANGE_600
-                if cls._colour_deficient_mode
+                if cls.colour_deficient_mode
                 else ft.Colors.RED_600,
             )
         return cast(
             str,
             ft.Colors.ORANGE_100
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.RED_100,
         )
 
@@ -168,14 +168,14 @@ class _GUIColoursMeta(type):
             return cast(
                 str,
                 ft.Colors.BLUE_300
-                if cls._colour_deficient_mode
+                if cls.colour_deficient_mode
                 else ft.Colors.BLUE_400,
             )
         # Sky blue / clear blue for forward primer in colour deficient mode
         return cast(
             str,
             ft.Colors.BLUE_600
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.BLUE_800,
         )
 
@@ -186,7 +186,7 @@ class _GUIColoursMeta(type):
             return cast(
                 str,
                 ft.Colors.ORANGE_300
-                if cls._colour_deficient_mode
+                if cls.colour_deficient_mode
                 else ft.Colors.RED_ACCENT_200,
             )
         # Vermilion / orange-red for reverse primer in colour deficient mode
@@ -194,7 +194,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.ORANGE_700
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.RED_ACCENT_700,
         )
 
@@ -205,13 +205,13 @@ class _GUIColoursMeta(type):
             return cast(
                 str,
                 ft.Colors.ORANGE_200
-                if cls._colour_deficient_mode
+                if cls.colour_deficient_mode
                 else ft.Colors.RED_300,
             )
         return cast(
             str,
             ft.Colors.ORANGE_900
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.RED_800,
         )
 
@@ -244,7 +244,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.BLUE_600
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.GREEN_600,
         )
 
@@ -254,7 +254,7 @@ class _GUIColoursMeta(type):
         return cast(
             str,
             ft.Colors.ORANGE_600
-            if cls._colour_deficient_mode
+            if cls.colour_deficient_mode
             else ft.Colors.YELLOW_600,
         )
 
