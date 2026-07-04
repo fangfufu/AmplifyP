@@ -98,31 +98,14 @@ jobs:
             -ov \
             -format UDZO \
             amplifyp-macos-${VERSION}.dmg
-      - name: Build Flet Windows binary
-        if: runner.os == 'Windows'
-        run: |
-          python scripts/gen_git_sha.py
-          flet build windows src -o build/windows --project AmplifyP --yes
-          mv build/windows build/AmplifyP
-          python -c "
-          import shutil, os
-          shutil.make_archive(f'amplifyp-windows-{os.environ[\"VERSION\"]}', 'zip', 'build', 'AmplifyP')
-          "
       - name: Install Inno Setup
         if: runner.os == 'Windows'
         run: choco install innosetup -y
-      - name: Build Windows installer
+      - name: Build Windows binary and installer
         if: runner.os == 'Windows'
-        env:
-          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        shell: pwsh
         run: |
-          $tag_name = "$env:TAG_NAME"
-          if ([string]::IsNullOrEmpty($tag_name)) {
-            $version = (python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-          } else {
-            $version = $tag_name -replace '^v', ''
-          }
-          iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
+          ./build_windows.ps1
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:

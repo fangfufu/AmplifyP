@@ -210,50 +210,25 @@ ______________________________________________________________________
 
 ## 7. Packaging and Building (Windows Releases)
 
-If you need to package the application for release on Windows:
+To package the application and generate release assets on Windows, you can run
+the `build_windows.ps1` script located at the root of the repository. This
+script automates generating the Git SHA, building the Flet binary, archiving the
+build as a ZIP file, and compiling the setup installer using Inno Setup.
 
-### A. Compile the Flet Windows Binary
-
-Generate the standalone executable structure:
-
-```powershell
-# Generate the Git SHA details
-python scripts/gen_git_sha.py
-
-# Build the Windows application directory
-flet build windows src -o build/windows --project AmplifyP --yes
-```
-
-This compiles the application and puts the output in `build/windows`. You can
-move or rename this folder as needed:
+Open PowerShell and run:
 
 ```powershell
-# Example: Move/rename to build/AmplifyP
-Rename-Item -Path "build/windows" -NewName "AmplifyP"
+.\build_windows.ps1
 ```
 
-To create a `.zip` archive containing the built executable, run:
+### Output Artefacts
 
-```powershell
-# Retrieve version from pyproject.toml
-$version = (python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+After the script runs successfully, the following files and directories will be
+created:
 
-# Compress directory
-Compress-Archive -Path "build\AmplifyP" -DestinationPath "amplifyp-windows-$version.zip" -Force
-```
-
-### B. Compile the Standalone Installer (`.exe`)
-
-Once you have generated the build directory and renamed it to `build/AmplifyP`,
-you can compile a single installer file using the Inno Setup Compiler (`iscc`):
-
-```powershell
-# Retrieve version from pyproject.toml
-$version = (python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-
-# Build the setup executable using Inno Setup
-iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
-```
-
-This compiles a setup file named `amplifyp-windows-setup-<version>.exe` in the
-root directory.
+- **`build\AmplifyP`**: The compiled Flet Windows application folder.
+- **`amplifyp-windows-<version>.zip`**: A ZIP archive of the application
+  directory.
+- **`amplifyp-windows-setup-<version>.exe`**: The standalone Windows
+  installation wizard (only if Inno Setup's `iscc` compiler is installed and
+  available in the system PATH).
