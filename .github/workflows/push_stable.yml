@@ -40,6 +40,25 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.13'
+      - name: Set version environment variable
+        env:
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        shell: python
+        run: |
+          import os
+          import tomllib
+
+          tag_name = os.getenv("TAG_NAME", "")
+          if tag_name:
+              version = tag_name.lstrip("v")
+          else:
+              with open("pyproject.toml", "rb") as f:
+                  version = tomllib.load(f)["project"]["version"]
+
+          github_env = os.getenv("GITHUB_ENV")
+          if github_env:
+              with open(github_env, "a") as f:
+                  f.write(f"VERSION={version}\n")
       - name: Install dependencies
         run: |
           pip install .[dev,e2e] prek
@@ -64,6 +83,8 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           ./build_linux.sh --install-deps
+          mv amplifyp-linux.tar.gz amplifyp-linux-${VERSION}.tar.gz
+          mv amplifyp-linux.AppImage amplifyp-linux-${VERSION}.AppImage
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
         run: |
@@ -76,7 +97,7 @@ jobs:
             -srcfolder build/AmplifyP \
             -ov \
             -format UDZO \
-            amplifyp-macos.dmg
+            amplifyp-macos-${VERSION}.dmg
       - name: Build Flet Windows binary
         if: runner.os == 'Windows'
         run: |
@@ -84,8 +105,8 @@ jobs:
           flet build windows src -o build/windows --project AmplifyP --yes
           mv build/windows build/AmplifyP
           python -c "
-          import shutil
-          shutil.make_archive('amplifyp-windows', 'zip', 'build', 'AmplifyP')
+          import shutil, os
+          shutil.make_archive(f'amplifyp-windows-{os.environ[\"VERSION\"]}', 'zip', 'build', 'AmplifyP')
           "
       - name: Install Inno Setup
         if: runner.os == 'Windows'
@@ -107,10 +128,10 @@ jobs:
         with:
           name: amplifyp-${{ runner.os }}
           path: |
-            amplifyp-linux.tar.gz
-            amplifyp-linux.AppImage
-            amplifyp-macos.dmg
-            amplifyp-windows.zip
+            amplifyp-linux-*.tar.gz
+            amplifyp-linux-*.AppImage
+            amplifyp-macos-*.dmg
+            amplifyp-windows-*.zip
             amplifyp-windows-setup-*.exe
           if-no-files-found: ignore
   upload-assets:
@@ -132,10 +153,10 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release upload ${{ needs.release-please.outputs.tag_name }} \
-            amplifyp-linux.tar.gz \
-            amplifyp-linux.AppImage \
-            amplifyp-macos.dmg \
-            amplifyp-windows.zip \
+            amplifyp-linux-*.tar.gz \
+            amplifyp-linux-*.AppImage \
+            amplifyp-macos-*.dmg \
+            amplifyp-windows-*.zip \
             amplifyp-windows-setup-*.exe \
             amplifyp-web.tar.gz
   deploy:
