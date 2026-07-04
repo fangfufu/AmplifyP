@@ -43,9 +43,6 @@ flet build linux src -o build/linux --project AmplifyP --yes
 echo "==> Moving build artefacts..."
 mv build/linux build/AmplifyP
 
-echo "==> Packaging tarball..."
-tar -czf amplifyp-linux.tar.gz -C build AmplifyP
-
 echo "==> Creating .desktop file..."
 cat << 'EOF' | sed 's/^ *//' > build/AmplifyP/AmplifyP.desktop
 [Desktop Entry]
@@ -70,6 +67,9 @@ export LD_LIBRARY_PATH="${HERE}/lib:${LD_LIBRARY_PATH}"
 exec "${HERE}/AmplifyP" "$@"
 EOF
 chmod +x build/AmplifyP/AppRun
+
+echo "==> Packaging tarball..."
+tar -czf amplifyp-linux.tar.gz -C build AmplifyP
 
 echo "==> Packaging as AppImage..."
 if [[ ! -f appimagetool-x86_64.AppImage ]]; then
