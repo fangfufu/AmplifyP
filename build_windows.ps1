@@ -36,7 +36,7 @@ python -c "import shutil; shutil.make_archive('amplifyp-windows-$version', 'zip'
 # Build the Inno Setup installer if iscc compiler is available
 if (Get-Command "iscc" -ErrorAction SilentlyContinue) {
     Write-Host "==> Building Windows installer..."
-    iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
+    iscc amplifyp.iss /DVersion=$version /O.
 } else {
     Write-Host "==> Inno Setup (iscc) not found in PATH. Skipping installer build."
     Write-Host "    To install Inno Setup, run: winget install JRSoftware.InnoSetup"
