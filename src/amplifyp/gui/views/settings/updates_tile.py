@@ -15,6 +15,7 @@
 
 """UpdatesTile component for Flet settings view."""
 
+import asyncio
 import time
 from collections.abc import Callable
 from typing import Any
@@ -124,8 +125,6 @@ class UpdatesTile(ft.ExpansionTile):  # type: ignore[misc]
 
     async def perform_manual_check(self) -> None:
         """Asynchronously run update check and update UI."""
-        import asyncio
-
         from amplifyp import __version__ as current_version
         from amplifyp.gui.utils.version_check import (
             fetch_latest_release_version,

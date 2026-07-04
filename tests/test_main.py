@@ -18,6 +18,7 @@
 
 from unittest.mock import MagicMock
 
+import flet
 import flet as ft
 import pytest
 
@@ -100,8 +101,6 @@ def test_window_close_warning_dialog() -> None:
 
 def test_cli_default(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test cli() with default desktop settings."""
-    import flet
-
     import main as main_module
 
     mock_run = MagicMock()
@@ -119,8 +118,6 @@ def test_cli_default(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_cli_web(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test cli() with --web flag."""
-    import flet
-
     import main as main_module
 
     mock_run = MagicMock()

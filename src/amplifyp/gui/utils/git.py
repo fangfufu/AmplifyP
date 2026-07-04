@@ -15,6 +15,7 @@
 
 """Git commitment details and versioning utilities."""
 
+import logging
 import os
 import subprocess
 from importlib.metadata import PackageNotFoundError
@@ -115,8 +116,6 @@ def get_full_sha() -> str:
 
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
-    import logging
-
     logger = logging.getLogger(__name__)
     try:
         from amplifyp import __version__ as pkg_version

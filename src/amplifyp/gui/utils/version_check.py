@@ -17,6 +17,7 @@
 
 import json
 import logging
+import re
 import urllib.request
 
 logger = logging.getLogger(__name__)
@@ -43,8 +44,6 @@ def fetch_latest_release_version() -> str | None:
 
 def _parse_to_tuple(v: str) -> tuple[int, ...]:
     """Parse a version string into a comparable tuple of integers."""
-    import re
-
     if v.startswith("v"):
         v = v[1:]
 

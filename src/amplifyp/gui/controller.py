@@ -17,6 +17,7 @@
 
 import asyncio
 import logging
+import time
 from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -610,9 +611,6 @@ class GUIController:
 
     async def check_updates_async(self) -> None:
         """Run update checking asynchronously without blocking main thread."""
-        import asyncio
-        import time
-
         from amplifyp import __version__ as current_version
         from amplifyp.gui.utils.version_check import (
             fetch_latest_release_version,

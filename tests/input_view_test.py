@@ -15,7 +15,10 @@
 
 """Tests for InputView primer editing in-place."""
 
-from unittest.mock import MagicMock
+import asyncio
+import concurrent.futures
+import itertools
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
 
@@ -790,11 +793,9 @@ def test_app_views_disabled_on_invalid_selected() -> None:
 
 def test_header_checkbox_state() -> None:
     """Test header checkbox value based on primer active states."""
-    from itertools import product
-
     mock_page = MagicMock(spec=ft.Page)
 
-    for active_states in product([True, False], repeat=3):
+    for active_states in itertools.product([True, False], repeat=3):
         input_data = GUIInput()
         input_data.primers = [
             {"name": f"P{i}", "seq": "AAAAA", "active": active}
@@ -885,8 +886,6 @@ def test_header_checkbox_click_cycle() -> None:
 
 def _run_async(coro: object) -> None:
     """Run an async coroutine in a fresh event loop in a separate thread."""
-    import asyncio
-    import concurrent.futures
 
     def _run() -> None:
         asyncio.run(coro)
@@ -897,8 +896,6 @@ def _run_async(coro: object) -> None:
 
 def test_template_load_save() -> None:
     """Test loading and saving template using FilePicker."""
-    from unittest.mock import AsyncMock, MagicMock, patch
-
     from amplifyp.gui.user_data import GUIInput
 
     mock_page = MagicMock(spec=ft.Page)
@@ -1101,8 +1098,6 @@ def test_delete_selected_primers() -> None:
 
 def test_tsv_paste_handling() -> None:
     """Test pasting TSV data and parsing it correctly."""
-    from unittest.mock import MagicMock
-
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     view = InputView(mock_page, input_data)
@@ -1128,8 +1123,6 @@ def test_tsv_paste_handling() -> None:
 
 def test_enter_press_handling() -> None:
     """Test that pressing Enter triggers submit and strips the newline."""
-    from unittest.mock import MagicMock
-
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
 
