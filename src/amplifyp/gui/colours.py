@@ -92,6 +92,16 @@ class _GUIColoursMeta(type):
         return cast(str, ft.Colors.GREY_400)
 
     @property
+    def UPDATE_AVAILABLE_COLOUR(cls) -> str:
+        """Get colour-blind friendly update available notification colour."""
+        return cast(
+            str,
+            ft.Colors.BLUE_ACCENT
+            if cls._colour_deficient_mode
+            else ft.Colors.GREEN_ACCENT_400,
+        )
+
+    @property
     def MUTED_GREY(cls) -> str:
         """Get muted/greyed out text colour."""
         return cast(str, ft.Colors.GREY_500)

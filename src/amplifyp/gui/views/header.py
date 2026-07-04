@@ -189,7 +189,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
 
         app_version = get_version()
-        version_text = ft.Text(
+        self.version_text = ft.Text(
             app_version,
             size=14,
             color=GUIColours.TEXT_ON_SURFACE,
@@ -212,7 +212,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                     ),
                     ft.Container(width=12),
-                    version_text,
+                    self.version_text,
                 ],
                 spacing=8,
                 tight=True,
@@ -238,3 +238,18 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                 alignment=ft.Alignment(1, 0),
             ),
         ]
+
+    def set_update_available(self, new_version: str) -> None:
+        """Update the version text to show that a new version is available."""
+        current_version = get_version()
+        self.version_text.value = (
+            f"{current_version} (Update {new_version} available!)"
+        )
+        self.version_text.color = GUIColours.UPDATE_AVAILABLE_COLOUR
+        self.version_text.opacity = 1.0
+        self.version_text.tooltip = "Click to open download page"
+        self.version_text.cursor = ft.MouseCursor.CLICK
+        self.version_text.on_click = lambda e: self.page.launch_url(
+            "https://github.com/fangfufu/AmplifyP/releases"
+        )
+        self.version_text.update()

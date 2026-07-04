@@ -67,7 +67,7 @@ class BackupTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Backup",
+                "Backup Settings",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

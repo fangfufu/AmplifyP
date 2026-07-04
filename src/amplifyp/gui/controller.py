@@ -113,6 +113,7 @@ class GUIController:
             self.settings,
             on_change=self.on_settings_change,
             on_reset=self.on_settings_change,
+            on_update_found=self.on_update_found,
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
@@ -131,6 +132,9 @@ class GUIController:
 
         # Header controls & routing buttons setup
         self._setup_navigation_controls()
+
+        # Check for updates in the background on startup
+        self.page.run_task(self.check_updates_async)
 
     def _configure_page_and_window(self) -> None:
         """Set up page properties, window styling, and event handlers."""
@@ -598,3 +602,44 @@ class GUIController:
                 self.page.overlay.append(dialog)
             dialog.open = True
             self.page.update()
+
+    def on_update_found(self, latest_version: str) -> None:
+        """Update header version text when a new version is found."""
+        if hasattr(self, "header") and self.header:
+            self.header.set_update_available(latest_version)
+
+    async def check_updates_async(self) -> None:
+        """Run update checking asynchronously without blocking main thread."""
+        import asyncio
+        import time
+
+        from amplifyp import __version__ as current_version
+        from amplifyp.gui.utils.version_check import (
+            fetch_latest_release_version,
+            is_newer_version,
+            should_check_for_updates,
+        )
+
+        frequency = self.settings.get(
+            "version_checking_frequency", "Once per Month"
+        )
+        last_check = float(
+            self.settings.get("last_version_check_timestamp", 0.0)
+        )
+        current_time = float(time.time())
+
+        if not should_check_for_updates(frequency, last_check, current_time):
+            return
+
+        loop = asyncio.get_running_loop()
+        latest_tag = await loop.run_in_executor(
+            None, fetch_latest_release_version
+        )
+
+        if latest_tag is not None:
+            # Update last check timestamp
+            self.settings["last_version_check_timestamp"] = current_time
+            self.settings.save_to_local(self.page)
+
+            if is_newer_version(latest_tag, current_version):
+                self.on_update_found(latest_tag)
