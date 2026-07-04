@@ -93,12 +93,14 @@ jobs:
         run: choco install innosetup -y
       - name: Build Windows installer
         if: runner.os == 'Windows'
+        env:
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          $tag_name = "${{ needs.release-please.outputs.tag_name }}"
+          $tag_name = "$env:TAG_NAME"
           if ([string]::IsNullOrEmpty($tag_name)) {
             $version = (python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
           } else {
-            $version = $tag_name.Substring(1)
+            $version = $tag_name -replace '^v', ''
           }
           iscc .github/workflows/amplifyp.iss /DVersion=$version /O.
       - name: Upload build artifact
