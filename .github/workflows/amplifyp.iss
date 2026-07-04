@@ -11,11 +11,11 @@ SetupIconFile=src/assets/icon.ico
 UninstallDisplayIcon={app}\AmplifyP.exe
 LicenseFile=LICENSE
 SourceDir=..\..
-OutputBaseFilename=amplifyp-windows-setup-{#Version}
+OutputBaseFilename=amplifyp-windows-setup-{`#Version`}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=admin
+PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
 [Files]
