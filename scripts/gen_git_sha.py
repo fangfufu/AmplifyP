@@ -4,7 +4,9 @@
 import os
 import subprocess
 
-SRC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src")
+SRC_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"
+)
 SHA_PATH = os.path.join(SRC_DIR, "amplifyp", "gui", "git_sha.py")
 
 
