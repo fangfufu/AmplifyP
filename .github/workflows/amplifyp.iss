@@ -15,6 +15,8 @@ OutputBaseFilename=amplifyp-windows-setup-{#Version}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+DisableWelcomePage=no
+DisableDirPage=no
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
