@@ -69,9 +69,9 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         # Diagonal line canvas header
         header_stack = ft.Stack(
             [
-                ft.canvas.Canvas(
+                ft.canvas.Canvas(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     [
-                        ft.canvas.Line(
+                        ft.canvas.Line(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                             0,
                             8,
                             70,
@@ -112,11 +112,11 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             height=36,
         )
 
-        columns = [ft.DataColumn(header_stack)]
+        columns = [ft.DataColumn(label=header_stack)]
         for c_char in self.col_headers:
             columns.append(
                 ft.DataColumn(
-                    ft.Container(
+                    label=ft.Container(
                         content=ft.Text(
                             c_char,
                             weight=ft.FontWeight.BOLD,

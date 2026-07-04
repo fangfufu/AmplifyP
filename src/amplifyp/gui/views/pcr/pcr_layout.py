@@ -70,8 +70,7 @@ class PCRLayoutSolver:
                 continue
             fwd_origin_point = fwd_conf.origin(amp.start)
             rev_origin_point = rev_conf.origin(amp.end)
-            if fwd_origin_point is None or rev_origin_point is None:
-                continue
+
             fwd_quality = fwd_origin_point.quality
             rev_quality = rev_origin_point.quality
 

@@ -33,6 +33,7 @@ from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.tm_tile import TmTile
+from amplifyp.gui.views.settings.updates_tile import UpdatesTile
 from amplifyp.settings import ReplicationSettings
 
 
@@ -45,6 +46,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         settings: GUISettings | None = None,
         on_change: Callable[[ft.ControlEvent], None] | None = None,
         on_reset: Callable[[ft.ControlEvent | None], None] | None = None,
+        on_update_found: Callable[[str], None] | None = None,
     ) -> None:
         """Initialise the SettingsView."""
         super().__init__(
@@ -54,6 +56,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
         self.on_reset = on_reset
+        self.on_update_found = on_update_found
 
         self.settings_map: dict[str, Any] = {}
 
@@ -66,7 +69,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.replication_tile = ReplicationTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -76,14 +79,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.tm_tile = TmTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
         self.dimer_tile = DimerTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -93,7 +96,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.appearance_tile = AppearanceTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
@@ -101,7 +104,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             page=self.app_page,
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
@@ -110,9 +113,18 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             settings=self.settings,
             sync_to_state_callback=self.sync_to_state,
             update_ui_callback=self.update_ui,
-            on_change_callback=self.on_change,
+            on_change_callback=self.on_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
+        )
+
+        self.updates_tile = UpdatesTile(
+            page=self.app_page,
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+            on_update_found=self.on_update_found,
         )
 
         self.controls = [
@@ -120,6 +132,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
+            self.updates_tile,
             self.diagnostics_tile,
             self.backup_tile,
             ft.Divider(),
@@ -210,6 +223,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the Tm colour scheme dropdown."""
         return self.tm_tile.set_tm_colour_scheme
 
+    @property
+    def set_version_checking_frequency(self) -> ft.Dropdown:
+        """Get the version checking frequency dropdown."""
+        return self.updates_tile.set_version_checking_frequency
+
     def _build_reset_button(self) -> ft.Row:
         """Build the Reset button Row."""
         return ft.Row(
@@ -271,6 +289,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()
         self.diagnostics_tile.update_ui()
+        self.updates_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
@@ -325,6 +344,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "log_file_path": "(Default)",
             "log_rotation_enabled": True,
             "log_rotation_max_bytes": 5242880,
+            "version_checking_frequency": "Once per Month",
+            "last_version_check_timestamp": 0.0,
         }
 
         for r_char in Nucleotides.PRIMER:

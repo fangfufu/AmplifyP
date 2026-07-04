@@ -132,7 +132,7 @@ class PrimerLayoutManager:
         # Update the width of the Name header control
         self.owner.primers_header.controls[
             3
-        ].width = self.owner.name_column_width
+        ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         self.owner.primer_header.update()
 
         self._cache_visible_rows_if_needed()
@@ -158,7 +158,7 @@ class PrimerLayoutManager:
         # Ensure the final exact width is applied to header and all rows in sync
         self.owner.primers_header.controls[
             3
-        ].width = self.owner.name_column_width
+        ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         self.owner.primer_header.update()
 
         from .primer_row import PrimerRow
@@ -202,7 +202,7 @@ class PrimerLayoutManager:
         ):
             self.owner.primers_header.controls[
                 3
-            ].width = self.owner.name_column_width
+            ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             self.owner.primer_header.update()
 
         from .primer_row import PrimerRow

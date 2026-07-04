@@ -15,6 +15,7 @@
 
 """End-to-End tests for the static web version of the GUI."""
 
+import io
 import os
 import signal
 import subprocess
@@ -83,7 +84,6 @@ def build_app() -> None:
 
     print("==> Building static site using build_static.sh...")
     script_path = os.path.join(os.getcwd(), "build_static.sh")
-    import sys
 
     env = os.environ.copy()
     venv_bin = os.path.dirname(sys.executable)
@@ -629,9 +629,6 @@ def wait_for_ui(
     page: Any, text: str, timeout_sec: int = 60
 ) -> tuple[float, float]:
     """Wait for specified text on screen via OCR and return coordinates."""
-    import io
-    import time
-
     import pytesseract
     from PIL import Image
 
@@ -735,8 +732,6 @@ def test_e2e_dimer_alignment(
 
     # 6. Perform OCR using PIL and pytesseract to extract character locations
     try:
-        import io
-
         import pytesseract
         from PIL import Image
 

@@ -17,6 +17,7 @@
 
 import asyncio
 import logging
+import time
 from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -113,6 +114,7 @@ class GUIController:
             self.settings,
             on_change=self.on_settings_change,
             on_reset=self.on_settings_change,
+            on_update_found=self.on_update_found,
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
@@ -132,6 +134,9 @@ class GUIController:
         # Header controls & routing buttons setup
         self._setup_navigation_controls()
 
+        # Check for updates in the background on startup
+        self.page.run_task(self.check_updates_async)
+
     def _configure_page_and_window(self) -> None:
         """Set up page properties, window styling, and event handlers."""
         self.page.overlay.clear()
@@ -145,7 +150,7 @@ class GUIController:
         # Handle close / reload warnings
         if self.page.web:
             if hasattr(self.page, "run_javascript"):
-                self.page.run_javascript(
+                self.page.run_javascript(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     """
                     window.addEventListener('beforeunload', (event) => {
                         event.preventDefault();
@@ -178,7 +183,7 @@ class GUIController:
             on_pcr_click=self.on_pcr_click,
             on_dimers_click=self.on_dimers_click,
             on_save=self.save_state,
-            on_load=self.load_state,
+            on_load=self.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             pcr_button_ref=self.pcr_button_ref,
             dimers_button_ref=self.dimers_button_ref,
             visible_pcr_button_ref=self.visible_pcr_button_ref,
@@ -193,7 +198,7 @@ class GUIController:
         # Configure page appbar
         self.page.appbar = ft.AppBar(
             visible=False,
-            actions=self.header.appbar_actions,
+            actions=self.header.appbar_actions,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
         self.header_container = ft.Container(
@@ -216,7 +221,7 @@ class GUIController:
         is_dark = False
         if str(dark_mode_setting).lower() == "system":
             self.page.theme_mode = ft.ThemeMode.SYSTEM
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = str(self.page.platform_brightness).lower() == "dark"
         elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
             "false",
@@ -224,11 +229,11 @@ class GUIController:
             "no",
         ):
             self.page.theme_mode = ft.ThemeMode.DARK
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = True
         else:
             self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = GUIColours.WHITE
+            self.page.bg_color = GUIColours.WHITE  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = False
         GUIColours.dark_mode = is_dark
         if hasattr(self, "header_container") and self.header_container:
@@ -307,12 +312,12 @@ class GUIController:
         btn = self.pcr_button_ref.current
         if btn:
             btn.disabled = not pcr_is_enabled
-            btn.text = "PCR"
+            btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         visible_btn = self.visible_pcr_button_ref.current
         if visible_btn:
             visible_btn.disabled = not pcr_is_enabled
-            visible_btn.text = "PCR"
+            visible_btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         dimers_btn = self.dimers_button_ref.current
         if dimers_btn:
@@ -487,7 +492,7 @@ class GUIController:
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
         elif view == self.pcr_view:
-            self.page.on_resize = self.pcr_view._handle_resize
+            self.page.on_resize = self.pcr_view._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         else:
             self.page.on_resize = None
 
@@ -586,9 +591,9 @@ class GUIController:
                         "Are you sure you want to close AmplifyP? "
                         "Unsaved changes will be lost."
                     ),
-                    actions=[
-                        ft.TextButton("Yes", on_click=self.confirm_exit),
-                        ft.TextButton("No", on_click=self.confirm_dismiss),
+                    actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("Yes", on_click=self.confirm_exit),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("No", on_click=self.confirm_dismiss),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     ],
                     actions_alignment=ft.MainAxisAlignment.END,
                 )
@@ -598,3 +603,44 @@ class GUIController:
                 self.page.overlay.append(dialog)
             dialog.open = True
             self.page.update()
+
+    def on_update_found(self, latest_version: str) -> None:
+        """Update header version text when a new version is found."""
+        if hasattr(self, "header") and self.header:
+            self.header.set_update_available(latest_version)
+
+    async def check_updates_async(self) -> None:
+        """Run update checking asynchronously without blocking main thread."""
+        from amplifyp import __version__ as current_version
+        from amplifyp.gui.utils.version_check import (
+            fetch_latest_release_version,
+            is_newer_version,
+            should_check_for_updates,
+        )
+
+        frequency = self.settings.get(
+            "version_checking_frequency", "Once per Month"
+        )
+        try:
+            last_check = float(
+                self.settings.get("last_version_check_timestamp", 0.0)
+            )
+        except (TypeError, ValueError):
+            last_check = 0.0
+        current_time = float(time.time())
+
+        if not should_check_for_updates(frequency, last_check, current_time):
+            return
+
+        loop = asyncio.get_running_loop()
+        latest_tag = await loop.run_in_executor(
+            None, fetch_latest_release_version
+        )
+
+        if latest_tag is not None:
+            # Update last check timestamp
+            self.settings["last_version_check_timestamp"] = current_time
+            self.settings.save_to_local(self.page)
+
+            if is_newer_version(latest_tag, current_version):
+                self.on_update_found(latest_tag)

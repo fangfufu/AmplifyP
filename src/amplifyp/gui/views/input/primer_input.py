@@ -629,7 +629,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
     def _update_header_buttons_state(self) -> None:
         """Update enabled/disabled state of header action buttons."""
-        if not hasattr(self, "primer_header") or self.primer_header is None:
+        if not hasattr(self, "primer_header"):
             return
 
         num_primers = len(self.input_data.primers)

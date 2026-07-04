@@ -93,7 +93,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
             self.cards_header,
             ft.Container(content=self.result_list, expand=True),
         ]
-        self.app_page.on_resize = self._handle_resize
+        self.app_page.on_resize = self._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
     @property
     def diagram_stack(self) -> ft.Stack:
