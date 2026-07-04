@@ -5,20 +5,7 @@
   "exclude": [
     "tests/"
   ],
-  "reportArgumentType": "error",
-  "reportAttributeAccessIssue": "error",
-  "reportCallIssue": "error",
-  "reportMissingImports": "error",
-  "reportMissingTypeStubs": "error",
-  "reportAssignmentType": "error",
-  "reportGeneralTypeIssues": "error",
-  "reportOptionalMemberAccess": "error",
-  "reportOptionalSubscript": "error",
-  "reportPrivateImportUsage": "error",
-  "reportUnboundVariable": "error",
-  "reportUnknownMemberType": "error",
-  "reportUnknownParameterType": "error",
-  "reportUnknownVariableType": "error",
+  "typeCheckingMode": "strict",
   "executionEnvironments": [
     {
       "root": "src/amplifyp/gui",
@@ -26,7 +13,19 @@
       "reportUnknownParameterType": false,
       "reportUnknownVariableType": false,
       "reportArgumentType": false,
-      "reportAttributeAccessIssue": false
+      "reportAttributeAccessIssue": false,
+      "reportUnknownArgumentType": false,
+      "reportMissingTypeArgument": false,
+      "reportUntypedFunctionDecorator": false,
+      "reportUntypedClassDecorator": false,
+      "reportUntypedBaseClass": false,
+      "reportUnusedExpression": false,
+      "reportPrivateUsage": false,
+      "reportPrivateImportUsage": false,
+      "reportUnnecessaryComparison": false,
+      "reportUnnecessaryIsInstance": false,
+      "reportConstantRedefinition": false,
+      "reportUnknownLambdaType": false
     }
   ]
 }

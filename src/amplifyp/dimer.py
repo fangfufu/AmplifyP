@@ -175,8 +175,8 @@ class PrimerDimerGenerator:
         n1 = len(short_p)
         n2 = len(long_p)
 
-        seq1 = short_p._seq_upper
-        seq2 = long_p._seq_upper
+        seq1 = short_p.seq_upper
+        seq2 = long_p.seq_upper
 
         best_quality, best_pos, overlap_len = self._calculate_dimer_stats(
             seq1, seq2, n1, n2
@@ -200,7 +200,7 @@ class PrimerDimerGenerator:
         """
         self.primer_dimers.clear()
 
-        primer_props = [(p, len(p), p._seq_upper) for p in self.primers]
+        primer_props = [(p, len(p), p.seq_upper) for p in self.primers]
         memo: dict[tuple[str, str], tuple[float, int, int]] = {}
 
         threshold = self.settings.threshold
