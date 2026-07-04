@@ -214,6 +214,10 @@ class GUIController:
         self.page.controls.insert(0, self.header_container)
         self.page.on_resize = self.input_view._handle_resize
         self.page.update()
+        # After the first update, platform_brightness is populated.
+        # Re-apply theme and refresh views to resolve dynamic colours correctly.
+        self.apply_theme()
+        self.input_view.update_ui()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
