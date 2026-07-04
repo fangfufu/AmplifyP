@@ -73,7 +73,8 @@ tar -czf amplifyp-linux.tar.gz -C build AmplifyP
 
 echo "==> Packaging as AppImage..."
 if [[ ! -f appimagetool-x86_64.AppImage ]]; then
-  wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+  wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage.tmp
+  mv appimagetool-x86_64.AppImage.tmp appimagetool-x86_64.AppImage
   chmod +x appimagetool-x86_64.AppImage
 fi
 
