@@ -96,7 +96,7 @@ the browser (similar to what is hosted on GitHub Pages):
 1. Compile the app using the static build script:
 
    ```bash
-   ./build_static.sh
+   ./build_web.sh
    ```
 
    *This compiles the Flet application and puts the output in the `dist`

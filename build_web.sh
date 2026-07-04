@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the Flet static site for local testing.
 #
-# Usage: ./build_static.sh
+# Usage: ./build_web.sh
 # Then open http://localhost:23455 in your browser.
 
 set -euo pipefail

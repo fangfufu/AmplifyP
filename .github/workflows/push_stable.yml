@@ -67,7 +67,7 @@ jobs:
         env:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          bash ./build_static.sh \
+          bash ./build_web.sh \
             --base-url "/${REPO_NAME}/"
       - name: Archive and Upload Web Release (Linux only)
         if: runner.os == 'Linux'
