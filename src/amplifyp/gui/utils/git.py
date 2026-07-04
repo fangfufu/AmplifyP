@@ -25,9 +25,13 @@ def _get_sha(full: bool = False) -> str:
     """Retrieve the git commit SHA (either 40-char full or 7-char short)."""
     try:
         if full:
-            from amplifyp.gui.git_sha import GIT_FULL_SHA as imported_sha
+            from amplifyp.gui.git_sha import (
+                GIT_FULL_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
+            )
         else:
-            from amplifyp.gui.git_sha import GIT_SHA as imported_sha
+            from amplifyp.gui.git_sha import (
+                GIT_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
+            )
 
         if imported_sha and imported_sha != "unknown":
             return str(imported_sha)
