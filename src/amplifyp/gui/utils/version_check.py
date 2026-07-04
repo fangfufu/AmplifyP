@@ -40,20 +40,21 @@ def fetch_latest_release_version() -> str | None:
     return None
 
 
+def _parse_to_tuple(v: str) -> tuple[int, ...]:
+    """Parse a version string into a tuple of integers, stripping trailing zeros."""
+    if v.startswith("v"):
+        v = v[1:]
+    base = v.split("-")[0].split("+")[0]
+    t = tuple(int(x) for x in base.split(".") if x.isdigit())
+    while t and t[-1] == 0:
+        t = t[:-1]
+    return t if t else (0,)
+
+
 def is_newer_version(latest_tag: str, current_ver: str) -> bool:
     """Compare latest tag with current version to see if update is available."""
-
-    def parse_to_tuple(v: str) -> tuple[int, ...]:
-        if v.startswith("v"):
-            v = v[1:]
-        base = v.split("-")[0].split("+")[0]
-        try:
-            return tuple(int(x) for x in base.split(".") if x.isdigit())
-        except ValueError:
-            return (0,)
-
-    latest_tuple = parse_to_tuple(latest_tag)
-    current_tuple = parse_to_tuple(current_ver)
+    latest_tuple = _parse_to_tuple(latest_tag)
+    current_tuple = _parse_to_tuple(current_ver)
 
     return latest_tuple > current_tuple
 
