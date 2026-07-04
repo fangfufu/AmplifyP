@@ -45,7 +45,6 @@ jobs:
           pip install .[dev,e2e] prek
       - name: Build Flet web app (Linux only)
         if: runner.os == 'Linux'
-        run: |
         env:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
