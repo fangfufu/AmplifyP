@@ -40,6 +40,8 @@ def test_is_newer_version() -> None:
     assert is_newer_version("1.4.1", "1.4.0") is True
     assert is_newer_version("1.4", "1.4.0") is False
     assert is_newer_version("1.4.0", "1.4") is False
+    assert is_newer_version("1.3.2-post1", "1.3.2") is True
+    assert is_newer_version("1.3.2-post1", "1.3.2-beta") is True
 
 
 def test_should_check_for_updates() -> None:
