@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
 # Source the virtual environment if it exists and is not already sourced
-if [ -z "${VIRTUAL_ENV:-}" ] && [ -d ".venv" ]; then
+if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
   echo "==> Sourcing virtual environment..."
   # shellcheck disable=SC1091
   source .venv/bin/activate
@@ -17,12 +17,12 @@ fi
 
 INSTALL_DEPS=false
 for arg in "$@"; do
-  if [ "$arg" = "--install-deps" ]; then
+  if [[ "$arg" = "--install-deps" ]]; then
     INSTALL_DEPS=true
   fi
 done
 
-if [ "$INSTALL_DEPS" = true ]; then
+if [[ "$INSTALL_DEPS" = true ]]; then
   echo "==> Installing system dependencies..."
   sudo apt-get update
   sudo apt-get install -y --no-install-recommends \
@@ -72,7 +72,7 @@ EOF
 chmod +x build/AmplifyP/AppRun
 
 echo "==> Packaging as AppImage..."
-if [ ! -f appimagetool-x86_64.AppImage ]; then
+if [[ ! -f appimagetool-x86_64.AppImage ]]; then
   wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
   chmod +x appimagetool-x86_64.AppImage
 fi
