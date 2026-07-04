@@ -153,6 +153,9 @@ For complete documentation, please refer to:
   calculations.
 - **[Development Guide](src/README.md)**: Information on setting up development
   dependencies, linters, hot-reload, and Pyodide web builds.
+- **[Windows Setup Guide](docs/windows_setup.md)**: A step-by-step developer
+  guide for setting up the environment, running tests, and compiling installers
+  on Windows.
 
 ______________________________________________________________________
 
