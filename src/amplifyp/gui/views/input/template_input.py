@@ -409,10 +409,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         """Update the status bar text based on text selection and focus."""
         if not self._is_focused:
             self.status_text.value = f"Total Bases: {self._cleaned_len}"
-            if self.app_page:
+            if self.status_bar.page:
                 try:
                     self.status_bar.update()
-                except RuntimeError:
+                except Exception:
                     pass
             return
 
