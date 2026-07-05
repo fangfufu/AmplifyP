@@ -289,6 +289,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
         self._cleaned_len = len(self.input_data.template)
         self.input_data.template_circular = bool(self.template_circular.value)
+        self._update_line_numbers(update=False)
+        self._update_status_bar(update=False)
 
     def update_ui(self) -> None:
         """Update template UI elements to match central state.
