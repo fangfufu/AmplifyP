@@ -434,11 +434,10 @@ class GUIController:
                         "Error loading last state from %s: %s", path, e
                     )
 
-        if state_dict:
-            if isinstance(state_dict, dict):
-                if "input" not in state_dict:
-                    state_dict = {"input": state_dict}
-                self._apply_parsed_state(state_dict, ignore_settings=True)
+        if state_dict and isinstance(state_dict, dict):
+            if "input" not in state_dict:
+                state_dict = {"input": state_dict}
+            self._apply_parsed_state(state_dict, ignore_settings=True)
 
     async def _load_last_state_async(self) -> None:
         """Asynchronously load the last template and primers from storage."""
