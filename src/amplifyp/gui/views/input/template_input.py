@@ -360,15 +360,15 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         current_idx = 1
         for line in lines:
             line_indices.append(str(current_idx))
-            current_idx += len(line)
+            current_idx += len(clean_sequence(line))
 
         self.line_numbers_text.value = "\n".join(line_indices)
 
         # Set dynamic gutter width
         font_size = self.settings.get("font_size_default", 14)
         char_width = font_size * 0.66
-        # Calculate from live text excluding newlines instead of stored state
-        template_len = len(text.replace("\n", ""))
+        # Calculate from live text excluding whitespaces instead of stored state
+        template_len = len(clean_sequence(text))
         max_digits = len(str(max(1, template_len)))
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
