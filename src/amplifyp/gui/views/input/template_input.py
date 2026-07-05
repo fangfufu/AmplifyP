@@ -69,9 +69,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             alignment=ft.Alignment(1, -1),
         )
 
-        def on_change_wrapper(e: ft.ControlEvent) -> None:
-            self._update_line_numbers()
-            on_change_handler(e)
+        self.on_change_handler = on_change_handler
+        self.handle_field_focus = handle_field_focus
+        self.handle_field_blur = handle_field_blur
+        self._is_focused = False
+        self._cleaned_len = 0
 
         self.template_sequence = ft.TextField(
             dense=True,
@@ -83,9 +85,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             hover_color=ft.Colors.TRANSPARENT,
             focused_bgcolor=ft.Colors.TRANSPARENT,
             content_padding=ft.Padding(0, 10, 10, 10),
-            on_change=on_change_wrapper,
-            on_focus=handle_field_focus,
-            on_blur=handle_field_blur,
+            on_change=self._handle_change,
+            on_focus=self._handle_focus,
+            on_blur=self._handle_blur,
             on_submit=handle_field_submit,
             on_selection_change=self._handle_selection_change,
         )
@@ -283,6 +285,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.input_data.template = clean_sequence(
             str(self.template_sequence.value)
         )
+        self._cleaned_len = len(self.input_data.template)
         self.input_data.template_circular = bool(self.template_circular.value)
 
     def update_ui(self) -> None:
@@ -308,6 +311,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.line_numbers_container.bgcolor = GUIColours.GUTTER_BG
 
         self.template_sequence.value = self.input_data.template
+        self._cleaned_len = len(self.input_data.template)
         self.template_circular.value = self.input_data.template_circular
 
         # Update status bar style
@@ -371,6 +375,26 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         if self.app_page:
             self.app_page.update()
 
+    def _handle_change(self, e: ft.ControlEvent) -> None:
+        """Handle template text changes, updating gutter line numbers."""
+        self._cleaned_len = len(
+            clean_sequence(self.template_sequence.value or "")
+        )
+        self._update_line_numbers()
+        self.on_change_handler(e)
+
+    def _handle_focus(self, e: ft.Event[ft.TextField]) -> None:
+        """Handle template focus, updating status bar text selection info."""
+        self._is_focused = True
+        self._update_status_bar(self.template_sequence.selection)
+        self.handle_field_focus(e)
+
+    def _handle_blur(self, e: ft.Event[ft.TextField]) -> None:
+        """Handle template focus loss, resetting status bar selection info."""
+        self._is_focused = False
+        self._update_status_bar(None)
+        self.handle_field_blur(e)
+
     def _handle_selection_change(self, e: ft.ControlEvent) -> None:
         """Handle selection change event on the template text field."""
         self._update_status_bar(e.selection)
@@ -378,30 +402,43 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def _update_status_bar(
         self, selection: ft.TextSelection | None = None
     ) -> None:
-        """Update the status bar text based on current text selection."""
-        if selection is not None and selection.is_valid:
-            raw_text = self.template_sequence.value or ""
-            prefix_start = raw_text[: selection.start]
-            prefix_end = raw_text[: selection.end]
+        """Update the status bar text based on text selection and focus."""
+        if not self._is_focused:
+            self.status_text.value = f"Total Bases: {self._cleaned_len}"
+            if self.app_page:
+                try:
+                    self.status_bar.update()
+                except RuntimeError:
+                    pass
+            return
 
+        sel = (
+            selection
+            if (selection is not None and selection.is_valid)
+            else self.template_sequence.selection
+        )
+        if sel is not None and sel.is_valid:
+            raw_text = self.template_sequence.value or ""
+            prefix_start = raw_text[: sel.start]
+            prefix_end = raw_text[: sel.end]
             bases_before = len(clean_sequence(prefix_start))
             bases_total = len(clean_sequence(prefix_end))
 
             if bases_total > bases_before:
-                n = bases_before + 1
-                m = bases_total
-                self.status_text.value = f"Selected Bases: {n} - {m}"
+                self.status_text.value = (
+                    f"Selected Bases: {bases_before + 1} - {bases_total}"
+                )
             else:
                 self.status_text.value = (
                     f"Insertion Point After Base: {bases_before}"
                 )
         else:
-            # Fall back if no selection object is provided
-            val = self.template_sequence.value or ""
-            template_len = len(clean_sequence(val))
             self.status_text.value = (
-                f"Insertion Point After Base: {template_len}"
+                f"Insertion Point After Base: {self._cleaned_len}"
             )
 
         if self.app_page:
-            self.app_page.update()
+            try:
+                self.status_bar.update()
+            except RuntimeError:
+                pass

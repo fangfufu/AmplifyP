@@ -1163,9 +1163,14 @@ def test_template_input_status_bar() -> None:
     view = InputView(mock_page, input_data)
     view.update_ui()
 
-    # Verify initial value (should show length of template)
-    expected_initial = "Insertion Point After Base: 5"
+    # Verify initial value (should show total bases since it starts unfocused)
+    expected_initial = "Total Bases: 5"
     assert view.template_input.status_text.value == expected_initial
+
+    # Simulate focus to enable selection change tracking
+    mock_focus_event = MagicMock()
+    mock_focus_event.control = view.template_input.template_sequence
+    view.template_input.template_sequence.on_focus(mock_focus_event)
 
     # Mock Selection change event (collapsed: caret after 3rd base)
     from flet.controls.core.text import TextSelection, TextSelectionChangeEvent
@@ -1186,3 +1191,13 @@ def test_template_input_status_bar() -> None:
 
     view.template_input._handle_selection_change(mock_event_range)
     assert view.template_input.status_text.value == "Selected Bases: 2 - 4"
+
+    # Mock blur event (focus loss)
+    mock_blur_event = MagicMock()
+    mock_blur_event.control = view.template_input.template_sequence
+    view.template_input.template_sequence.on_blur(mock_blur_event)
+    assert view.template_input.status_text.value == "Total Bases: 5"
+
+    # Try triggering selection change while unfocused (should be ignored)
+    view.template_input._handle_selection_change(mock_event)
+    assert view.template_input.status_text.value == "Total Bases: 5"
