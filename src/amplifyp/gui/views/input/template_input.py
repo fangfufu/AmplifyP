@@ -367,12 +367,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         current_idx = 1
         for line in lines:
             line_indices.append(str(current_idx))
-            current_idx += len(
-                line.replace("\\n", "")
-                .replace("\\t", "")
-                .replace("\\r", "")
-                .translate(str.maketrans("", "", " \t\n\r\v\f"))
-            )
+            current_idx += len(clean_sequence(line))
 
         self.line_numbers_text.value = "\n".join(line_indices)
 
