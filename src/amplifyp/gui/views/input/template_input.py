@@ -373,10 +373,14 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
 
-        if self.page:
+        try:
+            page = self.page
+        except RuntimeError:
+            page = None
+        if page:
             try:
                 self.update()
-            except Exception:
+            except RuntimeError:
                 pass
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
@@ -409,10 +413,14 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         """Update the status bar text based on text selection and focus."""
         if not self._is_focused:
             self.status_text.value = f"Total Bases: {self._cleaned_len}"
-            if self.status_bar.page:
+            try:
+                page = self.status_bar.page
+            except RuntimeError:
+                page = None
+            if page:
                 try:
                     self.status_bar.update()
-                except Exception:
+                except RuntimeError:
                     pass
             return
 
@@ -441,8 +449,12 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 f"Insertion Point After Base: {self._cleaned_len}"
             )
 
-        if self.status_bar.page:
+        try:
+            page = self.status_bar.page
+        except RuntimeError:
+            page = None
+        if page:
             try:
                 self.status_bar.update()
-            except Exception:
+            except RuntimeError:
                 pass
