@@ -517,7 +517,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.template_input.expand = None
             left_width = page_width - new_width - 5.0
             self.template_input.width = left_width
-            self.template_input.adjust_wrap_length(left_width)
+            self.template_input.update()
 
             # Adjust the name column width of only the visible rows and header
             self.primer_input.layout_manager.adjust_name_column_width(
