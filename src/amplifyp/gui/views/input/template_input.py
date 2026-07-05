@@ -368,7 +368,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         font_size = self.settings.get("font_size_default", 14)
         char_width = font_size * 0.66
         # Calculate from live text excluding whitespaces instead of stored state
-        template_len = len(clean_sequence(text))
+        template_len = current_idx - 1
         max_digits = len(str(max(1, template_len)))
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
