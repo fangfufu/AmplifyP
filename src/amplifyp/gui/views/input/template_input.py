@@ -400,7 +400,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _handle_selection_change(self, e: ft.ControlEvent) -> None:
         """Handle selection change event on the template text field."""
-        self._update_status_bar(e.selection)  # pyright: ignore[reportAttributeAccessIssue]
+        self._update_status_bar(getattr(e, "selection", None))
 
     def _update_status_bar(
         self, selection: ft.TextSelection | None = None
