@@ -8,6 +8,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
+# Disable rich output/animations under CI
+if [[ "${CI:-}" = "true" ]]; then
+  export FLET_CLI_NO_RICH_OUTPUT=1
+fi
+
 # Source the virtual environment if it exists and is not already sourced
 if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
   echo "==> Sourcing virtual environment..."

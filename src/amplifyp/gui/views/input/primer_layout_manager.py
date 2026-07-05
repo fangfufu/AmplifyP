@@ -138,10 +138,10 @@ class PrimerLayoutManager:
         self._cache_visible_rows_if_needed()
         visible_rows = self.owner._visible_rows_cache or []
 
-        # Update and render only the name fields of the visible rows directly
+        # Update and render the name fields in batch
         for row in visible_rows:
             row.name_scroll.width = self.owner.name_column_width
-            row.name_scroll.update()
+        self.owner.primers_list.update()
 
     def on_primer_divider_pan_end(self, _e: ft.DragEndEvent) -> None:
         """Handle finishing the drag of the vertical divider.
@@ -211,10 +211,10 @@ class PrimerLayoutManager:
             self._cache_visible_rows_if_needed()
             visible_rows = self.owner._visible_rows_cache or []
 
-            # Update/render name fields of visible rows directly
+            # Update/render name fields of visible rows in batch
             for row in visible_rows:
                 row.name_scroll.width = self.owner.name_column_width
-                row.name_scroll.update()
+            self.owner.primers_list.update()
         else:
             # Clear cache and update all rows
             self.owner._visible_rows_cache = None

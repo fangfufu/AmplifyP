@@ -77,13 +77,13 @@ def browser_type_launch_args(browser_type_launch_args: Any) -> dict[str, Any]:
 
 @pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
 def build_app() -> None:
-    """Build the Flet static app using build_static.sh."""
+    """Build the Flet static app using build_web.sh."""
     if os.path.exists(os.path.join(DIST_DIR, "index.html")):
         print("==> Flet static app already built, skipping build...")
         return
 
-    print("==> Building static site using build_static.sh...")
-    script_path = os.path.join(os.getcwd(), "build_static.sh")
+    print("==> Building static site using build_web.sh...")
+    script_path = os.path.join(os.getcwd(), "build_web.sh")
 
     env = os.environ.copy()
     venv_bin = os.path.dirname(sys.executable)

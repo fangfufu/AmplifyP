@@ -112,7 +112,11 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container.height = max(
             150.0, float(self.diagram_container.height or 300.0) + delta_y
         )
-        self.app_page.update()
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            pass
 
     def reset_ui(self) -> None:
         """Reset the PCR view diagram canvas shapes and controls.

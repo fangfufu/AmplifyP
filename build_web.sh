@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the Flet static site for local testing.
 #
-# Usage: ./build_static.sh
+# Usage: ./build_web.sh
 # Then open http://localhost:23455 in your browser.
 
 set -euo pipefail
@@ -10,6 +10,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Place dist *outside* src/ so flet publish never packages the previous
 # build's app.tar.gz back into the new tarball.
 DIST_DIR="${SCRIPT_DIR}/dist"
+
+# Disable rich output/animations under CI
+if [[ "${CI:-}" = "true" ]]; then
+  export FLET_CLI_NO_RICH_OUTPUT=1
+fi
 
 echo "==> Clearing Python bytecode cache..."
 find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true

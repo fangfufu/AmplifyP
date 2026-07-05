@@ -388,8 +388,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         active (selected).
         """
         self.delete_selected_button.disabled = not self.selected_indices
-        if self.delete_selected_button.parent:
-            self.delete_selected_button.update()
 
     def _on_toggle_all_primers(self, e: ft.Event[ft.Checkbox]) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox.
@@ -663,12 +661,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         else:
             idx = num_primers - 1
 
-        self.action_controller.on_add_primer_row(idx)
         self.selected_indices = {idx + 1}
         self.focused_primer_index = idx + 1
-        self._update_row_highlights()
-        self._update_primer_info_panel()
-        self._update_delete_button_disabled_state()
+        self.action_controller.on_add_primer_row(idx)
 
     def _header_delete_click(self, e: ft.Event | None) -> None:
         """Handle header Delete button click."""

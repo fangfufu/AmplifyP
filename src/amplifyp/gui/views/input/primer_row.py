@@ -417,10 +417,6 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             if self._tm_value is not None
             else None
         )
-        try:
-            self.tm_text.update()
-        except RuntimeError:
-            logger.debug("Tm text page detached, skipping update")
 
         if show_temp != getattr(self, "_last_show_temp", None):
             self._last_show_temp = show_temp
@@ -441,7 +437,3 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 spacing=0,
                 vertical_alignment=ft.CrossAxisAlignment.START,
             )
-            try:
-                self.update()
-            except RuntimeError:
-                logger.debug("Row page detached, skipping update")

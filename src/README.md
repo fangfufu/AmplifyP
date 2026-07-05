@@ -32,7 +32,8 @@ AmplifyP/
 ├── docs/                       # Markdown user and API documentation
 │   ├── images/                 # Visual assets (screenshots)
 │   ├── gui_guide.md            # GUI application user manual
-│   └── api_guide.md            # Python library programmatic usage guide
+│   ├── api_guide.md            # Python library programmatic usage guide
+│   └── windows_setup.md        # Windows development and installer guide
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration
 ├── README.md                   # Repository overview and quick start guide
 ├── src/
@@ -96,7 +97,7 @@ the browser (similar to what is hosted on GitHub Pages):
 1. Compile the app using the static build script:
 
    ```bash
-   ./build_static.sh
+   ./build_web.sh
    ```
 
    *This compiles the Flet application and puts the output in the `dist`

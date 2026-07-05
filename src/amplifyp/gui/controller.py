@@ -18,6 +18,7 @@
 import asyncio
 import logging
 import time
+from pathlib import Path
 from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -101,13 +102,20 @@ class GUIController:
         )
         self.apply_theme()
 
+        def handle_input_change(e: ft.ControlEvent | None) -> None:
+            self.update_pcr_button_state(sync=False)
+
+        def handle_stop_editing(e: ft.ControlEvent | None) -> None:
+            if self.page.web:
+                self.save_last_state()
+
         # Instantiate views
         self.input_view = InputView(
             self.page,
             self.input_data,
             self.settings,
-            on_change=lambda e: self.update_pcr_button_state(sync=False),
-            on_stop_editing=lambda e: self.update_pcr_button_state(sync=False),
+            on_change=handle_input_change,
+            on_stop_editing=handle_stop_editing,
         )
         self.settings_view = SettingsView(
             self.page,
@@ -125,6 +133,8 @@ class GUIController:
         # Load state and handle auto-close asynchronously once page is ready
         if self.state_file:
             self.page.run_task(self._restore_state_and_auto_close_async)
+        else:
+            self.page.run_task(self._load_last_state_async)
 
         # Main view container
         self.view_container = ft.Container(
@@ -214,6 +224,11 @@ class GUIController:
         self.page.controls.insert(0, self.header_container)
         self.page.on_resize = self.input_view._handle_resize
         self.page.update()
+        # After the first update, platform_brightness is populated.
+        # Re-apply theme and refresh views to resolve dynamic colours correctly.
+        self.apply_theme()
+        self.input_view.update_ui()
+        self.page.update()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
@@ -279,7 +294,9 @@ class GUIController:
         if not self.dimers_view.run_analysis():
             self.switch_view(e, self.input_view)
 
-    def update_pcr_button_state(self, sync: bool = True) -> None:
+    def update_pcr_button_state(
+        self, sync: bool = True, update_page: bool = True
+    ) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
         if sync:
             self.input_view.sync_to_state()
@@ -331,7 +348,8 @@ class GUIController:
                 len(active_primers) < 1
             ) or has_invalid_selected
 
-        self.page.update()
+        if update_page:
+            self.page.update()
 
     def on_settings_change(self, e: ft.ControlEvent | None = None) -> None:
         """Handle settings changes from the settings view.
@@ -353,7 +371,7 @@ class GUIController:
         if active_view == self.settings_view:
             self.settings_view.update_ui()
 
-        self.update_pcr_button_state()
+        self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
         # Only redraw/re-simulate active views
@@ -361,8 +379,76 @@ class GUIController:
             self.pcr_view.run_pcr(keep_cards=True)
         elif active_view == self.dimers_view:
             self.dimers_view.run_analysis()
+        else:
+            self.page.update()
 
-        self.page.update()
+    def _get_last_state_path(self) -> Path:
+        """Get the OS-specific path for the last saved GUI state.
+
+        Returns:
+            Path object pointing to the last_state.yaml file location.
+        """
+        settings_path = self.settings._get_config_path()
+        return settings_path.parent / "last_state.yaml"
+
+    def save_last_state(self) -> None:
+        """Save the last template and primers to local/platform storage."""
+        if not self.settings.get("auto_reload_on_startup", True):
+            return
+
+        self.input_view.sync_to_state()
+        state_dict = {
+            "input": self.input_data.to_dict(),
+        }
+
+        if getattr(self.page, "web", False):
+            storage = getattr(self.page, "client_storage", None)
+            if storage is not None:
+                storage.set("amplifyp.last_state", state_dict["input"])
+        else:
+            path = self._get_last_state_path()
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                yaml_str = serialise_state(state_dict)
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(yaml_str)
+            except Exception as e:
+                logger.exception("Error saving last state to %s: %s", path, e)
+
+    def load_last_state(self) -> None:
+        """Load the last template and primers from local/platform storage."""
+        if not self.settings.get("auto_reload_on_startup", True):
+            return
+
+        state_dict = None
+        if getattr(self.page, "web", False):
+            storage = getattr(self.page, "client_storage", None)
+            if storage is not None and storage.contains_key(
+                "amplifyp.last_state"
+            ):
+                state_dict = storage.get("amplifyp.last_state")
+        else:
+            path = self._get_last_state_path()
+            if path.exists():
+                try:
+                    with open(path, encoding="utf-8") as f:
+                        content = f.read()
+                    state_dict = yaml.safe_load(content)
+                except Exception as e:
+                    logger.exception(
+                        "Error loading last state from %s: %s", path, e
+                    )
+
+        if state_dict and isinstance(state_dict, dict):
+            if "input" not in state_dict:
+                state_dict = {"input": state_dict}
+            self._apply_parsed_state(state_dict, ignore_settings=True)
+
+    async def _load_last_state_async(self) -> None:
+        """Asynchronously load the last template and primers from storage."""
+        # Yield to let the page finish initial rendering and attach controls
+        await asyncio.sleep(0)
+        self.load_last_state()
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.
@@ -404,7 +490,7 @@ class GUIController:
         self.apply_theme()
         self.input_view.update_ui()
         self.settings_view.update_ui()
-        self.update_pcr_button_state()
+        self.update_pcr_button_state(update_page=False)
         self.page.update()
 
     async def save_state(self, e: ft.Event[ft.Control]) -> None:
@@ -511,6 +597,7 @@ class GUIController:
         Used as a task handler for safe window closure on desktop.
         """
         try:
+            self.save_last_state()
             await self.page.window.destroy()
         except RuntimeError:
             logger.debug("Window already closed, skipping destroy")
@@ -583,14 +670,15 @@ class GUIController:
             or getattr(e, "type", None) == ft.WindowEventType.CLOSE
         ):
             dialog = self._confirm_dialog
+            msg = "Are you sure you want to close AmplifyP?"
+            if not self.settings.get("auto_reload_on_startup", True):
+                msg += " Unsaved changes will be lost."
+
             if not dialog:
                 dialog = ft.AlertDialog(
                     modal=True,
                     title=ft.Text("Confirm Exit"),
-                    content=ft.Text(
-                        "Are you sure you want to close AmplifyP? "
-                        "Unsaved changes will be lost."
-                    ),
+                    content=ft.Text(msg),
                     actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                         ft.TextButton("Yes", on_click=self.confirm_exit),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                         ft.TextButton("No", on_click=self.confirm_dismiss),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
@@ -598,6 +686,8 @@ class GUIController:
                     actions_alignment=ft.MainAxisAlignment.END,
                 )
                 self._confirm_dialog = dialog
+            else:
+                dialog.content = ft.Text(msg)
 
             if dialog not in self.page.overlay:
                 self.page.overlay.append(dialog)

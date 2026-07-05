@@ -8,22 +8,29 @@ AppUpdatesURL=https://github.com/fangfufu/AmplifyP/releases
 DefaultDirName={localappdata}\Programs\AmplifyP
 DefaultGroupName=AmplifyP
 SetupIconFile=src/assets/icon.ico
-UninstallDisplayIcon={app}\AmplifyP.exe
+UninstallDisplayIcon={app}\icon.ico
 LicenseFile=LICENSE
-SourceDir=..\..
+SourceDir=.
 OutputBaseFilename=amplifyp-windows-setup-{#Version}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
+DisableWelcomePage=no
+DisableDirPage=no
+AllowNoIcons=yes
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+
 [Files]
 Source: "build\AmplifyP\*"; DestDir: "{app}"; Flags: recursesubdirs
+Source: "src\assets\icon.ico"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\AmplifyP"; Filename: "{app}\AmplifyP.exe"
-Name: "{autodesktop}\AmplifyP"; Filename: "{app}\AmplifyP.exe"
+Name: "{group}\AmplifyP"; Filename: "{app}\AmplifyP.exe"; IconFilename: "{app}\icon.ico"
+Name: "{autodesktop}\AmplifyP"; Filename: "{app}\AmplifyP.exe"; IconFilename: "{app}\icon.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\AmplifyP.exe"; Description: "Launch AmplifyP"; Flags: nowait postinstall skipifsilent
