@@ -1,10 +1,10 @@
+![icon](images/icon_small.png)
+
 # AmplifyP GUI User Guide
 
-This guide is for researchers and biologists who want to use the graphical user
-interface (GUI) of **AmplifyP** to run PCR simulations, predict amplicons, and
-analyse primer dimers.
+This guide is for researchers and biologists who want to use the graphical user interface (GUI) of **AmplifyP** to run PCR simulations, predict amplicons, evaluate primer melting temperatures, assess primer binding sites and potential off-target priming, and analyse primer dimers.
 
-AmplifyP is a modern Python rewrite of William Engels's classic **Amplify4** Mac
+AmplifyP is a modern Python rewrite of William Engels's classic [**Amplify4**](https://github.com/wrengels/Amplify4) Mac
 program, updated to run in modern desktop environments and web browsers.
 
 ______________________________________________________________________
@@ -14,7 +14,7 @@ ______________________________________________________________________
 The application workspace consists of three primary tabs at the top of the
 interface:
 
-1. **Substrate**: Where you input the target DNA sequence and manage your list
+1. **Experiment Setup**: Where you input the target DNA sequence and manage your list
    of primers.
 1. **PCR Results**: Where the PCR simulation map and predicted amplicon details
    are displayed.
@@ -23,13 +23,24 @@ interface:
 
 ______________________________________________________________________
 
-## 1. The Substrate View
+## 1. The Experiment Setup
 
-The **Substrate View** is the main window where you configure your experiment.
-It is divided into a target sequence panel on the left and a primer list panel
+The **Experiment Setup** is the main window where you configure your experiment.
+It is divided into a template sequence panel on the left and a primer list panel
 on the right.
 
-![Substrate View](images/substrate.png)
+![experiment setup](images/experiment_setup.png)
+
+### Main Navigation and Session Controls
+
+The top toolbar provides access to the main sections of AmplifyP and includes controls for saving or restoring the complete application state.
+
+- **Input / Experiment Setup**: Opens the main workspace where you enter the template DNA sequence, manage primers, and prepare the PCR simulation.
+- **PCR**: Opens the PCR results view and displays the predicted primer binding sites and amplicons based on the current template and active primers.
+- **Primer Dimers**: Opens the primer dimer analysis view, where potential primer-primer interactions are evaluated.
+- **Settings**: Opens the application settings, including PCR matching parameters, melting temperature options, primer dimer settings, and appearance preferences.
+- **About**: Shows information about the current AmplifyP version and project details.
+- **Save all / Load all**: Save or restore the complete application state as a YAML file (`.yaml`). This includes the template sequence, primer list, primer activity states, template topology, and application settings.
 
 ### Target Sequence Panel (Left)
 
@@ -39,10 +50,11 @@ on the right.
   numbers) are automatically filtered out.
 - **Topology Toggle**: Toggle the DNA topology between **Linear** and
   **Circular** (useful for simulating plasmid PCR).
-- **Line Numbers**: The left column displays the base index at the start of each
-  row, which adjusts dynamically if you resize the window.
-- **Base Style Actions**: Choose to convert sequences to uppercase or lowercase,
-  or invert (flip/reverse-complement) the entire sequence.
+- ~~**Line Numbers**: The left column displays the base index at the start of each
+  row, which adjusts dynamically if you resize the window.~~
+- ~~**Base Style Actions**: Choose to convert sequences to uppercase or lowercase,
+  or invert (flip/reverse-complement) the entire sequence.~~
+- **Template Sequence Actions**: Use **Load** to import a template sequence from a plain text file (`.txt`), **Save** to export the current template sequence, or **Clear** to remove the sequence from the input field.
 
 ### Primer List Panel (Right)
 
@@ -50,15 +62,13 @@ on the right.
   you wish to include in the PCR simulation. Only checked primers will be used.
 - **Manage Primers**:
   - Click the **+** button to add a new primer row.
-  - Click the **-** button to delete selected primers.
-  - Double-click or click inside cells to edit the **Sequence**, **Name**, or
-    **Notes**.
-- **Actions**:
-  - **Flip Sequence (🔄)**: Reverses and complements the sequence of the selected
-    primer.
-  - **Save / Load States**: Save all template sequences, primers, and settings
-    to a local YAML file (`.yaml`), or reload a saved configuration to resume
-    your work.
+  - Click the **🗑️** button to delete selected primers.
+  - Click inside cells to edit the **Sequence** or **Name**.
+  - ~~**Flip Sequence (🔄)**: Reverses and complements the sequence of the selected
+    primer.~~
+  - Use **Load** to import a primer list from a CSV or tab-delimited text file (`.csv`) or (`.tsv`), **Save** to export the current primer list as a CSV file, **Copy** and **Paste** to transfer primer rows through the clipboard, **Delete** to remove the selected primer row or rows, and **Clear** to empty the primer list.
+  - **Reordering Primers**: Change the order of primers by using the up **⬆️** and down **⬇️** arrow buttons, or drag a primer row by the handle icon **⠿** to move it freely within the list.
+  - **Range Selection**: The handle icon **⠿** to the left of each primer checkbox can also be used for range selection. Double-click the handle of the first primer, then double-click the handle of the last primer. All primer rows between them, including both endpoints, will be selected as a group.
 
 ______________________________________________________________________
 
