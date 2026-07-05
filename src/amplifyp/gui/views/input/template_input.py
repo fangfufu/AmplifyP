@@ -362,10 +362,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         current_idx = 1
         for line in lines:
             line_indices.append(str(current_idx))
-            if line.isalnum():
-                current_idx += len(line)
-            else:
-                current_idx += len(clean_sequence(line))
+            current_idx += len(clean_sequence(line))
 
         self.line_numbers_text.value = "\n".join(line_indices)
 
@@ -412,8 +409,6 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _count_bases(self, prefix: str) -> int:
         """Count the number of biological bases in a prefix string."""
-        if "\\" not in prefix:
-            return len(prefix) - sum(prefix.count(c) for c in " \n\t\r")
         return len(clean_sequence(prefix))
 
     def _update_status_bar(
