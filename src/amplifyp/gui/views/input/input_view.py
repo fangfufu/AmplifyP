@@ -302,11 +302,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._focus_debouncer.cancel()
         self.sync_to_state()
         if e.control == self.template_sequence:
-            page_width = self.app_page.width
-            if isinstance(page_width, (int, float)) and page_width > 0:
-                left_width = page_width * (1.0 - self.right_fraction)
-                self.template_input.update_ui()
-                self.template_input.adjust_wrap_length(left_width)
+            self._adjust_template_wrap(update_first=True)
         self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
         if self.app_page:
             self.app_page.update()
