@@ -292,7 +292,9 @@ class GUIController:
         if not self.dimers_view.run_analysis():
             self.switch_view(e, self.input_view)
 
-    def update_pcr_button_state(self, sync: bool = True) -> None:
+    def update_pcr_button_state(
+        self, sync: bool = True, update_page: bool = True
+    ) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
         if sync:
             self.input_view.sync_to_state()
@@ -344,7 +346,8 @@ class GUIController:
                 len(active_primers) < 1
             ) or has_invalid_selected
 
-        self.page.update()
+        if update_page:
+            self.page.update()
 
     def on_settings_change(self, e: ft.ControlEvent | None = None) -> None:
         """Handle settings changes from the settings view.
@@ -366,7 +369,7 @@ class GUIController:
         if active_view == self.settings_view:
             self.settings_view.update_ui()
 
-        self.update_pcr_button_state()
+        self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
         # Only redraw/re-simulate active views
@@ -374,8 +377,8 @@ class GUIController:
             self.pcr_view.run_pcr(keep_cards=True)
         elif active_view == self.dimers_view:
             self.dimers_view.run_analysis()
-
-        self.page.update()
+        else:
+            self.page.update()
 
     def _get_last_state_path(self) -> Path:
         """Get the OS-specific path for the last saved GUI state.
@@ -485,7 +488,7 @@ class GUIController:
         self.apply_theme()
         self.input_view.update_ui()
         self.settings_view.update_ui()
-        self.update_pcr_button_state()
+        self.update_pcr_button_state(update_page=False)
         self.page.update()
 
     async def save_state(self, e: ft.Event[ft.Control]) -> None:

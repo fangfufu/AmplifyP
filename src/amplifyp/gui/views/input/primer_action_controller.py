@@ -267,11 +267,10 @@ class PrimerActionController:
         self.owner._update_primer_info_panel()
         self.owner._update_header_checkbox_state()
         self.owner._update_delete_button_disabled_state()
-        if self.owner.app_page:
-            self.owner.app_page.update()
-
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
+        elif self.owner.app_page:
+            self.owner.app_page.update()
 
     def handle_drag_start(self, start_idx: int, _e: ft.DragStartEvent) -> None:
         """Handle start of drag reordering on a primer row."""
@@ -399,8 +398,7 @@ class PrimerActionController:
         self.owner._update_row_highlights()
         self.owner._update_primer_info_panel()
         self.owner._update_delete_button_disabled_state()
-        if self.owner.app_page:
-            self.owner.app_page.update()
-
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
+        elif self.owner.app_page:
+            self.owner.app_page.update()

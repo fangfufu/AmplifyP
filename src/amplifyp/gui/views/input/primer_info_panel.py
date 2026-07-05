@@ -153,14 +153,14 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         if focused_idx is None:
             self.visible = False
             on_update_highlights()
-            app_page.update()
+            self._update_safe()
             return
 
         try:
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
                 self.visible = False
-                app_page.update()
+                self._update_safe()
                 return
 
             p_data = primers[focused_idx]
@@ -169,7 +169,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             if not seq_val:
                 self.visible = False
-                app_page.update()
+                self._update_safe()
                 return
 
             from amplifyp.dimer import PrimerDimerGenerator
@@ -240,4 +240,12 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
 
-        app_page.update()
+        self._update_safe()
+
+    def _update_safe(self) -> None:
+        """Safely update the panel if attached to a page."""
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            logger.debug("Info panel detached, skipping update")
