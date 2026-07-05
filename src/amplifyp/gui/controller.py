@@ -104,6 +104,8 @@ class GUIController:
 
         def handle_input_change(e: ft.ControlEvent | None) -> None:
             self.update_pcr_button_state(sync=False)
+
+        def handle_stop_editing(e: ft.ControlEvent | None) -> None:
             if self.page.web:
                 self.save_last_state()
 
@@ -113,7 +115,7 @@ class GUIController:
             self.input_data,
             self.settings,
             on_change=handle_input_change,
-            on_stop_editing=handle_input_change,
+            on_stop_editing=handle_stop_editing,
         )
         self.settings_view = SettingsView(
             self.page,
