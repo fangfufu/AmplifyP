@@ -543,3 +543,115 @@ settings:
     # Settings should remain unchanged (ignored)
     assert controller.settings["tm_method"] == "Lander / Amplify 4"
     assert controller.settings["dark_mode"] is True
+
+
+def test_general_settings_auto_reload() -> None:
+    """Test general settings tile and the auto reload setting."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+
+    # 1. Verify default setting value in GUISettings
+    from amplifyp.gui.settings import GUISettings
+
+    settings = GUISettings()
+    assert settings["auto_reload_on_startup"] is True
+
+    # 2. Verify SettingsView includes GeneralTile
+    settings_view = SettingsView(mock_page)
+    assert hasattr(settings_view, "general_tile")
+    assert settings_view.set_auto_reload_on_startup.value is True
+
+    # Toggle checkbox
+    settings_view.set_auto_reload_on_startup.value = False
+    # Trigger setting change
+    event = MagicMock(spec=ft.ControlEvent)
+    event.control = settings_view.set_auto_reload_on_startup
+    settings_view._on_change_handler(event)
+    assert settings_view.settings["auto_reload_on_startup"] is False
+
+    # Reset
+    settings_view._on_reset_handler()
+    assert settings_view.settings["auto_reload_on_startup"] is True
+
+
+def test_controller_exit_warning_and_reload() -> None:
+    """Test the exit dialog text and load/save last state based on settings."""
+    from unittest.mock import mock_open
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    from amplifyp.gui.controller import GUIController
+
+    controller = GUIController(mock_page)
+    controller.initialise()
+
+    # Verify reload on startup behavior: default is True
+    # Let's mock the load_last_state to see if it's called
+    with patch.object(controller, "load_last_state"):
+        # Run initialization
+        controller.initialise()
+        # Verify run_task was called to load asynchronously
+        assert mock_page.run_task.called
+
+    # Verify exit message when auto_reload is True (Default)
+    controller.settings["auto_reload_on_startup"] = True
+    win_event = MagicMock(spec=ft.WindowEvent)
+    win_event.data = "close"
+    controller.on_window_event(win_event)
+    assert controller._confirm_dialog is not None
+    assert (
+        "Unsaved changes will be lost"
+        not in controller._confirm_dialog.content.value
+    )
+
+    # Verify exit message when auto_reload is False
+    controller.settings["auto_reload_on_startup"] = False
+    controller.on_window_event(win_event)
+    assert (
+        "Unsaved changes will be lost"
+        in controller._confirm_dialog.content.value
+    )
+
+    # Verify save_last_state / load_last_state logic
+    # Set up some state
+    controller.input_data.template = "ATGCT"
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True}
+    ]
+    controller.input_view.update_ui()
+
+    # When enabled, save should write to last_state.yaml
+    controller.settings["auto_reload_on_startup"] = True
+    mock_path = MagicMock()
+    mock_path.parent = MagicMock()
+
+    m_open = mock_open()
+    with (
+        patch.object(
+            controller, "_get_last_state_path", return_value=mock_path
+        ),
+        patch("builtins.open", m_open),
+    ):
+        controller.save_last_state()
+
+    mock_path.parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
+    written_data = "".join(
+        call[0][0] for call in m_open.return_value.write.call_args_list
+    )
+    parsed = yaml.safe_load(written_data)
+    assert parsed["input"]["template"] == "ATGCT"
+
+    # When enabled, load should restore
+    controller.input_data.template = ""
+    with (
+        patch.object(
+            controller, "_get_last_state_path", return_value=mock_path
+        ),
+        patch("builtins.open", mock_open(read_data=written_data)),
+        patch.object(mock_path, "exists", return_value=True),
+    ):
+        controller.load_last_state()
+    assert controller.input_data.template == "ATGCT"

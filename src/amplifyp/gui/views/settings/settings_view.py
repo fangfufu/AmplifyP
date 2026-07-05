@@ -31,6 +31,7 @@ from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.backup_tile import BackupTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
+from amplifyp.gui.views.settings.general_tile import GeneralTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.tm_tile import TmTile
 from amplifyp.gui.views.settings.updates_tile import UpdatesTile
@@ -66,6 +67,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         font_size_table_header = self.settings.get("font_size_table_header", 15)
 
         # Initialise sub-control tiles
+        self.general_tile = GeneralTile(
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+        )
+
         self.replication_tile = ReplicationTile(
             settings=self.settings,
             settings_map=self.settings_map,
@@ -128,6 +136,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         )
 
         self.controls = [
+            self.general_tile,
             self.replication_tile,
             self.tm_tile,
             self.dimer_tile,
@@ -227,6 +236,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_version_checking_frequency(self) -> ft.Dropdown:
         """Get the version checking frequency dropdown."""
         return self.updates_tile.set_version_checking_frequency
+
+    @property
+    def set_auto_reload_on_startup(self) -> BorderedCheckbox:
+        """Get the auto reload on startup checkbox."""
+        return self.general_tile.set_auto_reload_on_startup
 
     def _build_reset_button(self) -> ft.Row:
         """Build the Reset button Row."""
@@ -346,6 +360,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "log_rotation_max_bytes": 5242880,
             "version_checking_frequency": "Once per Month",
             "last_version_check_timestamp": 0.0,
+            "auto_reload_on_startup": True,
         }
 
         for r_char in Nucleotides.PRIMER:
