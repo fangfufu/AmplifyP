@@ -336,7 +336,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self, left_width: float, update: bool = True
     ) -> None:
         """Adjust the template wrap length based on the available width."""
-        font_size = self.settings.get("font_size_default", 14)
+        font_size = max(1, self.settings.get("font_size_default", 14))
         # Monospace font character width is approximately 0.66 of font size.
         char_width = font_size * 0.66
 
@@ -372,7 +372,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.line_numbers_text.value = "\n".join(line_indices)
 
         # Set dynamic gutter width
-        font_size = self.settings.get("font_size_default", 14)
+        font_size = max(1, self.settings.get("font_size_default", 14))
         char_width = font_size * 0.66
         # Calculate from live text excluding whitespaces instead of stored state
         template_len = current_idx - 1
