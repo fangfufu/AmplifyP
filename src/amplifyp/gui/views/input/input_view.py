@@ -565,6 +565,15 @@ class InputView(ft.Row):  # type: ignore[misc]
             self._adjust_template_wrap(update_first=False)
             self.update()
 
+    def _adjust_template_wrap(self, update_first: bool = True) -> None:
+        """Adjust the template wrap length based on the available width."""
+        page_width = self.app_page.width
+        if isinstance(page_width, (int, float)) and page_width > 0:
+            left_width = page_width * (1.0 - self.right_fraction)
+            if update_first:
+                self.template_input.update_ui()
+            self.template_input.adjust_wrap_length(left_width)
+
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers.
 
