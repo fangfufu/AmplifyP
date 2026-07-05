@@ -162,6 +162,14 @@ class _GUIColoursMeta(type):
         )
 
     @property
+    def GUTTER_BG(cls) -> str:
+        """Get background colour for template display gutter."""
+        return cast(
+            str,
+            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
+        )
+
+    @property
     def FWD_PRIMER(cls) -> str:
         """Get forward primer colour."""
         if cls._dark_mode:

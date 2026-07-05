@@ -24,7 +24,7 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
 from amplifyp.gui.utils.ui import NotificationHelper
 
 
@@ -49,20 +49,55 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.input_data = input_data
         self.on_change_handler = on_change_handler
 
-        font_family = self.settings.get("font_family", "Roboto Mono")
+        # Line numbers / character count gutter
+        self.line_numbers_text = ft.TextField(
+            value="1",
+            dense=True,
+            multiline=True,
+            read_only=True,
+            text_align=ft.TextAlign.RIGHT,
+            border=ft.InputBorder.NONE,
+            bgcolor=ft.Colors.TRANSPARENT,
+            hover_color=ft.Colors.TRANSPARENT,
+            focused_bgcolor=ft.Colors.TRANSPARENT,
+            content_padding=ft.Padding(0, 10, 0, 10),
+        )
+        self.line_numbers_container = ft.Container(
+            content=self.line_numbers_text,
+            bgcolor=GUIColours.GUTTER_BG,
+            padding=0,
+            alignment=ft.Alignment(1, -1),
+        )
+
+        def on_change_wrapper(e: ft.ControlEvent) -> None:
+            self._update_line_numbers()
+            on_change_handler(e)
+
         self.template_sequence = ft.TextField(
             dense=True,
             multiline=True,
             expand=True,
             hint_text="Enter DNA sequence here...",
             border=ft.InputBorder.NONE,
-            content_padding=10,
-            on_change=on_change_handler,
+            bgcolor=ft.Colors.TRANSPARENT,
+            hover_color=ft.Colors.TRANSPARENT,
+            focused_bgcolor=ft.Colors.TRANSPARENT,
+            content_padding=ft.Padding(0, 10, 10, 10),
+            on_change=on_change_wrapper,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
-            text_style=ft.TextStyle(font_family=font_family),
         )
+
+        self.sequence_layout = ft.Row(
+            [
+                self.line_numbers_container,
+                self.template_sequence,
+            ],
+            spacing=0,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+        )
+
         self.template_circular = ft.Checkbox(
             label="Circular",
             value=False,
@@ -151,7 +186,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 ),
                 ft.Container(
                     content=ft.ListView(
-                        [self.template_sequence],
+                        [self.sequence_layout],
                         expand=True,
                         scroll=ft.ScrollMode.ALWAYS,
                     ),
@@ -164,6 +199,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             expand=True,
             spacing=5,
         )
+        self.update_ui()
 
     async def _load_template_click(self, e: ft.Event) -> None:
         """Open file picker to load template sequence from a TXT file.
@@ -240,8 +276,68 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         template text field and circular checkbox controls.
         """
         font_family = self.settings.get("font_family", "Roboto Mono")
+        font_size = self.settings.get("font_size_default", 14)
+
         self.template_sequence.text_style = ft.TextStyle(
-            font_family=font_family
+            font_family=font_family,
+            size=font_size,
+            height=1.5,
         )
+        self.line_numbers_text.text_style = ft.TextStyle(
+            font_family=font_family,
+            color=GUIColours.TEXT_ON_SURFACE,
+            size=font_size,
+            height=1.5,
+        )
+        self.line_numbers_container.bgcolor = GUIColours.GUTTER_BG
+
         self.template_sequence.value = self.input_data.template
         self.template_circular.value = self.input_data.template_circular
+        self._update_line_numbers()
+
+    def adjust_wrap_length(self, left_width: float) -> None:
+        """Adjust the template wrap length based on the available width."""
+        font_size = self.settings.get("font_size_default", 14)
+        # Monospace font character width is exactly 0.6 of font size.
+        char_width = font_size * 0.66
+
+        # Calculate dynamic gutter width based on template digits
+        template_len = len(self.input_data.template)
+        max_digits = len(str(max(1, template_len)))
+        gutter_width = 20 + max_digits * char_width
+
+        # Available width inside container for TextField text.
+        # Subtracts 20px (padding) + 12px (scrollbar) + 4px (safety margin).
+        available_width = left_width - gutter_width - 36
+        wrap_length = int(available_width / char_width)
+        wrap_length = max(20, wrap_length)
+
+        # Update TextField content with new wrapping
+        self.template_sequence.value = format_sequence(
+            self.input_data.template, wrap_length
+        )
+        self._update_line_numbers()
+
+    def _update_line_numbers(self) -> None:
+        """Update the line numbers gutter based on current template sequence."""
+        text = self.template_sequence.value or ""
+        lines = text.split("\n")
+        line_indices = []
+        current_idx = 1
+        for line in lines:
+            line_indices.append(str(current_idx))
+            current_idx += len(line)
+
+        self.line_numbers_text.value = "\n".join(line_indices)
+
+        # Set dynamic gutter width
+        font_size = self.settings.get("font_size_default", 14)
+        char_width = font_size * 0.66
+        # Calculate from live text excluding newlines instead of stored state
+        template_len = len(text.replace("\n", ""))
+        max_digits = len(str(max(1, template_len)))
+        gutter_width = 20 + max_digits * char_width
+        self.line_numbers_container.width = gutter_width
+
+        if self.app_page:
+            self.app_page.update()
