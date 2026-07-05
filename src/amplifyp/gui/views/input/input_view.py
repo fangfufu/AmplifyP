@@ -263,11 +263,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.sync_to_state(rebuild_if_needed=False)
         if e.control == self.template_sequence:
-            page_width = self.app_page.width
-            if isinstance(page_width, (int, float)) and page_width > 0:
-                left_width = page_width * (1.0 - self.right_fraction)
-                self.template_input.update_ui()
-                self.template_input.adjust_wrap_length(left_width)
+            self._adjust_template_wrap(update_first=True)
 
         if e.control.data is not None:
             idx = (
