@@ -61,6 +61,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             hover_color=ft.Colors.TRANSPARENT,
             focused_bgcolor=ft.Colors.TRANSPARENT,
             content_padding=ft.Padding(0, 10, 0, 10),
+            can_request_focus=False,
         )
         self.line_numbers_container = ft.Container(
             content=self.line_numbers_text,
@@ -334,7 +335,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     ) -> None:
         """Adjust the template wrap length based on the available width."""
         font_size = self.settings.get("font_size_default", 14)
-        # Monospace font character width is exactly 0.6 of font size.
+        # Monospace font character width is approximately 0.66 of font size.
         char_width = font_size * 0.66
 
         # Calculate dynamic gutter width based on template digits
@@ -354,7 +355,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
         self._update_line_numbers(update=update)
 
-    def _update_line_numbers(self, update: bool = True) -> None:
+    def _update_line_numbers(
+        self, update: bool = True, gutter_only: bool = False
+    ) -> None:
         """Update the line numbers gutter based on current template sequence."""
         text = self.template_sequence.value or ""
         lines = text.split("\n")
@@ -382,13 +385,17 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 page = None
             if page:
                 try:
-                    self.update()
+                    if gutter_only:
+                        self.line_numbers_text.update()
+                        self.line_numbers_container.update()
+                    else:
+                        self.update()
                 except (RuntimeError, AssertionError):
                     pass
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
-        self._update_line_numbers()
+        self._update_line_numbers(gutter_only=True)
         self.on_change_handler(e)
 
     def _handle_focus(self, e: ft.Event[ft.TextField]) -> None:
