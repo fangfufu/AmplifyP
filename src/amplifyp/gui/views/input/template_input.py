@@ -410,59 +410,41 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         """Handle selection change event on the template text field."""
         self._update_status_bar(getattr(e, "selection", None))
 
+    def _count_bases(self, prefix: str) -> int:
+        """Count the number of biological bases in a prefix string."""
+        if "\\" not in prefix:
+            return len(prefix) - sum(prefix.count(c) for c in " \n\t\r")
+        return len(clean_sequence(prefix))
+
     def _update_status_bar(
         self, selection: ft.TextSelection | None = None, update: bool = True
     ) -> None:
         """Update the status bar text based on text selection and focus."""
         if not self._is_focused:
             self.status_text.value = f"Total Bases: {self._cleaned_len}"
-            if update:
-                try:
-                    page = self.status_bar.page
-                except RuntimeError:
-                    page = None
-                if page:
-                    try:
-                        self.status_bar.update()
-                    except (RuntimeError, AssertionError):
-                        pass
-            return
-
-        sel = (
-            selection
-            if (selection is not None and selection.is_valid)
-            else self.template_sequence.selection
-        )
-        if sel is not None and sel.is_valid:
-            raw_text = self.template_sequence.value or ""
-            prefix_start = raw_text[: sel.start]
-            prefix_end = raw_text[: sel.end]
-            if "\\" not in prefix_start:
-                bases_before = len(prefix_start) - sum(
-                    prefix_start.count(c) for c in " \n\t\r"
-                )
-            else:
-                bases_before = len(clean_sequence(prefix_start))
-
-            if "\\" not in prefix_end:
-                bases_total = len(prefix_end) - sum(
-                    prefix_end.count(c) for c in " \n\t\r"
-                )
-            else:
-                bases_total = len(clean_sequence(prefix_end))
-
-            if bases_total > bases_before:
-                self.status_text.value = (
-                    f"Selected Bases: {bases_before + 1} - {bases_total}"
-                )
-            else:
-                self.status_text.value = (
-                    f"Insertion Point After Base: {bases_before}"
-                )
         else:
-            self.status_text.value = (
-                f"Insertion Point After Base: {self._cleaned_len}"
+            sel = (
+                selection
+                if (selection is not None and selection.is_valid)
+                else self.template_sequence.selection
             )
+            if sel is not None and sel.is_valid:
+                raw_text = self.template_sequence.value or ""
+                bases_before = self._count_bases(raw_text[: sel.start])
+                bases_total = self._count_bases(raw_text[: sel.end])
+
+                if bases_total > bases_before:
+                    self.status_text.value = (
+                        f"Selected Bases: {bases_before + 1} - {bases_total}"
+                    )
+                else:
+                    self.status_text.value = (
+                        f"Insertion Point After Base: {bases_before}"
+                    )
+            else:
+                self.status_text.value = (
+                    f"Insertion Point After Base: {self._cleaned_len}"
+                )
 
         if update:
             try:
