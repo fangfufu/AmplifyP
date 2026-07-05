@@ -551,8 +551,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input.layout_manager.adjust_name_column_width(
                 panel_width, during_drag=False
             )
-            left_width = page_width * (1.0 - self.right_fraction)
-            self.template_input.adjust_wrap_length(left_width)
+            self._adjust_template_wrap(update_first=False)
             self.update()
 
     def _handle_resize(self, e: ft.PageResizeEvent) -> None:
