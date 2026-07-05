@@ -87,6 +87,16 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_selection_change=self._handle_selection_change,
+        )
+
+        self.status_text = ft.Text(
+            value="Insertion Point After Base: 0",
+            size=12,
+        )
+        self.status_bar = ft.Container(
+            content=self.status_text,
+            padding=ft.Padding(10, 5, 10, 5),
         )
 
         self.sequence_layout = ft.Row(
@@ -185,10 +195,16 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                     ],
                 ),
                 ft.Container(
-                    content=ft.ListView(
-                        [self.sequence_layout],
-                        expand=True,
-                        scroll=ft.ScrollMode.ALWAYS,
+                    content=ft.Column(
+                        [
+                            ft.ListView(
+                                [self.sequence_layout],
+                                expand=True,
+                                scroll=ft.ScrollMode.ALWAYS,
+                            ),
+                            self.status_bar,
+                        ],
+                        spacing=0,
                     ),
                     expand=True,
                     border=ft.Border.all(1, GUIColours.OUTLINE),
@@ -293,7 +309,20 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         self.template_sequence.value = self.input_data.template
         self.template_circular.value = self.input_data.template_circular
+
+        # Update status bar style
+        self.status_text.text_style = ft.TextStyle(
+            font_family=font_family,
+            color=GUIColours.TEXT_ON_SURFACE,
+            size=12,
+        )
+        self.status_bar.bgcolor = GUIColours.GUTTER_BG
+        self.status_bar.border = ft.Border(
+            top=ft.BorderSide(1, GUIColours.OUTLINE)
+        )
+
         self._update_line_numbers()
+        self._update_status_bar(None)
 
     def adjust_wrap_length(self, left_width: float) -> None:
         """Adjust the template wrap length based on the available width."""
@@ -338,6 +367,41 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         max_digits = len(str(max(1, template_len)))
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
+
+        if self.app_page:
+            self.app_page.update()
+
+    def _handle_selection_change(self, e: ft.ControlEvent) -> None:
+        """Handle selection change event on the template text field."""
+        self._update_status_bar(e.selection)
+
+    def _update_status_bar(
+        self, selection: ft.TextSelection | None = None
+    ) -> None:
+        """Update the status bar text based on current text selection."""
+        if selection is not None and selection.is_valid:
+            raw_text = self.template_sequence.value or ""
+            prefix_start = raw_text[: selection.start]
+            prefix_end = raw_text[: selection.end]
+
+            bases_before = len(clean_sequence(prefix_start))
+            bases_total = len(clean_sequence(prefix_end))
+
+            if bases_total > bases_before:
+                n = bases_before + 1
+                m = bases_total
+                self.status_text.value = f"Selected Bases: {n} - {m}"
+            else:
+                self.status_text.value = (
+                    f"Insertion Point After Base: {bases_before}"
+                )
+        else:
+            # Fall back if no selection object is provided
+            val = self.template_sequence.value or ""
+            template_len = len(clean_sequence(val))
+            self.status_text.value = (
+                f"Insertion Point After Base: {template_len}"
+            )
 
         if self.app_page:
             self.app_page.update()

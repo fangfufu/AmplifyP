@@ -1152,3 +1152,37 @@ def test_enter_press_handling() -> None:
     assert submit_called
     # Check that no new row was parsed/added (length remains 1)
     assert len(input_data.primers) == 1
+
+
+def test_template_input_status_bar() -> None:
+    """Test template input status bar updates correctly on selection change."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCT"
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # Verify initial value (should show length of template)
+    expected_initial = "Insertion Point After Base: 5"
+    assert view.template_input.status_text.value == expected_initial
+
+    # Mock Selection change event (collapsed: caret after 3rd base)
+    from flet.controls.core.text import TextSelection, TextSelectionChangeEvent
+
+    mock_selection = TextSelection(base_offset=3, extent_offset=3)
+    mock_event = MagicMock(spec=TextSelectionChangeEvent)
+    mock_event.selection = mock_selection
+
+    view.template_input._handle_selection_change(mock_event)
+    expected_collapsed = "Insertion Point After Base: 3"
+    assert view.template_input.status_text.value == expected_collapsed
+
+    # Mock Selection change event (selection from base 2 to 4, i-e. base 2-4)
+    # selected "TGC" -> start=1, end=4
+    mock_selection_range = TextSelection(base_offset=1, extent_offset=4)
+    mock_event_range = MagicMock(spec=TextSelectionChangeEvent)
+    mock_event_range.selection = mock_selection_range
+
+    view.template_input._handle_selection_change(mock_event_range)
+    assert view.template_input.status_text.value == "Selected Bases: 2 - 4"
