@@ -48,6 +48,9 @@ DIST_DIR = os.path.join(os.getcwd(), "dist")
 PRIMER_INPUT_SEL = (
     "textarea:not([disabled]):not([readonly])"
     ':not([aria-label*="Enter DNA sequence"])'
+    ':not([placeholder*="Enter DNA sequence"])'
+    ':not([aria-label*="sequence" i])'
+    ':not([placeholder*="sequence" i])'
 )
 
 
