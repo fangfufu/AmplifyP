@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,6 +15,10 @@
 
 """Input view composing DNA Template input and Primer inputs."""
 
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
 from typing import Any, cast
 
 import flet as ft
@@ -22,11 +26,14 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import Debouncer, clean_sequence, format_sequence
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
+from amplifyp.gui.utils.ui import Debouncer
 
 from .primer_input import PrimerInput
 from .primer_row import PrimerRow
 from .template_input import TemplateInput
+
+logger = logging.getLogger(__name__)
 
 
 class InputView(ft.Row):  # type: ignore[misc]
@@ -37,8 +44,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         page: ft.Page,
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_stop_editing: Any | None = None,
+        on_change: Callable[[ft.Event | None], None] | None = None,
+        on_stop_editing: Callable[[ft.Event | None], None] | None = None,
     ) -> None:
         """Initialize the InputView.
 
@@ -193,7 +200,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         """Set the currently focused primer index."""
         self.primer_input.focused_primer_index = val
 
-    def _handle_field_focus(self, e: ft.ControlEvent) -> None:
+    def _handle_field_focus(self, e: ft.Event[ft.TextField]) -> None:
         """Handle focus on input fields to cancel auto-trigger timer.
 
         Updates the focused primer index, marks field touch status,
@@ -210,12 +217,16 @@ class InputView(ft.Row):  # type: ignore[misc]
                 if isinstance(e.control.data, dict)
                 else e.control.data
             )
+
             field = (
                 e.control.data["field"]
                 if isinstance(e.control.data, dict)
                 else None
             )
 
+            if idx not in self.primer_input.selected_indices:
+                self.primer_input.selected_indices = {idx}
+                self.primer_input._update_delete_button_disabled_state()
             self.primer_input.focused_primer_index = idx
 
             # Set touched status in state
@@ -231,7 +242,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
         self._currently_focused_control = cast(ft.Control, e.control)
 
-    def _handle_field_blur(self, e: ft.ControlEvent) -> None:
+    def _handle_field_blur(self, e: ft.Event[ft.TextField]) -> None:
         """Handle blur on input fields to trigger results page after a delay.
 
         Syncs state, applies validation errors to rows, auto-adds empty
@@ -252,7 +263,7 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         self.sync_to_state(rebuild_if_needed=False)
 
-        if isinstance(e.control, ft.TextField) and e.control.data is not None:
+        if e.control.data is not None:
             idx = (
                 e.control.data["idx"]
                 if isinstance(e.control.data, dict)
@@ -273,11 +284,11 @@ class InputView(ft.Row):  # type: ignore[misc]
             if not self.page:
                 return
             if self.on_stop_editing_callback:
-                self.on_stop_editing_callback()
+                self.on_stop_editing_callback(None)
 
         self._focus_debouncer.trigger(timer_callback)
 
-    def _handle_field_submit(self, e: ft.ControlEvent) -> None:
+    def _handle_field_submit(self, e: ft.Event[ft.TextField]) -> None:
         """Handle submission (Enter key) to immediately trigger results.
 
         Cancels any pending debounced callbacks, syncs state, auto-adds
@@ -292,7 +303,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.app_page:
             self.app_page.update()
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
     def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
         """Append a new empty row if the last row is filled and valid.
@@ -323,14 +334,19 @@ class InputView(ft.Row):  # type: ignore[misc]
                             )
                             self.primer_input.update_ui()
 
-    def sync_to_state(self, rebuild_if_needed: bool = False) -> None:
+    def sync_to_state(
+        self, rebuild_if_needed: bool = False, skip_extract: bool = False
+    ) -> None:
         """Sync current UI controls back to the central state.
 
         Args:
             rebuild_if_needed: Whether to rebuild UI if changes detected.
+            skip_extract: Whether to skip UI extraction for primer input.
         """
         self.template_input.sync_to_state()
-        self.primer_input.sync_to_state(rebuild_if_needed=rebuild_if_needed)
+        self.primer_input.sync_to_state(
+            rebuild_if_needed=rebuild_if_needed, skip_extract=skip_extract
+        )
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central state.
@@ -341,7 +357,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.template_input.update_ui()
         self.primer_input.update_ui()
 
-    def _on_change_handler(self, e: ft.ControlEvent) -> None:
+    def _on_change_handler(self, e: ft.Event | None) -> None:
         """Handle change in input fields.
 
         Syncs state to the central store, updates the primer info panel,
@@ -350,12 +366,70 @@ class InputView(ft.Row):  # type: ignore[misc]
         Args:
             e: The Flet control event containing change information.
         """
+        if (
+            e
+            and hasattr(e, "control")
+            and isinstance(e.control, ft.TextField)
+            and e.control.data is not None
+        ):
+            data = e.control.data
+
+            if isinstance(data, dict) and "idx" in data and "field" in data:
+                val = str(e.control.value or "")
+                if "\t" in val or "\n" in val:
+                    non_empty_lines = [
+                        line for line in val.splitlines() if line.strip()
+                    ]
+                    if "\t" not in val and len(non_empty_lines) <= 1:
+                        e.control.value = val.replace("\n", "")
+                        self._handle_field_submit(e)
+                        return
+                    self._handle_pasted_text(
+                        val, data["idx"], data["field"], e.control
+                    )
+                    return
+
         self.sync_to_state()
         self.primer_input._update_primer_info_panel()
         if self.on_change:
             self.on_change(e)
 
-    def _clear_primers(self, e: ft.ControlEvent) -> None:
+    def _handle_pasted_text(
+        self, text: str, idx: int, field: str, control: ft.TextField
+    ) -> None:
+        """Parse pasted text and insert into the primer list."""
+        from .primer_clipboard import parse_primer_clipboard_text
+
+        parsed = parse_primer_clipboard_text(text)
+        if not parsed:
+            return
+
+        primers = self.input_data.primers
+
+        # Replace single empty row
+        if (
+            len(primers) == 1
+            and not primers[0].get("name")
+            and not primers[0].get("seq")
+        ):
+            primers.clear()
+            idx = 0
+
+        for i, new_p in enumerate(parsed):
+            target_idx = idx + i
+            if target_idx < len(primers):
+                primers[target_idx]["name"] = new_p["name"]
+                primers[target_idx]["seq"] = new_p["seq"]
+                primers[target_idx]["active"] = False
+            else:
+                primers.append(new_p)
+
+        self.update_ui()
+        self.sync_to_state(rebuild_if_needed=True, skip_extract=True)
+        if self.on_change:
+            self.on_change(None)
+
+    def _clear_primers(self, e: ft.Event | None) -> None:
         """Clear all primers.
 
         Resets the primer list to a single empty primer row, clears
@@ -370,9 +444,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
-    def _delete_selected_primers(self, e: ft.ControlEvent) -> None:
+    def _delete_selected_primers(self, e: ft.Event | None) -> None:
         """Delete all selected primers.
 
         Identifies all active (selected) primers and removes them using
@@ -381,16 +455,17 @@ class InputView(ft.Row):  # type: ignore[misc]
         Args:
             e: The Flet control event containing click information.
         """
-        active_indices = {
-            i for i, p in enumerate(self.input_data.primers) if p.get("active")
-        }
-        self.primer_input.action_controller.delete_primers(active_indices)
+        active_indices = self.primer_input.selected_indices
+        if active_indices:
+            self.primer_input.action_controller.delete_primers(
+                active_indices.copy()
+            )
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
-    def _clear_template(self, e: ft.ControlEvent) -> None:
+    def _clear_template(self, e: ft.Event | None) -> None:
         """Clear the DNA template.
 
         Clears the template sequence field, syncs state, and triggers
@@ -404,7 +479,7 @@ class InputView(ft.Row):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
         if self.on_stop_editing_callback:
-            self.on_stop_editing_callback()
+            self.on_stop_editing_callback(None)
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle resizing the bottom (right) container via the divider.
@@ -463,7 +538,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             )
             self.update()
 
-    def _handle_resize(self, e: Any) -> None:
+    def _handle_resize(self, e: ft.PageResizeEvent) -> None:
         """Handle page resize to proportionally scale name column.
 
         Args:

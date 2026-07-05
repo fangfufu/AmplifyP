@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,11 +15,19 @@
 
 """A single row representing a primer in the list."""
 
-from typing import Any
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.dna import Primer
+from amplifyp.gui.colours import GUIColours, tm_colour
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.sequence import clean_sequence
+
+logger = logging.getLogger(__name__)
 
 
 class PrimerRow(ft.Container):  # type: ignore[misc]
@@ -36,18 +44,20 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         seq_error: str | None,
         font_family: str,
         name_column_width: float,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        on_row_click: Any,
-        on_move_primer: Any,
-        on_delete_primer: Any,
-        on_add_primer: Any,
-        on_divider_pan: Any,
-        on_divider_pan_end: Any,
+        settings: GUISettings,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
+        on_row_click: Callable[[int, ft.TextField], None],
+        on_row_double_click: Callable[[int, ft.TextField], None],
+        on_divider_pan: Callable[[ft.DragUpdateEvent], None],
+        on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         is_focused: bool,
         is_last_row: bool,
+        on_drag_start: Callable[[int, ft.DragStartEvent], None] | None = None,
+        on_drag_update: Callable[[int, ft.DragUpdateEvent], None] | None = None,
+        on_drag_end: Callable[[int, ft.DragEndEvent], None] | None = None,
     ) -> None:
         """Initialise the PrimerRow.
 
@@ -61,18 +71,20 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             seq_error: Error message for the sequence field, or None.
             font_family: Font family for sequence display.
             name_column_width: Width of the name column in pixels.
+            settings: Application GUI settings instance.
             on_change_handler: Callback for field change events.
             handle_field_focus: Callback for field focus events.
             handle_field_blur: Callback for field blur events.
             handle_field_submit: Callback for field submit events.
-            on_row_click: Callback when the row container is clicked.
-            on_move_primer: Callback to move a primer up or down.
-            on_delete_primer: Callback to delete a primer.
-            on_add_primer: Callback to add a new primer below.
+            on_row_click: Callback when the row container is single-clicked.
+            on_row_double_click: Callback for double-click on row.
             on_divider_pan: Callback for dragging the name/sequence divider.
             on_divider_pan_end: Callback for ending the divider drag.
             is_focused: Whether this row is currently focused.
             is_last_row: Whether this is the last row in the list.
+            on_drag_start: Callback for starting a drag-selection.
+            on_drag_update: Callback for updating a drag-selection.
+            on_drag_end: Callback for ending a drag-selection.
         """
         has_err = bool(name_error or seq_error)
         super().__init__(
@@ -82,45 +94,146 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not has_err else None,
         )
         self.idx = idx
-        is_empty = not name.strip() or not seq.strip()
+        self.settings = settings
+        self.is_last_row = is_last_row
+        show_temp = self.settings.get("show_primer_temperature", False)
+
+        tm_val = ""
+        self._tm_value: float | None = None
+        if show_temp and seq.strip():
+            try:
+                cleaned_seq = clean_sequence(seq)
+                if cleaned_seq:
+                    primer_obj = Primer(sequence=cleaned_seq, name=name)
+                    tm = self.settings.calculate_primer_tm(primer_obj)
+                    self._tm_value = tm
+                    tm_val = f"{tm:.1f}°C"
+            except (ValueError, AttributeError, ArithmeticError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name,
+                    exc_info=True,
+                )
+                tm_val = "-"
+
+        scheme = self.settings.get("tm_colour_scheme", "None")
+
+        _tm_colour = (
+            tm_colour(self._tm_value, scheme)
+            if self._tm_value is not None
+            else None
+        )
+        self.tm_text = ft.Text(
+            value=tm_val,
+            size=self.settings.get("font_size_body", 13),
+            color=_tm_colour,
+            selectable=False,
+        )
+        self.tm_container = ft.Container(
+            content=self.tm_text,
+            width=50,
+            padding=ft.Padding(0, 0, 5, 0),
+            alignment=ft.Alignment(1, 0),
+            visible=show_temp,
+        )
+        has_err = bool(name_error or seq_error)
+
+        self.tm_divider = ft.Container(
+            width=4,
+            bgcolor=GUIColours.DIVIDER_GREY,
+            margin=0,
+            height=30 if not has_err else 42,
+            visible=show_temp,
+        )
+
         self.checkbox = ft.Checkbox(
-            value=is_active if not is_empty else False,
+            value=is_active,
             on_change=on_change_handler,
-            disabled=is_empty,
-            visible=True,
         )
         self.checkbox_container = ft.Container(
             content=self.checkbox,
-            width=55,
-            height=30,
             alignment=ft.Alignment(0, 0),
+            width=30,
+            padding=0,
         )
+
+        self.drag_handle = ft.GestureDetector(
+            on_pan_start=lambda e: (
+                on_drag_start(self.idx, e) if on_drag_start else None
+            ),
+            on_pan_update=lambda e: (
+                on_drag_update(self.idx, e) if on_drag_update else None
+            ),
+            on_pan_end=lambda e: (
+                on_drag_end(self.idx, e) if on_drag_end else None
+            ),
+            on_tap=lambda e: on_row_click(self.idx, self.name_field),  # type: ignore[has-type]
+            on_double_tap=lambda e: on_row_double_click(
+                self.idx,
+                self.name_field,  # type: ignore[has-type]
+            ),
+            mouse_cursor=ft.MouseCursor.CLICK,
+            content=ft.Container(
+                content=ft.Icon(
+                    ft.Icons.DRAG_INDICATOR, size=16, color=ft.Colors.GREY_400
+                ),
+                alignment=ft.Alignment(0, 0),
+                width=25,
+                padding=0,
+                height=30 if not has_err else 42,
+            ),
+        )
+
         self.name_field = ft.TextField(
             value=name,
-            hint_text="New Primer Name",
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
-            height=30 if not name_error else None,
-            width=name_column_width,
+            height=30 if not name_error else 42,
             border=ft.InputBorder.NONE,
+            multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "name"},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
+        )
+        self.name_container = ft.Container(
+            content=self.name_field,
+            width=1000,
+            height=30 if not name_error else 42,
+        )
+        self.name_scroll = ft.ListView(
+            horizontal=True,
+            width=name_column_width,
+            height=30 if not name_error else 42,
+            controls=[self.name_container],
         )
         self.seq_field = ft.TextField(
             value=seq,
-            hint_text="New Primer Sequence",
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
-            height=30 if not seq_error else None,
+            height=30 if not seq_error else 42,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
+            multiline=True,
+            fit_parent_size=True,
             data={"idx": idx, "field": "seq"},
-            expand=True,
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
+            on_change=on_change_handler,
+        )
+        self.seq_container = ft.Container(
+            content=self.seq_field,
+            width=5000,
+            height=30 if not seq_error else 42,
+        )
+        self.seq_scroll = ft.ListView(
+            horizontal=True,
+            expand=True,
+            height=30 if not seq_error else 42,
+            controls=[self.seq_container],
         )
         if name_error:
             self.name_field.error = name_error
@@ -134,7 +247,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 width=4,
                 bgcolor=GUIColours.DIVIDER_GREY,
                 margin=0,
-                height=30,
+                height=30 if not has_err else 42,
             ),
             mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
         )
@@ -143,104 +256,54 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             width=4,
             bgcolor=GUIColours.DIVIDER_GREY,
             margin=0,
-            height=30,
+            height=30 if not has_err else 42,
         )
 
-        self.reorder_controls = None
-        self.control_container = None
-        up_button = ft.IconButton(
-            icon=ft.Icons.ARROW_UPWARD,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Move Up",
-            disabled=(idx == 0),
-            on_click=lambda e: on_move_primer(idx, -1),
-        )
-        down_button = ft.IconButton(
-            icon=ft.Icons.ARROW_DOWNWARD,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Move Down",
-            disabled=is_last_row,
-            on_click=lambda e: on_move_primer(idx, 1),
-        )
-        delete_button = ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Delete Primer",
-            on_click=lambda e: on_delete_primer(idx),
-        )
-        add_button = ft.IconButton(
-            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Add Primer Below",
-            on_click=lambda e: on_add_primer(idx),
-        )
-        self.reorder_controls = ft.Row(
-            [add_button, delete_button, up_button, down_button],
-            spacing=2,
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
-        self.control_container = ft.Container(
-            content=self.reorder_controls,
-            width=108 if is_focused else 0,
-            height=30,
-            alignment=ft.Alignment(0, 0),
-        )
-        self.reorder_controls.visible = is_focused
+        row_body = [
+            self.checkbox_container,
+            self.active_divider,
+            self.name_scroll,
+            self.divider,
+            self.seq_scroll,
+        ]
+        if show_temp:
+            row_body.extend([self.tm_divider, self.tm_container])
 
-        self.content = ft.Row(
-            [
-                self.checkbox_container,
-                self.active_divider,
-                self.name_field,
-                self.divider,
-                self.seq_field,
-                self.control_container,
-            ],
+        row_content = ft.Row(
+            row_body,
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
-        self.on_click = lambda e: on_row_click(idx, self.name_field)
+
+        self._row_gesture_detector = ft.GestureDetector(
+            on_tap=lambda e: on_row_click(self.idx, self.name_field),
+            mouse_cursor=ft.MouseCursor.CLICK,
+            content=row_content,
+        )
+
+        self.content = ft.Row(
+            [self.drag_handle, self._row_gesture_detector],
+            spacing=0,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+        )
 
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
     ) -> None:
-        """Update the background colour and reorder buttons layout.
+        """Update the background colour.
 
         Args:
-            is_focused: Whether this row should show the reorder controls.
+            is_focused: Whether this row is currently focused.
             is_dup: Whether this primer is a duplicate.
         """
-        if is_focused:
-            self.bgcolor = GUIColours.SELECTED_ROW_BG
+        if is_dup and is_focused:
+            self.bgcolor = GUIColours.FOCUSED_DUPLICATE_BG
         elif is_dup:
             self.bgcolor = GUIColours.DUPLICATE_BG
+        elif is_focused:
+            self.bgcolor = GUIColours.SELECTED_ROW_BG
         else:
-            self.bgcolor = None  # type: ignore[assignment]
-
-        if self.control_container is not None:
-            self.control_container.width = 108 if is_focused else 0
-            try:
-                self.control_container.update()
-            except RuntimeError:
-                pass
-        if self.reorder_controls is not None:
-            self.reorder_controls.visible = is_focused
-            try:
-                self.reorder_controls.update()
-            except RuntimeError:
-                pass
+            self.bgcolor = None
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
         """Set or clear the error message.
@@ -264,39 +327,38 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 seq_error = err
 
         self.name_field.error = name_error
-        self.name_field.height = 30 if not name_error else None
+        self.name_field.height = 30 if not name_error else 42
+        self.name_container.height = 30 if not name_error else 42
+        self.name_scroll.height = 30 if not name_error else 42
         self.seq_field.error = seq_error
-        self.seq_field.height = 30 if not seq_error else None
+        self.seq_field.height = 30 if not seq_error else 42
+        self.seq_container.height = 30 if not seq_error else 42
+        self.seq_scroll.height = 30 if not seq_error else 42
 
         has_err = bool(name_error or seq_error)
         self.height = 30 if not has_err else None
 
-        is_empty = (
-            not self.name_field.value.strip()
-            or not self.seq_field.value.strip()
-        )
-        self.checkbox.disabled = is_empty
-        if self.checkbox.disabled:
-            self.checkbox.value = False
+        self.tm_divider.height = 30 if not has_err else 42
+        if (divider_content := self.divider.content) is not None:
+            divider_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        self.active_divider.height = 30 if not has_err else 42
+        if (drag_content := self.drag_handle.content) is not None:
+            drag_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+
+        self.checkbox.disabled = False
 
     def update_index(
         self,
         new_idx: int,
-        is_last_row: bool,
-        on_move_primer: Any,
-        on_delete_primer: Any,
-        on_add_primer: Any,
-        on_row_click: Any,
+        on_row_click: Callable[[int, ft.TextField], None],
+        on_row_double_click: Callable[[int, ft.TextField], None],
     ) -> None:
         """Update the index of the row and refresh its handlers and controls.
 
         Args:
-            new_idx: The new zero-based index for this primer row.
-            is_last_row: Whether this row is now the last in the list.
-            on_move_primer: Callback to move a primer up or down.
-            on_delete_primer: Callback to delete a primer.
-            on_add_primer: Callback to add a new primer below.
+            new_idx: The zero-based index for this primer row.
             on_row_click: Callback when the row container is clicked.
+            on_row_double_click: Callback for double-click on row.
         """
         self.data = new_idx
         self.idx = new_idx
@@ -304,18 +366,82 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.seq_field.data = {"idx": new_idx, "field": "seq"}
 
         # Update click handler with the new index
-        self.on_click = lambda e: on_row_click(new_idx, self.name_field)
+        self._row_gesture_detector.on_tap = lambda e: on_row_click(
+            new_idx, self.name_field
+        )
+        self._row_gesture_detector.on_double_tap = lambda e: (
+            on_row_double_click(new_idx, self.name_field)
+        )
+        self.drag_handle.on_tap = lambda e: on_row_click(
+            new_idx, self.name_field
+        )
+        self.drag_handle.on_double_tap = lambda e: on_row_double_click(
+            new_idx, self.name_field
+        )
 
-        # Update reorder control buttons with the new index and state
-        if self.reorder_controls is not None:
-            add_button = self.reorder_controls.controls[0]
-            delete_button = self.reorder_controls.controls[1]
-            up_button = self.reorder_controls.controls[2]
-            down_button = self.reorder_controls.controls[3]
+    def update_tm(self, settings: GUISettings) -> None:
+        """Update the displayed Tm in-place based on the current sequence."""
+        seq_val = self.seq_field.value
+        name_val = self.name_field.value
+        tm_val = ""
+        show_temp = settings.get("show_primer_temperature", False)
+        scheme = settings.get("tm_colour_scheme", "None")
 
-            add_button.on_click = lambda e: on_add_primer(new_idx)
-            delete_button.on_click = lambda e: on_delete_primer(new_idx)
-            up_button.on_click = lambda e: on_move_primer(new_idx, -1)
-            up_button.disabled = new_idx == 0
-            down_button.on_click = lambda e: on_move_primer(new_idx, 1)
-            down_button.disabled = is_last_row
+        # Check cache before recomputing
+        cache_key = (seq_val, name_val, show_temp, scheme)
+        if getattr(self, "_last_tm_cache_key", None) == cache_key:
+            return
+
+        self._last_tm_cache_key = cache_key
+        self._tm_value = None
+
+        if show_temp and seq_val and seq_val.strip():
+            try:
+                cleaned_seq = clean_sequence(seq_val)
+                if cleaned_seq:
+                    primer_obj = Primer(sequence=cleaned_seq, name=name_val)
+                    tm = settings.calculate_primer_tm(primer_obj)
+                    self._tm_value = tm
+                    tm_val = f"{tm:.1f}°C"
+            except (ValueError, AttributeError, ArithmeticError):
+                logger.debug(
+                    "Failed to calculate Tm for primer '%s'",
+                    name_val,
+                    exc_info=True,
+                )
+                tm_val = "-"
+        self.tm_text.value = tm_val
+
+        self.tm_text.color = (
+            tm_colour(self._tm_value, scheme)
+            if self._tm_value is not None
+            else None
+        )
+        try:
+            self.tm_text.update()
+        except RuntimeError:
+            logger.debug("Tm text page detached, skipping update")
+
+        if show_temp != getattr(self, "_last_show_temp", None):
+            self._last_show_temp = show_temp
+            self.tm_container.visible = show_temp
+            self.tm_divider.visible = show_temp
+            controls = [
+                self.drag_handle,
+                self.checkbox_container,
+                self.active_divider,
+                self.name_scroll,
+                self.divider,
+                self.seq_scroll,
+            ]
+            if show_temp:
+                controls.extend([self.tm_divider, self.tm_container])
+            self.content = ft.Row(
+                controls,
+                spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            )
+            try:
+                self.update()
+            except RuntimeError:
+                logger.debug("Row page detached, skipping update")

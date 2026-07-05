@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,19 +16,21 @@
 """Settings sub-controls package."""
 
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
-from amplifyp.gui.views.settings.base_score_tile import (
-    BaseScoreTile,
-    ScoreTable,
-)
+from amplifyp.gui.views.settings.backup_tile import BackupTile
+from amplifyp.gui.views.settings.base_score_tile import ScoreTable
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
+from amplifyp.gui.views.settings.settings_view import SettingsView
 from amplifyp.gui.views.settings.tm_tile import TmTile
+from amplifyp.gui.views.settings.updates_tile import UpdatesTile
 
 __all__ = [
     "AppearanceTile",
-    "BaseScoreTile",
+    "BackupTile",
     "DimerTile",
     "ReplicationTile",
     "ScoreTable",
+    "SettingsView",
     "TmTile",
+    "UpdatesTile",
 ]

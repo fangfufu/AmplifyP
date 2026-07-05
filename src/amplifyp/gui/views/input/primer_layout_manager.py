@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -81,7 +81,7 @@ class PrimerLayoutManager:
                 row_h = (
                     30.0
                     if not (row.name_field.error or row.seq_field.error)
-                    else 50.0
+                    else 55.0
                 )
                 row_top = current_y
                 row_bottom = current_y + row_h
@@ -111,7 +111,10 @@ class PrimerLayoutManager:
         # - Two dividers (4 + 4 = 8)
         # - Control container when focused (108)
         # - Minimum space to display "Sequence" text and edit cursor (100)
-        max_name_width = max(80.0, panel_width - 271.0)
+        # - Plus optional Tm column (50 width + 4 divider = 54)
+        show_temp = self.owner.settings.get("show_primer_temperature", False)
+        extra_space = 54.0 if show_temp else 0.0
+        max_name_width = max(80.0, panel_width - 271.0 - extra_space)
 
         target_width = max(
             80.0,
@@ -128,8 +131,8 @@ class PrimerLayoutManager:
 
         # Update the width of the Name header control
         self.owner.primers_header.controls[
-            2
-        ].width = self.owner.name_column_width
+            3
+        ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         self.owner.primer_header.update()
 
         self._cache_visible_rows_if_needed()
@@ -137,32 +140,32 @@ class PrimerLayoutManager:
 
         # Update and render only the name fields of the visible rows directly
         for row in visible_rows:
-            row.name_field.width = self.owner.name_column_width
-            row.name_field.update()
+            row.name_scroll.width = self.owner.name_column_width
+            row.name_scroll.update()
 
-    def on_primer_divider_pan_end(self, e: ft.DragEndEvent) -> None:
+    def on_primer_divider_pan_end(self, _e: ft.DragEndEvent) -> None:
         """Handle finishing the drag of the vertical divider.
 
         Clears the visible rows cache and applies the final name column
         width to all rows in the primer list.
 
         Args:
-            e: The Flet drag end event.
+            _e: The Flet drag end event (unused).
         """
         # Clear the visible rows cache
         self.owner._visible_rows_cache = None
 
         # Ensure the final exact width is applied to header and all rows in sync
         self.owner.primers_header.controls[
-            2
-        ].width = self.owner.name_column_width
+            3
+        ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         self.owner.primer_header.update()
 
         from .primer_row import PrimerRow
 
         for row in self.owner.primers_list.controls:
             if isinstance(row, PrimerRow):
-                row.name_field.width = self.owner.name_column_width
+                row.name_scroll.width = self.owner.name_column_width
         self.owner.primers_list.update()
 
     def adjust_name_column_width(
@@ -178,7 +181,9 @@ class PrimerLayoutManager:
             during_drag: If True, updates only visible rows for smooth
                 feedback. If False, updates all rows.
         """
-        max_name_width = max(80.0, new_panel_width - 271.0)
+        show_temp = self.owner.settings.get("show_primer_temperature", False)
+        extra_space = 54.0 if show_temp else 0.0
+        max_name_width = max(80.0, new_panel_width - 271.0 - extra_space)
         target_width = max(
             80.0,
             min(
@@ -193,11 +198,11 @@ class PrimerLayoutManager:
         if (
             hasattr(self.owner, "primers_header")
             and self.owner.primers_header
-            and len(self.owner.primers_header.controls) > 2
+            and len(self.owner.primers_header.controls) > 3
         ):
             self.owner.primers_header.controls[
-                2
-            ].width = self.owner.name_column_width
+                3
+            ].width = self.owner.name_column_width  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             self.owner.primer_header.update()
 
         from .primer_row import PrimerRow
@@ -208,12 +213,12 @@ class PrimerLayoutManager:
 
             # Update/render name fields of visible rows directly
             for row in visible_rows:
-                row.name_field.width = self.owner.name_column_width
-                row.name_field.update()
+                row.name_scroll.width = self.owner.name_column_width
+                row.name_scroll.update()
         else:
             # Clear cache and update all rows
             self.owner._visible_rows_cache = None
             for row in self.owner.primers_list.controls:
                 if isinstance(row, PrimerRow):
-                    row.name_field.width = self.owner.name_column_width
+                    row.name_scroll.width = self.owner.name_column_width
             self.owner.primers_list.update()

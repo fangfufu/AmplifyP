@@ -14,10 +14,6 @@ DIST_DIR="${SCRIPT_DIR}/dist"
 echo "==> Clearing Python bytecode cache..."
 find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Temporarily copy build icons to root of assets so Flet publish auto-generates PWA icons
-cp "${SCRIPT_DIR}/src/assets/images/icon.png" "${SCRIPT_DIR}/src/assets/icon.png" || true
-cp "${SCRIPT_DIR}/src/assets/images/favicon.png" "${SCRIPT_DIR}/src/assets/favicon.png" || true
-
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_FULL_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
 echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
@@ -33,8 +29,7 @@ flet publish "${SCRIPT_DIR}/src/main.py" \
   --pwa-theme-color "#0175C2" \
   "$@"
 
-# Clean up temporary root assets files and git_sha.py
-rm -f "${SCRIPT_DIR}/src/assets/icon.png" "${SCRIPT_DIR}/src/assets/favicon.png" || true
+# Clean up temporary git_sha.py
 rm -f "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py" || true
 
 

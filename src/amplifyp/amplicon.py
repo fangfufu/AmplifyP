@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -173,7 +173,7 @@ class AmpliconGenerator:
         rev_conf: Repliconf,
         start: DirIdx,
         end: DirIdx,
-        len: int,
+        length: int,
     ) -> float:
         """Calculate a quality score for a potential amplicon.
 
@@ -187,14 +187,14 @@ class AmpliconGenerator:
                 primer.
             start (DirIdx): The start index of the forward primer.
             end (DirIdx): The end index of the reverse primer.
-            len (int): The length of the amplicon.
+            length (int): The length of the amplicon.
 
         Returns:
             float: The calculated quality score.
         """
         fwd_quality = fwd_conf.origin(start).quality
         rev_quality = rev_conf.origin(end).quality
-        return len / (fwd_quality * rev_quality) ** 2
+        return length / (fwd_quality * rev_quality) ** 2
 
     def _construct_amplicon_sequence(
         self,

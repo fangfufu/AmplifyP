@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,18 +15,22 @@
 
 """Dimer View for the Flet application."""
 
+import logging
 import traceback
 from typing import Any
 
 import flet as ft
 
-from amplifyp.dimer import PrimerDimerGenerator
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence, show_error_dialog
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+logger = logging.getLogger(__name__)
 
 
 class DimerView(ft.Column):  # type: ignore[misc]
@@ -43,7 +47,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
-        self._cached_dimers: list[Any] | None = None
+        self._cached_dimers: list[PrimerDimer] | None = None
         self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
             None
         )
@@ -104,11 +108,11 @@ class DimerView(ft.Column):  # type: ignore[misc]
                     self.result_list.controls.append(
                         ft.Container(
                             content=ft.Text(
-                                f"Warning: {num_dimers} primer dimers "
-                                "detected. Only the top "
-                                f"{MAX_DIMERS_RENDER} strongest binding "
-                                "dimers are displayed to prevent "
-                                "UI freeze.",
+                                f"Warning: {num_dimers} primer "
+                                "dimers detected. Only the top "
+                                f"{MAX_DIMERS_RENDER} strongest "
+                                "binding dimers are displayed to "
+                                "prevent UI freeze.",
                                 color=GUIColours.ERROR_RED,
                                 weight=ft.FontWeight.BOLD,
                             ),
@@ -123,7 +127,8 @@ class DimerView(ft.Column):  # type: ignore[misc]
                         font_family=font_family,
                     )
                     self.result_list.controls.append(card)
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.exception("Dimer analysis failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error running analysis: {ex}\n{traceback.format_exc()}",

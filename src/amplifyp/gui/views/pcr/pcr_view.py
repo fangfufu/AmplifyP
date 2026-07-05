@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,8 +15,9 @@
 
 """PCR View for the Flet application."""
 
+import logging
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
@@ -26,9 +27,15 @@ from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.pcr import PCR
 
+if TYPE_CHECKING:
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.repliconf import DirIdx, Repliconf
+
 from .amplicon_drawing import AmpliconDetailCard
 from .pcr_diagram_panel import PCRDrawingPanel
 from .primer_drawing import ReplicationContextCard
+
+logger = logging.getLogger(__name__)
 
 
 class PCRView(ft.Column):  # type: ignore[misc]
@@ -86,21 +93,21 @@ class PCRView(ft.Column):  # type: ignore[misc]
             self.cards_header,
             ft.Container(content=self.result_list, expand=True),
         ]
-        self.app_page.on_resize = self._handle_resize
+        self.app_page.on_resize = self._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
     @property
     def diagram_stack(self) -> ft.Stack:
-        """Shortcut property to the diagram stack for test compatibility."""
+        """Shortcut property to the diagram stack for test compat."""
         return self.diagram_panel.diagram_stack
 
     @property
     def diagram_container(self) -> ft.Container:
-        """Shortcut property to the diagram container for test compatibility."""
+        """Shortcut property to the diagram container for test compat."""
         return self.diagram_panel.diagram_container
 
     @property
     def divider(self) -> ft.GestureDetector:
-        """Shortcut property to the divider resizer for test compatibility."""
+        """Shortcut property to the divider resizer for test compat."""
         return self.diagram_panel.divider
 
     def _handle_resize(self, e: ft.ControlEvent) -> None:
@@ -150,14 +157,15 @@ class PCRView(ft.Column):  # type: ignore[misc]
                         )
                     )
 
-        except Exception as ex:
+        except (OSError, ValueError, RuntimeError) as ex:
+            logger.exception("PCR simulation failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
                     f"Error: {ex}\n{traceback.format_exc()}",
                     color=GUIColours.ERROR_RED,
                 )
             )
-            from amplifyp.gui.util import show_error_dialog
+            from amplifyp.gui.utils.ui import show_error_dialog
 
             show_error_dialog(self.app_page, "Error running PCR", str(ex))
             success = False
@@ -178,8 +186,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
         return saved_cards
 
     def _execute_pcr_simulation(self) -> PCR:
-        """Clean sequences, build DNA and PCR objects, and run simulation."""
-        from amplifyp.gui.util import clean_sequence
+        """Clean sequences, build DNA/PCR objects, run simulation."""
+        from amplifyp.gui.utils.sequence import clean_sequence
 
         clean_template = clean_sequence(self.input_data.template)
         t_type = (
@@ -204,8 +212,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
+        conf: "Repliconf",
+        var: "DirIdx",
     ) -> None:
         """Create and show context map card below the overview map."""
         card_id = f"context_{primer_name}_{padded_idx}"
@@ -236,8 +244,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self._update_cards_header_visibility()
         self.app_page.update()
 
-    def _show_amplicon_dialog(self, amp: Any) -> None:
-        """Show details card of the selected amplicon below the overview map."""
+    def _show_amplicon_dialog(self, amp: "Amplicon") -> None:
+        """Show details card of the selected amplicon."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"
@@ -272,7 +280,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
-    def _clear_all_cards(self, e: Any) -> None:
+    def _clear_all_cards(self, e: ft.Event) -> None:
         """Clear all detail cards below the overview map."""
         self.result_list.controls.clear()
         self._update_cards_header_visibility()

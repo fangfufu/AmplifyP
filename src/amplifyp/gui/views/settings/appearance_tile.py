@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,9 +15,14 @@
 
 """AppearanceTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.ui import BorderedCheckbox
 
 
 class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -25,9 +30,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
         """Initialise the AppearanceTile.
@@ -51,7 +56,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
+            width=500,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self.set_colour_scheme = ft.Dropdown(
@@ -64,20 +71,32 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
+            width=500,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
-        self.set_improved_visualisation = ft.Checkbox(
-            label="Improved Visualisation Mode",
+        self.ignore_inactive_name_dup_checkbox = BorderedCheckbox(
+            label="Ignore inactive primers when checking for duplicate names",
+            on_change=self.on_change_handler,
         )
-        self.set_improved_visualisation.on_change = self.on_change_handler
+
+        self.ignore_inactive_seq_dup_checkbox = BorderedCheckbox(
+            label=(
+                "Ignore inactive primers when checking for duplicate sequences"
+            ),
+            on_change=self.on_change_handler,
+        )
 
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
-        self.settings_map["improved_visualisation"] = (
-            self.set_improved_visualisation
+        self.settings_map["ignore_inactive_name_dup_warn"] = (
+            self.ignore_inactive_name_dup_checkbox
+        )
+        self.settings_map["ignore_inactive_seq_dup_warn"] = (
+            self.ignore_inactive_seq_dup_checkbox
         )
 
         super().__init__(
@@ -96,13 +115,14 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_font_family,
                                         self.set_colour_scheme,
-                                        self.set_improved_visualisation,
+                                        self.ignore_inactive_name_dup_checkbox,
+                                        self.ignore_inactive_seq_dup_checkbox,
                                         self._dummy_colour_deficient,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=450,
+                                width=500,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
@@ -127,8 +147,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             e: The Flet control event triggered by the dropdown change.
         """
         self.sync_colour_scheme_to_settings()
-        if self.on_change_handler:
-            self.on_change_handler(e)
+        self.on_change_handler(e)
 
     def update_colour_scheme_dropdown(self) -> None:
         """Update the colour scheme dropdown value based on settings.

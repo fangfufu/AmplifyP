@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,15 +16,20 @@
 """Primer drawing class and context card helpers for the PCRView."""
 
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
 from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+from amplifyp.repliconf import DirIdx, Repliconf
 
 from .dismissible_detail_card import DismissibleDetailCard
+
+if TYPE_CHECKING:
+    from amplifyp.origin import ReplicationOrigin
 
 
 class DrawnPrimer:
@@ -34,14 +39,14 @@ class DrawnPrimer:
         self,
         name: str,
         index: int,
-        conf: Any,
-        var: Any,
+        conf: Repliconf,
+        var: DirIdx,
         S: float,
         target_length: int,
         t_width: float,
         h_margin: float,
         v_target: float,
-        settings: Any,
+        settings: GUISettings,
         on_click: Callable[[], None],
         x_shifted: float | None = None,
     ) -> None:
@@ -303,8 +308,8 @@ def get_template_substring(template: DNA, start: int, length: int) -> str:
 def format_context_lines(
     primer_name: str,
     padded_idx: int,
-    conf: Any,
-    origin: Any,
+    conf: Repliconf,
+    origin: "ReplicationOrigin",
     L: int,
     N: int,
     direction: DNADirection,
@@ -348,25 +353,28 @@ def format_context_lines(
     start_num_str = str(((start_genomic) % N) + 1)
     end_num_str = str(((end_genomic - 1) % N) + 1)
 
+    label_width = max(29, len(primer_label))
+    extra_spaces = label_width - 29
+
     # Construct primer line:
     primer_line = (
-        f"{primer_label:<29}"
+        f"{primer_label:<{label_width}}"
         f"{primer_ends[0]}-{primer_display_seq}-{primer_ends[1]}"
     )
 
     # Construct strength line:
-    bonds_line = f"{' ' * 12}{' ' * 20}{strength_display}"
+    bonds_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}{strength_display}"
 
     # Construct pipes and arrows:
-    pipe_line = f"{' ' * 12}{' ' * 20}|{' ' * (L - 2)}|"
-    arrow_line = f"{' ' * 12}{' ' * 20}V{' ' * (L - 2)}V"
+    pipe_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}|{' ' * (L - 2)}|"
+    arrow_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}V{' ' * (L - 2)}V"
 
     # Construct numbers:
-    num_line_chars = [" "] * (12 + 20 + L + 20)
-    col1 = 12 + 20 - len(start_num_str) // 2
+    num_line_chars = [" "] * (12 + 20 + extra_spaces + L + 20)
+    col1 = 12 + 20 + extra_spaces - len(start_num_str) // 2
     for idx, char in enumerate(start_num_str):
         num_line_chars[col1 + idx] = char
-    col2 = (12 + 20 + L - 1) - len(end_num_str) // 2
+    col2 = (12 + 20 + extra_spaces + L - 1) - len(end_num_str) // 2
     for idx, char in enumerate(end_num_str):
         num_line_chars[col2 + idx] = char
     top_line = "".join(num_line_chars).rstrip()
@@ -388,17 +396,20 @@ def format_context_lines(
         comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_line = (
-            f"{' ' * 9}3'-{comp_upstream}{comp_binding}{comp_downstream}-5'"
+            f"{' ' * (9 + extra_spaces)}3'-"
+            f"{comp_upstream}{comp_binding}{comp_downstream}-5'"
         )
         bottom_line = (
             f"{bonds_line}\n"
             f"{comp_line}\n"
-            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
         )
     else:
         bottom_line = (
             f"{bonds_line}\n"
-            f"{context_line_prefix}5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
         )
 
     return top_line, primer_line, bottom_line
@@ -411,9 +422,9 @@ class ReplicationContextCard(DismissibleDetailCard):
         self,
         primer_name: str,
         padded_idx: int,
-        conf: Any,
-        var: Any,
-        settings: Any,
+        conf: Repliconf,
+        var: DirIdx,
+        settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
     ) -> None:
         """Initialise the ReplicationContextCard.
@@ -433,24 +444,12 @@ class ReplicationContextCard(DismissibleDetailCard):
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
-        if origin is None:
-            body_controls = list[ft.Control](
-                [ft.Text("Error: Replication origin not found")]
-            )
-            super().__init__(
-                card_id=card_id,
-                title="Error",
-                settings=settings,
-                dismiss_callback=dismiss_callback,
-                body_controls=body_controls,
-            )
-            return
 
         primer_type = "" if var.direction == DNADirection.FWD else "Reverse"
         L = len(conf.primer)
         N = len(conf.template)
 
-        from amplifyp.gui.util import create_overlapped_sequence_view
+        from amplifyp.gui.utils.sequence import create_overlapped_sequence_view
 
         top_line, primer_line, bottom_line = format_context_lines(
             primer_name=primer_name,

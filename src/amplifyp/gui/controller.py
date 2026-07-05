@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,9 @@
 
 """GUI controller for orchestrating views, state, and page events."""
 
-import traceback
+import asyncio
+import logging
+import time
 from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
@@ -24,25 +26,38 @@ import yaml
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, get_version, serialise_state
+from amplifyp.gui.util import serialise_state
+from amplifyp.gui.utils.ui import NotificationHelper
 from amplifyp.gui.views import (
+    AboutView,
     DimerView,
     InputView,
     PCRView,
     SettingsView,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class GUIController:
     """Manages GUI state, event handlers, views and main orchestration."""
 
-    def __init__(self, page: ft.Page) -> None:
+    def __init__(
+        self,
+        page: ft.Page,
+        state_file: str | None = None,
+        auto_close: bool = False,
+    ) -> None:
         """Initialize the GUIController.
 
         Args:
             page: The Flet page instance for the application.
+            state_file: Optional path to a YAML state file to load on startup.
+            auto_close: If True, quit automatically after rendering is complete.
         """
         self.page = page
+        self.state_file = state_file
+        self.auto_close = auto_close
         self.input_data = GUIInput()
         self.settings = GUISettings()
         self.filepicker_open = False
@@ -57,9 +72,11 @@ class GUIController:
         # Views placeholders
         self.input_view: InputView = cast(InputView, None)
         self.settings_view: SettingsView = cast(SettingsView, None)
+        self.about_view: AboutView = cast(AboutView, None)
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
+        self.header_container: ft.Container = cast(ft.Container, None)
 
         # UI Control placeholders
         self.visible_save_btn_control: ft.FilledButton = cast(
@@ -72,33 +89,11 @@ class GUIController:
         self.notification_helper: NotificationHelper = cast(
             NotificationHelper, None
         )
+        self.input_view_dirty = False
 
     def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
-        self.page.overlay.clear()
-        self.page.title = "AmplifyP"
-        self.page.vertical_alignment = ft.MainAxisAlignment.START
-        self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
-        self.page.padding = 0
-        self.page.spacing = 0
-        self.page.window.icon = "images/icon.png"
-
-        # Handle close / reload warnings
-        if self.page.web:
-            if hasattr(self.page, "run_javascript"):
-                self.page.run_javascript(
-                    """
-                    window.addEventListener('beforeunload', (event) => {
-                        event.preventDefault();
-                        event.returnValue = '';
-                    });
-                    """
-                )
-        else:
-            self.page.window.prevent_close = False
-            self.page.window.prevent_close = True
-            self._confirm_dialog = None
-            self.page.window.on_event = self.on_window_event
+        self._configure_page_and_window()
 
         self.settings.load_from_local(self.page)
         self.page.on_platform_brightness_change = (
@@ -112,19 +107,24 @@ class GUIController:
             self.input_data,
             self.settings,
             on_change=lambda e: self.update_pcr_button_state(sync=False),
-            on_stop_editing=lambda: self.update_pcr_button_state(sync=False),
+            on_stop_editing=lambda e: self.update_pcr_button_state(sync=False),
         )
         self.settings_view = SettingsView(
             self.page,
             self.settings,
             on_change=self.on_settings_change,
-            on_apply=self.run_apply_settings,
-            on_reset=self.run_apply_settings,
+            on_reset=self.on_settings_change,
+            on_update_found=self.on_update_found,
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
+        self.about_view = AboutView(self.page, self.settings)
 
         self.notification_helper = NotificationHelper(self.page)
+
+        # Load state and handle auto-close asynchronously once page is ready
+        if self.state_file:
+            self.page.run_task(self._restore_state_and_auto_close_async)
 
         # Main view container
         self.view_container = ft.Container(
@@ -134,194 +134,75 @@ class GUIController:
         # Header controls & routing buttons setup
         self._setup_navigation_controls()
 
+        # Check for updates in the background on startup
+        self.page.run_task(self.check_updates_async)
+
+    def _configure_page_and_window(self) -> None:
+        """Set up page properties, window styling, and event handlers."""
+        self.page.overlay.clear()
+        self.page.title = "AmplifyP"
+        self.page.vertical_alignment = ft.MainAxisAlignment.START
+        self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
+        self.page.padding = 0
+        self.page.spacing = 0
+        self.page.window.icon = "/images/icon.png"
+
+        # Handle close / reload warnings
+        if self.page.web:
+            if hasattr(self.page, "run_javascript"):
+                self.page.run_javascript(  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    """
+                    window.addEventListener('beforeunload', (event) => {
+                        event.preventDefault();
+                        event.returnValue = '';
+                    });
+                    """
+                )
+        else:
+            self.page.window.prevent_close = False
+            if not self.auto_close:
+                self.page.window.prevent_close = True
+                self._confirm_dialog = None
+                self.page.window.on_event = self.on_window_event
+
     def _setup_navigation_controls(self) -> None:
         """Configure navigation controls for the main application window.
 
         Creates and sets up the AppBar buttons and the visible top header
         buttons (Input, PCR, Primer Dimers, Settings, Save, Load).
         """
-        # AppBar buttons (for test compatibility)
-        input_button = ft.FilledButton(
-            "Input",
-            icon=ft.Icons.INPUT,
-            on_click=lambda e: self.switch_view(e, self.input_view),
-            tooltip="Input",
-        )
-        input_button.tooltip = "Input"
+        from amplifyp.gui.views.header import AppHeader
 
-        pcr_button = ft.FilledButton(
-            "PCR",
-            ref=self.pcr_button_ref,
-            on_click=self.on_pcr_click,
-            disabled=True,
-            icon=ft.Icons.ANALYTICS,
-            tooltip="PCR",
+        self.header = AppHeader(
+            settings=self.settings,
+            on_switch_input=lambda e: self.switch_view(e, self.input_view),
+            on_switch_settings=lambda e: self.switch_view(
+                e, self.settings_view
+            ),
+            on_switch_about=lambda e: self.switch_view(e, self.about_view),
+            on_pcr_click=self.on_pcr_click,
+            on_dimers_click=self.on_dimers_click,
+            on_save=self.save_state,
+            on_load=self.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            pcr_button_ref=self.pcr_button_ref,
+            dimers_button_ref=self.dimers_button_ref,
+            visible_pcr_button_ref=self.visible_pcr_button_ref,
+            visible_dimers_button_ref=self.visible_dimers_button_ref,
         )
-        pcr_button.tooltip = "PCR"
 
-        dimers_button = ft.FilledButton(
-            "Primer Dimers",
-            ref=self.dimers_button_ref,
-            on_click=self.on_dimers_click,
-            disabled=True,
-            icon=ft.Icons.COMPARE_ARROWS,
-            tooltip="Primer Dimers",
-        )
-        dimers_button.tooltip = "Primer Dimers"
+        # Store aliases for backward compatibility or direct accesses
+        self.visible_save_btn_control = self.header.visible_save_btn_control
+        self.visible_load_btn_control = self.header.visible_load_btn_control
+        self.visible_header_divider = self.header.visible_header_divider
 
-        settings_button = ft.FilledButton(
-            "Settings",
-            icon=ft.Icons.SETTINGS,
-            on_click=lambda e: self.switch_view(e, self.settings_view),
-            tooltip="Settings",
-        )
-        settings_button.tooltip = "Settings"
-
-        save_btn_control = ft.FilledButton(
-            "Save all",
-            icon=ft.Icons.SAVE,
-            tooltip="Save all",
-            on_click=self.save_state,
-        )
-        save_btn_control.tooltip = "Save all"
-
-        load_btn_control = ft.FilledButton(
-            "Load all",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load all",
-            on_click=self.load_state,
-        )
-        load_btn_control.tooltip = "Load all"
-
+        # Configure page appbar
         self.page.appbar = ft.AppBar(
             visible=False,
-            actions=[
-                input_button,
-                pcr_button,
-                dimers_button,
-                settings_button,
-                save_btn_control,
-                load_btn_control,
-            ],
+            actions=self.header.appbar_actions,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
-        # Visible navigation controls (Responsive header)
-        visible_input_button = ft.FilledButton(
-            "Input",
-            icon=ft.Icons.INPUT,
-            on_click=lambda e: self.switch_view(e, self.input_view),
-            tooltip="Input",
-        )
-        visible_input_button.tooltip = "Input"
-
-        visible_pcr_button = ft.FilledButton(
-            "PCR",
-            ref=self.visible_pcr_button_ref,
-            on_click=self.on_pcr_click,
-            disabled=True,
-            icon=ft.Icons.ANALYTICS,
-            tooltip="PCR",
-        )
-        visible_pcr_button.tooltip = "PCR"
-
-        visible_dimers_button = ft.FilledButton(
-            "Primer Dimers",
-            ref=self.visible_dimers_button_ref,
-            on_click=self.on_dimers_click,
-            disabled=True,
-            icon=ft.Icons.COMPARE_ARROWS,
-            tooltip="Primer Dimers",
-        )
-        visible_dimers_button.tooltip = "Primer Dimers"
-
-        visible_settings_button = ft.FilledButton(
-            "Settings",
-            icon=ft.Icons.SETTINGS,
-            on_click=lambda e: self.switch_view(e, self.settings_view),
-            tooltip="Settings",
-        )
-        visible_settings_button.tooltip = "Settings"
-
-        self.visible_save_btn_control = ft.FilledButton(
-            "Save all",
-            icon=ft.Icons.SAVE,
-            tooltip="Save all",
-            on_click=self.save_state,
-        )
-        self.visible_save_btn_control.tooltip = "Save all"
-
-        self.visible_load_btn_control = ft.FilledButton(
-            "Load all",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load all",
-            on_click=self.load_state,
-        )
-        self.visible_load_btn_control.tooltip = "Load all"
-
-        self.visible_header_divider = ft.Container(
-            width=1,
-            height=20,
-            bgcolor=GUIColours.OUTLINE,
-        )
-
-        app_version = get_version()
-        version_text = ft.Text(
-            app_version,
-            size=14,
-            color=GUIColours.TEXT_ON_SURFACE,
-            opacity=0.5,
-            weight=ft.FontWeight.W_400,
-            selectable=True,
-        )
-
-        header_container = ft.Container(
-            content=ft.ResponsiveRow(
-                [
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Image(
-                                    src="images/favicon.png",
-                                    height=32,
-                                    fit=ft.BoxFit.CONTAIN,
-                                ),
-                                ft.Text(
-                                    "AmplifyP",
-                                    size=20,
-                                    weight=ft.FontWeight.BOLD,
-                                ),
-                                ft.Container(width=12),
-                                version_text,
-                            ],
-                            spacing=8,
-                            tight=True,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        col={"lg": 4, "md": 12, "sm": 12, "xs": 12},
-                        alignment=ft.Alignment(-1, 0),
-                    ),
-                    ft.Container(
-                        content=ft.Row(
-                            [
-                                visible_input_button,
-                                visible_pcr_button,
-                                visible_dimers_button,
-                                visible_settings_button,
-                                self.visible_header_divider,
-                                self.visible_save_btn_control,
-                                self.visible_load_btn_control,
-                            ],
-                            spacing=10,
-                            tight=True,
-                            wrap=True,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        col={"lg": 8, "md": 12, "sm": 12, "xs": 12},
-                        alignment=ft.Alignment(1, 0),
-                    ),
-                ],
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
+        self.header_container = ft.Container(
+            content=self.header,
             padding=ft.Padding(16, 8, 16, 8),
             bgcolor=GUIColours.SURFACE,
         )
@@ -330,8 +211,9 @@ class GUIController:
             ft.Divider(height=1, thickness=1),
             self.view_container,
         )
-        self.page.controls.insert(0, header_container)
+        self.page.controls.insert(0, self.header_container)
         self.page.on_resize = self.input_view._handle_resize
+        self.page.update()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
@@ -339,7 +221,7 @@ class GUIController:
         is_dark = False
         if str(dark_mode_setting).lower() == "system":
             self.page.theme_mode = ft.ThemeMode.SYSTEM
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = str(self.page.platform_brightness).lower() == "dark"
         elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
             "false",
@@ -347,52 +229,76 @@ class GUIController:
             "no",
         ):
             self.page.theme_mode = ft.ThemeMode.DARK
-            self.page.bg_color = None
+            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = True
         else:
             self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = GUIColours.WHITE
+            self.page.bg_color = GUIColours.WHITE  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             is_dark = False
         GUIColours.dark_mode = is_dark
+        if hasattr(self, "header_container") and self.header_container:
+            self.header_container.bgcolor = GUIColours.SURFACE
 
-    def on_platform_brightness_change(self) -> None:
+    def on_platform_brightness_change(
+        self, e: ft.ControlEvent | None = None
+    ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
+            self.settings_view.update_ui()
+
+        if active_view == self.pcr_view:
+            self.pcr_view.run_pcr(keep_cards=True)
+        elif active_view == self.dimers_view:
+            self.dimers_view.run_analysis()
         self.page.update()
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
-        """Handle PCR click: run PCR and switch view if successful."""
-        if self.pcr_view.run_pcr():
-            self.switch_view(e, self.pcr_view)
-            if self.pcr_button_ref.current:
-                self.pcr_button_ref.current.text = "PCR"
-            if self.visible_pcr_button_ref.current:
-                self.visible_pcr_button_ref.current.text = "PCR"
-            self.page.update()
+        """Handle PCR click: switch view then run PCR.
+
+        The view is switched first so the diagram canvas renders
+        while the PCR view is the active content.  This avoids
+        Flet's diff algorithm marking canvas shapes as 'already
+        sent' before the view becomes visible.
+        """
+        self.update_pcr_button_state(sync=True)
+        self.switch_view(e, self.pcr_view)
+        if not self.pcr_view.run_pcr():
+            self.switch_view(e, self.input_view)
 
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
-        """Handle dimers click: run analysis and switch view if successful."""
-        if self.dimers_view.run_analysis():
-            self.switch_view(e, self.dimers_view)
-            self.page.update()
+        """Handle dimers click: switch view then run analysis."""
+        self.update_pcr_button_state(sync=True)
+        self.switch_view(e, self.dimers_view)
+        if not self.dimers_view.run_analysis():
+            self.switch_view(e, self.input_view)
 
     def update_pcr_button_state(self, sync: bool = True) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
         if sync:
             self.input_view.sync_to_state()
+
         has_template = bool(self.input_data.template.strip())
         active_primers = self.input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 2
+        has_enough_primers = len(active_primers) >= 1
 
         # Check if any selected (active) primer has validation errors
+        # or duplicates
         has_invalid_selected = False
         for idx, p in enumerate(self.input_data.primers):
-            if p.get("active", False):
-                if idx < len(self.input_view.primer_input.validation_errors):
-                    err = self.input_view.primer_input.validation_errors[idx]
-                    if err.get("name") or err.get("seq"):
-                        has_invalid_selected = True
-                        break
+            if p.get("active", False) and idx < len(
+                self.input_view.primer_input.validation_errors
+            ):
+                err = self.input_view.primer_input.validation_errors[idx]
+                if err.get("name") or err.get("seq"):
+                    has_invalid_selected = True
+                    break
 
         if hasattr(self.input_view.primer_input, "error_banner"):
             self.input_view.primer_input.error_banner.visible = (
@@ -406,12 +312,12 @@ class GUIController:
         btn = self.pcr_button_ref.current
         if btn:
             btn.disabled = not pcr_is_enabled
-            btn.text = "PCR"
+            btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         visible_btn = self.visible_pcr_button_ref.current
         if visible_btn:
             visible_btn.disabled = not pcr_is_enabled
-            visible_btn.text = "PCR"
+            visible_btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
         dimers_btn = self.dimers_button_ref.current
         if dimers_btn:
@@ -427,7 +333,7 @@ class GUIController:
 
         self.page.update()
 
-    def on_settings_change(self, e: ft.ControlEvent) -> None:
+    def on_settings_change(self, e: ft.ControlEvent | None = None) -> None:
         """Handle settings changes from the settings view.
 
         Applies theme, updates PCR button state, and persists settings.
@@ -436,36 +342,84 @@ class GUIController:
             e: The Flet control event triggering the change.
         """
         self.apply_theme()
+
+        # Only update the active view immediately to prevent lag!
+        active_view = self.view_container.content
+        if active_view == self.input_view:
+            self.input_view.update_ui()
+        else:
+            self.input_view_dirty = True
+
+        if active_view == self.settings_view:
+            self.settings_view.update_ui()
+
         self.update_pcr_button_state()
         self.settings.save_to_local(self.page)
 
-    def run_apply_settings(self, e: ft.ControlEvent) -> None:
-        """Apply settings updates from the settings view.
+        # Only redraw/re-simulate active views
+        if active_view == self.pcr_view:
+            self.pcr_view.run_pcr(keep_cards=True)
+        elif active_view == self.dimers_view:
+            self.dimers_view.run_analysis()
 
-        Applies theme, updates PCR button state, and persists settings.
+        self.page.update()
+
+    def _restore_state_from_file(self, path: str) -> None:
+        """Restore app state from a YAML file on startup.
 
         Args:
-            e: The Flet control event triggering the apply action.
+            path: Path to the YAML state file.
         """
-        self.apply_theme()
-        self.update_pcr_button_state()
-        self.settings.save_to_local(self.page)
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
 
-    async def save_state(self, e: Any) -> None:
+            parsed_state = yaml.safe_load(content)
+
+            if not isinstance(parsed_state, dict):
+                logger.warning("Invalid state file format, ignoring.")
+                return
+
+            self._apply_parsed_state(parsed_state)
+            logger.info("State loaded successfully from %s", path)
+        except (OSError, ValueError, yaml.YAMLError):
+            logger.exception("Error loading state file '%s'", path)
+
+    def _apply_parsed_state(
+        self, parsed_state: dict[str, Any], ignore_settings: bool = False
+    ) -> None:
+        """Apply parsed YAML state to the application.
+
+        Args:
+            parsed_state: Parsed YAML dict containing input and settings.
+            ignore_settings: If True, settings are not applied.
+        """
+        if "input" in parsed_state:
+            self.input_data.from_dict(parsed_state["input"])
+        else:
+            self.input_data.from_dict(parsed_state)
+        if not ignore_settings and "settings" in parsed_state:
+            self.settings.from_dict(parsed_state["settings"])
+            self.settings.save_to_local(self.page)
+        self.apply_theme()
+        self.input_view.update_ui()
+        self.settings_view.update_ui()
+        self.update_pcr_button_state()
+        self.page.update()
+
+    async def save_state(self, e: ft.Event[ft.Control]) -> None:
         """Save app state to YAML configuration file."""
         if self.filepicker_open:
             return
         self.filepicker_open = True
         try:
             self.input_view.sync_to_state()
-            self.settings_view.sync_to_state()
             combined: dict[str, object] = {
                 "input": self.input_data.to_dict(),
-                "settings": self.settings.to_dict(),
             }
             yaml_str = serialise_state(combined)
 
-            from amplifyp.gui.util import save_and_write_file
+            from amplifyp.gui.utils.io import save_and_write_file
 
             await save_and_write_file(
                 page=self.page,
@@ -477,18 +431,18 @@ class GUIController:
                 success_message_desktop="State saved successfully!",
                 success_message_web="State ready for download!",
             )
-        except Exception as ex:
+        except (OSError, ValueError) as ex:
             self.notification_helper.show_message(f"Error saving state: {ex}")
         finally:
             self.filepicker_open = False
 
-    async def load_state(self, e: Any) -> None:
+    async def load_state(self, e: ft.Event[ft.Control]) -> None:
         """Load app state from YAML configuration file."""
         if self.filepicker_open:
             return
         self.filepicker_open = True
         try:
-            from amplifyp.gui.util import pick_and_read_file
+            from amplifyp.gui.utils.io import pick_and_read_file
 
             content = await pick_and_read_file(
                 page=self.page,
@@ -507,35 +461,28 @@ class GUIController:
                 )
                 return
 
-            if "input" in parsed_state:
-                self.input_data.from_dict(parsed_state["input"])
-            else:
-                # Legacy format: input data at top level
-                self.input_data.from_dict(parsed_state)
-            if "settings" in parsed_state:
-                self.settings.from_dict(parsed_state["settings"])
-                self.settings.save_to_local(self.page)
-            self.apply_theme()
-            self.input_view.update_ui()
-            self.settings_view.update_ui()
-            self.update_pcr_button_state()
+            self._apply_parsed_state(parsed_state, ignore_settings=True)
             self.notification_helper.show_message("State loaded successfully!")
-        except Exception as ex:
-            print("LOAD STATE ERROR:", traceback.format_exc())
+        except (OSError, ValueError, yaml.YAMLError) as ex:
+            logger.exception("Error loading state:")
             self.notification_helper.show_message(f"Error loading state: {ex}")
         finally:
             self.filepicker_open = False
 
-    def switch_view(self, e: Any, view: ft.Control) -> None:
+    def switch_view(self, _e: ft.Event[ft.Control], view: ft.Control) -> None:
         """Switch the main view container to display a different view.
 
         Updates the container content and configures resize handlers
         appropriate for the target view.
 
         Args:
-            e: The event that triggered the view switch.
+            _e: The event that triggered the view switch (unused).
             view: The Flet control to display as the new view.
         """
+        if view == self.input_view and self.input_view_dirty:
+            self.input_view.update_ui()
+            self.input_view_dirty = False
+
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
@@ -545,7 +492,7 @@ class GUIController:
         if view == self.input_view:
             self.page.on_resize = self.input_view._handle_resize
         elif view == self.pcr_view:
-            self.page.on_resize = self.pcr_view._handle_resize
+            self.page.on_resize = self.pcr_view._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         else:
             self.page.on_resize = None
 
@@ -565,8 +512,8 @@ class GUIController:
         """
         try:
             await self.page.window.destroy()
-        except Exception:  # noqa: S110
-            pass
+        except RuntimeError:
+            logger.debug("Window already closed, skipping destroy")
 
     def confirm_exit(self, e: ft.ControlEvent) -> None:
         """Launch the async window destruction task.
@@ -575,6 +522,52 @@ class GUIController:
             e: The Flet control event triggering the exit.
         """
         self.page.run_task(self.confirm_exit_async)
+
+    async def _restore_state_and_auto_close_async(self) -> None:
+        """Restore state from file and run auto-close sequence if requested."""
+        # Yield to let the page finish initial rendering and attach controls
+        await asyncio.sleep(0)
+        if self.state_file:
+            self._restore_state_from_file(self.state_file)
+        if self.auto_close and self.state_file:
+            await self._auto_close_and_quit_delayed()
+
+    async def _auto_close_and_quit_delayed(
+        self, _event: ft.ControlEvent | None = None
+    ) -> None:
+        """Run PCR/dimer analysis then quit for performance regression testing.
+
+        Yields to the event loop to let initial render complete, runs analysis,
+        then destroys the window automatically.
+
+        Args:
+            _event: Unused event parameter for task compatibility.
+        """
+        try:
+            # Yield to event loop to let the initial page render complete
+            await asyncio.sleep(0)
+
+            self.update_pcr_button_state(sync=False)
+
+            pcr_btn = self.pcr_button_ref.current
+            if pcr_btn and not pcr_btn.disabled:
+                self.pcr_view.run_pcr()
+
+            dimers_btn = self.dimers_button_ref.current
+            if dimers_btn and not dimers_btn.disabled:
+                self.dimers_view.run_analysis()
+
+            self.page.update()
+            # Give Flet/Flutter rendering engine time to finish the pass
+            await asyncio.sleep(1)
+
+            await self.confirm_exit_async()
+        except Exception:
+            logger.exception("Error during auto-close sequence")
+            try:
+                await self.confirm_exit_async()
+            except RuntimeError:
+                pass
 
     def on_window_event(self, e: ft.WindowEvent) -> None:
         """Handle desktop window events, showing close confirmation dialog.
@@ -598,9 +591,9 @@ class GUIController:
                         "Are you sure you want to close AmplifyP? "
                         "Unsaved changes will be lost."
                     ),
-                    actions=[
-                        ft.TextButton("Yes", on_click=self.confirm_exit),
-                        ft.TextButton("No", on_click=self.confirm_dismiss),
+                    actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("Yes", on_click=self.confirm_exit),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        ft.TextButton("No", on_click=self.confirm_dismiss),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     ],
                     actions_alignment=ft.MainAxisAlignment.END,
                 )
@@ -610,3 +603,44 @@ class GUIController:
                 self.page.overlay.append(dialog)
             dialog.open = True
             self.page.update()
+
+    def on_update_found(self, latest_version: str) -> None:
+        """Update header version text when a new version is found."""
+        if hasattr(self, "header") and self.header:
+            self.header.set_update_available(latest_version)
+
+    async def check_updates_async(self) -> None:
+        """Run update checking asynchronously without blocking main thread."""
+        from amplifyp import __version__ as current_version
+        from amplifyp.gui.utils.version_check import (
+            fetch_latest_release_version,
+            is_newer_version,
+            should_check_for_updates,
+        )
+
+        frequency = self.settings.get(
+            "version_checking_frequency", "Once per Month"
+        )
+        try:
+            last_check = float(
+                self.settings.get("last_version_check_timestamp", 0.0)
+            )
+        except (TypeError, ValueError):
+            last_check = 0.0
+        current_time = float(time.time())
+
+        if not should_check_for_updates(frequency, last_check, current_time):
+            return
+
+        loop = asyncio.get_running_loop()
+        latest_tag = await loop.run_in_executor(
+            None, fetch_latest_release_version
+        )
+
+        if latest_tag is not None:
+            # Update last check timestamp
+            self.settings["last_version_check_timestamp"] = current_time
+            self.settings.save_to_local(self.page)
+
+            if is_newer_version(latest_tag, current_version):
+                self.on_update_found(latest_tag)

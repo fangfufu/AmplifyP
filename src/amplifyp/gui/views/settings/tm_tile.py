@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,9 +15,13 @@
 
 """TmTile component for Flet settings view."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+
+from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
 
 
 class TmTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -25,9 +29,9 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def __init__(
         self,
-        settings: Any,
+        settings: GUISettings,
         settings_map: dict[str, Any],
-        on_change_handler: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
         """Initialise the TmTile.
@@ -47,26 +51,31 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             label="DNA Conc (nM)",
             value="50.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dnap_conc = ft.TextField(
             label="DNA Pol Conc",
             value="0.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_mono_salt = ft.TextField(
             label="Monovalent Salt Conc (mM)",
             value="50.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_div_salt = ft.TextField(
             label="Divalent Salt Conc (mM)",
             value="1.5",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dNTP_conc = ft.TextField(
             label="dNTP Conc (mM)",
             value="0.0",
             on_change=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
         self.set_tm_method = ft.Dropdown(
             label="Tm Calculation Method",
@@ -76,6 +85,24 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             expand=True,
             on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
+        )
+        from amplifyp.gui.utils.ui import BorderedCheckbox
+
+        self.set_show_primer_temperature = BorderedCheckbox(
+            label="Show Primer Temperature in List",
+            on_change=self.on_change_handler,
+        )
+        self.set_tm_colour_scheme = ft.Dropdown(
+            label="Tm Colour Scheme",
+            options=[
+                ft.dropdown.Option("None"),
+                ft.dropdown.Option("Cool-Warm"),
+                ft.dropdown.Option("Traffic Light"),
+            ],
+            expand=True,
+            on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
         )
 
         self.settings_map["tm_dna_conc"] = self.set_tm_dna_conc
@@ -84,6 +111,10 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["tm_div_salt"] = self.set_tm_div_salt
         self.settings_map["tm_dNTP_conc"] = self.set_tm_dNTP_conc
         self.settings_map["tm_method"] = self.set_tm_method
+        self.settings_map["show_primer_temperature"] = (
+            self.set_show_primer_temperature
+        )
+        self.settings_map["tm_colour_scheme"] = self.set_tm_colour_scheme
 
         super().__init__(
             title=ft.Text(
@@ -98,7 +129,6 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                         [
                             ft.Row(
                                 [
-                                    ft.Container(expand=True),
                                     ft.Container(
                                         content=ft.Column(
                                             [
@@ -108,13 +138,16 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                                                 self.set_tm_mono_salt,
                                                 self.set_tm_div_salt,
                                                 self.set_tm_dNTP_conc,
+                                                self.set_show_primer_temperature,
+                                                ft.Row(
+                                                    [self.set_tm_colour_scheme]
+                                                ),
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                         ),
-                                        expand=2,
+                                        width=500,
                                     ),
-                                    ft.Container(expand=True),
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER,
                             ),

@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,17 +15,25 @@
 
 """Settings View for the Flet application."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.views.settings import (
-    AppearanceTile,
-    DimerTile,
-    ReplicationTile,
-    TmTile,
-)
+
+if TYPE_CHECKING:
+    from amplifyp.gui.utils.ui import BorderedCheckbox
+from amplifyp.gui.logger import reconfigure_logging
+from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
+from amplifyp.gui.views.settings.backup_tile import BackupTile
+from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
+from amplifyp.gui.views.settings.dimer_tile import DimerTile
+from amplifyp.gui.views.settings.replication_tile import ReplicationTile
+from amplifyp.gui.views.settings.tm_tile import TmTile
+from amplifyp.gui.views.settings.updates_tile import UpdatesTile
 from amplifyp.settings import ReplicationSettings
 
 
@@ -36,9 +44,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings | None = None,
-        on_change: Any | None = None,
-        on_apply: Any | None = None,
-        on_reset: Any | None = None,
+        on_change: Callable[[ft.ControlEvent], None] | None = None,
+        on_reset: Callable[[ft.ControlEvent | None], None] | None = None,
+        on_update_found: Callable[[str], None] | None = None,
     ) -> None:
         """Initialise the SettingsView."""
         super().__init__(
@@ -47,8 +55,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.app_page = page
         self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
-        self.on_apply = on_apply
         self.on_reset = on_reset
+        self.on_update_found = on_update_found
 
         self.settings_map: dict[str, Any] = {}
 
@@ -61,7 +69,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.replication_tile = ReplicationTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -71,14 +79,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.tm_tile = TmTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
         )
 
         self.dimer_tile = DimerTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
@@ -88,8 +96,35 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.appearance_tile = AppearanceTile(
             settings=self.settings,
             settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
+        )
+
+        self.diagnostics_tile = DiagnosticsTile(
+            page=self.app_page,
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+        )
+
+        self.backup_tile = BackupTile(
+            page=self.app_page,
+            settings=self.settings,
+            sync_to_state_callback=self.sync_to_state,
+            update_ui_callback=self.update_ui,
+            on_change_callback=self.on_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+            font_size_default=font_size_default,
+        )
+
+        self.updates_tile = UpdatesTile(
+            page=self.app_page,
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+            on_update_found=self.on_update_found,
         )
 
         self.controls = [
@@ -97,9 +132,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
-            self._build_version_info_tile(),
+            self.updates_tile,
+            self.diagnostics_tile,
+            self.backup_tile,
             ft.Divider(),
-            self._build_action_buttons(),
+            self._build_reset_button(),
         ]
 
         # Sync initial UI state
@@ -117,7 +154,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.replication_tile.set_stability_cutoff
 
     @property
-    def set_amp4_compat(self) -> ft.Checkbox:
+    def set_amp4_compat(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the amplify4 compatibility mode checkbox."""
         return self.replication_tile.set_amp4_compat
 
@@ -172,20 +209,30 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.appearance_tile.set_colour_deficient
 
     @property
-    def set_improved_visualisation(self) -> ft.Checkbox:
+    def set_improved_visualisation(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the improved visualisation mode checkbox."""
-        return self.appearance_tile.set_improved_visualisation
+        return self.replication_tile.set_improved_visualisation
 
-    def _build_action_buttons(self) -> ft.Row:
-        """Build the Action buttons Row (Apply & Reset)."""
+    @property
+    def set_show_primer_temperature(self) -> ft.Checkbox | BorderedCheckbox:
+        """Get the show primer temperature checkbox."""
+        return self.tm_tile.set_show_primer_temperature
+
+    @property
+    def set_tm_colour_scheme(self) -> ft.Dropdown:
+        """Get the Tm colour scheme dropdown."""
+        return self.tm_tile.set_tm_colour_scheme
+
+    @property
+    def set_version_checking_frequency(self) -> ft.Dropdown:
+        """Get the version checking frequency dropdown."""
+        return self.updates_tile.set_version_checking_frequency
+
+    def _build_reset_button(self) -> ft.Row:
+        """Build the Reset button Row."""
         return ft.Row(
             list[ft.Control](
                 [
-                    ft.FilledButton(
-                        "Apply",
-                        icon=ft.Icons.DONE,
-                        on_click=self._on_apply_handler,
-                    ),
                     ft.OutlinedButton(
                         "Reset to Default",
                         icon=ft.Icons.RESTORE,
@@ -200,32 +247,66 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
         for k, v in self.settings_map.items():
-            self.settings[k] = v.value
+            if k == "log_rotation_max_bytes":
+                try:
+                    self.settings[k] = int(v.value) * 1024 * 1024
+                except (ValueError, TypeError):
+                    self.settings[k] = 5242880
+            else:
+                self.settings[k] = v.value
         self.appearance_tile.sync_colour_scheme_to_settings()
+
+    def _reconfigure_logging(self) -> None:
+        """Reconfigure logging based on current settings."""
+        reconfigure_logging(
+            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_flet=self.settings.get("log_level_flet", "INFO"),
+            log_console_enabled=self.settings.get("log_console_enabled", True),
+            log_file_enabled=self.settings.get("log_file_enabled", True),
+            log_file_path=self.settings.get("log_file_path", "(Default)"),
+            is_web=self.app_page.web,
+            log_rotation_enabled=self.settings.get(
+                "log_rotation_enabled", True
+            ),
+            log_rotation_max_bytes=self.settings.get(
+                "log_rotation_max_bytes", 5242880
+            ),
+        )
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
+        from amplifyp.gui.utils.ui import BorderedCheckbox
+
         for k, v in self.settings.items():
             if k in self.settings_map:
-                if isinstance(self.settings_map[k], ft.Checkbox):
+                if isinstance(
+                    self.settings_map[k], (ft.Checkbox, BorderedCheckbox)
+                ):
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
         self.appearance_tile.update_colour_scheme_dropdown()
+        self.replication_tile.update_ui()
+        self.dimer_tile.update_ui()
+        self.diagnostics_tile.update_ui()
+        self.updates_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
+        # Sync the triggering control's value first (Dropdown .value may not
+        # be updated yet when on_select fires in Flet).
+        ctrl = getattr(e, "control", None)
+        if ctrl is not None:
+            for k, v in self.settings_map.items():
+                if v is ctrl:
+                    self.settings[k] = ctrl.value
+                    break
         self.sync_to_state()
+        self._reconfigure_logging()
         if self.on_change:
             self.on_change(e)
 
-    def _on_apply_handler(self, e: ft.ControlEvent) -> None:
-        """Handle apply button click."""
-        self.sync_to_state()
-        if self.on_apply:
-            self.on_apply(e)
-
-    def _on_reset_handler(self, e: ft.ControlEvent) -> None:
+    def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""
         from amplifyp.dna import Nucleotides
         from amplifyp.settings import (
@@ -254,6 +335,17 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,
+            "show_primer_temperature": False,
+            "tm_colour_scheme": "None",
+            "log_level_amplifyp": "INFO",
+            "log_level_flet": "INFO",
+            "log_console_enabled": True,
+            "log_file_enabled": True,
+            "log_file_path": "(Default)",
+            "log_rotation_enabled": True,
+            "log_rotation_max_bytes": 5242880,
+            "version_checking_frequency": "Once per Month",
+            "last_version_check_timestamp": 0.0,
         }
 
         for r_char in Nucleotides.PRIMER:
@@ -272,9 +364,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         self.settings.from_dict(reset_dict)
         self.update_ui()
+        self.settings.save_to_local(self.app_page)
+        self._reconfigure_logging()
         self.app_page.update()
         if self.on_reset:
-            self.on_reset(e)
+            self.on_reset(args[0] if args else None)
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""
@@ -291,51 +385,3 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.settings.from_dict(state)
         self.update_ui()
         self.app_page.update()
-
-    def _build_version_info_tile(self) -> ft.ExpansionTile:
-        """Build a tile showing the version string and full Git SHA."""
-        from amplifyp.gui.util import get_full_sha, get_version
-
-        full_sha = get_full_sha()
-        app_version = get_version()
-        header_size = self.settings.get("font_size_header", 18)
-
-        return ft.ExpansionTile(
-            title=ft.Text(
-                "About AmplifyP",
-                weight=ft.FontWeight.BOLD,
-                size=header_size,
-            ),
-            expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
-            controls=[
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.Row(
-                                [
-                                    ft.Text(
-                                        "Version: ", weight=ft.FontWeight.BOLD
-                                    ),
-                                    ft.Text(app_version, selectable=True),
-                                ],
-                                alignment=ft.MainAxisAlignment.START,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                            ft.Row(
-                                [
-                                    ft.Text(
-                                        "Full Git SHA: ",
-                                        weight=ft.FontWeight.BOLD,
-                                    ),
-                                    ft.Text(full_sha, selectable=True),
-                                ],
-                                alignment=ft.MainAxisAlignment.START,
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                        ],
-                        spacing=5,
-                    ),
-                    padding=ft.Padding(20, 10, 20, 10),
-                )
-            ],
-        )

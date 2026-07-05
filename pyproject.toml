@@ -6,8 +6,11 @@ requires = [
 
 [project]
 name = "amplifyp"
-version = "v0.6.7"
-description = "Modern Python rewrite of Amplify4 for PCR simulation, amplicon prediction, and primer dimer analysis"
+version = "1.4.0"
+description = """\
+Modern Python rewrite of Amplify4 for PCR simulation, \
+amplicon prediction, and primer dimer analysis\
+"""
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -23,13 +26,14 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
 ]
-optional-dependencies.tests = [
+optional-dependencies.dev = [
   "pytest>=9.0.3",
   "pytest-asyncio>=1.4.0",
   "pytest-cov>=7.1.0",
   "pytest-testmon>=2.2.0",
   "pytest-playwright>=0.8.0",
   "pyright>=1.1.410",
+  "prek",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright>=0.8.0",
@@ -72,8 +76,6 @@ pythonpath = "src"
 testpaths = ["tests"]
 addopts = [
   "--import-mode=importlib",
-  "--cov=src/amplifyp",
-  "--cov-report=xml",
   "-m", "not e2e",
 ]
 markers = [
@@ -89,6 +91,10 @@ omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 [tool.mypy]
 mypy_path = "src"
 
+[[tool.mypy.overrides]]
+module = "amplifyp.gui.*"
+disable_error_code = ["arg-type", "attr-defined", "call-arg", "assignment"]
+
 [tool.vulture]
 paths = ["src/"]
 min_confidence = 80
@@ -96,7 +102,7 @@ min_confidence = 80
 [tool.pyright]
 include = ["src/"]
 exclude = ["tests/"]
-reportAttributeAccessIssue = false
-reportArgumentType = false
-reportCallIssue = false
-reportMissingImports = false
+reportAttributeAccessIssue = "error"
+reportArgumentType = "error"
+reportCallIssue = "error"
+reportMissingImports = "error"

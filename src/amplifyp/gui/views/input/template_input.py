@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,17 @@
 
 """Input component for DNA template sequence."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import NotificationHelper
 
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
@@ -33,11 +36,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_template_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
+        clear_template_callback: Callable[[ft.Event | None], None],
     ) -> None:
         """Initialise the TemplateInput component."""
         super().__init__(expand=5)
@@ -162,13 +165,13 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             spacing=5,
         )
 
-    async def _load_template_click(self, e: ft.ControlEvent) -> None:
+    async def _load_template_click(self, e: ft.Event) -> None:
         """Open file picker to load template sequence from a TXT file.
 
         Args:
             e: The Flet control event triggered by the load button click.
         """
-        from amplifyp.gui.util import pick_and_read_file
+        from amplifyp.gui.utils.io import pick_and_read_file
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -181,11 +184,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         self.input_data.template = content
         self.update_ui()
-        if self.on_change_handler:
-            self.on_change_handler(None)
+        self.on_change_handler(None)
         self._show_notification("Template loaded successfully.")
 
-    async def _save_template_click(self, e: ft.ControlEvent) -> None:
+    async def _save_template_click(self, e: ft.Event) -> None:
         """Save template sequence to a TXT file.
 
         Args:
@@ -196,7 +198,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             self._show_notification("No template to save.")
             return
 
-        from amplifyp.gui.util import save_and_write_file
+        from amplifyp.gui.utils.io import save_and_write_file
 
         await save_and_write_file(
             page=self.app_page,

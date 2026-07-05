@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@ from dataclasses import replace
 import pytest
 
 from amplifyp.dna import Primer
+from amplifyp.errors import InsufficientThermodynamicDataError
 from amplifyp.melting import (
     calculate_tm_lander_amplify4,
     calculate_tm_santalucia_1998_owczarzy_2008,
@@ -208,7 +209,9 @@ def test_calculate_tm_no_monovalent() -> None:
 def test_calculate_tm_amplify4_edge_cases() -> None:
     """Test Tm calculation (Amplify4) with edge cases."""
     # Empty primer
-    assert calculate_tm_lander_amplify4(Primer(""), GLOBAL_TM_SETTINGS) == 0.0
+    assert calculate_tm_lander_amplify4(
+        Primer(""), GLOBAL_TM_SETTINGS
+    ) == pytest.approx(0.0)
 
     # Zero/negative salt
     # Should fallback to 50mM
@@ -226,3 +229,10 @@ def test_calculate_tm_no_salts() -> None:
     # Or just return tm_1m_K essentially.
     tm = calculate_tm_santalucia_1998_owczarzy_2008(Primer("ATCG"), settings)
     assert tm > -273.15
+
+
+def test_calculate_tm_invalid_sequences() -> None:
+    """Test that Tm calculation raises ValueError for invalid sequences."""
+    settings = GLOBAL_TM_SETTINGS
+    with pytest.raises(InsufficientThermodynamicDataError):
+        calculate_tm_santalucia_1998_owczarzy_2008(Primer("NNNN"), settings)

@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 
 from typing import Any
 
-from amplifyp.gui.util import clean_sequence, format_sequence
+from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
 
 
 class GUIInput:

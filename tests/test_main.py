@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,9 @@
 
 from unittest.mock import MagicMock
 
+import flet
 import flet as ft
+import pytest
 
 from amplifyp.gui.app import main as gui_main
 from main import main
@@ -95,3 +97,37 @@ def test_window_close_warning_dialog() -> None:
     # Verify dialog is closed
     assert dialog.open is False
     mock_page.update.assert_called_once()
+
+
+def test_cli_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test cli() with default desktop settings."""
+    import main as main_module
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(flet, "run", mock_run)
+
+    main_module.cli([])
+
+    assert main_module.state_file is None
+    assert main_module.auto_close is False
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["view"] == flet.AppView.FLET_APP
+    assert kwargs["port"] == 0
+
+
+def test_cli_web(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test cli() with --web flag."""
+    import main as main_module
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(flet, "run", mock_run)
+
+    main_module.cli(["--web"])
+
+    assert main_module.state_file is None
+    assert main_module.auto_close is False
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["view"] == flet.AppView.WEB_BROWSER
+    assert kwargs["port"] == 34521

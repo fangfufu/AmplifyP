@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -194,7 +194,6 @@ def test_primer_redundancy_fold_wildcard() -> None:
 
 def test_primer_redundancy_mixed() -> None:
     """Test redundancy calculation with mixed degenerate bases."""
-    # R (2) * N (4) * Y (2) = 16
     primer = Primer("RNY")
     assert primer.redundancy_fold == 16
     assert primer.redundant_base_count == 3

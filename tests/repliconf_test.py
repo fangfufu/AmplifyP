@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -121,14 +121,14 @@ def test_dir_idx_methods() -> None:
 
     # le
     assert d2 <= d1
-    assert d1 <= d1
+    assert d1 <= d1  # reflexivity
     assert d2 <= 10
     with pytest.raises(TypeError):
         _ = d1 <= "a"
 
     # ge
     assert d1 >= d2
-    assert d1 >= d1
+    assert d1 >= d1  # reflexivity
     assert d1 >= 5
     with pytest.raises(TypeError):
         _ = d1 >= "a"

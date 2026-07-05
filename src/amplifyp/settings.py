@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Final
 
@@ -69,7 +68,10 @@ class LengthWiseWeightTbl:
         Returns:
             LengthWiseWeightTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = LengthWiseWeightTbl.__new__(LengthWiseWeightTbl)
+        new_tbl.__default_weight = self.__default_weight
+        new_tbl.__overrides = dict(self.__overrides)
+        return new_tbl
 
     def copy(self) -> "LengthWiseWeightTbl":
         """Return a deep copy of this object.
@@ -171,15 +173,17 @@ class BasePairWeightsTbl:
         if len(weight) != exp_row_len:
             raise RowLengthMismatchError()
 
+        gap = Nucleotides.GAP
+
         for i, row_val in enumerate(self.__row):
-            if row_val != Nucleotides.GAP:
+            if row_val != gap:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
                     raise ColumnLengthMismatchError()
                 self.__row_max[row_val] = max(weight[i])
             for j, col_val in enumerate(self.__col):
                 val: float | int
-                if Nucleotides.GAP in [row_val, col_val]:
+                if row_val == gap or col_val == gap:
                     val = 0
                 else:
                     val = weight[i][j]
@@ -283,7 +287,15 @@ class BasePairWeightsTbl:
         Returns:
             BasePairWeightsTbl: A new object with the same weights.
         """
-        return deepcopy(self)
+        new_tbl = BasePairWeightsTbl.__new__(BasePairWeightsTbl)
+        new_tbl.__row = self.__row
+        new_tbl.__col = self.__col
+        new_tbl.__weight = dict(self.__weight)
+        new_tbl.__row_max = dict(self.__row_max)
+        new_tbl.__matrix = [list(r) for r in self.__matrix]
+        new_tbl.__row_map = list(self.__row_map)
+        new_tbl.__col_map = list(self.__col_map)
+        return new_tbl
 
     def copy(self) -> "BasePairWeightsTbl":
         """Return a deep copy of this object.

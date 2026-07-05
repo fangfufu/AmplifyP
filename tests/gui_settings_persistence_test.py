@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,11 +92,23 @@ def test_desktop_save_to_local() -> None:
         settings.save_to_local(mock_page)
 
     mock_path.parent.mkdir.assert_called_once_with(parents=True, exist_ok=True)
-    m_open.assert_called_once_with(mock_path, "w", encoding="utf-8")
+
+    # Filter out external background file opens (e.g. xonsh history json)
+    config_open_call = None
+    for call in m_open.call_args_list:
+        if call[0] and call[0][0] == mock_path:
+            config_open_call = call
+            break
+    assert config_open_call is not None, (
+        f"Config file path {mock_path} was not opened"
+    )
+    assert config_open_call[0][1] == "w"
+    assert config_open_call[1].get("encoding") == "utf-8"
 
     # Check if YAML was dumped (contains primability_cutoff)
-    handle = m_open()
-    written_data = "".join(call[0][0] for call in handle.write.call_args_list)
+    written_data = "".join(
+        call[0][0] for call in m_open.return_value.write.call_args_list
+    )
     parsed = yaml.safe_load(written_data)
     assert parsed["primability_cutoff"] == "0.75"
 

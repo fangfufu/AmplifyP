@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,8 +15,10 @@
 
 """Centralised GUI settings and configuration."""
 
+import logging
 import os
 import sys
+from collections.abc import ItemsView, Iterator, KeysView
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +36,16 @@ from amplifyp.settings import (
     GLOBAL_TM_SETTINGS,
 )
 
+if TYPE_CHECKING:
+    from amplifyp.dna import Primer
+    from amplifyp.settings import (
+        PrimerDimerSettings,
+        ReplicationSettings,
+        TMSettings,
+    )
+
+logger = logging.getLogger(__name__)
+
 # Maximum number of amplicons to draw on the PCR result diagram to
 # prevent UI freeze.
 MAX_AMPLICONS_RENDER = 100
@@ -41,13 +53,6 @@ MAX_AMPLICONS_RENDER = 100
 # Maximum number of primer dimer cards to display in the UI to
 # prevent UI freeze.
 MAX_DIMERS_RENDER = 100
-
-if TYPE_CHECKING:
-    from amplifyp.settings import (
-        PrimerDimerSettings,
-        ReplicationSettings,
-        TMSettings,
-    )
 
 
 class GUISettings:
@@ -61,6 +66,7 @@ class GUISettings:
         """
         from amplifyp.dna import Nucleotides
 
+        self._cached_tm_settings: TMSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -87,6 +93,19 @@ class GUISettings:
             "font_size_micro": 10,
             "font_size_table_header": 15,
             "improved_visualisation": True,
+            "show_primer_temperature": False,
+            "ignore_inactive_name_dup_warn": True,
+            "ignore_inactive_seq_dup_warn": True,
+            "tm_colour_scheme": "None",
+            "log_level_amplifyp": "INFO",
+            "log_level_flet": "INFO",
+            "log_console_enabled": True,
+            "log_file_enabled": True,
+            "log_file_path": "(Default)",
+            "log_rotation_enabled": True,
+            "log_rotation_max_bytes": 5242880,
+            "version_checking_frequency": "Once per Month",
+            "last_version_check_timestamp": 0.0,
         }
 
         # Initialise base-pair weights
@@ -162,6 +181,7 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
+        self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
             if isinstance(val, str):
@@ -189,7 +209,7 @@ class GUISettings:
         """
         return self._settings.get(key, default)
 
-    def items(self) -> Any:
+    def items(self) -> ItemsView[str, Any]:
         """Get the settings key-value items.
 
         Returns:
@@ -197,7 +217,7 @@ class GUISettings:
         """
         return self._settings.items()
 
-    def keys(self) -> Any:
+    def keys(self) -> KeysView[str]:
         """Get the settings keys.
 
         Returns:
@@ -205,7 +225,7 @@ class GUISettings:
         """
         return self._settings.keys()
 
-    def __iter__(self) -> Any:
+    def __iter__(self) -> Iterator[str]:
         """Iterate over settings keys.
 
         Returns:
@@ -349,9 +369,12 @@ class GUISettings:
         Returns:
             A TMSettings instance configured from GUI settings.
         """
-        from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
+        from amplifyp.settings import TMSettings
 
-        return TMSettings(
+        if self._cached_tm_settings is not None:
+            return self._cached_tm_settings
+
+        self._cached_tm_settings = TMSettings(
             dna_conc=self._safe_float(
                 "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
             ),
@@ -368,8 +391,9 @@ class GUISettings:
                 "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
             ),
         )
+        return self._cached_tm_settings
 
-    def calculate_primer_tm(self, primer: Any) -> float:
+    def calculate_primer_tm(self, primer: "Primer") -> float:
         """Calculate the melting temperature of a primer based on settings.
 
         Uses the configured TM method (SantaLucia 1998 / Owczarzy 2008
@@ -448,6 +472,7 @@ class GUISettings:
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
             GUIColours.dark_mode = bool(dark_mode_val)
+        self._cached_tm_settings = None
 
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration.
@@ -513,8 +538,10 @@ class GUISettings:
                     data = yaml.safe_load(f)
                 if isinstance(data, dict):
                     self.from_dict(data)
-            except Exception as e:
-                print(f"Error loading settings from {config_path}: {e}")
+            except (OSError, yaml.YAMLError, ValueError) as e:
+                logger.exception(
+                    "Error loading settings from %s: %s", config_path, e
+                )
 
     def save_to_local(self, page: ft.Page) -> None:
         """Save settings to local storage.
@@ -537,5 +564,5 @@ class GUISettings:
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
                 yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
-        except Exception as e:
-            print(f"Error saving settings to {config_path}: {e}")
+        except (OSError, yaml.YAMLError, ValueError) as e:
+            logger.exception("Error saving settings to %s: %s", config_path, e)

@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,19 @@
 
 """Flet component displaying details of a selected DNA primer."""
 
-from typing import Any
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+
+logger = logging.getLogger(__name__)
 
 
 class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
@@ -37,7 +42,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         super().__init__()
         self.settings = settings
-        self._on_dismiss_callback: Any = None
+        self._on_dismiss_callback: Callable[[], None] | None = None
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -113,7 +118,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
         self.visible = False
 
-    def _on_close_click(self, e: Any) -> None:
+    def _on_close_click(self, e: ft.Event) -> None:
         """Handle close button click: clear focus and hide panel.
 
         Args:
@@ -128,8 +133,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         focused_idx: int | None,
         input_data: GUIInput,
         app_page: ft.Page,
-        on_update_highlights: Any,
-        on_dismiss: Any = None,
+        on_update_highlights: Callable[[], None],
+        on_dismiss: Callable[[], None] | None = None,
     ) -> None:
         """Update the primer information panel based on the focused primer.
 
@@ -231,7 +236,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             self.visible = True
 
-        except Exception:
+        except (ValueError, AttributeError, ArithmeticError):
+            logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
 
         app_page.update()

@@ -1,4 +1,4 @@
 # Yes, in pyproject.toml, these packages are specified. However,
 # requirements.txt is required for Pyodide. Otherwise web publish does not work!
-flet
-PyYAML
+flet>=0.85.2
+PyYAML>=6.0

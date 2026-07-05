@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 import csv
 import io
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
@@ -31,9 +32,9 @@ class PrimerFileManager:
         self,
         page: ft.Page,
         input_data: GUIInput,
-        on_update_ui: Any,
-        on_change_handler: Any,
-        show_notification: Any,
+        on_update_ui: Callable[[], None],
+        on_change_handler: Callable[[ft.Event[ft.Control] | None], None],
+        show_notification: Callable[[str], None],
     ) -> None:
         """Initialise the PrimerFileManager.
 
@@ -117,16 +118,16 @@ class PrimerFileManager:
         output.close()
         return tsv_content
 
-    async def load_primers_click(self, e: ft.ControlEvent) -> None:
+    async def load_primers_click(self, _e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file.
 
         Reads the selected file, parses primers, appends them to the
         current primer list, and updates the UI.
 
         Args:
-            e: The Flet control event triggered by the load button click.
+            _e: The Flet control event (unused).
         """
-        from amplifyp.gui.util import pick_and_read_file
+        from amplifyp.gui.utils.io import pick_and_read_file
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -157,22 +158,21 @@ class PrimerFileManager:
                     self.input_data.primers.append(p)
 
                 self.on_update_ui()
-                if self.on_change_handler:
-                    self.on_change_handler(None)
+                self.on_change_handler(None)
                 self.show_notification(f"Loaded {len(parsed)} primer(s).")
             else:
                 self.show_notification("No valid primers found in file.")
-        except Exception as ex:
+        except (OSError, ValueError, csv.Error) as ex:
             self.show_notification(f"Error parsing primers: {ex}")
 
-    async def save_primers_click(self, e: ft.ControlEvent) -> None:
+    async def save_primers_click(self, _e: ft.Event | None) -> None:
         """Save primers to a TSV file.
 
         Opens a file picker for the user to choose a save location,
         then writes the primer list as tab-separated values.
 
         Args:
-            e: The Flet control event triggered by the save button click.
+            _e: The Flet control event (unused).
         """
         primers_to_save = [
             p
@@ -185,7 +185,7 @@ class PrimerFileManager:
 
         tsv_content = self._serialise_primers_to_tsv(primers_to_save)
 
-        from amplifyp.gui.util import save_and_write_file
+        from amplifyp.gui.utils.io import save_and_write_file
 
         await save_and_write_file(
             page=self.app_page,

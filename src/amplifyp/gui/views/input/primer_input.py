@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,19 @@
 
 """Input component for DNA primers list and details."""
 
-from typing import Any
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from typing import Any, cast
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import NotificationHelper, clean_sequence
+from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.ui import NotificationHelper
 
 from .primer_action_controller import PrimerActionController
 from .primer_file_manager import PrimerFileManager
@@ -32,7 +37,13 @@ from .primer_layout_manager import PrimerLayoutManager
 from .primer_list import PrimerList
 from .primer_row import PrimerRow
 from .primer_toolbar import PrimerToolbar
-from .primer_validation import validate_primers
+from .primer_validation import (
+    get_duplicate_primer_indices,
+    reconcile_primer_states,
+    validate_primers,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class PrimerInput(ft.Container):  # type: ignore[misc]
@@ -43,12 +54,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         page: ft.Page,
         settings: GUISettings,
         input_data: GUIInput,
-        on_change_handler: Any,
-        handle_field_focus: Any,
-        handle_field_blur: Any,
-        handle_field_submit: Any,
-        clear_primers_callback: Any,
-        delete_selected_callback: Any,
+        on_change_handler: Callable[[ft.Event | None], None],
+        handle_field_focus: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_blur: Callable[[ft.Event[ft.TextField]], None],
+        handle_field_submit: Callable[[ft.Event[ft.TextField]], None],
+        clear_primers_callback: Callable[[ft.Event | None], None],
+        delete_selected_callback: Callable[[ft.Event | None], None],
     ) -> None:
         """Initialise the PrimerInput component.
 
@@ -78,6 +89,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.action_controller = PrimerActionController(self)
 
         self.focused_primer_index: int | None = None
+        self.selected_indices: set[int] = set()
         self.validation_errors: list[dict[str, str | None]] = []
         self._prev_header_checkbox_value: bool | None = None
         self._visible_rows_cache: list[PrimerRow] | None = None
@@ -100,6 +112,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_divider_pan=self.layout_manager.on_primer_divider_pan,
             on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
+            on_add_primer=self._header_add_click,
+            on_delete_primer=self._header_delete_click,
+            on_move_primer_up=self._header_up_click,
+            on_move_primer_down=self._header_down_click,
         )
         # Compatibility links
         self.all_primers_checkbox = self.primer_header.all_primers_checkbox
@@ -121,25 +137,27 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_load=self._load_primers_click,
             on_clear=self.clear_primers_callback,
             on_delete_selected=self.delete_selected_callback,
+            on_copy=self._copy_primers_click,
+            on_paste=self._paste_primers_click,
         )
         # Compatibility links
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
 
-        # Error Banner for selected invalid primers
         self.error_message_text = ft.Text(
             value=(
                 "PCR and Primer Dimer views are disabled because "
-                "one or more selected (active) primers are invalid."
+                "one or more selected primers are invalid, or "
+                "have duplicated names/sequences."
             ),
-            color=GUIColours.ERROR_RED,
+            color=ft.Colors.ON_ERROR_CONTAINER,
             weight=ft.FontWeight.BOLD,
             size=13,
         )
         self.error_banner = ft.Container(
             content=self.error_message_text,
             padding=ft.Padding(10, 5, 10, 5),
-            bgcolor=GUIColours.DUPLICATE_BG,
+            bgcolor=ft.Colors.ERROR_CONTAINER,
             border_radius=5,
             visible=False,
         )
@@ -153,20 +171,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             [
                 ft.ResponsiveRow(
                     [
-                        ft.Container(
-                            content=ft.Text(
-                                "Primers",
-                                weight=ft.FontWeight.BOLD,
-                                no_wrap=True,
-                            ),
-                            col={"lg": 3, "md": 3, "sm": 12, "xs": 12},
-                            height=32,
-                            alignment=ft.Alignment(-1, 0),
-                        ),
-                        ft.Container(
-                            content=self.primer_toolbar,
-                            col={"lg": 9, "md": 9, "sm": 12, "xs": 12},
-                            alignment=ft.Alignment(1, 0),
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Primers",
+                                    weight=ft.FontWeight.BOLD,
+                                    no_wrap=True,
+                                ),
+                                self.primer_toolbar,
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            wrap=True,
                         ),
                     ],
                     run_spacing=0,
@@ -250,46 +266,49 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             )
         return ui_primers
 
-    def sync_to_state(self, rebuild_if_needed: bool = False) -> bool:
+    def sync_to_state(
+        self, rebuild_if_needed: bool = False, skip_extract: bool = False
+    ) -> bool:
         """Sync current UI controls back to the central state.
 
         Args:
             rebuild_if_needed: If True, triggers a full UI rebuild after
                 syncing. Otherwise, updates error states in-place.
+            skip_extract: If True, skips UI extraction and uses existing
+                state directly. Used after paste handling where state is
+                already updated.
 
         Returns:
             True if a UI rebuild was needed and performed.
         """
-        ui_primers = self._extract_primer_data_from_ui()
-        primers = []
-        for i, p in enumerate(ui_primers):
-            prev_p = (
-                self.input_data.primers[i]
-                if i < len(self.input_data.primers)
-                else {}
-            )
-            # Auto-activate when transitioning from empty to filled
-            is_filled = bool(p["name"].strip() and p["seq"].strip())
-            is_active = p["active"]
-            checkbox = p.get("checkbox")
-            if checkbox and checkbox.disabled and is_filled:
-                is_active = True
-                checkbox.value = True
-                checkbox.disabled = False
+        if skip_extract:
+            ui_primers = self.input_data.primers
+        else:
+            ui_primers = self._extract_primer_data_from_ui()
 
-            primers.append(
-                {
-                    "name": p["name"],
-                    "seq": p["seq"],
-                    "active": is_active,
-                    "name_touched": prev_p.get("name_touched", False),
-                    "seq_touched": prev_p.get("seq_touched", False),
-                }
-            )
+        primers = reconcile_primer_states(ui_primers, self.input_data.primers)
 
-        dup_indices = self._get_duplicate_indices_for_list(ui_primers)
+        # Update checkbox values in-place on UI controls if they
+        # were updated during reconciliation.
+        for reconciled_p, ui_p in zip(primers, ui_primers, strict=True):
+            checkbox = ui_p.get("checkbox")
+            if checkbox:
+                checkbox.value = reconciled_p["active"]
+
+        ignore_inactive_name_dup = self.settings.get(
+            "ignore_inactive_name_dup_warn", True
+        )
+        ignore_inactive_seq_dup = self.settings.get(
+            "ignore_inactive_seq_dup_warn", True
+        )
+
+        dup_indices = get_duplicate_primer_indices(
+            ui_primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
+        )
         for p in ui_primers:
-            container = p["container"]
+            container = p.get("container")
+            if container is None:
+                continue
             c_idx = container.data
             is_dup = c_idx in dup_indices
             new_color = GUIColours.DUPLICATE_BG if is_dup else None
@@ -297,13 +316,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 container.bgcolor = new_color
 
         # Run background primer construction/validation
-        new_validation_errors = validate_primers(primers)
-
-        # Force active = False in state for empty fields
-        for p in primers:
-            is_empty = not p["name"].strip() or not p["seq"].strip()
-            if is_empty:
-                p["active"] = False
+        new_validation_errors = validate_primers(
+            primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
+        )
 
         self.input_data.primers = primers
         self.validation_errors = new_validation_errors
@@ -317,6 +332,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     new_validation_errors
                 ):
                     row.set_error(new_validation_errors[idx])
+                    row.update_tm(self.settings)
             self._update_row_highlights()
             self._update_header_checkbox_state()
             self._update_delete_button_disabled_state()
@@ -329,8 +345,41 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Rebuilds the primer list and updates the delete button disabled
         state based on current selections.
         """
+        # Recreate the header to make sure controls match settings and indices
+        self.primer_header = PrimerHeader(
+            settings=self.settings,
+            on_toggle_all=self._on_toggle_all_primers,
+            on_divider_pan=self.layout_manager.on_primer_divider_pan,
+            on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
+            name_column_width=self.name_column_width,
+            on_add_primer=self._header_add_click,
+            on_delete_primer=self._header_delete_click,
+            on_move_primer_up=self._header_up_click,
+            on_move_primer_down=self._header_down_click,
+        )
+        self.all_primers_checkbox = self.primer_header.all_primers_checkbox
+        self.primers_header = self.primer_header.header_row
+        self.primers_header_container = self.primer_header
+
+        # Replace the header in the UI container controls
+        column = cast(ft.Column, self.content)
+        container = cast(ft.Container, column.controls[1])
+        inner_column = cast(ft.Column, container.content)
+        inner_column.controls[0] = self.primer_header
+        try:
+            if container.page:
+                container.update()
+        except RuntimeError:
+            logger.debug("Container page detached, skipping update")
+
         self.primers_list.update_list_ui()
         self._update_delete_button_disabled_state()
+        self._update_header_buttons_state()
+        try:
+            if self.page:
+                self.update()
+        except RuntimeError:
+            pass
 
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of the delete button based on selection.
@@ -338,14 +387,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         The delete button is enabled only when at least one primer is
         active (selected).
         """
-        has_selected = any(
-            p.get("active", False) for p in self.input_data.primers
-        )
-        self.delete_selected_button.disabled = not has_selected
+        self.delete_selected_button.disabled = not self.selected_indices
         if self.delete_selected_button.parent:
             self.delete_selected_button.update()
 
-    def _on_toggle_all_primers(self, e: Any) -> None:
+    def _on_toggle_all_primers(self, e: ft.Event[ft.Checkbox]) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox.
 
         Handles the three checkbox states (True, False, None/tristate)
@@ -385,8 +431,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                         row.checkbox.value = False
 
         self._prev_header_checkbox_value = cb_value
-        if self.on_change_handler:
-            self.on_change_handler(e)
+        self.on_change_handler(e)
 
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states.
@@ -409,46 +454,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
+        self._prev_header_checkbox_value = self.all_primers_checkbox.value
         if self.app_page:
             self.app_page.update()
-
-    def _get_duplicate_indices_for_list(
-        self, primers: list[dict[str, Any]]
-    ) -> set[int]:
-        """Find and return indices of duplicate primers by name/sequence.
-
-        Args:
-            primers: List of primer dicts to check for duplicates.
-
-        Returns:
-            Set of indices corresponding to primers with duplicate names
-            or sequences.
-        """
-        names_count: dict[str, int] = {}
-        seqs_count: dict[str, int] = {}
-        for p in primers:
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if n_lower:
-                names_count[n_lower] = names_count.get(n_lower, 0) + 1
-            if s_lower:
-                seqs_count[s_lower] = seqs_count.get(s_lower, 0) + 1
-
-        dup_indices = set()
-        for idx, p in enumerate(primers):
-            n_lower = str(p.get("name", "")).strip().lower()
-            s_lower = clean_sequence(str(p.get("seq", ""))).lower()
-            if (n_lower and names_count.get(n_lower, 0) > 1) or (
-                s_lower and seqs_count.get(s_lower, 0) > 1
-            ):
-                # If the item has a container reference, use container.data,
-                # otherwise use idx
-                c = p.get("container")
-                c_idx = (
-                    c.data if (c is not None and hasattr(c, "data")) else idx
-                )
-                dup_indices.add(c_idx)
-        return dup_indices
 
     def _get_duplicate_indices(self) -> set[int]:
         """Find indices of primers with duplicate names or sequences.
@@ -457,7 +465,17 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             Set of indices corresponding to primers with duplicate names
             or sequences in the central state.
         """
-        return self._get_duplicate_indices_for_list(self.input_data.primers)
+        ignore_inactive_name_dup = self.settings.get(
+            "ignore_inactive_name_dup_warn", True
+        )
+        ignore_inactive_seq_dup = self.settings.get(
+            "ignore_inactive_seq_dup_warn", True
+        )
+        return get_duplicate_primer_indices(
+            self.input_data.primers,
+            ignore_inactive_name_dup,
+            ignore_inactive_seq_dup,
+        )
 
     def _update_row_highlights(self) -> None:
         """Update background colours of all row containers.
@@ -466,6 +484,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         duplicates (by name or sequence).
         """
         self.primers_list.update_row_highlights()
+        self._update_header_buttons_state()
 
     def _update_primer_info_panel(self) -> None:
         """Update the primer information panel based on the focused primer.
@@ -489,7 +508,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_dismiss=on_dismiss,
         )
 
-    async def _load_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _load_primers_click(self, e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file.
 
         Delegates to the PrimerFileManager component.
@@ -499,7 +518,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """
         await self.file_manager.load_primers_click(e)
 
-    async def _save_primers_click(self, e: ft.ControlEvent) -> None:
+    async def _save_primers_click(self, e: ft.Event | None) -> None:
         """Save active primers to a CSV file.
 
         Delegates to the PrimerFileManager component.
@@ -518,3 +537,156 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    async def _copy_primers_click(self, e: ft.Event | None) -> None:
+        """Copy selected or focused primers to clipboard in TSV format."""
+        primers = self.input_data.primers
+        selected_primers = (
+            [
+                primers[i]
+                for i in sorted(self.selected_indices)
+                if 0 <= i < len(primers)
+            ]
+            if self.selected_indices
+            else []
+        )
+
+        # Fallback to focused primer if no selected rows
+        if not selected_primers and self.focused_primer_index is not None:
+            if 0 <= self.focused_primer_index < len(primers):
+                selected_primers = [primers[self.focused_primer_index]]
+
+        if not selected_primers:
+            self._show_notification(
+                "No primers highlighted or focused to copy."
+            )
+            return
+
+        lines = []
+        for p in selected_primers:
+            name = str(p.get("name", "")).strip()
+            seq = str(p.get("seq", "")).strip()
+            lines.append(f"{name}\t{seq}")
+
+        tsv_text = "\n".join(lines)
+        await ft.Clipboard().set(tsv_text)
+        self._show_notification(
+            f"Copied {len(selected_primers)} primer(s) to clipboard."
+        )
+
+    async def _paste_primers_click(self, e: ft.Event | None) -> None:
+        """Paste primers from clipboard starting at focused index or end."""
+        try:
+            clipboard_text = await ft.Clipboard().get()
+        except Exception as ex:
+            logger.warning("Failed to access clipboard: %s", ex)
+            self._show_notification(
+                "Unable to read clipboard. Try pasting directly into a "
+                "primer field using Ctrl+V."
+            )
+            return
+        if not clipboard_text:
+            self._show_notification("Clipboard is empty.")
+            return
+
+        from .primer_clipboard import parse_primer_clipboard_text
+
+        parsed = parse_primer_clipboard_text(clipboard_text)
+        if not parsed:
+            self._show_notification("No valid primers found in clipboard.")
+            return
+
+        primers = self.input_data.primers
+        valid_selected = {
+            i for i in self.selected_indices if 0 <= i < len(primers)
+        }
+        if valid_selected:
+            insert_idx = max(valid_selected) + 1
+        else:
+            insert_idx = len(primers)
+
+        # Replace single empty row
+        if (
+            len(primers) == 1
+            and not primers[0].get("name")
+            and not primers[0].get("seq")
+        ):
+            primers.clear()
+            insert_idx = 0
+
+        for i, new_p in enumerate(parsed):
+            new_p["active"] = False
+            primers.insert(insert_idx + i, new_p)
+
+        self.selected_indices = set(range(insert_idx, insert_idx + len(parsed)))
+        self.focused_primer_index = insert_idx
+
+        self.sync_to_state(rebuild_if_needed=True, skip_extract=True)
+        if self.on_change_handler is not None:
+            self.on_change_handler(None)
+
+        self._show_notification(f"Pasted {len(parsed)} primer(s).")
+
+    def _update_header_buttons_state(self) -> None:
+        """Update enabled/disabled state of header action buttons."""
+        if not hasattr(self, "primer_header"):
+            return
+
+        num_primers = len(self.input_data.primers)
+        has_sel = bool(self.selected_indices)
+
+        self.primer_header.add_button.disabled = False
+        self.primer_header.delete_button.disabled = not has_sel
+
+        if has_sel:
+            min_idx = min(self.selected_indices)
+            max_idx = max(self.selected_indices)
+            self.primer_header.up_button.disabled = min_idx == 0
+            self.primer_header.down_button.disabled = max_idx == num_primers - 1
+        else:
+            self.primer_header.up_button.disabled = True
+            self.primer_header.down_button.disabled = True
+
+        try:
+            if self.primer_header.page:
+                self.primer_header.update()
+        except RuntimeError:
+            logger.debug("Header page detached, skipping update")
+
+    def _header_add_click(self, e: ft.Event | None) -> None:
+        """Handle header Add button click."""
+        num_primers = len(self.input_data.primers)
+        if self.selected_indices:
+            idx = min(max(self.selected_indices), num_primers - 1)
+        elif self.focused_primer_index is not None:
+            idx = min(self.focused_primer_index, num_primers - 1)
+        else:
+            idx = num_primers - 1
+
+        self.action_controller.on_add_primer_row(idx)
+        self.selected_indices = {idx + 1}
+        self.focused_primer_index = idx + 1
+        self._update_row_highlights()
+        self._update_primer_info_panel()
+        self._update_delete_button_disabled_state()
+
+    def _header_delete_click(self, e: ft.Event | None) -> None:
+        """Handle header Delete button click."""
+        if self.selected_indices:
+            self.action_controller.delete_primers(self.selected_indices.copy())
+            self._update_header_buttons_state()
+
+    def _header_up_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Up button click."""
+        if self.selected_indices and min(self.selected_indices) > 0:
+            self.action_controller.move_primers(self.selected_indices, -1)
+            self._update_header_buttons_state()
+
+    def _header_down_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Down button click."""
+        if (
+            self.selected_indices
+            and max(self.selected_indices) < len(self.input_data.primers) - 1
+        ):
+            self.action_controller.move_primers(self.selected_indices, 1)
+            self._update_header_buttons_state()

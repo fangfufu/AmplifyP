@@ -1,4 +1,4 @@
-# Copyright (C) 2026 Fufu Fang
+# Copyright (C) 2026 AmplifyP Contributors
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,9 @@
 
 """Toolbar containing actions for managing primers (Save, Load, Clear)."""
 
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Awaitable, Callable
 
 import flet as ft
 
@@ -25,10 +27,12 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
 
     def __init__(
         self,
-        on_save: Any,
-        on_load: Any,
-        on_clear: Any,
-        on_delete_selected: Any,
+        on_save: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_load: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_clear: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_delete_selected: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_copy: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_paste: Callable[[ft.Event | None], None | Awaitable[None]],
     ) -> None:
         """Initialise the PrimerToolbar.
 
@@ -37,6 +41,8 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             on_load: Callback to load primers from a CSV/TSV file.
             on_clear: Callback to clear all primers.
             on_delete_selected: Callback to delete selected primers.
+            on_copy: Callback to copy selected/focused primers.
+            on_paste: Callback to paste primers.
         """
         self.save_button = ft.FilledTonalButton(
             "Save",
@@ -62,19 +68,48 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         self.delete_selected_button = ft.OutlinedButton(
             "Delete",
             icon=ft.Icons.DELETE_SWEEP,
-            tooltip="Delete Selected Primers",
+            tooltip="Delete Highlighted Primers",
             on_click=on_delete_selected,
             height=32,
             disabled=True,
         )
+        self.copy_button = ft.OutlinedButton(
+            "Copy",
+            icon=ft.Icons.CONTENT_COPY,
+            tooltip="Copy Highlighted Primers to Clipboard",
+            on_click=on_copy,
+            height=32,
+        )
+        self.paste_button = ft.OutlinedButton(
+            "Paste",
+            icon=ft.Icons.CONTENT_PASTE,
+            tooltip="Paste Primers from Clipboard",
+            on_click=on_paste,
+            height=32,
+        )
+        self.file_group = ft.Row(
+            [self.load_button, self.save_button],
+            spacing=10,
+            tight=True,
+        )
+        self.clipboard_group = ft.Row(
+            [self.copy_button, self.paste_button],
+            spacing=10,
+            tight=True,
+        )
+        self.edit_group = ft.Row(
+            [self.delete_selected_button, self.clear_button],
+            spacing=10,
+            tight=True,
+        )
         super().__init__(
             [
-                self.load_button,
-                self.save_button,
-                self.delete_selected_button,
-                self.clear_button,
+                self.file_group,
+                self.clipboard_group,
+                self.edit_group,
             ],
             spacing=10,
+            alignment=ft.MainAxisAlignment.END,
             tight=True,
             wrap=True,
         )
