@@ -207,6 +207,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                             self.status_bar,
                         ],
                         spacing=0,
+                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                     ),
                     expand=True,
                     border=ft.Border.all(1, GUIColours.OUTLINE),
