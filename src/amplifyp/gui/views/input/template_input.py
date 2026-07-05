@@ -441,8 +441,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 f"Insertion Point After Base: {self._cleaned_len}"
             )
 
-        if self.app_page:
+        if self.status_bar.page:
             try:
                 self.status_bar.update()
-            except RuntimeError:
+            except Exception:
                 pass
