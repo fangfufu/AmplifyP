@@ -316,7 +316,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.template_circular.value = self.input_data.template_circular
 
         # Update status bar style
-        self.status_text.text_style = ft.TextStyle(
+        self.status_text.style = ft.TextStyle(
             font_family=font_family,
             color=GUIColours.TEXT_ON_SURFACE,
             size=12,
@@ -398,7 +398,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _handle_selection_change(self, e: ft.ControlEvent) -> None:
         """Handle selection change event on the template text field."""
-        self._update_status_bar(e.selection)
+        self._update_status_bar(e.selection)  # pyright: ignore[reportAttributeAccessIssue]
 
     def _update_status_bar(
         self, selection: ft.TextSelection | None = None
