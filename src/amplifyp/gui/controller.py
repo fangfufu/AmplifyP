@@ -226,6 +226,7 @@ class GUIController:
         # Re-apply theme and refresh views to resolve dynamic colours correctly.
         self.apply_theme()
         self.input_view.update_ui()
+        self.page.update()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
