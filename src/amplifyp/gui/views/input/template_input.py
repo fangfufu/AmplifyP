@@ -373,8 +373,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
 
-        if self.app_page:
-            self.app_page.update()
+        try:
+            self.update()
+        except RuntimeError:
+            pass
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
