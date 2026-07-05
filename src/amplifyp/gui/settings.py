@@ -166,12 +166,17 @@ class GUISettings:
         """
         if key in self._settings:
             orig_val = self._settings[key]
-            if isinstance(orig_val, bool):
+            if key == "dark_mode":
                 if isinstance(value, str):
-                    if key == "dark_mode" and value.lower() == "system":
+                    if value.lower() == "system":
                         value = "system"
                     else:
                         value = value.lower() in ("true", "1", "yes")
+                else:
+                    value = bool(value)
+            elif isinstance(orig_val, bool):
+                if isinstance(value, str):
+                    value = value.lower() in ("true", "1", "yes")
                 else:
                     value = bool(value)
             elif isinstance(orig_val, int):
