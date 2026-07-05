@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0](https://github.com/fangfufu/AmplifyP/compare/v1.4.0...v1.5.0) (2026-07-05)
+
+
+### Features
+
+* **gui:** add auto-reload for template and primers ([ade6d36](https://github.com/fangfufu/AmplifyP/commit/ade6d363054e17cc9a7b9def5ee50ac0bb4d0e94))
+* **installer:** add shortcut options ([5358521](https://github.com/fangfufu/AmplifyP/commit/53585218594980ebe3c83704bb93e3b9d151e48d))
+* **installer:** use native Start Menu selection ([32eb9bd](https://github.com/fangfufu/AmplifyP/commit/32eb9bd71189807d1864d035096ce4e13c28694d))
+
+
+### Bug Fixes
+
+* **gui:** fix low contrast selected rows ([db72e3d](https://github.com/fangfufu/AmplifyP/commit/db72e3de50b675a98066b3766e3602947814ad05))
+
+
+### Performance Improvements
+
+* **gui:** optimize Flet UI updates and reduce lag ([c375234](https://github.com/fangfufu/AmplifyP/commit/c375234c7251db15c71756691d193723d5452980))
+* **gui:** split on_change and stop_editing ([46d2a47](https://github.com/fangfufu/AmplifyP/commit/46d2a475e0aad704fbe8ad4f59b14534b0eaf68a))
+
+
+### Documentation
+
+* add README index page for docs subfolder ([9e8f91a](https://github.com/fangfufu/AmplifyP/commit/9e8f91ad9ae9ab45a8454920fb8537a9fce68e08))
+* add Windows development setup guide ([658a1a3](https://github.com/fangfufu/AmplifyP/commit/658a1a3886b413f082df048904120f0ec8a42b7a))
+
 ## [1.4.0](https://github.com/fangfufu/AmplifyP/compare/v1.3.2...v1.4.0) (2026-07-04)
 
 
