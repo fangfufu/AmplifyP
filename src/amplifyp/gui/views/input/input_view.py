@@ -518,7 +518,6 @@ class InputView(ft.Row):  # type: ignore[misc]
             left_width = page_width - new_width - 5.0
             self.template_input.width = left_width
             self.template_input.adjust_wrap_length(left_width)
-            self.template_input.update()
 
             # Adjust the name column width of only the visible rows and header
             self.primer_input.layout_manager.adjust_name_column_width(
@@ -572,8 +571,9 @@ class InputView(ft.Row):  # type: ignore[misc]
         if isinstance(page_width, (int, float)) and page_width > 0:
             left_width = page_width * (1.0 - self.right_fraction)
             if update_first:
-                self.template_input.update_ui()
-            self.template_input.adjust_wrap_length(left_width)
+                self.template_input.adjust_wrap_length(left_width, update=True)
+            else:
+                self.template_input.adjust_wrap_length(left_width, update=False)
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers.

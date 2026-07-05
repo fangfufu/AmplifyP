@@ -326,10 +326,12 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             top=ft.BorderSide(1, GUIColours.OUTLINE)
         )
 
-        self._update_line_numbers()
-        self._update_status_bar(None)
+        self._update_line_numbers(update=False)
+        self._update_status_bar(None, update=False)
 
-    def adjust_wrap_length(self, left_width: float) -> None:
+    def adjust_wrap_length(
+        self, left_width: float, update: bool = True
+    ) -> None:
         """Adjust the template wrap length based on the available width."""
         font_size = self.settings.get("font_size_default", 14)
         # Monospace font character width is exactly 0.6 of font size.
@@ -350,9 +352,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.template_sequence.value = format_sequence(
             self.input_data.template, wrap_length
         )
-        self._update_line_numbers()
+        self._update_line_numbers(update=update)
 
-    def _update_line_numbers(self) -> None:
+    def _update_line_numbers(self, update: bool = True) -> None:
         """Update the line numbers gutter based on current template sequence."""
         text = self.template_sequence.value or ""
         lines = text.split("\n")
@@ -360,7 +362,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         current_idx = 1
         for line in lines:
             line_indices.append(str(current_idx))
-            current_idx += len(clean_sequence(line))
+            if line.isalnum():
+                current_idx += len(line)
+            else:
+                current_idx += len(clean_sequence(line))
 
         self.line_numbers_text.value = "\n".join(line_indices)
 
@@ -373,21 +378,19 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         gutter_width = 20 + max_digits * char_width
         self.line_numbers_container.width = gutter_width
 
-        try:
-            page = self.page
-        except RuntimeError:
-            page = None
-        if page:
+        if update:
             try:
-                self.update()
+                page = self.page
             except RuntimeError:
-                pass
+                page = None
+            if page:
+                try:
+                    self.update()
+                except (RuntimeError, AssertionError):
+                    pass
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
-        self._cleaned_len = len(
-            clean_sequence(self.template_sequence.value or "")
-        )
         self._update_line_numbers()
         self.on_change_handler(e)
 
@@ -408,20 +411,21 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_status_bar(getattr(e, "selection", None))
 
     def _update_status_bar(
-        self, selection: ft.TextSelection | None = None
+        self, selection: ft.TextSelection | None = None, update: bool = True
     ) -> None:
         """Update the status bar text based on text selection and focus."""
         if not self._is_focused:
             self.status_text.value = f"Total Bases: {self._cleaned_len}"
-            try:
-                page = self.status_bar.page
-            except RuntimeError:
-                page = None
-            if page:
+            if update:
                 try:
-                    self.status_bar.update()
+                    page = self.status_bar.page
                 except RuntimeError:
-                    pass
+                    page = None
+                if page:
+                    try:
+                        self.status_bar.update()
+                    except (RuntimeError, AssertionError):
+                        pass
             return
 
         sel = (
@@ -433,8 +437,19 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             raw_text = self.template_sequence.value or ""
             prefix_start = raw_text[: sel.start]
             prefix_end = raw_text[: sel.end]
-            bases_before = len(clean_sequence(prefix_start))
-            bases_total = len(clean_sequence(prefix_end))
+            if "\\" not in prefix_start:
+                bases_before = len(prefix_start) - sum(
+                    prefix_start.count(c) for c in " \n\t\r"
+                )
+            else:
+                bases_before = len(clean_sequence(prefix_start))
+
+            if "\\" not in prefix_end:
+                bases_total = len(prefix_end) - sum(
+                    prefix_end.count(c) for c in " \n\t\r"
+                )
+            else:
+                bases_total = len(clean_sequence(prefix_end))
 
             if bases_total > bases_before:
                 self.status_text.value = (
@@ -449,12 +464,13 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 f"Insertion Point After Base: {self._cleaned_len}"
             )
 
-        try:
-            page = self.status_bar.page
-        except RuntimeError:
-            page = None
-        if page:
+        if update:
             try:
-                self.status_bar.update()
+                page = self.status_bar.page
             except RuntimeError:
-                pass
+                page = None
+            if page:
+                try:
+                    self.status_bar.update()
+                except (RuntimeError, AssertionError):
+                    pass
