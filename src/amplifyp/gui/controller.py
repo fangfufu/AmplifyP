@@ -742,31 +742,31 @@ class GUIController:
             if is_newer_version(latest_tag, current_version):
                 self.on_update_found(latest_tag)
 
+    def _confirm_clear(self, _ev: ft.ControlEvent) -> None:
+        if self._clear_dialogue:
+            self._clear_dialogue.open = False
+        self.input_data.template = ""
+        self.input_data.template_circular = False
+        self.input_data.primers = [{"name": "", "seq": "", "active": False}]
+        self.input_view.primer_input.focused_primer_index = None
+        self.input_view.primer_input.selected_indices.clear()
+        self.input_view.update_ui()
+        self.update_pcr_button_state(update_page=False)
+        self.save_last_state()
+        self.page.update()
+
+    def _dismiss_clear(self, _ev: ft.ControlEvent) -> None:
+        if self._clear_dialogue:
+            self._clear_dialogue.open = False
+        self.page.update()
+
     def clear_all(self, e: ft.ControlEvent) -> None:
         """Show a confirmation dialogue before clearing inputs.
 
         Clears all template sequences and primers if confirmed.
         """
-        dialogue = self._clear_dialogue
-
-        def confirm_clear(_ev: ft.ControlEvent) -> None:
-            if dialogue:
-                dialogue.open = False
-            self.input_data.template = ""
-            self.input_data.template_circular = False
-            self.input_data.primers = [{"name": "", "seq": "", "active": False}]
-            self.input_view.update_ui()
-            self.update_pcr_button_state(update_page=False)
-            self.save_last_state()
-            self.page.update()
-
-        def dismiss_clear(_ev: ft.ControlEvent) -> None:
-            if dialogue:
-                dialogue.open = False
-            self.page.update()
-
-        if not dialogue:
-            dialogue = ft.AlertDialog(
+        if not self._clear_dialogue:
+            self._clear_dialogue = ft.AlertDialog(
                 modal=True,
                 title=ft.Text("Confirm Clear"),
                 content=ft.Text(
@@ -774,14 +774,13 @@ class GUIController:
                     "and primers?"
                 ),
                 actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ft.TextButton("Yes", on_click=confirm_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ft.TextButton("No", on_click=dismiss_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton("Yes", on_click=self._confirm_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton("No", on_click=self._dismiss_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                 ],
                 actions_alignment=ft.MainAxisAlignment.END,
             )
-            self._clear_dialogue = dialogue
 
-        if dialogue not in self.page.overlay:
-            self.page.overlay.append(dialogue)
-        dialogue.open = True
+        if self._clear_dialogue not in self.page.overlay:
+            self.page.overlay.append(self._clear_dialogue)
+        self._clear_dialogue.open = True
         self.page.update()

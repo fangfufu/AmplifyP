@@ -143,6 +143,10 @@ def test_gui_state_save_load() -> None:
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
+    # Reset GUIColours to avoid test contamination
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
+
 
 def test_settings_view_buttons() -> None:
     """Test Reset to Default button in SettingsView."""
@@ -370,6 +374,10 @@ def test_system_theme_saving_loading() -> None:
     )
     assert new_settings_view_2.settings["dark_mode"] == "system"
     assert new_settings_view_2.settings["colour_deficient"] is True
+
+    # Reset GUIColours to avoid test contamination
+    GUIColours.colour_deficient_mode = False
+    GUIColours.dark_mode = False
 
 
 def test_simple_state_font_sizes_are_integers() -> None:
