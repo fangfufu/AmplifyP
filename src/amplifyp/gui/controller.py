@@ -759,15 +759,11 @@ class GUIController:
             self.update_pcr_button_state(update_page=False)
             self.save_last_state()
             self.page.update()
-            if dialogue and dialogue in self.page.overlay:
-                self.page.overlay.remove(dialogue)
 
         def dismiss_clear(_ev: ft.ControlEvent) -> None:
             if dialogue:
                 dialogue.open = False
             self.page.update()
-            if dialogue and dialogue in self.page.overlay:
-                self.page.overlay.remove(dialogue)
 
         if not dialogue:
             dialogue = ft.AlertDialog(
