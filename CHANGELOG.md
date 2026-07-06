@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1](https://github.com/fangfufu/AmplifyP/compare/v1.8.0...v1.8.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* **ci:** use default artifact name for pages deployment ([784d4a8](https://github.com/fangfufu/AmplifyP/commit/784d4a8bcb51407dc40e80bac3697e8c60455473))
+
 ## [1.8.0](https://github.com/fangfufu/AmplifyP/compare/v1.7.0...v1.8.0) (2026-07-06)
 
 
