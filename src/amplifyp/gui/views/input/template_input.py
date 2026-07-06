@@ -301,9 +301,6 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def _change_selection_case(self, to_upper: bool) -> None:
         """Convert selected bases in template to upper/lower case."""
         sel = self.template_sequence.selection
-    def _change_selection_case(self, to_upper: bool) -> None:
-        """Convert selected bases in template to upper/lower case."""
-        sel = self.template_sequence.selection
         if not sel or not sel.is_valid or sel.start == sel.end:
             self._show_notification("Please select sequence text first.")
             return
@@ -331,6 +328,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         except (RuntimeError, AssertionError):
             pass
         self.on_change_handler(None)
+
     def _show_notification(self, message: str) -> None:
         """Show a notification message.
 
