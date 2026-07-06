@@ -75,6 +75,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.handle_field_blur = handle_field_blur
         self._is_focused = False
         self._cleaned_len = 0
+        self._last_left_width: float | None = None
 
         self.template_sequence = ft.TextField(
             dense=True,
@@ -97,15 +98,61 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             value="Insertion Point After Base: 0",
             size=12,
         )
+
+        is_fixed = self.settings.get("template_fixed_width", False)
+        self.fixed_width_tickbox = ft.Checkbox(
+            label="Fixed width:" if is_fixed else "Fixed width",
+            value=is_fixed,
+            on_change=self._handle_fixed_width_toggle,
+        )
+        self.bases_per_line_input = ft.TextField(
+            value=str(self.settings.get("template_bases_per_line", 50)),
+            width=60,
+            dense=True,
+            content_padding=ft.Padding(5, 0, 5, 0),
+            border_radius=3,
+            border_color=GUIColours.OUTLINE,
+            on_change=self._handle_bases_per_line_change,
+            on_blur=self._handle_bases_per_line_blur,
+        )
+        self.bases_per_line_container = ft.Container(
+            content=self.bases_per_line_input,
+            height=24,
+            alignment=ft.Alignment(0, -0.2),
+            clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            visible=self.settings.get("template_fixed_width", False),
+        )
+
         self.status_bar = ft.Container(
-            content=self.status_text,
-            padding=ft.Padding(10, 5, 10, 5),
+            content=ft.Row(
+                [
+                    self.status_text,
+                    ft.Container(expand=True),
+                    self.fixed_width_tickbox,
+                    self.bases_per_line_container,
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                height=28,
+                spacing=5,
+            ),
+            padding=ft.Padding(10, 0, 5, 0)
+            if is_fixed
+            else ft.Padding(10, 0, 10, 0),
+            height=28,
+        )
+
+        self.template_sequence_container = ft.Row(
+            [self.template_sequence],
+            spacing=0,
+            vertical_alignment=ft.CrossAxisAlignment.START,
+            expand=True,
         )
 
         self.sequence_layout = ft.Row(
             [
                 self.line_numbers_container,
-                self.template_sequence,
+                self.template_sequence_container,
             ],
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
@@ -386,6 +433,32 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             color=GUIColours.TEXT_ON_SURFACE,
             size=12,
         )
+        is_ticked = bool(self.settings.get("template_fixed_width", False))
+        self.fixed_width_tickbox.value = is_ticked
+        self.bases_per_line_container.visible = is_ticked
+        self.bases_per_line_input.value = str(
+            self.settings.get("template_bases_per_line", 50)
+        )
+        self.fixed_width_tickbox.label = (
+            "Fixed width:" if is_ticked else "Fixed width"
+        )
+        self.status_bar.padding = (
+            ft.Padding(10, 0, 5, 0) if is_ticked else ft.Padding(10, 0, 10, 0)
+        )
+        self.fixed_width_tickbox.label_style = ft.TextStyle(
+            font_family=font_family,
+            color=GUIColours.TEXT_ON_SURFACE,
+            size=12,
+        )
+        self.bases_per_line_input.text_style = ft.TextStyle(
+            font_family=font_family,
+            color=GUIColours.TEXT_ON_SURFACE,
+            size=12,
+        )
+
+        is_valid = self._validate_bases_per_line() is not None
+        self._update_bases_per_line_border(is_valid)
+
         self.status_bar.bgcolor = GUIColours.GUTTER_BG
         self.status_bar.border = ft.Border(
             top=ft.BorderSide(1, GUIColours.OUTLINE)
@@ -397,7 +470,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def adjust_wrap_length(
         self, left_width: float, update: bool = True
     ) -> None:
-        """Adjust the template wrap length based on the available width."""
+        """Adjust the wrap length based on available or fixed width."""
+        self._last_left_width = left_width
+
         font_size = max(1, self.settings.get("font_size_default", 14))
         # Monospace font character width is approximately 0.66 of font size.
         char_width = font_size * 0.66
@@ -407,11 +482,37 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         max_digits = len(str(max(1, template_len)))
         gutter_width = 20 + max_digits * char_width
 
-        # Available width inside container for TextField text.
-        # Subtracts 20px (padding) + 12px (scrollbar) + 4px (safety margin).
-        available_width = left_width - gutter_width - 36
-        wrap_length = int(available_width / char_width)
-        wrap_length = max(20, wrap_length)
+        is_fixed = bool(self.fixed_width_tickbox.value)
+        wrap_length = None
+        if is_fixed:
+            wrap_length = self._validate_bases_per_line(
+                self.bases_per_line_input.value or ""
+            )
+            if wrap_length is None:
+                saved_val = self.settings.get("template_bases_per_line", 50)
+                wrap_length = (
+                    saved_val
+                    if isinstance(saved_val, int) and 10 <= saved_val <= 10000
+                    else 50
+                )
+
+        if wrap_length is None:
+            # Available width inside container for TextField text.
+            # Subtracts 20px (padding) + 12px (scrollbar) + 4px (safety margin).
+            available_width = left_width - gutter_width - 36
+            wrap_length = int(available_width / char_width)
+            wrap_length = max(20, wrap_length)
+
+            # Dynamic wrapping: no horizontal scroll, let it expand
+            self.template_sequence_container.scroll = None
+            self.template_sequence.width = None
+            self.template_sequence.expand = True
+        else:
+            # Fixed wrapping: enable horizontal scroll and set fixed width
+            self.template_sequence_container.scroll = ft.ScrollMode.ALWAYS
+            text_field_width = wrap_length * char_width + 40
+            self.template_sequence.width = text_field_width
+            self.template_sequence.expand = False
 
         # Update TextField content with new wrapping
         self.template_sequence.value = format_sequence(
@@ -456,6 +557,72 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         self.update()
                 except (RuntimeError, AssertionError):
                     pass
+
+    def _validate_bases_per_line(
+        self, val_str: str | None = None
+    ) -> int | None:
+        """Validate and parse bases per line input, enforcing a minimum of 10.
+
+        Args:
+            val_str: Optional string value to validate. If None, reads from
+                the current UI input.
+
+        Returns:
+            The validated integer value, or None if invalid.
+        """
+        if val_str is None:
+            val_str = (self.bases_per_line_input.value or "").strip()
+        try:
+            val_int = int(val_str.strip())
+            if val_int >= 10:
+                return val_int
+        except ValueError:
+            pass
+        return None
+
+    def _update_bases_per_line_border(self, is_valid: bool) -> None:
+        """Update the bases per line input border color based on validation.
+
+        Args:
+            is_valid: Whether the current value is valid.
+        """
+        if is_valid or not self.fixed_width_tickbox.value:
+            self.bases_per_line_input.border_color = GUIColours.OUTLINE
+        else:
+            self.bases_per_line_input.border_color = GUIColours.ERROR_RED
+
+    def _handle_bases_per_line_change(self, e: ft.ControlEvent) -> None:
+        """Handle bases per line text input changes."""
+        val_int = self._validate_bases_per_line()
+        is_valid = val_int is not None
+        self._update_bases_per_line_border(is_valid)
+        if is_valid:
+            self.settings["template_bases_per_line"] = val_int
+            if self._last_left_width is not None:
+                self.adjust_wrap_length(self._last_left_width)
+                return
+
+        try:
+            self.status_bar.update()
+        except (RuntimeError, AssertionError):
+            pass
+
+    def _handle_bases_per_line_blur(self, e: ft.ControlEvent) -> None:
+        """Handle focus loss, saving valid bases per line to local storage."""
+        val_int = self._validate_bases_per_line()
+        if val_int is not None:
+            self.settings["template_bases_per_line"] = val_int
+            self.settings.save_to_local(self.app_page)
+            self.bases_per_line_input.value = str(val_int)
+        else:
+            fallback_val = str(self.settings.get("template_bases_per_line", 50))
+            self.bases_per_line_input.value = fallback_val
+            self._update_bases_per_line_border(True)
+
+        try:
+            self.status_bar.update()
+        except (RuntimeError, AssertionError):
+            pass
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
@@ -522,3 +689,30 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                     self.status_bar.update()
                 except (RuntimeError, AssertionError):
                     pass
+
+    def _handle_fixed_width_toggle(self, e: ft.ControlEvent) -> None:
+        """Handle fixed width checkbox toggle."""
+        is_ticked = bool(self.fixed_width_tickbox.value)
+        self.fixed_width_tickbox.label = (
+            "Fixed width:" if is_ticked else "Fixed width"
+        )
+        self.bases_per_line_container.visible = is_ticked
+        self.status_bar.padding = (
+            ft.Padding(10, 0, 5, 0) if is_ticked else ft.Padding(10, 0, 10, 0)
+        )
+        self.settings["template_fixed_width"] = is_ticked
+        self.settings.save_to_local(self.app_page)
+
+        is_valid = (
+            self._validate_bases_per_line(self.bases_per_line_input.value or "")
+            is not None
+        )
+        self._update_bases_per_line_border(is_valid)
+
+        if self._last_left_width is not None:
+            self.adjust_wrap_length(self._last_left_width)
+        else:
+            try:
+                self.update()
+            except (RuntimeError, AssertionError):
+                pass
