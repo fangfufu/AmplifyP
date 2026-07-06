@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0](https://github.com/fangfufu/AmplifyP/compare/v1.6.0...v1.7.0) (2026-07-06)
+
+
+### Features
+
+* **gui:** add clear all button with confirmation ([5474911](https://github.com/fangfufu/AmplifyP/commit/5474911dfc51e8860c2035a5bc2c51bdca754051))
+* **gui:** add template sequence casing buttons ([4d368cc](https://github.com/fangfufu/AmplifyP/commit/4d368cc31dcac04f669a81403b81263b8007289f))
+
+
+### Bug Fixes
+
+* **gui:** address additional review comments ([1ecd69e](https://github.com/fangfufu/AmplifyP/commit/1ecd69e88b1e9e24a6e4b7e4355140b09ea64cff))
+* **gui:** address PR review comments ([c332e4a](https://github.com/fangfufu/AmplifyP/commit/c332e4a586492c338ed587bc97b05b0dd3c76228))
+* **gui:** fix clear dialogue pyright errors ([69d25bc](https://github.com/fangfufu/AmplifyP/commit/69d25bc713d4d89026801daa92fc1e7d6307e5c7))
+* **gui:** keep clear dialogue in overlay ([dd2d2c1](https://github.com/fangfufu/AmplifyP/commit/dd2d2c1451dc5c4b1638a71aa2eeb06f055c81bd))
+* **gui:** remove duplicate change_selection_case ([2e23f71](https://github.com/fangfufu/AmplifyP/commit/2e23f717d74c468cda57f12683f2e9f9aed92bbc))
+
 ## [1.6.0](https://github.com/fangfufu/AmplifyP/compare/v1.5.0...v1.6.0) (2026-07-06)
 
 
