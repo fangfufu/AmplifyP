@@ -141,6 +141,28 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.upper_case_button = ft.OutlinedButton(
+            "Upper",
+            icon=ft.Icons.TEXT_FIELDS,
+            tooltip="Convert selected bases to upper case",
+            on_click=self._upper_case_click,
+            height=32,
+        )
+
+        self.lower_case_button = ft.OutlinedButton(
+            "Lower",
+            icon=ft.Icons.TEXT_FIELDS,
+            tooltip="Convert selected bases to lower case",
+            on_click=self._lower_case_click,
+            height=32,
+        )
+
+        self.casing_group = ft.Row(
+            [self.upper_case_button, self.lower_case_button],
+            spacing=10,
+            tight=True,
+        )
+
         self.clear_template_button = ft.OutlinedButton(
             "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
@@ -168,8 +190,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                                 wrap=True,
                             ),
                             col={
-                                "xl": 5,
-                                "lg": 12,
+                                "xl": 4,
+                                "lg": 4,
                                 "md": 12,
                                 "sm": 12,
                                 "xs": 12,
@@ -181,14 +203,15 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                                     self.load_template_button,
                                     self.save_template_button,
                                     self.clear_template_button,
+                                    self.casing_group,
                                 ],
                                 spacing=10,
                                 tight=True,
                                 wrap=True,
                             ),
                             col={
-                                "xl": 7,
-                                "lg": 12,
+                                "xl": 8,
+                                "lg": 8,
                                 "md": 12,
                                 "sm": 12,
                                 "xs": 12,
@@ -266,6 +289,45 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             success_message_desktop="Template saved successfully.",
             success_message_web="Template ready for download!",
         )
+
+    def _upper_case_click(self, e: ft.Event) -> None:
+        """Handle upper case button click."""
+        self._change_selection_case(to_upper=True)
+
+    def _lower_case_click(self, e: ft.Event) -> None:
+        """Handle lower case button click."""
+        self._change_selection_case(to_upper=False)
+
+    def _change_selection_case(self, to_upper: bool) -> None:
+        """Convert selected bases in template to upper/lower case."""
+        sel = self.template_sequence.selection
+        if not sel or not sel.is_valid or sel.start == sel.end:
+            self._show_notification("Please select sequence text first.")
+            return
+
+        raw_val = self.template_sequence.value or ""
+        start, end = sel.start, sel.end
+
+        selected_text = raw_val[start:end]
+        modified_text = (
+            selected_text.upper() if to_upper else selected_text.lower()
+        )
+        new_val = raw_val[:start] + modified_text + raw_val[end:]
+
+        self.template_sequence.value = new_val
+        self.input_data.template = clean_sequence(new_val)
+        self._cleaned_len = len(self.input_data.template)
+
+        self._update_line_numbers(update=False)
+        self.template_sequence.selection = ft.TextSelection(
+            base_offset=sel.base_offset, extent_offset=sel.extent_offset
+        )
+        try:
+            self.template_sequence.update()
+            self.update()
+        except (RuntimeError, AssertionError):
+            pass
+        self.on_change_handler(None)
 
     def _show_notification(self, message: str) -> None:
         """Show a notification message.

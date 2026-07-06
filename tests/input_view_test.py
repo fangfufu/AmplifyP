@@ -1201,3 +1201,41 @@ def test_template_input_status_bar() -> None:
     # Try triggering selection change while unfocused (should be ignored)
     view.template_input._handle_selection_change(mock_event)
     assert view.template_input.status_text.value == "Total Bases: 5"
+
+
+def test_input_view_template_case_conversion() -> None:
+    """Test that the upper and lower case buttons work as expected."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "atgatgcatg"
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    # 1. No selection -> should show notification
+    with patch.object(view.template_input, "_show_notification") as mock_notify:
+        view.template_input._upper_case_click(MagicMock(spec=ft.Event))
+        mock_notify.assert_called_once_with(
+            "Please select sequence text first."
+        )
+
+    # 2. Select range and uppercase it
+    from flet.controls.core.text import TextSelection
+
+    view.template_input.template_sequence.selection = TextSelection(
+        base_offset=3, extent_offset=7
+    )  # "atgc"
+    view.template_input._upper_case_click(MagicMock(spec=ft.Event))
+
+    assert view.template_sequence.value == "atgATGCatg"
+    assert input_data.template == "atgATGCatg"
+    assert view.template_sequence.selection.start == 3
+    assert view.template_sequence.selection.end == 7
+
+    # 3. Lowercase selected region
+    view.template_input.template_sequence.selection = TextSelection(
+        base_offset=3, extent_offset=7
+    )
+    view.template_input._lower_case_click(MagicMock(spec=ft.Event))
+    assert view.template_sequence.value == "atgatgcatg"
+    assert input_data.template == "atgatgcatg"
