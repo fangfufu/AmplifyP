@@ -131,6 +131,16 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.template_input.clear_template_button
 
     @property
+    def upper_case_button(self) -> ft.OutlinedButton:
+        """Get the upper case button."""
+        return self.template_input.upper_case_button
+
+    @property
+    def lower_case_button(self) -> ft.OutlinedButton:
+        """Get the lower case button."""
+        return self.template_input.lower_case_button
+
+    @property
     def primers_list(self) -> ft.ListView:
         """Get the list of primers view."""
         return self.primer_input.primers_list
