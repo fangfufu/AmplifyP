@@ -42,6 +42,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         dimers_button_ref: ft.Ref[ft.FilledButton],
         visible_pcr_button_ref: ft.Ref[ft.FilledButton],
         visible_dimers_button_ref: ft.Ref[ft.FilledButton],
+        on_clear_all: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the AppHeader navigation component."""
         super().__init__(
@@ -102,6 +103,14 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         save_btn_control.tooltip = "Save all"
 
+        clear_btn_control = ft.FilledButton(
+            "Clear all",
+            icon=ft.Icons.DELETE,
+            tooltip="Clear all",
+            on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        )
+        clear_btn_control.tooltip = "Clear all"
+
         load_btn_control = ft.FilledButton(
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
@@ -110,13 +119,13 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         load_btn_control.tooltip = "Load all"
 
-        # Create virtual appbar action list for the page to use for testing
         self.appbar_actions = [
             input_button,
             pcr_button,
             dimers_button,
             settings_button,
             about_button,
+            clear_btn_control,
             save_btn_control,
             load_btn_control,
         ]
@@ -174,6 +183,14 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         self.visible_save_btn_control.tooltip = "Save all"
 
+        self.visible_clear_btn_control = ft.FilledButton(
+            "Clear all",
+            icon=ft.Icons.DELETE,
+            tooltip="Clear all",
+            on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        )
+        self.visible_clear_btn_control.tooltip = "Clear all"
+
         self.visible_load_btn_control = ft.FilledButton(
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
@@ -227,6 +244,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                         visible_settings_button,
                         visible_about_button,
                         self.visible_header_divider,
+                        self.visible_clear_btn_control,
                         self.visible_save_btn_control,
                         self.visible_load_btn_control,
                     ],

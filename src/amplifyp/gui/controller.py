@@ -63,6 +63,7 @@ class GUIController:
         self.settings = GUISettings()
         self.filepicker_open = False
         self._confirm_dialog = None
+        self._clear_dialogue = None
 
         # Refs for buttons (backward compatibility / lookup)
         self.pcr_button_ref = ft.Ref[ft.FilledButton]()
@@ -81,6 +82,9 @@ class GUIController:
 
         # UI Control placeholders
         self.visible_save_btn_control: ft.FilledButton = cast(
+            ft.FilledButton, None
+        )
+        self.visible_clear_btn_control: ft.FilledButton = cast(
             ft.FilledButton, None
         )
         self.visible_load_btn_control: ft.FilledButton = cast(
@@ -194,6 +198,7 @@ class GUIController:
             on_dimers_click=self.on_dimers_click,
             on_save=self.save_state,
             on_load=self.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            on_clear_all=self.clear_all,
             pcr_button_ref=self.pcr_button_ref,
             dimers_button_ref=self.dimers_button_ref,
             visible_pcr_button_ref=self.visible_pcr_button_ref,
@@ -202,6 +207,7 @@ class GUIController:
 
         # Store aliases for backward compatibility or direct accesses
         self.visible_save_btn_control = self.header.visible_save_btn_control
+        self.visible_clear_btn_control = self.header.visible_clear_btn_control
         self.visible_load_btn_control = self.header.visible_load_btn_control
         self.visible_header_divider = self.header.visible_header_divider
 
@@ -572,6 +578,7 @@ class GUIController:
         self.view_container.content = view
         is_input = view == self.input_view
         self.visible_save_btn_control.visible = is_input
+        self.visible_clear_btn_control.visible = is_input
         self.visible_load_btn_control.visible = is_input
         self.visible_header_divider.visible = is_input
 
@@ -734,3 +741,49 @@ class GUIController:
 
             if is_newer_version(latest_tag, current_version):
                 self.on_update_found(latest_tag)
+
+    def clear_all(self, e: ft.ControlEvent) -> None:
+        """Show a confirmation dialogue before clearing inputs.
+
+        Clears all template sequences and primers if confirmed.
+        """
+        dialogue = self._clear_dialogue
+
+        def confirm_clear(_ev: ft.ControlEvent) -> None:
+            dialogue.open = False
+            self.input_data.template = ""
+            self.input_data.template_circular = False
+            self.input_data.primers = [{"name": "", "seq": "", "active": False}]
+            self.input_view.update_ui()
+            self.update_pcr_button_state(update_page=False)
+            self.save_last_state()
+            self.page.update()
+            if dialogue in self.page.overlay:
+                self.page.overlay.remove(dialogue)
+
+        def dismiss_clear(_ev: ft.ControlEvent) -> None:
+            dialogue.open = False
+            self.page.update()
+            if dialogue in self.page.overlay:
+                self.page.overlay.remove(dialogue)
+
+        if not dialogue:
+            dialogue = ft.AlertDialog(
+                modal=True,
+                title=ft.Text("Confirm Clear"),
+                content=ft.Text(
+                    "Are you sure you want to clear all template sequences\n"
+                    "and primers?"
+                ),
+                actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton("Yes", on_click=confirm_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton("No", on_click=dismiss_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+            self._clear_dialogue = dialogue
+
+        if dialogue not in self.page.overlay:
+            self.page.overlay.append(dialogue)
+        dialogue.open = True
+        self.page.update()

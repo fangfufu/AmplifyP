@@ -655,3 +655,95 @@ def test_controller_exit_warning_and_reload() -> None:
     ):
         controller.load_last_state()
     assert controller.input_data.template == "ATGCT"
+
+
+def test_controller_clear_all() -> None:
+    """Test clear_all prompts user and clears inputs on confirmation."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    from amplifyp.gui.controller import GUIController
+
+    controller = GUIController(mock_page)
+    controller.initialise()
+
+    # Set some initial non-empty state
+    controller.input_data.template = "ATGCT"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True}
+    ]
+
+    # Trigger clear_all
+    controller.clear_all(MagicMock())
+
+    # Verify dialogue is created and added to overlay
+    dialogue = next(
+        (
+            c
+            for c in mock_page.overlay
+            if isinstance(c, ft.AlertDialog)
+            and c.title.value == "Confirm Clear"
+        ),
+        None,
+    )
+    assert dialogue is not None
+    assert dialogue.open is True
+
+    # Simulate clicking "Yes" to confirm (index 0 in actions)
+    yes_button = dialogue.actions[0]
+    yes_button.on_click(MagicMock())
+
+    # Verify it cleared everything
+    assert controller.input_data.template == ""
+    assert controller.input_data.template_circular is False
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == ""
+    assert dialogue.open is False
+
+
+def test_controller_clear_all_dismiss() -> None:
+    """Test dismissing clear confirmation dialogue does not clear inputs."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    from amplifyp.gui.controller import GUIController
+
+    controller = GUIController(mock_page)
+    controller.initialise()
+
+    # Set some initial non-empty state
+    controller.input_data.template = "ATGCT"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "ATG", "active": True}
+    ]
+
+    # Trigger clear_all
+    controller.clear_all(MagicMock())
+
+    # Verify dialogue is created and added to overlay
+    dialogue = next(
+        (
+            c
+            for c in mock_page.overlay
+            if isinstance(c, ft.AlertDialog)
+            and c.title.value == "Confirm Clear"
+        ),
+        None,
+    )
+    assert dialogue is not None
+    assert dialogue.open is True
+
+    # Simulate clicking "No" to dismiss (index 1 in actions)
+    no_button = dialogue.actions[1]
+    no_button.on_click(MagicMock())
+
+    # Verify it did not clear anything
+    assert controller.input_data.template == "ATGCT"
+    assert controller.input_data.template_circular is True
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == "P1"
+    assert dialogue.open is False
