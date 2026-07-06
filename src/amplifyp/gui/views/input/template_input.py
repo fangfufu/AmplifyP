@@ -301,9 +301,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def _change_selection_case(self, to_upper: bool) -> None:
         """Convert selected bases in template to upper/lower case."""
         sel = self.template_sequence.selection
-        if not sel or not sel.is_valid or sel.start == sel.end:
-            sel = getattr(self, "_last_selection", None)
-
+    def _change_selection_case(self, to_upper: bool) -> None:
+        """Convert selected bases in template to upper/lower case."""
+        sel = self.template_sequence.selection
         if not sel or not sel.is_valid or sel.start == sel.end:
             self._show_notification("Please select sequence text first.")
             return
@@ -322,14 +322,15 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._cleaned_len = len(self.input_data.template)
 
         self._update_line_numbers(update=False)
-        self.template_sequence.selection = ft.TextSelection(start, end)
+        self.template_sequence.selection = ft.TextSelection(
+            base_offset=start, extent_offset=end
+        )
         try:
             self.template_sequence.update()
             self.update()
         except (RuntimeError, AssertionError):
             pass
         self.on_change_handler(None)
-
     def _show_notification(self, message: str) -> None:
         """Show a notification message.
 
