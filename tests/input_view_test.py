@@ -1239,3 +1239,60 @@ def test_input_view_template_case_conversion() -> None:
     view.template_input._lower_case_click(MagicMock(spec=ft.Event))
     assert view.template_sequence.value == "atgatgcatg"
     assert input_data.template == "atgatgcatg"
+
+
+def test_template_input_fixed_width() -> None:
+    """Test fixed width sequence wrapping and validation in status bar."""
+    from amplifyp.gui.colours import GUIColours
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCT" * 10  # 50 bases
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+
+    # Verify default state
+    assert template_input.fixed_width_tickbox.value is False
+    assert template_input.bases_per_line_container.visible is False
+    assert template_input.bases_per_line_input.value == "50"
+
+    # Simulate ticking fixed width
+    template_input.fixed_width_tickbox.value = True
+    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
+
+    assert template_input.bases_per_line_container.visible is True
+
+    # Trigger adjust_wrap_length to see if it wraps to 50
+    template_input.adjust_wrap_length(1000)
+    assert template_input.template_sequence.value == "ATGCT" * 10
+
+    # Modify bases per line to 10
+    template_input.bases_per_line_input.value = "10"
+    template_input._handle_bases_per_line_change(
+        MagicMock(spec=ft.ControlEvent)
+    )
+
+    # Verify wrapping with new length
+    template_input.adjust_wrap_length(1000)
+    expected_10 = "\n".join(["ATGCTATGCT"] * 5)
+    assert template_input.template_sequence.value == expected_10
+    assert (
+        template_input.bases_per_line_input.border_color == GUIColours.OUTLINE
+    )
+
+    # Verify invalid inputs (fallback to dynamic, and border_color = ERROR_RED)
+    template_input.bases_per_line_input.value = "-10"
+    template_input._handle_bases_per_line_change(
+        MagicMock(spec=ft.ControlEvent)
+    )
+    assert (
+        template_input.bases_per_line_input.border_color == GUIColours.ERROR_RED
+    )
+
+    # Untick fixed width
+    template_input.fixed_width_tickbox.value = False
+    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
+    assert template_input.bases_per_line_container.visible is False
