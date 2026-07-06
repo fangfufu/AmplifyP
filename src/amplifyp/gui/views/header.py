@@ -101,7 +101,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Save all",
             on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        save_btn_control.tooltip = "Save all"
 
         clear_btn_control = ft.FilledButton(
             "Clear all",
@@ -109,7 +108,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Clear all",
             on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        clear_btn_control.tooltip = "Clear all"
 
         load_btn_control = ft.FilledButton(
             "Load all",
@@ -117,7 +115,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Load all",
             on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        load_btn_control.tooltip = "Load all"
 
         self.appbar_actions = [
             input_button,
@@ -181,7 +178,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Save all",
             on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        self.visible_save_btn_control.tooltip = "Save all"
 
         self.visible_clear_btn_control = ft.FilledButton(
             "Clear all",
@@ -189,7 +185,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Clear all",
             on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        self.visible_clear_btn_control.tooltip = "Clear all"
 
         self.visible_load_btn_control = ft.FilledButton(
             "Load all",
@@ -197,7 +192,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Load all",
             on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
-        self.visible_load_btn_control.tooltip = "Load all"
 
         self.visible_header_divider = ft.Container(
             width=1,

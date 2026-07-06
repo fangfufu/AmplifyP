@@ -320,7 +320,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         self._update_line_numbers(update=False)
         self.template_sequence.selection = ft.TextSelection(
-            base_offset=start, extent_offset=end
+            base_offset=sel.base_offset, extent_offset=sel.extent_offset
         )
         try:
             self.template_sequence.update()

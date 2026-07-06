@@ -63,7 +63,7 @@ class GUIController:
         self.settings = GUISettings()
         self.filepicker_open = False
         self._confirm_dialog = None
-        self._clear_dialogue = None
+        self._clear_dialog = None
 
         # Refs for buttons (backward compatibility / lookup)
         self.pcr_button_ref = ft.Ref[ft.FilledButton]()
@@ -743,21 +743,21 @@ class GUIController:
                 self.on_update_found(latest_tag)
 
     def _confirm_clear(self, _ev: ft.ControlEvent) -> None:
-        if self._clear_dialogue:
-            self._clear_dialogue.open = False
+        if self._clear_dialog:
+            self._clear_dialog.open = False
         self.input_data.template = ""
         self.input_data.template_circular = False
         self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.input_view.primer_input.focused_primer_index = None
         self.input_view.primer_input.selected_indices.clear()
         self.input_view.update_ui()
-        self.update_pcr_button_state(update_page=False)
+        self.update_pcr_button_state(sync=False, update_page=False)
         self.save_last_state()
         self.page.update()
 
     def _dismiss_clear(self, _ev: ft.ControlEvent) -> None:
-        if self._clear_dialogue:
-            self._clear_dialogue.open = False
+        if self._clear_dialog:
+            self._clear_dialog.open = False
         self.page.update()
 
     def clear_all(self, e: ft.ControlEvent) -> None:
@@ -765,8 +765,8 @@ class GUIController:
 
         Clears all template sequences and primers if confirmed.
         """
-        if not self._clear_dialogue:
-            self._clear_dialogue = ft.AlertDialog(
+        if not self._clear_dialog:
+            self._clear_dialog = ft.AlertDialog(
                 modal=True,
                 title=ft.Text("Confirm Clear"),
                 content=ft.Text(
@@ -780,7 +780,7 @@ class GUIController:
                 actions_alignment=ft.MainAxisAlignment.END,
             )
 
-        if self._clear_dialogue not in self.page.overlay:
-            self.page.overlay.append(self._clear_dialogue)
-        self._clear_dialogue.open = True
+        if self._clear_dialog not in self.page.overlay:
+            self.page.overlay.append(self._clear_dialog)
+        self._clear_dialog.open = True
         self.page.update()

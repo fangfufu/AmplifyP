@@ -674,9 +674,9 @@ def _setup_controller_for_clear() -> tuple[MagicMock, Any]:
     return mock_page, controller
 
 
-def _get_clear_dialogue(overlay: list[Any]) -> ft.AlertDialog:
-    """Find the clear confirmation dialogue in the overlay."""
-    dialogue = next(
+def _get_clear_dialog(overlay: list[Any]) -> ft.AlertDialog:
+    """Find the clear confirmation dialog in the overlay."""
+    dialog = next(
         (
             c
             for c in overlay
@@ -685,8 +685,8 @@ def _get_clear_dialogue(overlay: list[Any]) -> ft.AlertDialog:
         ),
         None,
     )
-    assert dialogue is not None
-    return dialogue
+    assert dialog is not None
+    return dialog
 
 
 def test_controller_clear_all() -> None:
@@ -696,12 +696,12 @@ def test_controller_clear_all() -> None:
     # Trigger clear_all
     controller.clear_all(MagicMock())
 
-    # Verify dialogue is created and added to overlay
-    dialogue = _get_clear_dialogue(mock_page.overlay)
-    assert dialogue.open is True
+    # Verify dialog is created and added to overlay
+    dialog = _get_clear_dialog(mock_page.overlay)
+    assert dialog.open is True
 
     # Simulate clicking "Yes" to confirm (index 0 in actions)
-    yes_button = dialogue.actions[0]
+    yes_button = dialog.actions[0]
     yes_button.on_click(MagicMock())
 
     # Verify it cleared everything
@@ -709,7 +709,7 @@ def test_controller_clear_all() -> None:
     assert controller.input_data.template_circular is False
     assert len(controller.input_data.primers) == 1
     assert controller.input_data.primers[0]["name"] == ""
-    assert dialogue.open is False
+    assert dialog.open is False
 
 
 def test_controller_clear_all_dismiss() -> None:
@@ -719,12 +719,12 @@ def test_controller_clear_all_dismiss() -> None:
     # Trigger clear_all
     controller.clear_all(MagicMock())
 
-    # Verify dialogue is created and added to overlay
-    dialogue = _get_clear_dialogue(mock_page.overlay)
-    assert dialogue.open is True
+    # Verify dialog is created and added to overlay
+    dialog = _get_clear_dialog(mock_page.overlay)
+    assert dialog.open is True
 
     # Simulate clicking "No" to dismiss (index 1 in actions)
-    no_button = dialogue.actions[1]
+    no_button = dialog.actions[1]
     no_button.on_click(MagicMock())
 
     # Verify it did not clear anything
@@ -732,4 +732,4 @@ def test_controller_clear_all_dismiss() -> None:
     assert controller.input_data.template_circular is True
     assert len(controller.input_data.primers) == 1
     assert controller.input_data.primers[0]["name"] == "P1"
-    assert dialogue.open is False
+    assert dialog.open is False
