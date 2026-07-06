@@ -200,3 +200,12 @@ def test_web_save_and_load_client_storage() -> None:
 
     assert new_settings["primability_cutoff"] == "0.85"
     assert new_settings["dark_mode"] == "system"
+
+
+def test_dark_mode_system_coercion() -> None:
+    """Test that setting dark_mode to 'system' is coerced correctly."""
+    settings = GUISettings()
+    settings["dark_mode"] = False
+    assert settings.get("dark_mode") is False
+    settings["dark_mode"] = "system"
+    assert settings.get("dark_mode") == "system"

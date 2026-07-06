@@ -46,7 +46,7 @@ SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 
 PRIMER_INPUT_SEL = (
-    'textarea:not([disabled]):not([aria-label*="Enter DNA sequence"])'
+    '[aria-label="Primer List"] textarea:not([disabled]):not([readonly])'
 )
 
 

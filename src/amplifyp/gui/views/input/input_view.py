@@ -262,6 +262,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._currently_focused_control = None
 
         self.sync_to_state(rebuild_if_needed=False)
+        if e.control == self.template_sequence:
+            self._adjust_template_wrap(update_first=True)
 
         if e.control.data is not None:
             idx = (
@@ -281,7 +283,11 @@ class InputView(ft.Row):  # type: ignore[misc]
 
         def timer_callback() -> None:
             """Callback for debounced field blur."""
-            if not self.page:
+            try:
+                page = self.page
+            except RuntimeError:
+                return
+            if not page:
                 return
             if self.on_stop_editing_callback:
                 self.on_stop_editing_callback(None)
@@ -299,6 +305,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         """
         self._focus_debouncer.cancel()
         self.sync_to_state()
+        if e.control == self.template_sequence:
+            self._adjust_template_wrap(update_first=True)
         self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
         if self.app_page:
             self.app_page.update()
@@ -356,6 +364,8 @@ class InputView(ft.Row):  # type: ignore[misc]
         """
         self.template_input.update_ui()
         self.primer_input.update_ui()
+
+        self._adjust_template_wrap(update_first=False)
 
     def _on_change_handler(self, e: ft.Event | None) -> None:
         """Handle change in input fields.
@@ -505,7 +515,8 @@ class InputView(ft.Row):  # type: ignore[misc]
             # Resize template_input via fixed width to avoid updating
             # the massive primer_input ListView controls tree.
             self.template_input.expand = None
-            self.template_input.width = page_width - new_width - 5.0
+            left_width = page_width - new_width - 5.0
+            self.template_input.width = left_width
             self.template_input.update()
 
             # Adjust the name column width of only the visible rows and header
@@ -536,6 +547,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input.layout_manager.adjust_name_column_width(
                 panel_width, during_drag=False
             )
+            self._adjust_template_wrap(update_first=False)
             self.update()
 
     def _handle_resize(self, e: ft.PageResizeEvent) -> None:
@@ -550,7 +562,18 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.primer_input.layout_manager.adjust_name_column_width(
                 panel_width
             )
+            self._adjust_template_wrap(update_first=False)
             self.update()
+
+    def _adjust_template_wrap(self, update_first: bool = True) -> None:
+        """Adjust the template wrap length based on the available width."""
+        page_width = self.app_page.width
+        if isinstance(page_width, (int, float)) and page_width > 0:
+            left_width = page_width * (1.0 - self.right_fraction)
+            if update_first:
+                self.template_input.adjust_wrap_length(left_width, update=True)
+            else:
+                self.template_input.adjust_wrap_length(left_width, update=False)
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers.

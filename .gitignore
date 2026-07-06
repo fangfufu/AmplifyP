@@ -150,3 +150,7 @@ src/amplifyp/gui/git_sha.py
 amplifyp-linux.AppImage
 amplifyp-linux.tar.gz
 appimagetool-x86_64.AppImage
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

@@ -50,6 +50,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             padding=0,
             scroll=ft.ScrollMode.ALWAYS,
             on_scroll=self._on_scroll,
+            tooltip="Primer List",
         )
         self.primer_input = primer_input
         self.scroll_pixels = 0.0
