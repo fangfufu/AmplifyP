@@ -485,9 +485,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         is_fixed = bool(self.fixed_width_tickbox.value)
         wrap_length = None
         if is_fixed:
-            wrap_length = self._validate_bases_per_line(
-                self.bases_per_line_input.value or ""
-            )
+            wrap_length = self._validate_bases_per_line()
             if wrap_length is None:
                 saved_val = self.settings.get("template_bases_per_line", 50)
                 wrap_length = (
@@ -561,7 +559,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def _validate_bases_per_line(
         self, val_str: str | None = None
     ) -> int | None:
-        """Validate and parse bases per line input, enforcing a minimum of 10.
+        """Validate and parse bases per line input, enforcing [10, 10000] range.
 
         Args:
             val_str: Optional string value to validate. If None, reads from
@@ -574,7 +572,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             val_str = (self.bases_per_line_input.value or "").strip()
         try:
             val_int = int(val_str.strip())
-            if val_int >= 10:
+            if 10 <= val_int <= 10000:
                 return val_int
         except ValueError:
             pass
@@ -703,10 +701,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.settings["template_fixed_width"] = is_ticked
         self.settings.save_to_local(self.app_page)
 
-        is_valid = (
-            self._validate_bases_per_line(self.bases_per_line_input.value or "")
-            is not None
-        )
+        is_valid = self._validate_bases_per_line() is not None
         self._update_bases_per_line_border(is_valid)
 
         if self._last_left_width is not None:
