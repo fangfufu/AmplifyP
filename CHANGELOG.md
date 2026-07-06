@@ -12,7 +12,6 @@ and this project adheres to
 ### Bug Fixes
 
 * **ci:** use default artifact name for pages deployment ([784d4a8](https://github.com/fangfufu/AmplifyP/commit/784d4a8bcb51407dc40e80bac3697e8c60455473))
-* **ci:** use default artifact name for pages deployment ([5d4f0da](https://github.com/fangfufu/AmplifyP/commit/5d4f0da1c738ae6e7b3120ccb683688febe74308))
 
 ## [1.8.0](https://github.com/fangfufu/AmplifyP/compare/v1.7.0...v1.8.0) (2026-07-06)
 
