@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0](https://github.com/fangfufu/AmplifyP/compare/v1.5.0...v1.6.0) (2026-07-06)
+
+
+### Features
+
+* **gui:** add status bar to template input ([04d683e](https://github.com/fangfufu/AmplifyP/commit/04d683e78680869246236fb9ed55921b14042501))
+* **gui:** show total bases on template blur ([adcbaa2](https://github.com/fangfufu/AmplifyP/commit/adcbaa2f4dbc5787849922e5074db472174266ab))
+
+
+### Bug Fixes
+
+* **gui:** allow system theme without snapping ([bee7d04](https://github.com/fangfufu/AmplifyP/commit/bee7d0420b020eebcdaa80994b66698fe50924c0))
+* **gui:** guard against zero font size ([731e0b2](https://github.com/fangfufu/AmplifyP/commit/731e0b2068bd64fd1b982957cfa015657d5413de))
+* **gui:** handle dark_mode coercion before bool check ([e324e0e](https://github.com/fangfufu/AmplifyP/commit/e324e0ed7494a1b63f6dd4f3754cdeace1bf4422))
+* **gui:** resolve Pyright errors in TemplateInput ([2cbbc84](https://github.com/fangfufu/AmplifyP/commit/2cbbc8418e251647620db79fd2c2199b18dff6e3))
+* ignore readonly textareas in PRIMER_INPUT_SEL ([a97f0bf](https://github.com/fangfufu/AmplifyP/commit/a97f0bfa072ef9b7a20efa83a1b5862688b28b4e))
+* **input_view:** catch RuntimeError when accessing page in timer_callback ([aa95a5a](https://github.com/fangfufu/AmplifyP/commit/aa95a5a788283a6b5e15ee9ce18a33246e96002e))
+
+
+### Performance Improvements
+
+* **gui:** optimize drag and gutter calculation ([290a68a](https://github.com/fangfufu/AmplifyP/commit/290a68a174ecd34be489aac28a1a3ba116f74231))
+* **gui:** optimize layout and sequence updates ([53b9974](https://github.com/fangfufu/AmplifyP/commit/53b99745005f585c70f93af7f745ecd39ac4b03f))
+
 ## [1.5.0](https://github.com/fangfufu/AmplifyP/compare/v1.4.0...v1.5.0) (2026-07-05)
 
 
