@@ -143,11 +143,6 @@ def test_gui_state_save_load() -> None:
     # Check a default value wasn't changed
     assert new_settings_view.set_stability_cutoff.value == "0.4"
 
-    # Reset GUIColours to avoid test contamination
-
-    GUIColours.colour_deficient_mode = False
-    GUIColours.dark_mode = False
-
 
 def test_settings_view_buttons() -> None:
     """Test Reset to Default button in SettingsView."""
@@ -375,11 +370,6 @@ def test_system_theme_saving_loading() -> None:
     )
     assert new_settings_view_2.settings["dark_mode"] == "system"
     assert new_settings_view_2.settings["colour_deficient"] is True
-
-    # Reset GUIColours to avoid test contamination
-
-    GUIColours.colour_deficient_mode = False
-    GUIColours.dark_mode = False
 
 
 def test_simple_state_font_sizes_are_integers() -> None:
@@ -657,8 +647,8 @@ def test_controller_exit_warning_and_reload() -> None:
     assert controller.input_data.template == "ATGCT"
 
 
-def test_controller_clear_all() -> None:
-    """Test clear_all prompts user and clears inputs on confirmation."""
+def _setup_controller_for_clear() -> tuple[MagicMock, Any]:
+    """Set up controller with non-empty data for testing clear_all."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.window = MagicMock()
     mock_page.overlay = []
@@ -668,27 +658,38 @@ def test_controller_clear_all() -> None:
     controller = GUIController(mock_page)
     controller.initialise()
 
-    # Set some initial non-empty state
     controller.input_data.template = "ATGCT"
     controller.input_data.template_circular = True
     controller.input_data.primers = [
         {"name": "P1", "seq": "ATG", "active": True}
     ]
+    return mock_page, controller
 
-    # Trigger clear_all
-    controller.clear_all(MagicMock())
 
-    # Verify dialogue is created and added to overlay
+def _get_clear_dialogue(overlay: list[Any]) -> ft.AlertDialog:
+    """Find the clear confirmation dialogue in the overlay."""
     dialogue = next(
         (
             c
-            for c in mock_page.overlay
+            for c in overlay
             if isinstance(c, ft.AlertDialog)
             and c.title.value == "Confirm Clear"
         ),
         None,
     )
     assert dialogue is not None
+    return dialogue
+
+
+def test_controller_clear_all() -> None:
+    """Test clear_all prompts user and clears inputs on confirmation."""
+    mock_page, controller = _setup_controller_for_clear()
+
+    # Trigger clear_all
+    controller.clear_all(MagicMock())
+
+    # Verify dialogue is created and added to overlay
+    dialogue = _get_clear_dialogue(mock_page.overlay)
     assert dialogue.open is True
 
     # Simulate clicking "Yes" to confirm (index 0 in actions)
@@ -705,36 +706,13 @@ def test_controller_clear_all() -> None:
 
 def test_controller_clear_all_dismiss() -> None:
     """Test dismissing clear confirmation dialogue does not clear inputs."""
-    mock_page = MagicMock(spec=ft.Page)
-    mock_page.window = MagicMock()
-    mock_page.overlay = []
-
-    from amplifyp.gui.controller import GUIController
-
-    controller = GUIController(mock_page)
-    controller.initialise()
-
-    # Set some initial non-empty state
-    controller.input_data.template = "ATGCT"
-    controller.input_data.template_circular = True
-    controller.input_data.primers = [
-        {"name": "P1", "seq": "ATG", "active": True}
-    ]
+    mock_page, controller = _setup_controller_for_clear()
 
     # Trigger clear_all
     controller.clear_all(MagicMock())
 
     # Verify dialogue is created and added to overlay
-    dialogue = next(
-        (
-            c
-            for c in mock_page.overlay
-            if isinstance(c, ft.AlertDialog)
-            and c.title.value == "Confirm Clear"
-        ),
-        None,
-    )
-    assert dialogue is not None
+    dialogue = _get_clear_dialogue(mock_page.overlay)
     assert dialogue.open is True
 
     # Simulate clicking "No" to dismiss (index 1 in actions)
