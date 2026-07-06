@@ -750,7 +750,8 @@ class GUIController:
         dialogue = self._clear_dialogue
 
         def confirm_clear(_ev: ft.ControlEvent) -> None:
-            dialogue.open = False
+            if dialogue:
+                dialogue.open = False
             self.input_data.template = ""
             self.input_data.template_circular = False
             self.input_data.primers = [{"name": "", "seq": "", "active": False}]
@@ -758,13 +759,14 @@ class GUIController:
             self.update_pcr_button_state(update_page=False)
             self.save_last_state()
             self.page.update()
-            if dialogue in self.page.overlay:
+            if dialogue and dialogue in self.page.overlay:
                 self.page.overlay.remove(dialogue)
 
         def dismiss_clear(_ev: ft.ControlEvent) -> None:
-            dialogue.open = False
+            if dialogue:
+                dialogue.open = False
             self.page.update()
-            if dialogue in self.page.overlay:
+            if dialogue and dialogue in self.page.overlay:
                 self.page.overlay.remove(dialogue)
 
         if not dialogue:
