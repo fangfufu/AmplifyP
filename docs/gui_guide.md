@@ -16,9 +16,9 @@ interface:
 
 1. **Substrate**: Where you input the target DNA sequence and manage your list
    of primers.
-1. **PCR Results**: Where the PCR simulation map and predicted amplicon details
+2. **PCR Results**: Where the PCR simulation map and predicted amplicon details
    are displayed.
-1. **Primer Dimers**: Where potential primer-primer binding configurations are
+3. **Primer Dimers**: Where potential primer-primer binding configurations are
    analysed.
 
 ______________________________________________________________________

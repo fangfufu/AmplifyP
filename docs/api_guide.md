@@ -75,7 +75,7 @@ template = DNA(
     "ACTCCTCCAACTGTTGAGACTCCCTCAGCTGCTGCTCTAAACGACGCATTTCGTACTCCAAAGTACGAATTTTT"
     "TCCCTCAAGCTCTTATTTTCATTAAACAATGAACAGGACCTAACGCACAGTCACGTTATTGTTTACATAAATGA",
     DNAType.LINEAR,
-    name="TestTemplate"
+    name="TestTemplate",
 )
 
 primer_fwd = Primer("CGACTGGGCAAAGGAAATCC", name="1701")
@@ -99,8 +99,12 @@ for amp in pcr.amplicons:
     print(f"Left Primer: {amp.origin_start.primer.name}")
     print(f"Right Primer: {amp.origin_end.primer.name}")
     print(f"Quality Score (Q): {amp.q_score:.2f}")
-    print(f"Primability/Stability (Left): {amp.origin_start.primability:.1f}% / {amp.origin_start.stability:.1f}%")
-    print(f"Primability/Stability (Right): {amp.origin_end.primability:.1f}% / {amp.origin_end.stability:.1f}%")
+    print(
+        f"Primability/Stability (Left): {amp.origin_start.primability:.1f}% / {amp.origin_start.stability:.1f}%"
+    )
+    print(
+        f"Primability/Stability (Right): {amp.origin_end.primability:.1f}% / {amp.origin_end.stability:.1f}%"
+    )
 ```
 
 ______________________________________________________________________
@@ -149,7 +153,7 @@ AmplifyP provides two models for computing primer melting temperatures in
 
 1. **SantaLucia (1998)** with **Owczarzy (2008)** salt corrections (Default
    modern model).
-1. **Lander-Amplify4** model (Legacy matrix-based model from original Amplify4).
+2. **Lander-Amplify4** model (Legacy matrix-based model from original Amplify4).
 
 ```python
 from amplifyp.dna import Primer
@@ -186,7 +190,7 @@ from amplifyp.settings import (
 # 1. Customise PCR matching thresholds (stability and primability cutoffs)
 custom_replication_settings = ReplicationSettings(
     primability_cutoff=85.0,  # Require 85% primability minimum
-    stability_cutoff=80.0,    # Require 80% stability minimum
+    stability_cutoff=80.0,  # Require 80% stability minimum
 )
 
 # 2. Customise thermodynamic parameters (concentration in M, e.g. 200 nM primers, 50 mM salt)
@@ -198,8 +202,8 @@ custom_tm_settings = TMSettings(
 
 # 3. Customise primer dimer thresholds
 custom_dimer_settings = PrimerDimerSettings(
-    threshold=40.0,      # Minimum dimer score to flag
-    min_overlap=8,       # Minimum overlapping bp
+    threshold=40.0,  # Minimum dimer score to flag
+    min_overlap=8,  # Minimum overlapping bp
 )
 ```
 

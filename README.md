@@ -1,114 +1,104 @@
 # AmplifyP
 
-[![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
-[![Python Version](https://img.shields.io/badge/Python-3.12%20%7C%203.13-blue.svg)](pyproject.toml)
+AmplifyP is a open source cross-platform program for simulating and testing
+polymerase chain reactions (PCRs). It can be used as a tool for designing
+primers by evaluating candidates. It is useful for planning experiments as well
+as for teaching students about PCR.
 
-AmplifyP is a modern, high-performance Python rewrite of William Engels's
-classic **Amplify4** software for simulating **Polymerase Chain Reaction
-(PCR)**. By accurately modeling primer binding kinetics, primability, and
-thermal melting properties, AmplifyP helps molecular biologists and researchers
-predict DNA amplification products (amplicons) and detect primer-dimer formation
-risks.
+To use AmplifyP, you supply the DNA sequences of one or more primers plus a
+length of target DNA sequence, and AmplifyP will generate a map of the expected
+outcome. It will also provide other helpful information such as the sequences of
+likely amplified fragments, warnings about potential primer dimers, etc.
 
-A live web version is available on
-**[GitHub Pages](https://fangfufu.github.io/AmplifyP/)**.
+AmplifyP is a Python rewrite of William Engels's Amplify 4. For a short history
+of Amplify, please refer to the [history](docs/history.md) document.
 
-______________________________________________________________________
+AmplifyP can be used as a graphical user interface (GUI) application (with some
+screenshots below), however it is written with programmers in mind. The GUI is
+composed on top of the underlying PCR calculation code, which can be easily
+accessed programmatically.
 
-## Key Features
+|   Input View (Template & Primer Management)   |                 Primer Dimer Analysis View                  |
+| :-------------------------------------------: | :---------------------------------------------------------: |
+|   ![Input View](docs/images/input_view.png)   | ![Primer Dimer Analysis](docs/images/primer_dimer_view.png) |
+|          **PCR View (Amplicon Map)**          |       **PCR View (Primer Binding Site and Amplicon)**       |
+| ![PCR View Map](docs/images/pcr_view_map.png) |        ![PCR Results View](docs/images/pcr_view.png)        |
 
-- **PCR Simulation**: Predict amplicons, product sequences, and lengths using
-  rigorous primer-template binding models. Supports linear and circular
-  (plasmid) templates.
-- **Cross-Platform GUI**: Built with [Flet](https://flet.dev/) (a Flutter-based
-  UI framework) providing a beautiful, responsive interface for desktop (macOS,
-  Windows, Linux) and web browsers.
-- **Biophysical Scoring Engine**: Evaluates binding sites using length-wise and
-  pairwise weight tables to compute primability, stability, and quality.
-- **Primer Dimer Analysis**: Detects and scores self-dimers and cross-dimers
-  between primer pairs.
-- **Thermodynamic melting calculations**: Calculates Tm of hybrids using
-  nearest-neighbour thermodynamics with modern salt corrections.
-- **Programmatic Python API**: Fully typed and structured developer-friendly API
-  for integration into bioinformatics pipelines.
-- **State Serialisation**: Easily save and load templates, primers, settings,
-  and replication parameters using standard YAML files.
+AmplifyP is available on Linux, Windows and macOS, as well as a web application.
 
 ______________________________________________________________________
 
-## Quick Start: Download Pre-built Binaries (No Python Required)
+## Quick start
 
-If you only want to use the graphical application and do not wish to clone the
-repository, install Python, or configure virtual environments, you can download
-pre-built, standalone executable binaries directly.
+### Web version
 
-Go to the **[GitHub Releases](https://github.com/fangfufu/AmplifyP/releases)**
-page to download the latest version for your platform:
+The easiest way to run AmplifyP is to use the web version. The current stable
+version of AmplifyP is deployed as a static GitHub PAges site:
 
-- **Windows**: Download the `.zip` archive, extract it, and run `AmplifyP.exe`.
-- **Linux**: Download the `.tar.gz` archive, extract it, and run the binary.
-- **macOS**: Download the `.dmg` installer (untested as the author does not have
-  a Mac).
+- **[AmplifyP Web Version](https://fangfufu.github.io/AmplifyP/)**
+
+### Binary releases
+
+The binary releases of AmplifyP is available at the GitHub release page:
+
+- **[AmplifyP Binary Releases](https://github.com/fangfufu/AmplifyP/releases)**
+
+For **Linux**, you can either download the AppImage or download the tarball.
+Both versions are pretty much the same. Some people prefer the AppImage as it is
+a single binary. However, please note that certain security settings can prevent
+AppImages from running.
+
+For **Windows**, you can either download the ZIP file, or the installer. Both
+versions are pretty much the same. To use AmplifyP, it does not actually need to
+be installed. However if you run the installer, it would set up shortcuts for
+you.
+
+For **macOS**, you can download the DMG file. Please note that I am not a
+certified Apple Developer, so there will be security warnings. The Mac binary is
+generated by GitHub workflow. I do not actually have access to a Mac, so I
+cannot guarantee that the DMG file and the binary inside actually works. The
+binary generated should be a universal binary.
+
+The **web** version runs purely on client-side, no computation is done on the
+server itself. However you do actually need to run a static web server and
+access AmplifyP via the web server. This is due to browser security restriction.
 
 ______________________________________________________________________
 
-## Installation from Source
+## Running AmplifyP from the source code repository
 
-AmplifyP requires **Python 3.12** or higher.
+If you don't want to run the pre-built binaries, you can run AmplifyP from the
+source repository. AmplifyP requires **Python 3.12** or higher.
 
-To install the package and run it from source:
+To run AmplifyP from the source repository, you need to follow these steps:
 
 1. Clone the repository and navigate to the directory:
-
    ```bash
    git clone https://github.com/fangfufu/AmplifyP.git
    cd AmplifyP
    ```
-
-1. Set up and source your Python virtual environment under `.venv` at the root
+2. Set up and source your Python virtual environment under `.venv` at the root
    of the repository:
-
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
-
-1. Install the application and its runtime dependencies:
-
+3. Install the application and its runtime dependencies:
    ```bash
    pip install .
    ```
 
+If you want to do development on AmplifyP, please refer to the
+[Developers' and Contributors' Guide](src/README.md)
+
 ______________________________________________________________________
 
-## Usage
+## AmplifyP API
 
-### 1. Launching the Graphical User Interface (GUI)
-
-Run the application from source:
-
-```bash
-python src/main.py
-```
-
-To launch it locally as a web application in your browser at port `34521`:
-
-```bash
-python src/main.py --web
-```
-
-To load a saved session state on startup:
-
-```bash
-python src/main.py --state tests/examples/save_states/simple.yaml
-```
-
-### 2. Live Web Version
-
-Access the fully client-side static web application compiled to Pyodide:
-**[https://fangfufu.github.io/AmplifyP/](https://fangfufu.github.io/AmplifyP/)**
-
-### 3. Programmatic Python API
+It is possible to perform PCR simulation by directly calling AmplifyP's API,
+bypassing the GUI. If you have a lot of primers and/or a lot of templates, you
+may wish to write a script of a program go through them, rather than having to
+click through the GUI. Below is some example code.
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType
@@ -124,27 +114,22 @@ pcr.add_primer(primer_rev)
 pcr.predict_amplicons()
 
 for amplicon in pcr.amplicons:
-    print(f"Product length: {len(amplicon.product)} bp, Q-score: {amplicon.q_score:.2f}")
+    print(
+        f"Product length: {len(amplicon.product)} bp, Q-score: {amplicon.q_score:.2f}"
+    )
 ```
 
-______________________________________________________________________
-
-## Graphical User Interface Preview
-
-### Substrate View (Template & Primer Management)
-
-![Substrate View](docs/images/substrate.png)
-
-### PCR Results View (Amplicon Prediction & Binding Alignment)
-
-![PCR Results View](docs/images/pcr_results.png)
+For the full guide on using AmplifyP API, please refer to the
+[Python API Guide](docs/api_guide.md)
 
 ______________________________________________________________________
 
-## Documentation Directory
+## Further Readings
 
-For complete documentation, please refer to:
+For more documentation, please refer to:
 
+- **[Amplify History](docs/history.md)**: A brief history of the Amplify
+  software series.
 - **[GUI User Guide](docs/gui_guide.md)**: A detailed manual for running
   simulations, primer management, and configuration in the graphical
   application.
@@ -159,9 +144,16 @@ For complete documentation, please refer to:
 
 ______________________________________________________________________
 
-## Attribution & License
+## Attribution
 
 - **William Engels (Amplify4)**: This project is based on the original
   [Amplify4](https://github.com/wrengels/Amplify4) software.
-- **License**: This project is licensed under the GPL-3.0 License. See the
-  [LICENSE](LICENSE) file for details.
+- **Roboto Mono Font**: Licenced under the SIL Open Font License, Version 1.1.
+  Copyright 2015 The Roboto Mono Project Authors.
+
+______________________________________________________________________
+
+## Licence
+
+This project is licensed under the GPL-3.0 Licence. See the [LICENSE](LICENSE)
+file for details.
