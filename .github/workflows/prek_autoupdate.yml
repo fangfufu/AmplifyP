@@ -42,7 +42,7 @@ jobs:
               gh pr create \
                 --title "chore: update prek hooks" \
                 --body "This PR automatically updates the versions of configured \`prek\` hooks in \`prek.toml\`." \
-                --base dev \
+                --base stable \
                 --head prek-autoupdate
             fi
           else
