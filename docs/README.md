@@ -13,9 +13,9 @@ ______________________________________________________________________
 
 1. [AmplifyP GUI User Guide](gui_guide.md) — For biologists and researchers
    using the graphical interface.
-1. [AmplifyP Python API Guide](api_guide.md) — For developers and
+2. [AmplifyP Python API Guide](api_guide.md) — For developers and
    bioinformaticians using AmplifyP programmatically as a library.
-1. [Windows Development Environment Setup Guide](windows_setup.md) — For setting
+3. [Windows Development Environment Setup Guide](windows_setup.md) — For setting
    up the development, testing, and packaging environment on Windows.
 
 ______________________________________________________________________
