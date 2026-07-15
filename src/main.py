@@ -15,7 +15,10 @@
 """Main Flet application entry point."""
 
 import argparse
+import logging
 import os
+import sys
+import traceback
 
 import flet as ft
 
@@ -27,7 +30,11 @@ auto_close: bool = False
 
 def main(page: ft.Page) -> None:
     """Flet entry point - delegates to amplifyp.gui."""
-    app_main(page, state_file=state_file, auto_close=auto_close)
+    try:
+        app_main(page, state_file=state_file, auto_close=auto_close)
+    except Exception:
+        logging.getLogger(__name__).exception("Unhandled exception in main")
+        raise
 
 
 def cli(args_list: list[str] | None = None) -> None:
@@ -59,10 +66,16 @@ def cli(args_list: list[str] | None = None) -> None:
     auto_close = parsed_args.auto_close
 
     assets_dir = os.path.join(os.path.dirname(__file__), "assets")
-    view_mode = (
-        ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
-    )
-    port_number = 34521 if parsed_args.web else 0
+
+    if sys.platform == "emscripten" or "pyodide" in sys.modules:
+        view_mode = None
+        port_number = 0
+    else:
+        view_mode = (
+            ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
+        )
+        port_number = 34521 if parsed_args.web else 0
+
     ft.run(  # pyright: ignore[reportUnknownMemberType]
         main,
         upload_dir="uploads",
@@ -73,4 +86,8 @@ def cli(args_list: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    cli()
+    try:
+        cli()
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
