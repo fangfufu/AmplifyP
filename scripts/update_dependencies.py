@@ -7,7 +7,6 @@ Updates both pyproject.toml and requirements.txt to their latest versions.
 import json
 import os
 import re
-import ssl
 import urllib.request
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,17 +16,12 @@ REQUIREMENTS_PATH = os.path.join(ROOT_DIR, "src", "requirements.txt")
 
 def fetch_latest_version(package_name: str) -> str | None:
     """Fetch the latest version of a package from PyPI."""
-    # Ignore SSL verification errors if running in restricted environments
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
     url = f"https://pypi.org/pypi/{package_name}/json"
     req = urllib.request.Request(  # noqa: S310
         url, headers={"User-Agent": "AmplifyP-Autoupdate"}
     )
     try:
-        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=10) as response:  # noqa: S310
             data = json.loads(response.read().decode())
             latest_version = data["info"]["version"]
             return str(latest_version)
@@ -48,7 +42,9 @@ def update_pyproject_toml() -> bool:
     # Pattern to match dependency line like:
     # "package>=version" or "package==version"
     pattern = re.compile(
-        r'(?P<indent>\s*)"(?P<pkg>[a-zA-Z0-9_-]+)(?P<op>>=|==)(?P<ver>[0-9.]+)"(?P<comma>,?)'
+        r'(?P<indent>^[ \t]*)"(?P<pkg>[a-zA-Z0-9_.-]+)'
+        r'(?P<op>>=|==)(?P<ver>[0-9a-zA-Z.+-]+)"(?P<comma>,?)',
+        re.MULTILINE,
     )
 
     modified = False
@@ -89,7 +85,8 @@ def update_requirements_txt() -> bool:
         content = f.read()
 
     pattern = re.compile(
-        r"^(?P<pkg>[a-zA-Z0-9_-]+)(?P<op>>=|==)(?P<ver>[0-9.]+)$", re.MULTILINE
+        r"^(?P<pkg>[a-zA-Z0-9_.-]+)(?P<op>>=|==)(?P<ver>[0-9a-zA-Z.+-]+)$",
+        re.MULTILINE,
     )
 
     modified = False
