@@ -1,0 +1,47 @@
+name: Dependency Auto-update
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Mondays at 00:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  auto-update:
+    name: Auto-update dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Run dependency update script
+        run: |
+          python scripts/update_dependencies.py
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -n "$(git status --porcelain pyproject.toml src/requirements.txt)" ]; then
+            git checkout -b dependency-autoupdate
+            git add pyproject.toml src/requirements.txt
+            git commit -m "chore(deps): upgrade project dependencies" -m "Upgrade pyproject.toml and src/requirements.txt dependencies to their latest versions."
+            git push origin dependency-autoupdate --force
+
+            if gh pr list --head dependency-autoupdate --state open --json number | grep -q '"number"'; then
+              echo "Pull request already exists."
+            else
+              gh pr create \
+                --title "chore(deps): upgrade project dependencies" \
+                --body "This PR automatically updates the versions of configured dependencies in \`pyproject.toml\` and \`src/requirements.txt\`." \
+                --base dev \
+                --head dependency-autoupdate
+            fi
+          else
+            echo "No updates available."
+          fi

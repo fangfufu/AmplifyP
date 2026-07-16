@@ -1,7 +1,7 @@
 name: Pull Request on stable
 on:
   pull_request:
-    branches: [stable]
+    branches: [stable, dev]
   workflow_dispatch:
 permissions:
   contents: read
