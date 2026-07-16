@@ -14,6 +14,9 @@ ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PYPROJECT_PATH = os.path.join(ROOT_DIR, "pyproject.toml")
 REQUIREMENTS_PATH = os.path.join(ROOT_DIR, "src", "requirements.txt")
 
+# Packages that should not be automatically updated (must be lowercase)
+IGNORED_PACKAGES = {"flet"}
+
 
 @functools.cache
 def fetch_latest_version(package_name: str) -> str | None:
@@ -58,6 +61,9 @@ def update_pyproject_toml() -> bool:
         old_ver = match.group("ver")
         comma = match.group("comma")
 
+        if pkg.lower() in IGNORED_PACKAGES:
+            return str(match.group(0))
+
         latest = fetch_latest_version(pkg)
         if latest and latest != old_ver:
             print(f"Updating pyproject.toml: {pkg} {old_ver} -> {latest}")
@@ -87,7 +93,8 @@ def update_requirements_txt() -> bool:
         content = f.read()
 
     pattern = re.compile(
-        r"^(?P<pkg>[a-zA-Z0-9_.-]+)(?P<op>>=|==)(?P<ver>[0-9a-zA-Z.+-]+)$",
+        r"^(?P<pkg>[a-zA-Z0-9_.-]+)\s*(?P<op>>=|==)\s*"
+        r"(?P<ver>[0-9a-zA-Z.+-]+)(?P<suffix>\s*(?:#.*)?)$",
         re.MULTILINE,
     )
 
@@ -97,12 +104,16 @@ def update_requirements_txt() -> bool:
         nonlocal modified
         pkg = match.group("pkg")
         old_ver = match.group("ver")
+        suffix = match.group("suffix") or ""
+
+        if pkg.lower() in IGNORED_PACKAGES:
+            return str(match.group(0))
 
         latest = fetch_latest_version(pkg)
         if latest and latest != old_ver:
             print(f"Updating requirements.txt: {pkg} {old_ver} -> {latest}")
             modified = True
-            return f"{pkg}=={latest}"
+            return f"{pkg}=={latest}{suffix}"
         return str(match.group(0))
 
     new_content = pattern.sub(replace_dep, content)
