@@ -15,6 +15,7 @@ PYPROJECT_PATH = os.path.join(ROOT_DIR, "pyproject.toml")
 REQUIREMENTS_PATH = os.path.join(ROOT_DIR, "src", "requirements.txt")
 
 # Packages that should not be automatically updated (must be lowercase)
+# Example: IGNORED_PACKAGES = {"flet", "another-package"}
 IGNORED_PACKAGES: set[str] = set()
 
 
