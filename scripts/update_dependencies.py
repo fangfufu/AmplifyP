@@ -57,7 +57,6 @@ def update_pyproject_toml() -> bool:
         nonlocal modified
         indent = match.group("indent")
         pkg = match.group("pkg")
-        op = match.group("op")
         old_ver = match.group("ver")
         comma = match.group("comma")
 
@@ -65,7 +64,7 @@ def update_pyproject_toml() -> bool:
         if latest and latest != old_ver:
             print(f"Updating pyproject.toml: {pkg} {old_ver} -> {latest}")
             modified = True
-            return f'{indent}"{pkg}{op}{latest}"{comma}'
+            return f'{indent}"{pkg}=={latest}"{comma}'
         return str(match.group(0))
 
     new_content = pattern.sub(replace_dep, content)
@@ -98,14 +97,13 @@ def update_requirements_txt() -> bool:
     def replace_dep(match: re.Match[str]) -> str:
         nonlocal modified
         pkg = match.group("pkg")
-        op = match.group("op")
         old_ver = match.group("ver")
 
         latest = fetch_latest_version(pkg)
         if latest and latest != old_ver:
             print(f"Updating requirements.txt: {pkg} {old_ver} -> {latest}")
             modified = True
-            return f"{pkg}{op}{latest}"
+            return f"{pkg}=={latest}"
         return str(match.group(0))
 
     new_content = pattern.sub(replace_dep, content)
