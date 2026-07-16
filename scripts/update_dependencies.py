@@ -4,6 +4,7 @@
 Updates both pyproject.toml and requirements.txt to their latest versions.
 """
 
+import functools
 import json
 import os
 import re
@@ -14,6 +15,7 @@ PYPROJECT_PATH = os.path.join(ROOT_DIR, "pyproject.toml")
 REQUIREMENTS_PATH = os.path.join(ROOT_DIR, "src", "requirements.txt")
 
 
+@functools.cache
 def fetch_latest_version(package_name: str) -> str | None:
     """Fetch the latest version of a package from PyPI."""
     url = f"https://pypi.org/pypi/{package_name}/json"
