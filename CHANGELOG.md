@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0](https://github.com/fangfufu/AmplifyP/compare/v1.8.1...v1.9.0) (2026-07-16)
+
+
+### Features
+
+* **deps:** add ignore list and comment support ([41be8ab](https://github.com/fangfufu/AmplifyP/commit/41be8ab6326ef43894f85e13c3d7fd5dafe08a31))
+
+
+### Bug Fixes
+
+* **deps:** address pull request review comments ([bf35bc5](https://github.com/fangfufu/AmplifyP/commit/bf35bc57c77def68282a76c6e7b44f7bd90ffe4f))
+
+
+### Performance Improvements
+
+* **deps:** cache package version requests to PyPI ([827242d](https://github.com/fangfufu/AmplifyP/commit/827242de609f47563b322eb06d91ab480e81502a))
+
 ## [1.8.1](https://github.com/fangfufu/AmplifyP/compare/v1.8.0...v1.8.1) (2026-07-16)
 
 
