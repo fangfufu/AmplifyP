@@ -1296,3 +1296,33 @@ def test_template_input_fixed_width() -> None:
     template_input.fixed_width_tickbox.value = False
     template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
     assert template_input.bases_per_line_container.visible is False
+
+
+def test_template_input_paste_updates_gutter() -> None:
+    """Test pasting a long sequence updates the gutter markers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+    # Set mock settings and width for wrapping
+    template_input.settings["template_bases_per_line"] = 50
+    template_input.settings["template_fixed_width"] = True
+    template_input.fixed_width_tickbox.value = True
+    template_input._last_left_width = 1000
+
+    # Simulate paste of a long sequence (100 characters)
+    pasted_sequence = "A" * 100
+    template_input.template_sequence.value = pasted_sequence
+
+    # Trigger change event (which simulates user pasting)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    template_input._handle_change(mock_event)
+
+    # The sequence should now be formatted with newlines at the wrap length (50)
+    expected_formatted = "A" * 50 + "\n" + "A" * 50
+    assert template_input.template_sequence.value == expected_formatted
+    # The line numbers gutter should show indices: "1" and "51"
+    assert template_input.line_numbers_text.value == "1\n51"

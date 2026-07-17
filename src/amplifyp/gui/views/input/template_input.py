@@ -624,7 +624,30 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
-        self._update_line_numbers(gutter_only=True)
+        raw_val = self.template_sequence.value or ""
+        cleaned = clean_sequence(raw_val)
+
+        len_diff = abs(len(cleaned) - self._cleaned_len)
+        is_paste = (
+            len_diff > 1 or "\n" in raw_val or "\t" in raw_val or " " in raw_val
+        )
+
+        self.input_data.template = cleaned
+        self._cleaned_len = len(cleaned)
+
+        if is_paste:
+            left_width = self._last_left_width
+            if left_width is None:
+                page_width = (
+                    self.app_page.width
+                    if (self.app_page and self.app_page.width)
+                    else 800
+                )
+                left_width = page_width * 0.5
+            self.adjust_wrap_length(left_width, update=True)
+        else:
+            self._update_line_numbers(gutter_only=True)
+
         self.on_change_handler(e)
 
     def _handle_focus(self, e: ft.Event[ft.TextField]) -> None:
