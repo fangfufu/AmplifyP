@@ -472,8 +472,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._last_left_width = left_width
 
         font_size = max(1, self.settings.get("font_size_default", 14))
-        # Monospace font character width is approximately 0.66 of font size.
-        char_width = font_size * 0.66
+        # Monospace font character width is approximately 0.75 of font size.
+        char_width = font_size * 0.75
 
         # Calculate dynamic gutter width based on template digits
         template_len = len(self.input_data.template)
@@ -494,8 +494,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         if wrap_length is None:
             # Available width inside container for TextField text.
-            # Subtracts 20px (padding) + 12px (scrollbar) + 4px (safety margin).
-            available_width = left_width - gutter_width - 36
+            # Subtracts 20px (padding) + 12px (scrollbar) + safety margin.
+            available_width = left_width - gutter_width - 80
             wrap_length = int(available_width / char_width)
             wrap_length = max(20, wrap_length)
 
@@ -533,7 +533,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
         # Set dynamic gutter width
         font_size = max(1, self.settings.get("font_size_default", 14))
-        char_width = font_size * 0.66
+        char_width = font_size * 0.75
         # Calculate from live text excluding whitespaces instead of stored state
         template_len = current_idx - 1
         max_digits = len(str(max(1, template_len)))
