@@ -169,7 +169,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             border_radius=5,
             padding=ft.Padding(0, 0, 0, 0),
             height=32,
-            width=100,
+            width=115,
         )
 
         self.save_template_button = ft.FilledTonalButton(
