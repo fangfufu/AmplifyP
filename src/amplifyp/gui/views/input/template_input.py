@@ -467,6 +467,21 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_line_numbers(update=False)
         self._update_status_bar(None, update=False)
 
+    @property
+    def current_left_width(self) -> float:
+        """Get the current available width of the left panel."""
+        if isinstance(self.width, (int, float)) and self.width > 0:
+            return float(self.width)
+        right_fraction = 0.5
+        if self.parent and hasattr(self.parent, "right_fraction"):
+            right_fraction = self.parent.right_fraction
+        page_width = (
+            self.app_page.width
+            if (self.app_page and self.app_page.width)
+            else 800
+        )
+        return float(page_width * (1.0 - right_fraction))
+
     def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
         """Adjust the wrap length based on available or fixed width."""
         self._last_left_width = left_width
@@ -595,9 +610,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_bases_per_line_border(is_valid)
         if is_valid:
             self.settings["template_bases_per_line"] = val_int
-            if self._last_left_width is not None:
-                self.adjust_wrap_length(self._last_left_width)
-                return
+            self.adjust_wrap_length(self.current_left_width)
+            return
 
         try:
             self.status_bar.update()
@@ -636,15 +650,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.input_data.template = cleaned
         self._cleaned_len = len(cleaned)
 
-        left_width = self._last_left_width
-        if left_width is None:
-            page_width = (
-                self.app_page.width
-                if (self.app_page and self.app_page.width)
-                else 800
-            )
-            left_width = page_width * 0.5
-
+        left_width = self.current_left_width
         wrap_length = self.adjust_wrap_length(left_width, update=False)
 
         if has_selection:
@@ -745,10 +751,4 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         is_valid = self._validate_bases_per_line() is not None
         self._update_bases_per_line_border(is_valid)
 
-        if self._last_left_width is not None:
-            self.adjust_wrap_length(self._last_left_width)
-        else:
-            try:
-                self.update()
-            except (RuntimeError, AssertionError):
-                pass
+        self.adjust_wrap_length(self.current_left_width)
