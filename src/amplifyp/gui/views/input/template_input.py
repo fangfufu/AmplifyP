@@ -510,7 +510,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         if wrap_length is None:
             # Available width inside container for TextField text.
             # Subtracts 20px (padding) + 12px (scrollbar) + safety margin.
-            available_width = left_width - gutter_width - 80
+            available_width = left_width - gutter_width - 100
             wrap_length = int(available_width / char_width)
             wrap_length = max(20, wrap_length)
 
