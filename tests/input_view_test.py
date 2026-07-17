@@ -1349,3 +1349,74 @@ def test_template_input_paste_updates_gutter() -> None:
 
     # Cursor should be mapped to index 52 (clean index 51)
     assert template_input.template_sequence.selection.base_offset == 52
+
+
+def test_primer_row_keyboard_navigation() -> None:
+    """Test using Up/Down arrow keys to navigate between primer rows."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    from amplifyp.gui.controller import GUIController
+
+    controller = GUIController(mock_page)
+    controller.initialise()
+
+    # Switch to input view
+    controller.view_container.content = controller.input_view
+
+    # Set up some primers
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "AAAA", "active": True},
+        {"name": "P2", "seq": "TTTT", "active": True},
+    ]
+    controller.input_view.update_ui()
+
+    # Verify we have two primer rows
+    rows = controller.input_view.primer_input.primers_list.controls
+    assert len(rows) == 2
+    row0 = rows[0]
+    row1 = rows[1]
+
+    # 1. Simulate focusing on P1 name field
+    controller.input_view._currently_focused_control = row0.name_field
+
+    # Mock the focus method of the target field
+    row1.name_field.focus = MagicMock()
+
+    # Trigger arrow down keyboard event
+    down_event = ft.KeyboardEvent(
+        name="keydown",
+        key="Arrow Down",
+        shift=False,
+        ctrl=False,
+        alt=False,
+        meta=False,
+        control=mock_page,
+    )
+    controller._on_keyboard_event(down_event)
+
+    # Verify row1 name field focus was called
+    row1.name_field.focus.assert_called_once()
+
+    # 2. Simulate focusing on P2 sequence field
+    controller.input_view._currently_focused_control = row1.seq_field
+
+    # Mock focus on row 0 sequence field
+    row0.seq_field.focus = MagicMock()
+
+    # Trigger arrow up keyboard event
+    up_event = ft.KeyboardEvent(
+        name="keydown",
+        key="Arrow Up",
+        shift=False,
+        ctrl=False,
+        alt=False,
+        meta=False,
+        control=mock_page,
+    )
+
+    controller._on_keyboard_event(up_event)
+
+    # Verify row0 sequence field focus was called
+    row0.seq_field.focus.assert_called_once()
