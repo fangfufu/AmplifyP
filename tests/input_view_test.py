@@ -1326,3 +1326,26 @@ def test_template_input_paste_updates_gutter() -> None:
     assert template_input.template_sequence.value == expected_formatted
     # The line numbers gutter should show indices: "1" and "51"
     assert template_input.line_numbers_text.value == "1\n51"
+
+    # Simulate typing/editing a character with selection/cursor mapping
+    from flet.controls.core.text import TextSelection
+
+    template_input.template_sequence.selection = TextSelection(
+        base_offset=52, extent_offset=52
+    )
+
+    current_val = template_input.template_sequence.value
+    template_input.template_sequence.value = (
+        current_val[:51] + "T" + current_val[51:]
+    )
+
+    template_input._handle_change(mock_event)
+
+    # New sequence length = 101. Format with wrap 50 should be:
+    # 50 A's \n 1 T + 49 A's \n 1 A
+    expected_edited = "A" * 50 + "\n" + "T" + "A" * 49 + "\n" + "A"
+    assert template_input.template_sequence.value == expected_edited
+    assert template_input.line_numbers_text.value == "1\n51\n101"
+
+    # Cursor should be mapped to index 52 (clean index 51)
+    assert template_input.template_sequence.selection.base_offset == 52

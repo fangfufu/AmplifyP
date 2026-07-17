@@ -467,9 +467,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_line_numbers(update=False)
         self._update_status_bar(None, update=False)
 
-    def adjust_wrap_length(
-        self, left_width: float, update: bool = True
-    ) -> None:
+    def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
         """Adjust the wrap length based on available or fixed width."""
         self._last_left_width = left_width
 
@@ -517,6 +515,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             self.input_data.template, wrap_length
         )
         self._update_line_numbers(update=update)
+        return wrap_length
 
     def _update_line_numbers(
         self, update: bool = True, gutter_only: bool = False
@@ -624,29 +623,48 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
+        sel = self.template_sequence.selection
+        clean_idx = 0
+        has_selection = sel is not None and sel.is_valid
+        if has_selection:
+            raw_text = self.template_sequence.value or ""
+            prefix = raw_text[: sel.base_offset]
+            clean_idx = len(clean_sequence(prefix))
+
         raw_val = self.template_sequence.value or ""
         cleaned = clean_sequence(raw_val)
-
-        len_diff = abs(len(cleaned) - self._cleaned_len)
-        is_paste = (
-            len_diff > 1 or "\n" in raw_val or "\t" in raw_val or " " in raw_val
-        )
-
         self.input_data.template = cleaned
         self._cleaned_len = len(cleaned)
 
-        if is_paste:
-            left_width = self._last_left_width
-            if left_width is None:
-                page_width = (
-                    self.app_page.width
-                    if (self.app_page and self.app_page.width)
-                    else 800
-                )
-                left_width = page_width * 0.5
-            self.adjust_wrap_length(left_width, update=True)
-        else:
-            self._update_line_numbers(gutter_only=True)
+        left_width = self._last_left_width
+        if left_width is None:
+            page_width = (
+                self.app_page.width
+                if (self.app_page and self.app_page.width)
+                else 800
+            )
+            left_width = page_width * 0.5
+
+        wrap_length = self.adjust_wrap_length(left_width, update=False)
+
+        if has_selection:
+            if clean_idx <= 0:
+                new_pos = 0
+            elif clean_idx >= len(cleaned):
+                num_newlines = max(0, (len(cleaned) - 1) // wrap_length)
+                new_pos = clean_idx + num_newlines
+            else:
+                num_newlines = clean_idx // wrap_length
+                new_pos = clean_idx + num_newlines
+
+            self.template_sequence.selection = ft.TextSelection(
+                base_offset=new_pos, extent_offset=new_pos
+            )
+
+        try:
+            self.update()
+        except (RuntimeError, AssertionError):
+            pass
 
         self.on_change_handler(e)
 
