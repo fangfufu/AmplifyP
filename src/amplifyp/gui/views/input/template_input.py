@@ -174,6 +174,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             expand=True,
             scroll=ft.Scrollbar(
                 orientation=ft.ScrollbarOrientation.TOP,
+                thumb_visibility=True,
             ),
         )
 
