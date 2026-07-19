@@ -172,7 +172,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
             expand=True,
-            scroll=ft.ScrollMode.AUTO,
+            scroll=ft.Scrollbar(
+                orientation=ft.ScrollbarOrientation.TOP,
+            ),
         )
 
         self.sequence_layout = ft.Row(
@@ -502,7 +504,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.sequence_layout.width = max(100.0, left_width - 15.0)
 
         font_size = max(1, self.settings.get("font_size_default", 14))
-        char_width = font_size * 0.66
+        char_width = font_size * 0.70
 
         # Calculate dynamic gutter width based on template digits
         template_len = len(self.input_data.template)
@@ -521,8 +523,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         field_available_width = max(100.0, left_width - gutter_width - 35.0)
 
         # Disable autowrapping at window edge, enable horizontal scroll
-        self.template_sequence_container.scroll = ft.ScrollMode.AUTO
-        target_width = max(field_available_width, 3000.0)
+        target_width = max(
+            field_available_width + 100.0, wrap_length * char_width + 100.0
+        )
         self.template_sequence_wrapper.width = target_width
         self.template_sequence.width = target_width
         self.template_sequence.expand = False
