@@ -514,16 +514,12 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             wrap_length = int(available_width / char_width)
             wrap_length = max(20, wrap_length)
 
-            # Dynamic wrapping: no horizontal scroll, let it expand
-            self.template_sequence_container.scroll = None
-            self.template_sequence.width = None
-            self.template_sequence.expand = True
-        else:
-            # Fixed wrapping: enable horizontal scroll and set fixed width
-            self.template_sequence_container.scroll = ft.ScrollMode.ALWAYS
-            text_field_width = wrap_length * char_width + 40
-            self.template_sequence.width = text_field_width
-            self.template_sequence.expand = False
+        # Always allow the TextField to expand to the full available
+        # container width, since the sequence formatting adds explicit newlines
+        # at wrap_length.
+        self.template_sequence_container.scroll = None
+        self.template_sequence.width = None
+        self.template_sequence.expand = True
 
         # Update TextField content with new wrapping
         self.template_sequence.value = format_sequence(
