@@ -1243,11 +1243,9 @@ def test_input_view_template_case_conversion() -> None:
 
 def test_template_input_fixed_width() -> None:
     """Test fixed width sequence wrapping and validation in status bar."""
-    from amplifyp.gui.colours import GUIColours
-
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
-    input_data.template = "ATGCT" * 10  # 50 bases
+    input_data.template = "ATGCT" * 20  # 100 bases
 
     view = InputView(mock_page, input_data)
     view.update_ui()
@@ -1255,47 +1253,27 @@ def test_template_input_fixed_width() -> None:
     template_input = view.template_input
 
     # Verify default state
-    assert template_input.fixed_width_tickbox.value is False
-    assert template_input.bases_per_line_container.visible is False
-    assert template_input.bases_per_line_input.value == "50"
-
-    # Simulate ticking fixed width
-    template_input.fixed_width_tickbox.value = True
-    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
-
-    assert template_input.bases_per_line_container.visible is True
+    assert template_input.bases_per_line_value_text.value == "50"
 
     # Trigger adjust_wrap_length to see if it wraps to 50
     template_input.adjust_wrap_length(1000)
-    assert template_input.template_sequence.value == "ATGCT" * 10
-
-    # Modify bases per line to 10
-    template_input.bases_per_line_input.value = "10"
-    template_input._handle_bases_per_line_change(
-        MagicMock(spec=ft.ControlEvent)
+    expected_50 = "\n".join(
+        ["ATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCT"] * 2
     )
+    assert template_input.template_sequence.value == expected_50
+
+    # Modify bases per line to 100
+    template_input._handle_menu_select(100)
 
     # Verify wrapping with new length
     template_input.adjust_wrap_length(1000)
-    expected_10 = "\n".join(["ATGCTATGCT"] * 5)
-    assert template_input.template_sequence.value == expected_10
-    assert (
-        template_input.bases_per_line_input.border_color == GUIColours.OUTLINE
-    )
+    assert template_input.template_sequence.value == "ATGCT" * 20
 
-    # Verify invalid inputs (fallback to dynamic, and border_color = ERROR_RED)
-    template_input.bases_per_line_input.value = "-10"
-    template_input._handle_bases_per_line_change(
-        MagicMock(spec=ft.ControlEvent)
-    )
-    assert (
-        template_input.bases_per_line_input.border_color == GUIColours.ERROR_RED
-    )
-
-    # Untick fixed width
-    template_input.fixed_width_tickbox.value = False
-    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
-    assert template_input.bases_per_line_container.visible is False
+    # Modify bases per line to 80
+    input_data.template = "A" * 100
+    template_input._handle_menu_select(80)
+    template_input.adjust_wrap_length(1000)
+    assert template_input.template_sequence.value == "A" * 80 + "\n" + "A" * 20
 
 
 def test_template_input_paste_updates_gutter() -> None:
@@ -1309,8 +1287,7 @@ def test_template_input_paste_updates_gutter() -> None:
     template_input = view.template_input
     # Set mock settings and width for wrapping
     template_input.settings["template_bases_per_line"] = 50
-    template_input.settings["template_fixed_width"] = True
-    template_input.fixed_width_tickbox.value = True
+    template_input.bases_per_line_value_text.value = "50"
     template_input._last_left_width = 1000
 
     # Simulate paste of a long sequence (100 characters)
@@ -1324,8 +1301,8 @@ def test_template_input_paste_updates_gutter() -> None:
     # The sequence should now be formatted with newlines at the wrap length (50)
     expected_formatted = "A" * 50 + "\n" + "A" * 50
     assert template_input.template_sequence.value == expected_formatted
-    # The line numbers gutter should show indices: "1" and "51"
-    assert template_input.line_numbers_text.value == "1\n51"
+    # The line numbers gutter should show indices: "0" and "50"
+    assert template_input.line_numbers_text.value == "0\n50"
 
     # Simulate typing/editing a character with selection/cursor mapping
     from flet.controls.core.text import TextSelection
@@ -1345,7 +1322,7 @@ def test_template_input_paste_updates_gutter() -> None:
     # 50 A's \n 1 T + 49 A's \n 1 A
     expected_edited = "A" * 50 + "\n" + "T" + "A" * 49 + "\n" + "A"
     assert template_input.template_sequence.value == expected_edited
-    assert template_input.line_numbers_text.value == "1\n51\n101"
+    assert template_input.line_numbers_text.value == "0\n50\n100"
 
     # Cursor should be mapped to index 52 (clean index 51)
     assert template_input.template_sequence.selection.base_offset == 52
