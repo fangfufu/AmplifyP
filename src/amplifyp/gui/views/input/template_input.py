@@ -80,7 +80,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.template_sequence = ft.TextField(
             dense=True,
             multiline=True,
-            expand=True,
+            expand=False,
             hint_text="Enter DNA sequence here...",
             border=ft.InputBorder.NONE,
             bgcolor=ft.Colors.TRANSPARENT,
@@ -161,11 +161,18 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=28,
         )
 
+        self.template_sequence_wrapper = ft.Container(
+            content=self.template_sequence,
+            padding=0,
+            margin=0,
+        )
+
         self.template_sequence_container = ft.Row(
-            [self.template_sequence],
+            [self.template_sequence_wrapper],
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
             expand=True,
+            scroll=ft.ScrollMode.AUTO,
         )
 
         self.sequence_layout = ft.Row(
@@ -480,8 +487,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         if isinstance(self.width, (int, float)) and self.width > 0:
             return float(self.width)
         right_fraction = 0.5
-        if self.parent and hasattr(self.parent, "right_fraction"):
-            right_fraction = self.parent.right_fraction
+        if self.parent:
+            right_fraction = getattr(self.parent, "right_fraction", 0.5)
         page_width = (
             self.app_page.width
             if (self.app_page and self.app_page.width)
@@ -492,29 +499,32 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
         """Adjust wrap length based on selected width or Auto."""
         self._last_left_width = left_width
+        self.sequence_layout.width = max(100.0, left_width - 15.0)
 
         font_size = max(1, self.settings.get("font_size_default", 14))
-        char_width = font_size * 0.75
+        char_width = font_size * 0.66
+
+        # Calculate dynamic gutter width based on template digits
+        template_len = len(self.input_data.template)
+        max_digits = len(str(max(1, template_len)))
+        gutter_width = 20 + max_digits * char_width
 
         wrap_setting = self._validate_bases_per_line()
         if wrap_setting == "Auto":
-            # Calculate dynamic gutter width based on template digits
-            template_len = len(self.input_data.template)
-            max_digits = len(str(max(1, template_len)))
-            gutter_width = 20 + max_digits * char_width
-
             available_width = left_width - gutter_width - 100
             max_fit = int(available_width / char_width)
             wrap_length = (max_fit // 10) * 10
             wrap_length = max(10, min(100, wrap_length))
         else:
-            wrap_length = wrap_setting
-            if wrap_length is None:
-                wrap_length = 50
+            wrap_length = wrap_setting if isinstance(wrap_setting, int) else 50
+
+        field_available_width = max(100.0, left_width - gutter_width - 35.0)
 
         # Disable autowrapping at window edge, enable horizontal scroll
         self.template_sequence_container.scroll = ft.ScrollMode.AUTO
-        self.template_sequence.width = wrap_length * char_width + 30
+        target_width = max(field_available_width, 3000.0)
+        self.template_sequence_wrapper.width = target_width
+        self.template_sequence.width = target_width
         self.template_sequence.expand = False
 
         # Update TextField content with new wrapping
@@ -522,6 +532,15 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             self.input_data.template, wrap_length
         )
         self._update_line_numbers(update=update)
+
+        try:
+            if self.page:
+                self.template_sequence_wrapper.update()
+                self.template_sequence.update()
+                self.template_sequence_container.update()
+        except (AssertionError, RuntimeError):
+            pass
+
         return wrap_length
 
     def _update_line_numbers(
@@ -598,7 +617,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         sel = self.template_sequence.selection
         clean_idx = 0
         has_selection = sel is not None and sel.is_valid
-        if has_selection:
+        if sel is not None and sel.is_valid:
             raw_text = self.template_sequence.value or ""
             prefix = raw_text[: sel.base_offset]
             clean_idx = len(clean_sequence(prefix))
