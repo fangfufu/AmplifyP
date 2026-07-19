@@ -1328,6 +1328,34 @@ def test_template_input_paste_updates_gutter() -> None:
     assert template_input.template_sequence.selection.base_offset == 52
 
 
+def test_template_input_auto_wrap() -> None:
+    """Test 'Auto' wrap length dynamic snapping."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "A" * 120
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+
+    # Select Auto
+    template_input._handle_menu_select("Auto")
+    assert template_input.bases_per_line_value_text.value == "Auto"
+
+    # Set available left width to a size where 40 bases per line should fit
+    wrap_len = template_input.adjust_wrap_length(600)
+    assert wrap_len == 40
+    assert (
+        template_input.template_sequence.value
+        == "A" * 40 + "\n" + "A" * 40 + "\n" + "A" * 40
+    )
+
+    # Set width to fit 20 bases per line
+    wrap_len = template_input.adjust_wrap_length(380)
+    assert wrap_len == 20
+
+
 def test_primer_row_keyboard_navigation() -> None:
     """Test using Up/Down arrow keys to navigate between primer rows."""
     mock_page = MagicMock(spec=ft.Page)

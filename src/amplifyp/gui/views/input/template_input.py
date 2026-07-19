@@ -118,6 +118,12 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             content=self.bases_per_line_value_container,
             items=[
                 ft.PopupMenuItem(
+                    content="Auto",
+                    on_click=lambda e: self._handle_menu_select("Auto"),
+                )
+            ]
+            + [
+                ft.PopupMenuItem(
                     content=str(val),
                     on_click=lambda e, v=val: self._handle_menu_select(v),
                 )
@@ -484,17 +490,27 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         return float(page_width * (1.0 - right_fraction))
 
     def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
-        """Adjust wrap length based on selected fixed width (10 to 100)."""
+        """Adjust wrap length based on selected width or Auto."""
         self._last_left_width = left_width
-
-        wrap_length = self._validate_bases_per_line()
-        if wrap_length is None or not (
-            10 <= wrap_length <= 100 and wrap_length % 10 == 0
-        ):
-            wrap_length = 50
 
         font_size = max(1, self.settings.get("font_size_default", 14))
         char_width = font_size * 0.75
+
+        wrap_setting = self._validate_bases_per_line()
+        if wrap_setting == "Auto":
+            # Calculate dynamic gutter width based on template digits
+            template_len = len(self.input_data.template)
+            max_digits = len(str(max(1, template_len)))
+            gutter_width = 20 + max_digits * char_width
+
+            available_width = left_width - gutter_width - 100
+            max_fit = int(available_width / char_width)
+            wrap_length = (max_fit // 10) * 10
+            wrap_length = max(10, min(100, wrap_length))
+        else:
+            wrap_length = wrap_setting
+            if wrap_length is None:
+                wrap_length = 50
 
         # Disable autowrapping at window edge, enable horizontal scroll
         self.template_sequence_container.scroll = ft.ScrollMode.AUTO
@@ -548,18 +564,20 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _validate_bases_per_line(
         self, val_str: str | None = None
-    ) -> int | None:
-        """Validate and parse bases per line, enforcing {10..100, step 10} set.
+    ) -> int | str | None:
+        """Validate bases per line, enforcing 10..100 or Auto.
 
         Args:
             val_str: Optional string value to validate. If None, reads from
                 the current UI selection.
 
         Returns:
-            The validated integer value, or None if invalid.
+            The validated integer value, 'Auto', or None if invalid.
         """
         if val_str is None:
             val_str = (self.bases_per_line_value_text.value or "").strip()
+        if val_str.lower() == "auto":
+            return "Auto"
         try:
             val_int = int(val_str.strip())
             if 10 <= val_int <= 100 and val_int % 10 == 0:
@@ -568,11 +586,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             pass
         return None
 
-    def _handle_menu_select(self, val_int: int) -> None:
+    def _handle_menu_select(self, val: int | str) -> None:
         """Handle selection of bases per line from popup menu."""
-        self.settings["template_bases_per_line"] = val_int
+        self.settings["template_bases_per_line"] = val
         self.settings.save_to_local(self.app_page)
-        self.bases_per_line_value_text.value = str(val_int)
+        self.bases_per_line_value_text.value = str(val)
         self.adjust_wrap_length(self.current_left_width)
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
