@@ -108,7 +108,7 @@ class GUISettings:
             "last_version_check_timestamp": 0.0,
             "auto_reload_on_startup": True,
             "template_fixed_width": False,
-            "template_bases_per_line": 50,
+            "template_bases_per_line": "Auto",
         }
 
         # Initialise base-pair weights

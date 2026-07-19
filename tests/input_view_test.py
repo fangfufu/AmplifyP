@@ -1252,10 +1252,11 @@ def test_template_input_fixed_width() -> None:
 
     template_input = view.template_input
 
-    # Verify default state
-    assert template_input.bases_per_line_value_text.value == "50"
+    # Verify default state is Auto
+    assert template_input.bases_per_line_value_text.value == "Auto"
 
-    # Trigger adjust_wrap_length to see if it wraps to 50
+    # Select 50 bases per line and trigger adjust_wrap_length
+    template_input._handle_menu_select(50)
     template_input.adjust_wrap_length(1000)
     expected_50 = "\n".join(
         ["ATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCT"] * 2

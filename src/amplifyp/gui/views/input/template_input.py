@@ -104,7 +104,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             size=12,
         )
         self.bases_per_line_value_text = ft.Text(
-            value=str(self.settings.get("template_bases_per_line", 50)),
+            value=str(self.settings.get("template_bases_per_line", "Auto")),
             size=12,
         )
         self.bases_per_line_value_container = ft.Container(
@@ -468,7 +468,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             size=12,
         )
         self.bases_per_line_value_text.value = str(
-            self.settings.get("template_bases_per_line", 50)
+            self.settings.get("template_bases_per_line", "Auto")
         )
         self.bases_per_line_value_text.style = ft.TextStyle(
             font_family=font_family,
