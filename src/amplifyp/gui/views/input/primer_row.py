@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Callable
 
@@ -95,6 +96,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.idx = idx
         self.settings = settings
+        self._handle_field_blur = handle_field_blur
         self.is_last_row = is_last_row
         show_temp = self.settings.get("show_primer_temperature", False)
 
@@ -238,54 +240,16 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             controls=[self.seq_container],
         )
 
-        def local_name_selection_change(e: ft.Event) -> None:
-            sel = getattr(e, "selection", None)
-            if sel is not None and hasattr(sel, "base_offset"):
-                self.name_field.data["cursor_pos"] = sel.base_offset
-
-        def local_seq_selection_change(e: ft.Event) -> None:
-            sel = getattr(e, "selection", None)
-            if sel is not None and hasattr(sel, "base_offset"):
-                self.seq_field.data["cursor_pos"] = sel.base_offset
-
-        self.name_field.on_selection_change = local_name_selection_change
-        self.seq_field.on_selection_change = local_seq_selection_change
+        self.name_field.on_selection_change = self._on_selection_change
+        self.seq_field.on_selection_change = self._on_selection_change
 
         if name_error:
             self.name_field.error = name_error
         if seq_error:
             self.seq_field.error = seq_error
 
-        import inspect
-
-        def local_name_blur(e: ft.Event[ft.TextField]) -> None:
-            res = self.name_scroll.scroll_to(offset=0)
-            page = e.page or self.page
-            if inspect.iscoroutine(res) and page:
-
-                async def do_scroll() -> None:
-                    await res
-
-                page.run_task(do_scroll)
-            else:
-                self.name_scroll.update()
-            handle_field_blur(e)
-
-        def local_seq_blur(e: ft.Event[ft.TextField]) -> None:
-            res = self.seq_scroll.scroll_to(offset=0)
-            page = e.page or self.page
-            if inspect.iscoroutine(res) and page:
-
-                async def do_scroll() -> None:
-                    await res
-
-                page.run_task(do_scroll)
-            else:
-                self.seq_scroll.update()
-            handle_field_blur(e)
-
-        self.name_field.on_blur = local_name_blur
-        self.seq_field.on_blur = local_seq_blur
+        self.name_field.on_blur = self._on_blur
+        self.seq_field.on_blur = self._on_blur
 
         self.divider = ft.GestureDetector(
             on_pan_update=on_divider_pan,
@@ -333,6 +297,37 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
+
+    def _on_selection_change(self, e: ft.Event) -> None:
+        """Handle selection change for name or seq field."""
+        sel = getattr(e, "selection", None)
+        if sel is None or not hasattr(sel, "base_offset"):
+            return
+        field_data: dict[str, str] = e.control.data
+        field_data["cursor_pos"] = sel.base_offset
+
+    def _on_blur(self, e: ft.Event[ft.TextField]) -> None:
+        """Handle blur for name or seq field, scrolling to top first."""
+        scroll_target: ft.ListView = (
+            self.name_scroll
+            if e.control.data["field"] == "name"
+            else self.seq_scroll
+        )
+        res = scroll_target.scroll_to(offset=0)
+        page = e.page or self.page
+        if inspect.iscoroutine(res) and page:
+
+            async def _do_scroll() -> None:
+                try:
+                    await res
+                except RuntimeError:
+                    pass
+                scroll_target.update()
+
+            page.run_task(_do_scroll)
+        else:
+            scroll_target.update()
+        self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
