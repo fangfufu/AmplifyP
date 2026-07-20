@@ -240,6 +240,37 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         if seq_error:
             self.seq_field.error = seq_error
 
+        import inspect
+
+        def local_name_blur(e: ft.Event[ft.TextField]) -> None:
+            res = self.name_scroll.scroll_to(offset=0)
+            page = e.page or self.page
+            if inspect.iscoroutine(res) and page:
+
+                async def do_scroll() -> None:
+                    await res
+
+                page.run_task(do_scroll)
+            else:
+                self.name_scroll.update()
+            handle_field_blur(e)
+
+        def local_seq_blur(e: ft.Event[ft.TextField]) -> None:
+            res = self.seq_scroll.scroll_to(offset=0)
+            page = e.page or self.page
+            if inspect.iscoroutine(res) and page:
+
+                async def do_scroll() -> None:
+                    await res
+
+                page.run_task(do_scroll)
+            else:
+                self.seq_scroll.update()
+            handle_field_blur(e)
+
+        self.name_field.on_blur = local_name_blur
+        self.seq_field.on_blur = local_seq_blur
+
         self.divider = ft.GestureDetector(
             on_pan_update=on_divider_pan,
             on_pan_end=on_divider_pan_end,
