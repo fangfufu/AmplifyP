@@ -58,6 +58,7 @@ def test_gui_state_save_load() -> None:
     settings_view.primer_list_tile.set_primer_info_panel_position.value = (
         "bottom"
     )
+    settings_view.set_primer_info_panel_fixed_height.value = True
     settings_view.general_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
     )
@@ -137,6 +138,8 @@ def test_gui_state_save_load() -> None:
         == "bottom"
     )
     assert new_settings_view.settings["primer_info_panel_position"] == "bottom"
+    assert new_settings_view.settings["primer_info_panel_fixed_height"] is True
+    assert new_settings_view.set_primer_info_panel_fixed_height.value is True
     assert (
         new_settings_view.general_tile.set_colour_scheme.value
         == "Dark (Colour Deficient Friendly)"

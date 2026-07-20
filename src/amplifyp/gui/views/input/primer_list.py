@@ -160,6 +160,9 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 row.name_field.value = name_val
             if row.seq_field.value != seq_val:
                 row.seq_field.value = seq_val
+                row.seq_field.selection = ft.TextSelection(
+                    base_offset=0, extent_offset=0
+                )
             if row.checkbox.value != is_active:
                 row.checkbox.value = is_active
 

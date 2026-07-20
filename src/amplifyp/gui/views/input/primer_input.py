@@ -332,14 +332,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Sync current UI controls back to the central state.
 
         Args:
-            rebuild_if_needed: If True, triggers a full UI rebuild after
-                syncing. Otherwise, updates error states in-place.
+            rebuild_if_needed: If True, triggers a reconciliation / UI rebuild.
             skip_extract: If True, skips UI extraction and uses existing
-                state directly. Used after paste handling where state is
-                already updated.
-
-        Returns:
-            True if a UI rebuild was needed and performed.
+                state directly.
         """
         if skip_extract:
             ui_primers = self.input_data.primers
@@ -356,7 +351,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
 
         # Update checkbox values in-place on UI controls if they
-        # were updated during reconciliation.
+        # were updated during reconciliation.  The subsequent
+        # _update_header_checkbox_state() → page.update() call flushes
+        # all dirty controls in a single batch, which is the reliable way
+        # to propagate aria-checked changes to the Flutter semantics layer
+        # in web mode.  An earlier individual checkbox.update() would race
+        # with that full-page flush and leave the semantics stale.
         for reconciled_p, ui_p in zip(primers, ui_primers, strict=True):
             checkbox = ui_p.get("checkbox")
             if checkbox:
@@ -430,6 +430,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         # Reposition info panel based on current setting
         self._reposition_info_panel()
+
+        # Update the info panel to reflect any new settings or focus state
+        self._update_primer_info_panel()
 
         # Replace the header in the UI container controls
         inner_column = cast(ft.Column, self.primer_list_container.content)

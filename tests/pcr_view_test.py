@@ -71,22 +71,24 @@ def test_pcr_view_click_context_map() -> None:
     assert isinstance(card, ft.Card)
 
     # Verify title text inside card
-    title_text = card.content.content.controls[0].controls[0].value
+    title_text = card.content.content.controls[0].controls[0].content.value
     assert "Context Map" in title_text
     assert "10290" in title_text
 
-    # Verify Primeability, Stability and Quality display
-    stats_row = card.content.content.controls[1]
-    assert isinstance(stats_row, ft.Row)
-    p_text = stats_row.controls[0].content.value
-    s_text = stats_row.controls[1].content.value
-    q_text = stats_row.controls[2].content.value
+    # Verify Primeability, Stability and Quality in title row
+    title_row = card.content.content.controls[0]
+    assert isinstance(title_row, ft.Row)
+    metrics_row = title_row.controls[1]
+    assert isinstance(metrics_row, ft.Row)
+    p_text = metrics_row.controls[0].content.value
+    s_text = metrics_row.controls[1].content.value
+    q_text = metrics_row.controls[2].content.value
     assert "Primeability: 1.000" in p_text
     assert "Stability: 1.000" in s_text
     assert "Quality: 1.0000" in q_text
 
     # Extract diagram_text
-    diagram_text = card.content.content.controls[2].content.controls[0]
+    diagram_text = card.content.content.controls[1].content.controls[0]
     assert isinstance(diagram_text, ft.Text)
 
     # Check spans content
@@ -166,7 +168,7 @@ def test_pcr_view_click_amplicon() -> None:
     column = card.content.content
     assert isinstance(column, ft.Column)
 
-    length_text = column.controls[0].controls[0].value
+    length_text = column.controls[0].controls[0].content.value
     assert "Amplicon: 60 bp" in length_text
 
     subtitle_text = column.controls[1]
@@ -390,7 +392,7 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
     assert isinstance(card, ft.Card)
 
     # Extract diagram_text
-    diagram_text = card.content.content.controls[2].content.controls[0]
+    diagram_text = card.content.content.controls[1].content.controls[0]
     assert isinstance(diagram_text, ft.Text)
 
     # Check spans

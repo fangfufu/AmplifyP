@@ -28,7 +28,7 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialise_state
-from amplifyp.gui.utils.ui import NotificationHelper
+from amplifyp.gui.utils.ui import NotificationHelper, focus_async
 from amplifyp.gui.views import (
     AboutView,
     DimerView,
@@ -805,15 +805,13 @@ class GUIController:
         self.page.update()
 
     def _on_keyboard_event(self, e: ft.KeyboardEvent) -> None:
-        """Handle global keyboard events, specifically Arrow Up/Down.
+        """Handle global keyboard events for primer navigation.
 
-        Navigates between primer rows.
+        Arrow Up/Down navigates between primer rows.
+        Arrow Left/Right navigates between name and sequence fields
+        in the same row.
         """
-        if e.key not in ("Arrow Up", "Arrow Down"):
-            return
-
         # Check if the active view is InputView with a focused primer field
-
         if (
             not self.input_view
             or self.view_container.content != self.input_view
@@ -829,8 +827,93 @@ class GUIController:
         ):
             return
 
+        if not isinstance(focused, ft.TextField):
+            return
+
         idx = focused.data["idx"]
         field = focused.data["field"]
+
+        from amplifyp.gui.views.input.primer_row import PrimerRow
+
+        # Handle Tab for same-row field navigation
+        if e.key == "Tab":
+            controls = self.input_view.primer_input.primers_list.controls
+            if field == "name":
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.seq_field
+                        target_field.selection = ft.TextSelection(
+                            base_offset=0, extent_offset=0
+                        )
+                        target_field.update()
+                        break
+                else:
+                    return
+            elif field == "seq":
+                next_row = None
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx + 1:
+                        next_row = row
+                        break
+                if next_row:
+                    target_field = next_row.name_field
+                    target_field.selection = ft.TextSelection(
+                        base_offset=0, extent_offset=0
+                    )
+                    target_field.update()
+                else:
+                    return
+            else:
+                return
+
+            res = target_field.focus()
+            if asyncio.iscoroutine(res):
+                self.page.run_task(focus_async, res)
+            return
+
+        # Handle Arrow Left/Right for same-row field navigation
+        if e.key in ("Arrow Left", "Arrow Right"):
+            if field == "name" and e.key == "Arrow Right":
+                cursor_pos = focused.data.get("cursor_pos", 0)
+                if cursor_pos != len(focused.value or ""):
+                    return
+                controls = self.input_view.primer_input.primers_list.controls
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.seq_field
+                        break
+                else:
+                    return
+                target_field.selection = ft.TextSelection(
+                    base_offset=0, extent_offset=0
+                )
+                target_field.update()
+            elif field == "seq" and e.key == "Arrow Left":
+                cursor_pos = focused.data.get("cursor_pos", 0)
+                if cursor_pos != 0:
+                    return
+                target_field = focused
+                for row in self.input_view.primer_input.primers_list.controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.name_field
+                        break
+                else:
+                    return
+                name_len = len(target_field.value or "")
+                target_field.selection = ft.TextSelection(
+                    base_offset=name_len, extent_offset=name_len
+                )
+                target_field.update()
+            else:
+                return
+
+            res = target_field.focus()
+            if asyncio.iscoroutine(res):
+                self.page.run_task(focus_async, res)
+            return
+
+        if e.key not in ("Arrow Up", "Arrow Down"):
+            return
 
         # Calculate next index
         if e.key == "Arrow Down":
@@ -841,7 +924,6 @@ class GUIController:
         # Find target row in primer list
         controls = self.input_view.primer_input.primers_list.controls
         target_row = None
-        from amplifyp.gui.views.input.primer_row import PrimerRow
 
         for row in controls:
             if isinstance(row, PrimerRow) and row.idx == next_idx:
@@ -856,12 +938,7 @@ class GUIController:
             )
 
             # Request focus on the target field
-            import inspect
 
             res = target_field.focus()
-            if inspect.iscoroutine(res):
-
-                async def do_focus() -> None:
-                    await res
-
-                self.page.run_task(do_focus)
+            if asyncio.iscoroutine(res):
+                self.page.run_task(focus_async, res)

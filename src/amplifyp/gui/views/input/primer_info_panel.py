@@ -42,7 +42,9 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         super().__init__()
         self.settings = settings
+        self.font_family = font_family
         self._on_dismiss_callback: Callable[[], None] | None = None
+        self._manually_hidden = False
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -93,6 +95,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
+        self.info_dimer_card_container = ft.Container(visible=False)
 
         self.content = ft.Container(
             padding=ft.Padding(10, 2, 10, 0),
@@ -112,6 +115,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                             self.info_pairs_text,
                             self.info_redundancy_text,
                             self.info_dimer_text,
+                            self.info_dimer_card_container,
                         ],
                         spacing=1,
                     ),
@@ -127,6 +131,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         Args:
             e: The Flet control event triggered by the close button click.
         """
+        self._manually_hidden = True
         self.visible = False
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
@@ -154,7 +159,24 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
-            self.visible = False
+            if (
+                self.settings.get("primer_info_panel_fixed_height", False)
+                and not self._manually_hidden
+            ):
+                self.info_header_text.value = "Primer: -"
+                self.info_seq_text.value = ""
+                self.info_tm_text.value = ""
+                self.info_pairs_text.value = ""
+                self.info_redundancy_text.value = ""
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = None
+                self.info_dimer_card_container.visible = False
+                self.height = 250
+                self.visible = True
+            else:
+                self.visible = False
+                self.height = None
             on_update_highlights()
             self._update_safe()
             return
@@ -163,8 +185,11 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
                 self.visible = False
+                self.height = None
                 self._update_safe()
                 return
+
+            self._manually_hidden = False
 
             p_data = primers[focused_idx]
             name_val = p_data.get("name", "").strip()
@@ -172,6 +197,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             if not seq_val:
                 self.visible = False
+                self.height = None
                 self._update_safe()
                 return
 
@@ -227,21 +253,32 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 max_dimer = res_self
 
             if max_dimer is not None:
-                self.info_dimer_text.value = (
-                    "Potential Primer Dimer with quality = "
-                    f"{max_dimer.quality:.1f} "
-                    f"and overlap = {max_dimer.overlap}"
+                from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = DimerCard(
+                    max_dimer, self.settings, self.font_family, show_names=False
                 )
-                self.info_dimer_text.visible = True
+                self.info_dimer_card_container.visible = True
             else:
                 self.info_dimer_text.value = ""
                 self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = None
+                self.info_dimer_card_container.visible = False
 
+            if self.settings.get("primer_info_panel_fixed_height", False):
+                self.height = 250
+            else:
+                self.height = None
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
+            self.height = None
+            self.info_dimer_card_container.visible = False
+            self.info_dimer_card_container.content = None
 
         self._update_safe()
 

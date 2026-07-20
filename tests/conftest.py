@@ -1,5 +1,6 @@
 # conftest.py
 from collections.abc import Generator
+from typing import Any
 
 import pytest
 
@@ -14,3 +15,17 @@ def reset_global_colour_modes() -> Generator[None, None, None]:
     yield
     GUIColours.colour_deficient_mode = False
     GUIColours.dark_mode = False
+
+
+@pytest.fixture(scope="session")  # type: ignore[untyped-decorator]
+def browser_context_args(
+    browser_context_args: dict[str, Any],
+) -> dict[str, Any]:
+    """Block service workers to prevent caching/stale code issues.
+
+    This ensures E2E tests always use the latest build.
+    """
+    return {
+        **browser_context_args,
+        "service_workers": "block",
+    }

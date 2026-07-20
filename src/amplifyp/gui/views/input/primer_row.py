@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Callable
 
@@ -95,6 +96,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         self.idx = idx
         self.settings = settings
+        self._handle_field_blur = handle_field_blur
         self.is_last_row = is_last_row
         show_temp = self.settings.get("show_primer_temperature", False)
 
@@ -192,7 +194,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             border=ft.InputBorder.NONE,
             multiline=True,
             fit_parent_size=True,
-            data={"idx": idx, "field": "name"},
+            data={"idx": idx, "field": "name", "cursor_pos": 0},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
@@ -209,6 +211,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not name_error else 42,
             controls=[self.name_container],
         )
+
         self.seq_field = ft.TextField(
             value=seq,
             dense=True,
@@ -218,11 +221,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             text_style=ft.TextStyle(font_family=font_family),
             multiline=True,
             fit_parent_size=True,
-            data={"idx": idx, "field": "seq"},
+            data={"idx": idx, "field": "seq", "cursor_pos": 0},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
+            selection=ft.TextSelection(base_offset=0, extent_offset=0),
         )
         self.seq_container = ft.Container(
             content=self.seq_field,
@@ -235,41 +239,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not seq_error else 42,
             controls=[self.seq_container],
         )
+
+        self.name_field.on_selection_change = self._on_selection_change
+        self.seq_field.on_selection_change = self._on_selection_change
+
         if name_error:
             self.name_field.error = name_error
         if seq_error:
             self.seq_field.error = seq_error
 
-        import inspect
-
-        def local_name_blur(e: ft.Event[ft.TextField]) -> None:
-            res = self.name_scroll.scroll_to(offset=0)
-            page = e.page or self.page
-            if inspect.iscoroutine(res) and page:
-
-                async def do_scroll() -> None:
-                    await res
-
-                page.run_task(do_scroll)
-            else:
-                self.name_scroll.update()
-            handle_field_blur(e)
-
-        def local_seq_blur(e: ft.Event[ft.TextField]) -> None:
-            res = self.seq_scroll.scroll_to(offset=0)
-            page = e.page or self.page
-            if inspect.iscoroutine(res) and page:
-
-                async def do_scroll() -> None:
-                    await res
-
-                page.run_task(do_scroll)
-            else:
-                self.seq_scroll.update()
-            handle_field_blur(e)
-
-        self.name_field.on_blur = local_name_blur
-        self.seq_field.on_blur = local_seq_blur
+        self.name_field.on_blur = self._on_blur
+        self.seq_field.on_blur = self._on_blur
 
         self.divider = ft.GestureDetector(
             on_pan_update=on_divider_pan,
@@ -317,6 +297,49 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
+
+    def _on_selection_change(self, e: ft.Event) -> None:
+        """Handle selection change for name or seq field."""
+        sel = (
+            getattr(e.control, "selection", None)
+            if hasattr(e, "control")
+            else None
+        )
+        if sel is None or not hasattr(sel, "base_offset"):
+            return
+        field_data: dict[str, str] = e.control.data
+        field_data["cursor_pos"] = sel.base_offset
+
+    def _on_blur(self, e: ft.Event[ft.TextField]) -> None:
+        """Handle blur for name or seq field, scrolling to top first."""
+        scroll_target: ft.ListView = (
+            self.name_scroll
+            if e.control.data["field"] == "name"
+            else self.seq_scroll
+        )
+        res = scroll_target.scroll_to(offset=0)
+        page = e.page or self.page
+        if inspect.iscoroutine(res) and page:
+
+            async def _do_scroll() -> None:
+                try:
+                    await res
+                except RuntimeError:
+                    pass
+                try:
+                    if scroll_target.page:
+                        scroll_target.update()
+                except (RuntimeError, AssertionError):
+                    pass
+
+            page.run_task(_do_scroll)
+        else:
+            try:
+                if scroll_target.page:
+                    scroll_target.update()
+            except (RuntimeError, AssertionError):
+                pass
+        self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
         self, is_focused: bool, is_dup: bool
@@ -393,8 +416,18 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         """
         self.data = new_idx
         self.idx = new_idx
-        self.name_field.data = {"idx": new_idx, "field": "name"}
-        self.seq_field.data = {"idx": new_idx, "field": "seq"}
+        name_cursor = self.name_field.data.get("cursor_pos", 0)
+        seq_cursor = self.seq_field.data.get("cursor_pos", 0)
+        self.name_field.data = {
+            "idx": new_idx,
+            "field": "name",
+            "cursor_pos": name_cursor,
+        }
+        self.seq_field.data = {
+            "idx": new_idx,
+            "field": "seq",
+            "cursor_pos": seq_cursor,
+        }
 
         # Update click handler with the new index
         self._row_gesture_detector.on_tap = lambda e: on_row_click(

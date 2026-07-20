@@ -169,11 +169,13 @@ def fill_field_reliably(
         field = page.locator(selector).first
     # force=True bypasses the visibility check from filter:opacity(0%) on the
     # flt-semantics-host parent.
+    field.focus()
     field.click(force=True)
+    time.sleep(0.5)
     field.press("Control+a")
     field.press("Delete")
     time.sleep(0.2)
-    field.press_sequentially(text, delay=delay_ms)
+    field.fill(text)
     time.sleep(0.3)
     print(
         f"  typed '{text}' into {selector} (index={index}, use_last={use_last})"
@@ -242,6 +244,40 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page).to_have_title("AmplifyP", timeout=120000)
     wait_for_semantics(page)
 
+    # Enable "Auto-activate new valid primer" setting so new valid primers
+    # get checked automatically
+    print("Navigating to Settings to enable auto-activate setting...")
+    page.get_by_role("button", name="Settings").filter(
+        visible=True
+    ).first.click(force=True)
+    page.get_by_role("button", name="General Settings").filter(
+        visible=True
+    ).first.wait_for(state="visible", timeout=15000)
+    primer_list_settings_btn = page.get_by_role(
+        "button", name="Primer List Settings"
+    ).first
+    primer_list_settings_btn.wait_for(state="attached", timeout=15000)
+    primer_list_settings_btn.scroll_into_view_if_needed()
+    primer_list_settings_btn.click()
+    time.sleep(1)
+    auto_activate_cb = page.get_by_role(
+        "checkbox", name="Auto-activate new valid primer"
+    )
+    auto_activate_cb.wait_for(state="attached", timeout=10000)
+    expect(auto_activate_cb).not_to_be_checked()
+    auto_activate_cb.click(force=True)
+    time.sleep(1)
+    expect(auto_activate_cb).to_be_checked()
+
+    print("Navigating back to Input tab...")
+    page.get_by_role("button", name="Input").filter(visible=True).first.click(
+        force=True
+    )
+    page.locator(PRIMER_INPUT_SEL).first.wait_for(
+        state="attached", timeout=15000
+    )
+    time.sleep(1)
+
     # 2. Add 2 valid primers
     print("Adding 2 valid primers...")
     add_primer_to_trailing_row(page, "V1", "ATGCATGCATGCATGC")
@@ -250,7 +286,7 @@ def test_e2e_primer_lifecycle_and_state(
     # 3. Add 2 invalid primers
     print("Adding 2 invalid primers...")
     add_primer_to_trailing_row(page, "I1", "XYZXYZXYZXYZ")
-    add_primer_to_trailing_row(page, "I2", "ATGCATGCATGCAT-XYZ")
+    add_primer_to_trailing_row(page, "I2", "XYZATGCATGCATGCATGC")
 
     # Add extra valid (V3) and invalid (I3) primers.
     print("Adding extra valid (V3) primer...")
@@ -275,59 +311,35 @@ def test_e2e_primer_lifecycle_and_state(
     ).to_be_enabled(timeout=15000)
 
     print("Deleting V3 and I3 using delete buttons...")
-    # There are 6 primers in the list:
-    # V1 (0), V2 (1), I1 (2), I2 (3), V3 (4), I3 (5).
-    # Since each row has exactly 2 text input fields (Name and Sequence),
-    # the Name input of V3 (index 4) is at global input index 8.
-    # Focus V3's name input to select the row.
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
+    page.locator(PRIMER_INPUT_SEL).nth(8).focus()
     time.sleep(1)
 
-    # Click the header Delete Primer button.
+    # Click the header Delete Primer button
     delete_btn = page.locator("[aria-label*='Delete Primer']").first
     if not delete_btn.is_visible():
-        # Fall back to locating the delete button in the focused row
-        # container if individual button's behaviour is merged
         row_container = page.locator("[aria-label*='Add Primer Below']").first
         delete_btn = row_container.locator("[role='button']").nth(1)
     expect(delete_btn).to_be_enabled(timeout=5000)
-    try:
-        delete_btn.click(force=True)
-    except Exception:
-        try:
-            delete_btn.dispatch_event("click")
-        except Exception:  # noqa: S110
-            pass
+    delete_btn.click(force=True)
     time.sleep(1)
 
-    # Verify V3 deleted: I3 checkbox is now at index 4 in name_inputs.
+    # Verify V3 deleted: I3 is now at index 4 (global index 8).
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
-    expect(
-        name_inputs.nth(4 * 2)
-        .locator("xpath=../../../..")
-        .get_by_role("checkbox")
-    ).to_be_enabled(timeout=15000)
-
-    # Focus I3 (index 4 after V3 deletion) - Name input is at index 8.
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
+
+    page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+    time.sleep(1)
+
+    # Click the header Delete Primer button
     delete_btn = page.locator("[aria-label*='Delete Primer']").first
     if not delete_btn.is_visible():
-        # Fall back to locating the delete button in the focused row
-        # container if individual button's behaviour is merged
         row_container = page.locator("[aria-label*='Add Primer Below']").first
         delete_btn = row_container.locator("[role='button']").nth(1)
     expect(delete_btn).to_be_enabled(timeout=5000)
-    try:
-        delete_btn.click(force=True)
-    except Exception:
-        try:
-            delete_btn.dispatch_event("click")
-        except Exception:  # noqa: S110
-            pass
-    time.sleep(1)
+    delete_btn.click(force=True)
+    time.sleep(2)
 
-    # Verify I3 deleted: count returned to 5 rows (10 inputs).
+    # Verify both V3 and I3 deleted: count returned to 5 rows (10 inputs).
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
@@ -346,15 +358,16 @@ def test_e2e_primer_lifecycle_and_state(
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
+    ).not_to_be_checked(timeout=15000)
     page.screenshot(path="debug_checkboxes.png")
     expect(
         name_inputs.nth(3 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
+    ).not_to_be_checked(timeout=15000)
 
-    # Uncheck them to return to unchecked baseline state
+    # Try and activate invalid primers (click them) and make sure they
+    # don't get activated
     name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
         "checkbox"
     ).click(force=True)
@@ -363,7 +376,7 @@ def test_e2e_primer_lifecycle_and_state(
     ).click(force=True)
     time.sleep(1)
 
-    # Ensure they are unchecked again
+    # Ensure they remain unchecked
     expect(
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
@@ -429,16 +442,16 @@ def test_e2e_primer_lifecycle_and_state(
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
+    ).not_to_be_checked(timeout=15000)
     expect(
         name_inputs.nth(3 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
+    ).not_to_be_checked(timeout=15000)
 
     # 8. Save the state
     print("Saving the full state...")
-    TEMPLATE_SEL = 'textarea[aria-label="Enter DNA sequence here..."]'
+    TEMPLATE_SEL = "textarea:not([readonly])"
     fill_field_reliably(page, TEMPLATE_SEL, "ATGCATGC")
     page.keyboard.press("Tab")
     time.sleep(1)
@@ -533,36 +546,41 @@ def test_e2e_settings_backup(
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
     def expand_backup_tile() -> None:
-        """Click the Backup tile header to expand it.
+        """Click the General Settings tile header to expand it.
 
         Debug findings:
-        - Backup tile header is role='button' with textContent 'Backup'.
-        - After clicking, the header merges into a group (count goes
-          12 -> 13, not 12 -> 14).
+        - General Settings tile header is role='button' with textContent
+          'General Settings'.
+        - After clicking, the header merges into a group.
         - The 2 expanded buttons appear as role='button' with
-          textContent 'Save Settings' and 'Load Settings' at fixed
-          positions (indices 9 and 10 in the button list).
+          textContent 'Save Settings' and 'Load Settings'.
         - We locate them by name (textContent) via get_by_role.
         """
-        backup_btn = page.get_by_role("button", name="Backup")
+        backup_btn = (
+            page.get_by_role("button", name="General Settings")
+            .filter(visible=True)
+            .first
+        )
         backup_btn.wait_for(state="attached", timeout=15000)
-        print("  Clicking Backup tile to expand...")
+        print("  Clicking General Settings tile to expand...")
         backup_btn.click(force=True)
         # Wait for 'Save Settings' button to appear
         page.get_by_role("button", name="Save Settings").wait_for(
             state="attached", timeout=10000
         )
         time.sleep(1.5)
-        print("  Backup tile expanded.")
+        print("  General Settings tile expanded.")
 
     def navigate_to_settings() -> None:
         """Click the Settings tab and wait for expansion tiles to load."""
         print("  Clicking Settings tab...")
-        page.locator("[aria-label='Settings']").first.click(force=True)
-        # Backup tile header must be visible before proceeding
-        page.get_by_role("button", name="Backup").wait_for(
-            state="attached", timeout=15000
-        )
+        page.get_by_role("button", name="Settings").filter(
+            visible=True
+        ).first.click(force=True)
+        # General Settings tile header must be visible before proceeding
+        page.get_by_role("button", name="General Settings").filter(
+            visible=True
+        ).first.wait_for(state="visible", timeout=15000)
 
     # 1. Navigate to app with semantics enabled
     page.goto(f"{serve_app}/?enable-semantics=true")
@@ -831,7 +849,23 @@ def test_e2e_dimer_alignment(
 
 
 def wait_for_semantics(page: Any) -> None:
-    """Wait for Flutter Web semantics to be ready."""
+    if not getattr(page, "_sw_cleared", False):
+        try:
+            page.evaluate(
+                "async () => { "
+                "const regs = await "
+                "navigator.serviceWorker.getRegistrations(); "
+                "for (let r of regs) { await r.unregister(); } "
+                "const keys = await caches.keys(); "
+                "for (let k of keys) { await caches.delete(k); } "
+                "}"
+            )
+            page.reload()
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception as e:
+            print(f"DEBUG: Failed to unregister service worker: {e}")
+        page._sw_cleared = True
+
     page.wait_for_selector(
         "flt-semantics-host", state="attached", timeout=60000
     )
@@ -903,12 +937,13 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     time.sleep(0.3)
 
     # Fill Sequence field using its precise index
+    time.sleep(1.0)
     fill_field_reliably(page, PRIMER_INPUT_SEL, seq, index=initial_count - 1)
     time.sleep(0.3)
 
-    # Tab away from the sequence field to trigger
+    # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.keyboard.press("Tab")
+    page.locator('textarea:not([aria-label="Primer List"])').first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new

@@ -201,3 +201,8 @@ class BorderedCheckbox(ft.Container):  # type: ignore[misc]
             self.checkbox.value = val.lower() == "true"
         else:
             self.checkbox.value = bool(val)
+
+
+async def focus_async(res: Any) -> None:
+    """Await a coroutine returned from a focus call (e.g. control.focus())."""
+    await res

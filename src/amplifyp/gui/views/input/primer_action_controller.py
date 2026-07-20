@@ -16,12 +16,17 @@
 """Action mutation controller for DNA primers input."""
 
 import inspect
+import logging
 from typing import TYPE_CHECKING
 
 import flet as ft
 
+from amplifyp.gui.utils.ui import focus_async
+
 if TYPE_CHECKING:
     from .primer_input import PrimerInput
+
+logger = logging.getLogger(__name__)
 
 
 class PrimerActionController:
@@ -65,11 +70,7 @@ class PrimerActionController:
 
             res = name_edit.focus()
             if inspect.iscoroutine(res) and owner.app_page:
-
-                async def do_focus() -> None:
-                    await res
-
-                owner.app_page.run_task(do_focus)
+                owner.app_page.run_task(focus_async, res)
 
         owner._update_row_highlights()
         owner._update_primer_info_panel()
@@ -190,37 +191,51 @@ class PrimerActionController:
             self.owner.on_change_handler(None)
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
-        """Delete primers at indices and re-index controls in-place.
-
-        Removes the specified primers from state and UI controls,
-        adjusts the focused index, and re-indexes remaining rows.
-
-        Args:
-            indices_to_delete: Set of zero-based indices to remove.
-        """
-        self._click_a = None
-        self._click_b = None
-        if not indices_to_delete:
-            return
-
+        """Delete primers asynchronously to avoid Flet race conditions."""
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
-        indices_to_delete = {
-            i for i in indices_to_delete if 0 <= i < len(primers)
+        primers_to_delete = {
+            id(primers[i]) for i in indices_to_delete if 0 <= i < len(primers)
         }
-        if not indices_to_delete:
+
+        page = None
+        try:
+            page = self.owner.page
+        except RuntimeError as e:
+            logger.debug("Failed to get owner page: %s", e)
+        if page:
+
+            async def delayed_delete() -> None:
+                import asyncio
+
+                await asyncio.sleep(0.05)
+                self._delete_primers_impl(primers_to_delete)
+
+            page.run_task(delayed_delete)
+        else:
+            self._delete_primers_impl(primers_to_delete)
+
+    def _delete_primers_impl(self, primers_to_delete: set[int]) -> None:
+        self._click_a = None
+        self._click_b = None
+        if not primers_to_delete:
             return
 
-        # Keep only indices NOT in the deleted set
-        new_primers = [
-            p for i, p in enumerate(primers) if i not in indices_to_delete
-        ]
+        primers = self.owner.input_data.primers
+        deleted_indices = {
+            i for i, p in enumerate(primers) if id(p) in primers_to_delete
+        }
+        if not deleted_indices:
+            return
+
+        # Keep only primers NOT in the deleted set
+        new_primers = [p for p in primers if id(p) not in primers_to_delete]
         if not new_primers:
             new_primers = [{"name": "", "seq": "", "active": False}]
         self.owner.input_data.primers = new_primers
 
         # Adjust focus index
-        min_deleted = min(indices_to_delete)
+        min_deleted = min(deleted_indices)
         new_len = len(new_primers)
         if new_len == 0 or (
             new_len == 1
@@ -240,7 +255,7 @@ class PrimerActionController:
         remaining_controls = []
         for row in self.owner.primers_list.controls:
             if isinstance(row, PrimerRow):
-                if row.data in indices_to_delete:
+                if row.data in deleted_indices:
                     continue
                 remaining_controls.append(row)
 
@@ -252,7 +267,7 @@ class PrimerActionController:
         self.owner.primers_list.controls = remaining_controls
         num_remaining = len(remaining_controls)
         # Find the earliest deleted index to start re-indexing from
-        start_reindex = min(indices_to_delete)
+        start_reindex = min(deleted_indices)
 
         for new_idx in range(start_reindex, num_remaining):
             row = remaining_controls[new_idx]
