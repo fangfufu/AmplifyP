@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/fangfufu/AmplifyP/compare/v1.9.0...v1.10.0) (2026-07-20)
+
+
+### Features
+
+* add left/right arrow navigation between primer fields ([30890a1](https://github.com/fangfufu/AmplifyP/commit/30890a1f89ce60ea765cbbce23f471368a214668))
+* **gui:** add Auto wrap option to selector ([6f24ea3](https://github.com/fangfufu/AmplifyP/commit/6f24ea3cab565a638e9c4aba71c3b00a9619c462))
+* **gui:** add auto-activate setting and primer list ([f4945fb](https://github.com/fangfufu/AmplifyP/commit/f4945fbb4fe86ca125e58bd925ee3e5ddcc7e6fc))
+* **gui:** default bases per line to Auto ([eb90da3](https://github.com/fangfufu/AmplifyP/commit/eb90da395225e1c438f13d107e42d1b158d2d44c))
+* **gui:** display self-dimer in primer info box ([5fb42f8](https://github.com/fangfufu/AmplifyP/commit/5fb42f86d0a9b49b3a1947b465b61eb02f81381b))
+* **gui:** enable keyboard navigation in primer input panel ([2cfe1c2](https://github.com/fangfufu/AmplifyP/commit/2cfe1c284521a742dcacbe8bcb88890830737c66))
+* **gui:** keep primer info box visible in fixed height mode ([7ebec64](https://github.com/fangfufu/AmplifyP/commit/7ebec643834a909b87e0ac219ffb1e8f906ec58f))
+* **gui:** reset primer row scroll on blur ([639af1b](https://github.com/fangfufu/AmplifyP/commit/639af1b0b61e23197cdbd31b48f5cdac8f1cdd35))
+* **gui:** restrict wrap length options to 10-100 ([fab55ff](https://github.com/fangfufu/AmplifyP/commit/fab55ff941e36b3dcfe5bbae92e727987dba6c1f))
+* **gui:** separate header buttons with vertical divider ([3c6361a](https://github.com/fangfufu/AmplifyP/commit/3c6361ae1f495f240cac82424d498c4990d74edd))
+* **gui:** show template scrollbar always at top ([eb06a8b](https://github.com/fangfufu/AmplifyP/commit/eb06a8b0c1221c61c39db67253c0989a985d977d))
+* **gui:** support repositioning primer info panel ([1539690](https://github.com/fangfufu/AmplifyP/commit/15396908ff16b1713cb76ad5f6f1bd9e651af2d3))
+* **gui:** update dimer view primer name alignment ([7e9ce57](https://github.com/fangfufu/AmplifyP/commit/7e9ce57eac1f555f21028648ed6c6d98c0ea28be))
+* improve cursor positioning and Tab navigation in primer fields ([c08b333](https://github.com/fangfufu/AmplifyP/commit/c08b3339fe3db530774d6f782a22e8e27637fec8))
+
+
+### Bug Fixes
+
+* add isinstance check for ft.TextField before accessing .value ([5c5eab5](https://github.com/fangfufu/AmplifyP/commit/5c5eab55499ec91837e9880581f8aec4f473ba49))
+* codacy issue ([d7480cb](https://github.com/fangfufu/AmplifyP/commit/d7480cbb66e8bd23ea6094c65276e98a85a7ade9))
+* **gui:** batch checkbox updates via page.update() for semantics ([4c096a3](https://github.com/fangfufu/AmplifyP/commit/4c096a34aa9d6e8a9f2895dc2a4f22fdfb1f6a30))
+* **gui:** calculate template panel width dynamically ([c42e426](https://github.com/fangfufu/AmplifyP/commit/c42e42648a80b9a220477c0d94b8bf870336ab73))
+* **gui:** disable autowrap in template input ([63b75c0](https://github.com/fangfufu/AmplifyP/commit/63b75c040d54c0f97847b88345bb66378804c3e9))
+* **gui:** ensure template sequence formatting and gutter reflow on all changes ([b54372d](https://github.com/fangfufu/AmplifyP/commit/b54372db8a39e083477ffa96d8369bf2790e231b))
+* **gui:** expand template text field to full width ([22939ce](https://github.com/fangfufu/AmplifyP/commit/22939ceba79394036d652b0a549b8e860ce43e7d))
+* **gui:** fix primer auto-activation race in e2e ([144aff2](https://github.com/fangfufu/AmplifyP/commit/144aff2b6d82b177fa0a925aa836714d3faa2af3))
+* **gui:** increase circular checkbox container width to 115px ([33d6db0](https://github.com/fangfufu/AmplifyP/commit/33d6db0c8e45dce7789a8a386b4f9b72abef1cf9))
+* **gui:** increase safety margin and char width for template wrap ([15c2039](https://github.com/fangfufu/AmplifyP/commit/15c2039a683b1683dcf56d5684ee2a12cbe4bd12))
+* **gui:** increase template wrap safety margin to 100px ([f6ed585](https://github.com/fangfufu/AmplifyP/commit/f6ed585961ffe9220fc01a7cb6f2e06324a05745))
+* **gui:** update template gutter base markers immediately on paste ([86e80a4](https://github.com/fangfufu/AmplifyP/commit/86e80a4f5d60e7f573518508a4f0d15b5a2c2a9b))
+* Various fixes ([f314dc0](https://github.com/fangfufu/AmplifyP/commit/f314dc037c2524b3ecd48cf261958486c6c8c50b))
+
 ## [1.9.0](https://github.com/fangfufu/AmplifyP/compare/v1.8.1...v1.9.0) (2026-07-16)
 
 

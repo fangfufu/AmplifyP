@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "amplifyp"
-version = "1.9.0"
+version = "1.10.0"
 description = """\
 Modern Python rewrite of Amplify4 for PCR simulation, \
 amplicon prediction, and primer dimer analysis\
