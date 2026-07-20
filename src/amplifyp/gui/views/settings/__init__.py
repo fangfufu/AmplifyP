@@ -16,23 +16,19 @@
 """Settings sub-controls package."""
 
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
-from amplifyp.gui.views.settings.backup_tile import BackupTile
 from amplifyp.gui.views.settings.base_score_tile import ScoreTable
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.settings_view import SettingsView
 from amplifyp.gui.views.settings.tm_tile import TmTile
-from amplifyp.gui.views.settings.updates_tile import UpdatesTile
 
 __all__ = [
     "AppearanceTile",
-    "BackupTile",
     "DimerTile",
     "GeneralTile",
     "ReplicationTile",
     "ScoreTable",
     "SettingsView",
     "TmTile",
-    "UpdatesTile",
 ]

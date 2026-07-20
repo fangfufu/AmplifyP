@@ -245,10 +245,12 @@ def test_settings_backup_and_restore() -> None:
 
     # Click save button
     with patch(
-        "amplifyp.gui.views.settings.backup_tile.save_and_write_file",
+        "amplifyp.gui.views.settings.general_tile.save_and_write_file",
         new=AsyncMock(side_effect=mock_save_and_write_file),
     ):
-        asyncio.run(settings_view.backup_tile._save_settings_async(MagicMock()))
+        asyncio.run(
+            settings_view.general_tile._save_settings_async(MagicMock())
+        )
 
     # Verify saved YAML contains settings and the modified values
     parsed = yaml.safe_load(serialised_yaml)
@@ -269,10 +271,12 @@ def test_settings_backup_and_restore() -> None:
 
     # 4. Mock loading
     with patch(
-        "amplifyp.gui.views.settings.backup_tile.pick_and_read_file",
+        "amplifyp.gui.views.settings.general_tile.pick_and_read_file",
         new=AsyncMock(return_value=serialised_yaml),
     ):
-        asyncio.run(settings_view.backup_tile._load_settings_async(MagicMock()))
+        asyncio.run(
+            settings_view.general_tile._load_settings_async(MagicMock())
+        )
 
     # Verify values have been restored to the controls
     assert settings_view.set_primability_cutoff.value == "0.95"

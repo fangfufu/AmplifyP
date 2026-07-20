@@ -28,13 +28,11 @@ if TYPE_CHECKING:
     from amplifyp.gui.utils.ui import BorderedCheckbox
 from amplifyp.gui.logger import reconfigure_logging
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
-from amplifyp.gui.views.settings.backup_tile import BackupTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.tm_tile import TmTile
-from amplifyp.gui.views.settings.updates_tile import UpdatesTile
 from amplifyp.settings import ReplicationSettings
 
 
@@ -68,10 +66,15 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         # Initialise sub-control tiles
         self.general_tile = GeneralTile(
+            page=self.app_page,
             settings=self.settings,
             settings_map=self.settings_map,
             on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             header_size=header_size,
+            font_size_default=font_size_default,
+            sync_to_state_callback=self.sync_to_state,
+            update_ui_callback=self.update_ui,
+            on_update_found=self.on_update_found,
         )
 
         self.replication_tile = ReplicationTile(
@@ -116,34 +119,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
-        self.backup_tile = BackupTile(
-            page=self.app_page,
-            settings=self.settings,
-            sync_to_state_callback=self.sync_to_state,
-            update_ui_callback=self.update_ui,
-            on_change_callback=self.on_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            header_size=header_size,
-            font_size_default=font_size_default,
-        )
-
-        self.updates_tile = UpdatesTile(
-            page=self.app_page,
-            settings=self.settings,
-            settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            header_size=header_size,
-            on_update_found=self.on_update_found,
-        )
-
         self.controls = [
             self.general_tile,
             self.replication_tile,
             self.tm_tile,
             self.dimer_tile,
             self.appearance_tile,
-            self.updates_tile,
             self.diagnostics_tile,
-            self.backup_tile,
             ft.Divider(),
             self._build_reset_button(),
         ]
@@ -235,7 +217,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_version_checking_frequency(self) -> ft.Dropdown:
         """Get the version checking frequency dropdown."""
-        return self.updates_tile.set_version_checking_frequency
+        return self.general_tile.set_version_checking_frequency
 
     @property
     def set_auto_reload_on_startup(self) -> BorderedCheckbox:
@@ -308,7 +290,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()
         self.diagnostics_tile.update_ui()
-        self.updates_tile.update_ui()
+        self.general_tile.update_ui()
 
     def _on_change_handler(self, e: ft.ControlEvent) -> None:
         """Handle change in settings fields."""
