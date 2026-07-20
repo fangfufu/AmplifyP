@@ -232,6 +232,14 @@ class _GUIColoursMeta(type):
         )
 
     @property
+    def PURPLE(cls) -> str:
+        """Get standard purple colour."""
+        return cast(
+            str,
+            ft.Colors.PURPLE_300 if cls._dark_mode else ft.Colors.PURPLE_700,
+        )
+
+    @property
     def WHITE(cls) -> str:
         """Get standard white colour."""
         return cast(str, ft.Colors.WHITE)

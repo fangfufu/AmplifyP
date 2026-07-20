@@ -167,46 +167,106 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             settings=self.settings, font_family=font_family
         )
 
+        # Primer List Container (stored for dynamic repositioning)
+        self.primer_list_container = ft.Container(
+            content=ft.Column(
+                [
+                    self.primers_header_container,
+                    self.primers_list,
+                ],
+                expand=True,
+                spacing=0,
+            ),
+            expand=True,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=0,
+        )
+
+        # Title row (stored for dynamic repositioning)
+        self.primer_title_row = ft.ResponsiveRow(
+            [
+                ft.Row(
+                    [
+                        ft.Text(
+                            "Primers",
+                            weight=ft.FontWeight.BOLD,
+                            no_wrap=True,
+                        ),
+                        self.primer_toolbar,
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    wrap=True,
+                ),
+            ],
+            run_spacing=0,
+        )
+
         self.content = ft.Column(
             [
-                ft.ResponsiveRow(
-                    [
-                        ft.Row(
-                            [
-                                ft.Text(
-                                    "Primers",
-                                    weight=ft.FontWeight.BOLD,
-                                    no_wrap=True,
-                                ),
-                                self.primer_toolbar,
-                            ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            wrap=True,
-                        ),
-                    ],
-                    run_spacing=0,
-                ),
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            self.primers_header_container,
-                            self.primers_list,
-                        ],
-                        expand=True,
-                        spacing=0,
-                    ),
-                    expand=True,
-                    border=ft.Border.all(1, GUIColours.OUTLINE),
-                    border_radius=5,
-                    padding=0,
-                ),
-                self.error_banner,
+                self.primer_title_row,
                 self.primer_info_panel,
+                self.primer_list_container,
+                self.error_banner,
             ],
             expand=True,
             spacing=5,
         )
+
+        # Position info panel based on setting
+        self._reposition_info_panel()
+
+    def _reposition_info_panel(self) -> None:
+        """Reposition the primer info panel based on the current setting.
+
+        Moves the info panel to either the top (after the toolbar row)
+        or the bottom (before the error banner) of the primer list area.
+
+        Rebuilds the entire Column so Flet detects the structural change
+        and re-renders the new order.
+        """
+        position = str(
+            self.settings.get("primer_info_panel_position", "bottom")
+        ).lower()
+
+        if position == "top":
+            new_controls: list[ft.Control] = [
+                self.primer_title_row,
+                self.primer_info_panel,
+                self.primer_list_container,
+                self.error_banner,
+            ]
+        else:
+            new_controls = [
+                self.primer_title_row,
+                self.primer_list_container,
+                self.primer_info_panel,
+                self.error_banner,
+            ]
+
+        if isinstance(self.content, ft.Column):
+            self.content.controls = new_controls
+        else:
+            self.content = ft.Column(
+                new_controls,
+                expand=True,
+                spacing=5,
+            )
+        # Trigger Flet to re-render the changed content
+        try:
+            self.update()
+        except RuntimeError:
+            pass
+
+    def reposition_info_panel(self) -> None:
+        """Public method to reposition the info panel.
+
+        Call this when the setting changes to ensure the panel is
+        immediately repositioned. The internal update is handled by
+        _reposition_info_panel.
+        """
+        self._reposition_info_panel()
 
     # Delegate properties of the info panel for test and backward compatibility
     @property
@@ -286,7 +346,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         else:
             ui_primers = self._extract_primer_data_from_ui()
 
-        primers = reconcile_primer_states(ui_primers, self.input_data.primers)
+        auto_activate_new = self.settings.get(
+            "auto_activate_new_valid_primer", False
+        )
+        primers = reconcile_primer_states(
+            ui_primers,
+            self.input_data.primers,
+            auto_activate_new=auto_activate_new,
+        )
 
         # Update checkbox values in-place on UI controls if they
         # were updated during reconciliation.
@@ -361,14 +428,15 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header = self.primer_header.header_row
         self.primers_header_container = self.primer_header
 
+        # Reposition info panel based on current setting
+        self._reposition_info_panel()
+
         # Replace the header in the UI container controls
-        column = cast(ft.Column, self.content)
-        container = cast(ft.Container, column.controls[1])
-        inner_column = cast(ft.Column, container.content)
+        inner_column = cast(ft.Column, self.primer_list_container.content)
         inner_column.controls[0] = self.primer_header
         try:
-            if container.page:
-                container.update()
+            if self.primer_list_container.page:
+                self.primer_list_container.update()
         except RuntimeError:
             logger.debug("Container page detached, skipping update")
 

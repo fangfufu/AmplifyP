@@ -95,22 +95,29 @@ def create_overlapped_sequence_view(
     font_family: str = "Roboto Mono",
     font_size: int = 14,
     is_dimer: bool = False,
+    top_name_line: str = "",
+    bottom_name_line: str = "",
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences.
 
     Uses TextSpans for the visual representation with colour-coded
-    lines. For dimer view, displays three lines (top, middle, bottom).
+    lines. For dimer view, displays five lines (top primer name, top
+    sequence, middle bonds, bottom sequence, bottom primer name).
     For context map view, displays five lines (coordinates, primer row,
     bonds, complement, template).
 
     Args:
-        top_line: The top line content (coordinates/arrows for context map).
-        mid_line: The middle line content (primer row).
+        top_line: The top line content (coordinates/arrows for context map,
+            or top sequence for dimer view).
+        mid_line: The middle line content (primer row for context map,
+            or bonds line for dimer view).
         bottom_line: The bottom line content (bonds + template for context
-            map, or third line for dimer view).
+            map, or bottom sequence for dimer view).
         font_family: The font family to use for the text.
         font_size: The font size in pixels.
         is_dimer: Whether this is a dimer view (True) or context map (False).
+        top_name_line: The top primer name for dimer view.
+        bottom_name_line: The bottom primer name for dimer view.
 
     Returns:
         A Flet Text control with styled TextSpans.
@@ -121,6 +128,13 @@ def create_overlapped_sequence_view(
 
     if is_dimer:
         spans = [
+            ft.TextSpan(
+                f"{top_name_line}\n",
+                style=ft.TextStyle(
+                    color=GUIColours.PURPLE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
             ft.TextSpan(
                 f"{top_line}\n",
                 style=ft.TextStyle(
@@ -136,9 +150,16 @@ def create_overlapped_sequence_view(
                 ),
             ),
             ft.TextSpan(
-                bottom_line,
+                f"{bottom_line}\n",
                 style=ft.TextStyle(
                     color=GUIColours.TEXT_ON_SURFACE,
+                    weight=ft.FontWeight.BOLD,
+                ),
+            ),
+            ft.TextSpan(
+                bottom_name_line,
+                style=ft.TextStyle(
+                    color=GUIColours.PURPLE,
                     weight=ft.FontWeight.BOLD,
                 ),
             ),

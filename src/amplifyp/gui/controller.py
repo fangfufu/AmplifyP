@@ -36,6 +36,7 @@ from amplifyp.gui.views import (
     PCRView,
     SettingsView,
 )
+from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +106,7 @@ class GUIController:
             self.on_platform_brightness_change
         )
         self.apply_theme()
+        self.page.on_keyboard_event = self._on_keyboard_event
 
         def handle_input_change(e: ft.ControlEvent | None) -> None:
             self.update_pcr_button_state(sync=False)
@@ -371,6 +373,23 @@ class GUIController:
         active_view = self.view_container.content
         if active_view == self.input_view:
             self.input_view.update_ui()
+            # Immediately reposition the info panel if its position changed
+            if e is not None:
+                ctrl = getattr(e, "control", None)
+                if ctrl is not None:
+                    try:
+                        tile = getattr(
+                            self.settings_view, "primer_list_tile", None
+                        )
+                        if (
+                            tile is not None
+                            and isinstance(tile, PrimerListTile)
+                            and tile.set_primer_info_panel_position is ctrl
+                        ):
+                            self.input_view.reposition_primer_info_panel()
+                            return
+                    except Exception as ex:
+                        logger.debug("Failed to check primer list tile: %s", ex)
         else:
             self.input_view_dirty = True
 
@@ -784,3 +803,65 @@ class GUIController:
             self.page.overlay.append(self._clear_dialog)
         self._clear_dialog.open = True
         self.page.update()
+
+    def _on_keyboard_event(self, e: ft.KeyboardEvent) -> None:
+        """Handle global keyboard events, specifically Arrow Up/Down.
+
+        Navigates between primer rows.
+        """
+        if e.key not in ("Arrow Up", "Arrow Down"):
+            return
+
+        # Check if the active view is InputView with a focused primer field
+
+        if (
+            not self.input_view
+            or self.view_container.content != self.input_view
+        ):
+            return
+
+        focused = self.input_view._currently_focused_control
+        if not (
+            focused
+            and isinstance(focused.data, dict)
+            and "idx" in focused.data
+            and "field" in focused.data
+        ):
+            return
+
+        idx = focused.data["idx"]
+        field = focused.data["field"]
+
+        # Calculate next index
+        if e.key == "Arrow Down":
+            next_idx = idx + 1
+        else:
+            next_idx = idx - 1
+
+        # Find target row in primer list
+        controls = self.input_view.primer_input.primers_list.controls
+        target_row = None
+        from amplifyp.gui.views.input.primer_row import PrimerRow
+
+        for row in controls:
+            if isinstance(row, PrimerRow) and row.idx == next_idx:
+                target_row = row
+                break
+
+        if target_row:
+            target_field = (
+                target_row.name_field
+                if field == "name"
+                else target_row.seq_field
+            )
+
+            # Request focus on the target field
+            import inspect
+
+            res = target_field.focus()
+            if inspect.iscoroutine(res):
+
+                async def do_focus() -> None:
+                    await res
+
+                self.page.run_task(do_focus)

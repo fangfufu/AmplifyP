@@ -87,34 +87,12 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
-        from amplifyp.gui.utils.ui import BorderedCheckbox
-
-        self.set_show_primer_temperature = BorderedCheckbox(
-            label="Show Primer Temperature in List",
-            on_change=self.on_change_handler,
-        )
-        self.set_tm_colour_scheme = ft.Dropdown(
-            label="Tm Colour Scheme",
-            options=[
-                ft.dropdown.Option("None"),
-                ft.dropdown.Option("Cool-Warm"),
-                ft.dropdown.Option("Traffic Light"),
-            ],
-            expand=True,
-            on_select=self.on_change_handler,
-            border_color=GUIColours.OUTLINE,
-        )
-
         self.settings_map["tm_dna_conc"] = self.set_tm_dna_conc
         self.settings_map["tm_dnap_conc"] = self.set_tm_dnap_conc
         self.settings_map["tm_mono_salt"] = self.set_tm_mono_salt
         self.settings_map["tm_div_salt"] = self.set_tm_div_salt
         self.settings_map["tm_dNTP_conc"] = self.set_tm_dNTP_conc
         self.settings_map["tm_method"] = self.set_tm_method
-        self.settings_map["show_primer_temperature"] = (
-            self.set_show_primer_temperature
-        )
-        self.settings_map["tm_colour_scheme"] = self.set_tm_colour_scheme
 
         super().__init__(
             title=ft.Text(
@@ -138,10 +116,6 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                                                 self.set_tm_mono_salt,
                                                 self.set_tm_div_salt,
                                                 self.set_tm_dNTP_conc,
-                                                self.set_show_primer_temperature,
-                                                ft.Row(
-                                                    [self.set_tm_colour_scheme]
-                                                ),
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
