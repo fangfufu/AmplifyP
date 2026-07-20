@@ -1426,3 +1426,64 @@ def test_primer_row_keyboard_navigation() -> None:
 
     # Verify row0 sequence field focus was called
     row0.seq_field.focus.assert_called_once()
+
+
+def test_input_view_auto_activate_new_valid_primer() -> None:
+    """Test auto-activation of new valid primers based on settings."""
+    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.views.input.input_view import InputView
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+
+    # 1. When settings['auto_activate_new_valid_primer'] is False (default)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "", "seq": "", "active": False}]
+    settings = GUISettings()
+    settings["auto_activate_new_valid_primer"] = False
+
+    view = InputView(mock_page, input_data, settings=settings)
+    view.update_ui()
+
+    # Fill the empty row with a valid primer
+    view.primers_list.controls[0].name_field.value = "ValidName"
+    view.primers_list.controls[0].seq_field.value = "ATCGATCGATCG"
+    view.sync_to_state()
+
+    # It should not auto-activate
+    assert input_data.primers[0]["active"] is False
+
+    # 2. When settings['auto_activate_new_valid_primer'] is True
+    input_data_2 = GUIInput()
+    input_data_2.primers = [{"name": "", "seq": "", "active": False}]
+    settings_2 = GUISettings()
+    settings_2["auto_activate_new_valid_primer"] = True
+
+    view_2 = InputView(mock_page, input_data_2, settings=settings_2)
+    view_2.update_ui()
+
+    # Fill the empty row with a valid primer
+    view_2.primers_list.controls[0].name_field.value = "ValidName"
+    view_2.primers_list.controls[0].seq_field.value = "ATCGATCGATCG"
+    view_2.sync_to_state()
+
+    # It should auto-activate
+    assert input_data_2.primers[0]["active"] is True
+
+    # 3. When settings['auto_activate_new_valid_primer'] is True
+    # but the sequence is invalid
+    input_data_3 = GUIInput()
+    input_data_3.primers = [{"name": "", "seq": "", "active": False}]
+    settings_3 = GUISettings()
+    settings_3["auto_activate_new_valid_primer"] = True
+
+    view_3 = InputView(mock_page, input_data_3, settings=settings_3)
+    view_3.update_ui()
+
+    # Fill the empty row with an invalid sequence (contains 'X')
+    view_3.primers_list.controls[0].name_field.value = "ValidName"
+    view_3.primers_list.controls[0].seq_field.value = "ATCGATCGX"
+    view_3.sync_to_state()
+
+    # It should not auto-activate because it is not valid
+    assert input_data_3.primers[0]["active"] is False

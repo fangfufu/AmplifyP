@@ -346,7 +346,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         else:
             ui_primers = self._extract_primer_data_from_ui()
 
-        primers = reconcile_primer_states(ui_primers, self.input_data.primers)
+        auto_activate_new = self.settings.get(
+            "auto_activate_new_valid_primer", False
+        )
+        primers = reconcile_primer_states(
+            ui_primers,
+            self.input_data.primers,
+            auto_activate_new=auto_activate_new,
+        )
 
         # Update checkbox values in-place on UI controls if they
         # were updated during reconciliation.

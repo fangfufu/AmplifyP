@@ -36,6 +36,7 @@ from amplifyp.gui.views import (
     PCRView,
     SettingsView,
 )
+from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
 
 logger = logging.getLogger(__name__)
 
@@ -377,20 +378,18 @@ class GUIController:
                 ctrl = getattr(e, "control", None)
                 if ctrl is not None:
                     try:
-                        from amplifyp.gui.views.settings import appearance_tile
-
                         tile = getattr(
-                            self.settings_view, "appearance_tile", None
+                            self.settings_view, "primer_list_tile", None
                         )
                         if (
                             tile is not None
-                            and isinstance(tile, appearance_tile.AppearanceTile)
+                            and isinstance(tile, PrimerListTile)
                             and tile.set_primer_info_panel_position is ctrl
                         ):
                             self.input_view.reposition_primer_info_panel()
                             return
                     except Exception as ex:
-                        logger.debug("Failed to check appearance tile: %s", ex)
+                        logger.debug("Failed to check primer list tile: %s", ex)
         else:
             self.input_view_dirty = True
 

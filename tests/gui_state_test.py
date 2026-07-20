@@ -55,10 +55,10 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
-    settings_view.appearance_tile.set_primer_info_panel_position.value = (
+    settings_view.primer_list_tile.set_primer_info_panel_position.value = (
         "bottom"
     )
-    settings_view.appearance_tile.set_colour_scheme.value = (
+    settings_view.general_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
     )
     settings_view.settings_map["bp_score_G_G"].value = "99.0"
@@ -133,12 +133,12 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
     assert (
-        new_settings_view.appearance_tile.set_primer_info_panel_position.value
+        new_settings_view.primer_list_tile.set_primer_info_panel_position.value
         == "bottom"
     )
     assert new_settings_view.settings["primer_info_panel_position"] == "bottom"
     assert (
-        new_settings_view.appearance_tile.set_colour_scheme.value
+        new_settings_view.general_tile.set_colour_scheme.value
         == "Dark (Colour Deficient Friendly)"
     )
     assert new_settings_view.settings["dark_mode"] is True
@@ -197,12 +197,14 @@ def test_settings_view_buttons() -> None:
     assert settings_view.settings["pd_score_G_G"] == "-20"
     assert settings_view.settings["improved_visualisation"] is True
     assert settings_view.settings["show_primer_temperature"] is False
+    assert settings_view.settings["auto_activate_new_valid_primer"] is False
     assert settings_view.settings["tm_colour_scheme"] == "None"
     # Controls should be updated too
     assert settings_view.set_primability_cutoff.value == "0.8"
     assert settings_view.set_amp4_compat.value is False
     assert settings_view.set_improved_visualisation.value is True
     assert settings_view.set_show_primer_temperature.value is False
+    assert settings_view.set_auto_activate_new_valid_primer.value is False
     assert settings_view.set_tm_colour_scheme.value == "None"
     assert (
         settings_view.set_tm_method.value
@@ -351,7 +353,7 @@ def test_system_theme_saving_loading() -> None:
     settings_view = SettingsView(mock_page)
 
     # 1. Select System dropdown
-    settings_view.appearance_tile.set_colour_scheme.value = "System"
+    settings_view.general_tile.set_colour_scheme.value = "System"
     settings_view.sync_to_state()
 
     assert settings_view.settings["dark_mode"] == "system"
@@ -363,12 +365,12 @@ def test_system_theme_saving_loading() -> None:
     new_settings_view.set_state(settings_state)
 
     # 3. Assertions
-    assert new_settings_view.appearance_tile.set_colour_scheme.value == "System"
+    assert new_settings_view.general_tile.set_colour_scheme.value == "System"
     assert new_settings_view.settings["dark_mode"] == "system"
     assert new_settings_view.settings["colour_deficient"] is False
 
     # 4. Now with Colour Deficient Friendly System option
-    settings_view.appearance_tile.set_colour_scheme.value = (
+    settings_view.general_tile.set_colour_scheme.value = (
         "System (Colour Deficient Friendly)"
     )
     settings_view.sync_to_state()
@@ -381,7 +383,7 @@ def test_system_theme_saving_loading() -> None:
     new_settings_view_2.set_state(settings_state_2)
 
     assert (
-        new_settings_view_2.appearance_tile.set_colour_scheme.value
+        new_settings_view_2.general_tile.set_colour_scheme.value
         == "System (Colour Deficient Friendly)"
     )
     assert new_settings_view_2.settings["dark_mode"] == "system"

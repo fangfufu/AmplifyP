@@ -74,6 +74,37 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
 
+        # --- Appearance settings ---
+        self.set_font_family = ft.Dropdown(
+            label="Font Family",
+            options=[
+                ft.dropdown.Option("Roboto Mono"),
+                ft.dropdown.Option("Courier New"),
+                ft.dropdown.Option("Consolas"),
+                ft.dropdown.Option("monospace"),
+            ],
+            width=500,
+            on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
+        )
+
+        self.set_colour_scheme = ft.Dropdown(
+            label="Colour Scheme",
+            options=[
+                ft.dropdown.Option("Light"),
+                ft.dropdown.Option("Dark"),
+                ft.dropdown.Option("Light (Colour Deficient Friendly)"),
+                ft.dropdown.Option("Dark (Colour Deficient Friendly)"),
+                ft.dropdown.Option("System"),
+                ft.dropdown.Option("System (Colour Deficient Friendly)"),
+            ],
+            width=500,
+            on_select=self._on_colour_scheme_change,
+            border_color=GUIColours.OUTLINE,
+        )
+
+        self._dummy_colour_deficient = ft.Checkbox(visible=False)
+
         # --- General settings ---
         self.auto_reload_checkbox = BorderedCheckbox(
             label="Automatically reload last template and primers on startup",
@@ -124,6 +155,9 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             tooltip="Load settings from a YAML file",
         )
 
+        self.settings_map["font_family"] = self.set_font_family
+        self.settings_map["colour_deficient"] = self._dummy_colour_deficient
+
         super().__init__(
             title=ft.Text(
                 "General Settings",
@@ -138,6 +172,15 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Text(
+                                            "Appearance",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        self.set_font_family,
+                                        self.set_colour_scheme,
+                                        self._dummy_colour_deficient,
+                                        ft.Divider(),
                                         ft.Text(
                                             "Autosave",
                                             weight=ft.FontWeight.BOLD,
@@ -340,3 +383,83 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_version_checking_frequency.value = self.settings.get(
             "version_checking_frequency", "Once per Month"
         )
+
+    @property
+    def set_colour_deficient(self) -> ft.Checkbox:
+        """Get colour deficient checkbox for backwards compatibility."""
+        return self._dummy_colour_deficient
+
+    def _on_colour_scheme_change(self, e: ft.ControlEvent) -> None:
+        """Handle colour scheme dropdown change.
+
+        Syncs the selected colour scheme to settings and triggers the
+        change handler.
+
+        Args:
+            e: The Flet control event triggered by the dropdown change.
+        """
+        self.sync_colour_scheme_to_settings()
+        self.on_change_handler(e)
+
+    def update_colour_scheme_dropdown(self) -> None:
+        """Update the colour scheme dropdown value based on settings.
+
+        Reads the current dark_mode and colour_deficient settings and
+        sets the dropdown to the matching display option.
+        """
+        dark = self.settings.get("dark_mode", False)
+        deficient = bool(self.settings.get("colour_deficient", False))
+        if str(dark).lower() == "system":
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "System (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "System"
+        elif bool(dark):
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Dark (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Dark"
+        else:
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Light (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Light"
+
+    def sync_colour_scheme_to_settings(self) -> None:
+        """Sync the colour scheme dropdown selection back to settings.
+
+        Parses the dropdown value and updates dark_mode and
+        colour_deficient settings accordingly, including the hidden
+        checkbox state.
+        """
+        val = self.set_colour_scheme.value
+        if val == "Dark":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "Dark (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "Light (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "System":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "System (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        else:  # Light
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
