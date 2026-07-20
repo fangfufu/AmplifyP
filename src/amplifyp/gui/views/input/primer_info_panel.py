@@ -44,6 +44,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.settings = settings
         self.font_family = font_family
         self._on_dismiss_callback: Callable[[], None] | None = None
+        self._manually_hidden = False
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -130,6 +131,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         Args:
             e: The Flet control event triggered by the close button click.
         """
+        self._manually_hidden = True
         self.visible = False
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
@@ -157,8 +159,24 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
-            self.visible = False
-            self.height = None
+            if (
+                self.settings.get("primer_info_panel_fixed_height", False)
+                and not self._manually_hidden
+            ):
+                self.info_header_text.value = "Primer: -"
+                self.info_seq_text.value = ""
+                self.info_tm_text.value = ""
+                self.info_pairs_text.value = ""
+                self.info_redundancy_text.value = ""
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = None
+                self.info_dimer_card_container.visible = False
+                self.height = 250
+                self.visible = True
+            else:
+                self.visible = False
+                self.height = None
             on_update_highlights()
             self._update_safe()
             return
@@ -170,6 +188,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.height = None
                 self._update_safe()
                 return
+
+            self._manually_hidden = False
 
             p_data = primers[focused_idx]
             name_val = p_data.get("name", "").strip()
