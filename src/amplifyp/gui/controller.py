@@ -832,6 +832,44 @@ class GUIController:
 
         from amplifyp.gui.views.input.primer_row import PrimerRow
 
+        # Handle Tab for same-row field navigation
+        if e.key == "Tab":
+            controls = self.input_view.primer_input.primers_list.controls
+            if field == "name":
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.seq_field
+                        target_field.selection = ft.TextSelection(
+                            base_offset=0, extent_offset=0
+                        )
+                        break
+                else:
+                    return
+            elif field == "seq":
+                next_row = None
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx + 1:
+                        next_row = row
+                        break
+                if next_row:
+                    target_field = next_row.name_field
+                    target_field.selection = ft.TextSelection(
+                        base_offset=0, extent_offset=0
+                    )
+                else:
+                    return
+            else:
+                return
+
+            res = target_field.focus()
+            if asyncio.iscoroutine(res):
+
+                async def do_focus() -> None:
+                    await res
+
+                self.page.run_task(do_focus)
+            return
+
         # Handle Arrow Left/Right for same-row field navigation
         if e.key in ("Arrow Left", "Arrow Right"):
             if field == "name" and e.key == "Arrow Right":
@@ -866,10 +904,8 @@ class GUIController:
             else:
                 return
 
-            import inspect
-
             res = target_field.focus()
-            if inspect.iscoroutine(res):
+            if asyncio.iscoroutine(res):
 
                 async def do_focus() -> None:
                     await res
@@ -903,10 +939,9 @@ class GUIController:
             )
 
             # Request focus on the target field
-            import inspect
 
             res = target_field.focus()
-            if inspect.iscoroutine(res):
+            if asyncio.iscoroutine(res):
 
                 async def do_focus() -> None:
                     await res

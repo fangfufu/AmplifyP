@@ -224,6 +224,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
             on_change=on_change_handler,
+            selection=ft.TextSelection(base_offset=0, extent_offset=0),
         )
         self.seq_container = ft.Container(
             content=self.seq_field,

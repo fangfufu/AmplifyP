@@ -245,6 +245,16 @@ class InputView(ft.Row):  # type: ignore[misc]
                     self.input_data.primers[idx]["name_touched"] = True
                 elif field == "seq":
                     self.input_data.primers[idx]["seq_touched"] = True
+                    page = e.page or self.page
+                    if page:
+
+                        async def set_seq_cursor() -> None:
+                            await e.control.focus()
+                            e.control.selection = ft.TextSelection(
+                                base_offset=0, extent_offset=0
+                            )
+
+                        page.run_task(set_seq_cursor)
 
             self.primer_input._update_row_highlights()
             self.primer_input._update_primer_info_panel()
