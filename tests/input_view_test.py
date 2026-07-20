@@ -213,8 +213,9 @@ def test_input_view_primer_info_panel() -> None:
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.primers = [
-        {"name": "P1", "seq": "ATCGGTACTTGTGACGCTAC", "active": True},
-        {"name": "P2", "seq": "RACGGTACGTACGTACGTY", "active": True},
+        {"name": "P1", "seq": "AAAAAAAAAAAAAAAAAAAA", "active": True},
+        {"name": "P2", "seq": "RGGGGGGGGGGGGGGGGGGY", "active": True},
+        {"name": "P3", "seq": "CGACTGGGCAAAGGAAATCC", "active": True},
     ]
 
     view = InputView(mock_page, input_data)
@@ -234,10 +235,11 @@ def test_input_view_primer_info_panel() -> None:
     assert view.focused_primer_index == 0
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P1"
-    assert view.info_seq_text.value == "20 bp:   ATCGGTACTTGTGACGCTAC"
+    assert view.info_seq_text.value == "20 bp:   AAAAAAAAAAAAAAAAAAAA"
     assert "Tm =" in view.info_tm_text.value
-    assert "10 AT Pairs, 10 GC Pairs, 50.0% AT" in view.info_pairs_text.value
+    assert "20 AT Pairs, 0 GC Pairs, 100.0% AT" in view.info_pairs_text.value
     assert view.info_redundancy_text.value == "No redundant bases."
+    assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on second primer (index 1) which has redundant bases
     mock_control.data = 1
@@ -248,6 +250,21 @@ def test_input_view_primer_info_panel() -> None:
     assert view.info_header.content.value == "Primer: P2"
     assert "2 redundant bases" in view.info_redundancy_text.value
     assert "redundancy fold = 4" in view.info_redundancy_text.value
+    assert view.primer_info_panel.info_dimer_card_container.visible is False
+
+    # Simulate focusing on third primer (index 2) which has a self-dimer
+    mock_control.data = 2
+    view._handle_field_focus(mock_event)
+
+    assert view.focused_primer_index == 2
+    assert view.primer_info_panel.visible is True
+    assert view.info_header.content.value == "Primer: P3"
+    assert view.primer_info_panel.info_dimer_card_container.visible is True
+    from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+    assert isinstance(
+        view.primer_info_panel.info_dimer_card_container.content, DimerCard
+    )
 
     # Simulate clicking the close button on the info panel
     view.primer_info_panel.close_button.on_click(MagicMock())

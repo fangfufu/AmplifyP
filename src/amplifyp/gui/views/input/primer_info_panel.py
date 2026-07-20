@@ -42,6 +42,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """
         super().__init__()
         self.settings = settings
+        self.font_family = font_family
         self._on_dismiss_callback: Callable[[], None] | None = None
 
         self.info_header_text = ft.Text(
@@ -93,6 +94,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
+        self.info_dimer_card_container = ft.Container(visible=False)
 
         self.content = ft.Container(
             padding=ft.Padding(10, 2, 10, 0),
@@ -112,6 +114,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                             self.info_pairs_text,
                             self.info_redundancy_text,
                             self.info_dimer_text,
+                            self.info_dimer_card_container,
                         ],
                         spacing=1,
                     ),
@@ -227,21 +230,27 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 max_dimer = res_self
 
             if max_dimer is not None:
-                self.info_dimer_text.value = (
-                    "Potential Primer Dimer with quality = "
-                    f"{max_dimer.quality:.1f} "
-                    f"and overlap = {max_dimer.overlap}"
+                from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+                self.info_dimer_text.value = ""
+                self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = DimerCard(
+                    max_dimer, self.settings, self.font_family
                 )
-                self.info_dimer_text.visible = True
+                self.info_dimer_card_container.visible = True
             else:
                 self.info_dimer_text.value = ""
                 self.info_dimer_text.visible = False
+                self.info_dimer_card_container.content = None
+                self.info_dimer_card_container.visible = False
 
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
+            self.info_dimer_card_container.visible = False
+            self.info_dimer_card_container.content = None
 
         self._update_safe()
 
