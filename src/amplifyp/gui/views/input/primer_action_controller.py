@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING
 
 import flet as ft
 
+from amplifyp.gui.utils.ui import focus_async
+
 if TYPE_CHECKING:
     from .primer_input import PrimerInput
 
@@ -65,11 +67,7 @@ class PrimerActionController:
 
             res = name_edit.focus()
             if inspect.iscoroutine(res) and owner.app_page:
-
-                async def do_focus() -> None:
-                    await res
-
-                owner.app_page.run_task(do_focus)
+                owner.app_page.run_task(focus_async, res)
 
         owner._update_row_highlights()
         owner._update_primer_info_panel()

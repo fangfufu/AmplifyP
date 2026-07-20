@@ -28,7 +28,7 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.util import serialise_state
-from amplifyp.gui.utils.ui import NotificationHelper
+from amplifyp.gui.utils.ui import NotificationHelper, focus_async
 from amplifyp.gui.views import (
     AboutView,
     DimerView,
@@ -868,11 +868,7 @@ class GUIController:
 
             res = target_field.focus()
             if asyncio.iscoroutine(res):
-
-                async def do_focus() -> None:
-                    await res
-
-                self.page.run_task(do_focus)
+                self.page.run_task(focus_async, res)
             return
 
         # Handle Arrow Left/Right for same-row field navigation
@@ -913,11 +909,7 @@ class GUIController:
 
             res = target_field.focus()
             if asyncio.iscoroutine(res):
-
-                async def do_focus() -> None:
-                    await res
-
-                self.page.run_task(do_focus)
+                self.page.run_task(focus_async, res)
             return
 
         if e.key not in ("Arrow Up", "Arrow Down"):
@@ -949,8 +941,4 @@ class GUIController:
 
             res = target_field.focus()
             if asyncio.iscoroutine(res):
-
-                async def do_focus() -> None:
-                    await res
-
-                self.page.run_task(do_focus)
+                self.page.run_task(focus_async, res)
