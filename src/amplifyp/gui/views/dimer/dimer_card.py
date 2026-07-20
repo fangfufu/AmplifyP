@@ -66,9 +66,9 @@ class DimerCard(ft.Card):  # type: ignore[misc]
     def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
         """Build the visual alignment container control for a dimer.
 
-        Creates a three-line text visualisation showing the two primer
+        Creates a five-line text visualisation showing the two primer
         sequences aligned at their binding interface with strength
-        indicators in the middle line.
+        indicators in the middle line, and their names above and below.
 
         Args:
             font_size_default: Font size for the sequence display.
@@ -82,16 +82,14 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         middle_str = self.d.binding_strength_str
 
         # Build visually aligned lines.
-        p2_label = f"{self.d.primer_2.name}: "
-        p1_label = f"{self.d.primer_1.name}: "
-        label_width = max(len(p2_label), len(p1_label))
-
-        p2_prefix = p2_label.ljust(label_width)
-        p1_prefix = p1_label.ljust(label_width)
-
-        p2_line = f"{p2_prefix}5'-{seq2}-3'"
-        mid_line = f"{' ' * label_width}{' ' * (3 + self.d.p1_pos)}{middle_str}"
-        p1_line = f"{p1_prefix}{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
+        p2_name_line = self.d.primer_2.name
+        p2_line = f"5'-{seq2}-3'"
+        mid_line = f"{' ' * (3 + self.d.p1_pos)}{middle_str}"
+        p1_line = f"{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
+        p1_pad = max(
+            0, self.d.p1_pos + len(seq1) + 5 - len(self.d.primer_1.name)
+        )
+        p1_name_line = f"{' ' * p1_pad}{self.d.primer_1.name}"
 
         # Create visual alignment stack using generic helper
         diagram_stack = create_overlapped_sequence_view(
@@ -101,6 +99,8 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             font_family=self.font_family,
             font_size=font_size_default,
             is_dimer=True,
+            top_name_line=p2_name_line,
+            bottom_name_line=p1_name_line,
         )
         return ft.Container(
             content=ft.Row(
@@ -110,7 +110,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             padding=12,
             border_radius=6,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
-            height=110,
+            height=140,
         )
 
     def _build_card_header(

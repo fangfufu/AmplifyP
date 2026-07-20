@@ -1243,56 +1243,247 @@ def test_input_view_template_case_conversion() -> None:
 
 def test_template_input_fixed_width() -> None:
     """Test fixed width sequence wrapping and validation in status bar."""
-    from amplifyp.gui.colours import GUIColours
-
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
-    input_data.template = "ATGCT" * 10  # 50 bases
+    input_data.template = "ATGCT" * 20  # 100 bases
 
     view = InputView(mock_page, input_data)
     view.update_ui()
 
     template_input = view.template_input
 
-    # Verify default state
-    assert template_input.fixed_width_tickbox.value is False
-    assert template_input.bases_per_line_container.visible is False
-    assert template_input.bases_per_line_input.value == "50"
+    # Verify default state is Auto
+    assert template_input.bases_per_line_value_text.value == "Auto"
 
-    # Simulate ticking fixed width
-    template_input.fixed_width_tickbox.value = True
-    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
-
-    assert template_input.bases_per_line_container.visible is True
-
-    # Trigger adjust_wrap_length to see if it wraps to 50
+    # Select 50 bases per line and trigger adjust_wrap_length
+    template_input._handle_menu_select(50)
     template_input.adjust_wrap_length(1000)
-    assert template_input.template_sequence.value == "ATGCT" * 10
-
-    # Modify bases per line to 10
-    template_input.bases_per_line_input.value = "10"
-    template_input._handle_bases_per_line_change(
-        MagicMock(spec=ft.ControlEvent)
+    expected_50 = "\n".join(
+        ["ATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCTATGCT"] * 2
     )
+    assert template_input.template_sequence.value == expected_50
+
+    # Modify bases per line to 100
+    template_input._handle_menu_select(100)
 
     # Verify wrapping with new length
     template_input.adjust_wrap_length(1000)
-    expected_10 = "\n".join(["ATGCTATGCT"] * 5)
-    assert template_input.template_sequence.value == expected_10
-    assert (
-        template_input.bases_per_line_input.border_color == GUIColours.OUTLINE
+    assert template_input.template_sequence.value == "ATGCT" * 20
+
+    # Modify bases per line to 80
+    input_data.template = "A" * 100
+    template_input._handle_menu_select(80)
+    template_input.adjust_wrap_length(1000)
+    assert template_input.template_sequence.value == "A" * 80 + "\n" + "A" * 20
+
+
+def test_template_input_paste_updates_gutter() -> None:
+    """Test pasting a long sequence updates the gutter markers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+    # Set mock settings and width for wrapping
+    template_input.settings["template_bases_per_line"] = 50
+    template_input.bases_per_line_value_text.value = "50"
+    template_input._last_left_width = 1000
+
+    # Simulate paste of a long sequence (100 characters)
+    pasted_sequence = "A" * 100
+    template_input.template_sequence.value = pasted_sequence
+
+    # Trigger change event (which simulates user pasting)
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    template_input._handle_change(mock_event)
+
+    # The sequence should now be formatted with newlines at the wrap length (50)
+    expected_formatted = "A" * 50 + "\n" + "A" * 50
+    assert template_input.template_sequence.value == expected_formatted
+    # The line numbers gutter should show indices: "0" and "50"
+    assert template_input.line_numbers_text.value == "0\n50"
+
+    # Simulate typing/editing a character with selection/cursor mapping
+    from flet.controls.core.text import TextSelection
+
+    template_input.template_sequence.selection = TextSelection(
+        base_offset=52, extent_offset=52
     )
 
-    # Verify invalid inputs (fallback to dynamic, and border_color = ERROR_RED)
-    template_input.bases_per_line_input.value = "-10"
-    template_input._handle_bases_per_line_change(
-        MagicMock(spec=ft.ControlEvent)
-    )
-    assert (
-        template_input.bases_per_line_input.border_color == GUIColours.ERROR_RED
+    current_val = template_input.template_sequence.value
+    template_input.template_sequence.value = (
+        current_val[:51] + "T" + current_val[51:]
     )
 
-    # Untick fixed width
-    template_input.fixed_width_tickbox.value = False
-    template_input._handle_fixed_width_toggle(MagicMock(spec=ft.ControlEvent))
-    assert template_input.bases_per_line_container.visible is False
+    template_input._handle_change(mock_event)
+
+    # New sequence length = 101. Format with wrap 50 should be:
+    # 50 A's \n 1 T + 49 A's \n 1 A
+    expected_edited = "A" * 50 + "\n" + "T" + "A" * 49 + "\n" + "A"
+    assert template_input.template_sequence.value == expected_edited
+    assert template_input.line_numbers_text.value == "0\n50\n100"
+
+    # Cursor should be mapped to index 52 (clean index 51)
+    assert template_input.template_sequence.selection.base_offset == 52
+
+
+def test_template_input_auto_wrap() -> None:
+    """Test 'Auto' wrap length dynamic snapping."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "A" * 120
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+
+    # Select Auto
+    template_input._handle_menu_select("Auto")
+    assert template_input.bases_per_line_value_text.value == "Auto"
+
+    # Set available left width to a size where 40 bases per line should fit
+    wrap_len = template_input.adjust_wrap_length(600)
+    assert wrap_len == 40
+    assert (
+        template_input.template_sequence.value
+        == "A" * 40 + "\n" + "A" * 40 + "\n" + "A" * 40
+    )
+
+    # Set width to fit 20 bases per line
+    wrap_len = template_input.adjust_wrap_length(380)
+    assert wrap_len == 20
+
+
+def test_primer_row_keyboard_navigation() -> None:
+    """Test using Up/Down arrow keys to navigate between primer rows."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.window = MagicMock()
+    mock_page.overlay = []
+
+    from amplifyp.gui.controller import GUIController
+
+    controller = GUIController(mock_page)
+    controller.initialise()
+
+    # Switch to input view
+    controller.view_container.content = controller.input_view
+
+    # Set up some primers
+    controller.input_data.primers = [
+        {"name": "P1", "seq": "AAAA", "active": True},
+        {"name": "P2", "seq": "TTTT", "active": True},
+    ]
+    controller.input_view.update_ui()
+
+    # Verify we have two primer rows
+    rows = controller.input_view.primer_input.primers_list.controls
+    assert len(rows) == 2
+    row0 = rows[0]
+    row1 = rows[1]
+
+    # 1. Simulate focusing on P1 name field
+    controller.input_view._currently_focused_control = row0.name_field
+
+    # Mock the focus method of the target field
+    row1.name_field.focus = MagicMock()
+
+    # Trigger arrow down keyboard event
+    down_event = ft.KeyboardEvent(
+        name="keydown",
+        key="Arrow Down",
+        shift=False,
+        ctrl=False,
+        alt=False,
+        meta=False,
+        control=mock_page,
+    )
+    controller._on_keyboard_event(down_event)
+
+    # Verify row1 name field focus was called
+    row1.name_field.focus.assert_called_once()
+
+    # 2. Simulate focusing on P2 sequence field
+    controller.input_view._currently_focused_control = row1.seq_field
+
+    # Mock focus on row 0 sequence field
+    row0.seq_field.focus = MagicMock()
+
+    # Trigger arrow up keyboard event
+    up_event = ft.KeyboardEvent(
+        name="keydown",
+        key="Arrow Up",
+        shift=False,
+        ctrl=False,
+        alt=False,
+        meta=False,
+        control=mock_page,
+    )
+
+    controller._on_keyboard_event(up_event)
+
+    # Verify row0 sequence field focus was called
+    row0.seq_field.focus.assert_called_once()
+
+
+def test_input_view_auto_activate_new_valid_primer() -> None:
+    """Test auto-activation of new valid primers based on settings."""
+    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.views.input.input_view import InputView
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+
+    # 1. When settings['auto_activate_new_valid_primer'] is False (default)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "", "seq": "", "active": False}]
+    settings = GUISettings()
+    settings["auto_activate_new_valid_primer"] = False
+
+    view = InputView(mock_page, input_data, settings=settings)
+    view.update_ui()
+
+    # Fill the empty row with a valid primer
+    view.primers_list.controls[0].name_field.value = "ValidName"
+    view.primers_list.controls[0].seq_field.value = "ATCGATCGATCG"
+    view.sync_to_state()
+
+    # It should not auto-activate
+    assert input_data.primers[0]["active"] is False
+
+    # 2. When settings['auto_activate_new_valid_primer'] is True
+    input_data_2 = GUIInput()
+    input_data_2.primers = [{"name": "", "seq": "", "active": False}]
+    settings_2 = GUISettings()
+    settings_2["auto_activate_new_valid_primer"] = True
+
+    view_2 = InputView(mock_page, input_data_2, settings=settings_2)
+    view_2.update_ui()
+
+    # Fill the empty row with a valid primer
+    view_2.primers_list.controls[0].name_field.value = "ValidName"
+    view_2.primers_list.controls[0].seq_field.value = "ATCGATCGATCG"
+    view_2.sync_to_state()
+
+    # It should auto-activate
+    assert input_data_2.primers[0]["active"] is True
+
+    # 3. When settings['auto_activate_new_valid_primer'] is True
+    # but the sequence is invalid
+    input_data_3 = GUIInput()
+    input_data_3.primers = [{"name": "", "seq": "", "active": False}]
+    settings_3 = GUISettings()
+    settings_3["auto_activate_new_valid_primer"] = True
+
+    view_3 = InputView(mock_page, input_data_3, settings=settings_3)
+    view_3.update_ui()
+
+    # Fill the empty row with an invalid sequence (contains 'X')
+    view_3.primers_list.controls[0].name_field.value = "ValidName"
+    view_3.primers_list.controls[0].seq_field.value = "ATCGATCGX"
+    view_3.sync_to_state()
+
+    # It should not auto-activate because it is not valid
+    assert input_data_3.primers[0]["active"] is False

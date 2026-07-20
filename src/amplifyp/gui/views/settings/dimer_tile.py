@@ -93,7 +93,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
-            width=700,
+            width=815,
         )
 
         super().__init__(
@@ -112,6 +112,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Divider(),
                                         ft.Text(
                                             "Parameters",
                                             weight=ft.FontWeight.BOLD,

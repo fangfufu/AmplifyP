@@ -232,22 +232,33 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             ft.Container(
                 content=ft.Row(
                     [
-                        visible_input_button,
-                        visible_pcr_button,
-                        visible_dimers_button,
-                        visible_settings_button,
-                        visible_about_button,
+                        ft.Row(
+                            [
+                                visible_input_button,
+                                visible_pcr_button,
+                                visible_dimers_button,
+                                visible_settings_button,
+                                visible_about_button,
+                            ],
+                            spacing=10,
+                            tight=True,
+                        ),
                         self.visible_header_divider,
-                        self.visible_clear_btn_control,
-                        self.visible_save_btn_control,
-                        self.visible_load_btn_control,
+                        ft.Row(
+                            [
+                                self.visible_clear_btn_control,
+                                self.visible_save_btn_control,
+                                self.visible_load_btn_control,
+                            ],
+                            spacing=10,
+                            tight=True,
+                        ),
                     ],
                     spacing=10,
                     tight=True,
                     wrap=True,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                alignment=ft.Alignment(1, 0),
             ),
         ]
 

@@ -651,3 +651,11 @@ class InputView(ft.Row):  # type: ignore[misc]
         Delegates to the primer input's info panel update method.
         """
         self.primer_input._update_primer_info_panel()
+
+    def reposition_primer_info_panel(self) -> None:
+        """Reposition the primer info panel based on the current setting.
+
+        Delegates to the primer input's reposition method and triggers
+        a page update.
+        """
+        self.primer_input.reposition_info_panel()

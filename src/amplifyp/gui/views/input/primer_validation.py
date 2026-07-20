@@ -137,7 +137,9 @@ def get_duplicate_primer_indices(
 
 
 def reconcile_primer_states(
-    ui_primers: list[dict[str, Any]], prev_primers: list[dict[str, Any]]
+    ui_primers: list[dict[str, Any]],
+    prev_primers: list[dict[str, Any]],
+    auto_activate_new: bool = False,
 ) -> list[dict[str, Any]]:
     """Reconcile UI primer state with the previous central state.
 
@@ -148,6 +150,7 @@ def reconcile_primer_states(
         ui_primers: List of primer dicts extracted from UI.
         prev_primers: List of primer dicts representing the previous
             central state.
+        auto_activate_new: If True, auto-activate new valid primers.
 
     Returns:
         A list of reconciled primer dicts.
@@ -172,9 +175,13 @@ def reconcile_primer_states(
         elif not is_active:
             show_empty_errors = False
 
-        if is_filled and was_empty and not was_active:
-            is_active = True
-            show_empty_errors = False
+        if auto_activate_new and is_filled and was_empty and not was_active:
+            name_err, seq_err = validate_primer(
+                p_name, p_seq, show_empty_errors=False
+            )
+            if name_err is None and seq_err is None:
+                is_active = True
+                show_empty_errors = False
 
         primers.append(
             {

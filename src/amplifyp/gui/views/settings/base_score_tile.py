@@ -113,7 +113,9 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         )
 
         columns = [ft.DataColumn(label=header_stack)]
-        for c_char in self.col_headers:
+        for i, c_char in enumerate(self.col_headers):
+            is_last = i == len(self.col_headers) - 1
+            col_width = 48 if is_last else 38
             columns.append(
                 ft.DataColumn(
                     label=ft.Container(
@@ -122,7 +124,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                             weight=ft.FontWeight.BOLD,
                             size=self.font_size_table_header,
                         ),
-                        width=38,
+                        width=col_width,
                         alignment=ft.Alignment(0, 0),
                     )
                 )
@@ -143,13 +145,15 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     )
                 )
             ]
-            for c_char in self.col_headers:
+            for i, c_char in enumerate(self.col_headers):
+                is_last = i == len(self.col_headers) - 1
+                col_width = 48 if is_last else 38
                 key = f"{self.prefix}_{r_char}_{c_char}"
                 field = self.settings_map[key]
 
                 # Style TextField to match the borderless style in primer table
                 field.border = ft.InputBorder.NONE
-                field.width = 38
+                field.width = col_width
                 field.height = 30
                 field.content_padding = 0
 
@@ -157,7 +161,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     ft.DataCell(
                         ft.Container(
                             content=field,
-                            width=38,
+                            width=col_width,
                             alignment=ft.Alignment(0, 0),
                         )
                     )
