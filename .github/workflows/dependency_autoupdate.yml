@@ -25,21 +25,33 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.email \
+            "github-actions[bot]@users.noreply.github.com"
 
-          if [ -n "$(git status --porcelain pyproject.toml src/requirements.txt)" ]; then
+          if [ -n "$(git status --porcelain pyproject.toml \
+            src/requirements.txt)" ]; then
             git checkout -b dependency-autoupdate
             git add pyproject.toml src/requirements.txt
-            git commit -m "chore(deps): upgrade project dependencies" -m "Upgrade pyproject.toml and src/requirements.txt dependencies to their latest versions."
+
+            COMMIT_MSG="Upgrade pyproject.toml and src/requirements.txt "
+            COMMIT_MSG="${COMMIT_MSG}dependencies to their latest versions."
+            git commit \
+              -m "chore(deps): upgrade project dependencies" \
+              -m "${COMMIT_MSG}"
+
             git push origin dependency-autoupdate --force
 
-            if gh pr list --head dependency-autoupdate --state open --json number | grep -q '"number"'; then
+            if gh pr list --head dependency-autoupdate \
+              --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
+              PR_BODY="This PR automatically updates the versions of "
+              PR_BODY="${PR_BODY}configured dependencies in \`pyproject.toml\` "
+              PR_BODY="${PR_BODY}and \`src/requirements.txt\`."
               gh pr create \
                 --title "chore(deps): upgrade project dependencies" \
-                --body "This PR automatically updates the versions of configured dependencies in \`pyproject.toml\` and \`src/requirements.txt\`." \
-                --base dev \
+                --body "${PR_BODY}" \
+                --base stable \
                 --head dependency-autoupdate
             fi
           else
