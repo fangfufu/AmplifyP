@@ -487,7 +487,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     @property
     def current_left_width(self) -> float:
         """Get the current available width of the left panel."""
-        if isinstance(self.width, (int, float)) and self.width > 0:
+        if isinstance(self.width, int | float) and self.width > 0:
             return float(self.width)
         right_fraction = 0.5
         if self.parent:
