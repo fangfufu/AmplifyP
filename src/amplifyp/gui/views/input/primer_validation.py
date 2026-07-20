@@ -172,6 +172,12 @@ def reconcile_primer_states(
         if is_active and not is_filled:
             is_active = False
             show_empty_errors = True
+        elif is_active and is_filled:
+            name_err, seq_err = validate_primer(
+                p_name, p_seq, show_empty_errors=False
+            )
+            if (name_err is not None or seq_err is not None) and not was_active:
+                is_active = False
         elif not is_active:
             show_empty_errors = False
 

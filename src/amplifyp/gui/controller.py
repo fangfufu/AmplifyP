@@ -845,6 +845,7 @@ class GUIController:
                         target_field.selection = ft.TextSelection(
                             base_offset=0, extent_offset=0
                         )
+                        target_field.update()
                         break
                 else:
                     return
@@ -859,6 +860,7 @@ class GUIController:
                     target_field.selection = ft.TextSelection(
                         base_offset=0, extent_offset=0
                     )
+                    target_field.update()
                 else:
                     return
             else:
@@ -889,6 +891,7 @@ class GUIController:
                 target_field.selection = ft.TextSelection(
                     base_offset=0, extent_offset=0
                 )
+                target_field.update()
             elif field == "seq" and e.key == "Arrow Left":
                 cursor_pos = focused.data.get("cursor_pos", 0)
                 if cursor_pos != 0:
@@ -904,6 +907,7 @@ class GUIController:
                 target_field.selection = ft.TextSelection(
                     base_offset=name_len, extent_offset=name_len
                 )
+                target_field.update()
             else:
                 return
 

@@ -253,6 +253,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             e.control.selection = ft.TextSelection(
                                 base_offset=0, extent_offset=0
                             )
+                            e.control.update()
 
                         page.run_task(set_seq_cursor)
 

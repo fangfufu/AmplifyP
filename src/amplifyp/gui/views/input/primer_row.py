@@ -300,7 +300,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
 
     def _on_selection_change(self, e: ft.Event) -> None:
         """Handle selection change for name or seq field."""
-        sel = getattr(e, "selection", None)
+        sel = (
+            getattr(e.control, "selection", None)
+            if hasattr(e, "control")
+            else None
+        )
         if sel is None or not hasattr(sel, "base_offset"):
             return
         field_data: dict[str, str] = e.control.data
@@ -322,11 +326,19 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     await res
                 except RuntimeError:
                     pass
-                scroll_target.update()
+                try:
+                    if scroll_target.page:
+                        scroll_target.update()
+                except (RuntimeError, AssertionError):
+                    pass
 
             page.run_task(_do_scroll)
         else:
-            scroll_target.update()
+            try:
+                if scroll_target.page:
+                    scroll_target.update()
+            except (RuntimeError, AssertionError):
+                pass
         self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
