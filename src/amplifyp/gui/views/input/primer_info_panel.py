@@ -58,9 +58,12 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
         self.close_button = ft.IconButton(
             icon=ft.Icons.CLOSE,
-            icon_size=18,
+            icon_size=16,
             tooltip="Dismiss",
             on_click=self._on_close_click,
+            padding=0,
+            height=20,
+            width=20,
         )
 
         self.info_seq_text = ft.Text(
@@ -92,7 +95,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
 
         self.content = ft.Container(
-            padding=10,
+            padding=ft.Padding(10, 2, 10, 0),
             content=ft.Column(
                 [
                     ft.Row(
@@ -110,10 +113,10 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                             self.info_redundancy_text,
                             self.info_dimer_text,
                         ],
-                        spacing=3,
+                        spacing=1,
                     ),
                 ],
-                spacing=10,
+                spacing=2,
             ),
         )
         self.visible = False

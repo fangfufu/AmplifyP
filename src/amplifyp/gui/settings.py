@@ -109,6 +109,7 @@ class GUISettings:
             "auto_reload_on_startup": True,
             "template_fixed_width": False,
             "template_bases_per_line": "Auto",
+            "primer_info_panel_position": "bottom",
         }
 
         # Initialise base-pair weights

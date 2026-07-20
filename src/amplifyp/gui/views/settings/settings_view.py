@@ -242,6 +242,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Get the auto reload on startup checkbox."""
         return self.general_tile.set_auto_reload_on_startup
 
+    @property
+    def set_primer_info_panel_position(self) -> ft.Dropdown:
+        """Get the primer info panel position dropdown."""
+        return self.appearance_tile.set_primer_info_panel_position
+
     def _build_reset_button(self) -> ft.Row:
         """Build the Reset button Row."""
         return ft.Row(
@@ -361,6 +366,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "version_checking_frequency": "Once per Month",
             "last_version_check_timestamp": 0.0,
             "auto_reload_on_startup": True,
+            "primer_info_panel_position": "bottom",
         }
 
         for r_char in Nucleotides.PRIMER:

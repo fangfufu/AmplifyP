@@ -55,6 +55,9 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
+    settings_view.appearance_tile.set_primer_info_panel_position.value = (
+        "bottom"
+    )
     settings_view.appearance_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
     )
@@ -129,6 +132,11 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
+    assert (
+        new_settings_view.appearance_tile.set_primer_info_panel_position.value
+        == "bottom"
+    )
+    assert new_settings_view.settings["primer_info_panel_position"] == "bottom"
     assert (
         new_settings_view.appearance_tile.set_colour_scheme.value
         == "Dark (Colour Deficient Friendly)"

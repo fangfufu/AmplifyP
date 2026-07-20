@@ -90,6 +90,17 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
             on_change=self.on_change_handler,
         )
 
+        self.set_primer_info_panel_position = ft.Dropdown(
+            label="Primer Info Panel Position",
+            options=[
+                ft.dropdown.Option(key="top", text="Top"),
+                ft.dropdown.Option(key="bottom", text="Bottom"),
+            ],
+            width=500,
+            on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
+        )
+
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
         self.settings_map["ignore_inactive_name_dup_warn"] = (
@@ -97,6 +108,9 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
         )
         self.settings_map["ignore_inactive_seq_dup_warn"] = (
             self.ignore_inactive_seq_dup_checkbox
+        )
+        self.settings_map["primer_info_panel_position"] = (
+            self.set_primer_info_panel_position
         )
 
         super().__init__(
@@ -115,6 +129,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_font_family,
                                         self.set_colour_scheme,
+                                        self.set_primer_info_panel_position,
                                         self.ignore_inactive_name_dup_checkbox,
                                         self.ignore_inactive_seq_dup_checkbox,
                                         self._dummy_colour_deficient,

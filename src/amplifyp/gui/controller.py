@@ -372,6 +372,25 @@ class GUIController:
         active_view = self.view_container.content
         if active_view == self.input_view:
             self.input_view.update_ui()
+            # Immediately reposition the info panel if its position changed
+            if e is not None:
+                ctrl = getattr(e, "control", None)
+                if ctrl is not None:
+                    try:
+                        from amplifyp.gui.views.settings import appearance_tile
+
+                        tile = getattr(
+                            self.settings_view, "appearance_tile", None
+                        )
+                        if (
+                            tile is not None
+                            and isinstance(tile, appearance_tile.AppearanceTile)
+                            and tile.set_primer_info_panel_position is ctrl
+                        ):
+                            self.input_view.reposition_primer_info_panel()
+                            return
+                    except Exception as ex:
+                        logger.debug("Failed to check appearance tile: %s", ex)
         else:
             self.input_view_dirty = True
 
