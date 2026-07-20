@@ -332,14 +332,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Sync current UI controls back to the central state.
 
         Args:
-            rebuild_if_needed: If True, triggers a full UI rebuild after
-                syncing. Otherwise, updates error states in-place.
+            rebuild_if_needed: If True, triggers a reconciliation / UI rebuild.
             skip_extract: If True, skips UI extraction and uses existing
-                state directly. Used after paste handling where state is
-                already updated.
-
-        Returns:
-            True if a UI rebuild was needed and performed.
+                state directly.
         """
         if skip_extract:
             ui_primers = self.input_data.primers
@@ -348,6 +343,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         auto_activate_new = self.settings.get(
             "auto_activate_new_valid_primer", False
+        )
+        print(
+            "DEBUG: sync_to_state extracted ui_primers: "
+            f"{[(p['name'], p['seq'], p['active']) for p in ui_primers]}"
         )
         primers = reconcile_primer_states(
             ui_primers,
@@ -360,7 +359,43 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         for reconciled_p, ui_p in zip(primers, ui_primers, strict=True):
             checkbox = ui_p.get("checkbox")
             if checkbox:
+                old_val = checkbox.value
                 checkbox.value = reconciled_p["active"]
+                if old_val != checkbox.value:
+                    page = None
+                    try:
+                        page = checkbox.page
+                    except Exception as e:
+                        logger.debug("Failed to get checkbox page: %s", e)
+                    if not page:
+                        try:
+                            page = self.page
+                        except Exception as e:
+                            logger.debug("Failed to get self page: %s", e)
+                    if page:
+
+                        async def delayed_update(
+                            cb: ft.Checkbox = checkbox,
+                            val: bool = reconciled_p["active"],
+                        ) -> None:
+                            import asyncio
+
+                            await asyncio.sleep(0.05)
+                            print(
+                                "DEBUG: delayed_update running for "
+                                f"cb.data={cb.data}, setting value to {val}"
+                            )
+                            cb.value = val
+                            try:
+                                cb.update()
+                                print(
+                                    "DEBUG: delayed_update successfully "
+                                    f"updated cb.data={cb.data}"
+                                )
+                            except Exception as ex:
+                                print(f"DEBUG: delayed_update error: {ex}")
+
+                        page.run_task(delayed_update)
 
         ignore_inactive_name_dup = self.settings.get(
             "ignore_inactive_name_dup_warn", True

@@ -91,11 +91,20 @@ class PrimerFileManager:
             if not name and not seq:
                 continue
 
+            from amplifyp.gui.views.input.primer_validation import (
+                validate_primer,
+            )
+
+            name_err, seq_err = validate_primer(
+                name, seq, show_empty_errors=False
+            )
+            is_valid_primer = name_err is None and seq_err is None
+
             parsed_primers.append(
                 {
                     "name": name,
                     "seq": seq,
-                    "active": True,
+                    "active": is_valid_primer,
                 }
             )
         return parsed_primers

@@ -190,16 +190,32 @@ class PrimerActionController:
             self.owner.on_change_handler(None)
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
-        """Delete primers at indices and re-index controls in-place.
+        """Delete primers asynchronously to avoid Flet race conditions."""
+        page = None
+        try:
+            page = self.owner.page
+        except Exception as e:
+            print(f"Failed to get owner page: {e}")
+        if page:
 
-        Removes the specified primers from state and UI controls,
-        adjusts the focused index, and re-indexes remaining rows.
+            async def delayed_delete() -> None:
+                import asyncio
 
-        Args:
-            indices_to_delete: Set of zero-based indices to remove.
-        """
+                await asyncio.sleep(0.05)
+                self._delete_primers_impl(indices_to_delete)
+
+            page.run_task(delayed_delete)
+        else:
+            self._delete_primers_impl(indices_to_delete)
+
+    def _delete_primers_impl(self, indices_to_delete: set[int]) -> None:
         self._click_a = None
         self._click_b = None
+        print(
+            f"DEBUG: delete_primers called with "
+            f"indices_to_delete={indices_to_delete}, "
+            f"selected_indices={self.owner.selected_indices}"
+        )
         if not indices_to_delete:
             return
 

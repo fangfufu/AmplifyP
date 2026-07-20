@@ -175,7 +175,7 @@ def fill_field_reliably(
     field.press("Control+a")
     field.press("Delete")
     time.sleep(0.2)
-    field.press_sequentially(text, delay=delay_ms)
+    field.fill(text)
     time.sleep(0.3)
     print(
         f"  typed '{text}' into {selector} (index={index}, use_last={use_last})"
@@ -247,11 +247,18 @@ def test_e2e_primer_lifecycle_and_state(
     # Enable "Auto-activate new valid primer" setting so new valid primers
     # get checked automatically
     print("Navigating to Settings to enable auto-activate setting...")
-    page.locator("[aria-label='Settings']").last.click(force=True)
-    page.get_by_role("button", name="Primer List Settings").wait_for(
-        state="attached", timeout=15000
-    )
-    page.get_by_role("button", name="Primer List Settings").click(force=True)
+    page.get_by_role("button", name="Settings").filter(
+        visible=True
+    ).first.click(force=True)
+    page.get_by_role("button", name="General Settings").filter(
+        visible=True
+    ).first.wait_for(state="visible", timeout=15000)
+    primer_list_settings_btn = page.get_by_role(
+        "button", name="Primer List Settings"
+    ).first
+    primer_list_settings_btn.wait_for(state="attached", timeout=15000)
+    primer_list_settings_btn.scroll_into_view_if_needed()
+    primer_list_settings_btn.click()
     time.sleep(1)
     auto_activate_cb = page.get_by_role(
         "checkbox", name="Auto-activate new valid primer"
@@ -263,7 +270,9 @@ def test_e2e_primer_lifecycle_and_state(
     expect(auto_activate_cb).to_be_checked()
 
     print("Navigating back to Input tab...")
-    page.locator("[aria-label='Input']").last.click(force=True)
+    page.get_by_role("button", name="Input").filter(visible=True).first.click(
+        force=True
+    )
     page.locator(PRIMER_INPUT_SEL).first.wait_for(
         state="attached", timeout=15000
     )
@@ -302,9 +311,7 @@ def test_e2e_primer_lifecycle_and_state(
     ).to_be_enabled(timeout=15000)
 
     print("Deleting V3 and I3 using delete buttons...")
-    # Focus V3's name input (index 8) to select the row
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
@@ -320,9 +327,7 @@ def test_e2e_primer_lifecycle_and_state(
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
     time.sleep(1)
 
-    # Focus I3's name input (index 8) to select the row
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
@@ -446,7 +451,7 @@ def test_e2e_primer_lifecycle_and_state(
 
     # 8. Save the state
     print("Saving the full state...")
-    TEMPLATE_SEL = "textarea"
+    TEMPLATE_SEL = "textarea:not([readonly])"
     fill_field_reliably(page, TEMPLATE_SEL, "ATGCATGC")
     page.keyboard.press("Tab")
     time.sleep(1)
@@ -551,7 +556,11 @@ def test_e2e_settings_backup(
           textContent 'Save Settings' and 'Load Settings'.
         - We locate them by name (textContent) via get_by_role.
         """
-        backup_btn = page.get_by_role("button", name="General Settings")
+        backup_btn = (
+            page.get_by_role("button", name="General Settings")
+            .filter(visible=True)
+            .first
+        )
         backup_btn.wait_for(state="attached", timeout=15000)
         print("  Clicking General Settings tile to expand...")
         backup_btn.click(force=True)
@@ -565,11 +574,13 @@ def test_e2e_settings_backup(
     def navigate_to_settings() -> None:
         """Click the Settings tab and wait for expansion tiles to load."""
         print("  Clicking Settings tab...")
-        page.locator("[aria-label='Settings']").last.click(force=True)
+        page.get_by_role("button", name="Settings").filter(
+            visible=True
+        ).first.click(force=True)
         # General Settings tile header must be visible before proceeding
-        page.get_by_role("button", name="General Settings").wait_for(
-            state="attached", timeout=15000
-        )
+        page.get_by_role("button", name="General Settings").filter(
+            visible=True
+        ).first.wait_for(state="visible", timeout=15000)
 
     # 1. Navigate to app with semantics enabled
     page.goto(f"{serve_app}/?enable-semantics=true")
@@ -838,7 +849,23 @@ def test_e2e_dimer_alignment(
 
 
 def wait_for_semantics(page: Any) -> None:
-    """Wait for Flutter Web semantics to be ready."""
+    if not getattr(page, "_sw_cleared", False):
+        try:
+            page.evaluate(
+                "async () => { "
+                "const regs = await "
+                "navigator.serviceWorker.getRegistrations(); "
+                "for (let r of regs) { await r.unregister(); } "
+                "const keys = await caches.keys(); "
+                "for (let k of keys) { await caches.delete(k); } "
+                "}"
+            )
+            page.reload()
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception as e:
+            print(f"DEBUG: Failed to unregister service worker: {e}")
+        page._sw_cleared = True
+
     page.wait_for_selector(
         "flt-semantics-host", state="attached", timeout=60000
     )
