@@ -112,6 +112,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Divider(),
                                         ft.Text(
                                             "Parameters",
                                             weight=ft.FontWeight.BOLD,
