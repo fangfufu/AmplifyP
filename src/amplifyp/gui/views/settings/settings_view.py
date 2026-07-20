@@ -230,6 +230,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.primer_list_tile.set_primer_info_panel_position
 
     @property
+    def set_primer_info_panel_fixed_height(self) -> BorderedCheckbox:
+        """Get the primer info panel fixed height checkbox."""
+        return self.primer_list_tile.fixed_height_primer_info_checkbox
+
+    @property
     def set_auto_activate_new_valid_primer(self) -> BorderedCheckbox:
         """Get the auto activate new valid primer checkbox."""
         return self.primer_list_tile.auto_activate_new_valid_primer
@@ -356,6 +361,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "last_version_check_timestamp": 0.0,
             "auto_reload_on_startup": True,
             "primer_info_panel_position": "bottom",
+            "primer_info_panel_fixed_height": False,
         }
 
         for r_char in Nucleotides.PRIMER:

@@ -15,7 +15,7 @@
 
 """DismissibleDetailCard base component for PCR view detail cards."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import flet as ft
 
@@ -31,7 +31,8 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
         title: str,
         settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
-        body_controls: list[ft.Control],
+        body_controls: Sequence[ft.Control],
+        title_controls: Sequence[ft.Control] | None = None,
     ) -> None:
         """Initialise the DismissibleDetailCard.
 
@@ -43,6 +44,8 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
                 clicked. Receives the card instance as argument.
             body_controls: List of Flet control objects to display in
                 the card body below the header.
+            title_controls: Optional list of Flet controls to add to the
+                title row, placed between the title and close button.
         """
         super().__init__()
         self._card_id = card_id
@@ -51,26 +54,35 @@ class DismissibleDetailCard(ft.Card):  # type: ignore[misc]
             """Callback to trigger the dismiss callback."""
             dismiss_callback(self)
 
+        title_row_controls: list[ft.Control] = [
+            ft.Container(
+                content=ft.Text(
+                    title,
+                    weight=ft.FontWeight.BOLD,
+                    size=settings.get("font_size_subheader", 16),
+                    selectable=True,
+                ),
+                expand=True,
+            ),
+        ]
+        if title_controls:
+            title_row_controls.extend(title_controls)
+        title_row_controls.append(
+            ft.IconButton(
+                icon=ft.Icons.CLOSE,
+                icon_size=18,
+                tooltip="Dismiss",
+                on_click=remove_card,
+            )
+        )
+
         self.content = ft.Container(
             padding=10,
             content=ft.Column(
                 [
                     ft.Row(
-                        [
-                            ft.Text(
-                                title,
-                                weight=ft.FontWeight.BOLD,
-                                size=settings.get("font_size_subheader", 16),
-                                selectable=True,
-                            ),
-                            ft.IconButton(
-                                icon=ft.Icons.CLOSE,
-                                icon_size=18,
-                                tooltip="Dismiss",
-                                on_click=remove_card,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        title_row_controls,
+                        alignment=ft.MainAxisAlignment.END,
                     ),
                     *body_controls,
                 ]

@@ -59,6 +59,11 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
             border_color=GUIColours.OUTLINE,
         )
 
+        self.fixed_height_primer_info_checkbox = BorderedCheckbox(
+            label="Fixed height primer info box",
+            on_change=self.on_change_handler,
+        )
+
         self.ignore_inactive_name_dup_checkbox = BorderedCheckbox(
             label=("Ignore inactive primers when checking for duplicate names"),
             on_change=self.on_change_handler,
@@ -96,6 +101,9 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["primer_info_panel_position"] = (
             self.set_primer_info_panel_position
         )
+        self.settings_map["primer_info_panel_fixed_height"] = (
+            self.fixed_height_primer_info_checkbox
+        )
         self.settings_map["ignore_inactive_name_dup_warn"] = (
             self.ignore_inactive_name_dup_checkbox
         )
@@ -125,6 +133,7 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
                                 content=ft.Column(
                                     [
                                         self.set_primer_info_panel_position,
+                                        self.fixed_height_primer_info_checkbox,
                                         self.ignore_inactive_name_dup_checkbox,
                                         self.ignore_inactive_seq_dup_checkbox,
                                         self.auto_activate_new_valid_primer,

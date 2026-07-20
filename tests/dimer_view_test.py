@@ -90,10 +90,8 @@ def test_dimer_view_with_dimers() -> None:
     col_content = card_container.content
     assert isinstance(col_content, ft.Column)
 
-    # Title column
-    title_col = col_content.controls[0]
-    assert isinstance(title_col, ft.Column)
-    title_row = title_col.controls[0]
+    # Title row
+    title_row = col_content.controls[0]
     assert isinstance(title_row, ft.Row)
     title_text = title_row.controls[0].value
     assert "P1" in title_text or "P2" in title_text

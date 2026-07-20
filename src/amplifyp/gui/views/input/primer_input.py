@@ -431,6 +431,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         # Reposition info panel based on current setting
         self._reposition_info_panel()
 
+        # If info panel is visible, update it to reflect any new settings
+        if self.focused_primer_index is not None:
+            self._update_primer_info_panel()
+
         # Replace the header in the UI container controls
         inner_column = cast(ft.Column, self.primer_list_container.content)
         inner_column.controls[0] = self.primer_header

@@ -31,6 +31,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         d: PrimerDimer,
         settings: GUISettings,
         font_family: str = "Roboto Mono",
+        show_names: bool = True,
     ) -> None:
         """Initialise the DimerCard.
 
@@ -38,11 +39,13 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             d: The PrimerDimer object containing sequence alignment data.
             settings: Application GUI settings instance.
             font_family: Font family for sequence display.
+            show_names: Whether to show primer names.
         """
         super().__init__()
         self.d = d
         self.settings = settings
         self.font_family = font_family
+        self.show_names = show_names
 
         # Fetch font sizes from settings, fallback to defaults
         font_size_subheader = self.settings.get("font_size_subheader", 16)
@@ -53,22 +56,21 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         diagram = self._build_alignment_diagram(font_size_default)
 
         self.content = ft.Container(
-            padding=15,
+            padding=ft.Padding(15, 8, 15, 8),
             content=ft.Column(
                 [
                     header,
                     diagram,
                 ],
-                spacing=8,
+                spacing=6,
             ),
         )
 
     def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
         """Build the visual alignment container control for a dimer.
 
-        Creates a five-line text visualisation showing the two primer
-        sequences aligned at their binding interface with strength
-        indicators in the middle line, and their names above and below.
+        Creates a visual alignment showing the two primer sequences and
+        their binding interface, optionally including their names.
 
         Args:
             font_size_default: Font size for the sequence display.
@@ -82,14 +84,16 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         middle_str = self.d.binding_strength_str
 
         # Build visually aligned lines.
-        p2_name_line = self.d.primer_2.name
+        p2_name_line = self.d.primer_2.name if self.show_names else ""
         p2_line = f"5'-{seq2}-3'"
         mid_line = f"{' ' * (3 + self.d.p1_pos)}{middle_str}"
         p1_line = f"{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
         p1_pad = max(
             0, self.d.p1_pos + len(seq1) + 5 - len(self.d.primer_1.name)
         )
-        p1_name_line = f"{' ' * p1_pad}{self.d.primer_1.name}"
+        p1_name_line = (
+            f"{' ' * p1_pad}{self.d.primer_1.name}" if self.show_names else ""
+        )
 
         # Create visual alignment stack using generic helper
         diagram_stack = create_overlapped_sequence_view(
@@ -107,15 +111,15 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                 [diagram_stack],
                 scroll=ft.ScrollMode.ALWAYS,
             ),
-            padding=12,
+            padding=ft.Padding(12, 4, 12, 4),
             border_radius=6,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
-            height=140,
+            height=110 if self.show_names else 75,
         )
 
     def _build_card_header(
         self, font_size_subheader: int, font_size_small: int
-    ) -> ft.Column:
+    ) -> ft.Row:
         """Build the header row of the dimer card.
 
         Displays the dimer title (primer names or self-dimer label),
@@ -126,7 +130,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             font_size_small: Font size for the overlap and quality labels.
 
         Returns:
-            A Column containing the title and metric containers.
+            A Row containing the title and metric containers.
         """
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
@@ -134,23 +138,23 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         seq2 = self.d.primer_2.seq
 
         is_self = p1_name == p2_name and seq1 == seq2
-        dimer_title = (
-            f"{p1_name} self-dimer" if is_self else f"{p1_name} vs {p2_name}"
-        )
+        if not self.show_names and is_self:
+            dimer_title = "Self-dimer"
+        else:
+            dimer_title = (
+                f"{p1_name} self-dimer"
+                if is_self
+                else f"{p1_name} vs {p2_name}"
+            )
         quality_text = f"Quality: {self.d.quality:.1f}"
 
-        return ft.Column(
+        return ft.Row(
             [
-                ft.Row(
-                    [
-                        ft.Text(
-                            dimer_title,
-                            weight=ft.FontWeight.BOLD,
-                            size=font_size_subheader,
-                            selectable=True,
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.START,
+                ft.Text(
+                    dimer_title,
+                    weight=ft.FontWeight.BOLD,
+                    size=font_size_subheader,
+                    selectable=True,
                 ),
                 ft.Row(
                     [
@@ -179,8 +183,8 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                     ],
                     spacing=8,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.START,
                 ),
             ],
-            spacing=4,
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
         )

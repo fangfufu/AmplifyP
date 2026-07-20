@@ -158,6 +158,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
             self.visible = False
+            self.height = None
             on_update_highlights()
             self._update_safe()
             return
@@ -166,6 +167,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
                 self.visible = False
+                self.height = None
                 self._update_safe()
                 return
 
@@ -175,6 +177,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             if not seq_val:
                 self.visible = False
+                self.height = None
                 self._update_safe()
                 return
 
@@ -235,7 +238,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_text.value = ""
                 self.info_dimer_text.visible = False
                 self.info_dimer_card_container.content = DimerCard(
-                    max_dimer, self.settings, self.font_family
+                    max_dimer, self.settings, self.font_family, show_names=False
                 )
                 self.info_dimer_card_container.visible = True
             else:
@@ -244,11 +247,16 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_card_container.content = None
                 self.info_dimer_card_container.visible = False
 
+            if self.settings.get("primer_info_panel_fixed_height", False):
+                self.height = 250
+            else:
+                self.height = None
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
+            self.height = None
             self.info_dimer_card_container.visible = False
             self.info_dimer_card_container.content = None
 

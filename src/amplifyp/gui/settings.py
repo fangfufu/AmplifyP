@@ -110,6 +110,7 @@ class GUISettings:
             "template_fixed_width": False,
             "template_bases_per_line": "Auto",
             "primer_info_panel_position": "bottom",
+            "primer_info_panel_fixed_height": False,
             "auto_activate_new_valid_primer": False,
         }
 

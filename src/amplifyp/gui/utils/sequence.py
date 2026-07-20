@@ -127,43 +127,52 @@ def create_overlapped_sequence_view(
     resolved = _resolve_font_family(font_family)
 
     if is_dimer:
-        spans = [
-            ft.TextSpan(
-                f"{top_name_line}\n",
-                style=ft.TextStyle(
-                    color=GUIColours.PURPLE,
-                    weight=ft.FontWeight.BOLD,
+        spans = []
+        if top_name_line:
+            spans.append(
+                ft.TextSpan(
+                    f"{top_name_line}\n",
+                    style=ft.TextStyle(
+                        color=GUIColours.PURPLE,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                )
+            )
+        spans.extend(
+            [
+                ft.TextSpan(
+                    f"{top_line}\n",
+                    style=ft.TextStyle(
+                        color=GUIColours.TEXT_ON_SURFACE,
+                        weight=ft.FontWeight.BOLD,
+                    ),
                 ),
-            ),
-            ft.TextSpan(
-                f"{top_line}\n",
-                style=ft.TextStyle(
-                    color=GUIColours.TEXT_ON_SURFACE,
-                    weight=ft.FontWeight.BOLD,
+                ft.TextSpan(
+                    f"{mid_line}\n",
+                    style=ft.TextStyle(
+                        color=GUIColours.FWD_PRIMER,
+                        weight=ft.FontWeight.BOLD,
+                    ),
                 ),
-            ),
-            ft.TextSpan(
-                f"{mid_line}\n",
-                style=ft.TextStyle(
-                    color=GUIColours.FWD_PRIMER,
-                    weight=ft.FontWeight.BOLD,
+                ft.TextSpan(
+                    f"{bottom_line}" + ("\n" if bottom_name_line else ""),
+                    style=ft.TextStyle(
+                        color=GUIColours.TEXT_ON_SURFACE,
+                        weight=ft.FontWeight.BOLD,
+                    ),
                 ),
-            ),
-            ft.TextSpan(
-                f"{bottom_line}\n",
-                style=ft.TextStyle(
-                    color=GUIColours.TEXT_ON_SURFACE,
-                    weight=ft.FontWeight.BOLD,
-                ),
-            ),
-            ft.TextSpan(
-                bottom_name_line,
-                style=ft.TextStyle(
-                    color=GUIColours.PURPLE,
-                    weight=ft.FontWeight.BOLD,
-                ),
-            ),
-        ]
+            ]
+        )
+        if bottom_name_line:
+            spans.append(
+                ft.TextSpan(
+                    bottom_name_line,
+                    style=ft.TextStyle(
+                        color=GUIColours.PURPLE,
+                        weight=ft.FontWeight.BOLD,
+                    ),
+                )
+            )
     else:
         # Context Map:
         # top_line = coordinates / arrows (black)

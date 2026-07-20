@@ -482,7 +482,7 @@ class ReplicationContextCard(DismissibleDetailCard):
             stab_str = f"{origin.stability:.3f}"
 
         font_size_small = settings.get("font_size_small", 12)
-        body_controls = [
+        title_controls = [
             ft.Row(
                 [
                     ft.Container(
@@ -521,8 +521,10 @@ class ReplicationContextCard(DismissibleDetailCard):
                 ],
                 spacing=8,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.START,
+                alignment=ft.MainAxisAlignment.END,
             ),
+        ]
+        body_controls = [
             ft.Container(
                 content=ft.Row(
                     [diagram_text],
@@ -545,4 +547,5 @@ class ReplicationContextCard(DismissibleDetailCard):
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,
+            title_controls=title_controls,
         )
