@@ -246,7 +246,9 @@ class InputView(ft.Row):  # type: ignore[misc]
                 elif field == "seq":
                     self.input_data.primers[idx]["seq_touched"] = True
                     page = e.page or self.page
-                    if page:
+                    if page and not getattr(
+                        self, "_skip_seq_focus_reset", False
+                    ):
 
                         async def set_seq_cursor() -> None:
                             await e.control.focus()
@@ -256,6 +258,7 @@ class InputView(ft.Row):  # type: ignore[misc]
                             e.control.update()
 
                         page.run_task(set_seq_cursor)
+                    self._skip_seq_focus_reset = False
 
             self.primer_input._update_row_highlights()
             self.primer_input._update_primer_info_panel()

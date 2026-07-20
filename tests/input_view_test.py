@@ -1401,7 +1401,8 @@ def test_primer_row_keyboard_navigation() -> None:
     row0 = rows[0]
     row1 = rows[1]
 
-    # 1. Simulate focusing on P1 name field
+    # 1. Simulate focusing on P1 name field with cursor at index 1
+    row0.name_field.data["cursor_pos"] = 1
     controller.input_view._currently_focused_control = row0.name_field
 
     # Mock the focus method of the target field
@@ -1419,10 +1420,14 @@ def test_primer_row_keyboard_navigation() -> None:
     )
     controller._on_keyboard_event(down_event)
 
-    # Verify row1 name field focus was called
+    # Verify row1 name field focus was called and selection set to index 1
     row1.name_field.focus.assert_called_once()
+    assert row1.name_field.selection is not None
+    assert row1.name_field.selection.base_offset == 1
+    assert row1.name_field.selection.extent_offset == 1
 
-    # 2. Simulate focusing on P2 sequence field
+    # 2. Simulate focusing on P2 sequence field with cursor out-of-bounds
+    row1.seq_field.data["cursor_pos"] = 10
     controller.input_view._currently_focused_control = row1.seq_field
 
     # Mock focus on row 0 sequence field
@@ -1441,8 +1446,11 @@ def test_primer_row_keyboard_navigation() -> None:
 
     controller._on_keyboard_event(up_event)
 
-    # Verify row0 sequence field focus was called
+    # Verify row0 sequence field focus was called and selection set to end
     row0.seq_field.focus.assert_called_once()
+    assert row0.seq_field.selection is not None
+    assert row0.seq_field.selection.base_offset == 4
+    assert row0.seq_field.selection.extent_offset == 4
 
 
 def test_input_view_auto_activate_new_valid_primer() -> None:

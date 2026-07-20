@@ -866,6 +866,7 @@ class GUIController:
             else:
                 return
 
+            self.input_view._skip_seq_focus_reset = True
             res = target_field.focus()
             if asyncio.iscoroutine(res):
                 self.page.run_task(focus_async, res)
@@ -907,6 +908,7 @@ class GUIController:
             else:
                 return
 
+            self.input_view._skip_seq_focus_reset = True
             res = target_field.focus()
             if asyncio.iscoroutine(res):
                 self.page.run_task(focus_async, res)
@@ -937,8 +939,20 @@ class GUIController:
                 else target_row.seq_field
             )
 
-            # Request focus on the target field
+            # Keep cursor index if possible, else go to end
+            current_cursor = focused.data.get("cursor_pos", 0)
+            target_text = target_field.value or ""
+            new_cursor = min(current_cursor, len(target_text))
 
+            target_field.selection = ft.TextSelection(
+                base_offset=new_cursor, extent_offset=new_cursor
+            )
+            try:
+                target_field.update()
+            except RuntimeError:
+                pass
+
+            self.input_view._skip_seq_focus_reset = True
             res = target_field.focus()
             if asyncio.iscoroutine(res):
                 self.page.run_task(focus_async, res)
