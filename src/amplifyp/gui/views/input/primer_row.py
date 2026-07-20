@@ -192,7 +192,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             border=ft.InputBorder.NONE,
             multiline=True,
             fit_parent_size=True,
-            data={"idx": idx, "field": "name"},
+            data={"idx": idx, "field": "name", "cursor_pos": 0},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
@@ -209,6 +209,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not name_error else 42,
             controls=[self.name_container],
         )
+
         self.seq_field = ft.TextField(
             value=seq,
             dense=True,
@@ -218,7 +219,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             text_style=ft.TextStyle(font_family=font_family),
             multiline=True,
             fit_parent_size=True,
-            data={"idx": idx, "field": "seq"},
+            data={"idx": idx, "field": "seq", "cursor_pos": 0},
             on_focus=handle_field_focus,
             on_blur=handle_field_blur,
             on_submit=handle_field_submit,
@@ -235,6 +236,20 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             height=30 if not seq_error else 42,
             controls=[self.seq_container],
         )
+
+        def local_name_selection_change(e: ft.Event) -> None:
+            sel = getattr(e, "selection", None)
+            if sel is not None and hasattr(sel, "base_offset"):
+                self.name_field.data["cursor_pos"] = sel.base_offset
+
+        def local_seq_selection_change(e: ft.Event) -> None:
+            sel = getattr(e, "selection", None)
+            if sel is not None and hasattr(sel, "base_offset"):
+                self.seq_field.data["cursor_pos"] = sel.base_offset
+
+        self.name_field.on_selection_change = local_name_selection_change
+        self.seq_field.on_selection_change = local_seq_selection_change
+
         if name_error:
             self.name_field.error = name_error
         if seq_error:
@@ -393,8 +408,18 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         """
         self.data = new_idx
         self.idx = new_idx
-        self.name_field.data = {"idx": new_idx, "field": "name"}
-        self.seq_field.data = {"idx": new_idx, "field": "seq"}
+        name_cursor = self.name_field.data.get("cursor_pos", 0)
+        seq_cursor = self.seq_field.data.get("cursor_pos", 0)
+        self.name_field.data = {
+            "idx": new_idx,
+            "field": "name",
+            "cursor_pos": name_cursor,
+        }
+        self.seq_field.data = {
+            "idx": new_idx,
+            "field": "seq",
+            "cursor_pos": seq_cursor,
+        }
 
         # Update click handler with the new index
         self._row_gesture_detector.on_tap = lambda e: on_row_click(
