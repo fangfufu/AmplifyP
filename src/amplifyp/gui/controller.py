@@ -827,6 +827,9 @@ class GUIController:
         ):
             return
 
+        if not isinstance(focused, ft.TextField):
+            return
+
         idx = focused.data["idx"]
         field = focused.data["field"]
 
