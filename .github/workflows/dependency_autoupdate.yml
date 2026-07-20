@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: stable
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -44,7 +45,7 @@ jobs:
             git push origin dependency-autoupdate --force
 
             if gh pr list --head dependency-autoupdate \
-              --state open --json number | grep -q '"number"'; then
+              --base stable --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
               PR_BODY="This PR automatically updates the versions of "
