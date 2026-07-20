@@ -351,28 +351,16 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
 
         # Update checkbox values in-place on UI controls if they
-        # were updated during reconciliation.
+        # were updated during reconciliation.  The subsequent
+        # _update_header_checkbox_state() → page.update() call flushes
+        # all dirty controls in a single batch, which is the reliable way
+        # to propagate aria-checked changes to the Flutter semantics layer
+        # in web mode.  An earlier individual checkbox.update() would race
+        # with that full-page flush and leave the semantics stale.
         for reconciled_p, ui_p in zip(primers, ui_primers, strict=True):
             checkbox = ui_p.get("checkbox")
             if checkbox:
-                old_val = checkbox.value
                 checkbox.value = reconciled_p["active"]
-                if old_val != checkbox.value:
-                    page = None
-                    try:
-                        page = checkbox.page
-                    except RuntimeError as e:
-                        logger.debug("Failed to get checkbox page: %s", e)
-                    if not page:
-                        try:
-                            page = self.page
-                        except RuntimeError as e:
-                            logger.debug("Failed to get self page: %s", e)
-                    if page:
-                        try:
-                            checkbox.update()
-                        except RuntimeError as ex:
-                            logger.debug("Failed to update checkbox: %s", ex)
 
         ignore_inactive_name_dup = self.settings.get(
             "ignore_inactive_name_dup_warn", True
