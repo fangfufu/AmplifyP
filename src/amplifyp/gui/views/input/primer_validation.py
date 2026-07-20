@@ -160,11 +160,7 @@ def reconcile_primer_states(
         prev_p = prev_primers[i] if i < len(prev_primers) else {}
         p_name = str(p.get("name") or "")
         p_seq = str(p.get("seq") or "")
-        prev_name = str(prev_p.get("name") or "")
-        prev_seq = str(prev_p.get("seq") or "")
-
         is_filled = bool(p_name.strip() and p_seq.strip())
-        was_empty = not prev_name.strip() or not prev_seq.strip()
         was_active = prev_p.get("active", False)
         is_active = p.get("active", True)
 
@@ -181,7 +177,7 @@ def reconcile_primer_states(
         elif not is_active:
             show_empty_errors = False
 
-        if auto_activate_new and is_filled and was_empty and not was_active:
+        if auto_activate_new and is_filled and not was_active:
             name_err, seq_err = validate_primer(
                 p_name, p_seq, show_empty_errors=False
             )
