@@ -1,4 +1,4 @@
-# AmplifyP Developer & Contributor Guide
+# AmplifyP Developers' and Contributors' Guide
 
 This document is the comprehensive guide on how to program, modify, and test the
 **AmplifyP** application and its core library.
@@ -103,13 +103,13 @@ the browser (similar to what is hosted on GitHub Pages):
    *This compiles the Flet application and puts the output in the `dist`
    directory.*
 
-1. Serve the static site locally to test it:
+2. Serve the static site locally to test it:
 
    ```bash
    python -m http.server 23455 -d dist
    ```
 
-1. Open your browser and navigate to `http://localhost:23455`.
+3. Open your browser and navigate to `http://localhost:23455`.
 
 ______________________________________________________________________
 
