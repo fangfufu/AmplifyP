@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Toolbar containing actions for managing primers (Save, Load, Clear)."""
+"""Toolbar component for PrimerInput containing managing actions."""
 
 from __future__ import annotations
 
@@ -34,16 +34,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         on_copy: Callable[[ft.Event | None], None | Awaitable[None]],
         on_paste: Callable[[ft.Event | None], None | Awaitable[None]],
     ) -> None:
-        """Initialise the PrimerToolbar.
-
-        Args:
-            on_save: Callback to save primers to a TSV file.
-            on_load: Callback to load primers from a CSV/TSV file.
-            on_clear: Callback to clear all primers.
-            on_delete_selected: Callback to delete selected primers.
-            on_copy: Callback to copy selected/focused primers.
-            on_paste: Callback to paste primers.
-        """
+        """Initialise the PrimerToolbar."""
         self.save_button = ft.FilledTonalButton(
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,

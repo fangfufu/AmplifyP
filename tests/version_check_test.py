@@ -17,7 +17,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from amplifyp.gui.utils.version_check import (
+from amplifyp.gui.utils.system import (
     fetch_latest_release_version,
     is_newer_version,
     should_check_for_updates,

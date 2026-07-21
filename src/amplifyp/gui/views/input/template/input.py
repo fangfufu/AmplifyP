@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 import flet as ft
@@ -24,8 +25,14 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
-from amplifyp.gui.utils.ui import NotificationHelper
+from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.gui.utils.gui_helpers import NotificationHelper
+
+from .casing import change_selection_case
+from .file_manager import load_template_click, save_template_click
+from .formatter import adjust_wrap_length, update_line_numbers
+
+logger = logging.getLogger(__name__)
 
 
 class TemplateInput(ft.Container):  # type: ignore[misc]
@@ -320,107 +327,90 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         )
         self.update_ui()
 
+    # ------------------------------------------------------------------ #
+    # File management                                                      #
+    # ------------------------------------------------------------------ #
+
     async def _load_template_click(self, e: ft.Event) -> None:
-        """Open file picker to load template sequence from a TXT file.
-
-        Args:
-            e: The Flet control event triggered by the load button click.
-        """
-        from amplifyp.gui.utils.io import pick_and_read_file
-
-        content = await pick_and_read_file(
-            page=self.app_page,
-            dialog_title="Load",
-            allowed_extensions=["txt"],
-            show_notification=self._show_notification,
-        )
-        if content is None:
-            return
-
-        self.input_data.template = content
-        self.update_ui()
-        self.on_change_handler(None)
-        self._show_notification("Template loaded successfully.")
+        """Open file picker to load template sequence from a TXT file."""
+        await load_template_click(self, e)
 
     async def _save_template_click(self, e: ft.Event) -> None:
-        """Save template sequence to a TXT file.
+        """Save template sequence to a TXT file."""
+        await save_template_click(self, e)
 
-        Args:
-            e: The Flet control event triggered by the save button click.
-        """
-        template_content = self.input_data.template
-        if not template_content.strip():
-            self._show_notification("No template to save.")
-            return
-
-        from amplifyp.gui.utils.io import save_and_write_file
-
-        await save_and_write_file(
-            page=self.app_page,
-            dialog_title="Save",
-            file_name="template.txt",
-            allowed_extensions=["txt"],
-            content=template_content,
-            show_notification=self._show_notification,
-            success_message_desktop="Template saved successfully.",
-            success_message_web="Template ready for download!",
-        )
+    # ------------------------------------------------------------------ #
+    # Case conversion                                                      #
+    # ------------------------------------------------------------------ #
 
     def _upper_case_click(self, e: ft.Event) -> None:
         """Handle upper case button click."""
-        self._change_selection_case(to_upper=True)
+        change_selection_case(self, to_upper=True)
 
     def _lower_case_click(self, e: ft.Event) -> None:
         """Handle lower case button click."""
-        self._change_selection_case(to_upper=False)
+        change_selection_case(self, to_upper=False)
 
-    def _change_selection_case(self, to_upper: bool) -> None:
-        """Convert selected bases in template to upper/lower case."""
-        sel = self.template_sequence.selection
-        if not sel or not sel.is_valid or sel.start == sel.end:
-            self._show_notification("Please select sequence text first.")
-            return
+    # ------------------------------------------------------------------ #
+    # Formatting / gutter                                                  #
+    # ------------------------------------------------------------------ #
 
-        raw_val = self.template_sequence.value or ""
-        start, end = sel.start, sel.end
-
-        selected_text = raw_val[start:end]
-        modified_text = (
-            selected_text.upper() if to_upper else selected_text.lower()
+    @property
+    def current_left_width(self) -> float:
+        """Get the current available width of the left panel."""
+        if isinstance(self.width, int | float) and self.width > 0:
+            return float(self.width)
+        right_fraction = 0.5
+        if self.parent:
+            right_fraction = getattr(self.parent, "right_fraction", 0.5)
+        page_width = (
+            self.app_page.width
+            if (self.app_page and self.app_page.width)
+            else 800
         )
-        new_val = raw_val[:start] + modified_text + raw_val[end:]
+        return float(page_width * (1.0 - right_fraction))
 
-        self.template_sequence.value = new_val
-        self.input_data.template = clean_sequence(new_val)
-        self._cleaned_len = len(self.input_data.template)
+    def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
+        """Adjust wrap length based on selected width or Auto."""
+        return adjust_wrap_length(self, left_width, update)
 
-        self._update_line_numbers(update=False)
-        self.template_sequence.selection = ft.TextSelection(
-            base_offset=sel.base_offset, extent_offset=sel.extent_offset
-        )
-        try:
-            self.template_sequence.update()
-            self.update()
-        except (RuntimeError, AssertionError):
-            pass
-        self.on_change_handler(None)
+    def _update_line_numbers(
+        self, update: bool = True, gutter_only: bool = False
+    ) -> None:
+        """Update the line numbers gutter based on current template sequence."""
+        update_line_numbers(self, update=update, gutter_only=gutter_only)
+
+    def _validate_bases_per_line(
+        self, val_str: str | None = None
+    ) -> int | str | None:
+        """Validate bases per line, enforcing 10..100 or Auto."""
+        from .formatter import validate_bases_per_line
+
+        return validate_bases_per_line(self, val_str)
+
+    def _handle_menu_select(self, val: int | str) -> None:
+        """Handle selection of bases per line from popup menu."""
+        self.settings["template_bases_per_line"] = val
+        self.settings.save_to_local(self.app_page)
+        self.bases_per_line_value_text.value = str(val)
+        self.adjust_wrap_length(self.current_left_width)
+
+    # ------------------------------------------------------------------ #
+    # Notification                                                         #
+    # ------------------------------------------------------------------ #
 
     def _show_notification(self, message: str) -> None:
-        """Show a notification message.
-
-        Args:
-            message: The message to display in the notification.
-        """
+        """Show a notification message."""
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
 
-    def sync_to_state(self) -> None:
-        """Sync template text field to the central state.
+    # ------------------------------------------------------------------ #
+    # State synchronisation                                                #
+    # ------------------------------------------------------------------ #
 
-        Reads the current UI values and writes them into the central
-        ``GUIInput`` state object.
-        """
+    def sync_to_state(self) -> None:
+        """Sync template text field to the central state."""
         self.template_sequence.value = self.template_sequence.value or ""
         self.input_data.template = clean_sequence(
             str(self.template_sequence.value)
@@ -431,11 +421,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_status_bar(update=False)
 
     def update_ui(self) -> None:
-        """Update template UI elements to match central state.
-
-        Applies values from the central ``GUIInput`` state object to the
-        template text field and circular checkbox controls.
-        """
+        """Update template UI elements to match central state."""
         font_family = self.settings.get("font_family", "Roboto Mono")
         font_size = self.settings.get("font_size_default", 14)
 
@@ -484,137 +470,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_line_numbers(update=False)
         self._update_status_bar(None, update=False)
 
-    @property
-    def current_left_width(self) -> float:
-        """Get the current available width of the left panel."""
-        if isinstance(self.width, int | float) and self.width > 0:
-            return float(self.width)
-        right_fraction = 0.5
-        if self.parent:
-            right_fraction = getattr(self.parent, "right_fraction", 0.5)
-        page_width = (
-            self.app_page.width
-            if (self.app_page and self.app_page.width)
-            else 800
-        )
-        return float(page_width * (1.0 - right_fraction))
-
-    def adjust_wrap_length(self, left_width: float, update: bool = True) -> int:
-        """Adjust wrap length based on selected width or Auto."""
-        self._last_left_width = left_width
-        self.sequence_layout.width = max(100.0, left_width - 15.0)
-
-        font_size = max(1, self.settings.get("font_size_default", 14))
-        char_width = font_size * 0.70
-
-        # Calculate dynamic gutter width based on template digits
-        template_len = len(self.input_data.template)
-        max_digits = len(str(max(1, template_len)))
-        gutter_width = 20 + max_digits * char_width
-
-        wrap_setting = self._validate_bases_per_line()
-        if wrap_setting == "Auto":
-            available_width = left_width - gutter_width - 100
-            max_fit = int(available_width / char_width)
-            wrap_length = (max_fit // 10) * 10
-            wrap_length = max(10, min(100, wrap_length))
-        else:
-            wrap_length = wrap_setting if isinstance(wrap_setting, int) else 50
-
-        field_available_width = max(100.0, left_width - gutter_width - 35.0)
-
-        # Disable autowrapping at window edge, enable horizontal scroll
-        target_width = max(
-            field_available_width + 100.0, wrap_length * char_width + 100.0
-        )
-        self.template_sequence_wrapper.width = target_width
-        self.template_sequence.width = target_width
-        self.template_sequence.expand = False
-
-        # Update TextField content with new wrapping
-        self.template_sequence.value = format_sequence(
-            self.input_data.template, wrap_length
-        )
-        self._update_line_numbers(update=update)
-
-        try:
-            if self.page:
-                self.template_sequence_wrapper.update()
-                self.template_sequence.update()
-                self.template_sequence_container.update()
-        except (AssertionError, RuntimeError):
-            pass
-
-        return wrap_length
-
-    def _update_line_numbers(
-        self, update: bool = True, gutter_only: bool = False
-    ) -> None:
-        """Update the line numbers gutter based on current template sequence."""
-        text = self.template_sequence.value or ""
-        lines = text.split("\n")
-        line_indices = []
-        current_idx = 0
-        for line in lines:
-            line_indices.append(str(current_idx))
-            current_idx += len(clean_sequence(line))
-
-        self.line_numbers_text.value = "\n".join(line_indices)
-
-        # Set dynamic gutter width
-        font_size = max(1, self.settings.get("font_size_default", 14))
-        char_width = font_size * 0.75
-        # Calculate from live text excluding whitespaces instead of stored state
-        template_len = current_idx
-        max_digits = len(str(max(1, template_len)))
-        gutter_width = 20 + max_digits * char_width
-        self.line_numbers_container.width = gutter_width
-
-        if update:
-            try:
-                page = self.page
-            except RuntimeError:
-                page = None
-            if page:
-                try:
-                    if gutter_only:
-                        self.line_numbers_text.update()
-                        self.line_numbers_container.update()
-                    else:
-                        self.update()
-                except (RuntimeError, AssertionError):
-                    pass
-
-    def _validate_bases_per_line(
-        self, val_str: str | None = None
-    ) -> int | str | None:
-        """Validate bases per line, enforcing 10..100 or Auto.
-
-        Args:
-            val_str: Optional string value to validate. If None, reads from
-                the current UI selection.
-
-        Returns:
-            The validated integer value, 'Auto', or None if invalid.
-        """
-        if val_str is None:
-            val_str = (self.bases_per_line_value_text.value or "").strip()
-        if val_str.lower() == "auto":
-            return "Auto"
-        try:
-            val_int = int(val_str.strip())
-            if 10 <= val_int <= 100 and val_int % 10 == 0:
-                return val_int
-        except ValueError:
-            pass
-        return None
-
-    def _handle_menu_select(self, val: int | str) -> None:
-        """Handle selection of bases per line from popup menu."""
-        self.settings["template_bases_per_line"] = val
-        self.settings.save_to_local(self.app_page)
-        self.bases_per_line_value_text.value = str(val)
-        self.adjust_wrap_length(self.current_left_width)
+    # ------------------------------------------------------------------ #
+    # Event handlers                                                       #
+    # ------------------------------------------------------------------ #
 
     def _handle_change(self, e: ft.ControlEvent) -> None:
         """Handle template text changes, updating gutter line numbers."""
@@ -676,7 +534,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         return len(clean_sequence(prefix))
 
     def _update_status_bar(
-        self, selection: ft.TextSelection | None = None, update: bool = True
+        self,
+        selection: ft.TextSelection | None = None,
+        update: bool = True,
     ) -> None:
         """Update the status bar text based on text selection and focus."""
         if not self._is_focused:

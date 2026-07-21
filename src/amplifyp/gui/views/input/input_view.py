@@ -19,19 +19,18 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
-from amplifyp.gui.utils.ui import Debouncer
+from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
+from amplifyp.gui.utils.gui_helpers import Debouncer
 
-from .primer_input import PrimerInput
-from .primer_row import PrimerRow
-from .template_input import TemplateInput
+from .primer.input import PrimerInput
+from .template.input import TemplateInput
 
 logger = logging.getLogger(__name__)
 
@@ -211,157 +210,28 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.primer_input.focused_primer_index = val
 
     def _handle_field_focus(self, e: ft.Event[ft.TextField]) -> None:
-        """Handle focus on input fields to cancel auto-trigger timer.
+        """Handle focus on input fields to cancel auto-trigger timer."""
+        from .events import handle_field_focus
 
-        Updates the focused primer index, marks field touch status,
-        highlights rows, and updates the primer info panel.
-
-        Args:
-            e: The Flet control event containing focus information.
-        """
-        self._focus_debouncer.cancel()
-
-        if e.control.data is not None:
-            idx = (
-                e.control.data["idx"]
-                if isinstance(e.control.data, dict)
-                else e.control.data
-            )
-
-            field = (
-                e.control.data["field"]
-                if isinstance(e.control.data, dict)
-                else None
-            )
-
-            if idx not in self.primer_input.selected_indices:
-                self.primer_input.selected_indices = {idx}
-                self.primer_input._update_delete_button_disabled_state()
-            self.primer_input.focused_primer_index = idx
-
-            # Set touched status in state
-            if 0 <= idx < len(self.input_data.primers):
-                if field == "name":
-                    self.input_data.primers[idx]["name_touched"] = True
-                elif field == "seq":
-                    self.input_data.primers[idx]["seq_touched"] = True
-                    page = e.page or self.page
-                    if page:
-
-                        async def set_seq_cursor() -> None:
-                            await e.control.focus()
-                            e.control.selection = ft.TextSelection(
-                                base_offset=0, extent_offset=0
-                            )
-                            e.control.update()
-
-                        page.run_task(set_seq_cursor)
-
-            self.primer_input._update_row_highlights()
-            self.primer_input._update_primer_info_panel()
-            if self.app_page:
-                self.app_page.update()
-        self._currently_focused_control = cast(ft.Control, e.control)
+        handle_field_focus(self, e)
 
     def _handle_field_blur(self, e: ft.Event[ft.TextField]) -> None:
-        """Handle blur on input fields to trigger results page after a delay.
+        """Handle blur on input fields to trigger results page after a delay."""
+        from .events import handle_field_blur
 
-        Syncs state, applies validation errors to rows, auto-adds empty
-        rows if needed, and triggers a debounced callback for results.
-
-        Args:
-            e: The Flet control event containing blur information.
-        """
-        # If focus has moved to another input control, just sync state.
-        if (
-            self._currently_focused_control is not None
-            and self._currently_focused_control != e.control
-        ):
-            self.sync_to_state(rebuild_if_needed=False)
-            return
-
-        self._currently_focused_control = None
-
-        self.sync_to_state(rebuild_if_needed=False)
-        if e.control == self.template_sequence:
-            self._adjust_template_wrap(update_first=True)
-
-        if e.control.data is not None:
-            idx = (
-                e.control.data["idx"]
-                if isinstance(e.control.data, dict)
-                else e.control.data
-            )
-            if idx < len(self.primer_input.validation_errors):
-                err = self.primer_input.validation_errors[idx]
-                for row in self.primer_input.primers_list.controls:
-                    if isinstance(row, PrimerRow) and row.idx == idx:
-                        row.set_error(err)
-                        break
-                # Auto-add new empty row if valid
-                self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
-                self.app_page.update()
-
-        def timer_callback() -> None:
-            """Callback for debounced field blur."""
-            try:
-                page = self.page
-            except RuntimeError:
-                return
-            if not page:
-                return
-            if self.on_stop_editing_callback:
-                self.on_stop_editing_callback(None)
-
-        self._focus_debouncer.trigger(timer_callback)
+        handle_field_blur(self, e)
 
     def _handle_field_submit(self, e: ft.Event[ft.TextField]) -> None:
-        """Handle submission (Enter key) to immediately trigger results.
+        """Handle submission (Enter key) to immediately trigger results."""
+        from .events import handle_field_submit
 
-        Cancels any pending debounced callbacks, syncs state, auto-adds
-        empty rows if needed, and triggers the stop-editing callback.
-
-        Args:
-            e: The Flet control event containing submission information.
-        """
-        self._focus_debouncer.cancel()
-        self.sync_to_state()
-        if e.control == self.template_sequence:
-            self._adjust_template_wrap(update_first=True)
-        self._auto_add_empty_row_if_needed(cast(ft.Control, e.control))
-        if self.app_page:
-            self.app_page.update()
-        if self.on_stop_editing_callback:
-            self.on_stop_editing_callback(None)
+        handle_field_submit(self, e)
 
     def _auto_add_empty_row_if_needed(self, control: ft.Control) -> None:
-        """Append a new empty row if the last row is filled and valid.
+        """Append a new empty row if the last row is filled and valid."""
+        from .events import auto_add_empty_row_if_needed
 
-        Checks if the control that triggered this method is a sequence
-        field on the last primer row, and if so, verifies that both
-        name and sequence are filled and valid. If so, appends a new
-        empty primer row.
-
-        Args:
-            control: The Flet control that triggered the check.
-        """
-        if (
-            control.data is not None
-            and isinstance(control.data, dict)
-            and control.data.get("field") == "seq"
-        ):
-            idx = control.data["idx"]
-            num_primers = len(self.input_data.primers)
-            if idx == num_primers - 1:
-                p = self.input_data.primers[idx]
-                if p.get("name", "").strip() and p.get("seq", "").strip():
-                    if idx < len(self.primer_input.validation_errors):
-                        err = self.primer_input.validation_errors[idx]
-                        if not err.get("name") and not err.get("seq"):
-                            self.input_data.primers.append(
-                                {"name": "", "seq": "", "active": False}
-                            )
-                            self.primer_input.update_ui()
+        auto_add_empty_row_if_needed(self, control)
 
     def sync_to_state(
         self, rebuild_if_needed: bool = False, skip_extract: bool = False
@@ -389,86 +259,21 @@ class InputView(ft.Row):  # type: ignore[misc]
         self._adjust_template_wrap(update_first=False)
 
     def _on_change_handler(self, e: ft.Event | None) -> None:
-        """Handle change in input fields.
+        """Handle change in input fields."""
+        from .events import on_change_handler
 
-        Syncs state to the central store, updates the primer info panel,
-        and triggers the on_change callback.
-
-        Args:
-            e: The Flet control event containing change information.
-        """
-        if (
-            e
-            and hasattr(e, "control")
-            and isinstance(e.control, ft.TextField)
-            and e.control.data is not None
-        ):
-            data = e.control.data
-
-            if isinstance(data, dict) and "idx" in data and "field" in data:
-                val = str(e.control.value or "")
-                if "\t" in val or "\n" in val:
-                    non_empty_lines = [
-                        line for line in val.splitlines() if line.strip()
-                    ]
-                    if "\t" not in val and len(non_empty_lines) <= 1:
-                        e.control.value = val.replace("\n", "")
-                        self._handle_field_submit(e)
-                        return
-                    self._handle_pasted_text(
-                        val, data["idx"], data["field"], e.control
-                    )
-                    return
-
-        self.sync_to_state()
-        self.primer_input._update_primer_info_panel()
-        if self.on_change:
-            self.on_change(e)
+        on_change_handler(self, e)
 
     def _handle_pasted_text(
         self, text: str, idx: int, field: str, control: ft.TextField
     ) -> None:
         """Parse pasted text and insert into the primer list."""
-        from .primer_clipboard import parse_primer_clipboard_text
+        from .events import handle_pasted_text
 
-        parsed = parse_primer_clipboard_text(text)
-        if not parsed:
-            return
-
-        primers = self.input_data.primers
-
-        # Replace single empty row
-        if (
-            len(primers) == 1
-            and not primers[0].get("name")
-            and not primers[0].get("seq")
-        ):
-            primers.clear()
-            idx = 0
-
-        for i, new_p in enumerate(parsed):
-            target_idx = idx + i
-            if target_idx < len(primers):
-                primers[target_idx]["name"] = new_p["name"]
-                primers[target_idx]["seq"] = new_p["seq"]
-                primers[target_idx]["active"] = False
-            else:
-                primers.append(new_p)
-
-        self.update_ui()
-        self.sync_to_state(rebuild_if_needed=True, skip_extract=True)
-        if self.on_change:
-            self.on_change(None)
+        handle_pasted_text(self, text, idx, field, control)
 
     def _clear_primers(self, e: ft.Event | None) -> None:
-        """Clear all primers.
-
-        Resets the primer list to a single empty primer row, clears
-        the focused primer index, updates the UI, and triggers callbacks.
-
-        Args:
-            e: The Flet control event containing click information.
-        """
+        """Clear all primers."""
         self.input_data.primers = [{"name": "", "seq": "", "active": False}]
         self.primer_input.focused_primer_index = None
         self.update_ui()
@@ -478,14 +283,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback(None)
 
     def _delete_selected_primers(self, e: ft.Event | None) -> None:
-        """Delete all selected primers.
-
-        Identifies all active (selected) primers and removes them using
-        the action controller, then triggers callbacks.
-
-        Args:
-            e: The Flet control event containing click information.
-        """
+        """Delete all selected primers."""
         active_indices = self.primer_input.selected_indices
         if active_indices:
             self.primer_input.action_controller.delete_primers(
@@ -497,14 +295,7 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback(None)
 
     def _clear_template(self, e: ft.Event | None) -> None:
-        """Clear the DNA template.
-
-        Clears the template sequence field, syncs state, and triggers
-        callbacks.
-
-        Args:
-            e: The Flet control event containing click information.
-        """
+        """Clear the DNA template."""
         self.template_input.template_sequence.value = ""
         self.sync_to_state()
         if self.on_change:
@@ -513,88 +304,28 @@ class InputView(ft.Row):  # type: ignore[misc]
             self.on_stop_editing_callback(None)
 
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
-        """Handle resizing the bottom (right) container via the divider.
+        """Handle resizing the bottom (right) container via the divider."""
+        from .layout import on_pan_update
 
-        Adjusts the width of the template input panel and the name
-        column width of primer rows based on drag delta.
-
-        Args:
-            e: The Flet drag update event containing delta information.
-        """
-        page_width = self.app_page.width
-        if isinstance(page_width, (int, float)) and page_width > 0:
-            delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
-            # Calculate current pixel width of the right container
-            current_width = page_width * self.right_fraction
-            new_width = max(200.0, current_width - delta_x)
-            # Ensure the left container stays at least 200px wide
-            new_width = min(new_width, page_width - 200.0)
-
-            # Recalculate fractions
-            self.right_fraction = new_width / page_width
-
-            # Resize template_input via fixed width to avoid updating
-            # the massive primer_input ListView controls tree.
-            self.template_input.expand = None
-            left_width = page_width - new_width - 5.0
-            self.template_input.width = left_width
-            self.template_input.update()
-
-            # Adjust the name column width of only the visible rows and header
-            self.primer_input.layout_manager.adjust_name_column_width(
-                new_width, during_drag=True
-            )
+        on_pan_update(self, e)
 
     def _on_pan_end(self, e: ft.DragEndEvent) -> None:
-        """Handle finishing the drag of the main layout divider.
+        """Handle finishing the drag of the main layout divider."""
+        from .layout import on_pan_end
 
-        Restores responsive expand weights for both panels, performs a
-        full rebuild to sync everything at the final width, and updates
-        the name column width.
-
-        Args:
-            e: The Flet drag end event.
-        """
-        page_width = self.app_page.width
-        if isinstance(page_width, (int, float)) and page_width > 0:
-            panel_width = page_width * self.right_fraction
-
-            # Restore responsive expand weights for both panels
-            self.template_input.width = None
-            self.template_input.expand = int((1.0 - self.right_fraction) * 1000)
-            self.primer_input.expand = int(self.right_fraction * 1000)
-
-            # Full rebuild to sync everything at the final width
-            self.primer_input.layout_manager.adjust_name_column_width(
-                panel_width, during_drag=False
-            )
-            self._adjust_template_wrap(update_first=False)
-            self.update()
+        on_pan_end(self, e)
 
     def _handle_resize(self, e: ft.PageResizeEvent) -> None:
-        """Handle page resize to proportionally scale name column.
+        """Handle page resize to proportionally scale name column."""
+        from .layout import handle_resize
 
-        Args:
-            e: The Flet resize event.
-        """
-        page_width = self.app_page.width
-        if isinstance(page_width, (int, float)) and page_width > 0:
-            panel_width = page_width * self.right_fraction
-            self.primer_input.layout_manager.adjust_name_column_width(
-                panel_width
-            )
-            self._adjust_template_wrap(update_first=False)
-            self.update()
+        handle_resize(self, e)
 
     def _adjust_template_wrap(self, update_first: bool = True) -> None:
         """Adjust the template wrap length based on the available width."""
-        page_width = self.app_page.width
-        if isinstance(page_width, (int, float)) and page_width > 0:
-            left_width = page_width * (1.0 - self.right_fraction)
-            if update_first:
-                self.template_input.adjust_wrap_length(left_width, update=True)
-            else:
-                self.template_input.adjust_wrap_length(left_width, update=False)
+        from .layout import adjust_template_wrap
+
+        adjust_template_wrap(self, update_first)
 
     def get_primers(self) -> list[dict[str, Any]]:
         """Get the list of active primers.

@@ -22,7 +22,7 @@ import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.utils.git import get_version
+from amplifyp.gui.utils.system import get_version
 
 
 class AppHeader(ft.Column):  # type: ignore[misc]

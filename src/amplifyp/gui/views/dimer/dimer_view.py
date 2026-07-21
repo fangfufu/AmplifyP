@@ -26,8 +26,8 @@ from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.sequence import clean_sequence
-from amplifyp.gui.utils.ui import show_error_dialog
+from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.gui.utils.gui_helpers import show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
 
 logger = logging.getLogger(__name__)

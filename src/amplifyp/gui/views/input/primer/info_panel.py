@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Flet component displaying details of a selected DNA primer."""
+"""Info panel component for DNA primers."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.data_helpers import clean_sequence
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +34,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     """Panel to display Tm, redundancy, and dimer info for a primer."""
 
     def __init__(self, settings: GUISettings, font_family: str) -> None:
-        """Initialise the PrimerInfoPanel.
-
-        Args:
-            settings: Application GUI settings instance.
-            font_family: Font family for sequence display.
-        """
+        """Initialise the PrimerInfoPanel."""
         super().__init__()
         self.settings = settings
         self.font_family = font_family
@@ -126,11 +121,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.visible = False
 
     def _on_close_click(self, e: ft.Event) -> None:
-        """Handle close button click: clear focus and hide panel.
-
-        Args:
-            e: The Flet control event triggered by the close button click.
-        """
+        """Handle close button click."""
         self._manually_hidden = True
         self.visible = False
         if self._on_dismiss_callback:
@@ -144,19 +135,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         on_update_highlights: Callable[[], None],
         on_dismiss: Callable[[], None] | None = None,
     ) -> None:
-        """Update the primer information panel based on the focused primer.
-
-        Displays Tm, sequence details, base counts, redundancy, and
-        self-dimer potential for the specified primer.
-
-        Args:
-            focused_idx: Zero-based index of the focused primer, or None
-                to hide the panel.
-            input_data: Central GUI input state containing primer list.
-            app_page: The Flet page instance for UI updates.
-            on_update_highlights: Callback to update row highlight colours.
-            on_dismiss: Callback invoked when the panel is dismissed.
-        """
+        """Update the primer information panel based on the focused primer."""
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
             if (
@@ -206,29 +185,23 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             primer_obj = Primer(sequence=seq_val, name=name_val)
 
-            # Header
             header_text = (
                 f"Primer: {name_val}" if name_val else f"Primer: {seq_val}"
             )
             self.info_header_text.value = header_text
-
-            # Sequence details
             self.info_seq_text.value = (
                 f"{len(primer_obj)} bp:   {primer_obj.seq}"
             )
 
-            # Melting temperature
             tm = self.settings.calculate_primer_tm(primer_obj)
             self.info_tm_text.value = f"Tm = {tm:.2f}°C"
 
-            # Base counts / percentage
             self.info_pairs_text.value = (
                 f"{primer_obj.count_at()} AT Pairs, "
                 f"{primer_obj.count_cg()} GC Pairs, "
                 f"{primer_obj.ratio_at() * 100:.1f}% AT"
             )
 
-            # Redundancy
             if primer_obj.redundant_base_count == 0:
                 self.info_redundancy_text.value = "No redundant bases."
             else:
@@ -237,14 +210,10 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                     f"(redundancy fold = {primer_obj.redundancy_fold})."
                 )
 
-            # Dimer potential check
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
 
-            # Check self-dimer potential
             max_dimer = None
-
-            # Always check self-dimer
             res_self = generator.generate_primer_dimer(primer_obj, primer_obj)
             if (
                 res_self.overlap > pd_settings.min_overlap

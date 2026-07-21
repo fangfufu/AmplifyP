@@ -21,8 +21,8 @@ from unittest.mock import MagicMock
 
 import flet as ft
 
-from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
-from amplifyp.gui.utils.ui import show_error_dialog
+from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
+from amplifyp.gui.utils.gui_helpers import show_error_dialog
 
 
 def test_clean_sequence() -> None:
@@ -70,7 +70,7 @@ def test_get_version_and_sha() -> None:
     """Test get_git_sha, get_full_sha, and get_version."""
     from unittest.mock import MagicMock, patch
 
-    from amplifyp.gui.utils.git import get_full_sha, get_git_sha, get_version
+    from amplifyp.gui.utils.system import get_full_sha, get_git_sha, get_version
 
     # Test under mocked 'amplifyp.gui.git_sha' module
     mock_git_sha = MagicMock()
@@ -140,7 +140,7 @@ def test_git_fallback_to_dot_git() -> None:
 
         mock_file_open.side_effect = open_side_effect
 
-        from amplifyp.gui.utils.git import get_full_sha, get_git_sha
+        from amplifyp.gui.utils.system import get_full_sha, get_git_sha
 
         # Verify it resolves correctly
         assert get_git_sha() == "a1b2c3d"

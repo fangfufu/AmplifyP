@@ -17,26 +17,24 @@
 
 import yaml
 
-from amplifyp.gui.utils.git import get_full_sha, get_git_sha, get_version
-from amplifyp.gui.utils.io import (
+from amplifyp.gui.utils.data_helpers import (
     _read_file,
-    _write_file,
-    pick_and_read_file,
-    save_and_write_file,
-)
-from amplifyp.gui.utils.sequence import (
     _resolve_font_family,
+    _write_file,
     clean_sequence,
     create_overlapped_sequence_view,
     format_sequence,
+    pick_and_read_file,
+    save_and_write_file,
 )
-from amplifyp.gui.utils.ui import (
+from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
     Debouncer,
     NotificationHelper,
     initialise_score_fields,
     show_error_dialog,
 )
+from amplifyp.gui.utils.system import get_full_sha, get_git_sha, get_version
 
 
 def serialise_state(state: dict[str, object]) -> str:

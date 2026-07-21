@@ -13,13 +13,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Validation logic for DNA primers."""
+"""Validation helpers for DNA primers."""
+
+from __future__ import annotations
 
 import functools
 from typing import Any
 
 from amplifyp.dna import Primer
-from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.data_helpers import clean_sequence
 
 
 @functools.lru_cache(maxsize=4096)
@@ -92,19 +94,7 @@ def get_duplicate_primer_indices(
     ignore_inactive_name_dup: bool = True,
     ignore_inactive_seq_dup: bool = True,
 ) -> set[int]:
-    """Find and return indices of duplicate primers by name/sequence.
-
-    Args:
-        primers: List of primer dicts to check for duplicates.
-        ignore_inactive_name_dup: If True, ignore inactive primers
-            when checking for duplicate names.
-        ignore_inactive_seq_dup: If True, ignore inactive primers
-            when checking for duplicate sequences.
-
-    Returns:
-        Set of indices corresponding to primers with duplicate names
-        or sequences.
-    """
+    """Find and return indices of duplicate primers by name/sequence."""
     counts = _count_names_and_sequences(primers)
     names_count, seqs_count, active_names_count, active_seqs_count = counts
 
@@ -141,20 +131,7 @@ def reconcile_primer_states(
     prev_primers: list[dict[str, Any]],
     auto_activate_new: bool = False,
 ) -> list[dict[str, Any]]:
-    """Reconcile UI primer state with the previous central state.
-
-    Handles auto-activation transitions, touched flags, and empty
-    error visibility.
-
-    Args:
-        ui_primers: List of primer dicts extracted from UI.
-        prev_primers: List of primer dicts representing the previous
-            central state.
-        auto_activate_new: If True, auto-activate new valid primers.
-
-    Returns:
-        A list of reconciled primer dicts.
-    """
+    """Reconcile UI primer state with the previous central state."""
     primers = []
     for i, p in enumerate(ui_primers):
         prev_p = prev_primers[i] if i < len(prev_primers) else {}
@@ -203,23 +180,7 @@ def validate_primers(
     ignore_inactive_name_dup: bool = True,
     ignore_inactive_seq_dup: bool = True,
 ) -> list[dict[str, str | None]]:
-    """Validate a list of primers, detecting format and duplicate errors.
-
-    Validates each primer's name and sequence, then checks for
-    duplicate names and sequences across the entire list.
-
-    Args:
-        primers: List of primer dicts with 'name', 'seq', 'name_touched',
-            and 'seq_touched' keys.
-        ignore_inactive_name_dup: If True, ignore inactive primers
-            when checking for duplicate names.
-        ignore_inactive_seq_dup: If True, ignore inactive primers
-            when checking for duplicate sequences.
-
-    Returns:
-        List of error dicts, one per primer, with 'name' and 'seq' keys
-        containing error message strings or None.
-    """
+    """Validate a list of primers, detecting format and duplicate errors."""
     counts = _count_names_and_sequences(primers)
     names_count, seqs_count, active_names_count, active_seqs_count = counts
 

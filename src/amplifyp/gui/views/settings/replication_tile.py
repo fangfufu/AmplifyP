@@ -13,16 +13,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""ReplicationTile component for Flet settings view."""
+"""ReplicationTile expansion tile component for settings view."""
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
+from amplifyp.dna import Nucleotides
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.views.settings.base_score_tile import ScoreTable
+from amplifyp.gui.utils.gui_helpers import (
+    BorderedCheckbox,
+    initialise_score_fields,
+)
+from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
 class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -38,27 +45,10 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialise the ReplicationTile.
-
-        Args:
-            settings (Any): The settings object.
-            settings_map (dict[str, Any]): A dictionary mapping setting keys
-                to UI components.
-            on_change_handler (Any): The handler to call when a setting changes.
-            header_size (int): The size of the header text.
-            font_size_default (int): Default font size for text.
-            font_size_micro (int): Micro font size for small text.
-            font_size_table_header (int): Font size for table headers.
-        """
+        """Initialise the ReplicationTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
-
-        from amplifyp.dna import Nucleotides
-        from amplifyp.gui.utils.ui import (
-            BorderedCheckbox,
-            initialise_score_fields,
-        )
 
         self.set_primability_cutoff = ft.TextField(
             label="Primability Cutoff",

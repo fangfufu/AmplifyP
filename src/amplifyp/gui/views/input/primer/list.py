@@ -22,13 +22,12 @@ from typing import TYPE_CHECKING
 
 import flet as ft
 
-from .primer_row import PrimerRow
-from .primer_validation import validate_primers
+from .row import PrimerRow
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from .primer_input import PrimerInput
+    from .input import PrimerInput
 
 
 class PrimerList(ft.ListView):  # type: ignore[misc]
@@ -87,6 +86,8 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         ignore_inactive_seq_dup = self.primer_input.settings.get(
             "ignore_inactive_seq_dup_warn", True
         )
+
+        from .validation import validate_primers
 
         self.primer_input.validation_errors = validate_primers(
             self.primer_input.input_data.primers,
