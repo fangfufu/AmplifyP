@@ -50,7 +50,10 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 input_view.input_data.primers[idx]["name_touched"] = True
             elif field == "seq":
                 input_view.input_data.primers[idx]["seq_touched"] = True
-                page = e.page or input_view.page
+                try:
+                    page = e.page or input_view.page
+                except RuntimeError:
+                    page = None
                 if page and not getattr(
                     input_view, "_skip_seq_focus_reset", False
                 ):
