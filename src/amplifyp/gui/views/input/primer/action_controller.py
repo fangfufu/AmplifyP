@@ -15,27 +15,28 @@
 
 """Action mutation controller for DNA primers input."""
 
+from __future__ import annotations
+
 import inspect
 import logging
 from typing import TYPE_CHECKING
 
 import flet as ft
 
-from amplifyp.gui.utils.ui import focus_async
+from amplifyp.gui.utils.gui_helpers import focus_async
+
+from .row import PrimerRow
 
 if TYPE_CHECKING:
-    from .primer_input import PrimerInput
+    from .input import PrimerInput
 
 logger = logging.getLogger(__name__)
 
 
 class PrimerActionController:
-    """Handles mutation operations on the primers list.
+    """Handles mutation operations on the primers list."""
 
-    Such as adding, moving, and deleting.
-    """
-
-    def __init__(self, owner: "PrimerInput") -> None:
+    def __init__(self, owner: PrimerInput) -> None:
         """Initialise the PrimerActionController.
 
         Args:
@@ -85,10 +86,6 @@ class PrimerActionController:
         and sets click_a. On the second double-click, sets click_b,
         toggles highlighting between click_a (exclusive) and click_b
         (inclusive), then resets both to None.
-
-        Flet (via Flutter) does not fire on_tap before on_double_tap,
-        so the double-click handler is solely responsible for
-        managing click_a/click_b state.
 
         Args:
             idx: Zero-based index of the clicked primer row.
@@ -249,8 +246,6 @@ class PrimerActionController:
             self.owner.focused_primer_index = new_focus
             self.owner.selected_indices = {new_focus}
 
-        from .primer_row import PrimerRow
-
         # Filter the controls list
         remaining_controls = []
         for row in self.owner.primers_list.controls:
@@ -340,8 +335,6 @@ class PrimerActionController:
         primers = self.owner.input_data.primers
         changed = False
 
-        from .primer_row import PrimerRow
-
         controls = self.owner.primers_list.controls
 
         def get_row_height(idx: int) -> float:
@@ -417,3 +410,39 @@ class PrimerActionController:
             self.owner.on_change_handler(None)
         elif self.owner.app_page:
             self.owner.app_page.update()
+
+    def header_add_click(self, e: ft.Event | None) -> None:
+        """Handle header Add button click."""
+        num_primers = len(self.owner.input_data.primers)
+        if self.owner.selected_indices:
+            idx = min(max(self.owner.selected_indices), num_primers - 1)
+        elif self.owner.focused_primer_index is not None:
+            idx = min(self.owner.focused_primer_index, num_primers - 1)
+        else:
+            idx = num_primers - 1
+
+        self.owner.selected_indices = {idx + 1}
+        self.owner.focused_primer_index = idx + 1
+        self.on_add_primer_row(idx)
+
+    def header_delete_click(self, e: ft.Event | None) -> None:
+        """Handle header Delete button click."""
+        if self.owner.selected_indices:
+            self.delete_primers(self.owner.selected_indices.copy())
+            self.owner._update_header_buttons_state()
+
+    def header_up_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Up button click."""
+        if self.owner.selected_indices and min(self.owner.selected_indices) > 0:
+            self.move_primers(self.owner.selected_indices, -1)
+            self.owner._update_header_buttons_state()
+
+    def header_down_click(self, e: ft.Event | None) -> None:
+        """Handle header Move Down button click."""
+        if (
+            self.owner.selected_indices
+            and max(self.owner.selected_indices)
+            < len(self.owner.input_data.primers) - 1
+        ):
+            self.move_primers(self.owner.selected_indices, 1)
+            self.owner._update_header_buttons_state()

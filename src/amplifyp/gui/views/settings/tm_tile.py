@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""TmTile component for Flet settings view."""
+"""TmTile expansion tile component for settings view."""
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
@@ -34,15 +36,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
-        """Initialise the TmTile.
-
-        Args:
-            settings: The settings object.
-            settings_map: A dictionary mapping setting keys to UI
-                components for population and retrieval.
-            on_change_handler: The handler to call when a setting changes.
-            header_size: The size of the expansion tile header text.
-        """
+        """Initialise the TmTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler

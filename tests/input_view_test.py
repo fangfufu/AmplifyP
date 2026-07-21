@@ -926,7 +926,7 @@ def test_template_load_save() -> None:
     mock_page.file_picker = mock_file_picker_instance
 
     with patch(
-        "amplifyp.gui.views.input.template_input.ft.FilePicker",
+        "amplifyp.gui.views.input.template.input.ft.FilePicker",
         return_value=mock_file_picker_instance,
     ):
         view = InputView(mock_page, input_data)

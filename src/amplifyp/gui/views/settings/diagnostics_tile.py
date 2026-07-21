@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""DiagnosticsTile component for Flet settings view."""
+"""DiagnosticsTile expansion tile component for settings view."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ import flet as ft
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.logger import get_default_log_file_path
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 
 LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -40,23 +41,12 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         on_change_handler: Callable[[ft.Event | None], None],
         header_size: int,
     ) -> None:
-        """Initialise the DiagnosticsTile.
-
-        Args:
-            page: The Flet page instance.
-            settings: The settings object.
-            settings_map: A dictionary mapping setting keys to UI
-                components for population and retrieval.
-            on_change_handler: The handler to call when a setting changes.
-            header_size: The size of the header text.
-        """
+        """Initialise the DiagnosticsTile."""
         self._page = page
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
         self.is_web = self._page.web
-
-        from amplifyp.gui.utils.ui import BorderedCheckbox
 
         self.log_console_enabled = BorderedCheckbox(
             label="Console Output",

@@ -13,7 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Score table for Flet settings view."""
+"""ScoreTable helper component for settings view."""
+
+from __future__ import annotations
 
 from typing import Any
 
@@ -39,22 +41,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_table_header: int,
         width: int = 810,
     ) -> None:
-        """Initialise the ScoreTable.
-
-        Args:
-            label: The title text displayed above the table.
-            row_headers: List of row header labels.
-            col_headers: List of column header labels.
-            row_label: Label for the row header column.
-            col_label: Label for the column header row.
-            prefix: Key prefix used to look up TextField components in
-                settings_map (e.g. "pd_score", "bp_score").
-            settings_map: Dictionary mapping setting keys to UI components.
-            font_size_default: Default font size for the label.
-            font_size_micro: Font size for the diagonal header labels.
-            font_size_table_header: Font size for row and column headers.
-            width: Total table container width in pixels. Defaults to 810.
-        """
+        """Initialise the ScoreTable."""
         self.label = label
         self.row_headers = row_headers
         self.col_headers = col_headers

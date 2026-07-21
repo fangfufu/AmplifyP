@@ -17,7 +17,7 @@
 
 from typing import Any
 
-from amplifyp.gui.utils.sequence import clean_sequence, format_sequence
+from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
 
 
 class GUIInput:

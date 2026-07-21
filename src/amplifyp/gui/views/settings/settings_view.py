@@ -25,7 +25,7 @@ import flet as ft
 from amplifyp.gui.settings import GUISettings
 
 if TYPE_CHECKING:
-    from amplifyp.gui.utils.ui import BorderedCheckbox
+    from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.logger import reconfigure_logging
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
@@ -286,7 +286,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match the central settings."""
-        from amplifyp.gui.utils.ui import BorderedCheckbox
+        from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 
         for k, v in self.settings.items():
             if k in self.settings_map:

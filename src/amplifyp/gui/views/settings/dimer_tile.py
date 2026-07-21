@@ -13,16 +13,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""DimerTile component for Flet settings view."""
+"""DimerTile expansion tile component for settings view."""
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
+from amplifyp.dna import Nucleotides
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.views.settings.base_score_tile import ScoreTable
+from amplifyp.gui.utils.gui_helpers import initialise_score_fields
+from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
 class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -38,24 +42,10 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
     ) -> None:
-        """Initialise the DimerTile.
-
-        Args:
-            settings: The settings object.
-            settings_map: A dictionary mapping setting keys to UI
-                components for population and retrieval.
-            on_change_handler: The handler to call when a setting changes.
-            header_size: The size of the expansion tile header text.
-            font_size_default: Default font size for text elements.
-            font_size_micro: Micro font size for small labels.
-            font_size_table_header: Font size for table header cells.
-        """
+        """Initialise the DimerTile."""
         self.settings = settings
         self.settings_map = settings_map
         self.on_change_handler = on_change_handler
-
-        from amplifyp.dna import Nucleotides
-        from amplifyp.gui.utils.ui import initialise_score_fields
 
         self.set_pd_min_overlap = ft.TextField(
             label="Min Overlap",

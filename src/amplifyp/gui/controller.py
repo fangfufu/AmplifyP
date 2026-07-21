@@ -17,18 +17,19 @@
 
 import asyncio
 import logging
-import time
 from pathlib import Path
 from typing import Any, cast
 
 import flet as ft  # type: ignore[import-not-found, unused-ignore]
-import yaml
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.controllers import (
+    NavigationManager,
+    ThemeManager,
+    UpdateManager,
+)
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.util import serialise_state
-from amplifyp.gui.utils.ui import NotificationHelper, focus_async
+from amplifyp.gui.utils.gui_helpers import NotificationHelper
 from amplifyp.gui.views import (
     AboutView,
     DimerView,
@@ -97,13 +98,18 @@ class GUIController:
         )
         self.input_view_dirty = False
 
+        # Sub-controllers
+        self._theme_manager = ThemeManager(self)
+        self._nav_manager = NavigationManager(self)
+        self._update_manager = UpdateManager(self)
+
     def initialise(self) -> None:
         """Configure page setup, window events, views, and custom layout."""
         self._configure_page_and_window()
 
         self.settings.load_from_local(self.page)
         self.page.on_platform_brightness_change = (
-            self.on_platform_brightness_change
+            self._theme_manager.on_platform_brightness_change
         )
         self.apply_theme()
         self.page.on_keyboard_event = self._on_keyboard_event
@@ -182,105 +188,30 @@ class GUIController:
                 self.page.window.on_event = self.on_window_event
 
     def _setup_navigation_controls(self) -> None:
-        """Configure navigation controls for the main application window.
-
-        Creates and sets up the AppBar buttons and the visible top header
-        buttons (Input, PCR, Primer Dimers, Settings, Save, Load).
-        """
-        from amplifyp.gui.views.header import AppHeader
-
-        self.header = AppHeader(
-            settings=self.settings,
-            on_switch_input=lambda e: self.switch_view(e, self.input_view),
-            on_switch_settings=lambda e: self.switch_view(
-                e, self.settings_view
-            ),
-            on_switch_about=lambda e: self.switch_view(e, self.about_view),
-            on_pcr_click=self.on_pcr_click,
-            on_dimers_click=self.on_dimers_click,
-            on_save=self.save_state,
-            on_load=self.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            on_clear_all=self.clear_all,
-            pcr_button_ref=self.pcr_button_ref,
-            dimers_button_ref=self.dimers_button_ref,
-            visible_pcr_button_ref=self.visible_pcr_button_ref,
-            visible_dimers_button_ref=self.visible_dimers_button_ref,
-        )
-
-        # Store aliases for backward compatibility or direct accesses
-        self.visible_save_btn_control = self.header.visible_save_btn_control
-        self.visible_clear_btn_control = self.header.visible_clear_btn_control
-        self.visible_load_btn_control = self.header.visible_load_btn_control
-        self.visible_header_divider = self.header.visible_header_divider
-
-        # Configure page appbar
-        self.page.appbar = ft.AppBar(
-            visible=False,
-            actions=self.header.appbar_actions,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        )
-
-        self.header_container = ft.Container(
-            content=self.header,
-            padding=ft.Padding(16, 8, 16, 8),
-            bgcolor=GUIColours.SURFACE,
-        )
-
-        self.page.add(
-            ft.Divider(height=1, thickness=1),
-            self.view_container,
-        )
-        self.page.controls.insert(0, self.header_container)
-        self.page.on_resize = self.input_view._handle_resize
-        self.page.update()
-        # After the first update, platform_brightness is populated.
-        # Re-apply theme and refresh views to resolve dynamic colours correctly.
-        self.apply_theme()
-        self.input_view.update_ui()
-        self.page.update()
+        """Configure navigation controls for the main application window."""
+        self._nav_manager.setup_navigation_controls()
 
     def apply_theme(self) -> None:
         """Apply theme settings (light/dark/system mode) to the page."""
-        dark_mode_setting = self.settings.get("dark_mode", False)
-        is_dark = False
-        if str(dark_mode_setting).lower() == "system":
-            self.page.theme_mode = ft.ThemeMode.SYSTEM
-            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            is_dark = str(self.page.platform_brightness).lower() == "dark"
-        elif bool(dark_mode_setting) and str(dark_mode_setting).lower() not in (
-            "false",
-            "0",
-            "no",
-        ):
-            self.page.theme_mode = ft.ThemeMode.DARK
-            self.page.bg_color = None  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            is_dark = True
-        else:
-            self.page.theme_mode = ft.ThemeMode.LIGHT
-            self.page.bg_color = GUIColours.WHITE  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            is_dark = False
-        GUIColours.dark_mode = is_dark
-        if hasattr(self, "header_container") and self.header_container:
-            self.header_container.bgcolor = GUIColours.SURFACE
+        self._theme_manager.apply_theme()
 
     def on_platform_brightness_change(
         self, e: ft.ControlEvent | None = None
     ) -> None:
         """Handle system brightness shifts."""
-        self.apply_theme()
-        active_view = self.view_container.content
-        if active_view == self.input_view:
-            self.input_view.update_ui()
-        else:
-            self.input_view_dirty = True
+        self._theme_manager.on_platform_brightness_change(e)
 
-        if active_view == self.settings_view:
-            self.settings_view.update_ui()
+    def switch_view(self, _e: ft.Event[ft.Control], view: ft.Control) -> None:
+        """Switch the main view container to display a different view.
 
-        if active_view == self.pcr_view:
-            self.pcr_view.run_pcr(keep_cards=True)
-        elif active_view == self.dimers_view:
-            self.dimers_view.run_analysis()
-        self.page.update()
+        Updates the container content and configures resize handlers
+        appropriate for the target view.
+
+        Args:
+            _e: The event that triggered the view switch (unused).
+            view: The Flet control to display as the new view.
+        """
+        self._nav_manager.switch_view(_e, view)
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
         """Handle PCR click: switch view then run PCR.
@@ -290,17 +221,11 @@ class GUIController:
         Flet's diff algorithm marking canvas shapes as 'already
         sent' before the view becomes visible.
         """
-        self.update_pcr_button_state(sync=True)
-        self.switch_view(e, self.pcr_view)
-        if not self.pcr_view.run_pcr():
-            self.switch_view(e, self.input_view)
+        self._nav_manager.on_pcr_click(e)
 
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
         """Handle dimers click: switch view then run analysis."""
-        self.update_pcr_button_state(sync=True)
-        self.switch_view(e, self.dimers_view)
-        if not self.dimers_view.run_analysis():
-            self.switch_view(e, self.input_view)
+        self._nav_manager.on_dimers_click(e)
 
     def update_pcr_button_state(
         self, sync: bool = True, update_page: bool = True
@@ -413,61 +338,21 @@ class GUIController:
         Returns:
             Path object pointing to the last_state.yaml file location.
         """
-        settings_path = self.settings._get_config_path()
-        return settings_path.parent / "last_state.yaml"
+        from amplifyp.gui.utils.data_helpers import get_last_state_path
+
+        return get_last_state_path(self)
 
     def save_last_state(self) -> None:
         """Save the last template and primers to local/platform storage."""
-        if not self.settings.get("auto_reload_on_startup", True):
-            return
+        from amplifyp.gui.utils.data_helpers import save_last_state
 
-        self.input_view.sync_to_state()
-        state_dict = {
-            "input": self.input_data.to_dict(),
-        }
-
-        if getattr(self.page, "web", False):
-            storage = getattr(self.page, "client_storage", None)
-            if storage is not None:
-                storage.set("amplifyp.last_state", state_dict["input"])
-        else:
-            path = self._get_last_state_path()
-            try:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                yaml_str = serialise_state(state_dict)
-                with open(path, "w", encoding="utf-8") as f:
-                    f.write(yaml_str)
-            except Exception as e:
-                logger.exception("Error saving last state to %s: %s", path, e)
+        save_last_state(self)
 
     def load_last_state(self) -> None:
         """Load the last template and primers from local/platform storage."""
-        if not self.settings.get("auto_reload_on_startup", True):
-            return
+        from amplifyp.gui.utils.data_helpers import load_last_state
 
-        state_dict = None
-        if getattr(self.page, "web", False):
-            storage = getattr(self.page, "client_storage", None)
-            if storage is not None and storage.contains_key(
-                "amplifyp.last_state"
-            ):
-                state_dict = storage.get("amplifyp.last_state")
-        else:
-            path = self._get_last_state_path()
-            if path.exists():
-                try:
-                    with open(path, encoding="utf-8") as f:
-                        content = f.read()
-                    state_dict = yaml.safe_load(content)
-                except Exception as e:
-                    logger.exception(
-                        "Error loading last state from %s: %s", path, e
-                    )
-
-        if state_dict and isinstance(state_dict, dict):
-            if "input" not in state_dict:
-                state_dict = {"input": state_dict}
-            self._apply_parsed_state(state_dict, ignore_settings=True)
+        load_last_state(self)
 
     async def _load_last_state_async(self) -> None:
         """Asynchronously load the last template and primers from storage."""
@@ -481,20 +366,9 @@ class GUIController:
         Args:
             path: Path to the YAML state file.
         """
-        try:
-            with open(path, encoding="utf-8") as f:
-                content = f.read()
+        from amplifyp.gui.utils.data_helpers import restore_state_from_file
 
-            parsed_state = yaml.safe_load(content)
-
-            if not isinstance(parsed_state, dict):
-                logger.warning("Invalid state file format, ignoring.")
-                return
-
-            self._apply_parsed_state(parsed_state)
-            logger.info("State loaded successfully from %s", path)
-        except (OSError, ValueError, yaml.YAMLError):
-            logger.exception("Error loading state file '%s'", path)
+        restore_state_from_file(self, path)
 
     def _apply_parsed_state(
         self, parsed_state: dict[str, Any], ignore_settings: bool = False
@@ -505,304 +379,88 @@ class GUIController:
             parsed_state: Parsed YAML dict containing input and settings.
             ignore_settings: If True, settings are not applied.
         """
-        if "input" in parsed_state:
-            self.input_data.from_dict(parsed_state["input"])
-        else:
-            self.input_data.from_dict(parsed_state)
-        if not ignore_settings and "settings" in parsed_state:
-            self.settings.from_dict(parsed_state["settings"])
-            self.settings.save_to_local(self.page)
-        self.apply_theme()
-        self.input_view.update_ui()
-        self.settings_view.update_ui()
-        self.update_pcr_button_state(update_page=False)
-        self.page.update()
+        from amplifyp.gui.utils.data_helpers import apply_parsed_state
+
+        apply_parsed_state(self, parsed_state, ignore_settings)
 
     async def save_state(self, e: ft.Event[ft.Control]) -> None:
         """Save app state to YAML configuration file."""
-        if self.filepicker_open:
-            return
-        self.filepicker_open = True
-        try:
-            self.input_view.sync_to_state()
-            combined: dict[str, object] = {
-                "input": self.input_data.to_dict(),
-            }
-            yaml_str = serialise_state(combined)
+        from amplifyp.gui.utils.data_helpers import save_state
 
-            from amplifyp.gui.utils.io import save_and_write_file
-
-            await save_and_write_file(
-                page=self.page,
-                dialog_title="Save all",
-                file_name="amplify_gui_state.yaml",
-                allowed_extensions=["yaml", "yml"],
-                content=yaml_str,
-                show_notification=self.notification_helper.show_message,
-                success_message_desktop="State saved successfully!",
-                success_message_web="State ready for download!",
-            )
-        except (OSError, ValueError) as ex:
-            self.notification_helper.show_message(f"Error saving state: {ex}")
-        finally:
-            self.filepicker_open = False
+        await save_state(self, e)
 
     async def load_state(self, e: ft.Event[ft.Control]) -> None:
         """Load app state from YAML configuration file."""
-        if self.filepicker_open:
-            return
-        self.filepicker_open = True
-        try:
-            from amplifyp.gui.utils.io import pick_and_read_file
+        from amplifyp.gui.utils.data_helpers import load_state
 
-            content = await pick_and_read_file(
-                page=self.page,
-                dialog_title="Load all",
-                allowed_extensions=["yaml", "yml"],
-                show_notification=self.notification_helper.show_message,
-            )
-            if content is None:
-                return
-
-            parsed_state = yaml.safe_load(content)
-
-            if not isinstance(parsed_state, dict):
-                self.notification_helper.show_message(
-                    "Error: Invalid state file format."
-                )
-                return
-
-            self._apply_parsed_state(parsed_state, ignore_settings=True)
-            self.notification_helper.show_message("State loaded successfully!")
-        except (OSError, ValueError, yaml.YAMLError) as ex:
-            logger.exception("Error loading state:")
-            self.notification_helper.show_message(f"Error loading state: {ex}")
-        finally:
-            self.filepicker_open = False
-
-    def switch_view(self, _e: ft.Event[ft.Control], view: ft.Control) -> None:
-        """Switch the main view container to display a different view.
-
-        Updates the container content and configures resize handlers
-        appropriate for the target view.
-
-        Args:
-            _e: The event that triggered the view switch (unused).
-            view: The Flet control to display as the new view.
-        """
-        if view == self.input_view and self.input_view_dirty:
-            self.input_view.update_ui()
-            self.input_view_dirty = False
-
-        self.view_container.content = view
-        is_input = view == self.input_view
-        self.visible_save_btn_control.visible = is_input
-        self.visible_clear_btn_control.visible = is_input
-        self.visible_load_btn_control.visible = is_input
-        self.visible_header_divider.visible = is_input
-
-        if view == self.input_view:
-            self.page.on_resize = self.input_view._handle_resize
-        elif view == self.pcr_view:
-            self.page.on_resize = self.pcr_view._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        else:
-            self.page.on_resize = None
-
-        self.page.update()
+        await load_state(self, e)
 
     def confirm_dismiss(self, e: ft.ControlEvent) -> None:
-        """Close confirmation dialog."""
-        dialog = self._confirm_dialog
-        if dialog:
-            dialog.open = False
-            self.page.update()
+        """Close close confirmation dialogue."""
+        from amplifyp.gui.utils.system import confirm_dismiss
+
+        confirm_dismiss(self, e)
 
     async def confirm_exit_async(self) -> None:
-        """Asynchronously destroy the application window.
+        """Asynchronously destroy the application window."""
+        from amplifyp.gui.utils.system import confirm_exit_async
 
-        Used as a task handler for safe window closure on desktop.
-        """
-        try:
-            self.save_last_state()
-            await self.page.window.destroy()
-        except RuntimeError:
-            logger.debug("Window already closed, skipping destroy")
+        await confirm_exit_async(self)
 
     def confirm_exit(self, e: ft.ControlEvent) -> None:
-        """Launch the async window destruction task.
+        """Launch the async window destruction task."""
+        from amplifyp.gui.utils.system import confirm_exit
 
-        Args:
-            e: The Flet control event triggering the exit.
-        """
-        self.page.run_task(self.confirm_exit_async)
+        confirm_exit(self, e)
 
     async def _restore_state_and_auto_close_async(self) -> None:
         """Restore state from file and run auto-close sequence if requested."""
-        # Yield to let the page finish initial rendering and attach controls
-        await asyncio.sleep(0)
-        if self.state_file:
-            self._restore_state_from_file(self.state_file)
-        if self.auto_close and self.state_file:
-            await self._auto_close_and_quit_delayed()
+        from amplifyp.gui.utils.system import (
+            restore_state_and_auto_close_async,
+        )
+
+        await restore_state_and_auto_close_async(self)
 
     async def _auto_close_and_quit_delayed(
         self, _event: ft.ControlEvent | None = None
     ) -> None:
-        """Run PCR/dimer analysis then quit for performance regression testing.
+        """Run PCR/dimer analysis then quit for regression testing."""
+        from amplifyp.gui.utils.system import auto_close_and_quit_delayed
 
-        Yields to the event loop to let initial render complete, runs analysis,
-        then destroys the window automatically.
-
-        Args:
-            _event: Unused event parameter for task compatibility.
-        """
-        try:
-            # Yield to event loop to let the initial page render complete
-            await asyncio.sleep(0)
-
-            self.update_pcr_button_state(sync=False)
-
-            pcr_btn = self.pcr_button_ref.current
-            if pcr_btn and not pcr_btn.disabled:
-                self.pcr_view.run_pcr()
-
-            dimers_btn = self.dimers_button_ref.current
-            if dimers_btn and not dimers_btn.disabled:
-                self.dimers_view.run_analysis()
-
-            self.page.update()
-            # Give Flet/Flutter rendering engine time to finish the pass
-            await asyncio.sleep(1)
-
-            await self.confirm_exit_async()
-        except Exception:
-            logger.exception("Error during auto-close sequence")
-            try:
-                await self.confirm_exit_async()
-            except RuntimeError:
-                pass
+        await auto_close_and_quit_delayed(self, _event)
 
     def on_window_event(self, e: ft.WindowEvent) -> None:
-        """Handle desktop window events, showing close confirmation dialog.
+        """Handle desktop window events, showing close confirmation dialog."""
+        from amplifyp.gui.utils.system import on_window_event
 
-        When the user attempts to close the application window, this method
-        displays a confirmation dialog to prevent accidental data loss.
-
-        Args:
-            e: The window event containing close information.
-        """
-        if (
-            e.data == "close"
-            or getattr(e, "type", None) == ft.WindowEventType.CLOSE
-        ):
-            dialog = self._confirm_dialog
-            msg = "Are you sure you want to close AmplifyP?"
-            if not self.settings.get("auto_reload_on_startup", True):
-                msg += " Unsaved changes will be lost."
-
-            if not dialog:
-                dialog = ft.AlertDialog(
-                    modal=True,
-                    title=ft.Text("Confirm Exit"),
-                    content=ft.Text(msg),
-                    actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                        ft.TextButton("Yes", on_click=self.confirm_exit),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                        ft.TextButton("No", on_click=self.confirm_dismiss),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ],
-                    actions_alignment=ft.MainAxisAlignment.END,
-                )
-                self._confirm_dialog = dialog
-            else:
-                dialog.content = ft.Text(msg)
-
-            if dialog not in self.page.overlay:
-                self.page.overlay.append(dialog)
-            dialog.open = True
-            self.page.update()
+        on_window_event(self, e)
 
     def on_update_found(self, latest_version: str) -> None:
         """Update header version text when a new version is found."""
-        if hasattr(self, "header") and self.header:
-            self.header.set_update_available(latest_version)
+        self._update_manager.on_update_found(latest_version)
 
     async def check_updates_async(self) -> None:
         """Run update checking asynchronously without blocking main thread."""
-        from amplifyp import __version__ as current_version
-        from amplifyp.gui.utils.version_check import (
-            fetch_latest_release_version,
-            is_newer_version,
-            should_check_for_updates,
-        )
-
-        frequency = self.settings.get(
-            "version_checking_frequency", "Once per Month"
-        )
-        try:
-            last_check = float(
-                self.settings.get("last_version_check_timestamp", 0.0)
-            )
-        except (TypeError, ValueError):
-            last_check = 0.0
-        current_time = float(time.time())
-
-        if not should_check_for_updates(frequency, last_check, current_time):
-            return
-
-        loop = asyncio.get_running_loop()
-        latest_tag = await loop.run_in_executor(
-            None, fetch_latest_release_version
-        )
-
-        if latest_tag is not None:
-            # Update last check timestamp
-            self.settings["last_version_check_timestamp"] = current_time
-            self.settings.save_to_local(self.page)
-
-            if is_newer_version(latest_tag, current_version):
-                self.on_update_found(latest_tag)
+        await self._update_manager.check_updates_async()
 
     def _confirm_clear(self, _ev: ft.ControlEvent) -> None:
-        if self._clear_dialog:
-            self._clear_dialog.open = False
-        self.input_data.template = ""
-        self.input_data.template_circular = False
-        self.input_data.primers = [{"name": "", "seq": "", "active": False}]
-        self.input_view.primer_input.focused_primer_index = None
-        self.input_view.primer_input.selected_indices.clear()
-        self.input_view.update_ui()
-        self.update_pcr_button_state(sync=False, update_page=False)
-        self.save_last_state()
-        self.page.update()
+        from amplifyp.gui.utils.data_helpers import confirm_clear
+
+        confirm_clear(self, _ev)
 
     def _dismiss_clear(self, _ev: ft.ControlEvent) -> None:
-        if self._clear_dialog:
-            self._clear_dialog.open = False
-        self.page.update()
+        from amplifyp.gui.utils.data_helpers import dismiss_clear
+
+        dismiss_clear(self, _ev)
 
     def clear_all(self, e: ft.ControlEvent) -> None:
         """Show a confirmation dialogue before clearing inputs.
 
         Clears all template sequences and primers if confirmed.
         """
-        if not self._clear_dialog:
-            self._clear_dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text("Confirm Clear"),
-                content=ft.Text(
-                    "Are you sure you want to clear all template sequences\n"
-                    "and primers?"
-                ),
-                actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ft.TextButton("Yes", on_click=self._confirm_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ft.TextButton("No", on_click=self._dismiss_clear),  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
+        from amplifyp.gui.utils.data_helpers import clear_all
 
-        if self._clear_dialog not in self.page.overlay:
-            self.page.overlay.append(self._clear_dialog)
-        self._clear_dialog.open = True
-        self.page.update()
+        clear_all(self, e)
 
     def _on_keyboard_event(self, e: ft.KeyboardEvent) -> None:
         """Handle global keyboard events for primer navigation.
@@ -811,148 +469,6 @@ class GUIController:
         Arrow Left/Right navigates between name and sequence fields
         in the same row.
         """
-        # Check if the active view is InputView with a focused primer field
-        if (
-            not self.input_view
-            or self.view_container.content != self.input_view
-        ):
-            return
+        from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
-        focused = self.input_view._currently_focused_control
-        if not (
-            focused
-            and isinstance(focused.data, dict)
-            and "idx" in focused.data
-            and "field" in focused.data
-        ):
-            return
-
-        if not isinstance(focused, ft.TextField):
-            return
-
-        idx = focused.data["idx"]
-        field = focused.data["field"]
-
-        from amplifyp.gui.views.input.primer_row import PrimerRow
-
-        # Handle Tab for same-row field navigation
-        if e.key == "Tab":
-            controls = self.input_view.primer_input.primers_list.controls
-            if field == "name":
-                for row in controls:
-                    if isinstance(row, PrimerRow) and row.idx == idx:
-                        target_field = row.seq_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        target_field.update()
-                        break
-                else:
-                    return
-            elif field == "seq":
-                next_row = None
-                for row in controls:
-                    if isinstance(row, PrimerRow) and row.idx == idx + 1:
-                        next_row = row
-                        break
-                if next_row:
-                    target_field = next_row.name_field
-                    target_field.selection = ft.TextSelection(
-                        base_offset=0, extent_offset=0
-                    )
-                    target_field.update()
-                else:
-                    return
-            else:
-                return
-
-            self.input_view._skip_seq_focus_reset = True
-            res = target_field.focus()
-            if asyncio.iscoroutine(res):
-                self.page.run_task(focus_async, res)
-            return
-
-        # Handle Arrow Left/Right for same-row field navigation
-        if e.key in ("Arrow Left", "Arrow Right"):
-            if field == "name" and e.key == "Arrow Right":
-                cursor_pos = focused.data.get("cursor_pos", 0)
-                if cursor_pos != len(focused.value or ""):
-                    return
-                controls = self.input_view.primer_input.primers_list.controls
-                for row in controls:
-                    if isinstance(row, PrimerRow) and row.idx == idx:
-                        target_field = row.seq_field
-                        break
-                else:
-                    return
-                target_field.selection = ft.TextSelection(
-                    base_offset=0, extent_offset=0
-                )
-                target_field.update()
-            elif field == "seq" and e.key == "Arrow Left":
-                cursor_pos = focused.data.get("cursor_pos", 0)
-                if cursor_pos != 0:
-                    return
-                target_field = focused
-                for row in self.input_view.primer_input.primers_list.controls:
-                    if isinstance(row, PrimerRow) and row.idx == idx:
-                        target_field = row.name_field
-                        break
-                else:
-                    return
-                name_len = len(target_field.value or "")
-                target_field.selection = ft.TextSelection(
-                    base_offset=name_len, extent_offset=name_len
-                )
-                target_field.update()
-            else:
-                return
-
-            self.input_view._skip_seq_focus_reset = True
-            res = target_field.focus()
-            if asyncio.iscoroutine(res):
-                self.page.run_task(focus_async, res)
-            return
-
-        if e.key not in ("Arrow Up", "Arrow Down"):
-            return
-
-        # Calculate next index
-        if e.key == "Arrow Down":
-            next_idx = idx + 1
-        else:
-            next_idx = idx - 1
-
-        # Find target row in primer list
-        controls = self.input_view.primer_input.primers_list.controls
-        target_row = None
-
-        for row in controls:
-            if isinstance(row, PrimerRow) and row.idx == next_idx:
-                target_row = row
-                break
-
-        if target_row:
-            target_field = (
-                target_row.name_field
-                if field == "name"
-                else target_row.seq_field
-            )
-
-            # Keep cursor index if possible, else go to end
-            current_cursor = focused.data.get("cursor_pos", 0)
-            target_text = target_field.value or ""
-            new_cursor = min(current_cursor, len(target_text))
-
-            target_field.selection = ft.TextSelection(
-                base_offset=new_cursor, extent_offset=new_cursor
-            )
-            try:
-                target_field.update()
-            except RuntimeError:
-                pass
-
-            self.input_view._skip_seq_focus_reset = True
-            res = target_field.focus()
-            if asyncio.iscoroutine(res):
-                self.page.run_task(focus_async, res)
+        handle_keyboard_event(self, e)

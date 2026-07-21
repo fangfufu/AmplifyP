@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Header component for the primers list showing columns and resizing."""
+"""Header component for the primers list."""
 
 from __future__ import annotations
 
@@ -40,19 +40,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         on_move_primer_up: Callable[[ft.Event | None], None],
         on_move_primer_down: Callable[[ft.Event | None], None],
     ) -> None:
-        """Initialise the PrimerHeader.
-
-        Args:
-            settings: Application GUI settings instance.
-            on_toggle_all: Callback for the tri-state "all primers" checkbox.
-            on_divider_pan: Callback for dragging the name/sequence divider.
-            on_divider_pan_end: Callback for ending the divider drag.
-            name_column_width: Width of the name column in pixels.
-            on_add_primer: Callback to add a new primer row.
-            on_delete_primer: Callback to delete the focused primer.
-            on_move_primer_up: Callback to move the focused primer up.
-            on_move_primer_down: Callback to move the focused primer down.
-        """
+        """Initialise the PrimerHeader."""
         self.settings = settings
         self.all_primers_checkbox = ft.Checkbox(
             value=None,

@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""GeneralTile component for Flet settings view."""
+"""GeneralTile expansion tile component for settings view."""
 
 from __future__ import annotations
 
@@ -29,8 +29,14 @@ import yaml
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.util import serialise_state
-from amplifyp.gui.utils.io import pick_and_read_file, save_and_write_file
-from amplifyp.gui.utils.ui import BorderedCheckbox, NotificationHelper
+from amplifyp.gui.utils.data_helpers import (
+    pick_and_read_file,
+    save_and_write_file,
+)
+from amplifyp.gui.utils.gui_helpers import (
+    BorderedCheckbox,
+    NotificationHelper,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,20 +56,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         update_ui_callback: Callable[[], None],
         on_update_found: Callable[[str], None] | None = None,
     ) -> None:
-        """Initialise the GeneralTile.
-
-        Args:
-            page: The Flet page object.
-            settings: The settings object.
-            settings_map: A dictionary mapping setting keys to UI
-                components for population and retrieval.
-            on_change_handler: The handler to call when a setting changes.
-            header_size: The size of the header text.
-            font_size_default: The default font size for body text.
-            sync_to_state_callback: Callback to sync UI to settings state.
-            update_ui_callback: Callback to update UI controls.
-            on_update_found: Callback when an update is found.
-        """
+        """Initialise the GeneralTile."""
         self.app_page = page
         self.settings = settings
         self.settings_map = settings_map
@@ -253,7 +246,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
     async def perform_manual_check(self) -> None:
         """Asynchronously run update check and update UI."""
         from amplifyp import __version__ as current_version
-        from amplifyp.gui.utils.version_check import (
+        from amplifyp.gui.utils.system import (
             fetch_latest_release_version,
             is_newer_version,
         )

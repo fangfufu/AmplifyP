@@ -26,13 +26,17 @@ import flet as ft
 from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours, tm_colour
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.utils.sequence import clean_sequence
+from amplifyp.gui.utils.data_helpers import clean_sequence
 
 logger = logging.getLogger(__name__)
 
 
 class PrimerRow(ft.Container):  # type: ignore[misc]
     """A single row representing a primer in the list."""
+
+    idx: int
+    name_field: ft.TextField
+    seq_field: ft.TextField
 
     def __init__(
         self,
@@ -169,10 +173,10 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_pan_end=lambda e: (
                 on_drag_end(self.idx, e) if on_drag_end else None
             ),
-            on_tap=lambda e: on_row_click(self.idx, self.name_field),  # type: ignore[has-type]
+            on_tap=lambda e: on_row_click(self.idx, self.name_field),
             on_double_tap=lambda e: on_row_double_click(
                 self.idx,
-                self.name_field,  # type: ignore[has-type]
+                self.name_field,
             ),
             mouse_cursor=ft.MouseCursor.CLICK,
             content=ft.Container(

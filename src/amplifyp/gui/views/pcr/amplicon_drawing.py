@@ -286,7 +286,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
             mid_part = ""
             rev_part = ""
 
-        from amplifyp.gui.utils.sequence import _resolve_font_family
+        from amplifyp.gui.utils.data_helpers import _resolve_font_family
 
         font_family = settings.get("font_family", "Roboto Mono")
         resolved = _resolve_font_family(font_family)

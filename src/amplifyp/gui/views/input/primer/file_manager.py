@@ -91,7 +91,7 @@ class PrimerFileManager:
             if not name and not seq:
                 continue
 
-            from amplifyp.gui.views.input.primer_validation import (
+            from amplifyp.gui.views.input.primer.validation import (
                 validate_primer,
             )
 
@@ -136,7 +136,7 @@ class PrimerFileManager:
         Args:
             _e: The Flet control event (unused).
         """
-        from amplifyp.gui.utils.io import pick_and_read_file
+        from amplifyp.gui.utils.data_helpers import pick_and_read_file
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -194,7 +194,7 @@ class PrimerFileManager:
 
         tsv_content = self._serialise_primers_to_tsv(primers_to_save)
 
-        from amplifyp.gui.utils.io import save_and_write_file
+        from amplifyp.gui.utils.data_helpers import save_and_write_file
 
         await save_and_write_file(
             page=self.app_page,

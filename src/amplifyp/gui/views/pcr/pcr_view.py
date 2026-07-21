@@ -165,7 +165,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                     color=GUIColours.ERROR_RED,
                 )
             )
-            from amplifyp.gui.utils.ui import show_error_dialog
+            from amplifyp.gui.utils.gui_helpers import show_error_dialog
 
             show_error_dialog(self.app_page, "Error running PCR", str(ex))
             success = False
@@ -187,7 +187,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
     def _execute_pcr_simulation(self) -> PCR:
         """Clean sequences, build DNA/PCR objects, run simulation."""
-        from amplifyp.gui.utils.sequence import clean_sequence
+        from amplifyp.gui.utils.data_helpers import clean_sequence
 
         clean_template = clean_sequence(self.input_data.template)
         t_type = (
