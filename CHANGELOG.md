@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.1](https://github.com/fangfufu/AmplifyP/compare/v1.10.0...v1.10.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **gui:** guard page resolution against detached control ([f6579d3](https://github.com/fangfufu/AmplifyP/commit/f6579d3ee86b300be1072b1ac34a4b692cfc2374))
+* **gui:** preserve cursor on arrow navigation ([d7ac914](https://github.com/fangfufu/AmplifyP/commit/d7ac914f7581931cc509e454a3387f2badf177b3))
+
 ## [1.10.0](https://github.com/fangfufu/AmplifyP/compare/v1.9.0...v1.10.0) (2026-07-20)
 
 
