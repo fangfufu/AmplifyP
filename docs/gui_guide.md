@@ -23,13 +23,13 @@ interface:
 
 ______________________________________________________________________
 
-## 1. The Substrate View
+## 1. The Input View
 
-The **Substrate View** is the main window where you configure your experiment.
-It is divided into a target sequence panel on the left and a primer list panel
-on the right.
+The **Input View** is the main window where you configure your experiment. It is
+divided into a target sequence panel on the left and a primer list panel on the
+right.
 
-![Substrate View](images/substrate.png)
+![Substrate View](images/input_view.png)
 
 ### Target Sequence Panel (Left)
 
@@ -62,13 +62,12 @@ on the right.
 
 ______________________________________________________________________
 
-## 2. PCR Results View
+## 2. PCR View
 
-Click the **Amplify** or **PCR Results** tab to run the simulation. The screen
-is split into a visual lane/map at the top and a detailed textual analysis panel
-at the bottom.
+Click the **PCR** tab to run the simulation. The screen is split into a visual
+lane/map at the top and a detailed textual analysis panel at the bottom.
 
-![PCR Results View](images/pcr_results.png)
+![PCR View](images/pcr_view.png)
 
 ### The PCR Map (Top Panel)
 
