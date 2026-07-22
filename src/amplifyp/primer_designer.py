@@ -73,11 +73,11 @@ class PrimerDesigner1D:
             ValueError: If minimum length is non-positive or greater than
                 sequence length.
         """
-        if not isinstance(dna, DNA):
+        if not isinstance(dna, DNA):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise TypeError("dna must be a DNA object.")
-        if not isinstance(mode, DNADirection):
+        if not isinstance(mode, DNADirection):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise TypeError("mode must be a DNADirection instance.")
-        if generator is not None and not isinstance(
+        if generator is not None and not isinstance(  # pyright: ignore[reportUnnecessaryIsInstance]
             generator, PrimerDimerGenerator
         ):
             raise TypeError(
