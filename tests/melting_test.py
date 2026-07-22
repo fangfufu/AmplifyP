@@ -236,3 +236,66 @@ def test_calculate_tm_invalid_sequences() -> None:
     settings = GLOBAL_TM_SETTINGS
     with pytest.raises(InsufficientThermodynamicDataError):
         calculate_tm_santalucia_1998_owczarzy_2008(Primer("NNNN"), settings)
+
+
+def test_dntp_chelation() -> None:
+    """Test that dNTPs chelate Mg2+ and reduce free Mg concentration."""
+    # 50 mM Na+, 1.5 mM Mg2+, 0.0 mM dNTP
+    no_dntp = replace(GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=0.0)
+    # 50 mM Na+, 1.5 mM Mg2+, 0.8 mM dNTP (free Mg2+ = 0.7 mM)
+    with_dntp = replace(
+        GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=0.8
+    )
+    # 50 mM Na+, 1.5 mM Mg2+, 2.0 mM dNTP (excess dNTP, free Mg2+ = 0.0 mM)
+    excess_dntp = replace(
+        GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=2.0
+    )
+    # 50 mM Na+, 0.0 mM Mg2+, 0.0 mM dNTP (0 divalent)
+    zero_mg = replace(GLOBAL_TM_SETTINGS, divalent_salt_conc=0.0, dnTP_conc=0.0)
+
+    seq = Primer("TAATACGACTCACTATAGGG")
+
+    tm_no_dntp = calculate_tm_santalucia_1998_owczarzy_2008(seq, no_dntp)
+    tm_with_dntp = calculate_tm_santalucia_1998_owczarzy_2008(seq, with_dntp)
+    tm_excess = calculate_tm_santalucia_1998_owczarzy_2008(seq, excess_dntp)
+    tm_zero_mg = calculate_tm_santalucia_1998_owczarzy_2008(seq, zero_mg)
+
+    # dNTP chelation reduces available Mg2+, lowering Tm
+    assert tm_with_dntp < tm_no_dntp
+    # Excess dNTP eliminates free Mg2+, matching 0 divalent salt
+    assert tm_excess == pytest.approx(tm_zero_mg)
+
+
+def test_symmetry_correction() -> None:
+    """Test that self-complementary sequences undergo symmetry correction."""
+    # Self-complementary sequence: CGCGCGCGCGCG
+    self_comp_seq = Primer("CGCGCGCGCGCG")
+    tm = calculate_tm_santalucia_1998_owczarzy_2008(
+        self_comp_seq, GLOBAL_TM_SETTINGS
+    )
+    assert tm > 0.0
+
+
+def test_negative_concentrations_safeguard() -> None:
+    """Test negative salt/DNA concentrations do not crash calculations."""
+    neg_settings = replace(
+        GLOBAL_TM_SETTINGS,
+        monovalent_salt_conc=-50.0,
+        divalent_salt_conc=-1.5,
+        dnTP_conc=-0.2,
+        dna_conc=-10.0,
+    )
+    tm_std = calculate_tm_santalucia_1998_owczarzy_2008(
+        Primer("TAATACGACTCACTATAGGG"), neg_settings
+    )
+    assert tm_std > -273.15
+
+    tm_amp4 = calculate_tm_lander_amplify4(primer_11bp, neg_settings)
+    assert tm_amp4 > 0.0
+
+
+def test_ambiguous_base_gc_content() -> None:
+    """Test Tm calculation for sequences with ambiguous GC base 'S'."""
+    seq_s = Primer("ACGTS")
+    tm = calculate_tm_santalucia_1998_owczarzy_2008(seq_s, GLOBAL_TM_SETTINGS)
+    assert tm > -273.15

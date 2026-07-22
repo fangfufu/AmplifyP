@@ -55,7 +55,7 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "CC": (-8000, -19.9),
 }
 
-# Optimization: Pre-compute tuple keys for faster lookup in loops
+# Optimisation: Pre-compute tuple keys for faster lookup in loops
 # pairwise(seq) produces tuples of characters, e.g. ('A', 'A')
 _NN_THERMO_DATA_TUPLE: Final[dict[tuple[str, str], tuple[float, float]]] = {
     (k[0], k[1]): v for k, v in NN_THERMO_DATA.items()
@@ -127,15 +127,16 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbor steps
+    # Symmetry correction for self-complementary sequences (SantaLucia 1998)
+    if seq == primer.reverse_complement().seq_upper:
+        ds += -1.4
+
+    # Nearest neighbour steps
     for dinuc in pairwise(seq):
-        if dinuc in _NN_THERMO_DATA_TUPLE:
-            val = _NN_THERMO_DATA_TUPLE[dinuc]
+        val = _NN_THERMO_DATA_TUPLE.get(dinuc)
+        if val is not None:
             dh += val[0]
             ds += val[1]
-        else:
-            # Skip invalid dinucleotides (e.g. Ns)
-            pass
 
     # Salt Correction (Owczarzy 2008)
     # References:
@@ -145,14 +146,13 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # 1. Calculate concentrations
     # Monovalent: Na+, K+, Tris+ (mM -> M)
-    mono_mM = settings.monovalent_salt_conc
+    # Clamp salt inputs to non-negative values
+    mono_mM = max(0.0, settings.monovalent_salt_conc)
     mono_M = mono_mM * 1e-3
 
     # Divalent: Mg2+ (mM -> M)
-    # We ignore dNTPs for now (which chelate Mg2+) as per standard simple
-    # inputs,
-    # or assume free Mg2+ is provided.
-    div_mM = settings.divalent_salt_conc
+    # Deduct dNTPs which chelate Mg2+ in a 1:1 ratio to find free Mg2+
+    div_mM = max(0.0, settings.divalent_salt_conc - settings.dnTP_conc)
     div_M = div_mM * 1e-3
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
@@ -235,7 +235,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         g = 8.31e-5
 
         # Calculate fraction of GC
-        fgc = (seq.count("G") + seq.count("C")) / n
+        fgc = primer.ratio_cg()
 
         log_mg = math.log(div_M)
 
@@ -298,9 +298,7 @@ def calculate_tm_lander_amplify4(
     # Sum neighbours
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
-    for i in range(seq_len - 1):
-        x = primer.seq[i]
-        y = primer.seq[i + 1]
+    for x, y in pairwise(seq):
         entr += entropy[y, x]
         enth += enthalpy[y, x]
 
@@ -315,6 +313,8 @@ def calculate_tm_lander_amplify4(
     # Or maybe it treats input as raw number?
     # We use settings.DNAConc exactly as Swift does.
     dna_conc_val = settings.dna_conc
+    if dna_conc_val <= 0:
+        dna_conc_val = 50.0
     log_dna = 1.987 * math.log(dna_conc_val / 4.0e9)
 
     # Salt: 16.6 * log(saltConc/1000) / log(10.0)
