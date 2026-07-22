@@ -129,21 +129,27 @@ class PrimerDimerGenerator:
         """Return whether the primers have been analysed."""
         return self._analysed
 
-    def generate_primer_dimer(self, p1: Primer, p2: Primer) -> PrimerDimer:
+    def generate_primer_dimer(
+        self, p1: Primer, p2: Primer, reorder: bool = True
+    ) -> PrimerDimer:
         """Calculate the dimer potential (quality) between two primers.
 
         The algorithm mimics the Amplify4 implementation. It aligns the 3' end
-        of the shorter primer (p1) with different positions on the longer
-        primer (p2) and scores the antiparallel overlap.
+        of p1 with positions on p2 and scores the antiparallel overlap.
 
         Args:
             p1 (Primer): The first primer.
             p2 (Primer): The second primer.
+            reorder (bool, optional): If True, reorders primers so the shorter
+                primer is primer_1 and evaluates symmetric binding. Defaults
+                to True.
 
         Returns:
             PrimerDimer: The best dimer alignment found.
         """
-        return generate_primer_dimer(p1, p2, settings=self.settings)
+        return generate_primer_dimer(
+            p1, p2, settings=self.settings, reorder=reorder
+        )
 
     def analyse_primers(self) -> None:
         """Analyse all pairs of primers for primer dimers.
@@ -255,51 +261,74 @@ def generate_primer_dimer(
     p1: Primer,
     p2: Primer,
     settings: PrimerDimerSettings = GLOBAL_PRIMER_DIMER_SETTINGS,
+    reorder: bool = True,
 ) -> PrimerDimer:
     """Calculate the dimer potential (quality) between two primers.
 
     The algorithm mimics the Amplify4 implementation. It aligns the 3' end
-    of the shorter primer (p1) with different positions on the longer
-    primer (p2) and scores the antiparallel overlap.
+    of primer 1 (p1) with different positions on primer 2 (p2) and scores the
+    antiparallel overlap.
 
     Args:
-        p1 (Primer): The first primer.
+        p1 (Primer): The first primer (3' end aligned against p2).
         p2 (Primer): The second primer.
         settings (PrimerDimerSettings): Settings to use.
+        reorder (bool, optional): If True, reorders primers so the shorter
+            primer is primer_1 and evaluates symmetric binding. Defaults to
+            True.
 
     Returns:
         PrimerDimer: The best dimer alignment found.
     """
-    if len(p1) <= len(p2):
-        short_p, long_p = p1, p2
-    else:
-        short_p, long_p = p2, p1
+    if reorder:
+        if len(p1) <= len(p2):
+            short_p, long_p = p1, p2
+        else:
+            short_p, long_p = p2, p1
 
-    n1 = len(short_p)
-    n2 = len(long_p)
+        n1 = len(short_p)
+        n2 = len(long_p)
 
-    seq1 = short_p.seq_upper
-    seq2 = long_p.seq_upper
+        seq1 = short_p.seq_upper
+        seq2 = long_p.seq_upper
+
+        best_quality, best_pos, overlap_len = calculate_dimer_stats(
+            seq1, seq2, n1, n2, settings=settings
+        )
+
+        if n1 == n2 and p1 != p2:
+            rev_quality, rev_pos, rev_overlap = calculate_dimer_stats(
+                seq2, seq1, n2, n1, settings=settings
+            )
+            if rev_quality > best_quality:
+                short_p, long_p = long_p, short_p
+                best_quality, best_pos, overlap_len = (
+                    rev_quality,
+                    rev_pos,
+                    rev_overlap,
+                )
+
+        return PrimerDimer(
+            primer_1=short_p,
+            primer_2=long_p,
+            overlap=overlap_len,
+            quality=best_quality,
+            p1_pos=best_pos,
+            settings=settings,
+        )
+
+    n1 = len(p1)
+    n2 = len(p2)
+    seq1 = p1.seq_upper
+    seq2 = p2.seq_upper
 
     best_quality, best_pos, overlap_len = calculate_dimer_stats(
         seq1, seq2, n1, n2, settings=settings
     )
 
-    if n1 == n2 and p1 != p2:
-        rev_quality, rev_pos, rev_overlap = calculate_dimer_stats(
-            seq2, seq1, n2, n1, settings=settings
-        )
-        if rev_quality > best_quality:
-            short_p, long_p = long_p, short_p
-            best_quality, best_pos, overlap_len = (
-                rev_quality,
-                rev_pos,
-                rev_overlap,
-            )
-
     return PrimerDimer(
-        primer_1=short_p,
-        primer_2=long_p,
+        primer_1=p1,
+        primer_2=p2,
         overlap=overlap_len,
         quality=best_quality,
         p1_pos=best_pos,

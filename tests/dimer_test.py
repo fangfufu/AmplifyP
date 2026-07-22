@@ -236,23 +236,24 @@ def test_primer_dimer_attributes() -> None:
 
 
 def test_primer_order_swap() -> None:
-    """Test that generate_primer_dimer handles primers in any order."""
+    """Test reorder parameter in generate_primer_dimer."""
     generator = PrimerDimerGenerator()
     p_long = Primer("AAAAATTTTT", name="long")
     p_short = Primer("AAAAA", name="short")
 
-    # Case 1: p1 is shorter (normal)
-    res1 = generator.generate_primer_dimer(p_short, p_long)
+    # Default reorder=True reorders so shorter primer is primer_1
+    res_default = generator.generate_primer_dimer(p_long, p_short)
+    assert res_default.primer_1 == p_short
+    assert res_default.primer_2 == p_long
 
-    # Case 2: p1 is longer (should swap internally)
-    res2 = generator.generate_primer_dimer(p_long, p_short)
-
-    # Results should be identical in quality and overlap
-    assert res1.quality == res2.quality
-    assert res1.overlap == res2.overlap
-    # primer_1 should always be the shorter one
-    assert res1.primer_1 == p_short
-    assert res2.primer_1 == p_short
+    # reorder=False preserves primer order
+    res_no_reorder = generator.generate_primer_dimer(
+        p_long, p_short, reorder=False
+    )
+    assert res_no_reorder.primer_1 == p_long
+    assert res_no_reorder.primer_2 == p_short
+    assert res_default.quality == res_no_reorder.quality
+    assert res_default.overlap == res_no_reorder.overlap
 
 
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
