@@ -62,13 +62,8 @@ class Dismissible2DCard(DismissibleDetailCard):
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
 
-        # Minimum overlap across all 4 dimers
-        min_overlap = min(
-            step.fwd_fwd.overlap,
-            step.rev_rev.overlap,
-            step.fwd_rev.overlap,
-            step.rev_fwd.overlap,
-        )
+        # Mean overlap across all 4 dimers
+        mean_overlap = step.mean_overlap
 
         def _make_badge(
             text: str, bg_colour: str | None = None
@@ -90,7 +85,7 @@ class Dismissible2DCard(DismissibleDetailCard):
             _make_badge(f"Max Quality: {step.max_quality:.1f}"),
             _make_badge(f"Mean Quality: {step.mean_quality:.1f}"),
             _make_badge(f"Max Overlap: {step.max_overlap} bp"),
-            _make_badge(f"Min Overlap: {min_overlap} bp"),
+            _make_badge(f"Mean Overlap: {mean_overlap:.1f} bp"),
         ]
 
         # Primer details section (Forward & Reverse)
