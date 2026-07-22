@@ -21,7 +21,7 @@ replication configurations, and calculating binding statistics such as
 primability and stability.
 """
 
-__version__ = "1.10.1"
+__version__ = "1.11.0"
 
 from .primer_designer import PrimerDesigner1D
 

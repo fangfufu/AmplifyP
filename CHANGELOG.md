@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/fangfufu/AmplifyP/compare/v1.10.1...v1.11.0) (2026-07-22)
+
+
+### Features
+
+* **primer:** add PrimerDesigner1D module ([f5fad68](https://github.com/fangfufu/AmplifyP/commit/f5fad68c7d0fea690050a31e2fe7879776a20526))
+
+
+### Bug Fixes
+
+* address PR review feedback for PR [#302](https://github.com/fangfufu/AmplifyP/issues/302) ([4f86061](https://github.com/fangfufu/AmplifyP/commit/4f860619b893c7715a04295c1ef2a46f30bcd2bc))
+* images in gui_guide.md ([e9e67cf](https://github.com/fangfufu/AmplifyP/commit/e9e67cf5c2c47d947ab4b618aee3a6128802d797))
+* resolve pyright errors in primer designer ([8f77e07](https://github.com/fangfufu/AmplifyP/commit/8f77e072af2fa44867956aefde5ae19849c4f6ae))
+* resolve SonarQube issues in PR [#302](https://github.com/fangfufu/AmplifyP/issues/302) ([c8c5f04](https://github.com/fangfufu/AmplifyP/commit/c8c5f041ec374dfc84f099ead12fd4df7dc4c830))
+
+
+### Documentation
+
+* rewrite README and update documentation screenshots ([492c935](https://github.com/fangfufu/AmplifyP/commit/492c93589ce4230301b18fe5e9106aa392051be3))
+
 ## [1.10.1](https://github.com/fangfufu/AmplifyP/compare/v1.10.0...v1.10.1) (2026-07-21)
 
 
