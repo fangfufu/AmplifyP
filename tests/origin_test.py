@@ -238,14 +238,14 @@ def test_origin_binding_strength_str() -> None:
 def test_origin_caching() -> None:
     """Test score caching upon first access."""
     origin = ReplicationOrigin(target="ATCG", primer="ATCG")
-    assert origin._cached_primability is None
-    assert origin._cached_stability is None
+    assert origin._primability is None
+    assert origin._stability is None
 
     p_score = origin.primability
     s_score = origin.stability
 
-    assert origin._cached_primability == p_score
-    assert origin._cached_stability == s_score
+    assert origin._primability == p_score
+    assert origin._stability == s_score
 
 
 def test_origin_empty_sequence() -> None:

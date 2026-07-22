@@ -455,8 +455,8 @@ class Repliconf:
             target,
             self._rev_primer_seq,
             self.settings,
-            _cached_primability=var.primability,
-            _cached_stability=var.stability,
+            _primability=var.primability,
+            _stability=var.stability,
         )
 
     def origin_from_db(
