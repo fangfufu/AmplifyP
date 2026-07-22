@@ -32,7 +32,7 @@ from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
 )
 from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
 from amplifyp.gui.views.designer_1d.quality_bar_chart import QualityBarChart
-from amplifyp.primer_designer import PrimerDesigner1D
+from amplifyp.primer_designer_1d import PrimerDesigner1D
 
 logger = logging.getLogger(__name__)
 
