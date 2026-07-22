@@ -29,6 +29,11 @@ from .settings import (
 
 
 def _new_amplify4_settings() -> ReplicationSettings:
+    """Create replication settings in Amplify 4 mode.
+
+    Returns:
+        ReplicationSettings: Settings with amplify4_compatibility_mode=True.
+    """
     return ReplicationSettings(amplify4_compatibility_mode=True)
 
 

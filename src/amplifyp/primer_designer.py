@@ -203,6 +203,15 @@ class PrimerDesigner1D:
         return self[index]
 
     def _analyse(self, initial_seq: str) -> None:
+        """Perform the 1D truncation analysis on the initial sequence.
+
+        This method iteratively truncates the sequence from either the 5' or 3'
+        end (depending on the mode) and generates a self-dimer for each
+        resulting sequence until the minimum length is reached.
+
+        Args:
+            initial_seq (str): The initial sequence string to analyze.
+        """
         self._dimers.clear()
         current_seq = initial_seq
 

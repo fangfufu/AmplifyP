@@ -115,9 +115,19 @@ class GUIController:
         self.page.on_keyboard_event = self._on_keyboard_event
 
         def handle_input_change(e: ft.ControlEvent | None) -> None:
+            """Handle input changes to update button states.
+
+            Args:
+                e: The Flet control event.
+            """
             self.update_pcr_button_state(sync=False)
 
         def handle_stop_editing(e: ft.ControlEvent | None) -> None:
+            """Save state if on web when editing is stopped.
+
+            Args:
+                e: The Flet control event.
+            """
             if self.page.web:
                 self.save_last_state()
 
@@ -444,11 +454,21 @@ class GUIController:
         await self._update_manager.check_updates_async()
 
     def _confirm_clear(self, _ev: ft.ControlEvent) -> None:
+        """Show the clear confirmation dialogue.
+
+        Args:
+            _ev: The Flet control event.
+        """
         from amplifyp.gui.utils.data_helpers import confirm_clear
 
         confirm_clear(self, _ev)
 
     def _dismiss_clear(self, _ev: ft.ControlEvent) -> None:
+        """Dismiss the clear confirmation dialogue.
+
+        Args:
+            _ev: The Flet control event.
+        """
         from amplifyp.gui.utils.data_helpers import dismiss_clear
 
         dismiss_clear(self, _ev)
