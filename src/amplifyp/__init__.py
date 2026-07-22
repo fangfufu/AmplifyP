@@ -23,6 +23,6 @@ primability and stability.
 
 __version__ = "1.10.1"
 
-from .primer import PrimerDesigner1D
+from .primer_designer import PrimerDesigner1D
 
 __all__ = ["PrimerDesigner1D"]

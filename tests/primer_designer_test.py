@@ -21,7 +21,7 @@ import pytest
 
 from amplifyp.dimer import PrimerDimer
 from amplifyp.dna import DNA, DNADirection
-from amplifyp.primer import PrimerDesigner1D
+from amplifyp.primer_designer import PrimerDesigner1D
 
 
 def test_primer_designer_forward_mode() -> None:
