@@ -42,6 +42,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         dimers_button_ref: ft.Ref[ft.FilledButton],
         on_clear_all: Callable[[ft.ControlEvent], Any] | None = None,
         on_switch_designer: Callable[[ft.ControlEvent], None] | None = None,
+        on_switch_designer_2d: Callable[[ft.ControlEvent], None] | None = None,
     ) -> None:
         """Initialise the AppHeader navigation component."""
         super().__init__(
@@ -84,6 +85,14 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="1D Primer Designer",
         )
         designer_button.tooltip = "1D Primer Designer"
+
+        designer_2d_button = ft.FilledButton(
+            "Designer 2D",
+            icon=ft.Icons.GRID_ON,
+            on_click=on_switch_designer_2d,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            tooltip="2D Primer Designer",
+        )
+        designer_2d_button.tooltip = "2D Primer Designer"
 
         settings_button = ft.FilledButton(
             "Settings",
@@ -133,6 +142,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             pcr_button,
             dimers_button,
             designer_button,
+            designer_2d_button,
             settings_button,
             about_button,
             self.clear_btn_control,
@@ -179,6 +189,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                                 pcr_button,
                                 dimers_button,
                                 designer_button,
+                                designer_2d_button,
                                 settings_button,
                                 about_button,
                             ],

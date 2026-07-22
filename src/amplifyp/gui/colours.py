@@ -66,6 +66,11 @@ class _GUIColoursMeta(type):
         return cast(str, ft.Colors.SURFACE)
 
     @property
+    def SURFACE_VARIANT(cls) -> str:
+        """Get standard surface variant colour."""
+        return cast(str, ft.Colors.SURFACE_CONTAINER_HIGHEST)
+
+    @property
     def PRIMARY(cls) -> str:
         """Get primary theme colour."""
         return cast(str, ft.Colors.PRIMARY)
@@ -157,6 +162,14 @@ class _GUIColoursMeta(type):
     def DIAGRAM_BLACK(cls) -> str:
         """Get diagram black/white colour depending on dark mode."""
         return cast(str, ft.Colors.ON_SURFACE)
+
+    @property
+    def DIAGRAM_BG(cls) -> str:
+        """Get diagram background colour depending on dark mode."""
+        return cast(
+            str,
+            ft.Colors.GREY_900 if cls._dark_mode else ft.Colors.GREY_100,
+        )
 
     @property
     def INFO_HEADER_BG(cls) -> str:

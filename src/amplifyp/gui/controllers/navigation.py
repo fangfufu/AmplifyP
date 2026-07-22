@@ -50,6 +50,9 @@ class NavigationManager:
             on_switch_designer=lambda e: self.switch_view(
                 e, ctrl.designer_view
             ),
+            on_switch_designer_2d=lambda e: self.switch_view(
+                e, ctrl.designer_2d_view
+            ),
             on_save=ctrl.save_state,
             on_load=ctrl.load_state,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             on_clear_all=ctrl.clear_all,

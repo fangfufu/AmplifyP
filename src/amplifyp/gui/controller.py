@@ -32,6 +32,7 @@ from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils.gui_helpers import NotificationHelper
 from amplifyp.gui.views import (
     AboutView,
+    Designer2DView,
     DimerView,
     InputView,
     PCRView,
@@ -79,6 +80,7 @@ class GUIController:
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
         self.designer_view: PrimerDesignerView = cast(PrimerDesignerView, None)
+        self.designer_2d_view: Designer2DView = cast(Designer2DView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
         self.header_container: ft.Container = cast(ft.Container, None)
 
@@ -143,6 +145,9 @@ class GUIController:
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
         self.designer_view = PrimerDesignerView(
+            self.page, self.input_data, self.settings
+        )
+        self.designer_2d_view = Designer2DView(
             self.page, self.input_data, self.settings
         )
         self.about_view = AboutView(self.page, self.settings)

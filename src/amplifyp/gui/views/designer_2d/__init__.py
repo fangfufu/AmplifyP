@@ -13,27 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""GUI Views for the Flet application."""
+"""2D Primer Designer GUI components module."""
 
-from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.user_data import GUIInput
-
-from .about import AboutView
-from .designer_1d import PrimerDesignerView
-from .designer_2d import Designer2DView
-from .dimer import DimerView
-from .input import InputView
-from .pcr import PCRView
-from .settings import SettingsView
+from .designer_2d_form import Designer2DForm
+from .designer_2d_view import Designer2DView
+from .dismissible_2d_card import Dismissible2DCard
+from .grid_2d_results import Grid2DResultsView
 
 __all__ = [
-    "AboutView",
+    "Designer2DForm",
     "Designer2DView",
-    "DimerView",
-    "GUIInput",
-    "GUISettings",
-    "InputView",
-    "PCRView",
-    "PrimerDesignerView",
-    "SettingsView",
+    "Dismissible2DCard",
+    "Grid2DResultsView",
 ]
