@@ -57,6 +57,13 @@ class Nucleotides(StrEnum):
     ALL_VALID = PRIMER + GAP
 
 
+_ALL_VALID_SET = frozenset(Nucleotides.ALL_VALID)
+_PRIMER_VALID_SET = frozenset(Nucleotides.PRIMER)
+_REDUNDANT_SET = frozenset(
+    Nucleotides.DOUBLE + Nucleotides.TRIPLE + Nucleotides.WILDCARD
+)
+
+
 # Other modules (e.g., settings.py) depend on Nucleotides being defined before
 # they are imported. Importing .settings at module load time here would create
 # a circular import because settings.py imports Nucleotides from this module.
@@ -99,6 +106,12 @@ class DNADirection(Flag):
         """The direction as a string."""
         return "Forward" if self == DNADirection.FWD else "Reverse"
 
+    def invert(self) -> DNADirection:
+        """Return the inverted strand direction."""
+        return (
+            DNADirection.REV if self == DNADirection.FWD else DNADirection.FWD
+        )
+
 
 class DNA:
     """A class representing a DNA sequence.
@@ -136,43 +149,43 @@ class DNA:
                 sequence. Defaults to DNADirection.FWD.
 
         Raises:
-            ValueError: If the `seq` contains characters invalid for the
-                specified `dna_type`.
+            InvalidDNATypeError: If `dna_type` is not a valid `DNAType`.
+            InvalidDNASequenceError: If the `seq` contains characters invalid
+                for the specified `dna_type`.
         """
-        if (
-            dna_type != DNAType.PRIMER
-            and dna_type != DNAType.CIRCULAR
-            and dna_type != DNAType.LINEAR
-        ):
+        if dna_type not in (DNAType.PRIMER, DNAType.CIRCULAR, DNAType.LINEAR):
             raise InvalidDNATypeError()
 
-        self.__seq: str = "".join(seq.split())
+        self._seq: str = "".join(seq.split())
         # Optimisation: cache the uppercase sequence to avoid repeated
         # allocations in _count_bases and other methods.
-        seq_upper = self.__seq.upper()
-        if seq_upper == self.__seq:
+        seq_upper = self._seq.upper()
+        if seq_upper == self._seq:
             # If the sequence is already uppercase, avoid duplicating the
             # string.
-            self._seq_upper = self.__seq
+            self._seq_upper = self._seq
         else:
             self._seq_upper = seq_upper
 
-        invalid_chars = set(self._seq_upper) - set(Nucleotides.ALL_VALID)
+        valid_set = (
+            _PRIMER_VALID_SET if dna_type == DNAType.PRIMER else _ALL_VALID_SET
+        )
+        invalid_chars = set(self._seq_upper) - valid_set
         if invalid_chars:
             raise InvalidDNASequenceError(invalid_chars)
 
-        self.__type: DNAType = dna_type
+        self._dna_type: DNAType = dna_type
 
         if name is None or not name.strip():
-            self.__name = seq
+            self._name = seq
         else:
-            self.__name = name.strip()
-        self.__direction: bool | DNADirection = direction
+            self._name = name.strip()
+        self._direction: DNADirection = DNADirection(direction)
 
     @property
     def seq(self) -> str:
         """The DNA sequence as a string."""
-        return self.__seq
+        return self._seq
 
     @property
     def seq_upper(self) -> str:
@@ -182,12 +195,12 @@ class DNA:
     @property
     def type(self) -> DNAType:
         """The DNA type (LINEAR, CIRCULAR, or PRIMER)."""
-        return self.__type
+        return self._dna_type
 
     @property
     def name(self) -> str:
         """The name of the DNA sequence."""
-        return self.__name
+        return self._name
 
     @name.setter
     def name(self, value: str) -> None:
@@ -196,12 +209,12 @@ class DNA:
         Args:
             value (str): The new name. Whitespace will be stripped.
         """
-        self.__name = value.strip()
+        self._name = value.strip()
 
     @property
-    def direction(self) -> bool | DNADirection:
+    def direction(self) -> DNADirection:
         """The direction of the DNA sequence."""
-        return self.__direction
+        return self._direction
 
     def lower(self) -> DNA:
         """Return a copy of the DNA object with the sequence in lowercase.
@@ -209,7 +222,9 @@ class DNA:
         Returns:
             DNA: A new DNA object with the lowercase sequence.
         """
-        return DNA(self.seq.lower(), self.type, self.name, self.direction)
+        return type(self)(
+            self.seq.lower(), self.type, self.name, self.direction
+        )
 
     def upper(self) -> DNA:
         """Return a copy of the DNA object with the sequence in uppercase.
@@ -217,7 +232,9 @@ class DNA:
         Returns:
             DNA: A new DNA object with the uppercase sequence.
         """
-        return DNA(self.seq.upper(), self.type, self.name, self.direction)
+        return type(self)(
+            self.seq.upper(), self.type, self.name, self.direction
+        )
 
     def complement(self) -> DNA:
         """Return the complement of the DNA sequence.
@@ -229,11 +246,11 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the complement sequence.
         """
-        return DNA(
+        return type(self)(
             self.seq.translate(GLOBAL_COMPLEMENT_TABLE),
             self.type,
             self.name,
-            not self.direction,
+            self.direction.invert(),
         )
 
     def reverse(self) -> DNA:
@@ -245,7 +262,9 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the reversed sequence.
         """
-        return DNA(self.seq[::-1], self.type, self.name, not self.direction)
+        return type(self)(
+            self.seq[::-1], self.type, self.name, self.direction.invert()
+        )
 
     def reverse_complement(self) -> DNA:
         """Return the reverse complement of the DNA sequence.
@@ -296,16 +315,16 @@ class DNA:
         """
         return len(self.seq)
 
-    def __getitem__(self, key: slice) -> DNA:
-        """Get a slice of the DNA sequence.
+    def __getitem__(self, key: int | slice) -> DNA:
+        """Get a slice or character of the DNA sequence.
 
         Args:
-            key (slice): The slice object specifying the range.
+            key (int | slice): The index or slice specifying the range.
 
         Returns:
             DNA: A new DNA object representing the subsequence.
         """
-        return DNA(self.seq[key], self.type, self.name, self.direction)
+        return type(self)(self.seq[key], self.type, self.name, self.direction)
 
     def __str__(self) -> str:
         """Return a string representation of the DNA object.
@@ -313,22 +332,21 @@ class DNA:
         Returns:
             str: A formatted string containing name, type, and direction.
         """
-        return (
-            f"DNA: {self.name}, {self.type.name}, "
-            f"{DNADirection(self.direction).name}"
-        )
+        return f"DNA: {self.name}, {self.type.name}, {self.direction.name}"
 
-    def __add__(self, other: DNA) -> DNA:
+    def __add__(self, other: object) -> DNA:
         """Concatenate two DNA sequences.
 
         Args:
-            other (DNA): The DNA sequence to append.
+            other (object): The DNA sequence to append.
 
         Returns:
             DNA: A new DNA object with the combined sequence. The type is set
                 to LINEAR.
         """
-        return DNA(
+        if not isinstance(other, DNA):
+            return NotImplemented
+        return type(self)(
             self.seq + other.seq, DNAType.LINEAR, self.name, self.direction
         )
 
@@ -344,7 +362,7 @@ class DNA:
         Returns:
             int: The total count of the specified characters in the sequence.
         """
-        return sum(self._seq_upper.count(base) for base in bases)
+        return sum(map(self._seq_upper.count, bases))
 
     def count_at(self) -> int:
         """Count the number of A, T, or W (A/T ambiguous) bases.
@@ -398,14 +416,19 @@ class Primer(DNA):
     def __init__(
         self,
         sequence: str,
+        dna_type: DNAType = DNAType.PRIMER,
         name: str | None = None,
+        direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
         """Initialises a Primer object.
 
         Args:
             sequence (str): The nucleotide sequence of the primer.
+            dna_type (DNAType, optional): DNA type, defaults to DNAType.PRIMER.
             name (str, optional): An optional name for the primer. Defaults to
                 None.
+            direction (bool | DNADirection, optional): The direction of the DNA
+                sequence. Defaults to DNADirection.FWD.
         """
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
 
@@ -417,7 +440,7 @@ class Primer(DNA):
             int: The product of the number of possible bases at each position.
         """
         fold = 1
-        for base in self.seq.upper():
+        for base in self._seq_upper:
             if base in Nucleotides.WILDCARD:
                 fold *= 4
             elif base in Nucleotides.TRIPLE:
@@ -434,12 +457,4 @@ class Primer(DNA):
             int: The number of bases that are not single nucleotides (A, C, G,
                 T).
         """
-        count = 0
-        for base in self.seq.upper():
-            if (
-                base in Nucleotides.WILDCARD
-                or base in Nucleotides.TRIPLE
-                or base in Nucleotides.DOUBLE
-            ):
-                count += 1
-        return count
+        return sum(1 for base in self._seq_upper if base in _REDUNDANT_SET)

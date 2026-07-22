@@ -203,3 +203,31 @@ def test_dna_direction_str() -> None:
     """Test the string representation of DNADirection."""
     assert str(DNADirection.FWD) == "Forward"
     assert str(DNADirection.REV) == "Reverse"
+
+
+def test_dna_direction_invert() -> None:
+    """Test invert method on DNADirection."""
+    assert DNADirection.FWD.invert() == DNADirection.REV
+    assert DNADirection.REV.invert() == DNADirection.FWD
+
+
+def test_primer_polymorphism() -> None:
+    """Test that operations on Primer retain the Primer subclass type."""
+    primer = Primer("ACGT")
+    assert isinstance(primer.lower(), Primer)
+    assert isinstance(primer.upper(), Primer)
+    assert isinstance(primer[0:2], Primer)
+
+
+def test_dna_int_getitem() -> None:
+    """Test integer indexing on DNA objects."""
+    dna = DNA("ATCG")
+    assert dna[0].seq == "A"
+    assert dna[1].seq == "T"
+
+
+def test_dna_add_invalid_operand() -> None:
+    """Test adding a non-DNA operand raises TypeError via NotImplemented."""
+    dna = DNA("ATCG")
+    with pytest.raises(TypeError):
+        _ = dna + "ATCG"
