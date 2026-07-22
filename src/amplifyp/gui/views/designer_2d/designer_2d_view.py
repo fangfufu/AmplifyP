@@ -56,7 +56,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             on_submit_callback=self._run_designer_event,
         )
 
-        # Top-left container (1/3 default vertical height)
+        # Top-left container (50% default vertical height)
         self.top_left_container = ft.Container(
             content=self.form,
             expand=1,
@@ -83,16 +83,16 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             on_select_step_callback=self._on_grid_step_selected,
         )
 
-        # Bottom-left container (2/3 default vertical height)
+        # Bottom-left container (50% default vertical height)
         self.bottom_left_container = ft.Container(
             content=self.results_grid,
-            expand=2,
+            expand=1,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
         )
 
-        # Left main panel column (1/3 top, 2/3 bottom)
+        # Left main panel column (50% top, 50% bottom)
         self.left_panel_column = ft.Column(
             [
                 self.top_left_container,
@@ -104,7 +104,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         )
         self.left_container = ft.Container(
             content=self.left_panel_column,
-            expand=1,  # 1/3rd default viewport width
+            expand=1,  # 50% default viewport width
             padding=5,
         )
 
@@ -150,7 +150,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 ],
                 spacing=8,
             ),
-            expand=2,  # 2/3rds default viewport width
+            expand=1,  # 50% default viewport width
             padding=10,
         )
 
@@ -171,9 +171,9 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 and isinstance(self.app_page.width, (int, float))
                 else 800.0
             )
-            base_w = float(page_w) * 0.33
+            base_w = float(page_w) * 0.5
             self.left_container.expand = None
-            self.right_container.expand = 2
+            self.right_container.expand = 1
             self.left_container.width = base_w
         current_w = float(self.left_container.width or 300.0)
         self.left_container.width = max(250.0, current_w + delta_x)
@@ -187,10 +187,17 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         """Handle vertical resizing between top-left and bottom-left panels."""
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
         if self.top_left_container.height is None:
+            page_h = (
+                self.app_page.height
+                if hasattr(self.app_page, "height")
+                and isinstance(self.app_page.height, (int, float))
+                else 600.0
+            )
+            base_h = float(page_h) * 0.5
             self.top_left_container.expand = None
             self.bottom_left_container.expand = True
-            self.top_left_container.height = 250.0
-        current_h = float(self.top_left_container.height or 250.0)
+            self.top_left_container.height = base_h
+        current_h = float(self.top_left_container.height or 300.0)
         self.top_left_container.height = max(150.0, current_h + delta_y)
         try:
             if self.app_page:

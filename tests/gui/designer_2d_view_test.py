@@ -44,7 +44,7 @@ def test_designer_2d_view_initialisation() -> None:
     assert view.main_h_divider is not None
     assert view.left_v_divider is not None
     assert view.left_container.expand == 1
-    assert view.right_container.expand == 2
+    assert view.right_container.expand == 1
     assert view.form.fwd_dna_input.value == ""
     assert view.form.fwd_min_len_input.value == "18"
     assert view.form.rev_dna_input.value == ""
