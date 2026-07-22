@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/fangfufu/AmplifyP/compare/v1.11.0...v1.12.0) (2026-07-22)
+
+
+### Features
+
+* **gui:** add 1D primer designer view ([58c3497](https://github.com/fangfufu/AmplifyP/commit/58c34977fcaee307258fc5cc82d7b595983dc4a4))
+* **primer_designer:** add quality_score and best_score to PrimerDesigner1D ([6c3faf2](https://github.com/fangfufu/AmplifyP/commit/6c3faf263954fe98cec53a665cbbcc951b7379d8))
+
+
+### Bug Fixes
+
+* remove unnecessary isinstance checks in PrimerDesigner1D ([8a3f380](https://github.com/fangfufu/AmplifyP/commit/8a3f3808ad45d8cecb99036f9512cd8aa5a38a68))
+
+
+### Documentation
+
+* update and add docstrings to improve code documentation ([1a63a0a](https://github.com/fangfufu/AmplifyP/commit/1a63a0a87bebbdf2fb6445dc540f5df855675ac3))
+* update outdated class docstrings across codebase ([916456b](https://github.com/fangfufu/AmplifyP/commit/916456b17661051dcce33caccc4d17ab6cdb19a8))
+
 ## [1.11.0](https://github.com/fangfufu/AmplifyP/compare/v1.10.1...v1.11.0) (2026-07-22)
 
 
