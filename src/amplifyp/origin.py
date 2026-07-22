@@ -52,8 +52,8 @@ class ReplicationOrigin:
             primer's binding.
         primer (str): The primer sequence as a string, typically in 3'-5'
             orientation for calculation purposes.
-        settings (Settings): The configuration object containing scoring tables
-            and cutoff thresholds.
+        settings (ReplicationSettings): The configuration object containing
+            scoring tables and cutoff thresholds.
     """
 
     target: str

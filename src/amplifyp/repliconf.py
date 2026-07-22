@@ -40,7 +40,8 @@ class DirIdx:
     """A class representing a directed index.
 
     This class encapsulates a specific position (index) on a DNA strand,
-    along with the direction (forward or reverse) of that strand.
+    along with the direction (forward or reverse) of that strand, and
+    optional cached primability and stability scores.
 
     Attributes:
         direction (DNADirection): The direction of the DNA strand.
