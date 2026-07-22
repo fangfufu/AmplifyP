@@ -66,6 +66,11 @@ class _GUIColoursMeta(type):
         return cast(str, ft.Colors.SURFACE)
 
     @property
+    def PRIMARY(cls) -> str:
+        """Get primary theme colour."""
+        return cast(str, ft.Colors.PRIMARY)
+
+    @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant colour."""
         return cast(str, ft.Colors.OUTLINE_VARIANT)

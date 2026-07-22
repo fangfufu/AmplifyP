@@ -13,25 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""GUI Views for the Flet application."""
+"""Designer view components module."""
 
-from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.user_data import GUIInput
+from .designer_view import PrimerDesignerView
+from .dismissible_self_dimer_card import DismissibleSelfDimerCard
 
-from .about import AboutView
-from .designer import PrimerDesignerView
-from .dimer import DimerView
-from .input import InputView
-from .pcr import PCRView
-from .settings import SettingsView
-
-__all__ = [
-    "AboutView",
-    "DimerView",
-    "GUIInput",
-    "GUISettings",
-    "InputView",
-    "PCRView",
-    "PrimerDesignerView",
-    "SettingsView",
-]
+__all__ = ["DismissibleSelfDimerCard", "PrimerDesignerView"]

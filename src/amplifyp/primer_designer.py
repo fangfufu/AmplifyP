@@ -40,7 +40,15 @@ class PrimerDesigner1D:
     from the 5' end.
     """
 
-    __slots__ = ("_dimers", "_dna", "_generator", "_min_length", "_mode")
+    __slots__ = (
+        "_dimers",
+        "_dna",
+        "_generator",
+        "_max_overlap",
+        "_min_length",
+        "_mode",
+        "_threshold",
+    )
 
     def __init__(
         self,
@@ -48,6 +56,8 @@ class PrimerDesigner1D:
         min_length: int,
         mode: DNADirection = DNADirection.FWD,
         generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
@@ -61,6 +71,10 @@ class PrimerDesigner1D:
             generator (PrimerDimerGenerator, optional): Custom primer dimer
                 generator to use for self-dimer analysis. Defaults to
                 `PrimerDimerGenerator()`.
+            threshold (float | None, optional): Upper bound for quality score
+                filter. Defaults to None.
+            max_overlap (int | None, optional): Upper bound for overlap length
+                filter. Defaults to None.
 
         Raises:
             ValueError: If minimum length is non-positive or greater than
@@ -79,6 +93,8 @@ class PrimerDesigner1D:
         self._min_length: int = min_length
         self._mode: DNADirection = mode
         self._generator: PrimerDimerGenerator = generator
+        self._threshold: float | None = threshold
+        self._max_overlap: int | None = max_overlap
         self._dimers: list[PrimerDimer] = []
 
         self._analyse(dna.seq_upper)
@@ -104,7 +120,17 @@ class PrimerDesigner1D:
         return self._generator
 
     @property
-    def results(self) -> tuple[PrimerDimer, ...]:
+    def threshold(self) -> float | None:
+        """The maximum quality score cutoff filter, if set."""
+        return self._threshold
+
+    @property
+    def max_overlap(self) -> int | None:
+        """The maximum overlap length cutoff filter, if set."""
+        return self._max_overlap
+
+    @property
+    def all_dimers(self) -> tuple[PrimerDimer, ...]:
         """The stored self-dimers from initial sequence down to length n."""
         return tuple(self._dimers)
 
@@ -208,7 +234,15 @@ class PrimerDesigner1D:
         while len(current_seq) >= self._min_length:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
-            self._dimers.append(dimer)
+            if self._threshold is not None and dimer.quality > self._threshold:
+                pass
+            elif (
+                self._max_overlap is not None
+                and dimer.overlap > self._max_overlap
+            ):
+                pass
+            else:
+                self._dimers.append(dimer)
 
             if len(current_seq) == self._min_length:
                 break

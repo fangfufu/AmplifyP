@@ -43,6 +43,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         visible_pcr_button_ref: ft.Ref[ft.FilledButton],
         visible_dimers_button_ref: ft.Ref[ft.FilledButton],
         on_clear_all: Callable[[ft.ControlEvent], Any] | None = None,
+        on_switch_designer: Callable[[ft.ControlEvent], None] | None = None,
     ) -> None:
         """Initialise the AppHeader navigation component."""
         super().__init__(
@@ -78,6 +79,14 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Primer Dimers",
         )
         dimers_button.tooltip = "Primer Dimers"
+
+        designer_button = ft.FilledButton(
+            "1D Designer",
+            icon=ft.Icons.TUNE,
+            on_click=on_switch_designer,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            tooltip="1D Primer Designer",
+        )
+        designer_button.tooltip = "1D Primer Designer"
 
         settings_button = ft.FilledButton(
             "Settings",
@@ -120,6 +129,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             input_button,
             pcr_button,
             dimers_button,
+            designer_button,
             settings_button,
             about_button,
             clear_btn_control,
@@ -155,6 +165,14 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             tooltip="Primer Dimers",
         )
         visible_dimers_button.tooltip = "Primer Dimers"
+
+        visible_designer_button = ft.FilledButton(
+            "1D Designer",
+            icon=ft.Icons.TUNE,
+            on_click=on_switch_designer,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            tooltip="1D Primer Designer",
+        )
+        visible_designer_button.tooltip = "1D Primer Designer"
 
         visible_settings_button = ft.FilledButton(
             "Settings",
@@ -237,6 +255,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                                 visible_input_button,
                                 visible_pcr_button,
                                 visible_dimers_button,
+                                visible_designer_button,
                                 visible_settings_button,
                                 visible_about_button,
                             ],
