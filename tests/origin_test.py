@@ -233,3 +233,22 @@ def test_origin_binding_strength_str() -> None:
     # Matches, mismatches, and invalid bases
     origin2 = ReplicationOrigin(target="GATCX", primer="GATCA")
     assert origin2.binding_strength_str == "|||| "
+
+
+def test_origin_caching() -> None:
+    """Test score caching upon first access."""
+    origin = ReplicationOrigin(target="ATCG", primer="ATCG")
+    assert origin._cached_primability is None
+    assert origin._cached_stability is None
+
+    p_score = origin.primability
+    s_score = origin.stability
+
+    assert origin._cached_primability == p_score
+    assert origin._cached_stability == s_score
+
+
+def test_origin_empty_sequence() -> None:
+    """Test that empty sequences raise ReplicationOriginLengthError."""
+    with pytest.raises(ReplicationOriginLengthError):
+        ReplicationOrigin(target="", primer="")

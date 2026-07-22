@@ -17,6 +17,7 @@
 
 from dataclasses import dataclass, field
 from math import trunc
+from typing import Final
 
 from .dna import DNA, Primer
 from .errors import ReplicationOriginLengthError
@@ -25,6 +26,10 @@ from .settings import (
     BasePairWeightsTbl,
     LengthWiseWeightTbl,
     ReplicationSettings,
+)
+
+_AMPLIFY4_SETTINGS: Final = ReplicationSettings(
+    amplify4_compatibility_mode=True
 )
 
 
@@ -60,12 +65,12 @@ class ReplicationOrigin:
     )
 
     def __post_init__(self) -> None:
-        """Validate that the target and primer have equal lengths.
+        """Validate that the target and primer have equal, non-zero lengths.
 
         Raises:
-            ValueError: If the lengths of `target` and `primer` do not match.
+            ReplicationOriginLengthError: If lengths do not match or are zero.
         """
-        if len(self.target) != len(self.primer):
+        if len(self.target) != len(self.primer) or len(self.target) == 0:
             raise ReplicationOriginLengthError()
 
     @property
@@ -88,10 +93,12 @@ class ReplicationOrigin:
         S: BasePairWeightsTbl = self.settings.base_pair_scores
         numerator: float = 0
         denominator: float = 0
-        for k, (i, j) in enumerate(zip(self.primer, self.target, strict=False)):
+        row_max = S.row_max
+        for k, (i, j) in enumerate(zip(self.primer, self.target, strict=True)):
             numerator += m[k] * S[i, j]
-            denominator += m[k] * S.row_max(i)
+            denominator += m[k] * row_max(i)
         score = numerator / denominator
+        object.__setattr__(self, "_cached_primability", score)
         return score
 
     @property
@@ -117,24 +124,26 @@ class ReplicationOrigin:
         S = self.settings.base_pair_scores
         numerator: float = 0
         denominator: float = 0
-        this_run_len: float = 0
+        this_run_len: int = 0
         this_run_score: float = 0
-        for i, j in zip(self.primer, self.target, strict=False):
-            denominator += S.row_max(i)
+        row_max = S.row_max
+        for i, j in zip(self.primer, self.target, strict=True):
+            denominator += row_max(i)
             if S[i, j] > 0:
                 this_run_len += 1
                 this_run_score += S[i, j]
             else:
                 # N.B. that each run group is scored using the same run score!
                 # We have to allow a running length of 0 here.
-                numerator += r[int(max(0, this_run_len - 1))] * this_run_score
+                numerator += r[max(0, this_run_len - 1)] * this_run_score
                 this_run_len = 0
                 this_run_score = 0
         # Allows for finishing during a run:
-        numerator += r[int(max(0, this_run_len - 1))] * this_run_score
+        numerator += r[max(0, this_run_len - 1)] * this_run_score
         # We multiply the denominator by the largest score that this primer
         # can obtain.
-        score = numerator / (denominator * r[int(max(0, len(self.primer) - 1))])
+        score = numerator / (denominator * r[max(0, len(self.primer) - 1)])
+        object.__setattr__(self, "_cached_stability", score)
         return score
 
     @property
@@ -173,7 +182,7 @@ class ReplicationOrigin:
         # Use the maximum score in the entire base pair weights table
         top_score = max(S.row_max(r) for r in S.row())
         bonds: list[str] = []
-        for p_base, t_base in zip(self.primer, self.target, strict=False):
+        for p_base, t_base in zip(self.primer, self.target, strict=True):
             try:
                 score = S[p_base, t_base]
             except KeyError:
@@ -208,7 +217,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).complement().seq,
             primer=primer,
-            settings=ReplicationSettings(amplify4_compatibility_mode=True),
+            settings=_AMPLIFY4_SETTINGS,
         )
 
 
@@ -233,5 +242,5 @@ class Amplify4FwdOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).reverse().seq,
             primer=Primer(primer).reverse().seq,
-            settings=ReplicationSettings(amplify4_compatibility_mode=True),
+            settings=_AMPLIFY4_SETTINGS,
         )
