@@ -56,7 +56,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self.fwd_min_len_input = ft.TextField(
             label="Fwd Min Len (bp)",
             value="18",
-            width=120,
+            width=160,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -71,7 +71,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self.rev_min_len_input = ft.TextField(
             label="Rev Min Len (bp)",
             value="18",
-            width=120,
+            width=160,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
