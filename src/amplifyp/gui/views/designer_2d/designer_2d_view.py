@@ -56,7 +56,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             on_submit_callback=self._run_designer_event,
         )
 
-        # Top-left container (50% default vertical height)
+        # Top-left container (1/3 default vertical height)
         self.top_left_container = ft.Container(
             content=self.form,
             expand=1,
@@ -83,16 +83,16 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             on_select_step_callback=self._on_grid_step_selected,
         )
 
-        # Bottom-left container (50% default vertical height)
+        # Bottom-left container (2/3 default vertical height)
         self.bottom_left_container = ft.Container(
             content=self.results_grid,
-            expand=1,
+            expand=2,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
         )
 
-        # Left main panel column (50% top, 50% bottom)
+        # Left main panel column (1/3 top, 2/3 bottom)
         self.left_panel_column = ft.Column(
             [
                 self.top_left_container,
