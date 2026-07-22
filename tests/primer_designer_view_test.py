@@ -122,34 +122,40 @@ def test_primer_designer_view_validation_errors() -> None:
     assert view.run_designer() is False
     assert view.error_text.visible is True
     assert "enter a valid DNA sequence" in view.error_text.value
+    assert view.dna_input.error is not None
 
     # Non-digit min_length
     view.dna_input.value = "ATGCGTACGT"
     view.min_len_input.value = "abc"
     assert view.run_designer() is False
     assert "positive integer" in view.error_text.value
+    assert view.min_len_input.error is not None
 
     # min_length <= 0
     view.min_len_input.value = "0"
     assert view.run_designer() is False
     assert "greater than 0" in view.error_text.value
+    assert view.min_len_input.error is not None
 
     # min_length > len(seq)
     view.min_len_input.value = "20"
     assert view.run_designer() is False
     assert "cannot exceed sequence length" in view.error_text.value
+    assert view.min_len_input.error is not None
 
     # Invalid max_quality
     view.min_len_input.value = "7"
     view.max_quality_input.value = "invalid"
     assert view.run_designer() is False
     assert "Max Quality must be a valid number" in view.error_text.value
+    assert view.max_quality_input.error is not None
     view.max_quality_input.value = ""
 
     # Invalid max_overlap
     view.max_overlap_input.value = "abc"
     assert view.run_designer() is False
     assert "Max Overlap must be a non-negative integer" in view.error_text.value
+    assert view.max_overlap_input.error is not None
 
 
 def test_primer_designer_view_threshold_filtering() -> None:

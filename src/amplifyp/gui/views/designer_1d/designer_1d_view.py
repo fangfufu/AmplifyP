@@ -60,12 +60,14 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             multiline=False,
             autofocus=True,
             on_submit=self._run_designer_event,
+            on_change=self._clear_field_error,
         )
         self.min_len_input = ft.TextField(
             label="Min Length (bp)",
             value="18",
             expand=True,
             on_submit=self._run_designer_event,
+            on_change=self._clear_field_error,
         )
         self.mode_dropdown = ft.Dropdown(
             label="Direction",
@@ -84,6 +86,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             value=f"{pd_settings.threshold:.1f}",
             expand=True,
             on_submit=self._run_designer_event,
+            on_change=self._clear_field_error,
         )
         self.max_overlap_input = ft.TextField(
             label="Max Overlap (bp)",
@@ -91,6 +94,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             value=str(pd_settings.min_overlap),
             expand=True,
             on_submit=self._run_designer_event,
+            on_change=self._clear_field_error,
         )
         self.analyse_button = ft.FilledButton(
             "Analyse",
@@ -438,41 +442,77 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             spacing=4,
         )
 
+    def _clear_field_error(self, e: ft.Event[ft.TextField]) -> None:
+        """Clear error text when user edits an input field."""
+        if hasattr(e, "control") and isinstance(e.control, ft.TextField):
+            if e.control.error:
+                e.control.error = None
+                self.app_page.update()
+
+    def _clear_errors(self) -> None:
+        """Clear all field error indicators and general error message."""
+        self.dna_input.error = None
+        self.min_len_input.error = None
+        self.max_quality_input.error = None
+        self.max_overlap_input.error = None
+        self.error_text.visible = False
+        self.error_text.value = ""
+
+    def _show_field_error(self, field: ft.TextField, message: str) -> None:
+        """Set error text on a specific field and display general error."""
+        field.error = message
+        self._show_error(message)
+        self.app_page.update()
+
     def _run_designer_event(self, e: ft.ControlEvent) -> None:
         """Event handler wrapper for running analysis."""
         self.run_designer()
 
     def run_designer(self) -> bool:
         """Validate inputs, run 1D primer design analysis, and update UI."""
-        self.error_text.visible = False
-        self.error_text.value = ""
+        self._clear_errors()
         self.primer_list.controls.clear()
 
-        dna_raw = self.dna_input.value or ""
+        dna_raw = (self.dna_input.value or "").strip()
+        if not dna_raw:
+            self._show_field_error(
+                self.dna_input, "Please enter a valid DNA sequence."
+            )
+            return False
+
         clean_seq = clean_sequence(dna_raw)
         if not clean_seq:
-            self._show_error("Please enter a valid DNA sequence.")
-            self.app_page.update()
+            self._show_field_error(
+                self.dna_input, "DNA sequence contains no valid nucleotides."
+            )
             return False
 
         min_len_raw = (self.min_len_input.value or "").strip()
+        if not min_len_raw:
+            self._show_field_error(
+                self.min_len_input, "Minimum length is required."
+            )
+            return False
+
         if not min_len_raw.isdigit():
-            self._show_error("Minimum length must be a positive integer.")
-            self.app_page.update()
+            self._show_field_error(
+                self.min_len_input, "Minimum length must be a positive integer."
+            )
             return False
 
         min_length = int(min_len_raw)
         if min_length <= 0:
-            self._show_error("Minimum length must be greater than 0.")
-            self.app_page.update()
+            self._show_field_error(
+                self.min_len_input, "Minimum length must be greater than 0."
+            )
             return False
 
         if min_length > len(clean_seq):
-            self._show_error(
+            self._show_field_error(
+                self.min_len_input,
                 f"Minimum length ({min_length}) cannot exceed sequence length "
-                f"({len(clean_seq)})."
+                f"({len(clean_seq)}).",
             )
-            self.app_page.update()
             return False
 
         mode_val = self.mode_dropdown.value or "FWD"
@@ -483,19 +523,35 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         if max_q_raw:
             try:
                 threshold = float(max_q_raw)
+                if threshold < 0:
+                    self._show_field_error(
+                        self.max_quality_input,
+                        "Max Quality must be a non-negative number.",
+                    )
+                    return False
             except ValueError:
-                self._show_error("Max Quality must be a valid number.")
-                self.app_page.update()
+                self._show_field_error(
+                    self.max_quality_input,
+                    "Max Quality must be a valid number.",
+                )
                 return False
 
         max_overlap_raw = (self.max_overlap_input.value or "").strip()
         max_overlap: int | None = None
         if max_overlap_raw:
             if not max_overlap_raw.isdigit():
-                self._show_error("Max Overlap must be a non-negative integer.")
-                self.app_page.update()
+                self._show_field_error(
+                    self.max_overlap_input,
+                    "Max Overlap must be a non-negative integer.",
+                )
                 return False
             max_overlap = int(max_overlap_raw)
+            if max_overlap < 0:
+                self._show_field_error(
+                    self.max_overlap_input,
+                    "Max Overlap must be a non-negative integer.",
+                )
+                return False
 
         try:
             dna_obj = DNA(clean_seq)
