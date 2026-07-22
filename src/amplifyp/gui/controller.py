@@ -35,6 +35,7 @@ from amplifyp.gui.views import (
     DimerView,
     InputView,
     PCRView,
+    PrimerDesignerView,
     SettingsView,
 )
 from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
@@ -79,6 +80,7 @@ class GUIController:
         self.about_view: AboutView = cast(AboutView, None)
         self.pcr_view: PCRView = cast(PCRView, None)
         self.dimers_view: DimerView = cast(DimerView, None)
+        self.designer_view: PrimerDesignerView = cast(PrimerDesignerView, None)
         self.view_container: ft.Container = cast(ft.Container, None)
         self.header_container: ft.Container = cast(ft.Container, None)
 
@@ -148,6 +150,9 @@ class GUIController:
         )
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
+        self.designer_view = PrimerDesignerView(
+            self.page, self.input_data, self.settings
+        )
         self.about_view = AboutView(self.page, self.settings)
 
         self.notification_helper = NotificationHelper(self.page)

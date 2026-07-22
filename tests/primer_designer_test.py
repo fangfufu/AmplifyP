@@ -34,18 +34,18 @@ def test_primer_designer_forward_mode() -> None:
     assert designer.min_length == 7
     assert designer.mode == DNADirection.FWD
 
-    results = designer.results
-    assert len(results) == 4  # lengths 10, 9, 8, 7
+    dimers = designer.all_dimers
+    assert len(dimers) == 4  # lengths 10, 9, 8, 7
 
-    assert [len(dimer.primer_1) for dimer in results] == [10, 9, 8, 7]
-    assert [dimer.primer_1.seq.upper() for dimer in results] == [
+    assert [len(dimer.primer_1) for dimer in dimers] == [10, 9, 8, 7]
+    assert [dimer.primer_1.seq.upper() for dimer in dimers] == [
         "ATGCGTACGT",
         "ATGCGTACG",
         "ATGCGTAC",
         "ATGCGTA",
     ]
 
-    for dimer in results:
+    for dimer in dimers:
         assert isinstance(dimer, PrimerDimer)
         assert dimer.primer_1.seq.upper() == dimer.primer_2.seq.upper()
 
@@ -60,11 +60,11 @@ def test_primer_designer_backward_mode() -> None:
     assert designer.min_length == 7
     assert designer.mode == DNADirection.REV
 
-    results = designer.results
-    assert len(results) == 4  # lengths 10, 9, 8, 7
+    dimers = designer.all_dimers
+    assert len(dimers) == 4  # lengths 10, 9, 8, 7
 
-    assert [len(dimer.primer_1) for dimer in results] == [10, 9, 8, 7]
-    assert [dimer.primer_1.seq.upper() for dimer in results] == [
+    assert [len(dimer.primer_1) for dimer in dimers] == [10, 9, 8, 7]
+    assert [dimer.primer_1.seq.upper() for dimer in dimers] == [
         "ATGCGTACGT",
         "TGCGTACGT",
         "GCGTACGT",
@@ -105,7 +105,9 @@ def test_primer_designer_query_methods() -> None:
     assert isinstance(best_pair, tuple)
     assert len(best_pair) == 2
     best_idx, best_q = best_pair
-    assert designer[best_idx] == min(designer.results, key=lambda d: d.quality)
+    assert designer[best_idx] == min(
+        designer.all_dimers, key=lambda d: d.quality
+    )
     assert best_q == designer[best_idx].quality
 
 
@@ -135,7 +137,7 @@ def test_primer_designer_sequence_protocol_and_representations() -> None:
     # Iteration
     dimers_list = list(designer)
     assert len(dimers_list) == 4
-    assert dimers_list == list(designer.results)
+    assert dimers_list == list(designer.all_dimers)
 
     # Membership
     assert designer[0] in designer
@@ -154,12 +156,12 @@ def test_primer_designer_sequence_protocol_and_representations() -> None:
 
     assert len(sorted_qs) == 4
     assert [score for _, score in sorted_qs] == sorted(
-        d.quality for d in designer.results
+        d.quality for d in designer.all_dimers
     )
 
     raw_qs = designer.quality_score(sorted=False)
     assert raw_qs == tuple(
-        (i, d.quality) for i, d in enumerate(designer.results)
+        (i, d.quality) for i, d in enumerate(designer.all_dimers)
     )
 
     assert sorted_qs[0] == designer.best_score
@@ -172,9 +174,25 @@ def test_primer_designer_custom_generator() -> None:
 
     custom_settings = PrimerDimerSettings(min_overlap=3)
     custom_gen = PrimerDimerGenerator(settings=custom_settings)
-
     dna_obj = DNA("ATGCGTACGT")
     designer = PrimerDesigner1D(dna_obj, 7, generator=custom_gen)
 
     assert designer.generator == custom_gen
     assert designer[0].settings == custom_settings
+
+
+def test_primer_designer_threshold_and_max_overlap_filtering() -> None:
+    """Test filtering self-dimers by threshold and max_overlap."""
+    dna_obj = DNA("ATGCGTACGT")
+
+    # Filter quality <= 110.0 (Len 10 is 120, Len 9 is 160)
+    designer_q = PrimerDesigner1D(dna_obj, min_length=7, threshold=110.0)
+    assert designer_q.threshold == 110.0
+    assert len(designer_q) == 2
+    assert [d.quality for d in designer_q.all_dimers] == [100.0, 60.0]
+
+    # Filter max_overlap <= 6 (Len 10 is overlap 8 -> filtered out)
+    designer_o = PrimerDesigner1D(dna_obj, min_length=7, max_overlap=6)
+    assert designer_o.max_overlap == 6
+    assert len(designer_o) == 3
+    assert [d.overlap for d in designer_o.all_dimers] == [6, 4, 6]
