@@ -51,29 +51,29 @@ class PrimerDimer:
     @property
     def binding_strength_str(self) -> str:
         """The binding strength of each base-pair as a string."""
-        p1 = self.primer_1
-        p2 = self.primer_2
-        if len(p1) < len(p2):
-            short_p, long_p = p1, p2
+        if len(self.primer_1) <= len(self.primer_2):
+            short_p, long_p = self.primer_1, self.primer_2
         else:
-            short_p, long_p = p2, p1
+            short_p, long_p = self.primer_2, self.primer_1
 
-        seq1 = short_p.seq.upper()
-        seq2 = long_p.seq.upper()
+        seq1 = short_p.seq_upper
+        seq2 = long_p.seq_upper
         n1 = len(short_p)
+        weights = self.settings.weights
+        threshold = self.settings.symbol_threshold
 
         bonds: list[str] = []
         for offset in range(self.overlap):
             c1 = seq1[n1 - 1 - offset]
             c2 = seq2[self.p1_pos + offset]
             try:
-                score = self.settings.weights[c1, c2]
+                score = weights[c1, c2]
             except KeyError:
                 score = 0.0
 
             if score < 0:
                 symbol = " "
-            elif score < self.settings.symbol_threshold:
+            elif score < threshold:
                 symbol = ":"
             else:
                 symbol = "|"
@@ -96,7 +96,7 @@ class PrimerDimerGenerator:
         self.settings = settings
         self.primers: list[Primer] = []
         self.primer_dimers: list[PrimerDimer] = []
-        self.__analysed: bool = False
+        self._analysed: bool = False
 
     def add_primer(self, primer: Primer) -> None:
         """Add a primer to the generator.
@@ -105,6 +105,7 @@ class PrimerDimerGenerator:
             primer (Primer): The primer to add.
         """
         self.primers.append(primer)
+        self._analysed = False
 
     def remove_primer(self, primer: Primer) -> None:
         """Remove a primer from the generator.
@@ -113,22 +114,18 @@ class PrimerDimerGenerator:
             primer (Primer): The primer to remove.
         """
         self.primers.remove(primer)
+        self._analysed = False
 
     def clear(self) -> None:
         """Clear all primers and results from the generator."""
         self.primers.clear()
         self.primer_dimers.clear()
-        self.__analysed = False
+        self._analysed = False
 
     @property
     def analysed(self) -> bool:
         """Return whether the primers have been analysed."""
-        return self.__analysed
-
-    def _calculate_dimer_stats(
-        self, s1: str, s2: str, n1: int, n2: int
-    ) -> tuple[float, int, int]:
-        return calculate_dimer_stats(s1, s2, n1, n2, settings=self.settings)
+        return self._analysed
 
     def generate_primer_dimer(self, p1: Primer, p2: Primer) -> PrimerDimer:
         """Calculate the dimer potential (quality) between two primers.
@@ -166,7 +163,7 @@ class PrimerDimerGenerator:
             l2,
             seq2,
         ) in itertools.combinations_with_replacement(primer_props, 2):
-            if l1 < l2:
+            if l1 <= l2:
                 short_p, long_p, n1, n2 = p1, p2, l1, l2
                 s1, s2 = seq1, seq2
             else:
@@ -180,6 +177,17 @@ class PrimerDimerGenerator:
                 best_quality, best_pos, overlap_len = calculate_dimer_stats(
                     s1, s2, n1, n2, settings=self.settings
                 )
+                if n1 == n2 and s1 != s2:
+                    rev_quality, rev_pos, rev_overlap = calculate_dimer_stats(
+                        s2, s1, n2, n1, settings=self.settings
+                    )
+                    if rev_quality > best_quality:
+                        short_p, long_p = long_p, short_p
+                        best_quality, best_pos, overlap_len = (
+                            rev_quality,
+                            rev_pos,
+                            rev_overlap,
+                        )
                 memo[memo_key] = (best_quality, best_pos, overlap_len)
 
             if best_quality > threshold and overlap_len > min_overlap:
@@ -194,7 +202,7 @@ class PrimerDimerGenerator:
                 self.primer_dimers.append(res)
 
         self.primer_dimers.sort(key=lambda x: x.quality, reverse=True)
-        self.__analysed = True
+        self._analysed = True
 
 
 def calculate_dimer_stats(
@@ -228,7 +236,6 @@ def calculate_dimer_stats(
         for offset in range(current_overlap):
             c1 = s1[n1 - 1 - offset]
             c2 = s2[left_end + offset]
-
             try:
                 q += weights[c1, c2]
             except KeyError:
@@ -261,7 +268,7 @@ def generate_primer_dimer(
     Returns:
         PrimerDimer: The best dimer alignment found.
     """
-    if len(p1) < len(p2):
+    if len(p1) <= len(p2):
         short_p, long_p = p1, p2
     else:
         short_p, long_p = p2, p1
@@ -275,6 +282,18 @@ def generate_primer_dimer(
     best_quality, best_pos, overlap_len = calculate_dimer_stats(
         seq1, seq2, n1, n2, settings=settings
     )
+
+    if n1 == n2 and p1 != p2:
+        rev_quality, rev_pos, rev_overlap = calculate_dimer_stats(
+            seq2, seq1, n2, n1, settings=settings
+        )
+        if rev_quality > best_quality:
+            short_p, long_p = long_p, short_p
+            best_quality, best_pos, overlap_len = (
+                rev_quality,
+                rev_pos,
+                rev_overlap,
+            )
 
     return PrimerDimer(
         primer_1=short_p,

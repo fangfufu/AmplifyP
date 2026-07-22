@@ -102,10 +102,30 @@ def test_generator_management() -> None:
         len(generator.primer_dimers) > 0
     )  # Should have self-dimers if they pass threshold
 
+    generator.add_primer(p2)
+    assert not generator.analysed
+
+    generator.analyse_primers()
+    assert generator.analysed
+    generator.remove_primer(p2)
+    assert not generator.analysed
+
     generator.clear()
     assert len(generator.primers) == 0
     assert len(generator.primer_dimers) == 0
     assert not generator.analysed
+
+
+def test_equal_length_primer_symmetry() -> None:
+    """Test that generate_primer_dimer is symmetric for equal length primers."""
+    p_a = Primer("TTTTTCCCCC", name="p_a")
+    p_b = Primer("GGGGGAAAAA", name="p_b")
+    generator = PrimerDimerGenerator()
+    dimer1 = generator.generate_primer_dimer(p_a, p_b)
+    dimer2 = generator.generate_primer_dimer(p_b, p_a)
+
+    assert dimer1.quality == dimer2.quality
+    assert dimer1.overlap == dimer2.overlap
 
 
 def test_custom_settings() -> None:
