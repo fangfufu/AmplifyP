@@ -63,20 +63,9 @@ class PrimerDesigner1D:
                 `PrimerDimerGenerator()`.
 
         Raises:
-            TypeError: If `dna` is not a DNA object, `mode` is not a
-                `DNADirection` instance, or `generator` is invalid.
             ValueError: If minimum length is non-positive or greater than
                 sequence length.
         """
-        if not isinstance(dna, DNA):
-            raise TypeError("dna must be a DNA object.")
-        if not isinstance(mode, DNADirection):
-            raise TypeError("mode must be a DNADirection instance.")
-        if not isinstance(generator, PrimerDimerGenerator):
-            raise TypeError(
-                "generator must be a PrimerDimerGenerator instance."
-            )
-
         if min_length <= 0:
             raise ValueError("Target length n must be greater than 0.")
         if len(dna.seq_upper) < min_length:

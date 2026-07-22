@@ -120,23 +120,6 @@ def test_primer_designer_invalid_inputs() -> None:
     ):
         PrimerDesigner1D(dna_obj, 15)
 
-    with pytest.raises(TypeError, match="mode must be a DNADirection instance"):
-        PrimerDesigner1D(dna_obj, 5, mode="invalid_mode")  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="mode must be a DNADirection instance"):
-        PrimerDesigner1D(dna_obj, 5, mode="Forward")  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="dna must be a DNA object"):
-        PrimerDesigner1D("ATGCGTACGT", 5)  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="dna must be a DNA object"):
-        PrimerDesigner1D(12345, 5)  # type: ignore[arg-type]
-
-    with pytest.raises(
-        TypeError, match="generator must be a PrimerDimerGenerator instance"
-    ):
-        PrimerDesigner1D(dna_obj, 5, generator="invalid")  # type: ignore[arg-type]
-
 
 def test_primer_designer_sequence_protocol_and_representations() -> None:
     """Test iteration, membership, repr, str, and query additions."""
