@@ -16,11 +16,9 @@
 """Amplicon-related classes for AmplifyP."""
 
 from dataclasses import dataclass
+from typing import ClassVar
 
-from amplifyp.dna import DNADirection, DNAType
-from amplifyp.repliconf import DirIdx
-
-from .dna import DNA, Primer
+from .dna import DNA, DNADirection, DNAType, Primer
 from .errors import (
     DuplicateRepliconfError,
     InvalidAmpliconRangeError,
@@ -29,7 +27,7 @@ from .errors import (
     InvalidStartDirectionError,
     TemplateMismatchError,
 )
-from .repliconf import Repliconf
+from .repliconf import DirIdx, Repliconf
 
 
 @dataclass(slots=True, frozen=True)
@@ -52,6 +50,22 @@ class Amplicon:
         circular (bool): Whether the amplicon is circular.
     """
 
+    _Q_SCORE_THRESHOLDS: ClassVar = (
+        (300, "good", " amplification"),
+        (700, "okay", " amplification"),
+        (1500, "moderate", " amplification"),
+        (
+            4000,
+            "weak",
+            " amplification — might be visible on an agarose gel",
+        ),
+        (
+            float("inf"),
+            "very weak",
+            " amplification — probably not visible on an agarose gel",
+        ),
+    )
+
     product: DNA
     fwd_origin: Primer
     rev_origin: Primer
@@ -65,13 +79,13 @@ class Amplicon:
 
         Raises:
             ValueError: If `start` is not forward, `end` is not reverse, or
-                if `end` index precedes `start` index.
+                if `end` index precedes or equals `start` index on linear DNA.
         """
         if self.start.direction != DNADirection.FWD:
             raise InvalidStartDirectionError()
         if self.end.direction != DNADirection.REV:
             raise InvalidEndDirectionError()
-        if (self.start.index > self.end.index) and not self.circular:
+        if (self.start.index >= self.end.index) and not self.circular:
             raise InvalidIndexOrderError()
 
     def q_score_report_str(self, verbose: bool = False) -> str:
@@ -87,31 +101,13 @@ class Amplicon:
         Returns:
             str: The textual report describing the amplification quality.
         """
-        thresholds = [
-            (300, "good", " amplification"),
-            (700, "okay", " amplification"),
-            (1500, "moderate", " amplification"),
-            (
-                4000,
-                "weak",
-                " amplification — might be visible on an agarose gel",
-            ),
-        ]
-
-        desc, verbose_suffix = (
-            "very weak",
-            (" amplification — probably not visible on an agarose gel"),
-        )
-
-        for limit, text, v_text in thresholds:
+        for limit, desc, verbose_suffix in self._Q_SCORE_THRESHOLDS:
             if self.q_score < limit:
-                desc, verbose_suffix = text, v_text
-                break
+                suffix = verbose_suffix if verbose else ""
+                circ = " (Circular)" if self.circular else ""
+                return f"{desc}{suffix}{circ}"
 
-        result = desc + (verbose_suffix if verbose else "")
-        if self.circular:
-            result += " (Circular)"
-        return result
+        return ""  # pragma: no cover
 
 
 class AmpliconGenerator:
@@ -136,6 +132,7 @@ class AmpliconGenerator:
         """
         self.template = template
         self.repliconfs: list[Repliconf] = []
+        self._repliconf_set: set[Repliconf] = set()
 
     def add_repliconf(self, repliconf: Repliconf) -> None:
         """Add a replication configuration to the generator.
@@ -151,10 +148,11 @@ class AmpliconGenerator:
         if self.template != repliconf.template:
             raise TemplateMismatchError()
 
-        if repliconf not in self.repliconfs:
-            self.repliconfs.append(repliconf)
-        else:
+        if repliconf in self._repliconf_set:
             raise DuplicateRepliconfError()
+
+        self.repliconfs.append(repliconf)
+        self._repliconf_set.add(repliconf)
 
     def remove_repliconf(self, repliconf: Repliconf) -> None:
         """Remove a replication configuration from the generator.
@@ -166,6 +164,7 @@ class AmpliconGenerator:
             ValueError: If the `repliconf` is not present in the generator.
         """
         self.repliconfs.remove(repliconf)
+        self._repliconf_set.remove(repliconf)
 
     def get_amplicon_quality_score(
         self,
@@ -221,12 +220,9 @@ class AmpliconGenerator:
                 a boolean indicating if the product is circular.
 
         Raises:
-            NotImplementedError: If the start index is greater than the end
-                index on a linear DNA template (which should be unreachable
-                logic if called correctly).
+            InvalidAmpliconRangeError: If the start index equals the end
+                index on a linear DNA template.
         """
-        seq = None
-        circular = False
         if start < end:
             # Linear DNA template branch
             seq = (
@@ -234,7 +230,9 @@ class AmpliconGenerator:
                 + self.template[start:end]
                 + rev_conf.rev_comp_primer
             )
-        elif self.template.type == DNAType.CIRCULAR:
+            return seq, False
+
+        if self.template.type == DNAType.CIRCULAR:
             # Circular DNA handling
             seq = (
                 fwd_conf.primer
@@ -242,13 +240,13 @@ class AmpliconGenerator:
                 + self.template[:end]
                 + rev_conf.rev_comp_primer
             )
-            circular = True
-        elif (start > end) and (self.template.type == DNAType.LINEAR):
+            return seq, True
+
+        if (start > end) and (self.template.type == DNAType.LINEAR):
             # Not possible on linear DNA
-            pass  # pragma: no cover
-        else:
-            raise InvalidAmpliconRangeError()  # pragma: no cover
-        return seq, circular
+            return None, False
+
+        raise InvalidAmpliconRangeError()
 
     def get_amplicons(self) -> list[Amplicon]:
         """Generate all possible amplicons based on added configurations.
