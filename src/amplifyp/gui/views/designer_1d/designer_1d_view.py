@@ -17,20 +17,21 @@
 
 import logging
 import traceback
-from collections.abc import Sequence
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import DNA, DNADirection
+from amplifyp.dna import DNA
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.gui.utils.gui_helpers import show_error_dialog
+from amplifyp.gui.views.designer_1d.designer_1d_form import Designer1DForm
 from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
     DismissibleSelfDimerCard,
 )
+from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
+from amplifyp.gui.views.designer_1d.quality_bar_chart import QualityBarChart
 from amplifyp.primer_designer import PrimerDesigner1D
 
 logger = logging.getLogger(__name__)
@@ -52,101 +53,15 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self.settings = settings if settings is not None else GUISettings()
         self._cached_designer: PrimerDesigner1D | None = None
 
-        # Input fields (Top-left control panel)
-        self.dna_input = ft.TextField(
-            label="DNA Sequence",
-            hint_text="e.g. ATGCGTACGT...",
-            expand=True,
-            multiline=False,
-            autofocus=True,
-            on_submit=self._run_designer_event,
-            on_change=self._clear_field_error,
-        )
-        self.min_len_input = ft.TextField(
-            label="Min Length (bp)",
-            value="18",
-            expand=True,
-            on_submit=self._run_designer_event,
-            on_change=self._clear_field_error,
-        )
-        self.mode_dropdown = ft.Dropdown(
-            label="Direction",
-            options=[
-                ft.dropdown.Option("FWD", "Forward"),
-                ft.dropdown.Option("REV", "Reverse"),
-            ],
-            value="FWD",
-            expand=True,
-        )
-        pd_settings = self.settings.get_primer_dimer_settings()
-
-        self.max_quality_input = ft.TextField(
-            label="Max Quality",
-            hint_text="Unconstrained if empty",
-            value=f"{pd_settings.threshold:.1f}",
-            expand=True,
-            on_submit=self._run_designer_event,
-            on_change=self._clear_field_error,
-        )
-        self.max_overlap_input = ft.TextField(
-            label="Max Overlap (bp)",
-            hint_text="Unconstrained if empty",
-            value=str(pd_settings.min_overlap),
-            expand=True,
-            on_submit=self._run_designer_event,
-            on_change=self._clear_field_error,
-        )
-        self.analyse_button = ft.FilledButton(
-            "Analyse",
-            icon=ft.Icons.PLAY_ARROW,
-            tooltip="Run 1D Primer Truncation Analysis",
-            on_click=self._run_designer_event,
-        )
-        self.error_text = ft.Text(
-            "", color=GUIColours.ERROR_RED, visible=False, size=12
+        # Form component for input controls and parameters
+        self.form = Designer1DForm(
+            settings=self.settings,
+            on_submit_callback=self._run_designer_event,
         )
 
         # Container for top-left controls
-        self.top_left_controls = ft.Column(
-            [
-                ft.Text(
-                    "1D Truncation Parameters",
-                    weight=ft.FontWeight.BOLD,
-                    size=self.settings.get("font_size_subheader", 16),
-                ),
-                ft.Row(
-                    [
-                        self.dna_input,
-                    ]
-                ),
-                ft.Row(
-                    [
-                        self.min_len_input,
-                        self.mode_dropdown,
-                    ],
-                    alignment=ft.MainAxisAlignment.START,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=14,
-                ),
-                ft.Row(
-                    [
-                        self.max_quality_input,
-                        self.max_overlap_input,
-                        ft.Container(
-                            content=self.analyse_button,
-                            margin=ft.Margin.only(left=24),
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.START,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=14,
-                ),
-                self.error_text,
-            ],
-            spacing=8,
-        )
         self.top_left_container = ft.Container(
-            content=self.top_left_controls,
+            content=self.form,
             height=240,  # 1/3rd default vertical space
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
@@ -217,7 +132,6 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
         # Top-right panel: Vertical Quality Bar Chart
         self.chart_content_container = ft.Container(
-            content=self._build_quality_bar_chart([]),
             expand=True,
         )
         self.top_right_chart_container = ft.Container(
@@ -240,6 +154,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
         )
+        self.chart_content_container.content = self._build_chart([])
 
         # Vertical divider resizer between top-right and bottom-right
         self.right_v_divider = ft.GestureDetector(
@@ -309,6 +224,42 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             self.right_container,
         ]
 
+    # --- Field property aliases to preserve backwards compatibility ---
+    @property
+    def dna_input(self) -> ft.TextField:
+        """Get the DNA sequence input field."""
+        return self.form.dna_input
+
+    @property
+    def min_len_input(self) -> ft.TextField:
+        """Get the minimum length input field."""
+        return self.form.min_len_input
+
+    @property
+    def mode_dropdown(self) -> ft.Dropdown:
+        """Get the direction mode dropdown."""
+        return self.form.mode_dropdown
+
+    @property
+    def max_quality_input(self) -> ft.TextField:
+        """Get the max quality input field."""
+        return self.form.max_quality_input
+
+    @property
+    def max_overlap_input(self) -> ft.TextField:
+        """Get the max overlap input field."""
+        return self.form.max_overlap_input
+
+    @property
+    def analyse_button(self) -> ft.FilledButton:
+        """Get the analyse button control."""
+        return self.form.analyse_button
+
+    @property
+    def error_text(self) -> ft.Text:
+        """Get the error display text control."""
+        return self.form.error_text
+
     def _on_h_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle horizontal resizing between left and right panels."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
@@ -348,8 +299,8 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         current_h = float(self.top_right_chart_container.height or 140.0)
         self.top_right_chart_container.height = max(70.0, current_h + delta_y)
         if self._cached_designer and self._cached_designer.all_dimers:
-            self.chart_content_container.content = (
-                self._build_quality_bar_chart(self._cached_designer.all_dimers)
+            self.chart_content_container.content = self._build_chart(
+                self._cached_designer.all_dimers
             )
         try:
             if self.app_page:
@@ -357,200 +308,27 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         except RuntimeError:
             pass
 
-    def _build_quality_bar_chart(
-        self, dimers: Sequence[PrimerDimer]
-    ) -> ft.Control:
-        """Build vertical quality bar chart for generated self-dimers."""
-        if not dimers:
-            return ft.Container(
-                content=ft.Text(
-                    "No analysis results yet. Enter sequence and "
-                    "click Analyse.",
-                    size=12,
-                    italic=True,
-                    color=GUIColours.TEXT_ON_SURFACE,
-                ),
-                alignment=ft.Alignment(0, 0),
-                expand=True,
-            )
-
-        max_quality = max((d.quality for d in dimers), default=1.0)
-        max_quality = max(max_quality, 1.0)
-
+    def _build_chart(self, dimers: list[PrimerDimer]) -> ft.Control:
+        """Helper to build quality chart with container height."""
         container_h = float(self.top_right_chart_container.height or 140.0)
-        max_bar_h = max(10.0, container_h - 98.0)
-        bar_stack_height = max_bar_h + 20.0
-
-        bar_controls: list[ft.Control] = []
-
-        for step_idx, dimer in enumerate(dimers):
-            primer_seq = dimer.primer_1.seq
-            primer_len = len(primer_seq)
-            q_val = dimer.quality
-
-            bar_h = max(6.0, (q_val / max_quality) * max_bar_h)
-
-            bar_with_score = ft.Column(
-                [
-                    ft.Text(
-                        f"{q_val:.1f}",
-                        size=11,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    ft.Container(
-                        width=22,
-                        height=bar_h,
-                        bgcolor=GUIColours.PRIMARY,
-                        border_radius=4,
-                        tooltip=(
-                            f"Step {step_idx + 1}: {primer_len} bp\n"
-                            f"Quality: {q_val:.1f}"
-                        ),
-                    ),
-                ],
-                height=bar_stack_height,
-                alignment=ft.MainAxisAlignment.END,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=2,
-            )
-
-            bar_column = ft.Column(
-                [
-                    bar_with_score,
-                    ft.Text(f"{primer_len}bp", size=11),
-                ],
-                alignment=ft.MainAxisAlignment.END,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=2,
-            )
-
-            bar_item = ft.Container(
-                content=bar_column,
-                padding=ft.Padding(6, 4, 6, 26),
-                ink=True,
-                on_click=lambda _ev, d=dimer, idx=step_idx: (
-                    self._on_primer_selected(d, idx)
-                ),
-            )
-            bar_controls.append(bar_item)
-
-        return ft.Row(
-            bar_controls,
-            scroll=ft.ScrollMode.ALWAYS,
-            alignment=ft.MainAxisAlignment.START,
-            vertical_alignment=ft.CrossAxisAlignment.END,
-            spacing=4,
+        return QualityBarChart.build_chart(
+            dimers=dimers,
+            container_height=container_h,
+            on_primer_selected=self._on_primer_selected,
         )
 
-    def _clear_field_error(self, e: ft.Event[ft.TextField]) -> None:
-        """Clear error text when user edits an input field."""
-        if hasattr(e, "control") and e.control and e.control.error:
-            e.control.error = None
-            self.app_page.update()
-
-    def _clear_errors(self) -> None:
-        """Clear all field error indicators and general error message."""
-        self.dna_input.error = None
-        self.min_len_input.error = None
-        self.max_quality_input.error = None
-        self.max_overlap_input.error = None
-        self.error_text.visible = False
-        self.error_text.value = ""
-
-    def _show_field_error(self, field: ft.TextField, message: str) -> None:
-        """Set error text on a specific field and display general error."""
-        field.error = message
-        self._show_error(message)
-        self.app_page.update()
-
-    def _run_designer_event(self, e: ft.ControlEvent) -> None:
+    def _run_designer_event(self, e: ft.ControlEvent | None = None) -> None:
         """Event handler wrapper for running analysis."""
         self.run_designer()
 
     def run_designer(self) -> bool:
         """Validate inputs, run 1D primer design analysis, and update UI."""
-        self._clear_errors()
+        params = self.form.validate_and_get_params()
+        if params is None:
+            return False
+
+        clean_seq, min_length, mode, threshold, max_overlap = params
         self.primer_list.controls.clear()
-
-        dna_raw = (self.dna_input.value or "").strip()
-        if not dna_raw:
-            self._show_field_error(
-                self.dna_input, "Please enter a valid DNA sequence."
-            )
-            return False
-
-        clean_seq = clean_sequence(dna_raw)
-        if not clean_seq:
-            self._show_field_error(
-                self.dna_input, "DNA sequence contains no valid nucleotides."
-            )
-            return False
-
-        min_len_raw = (self.min_len_input.value or "").strip()
-        if not min_len_raw:
-            self._show_field_error(
-                self.min_len_input, "Minimum length is required."
-            )
-            return False
-
-        if not min_len_raw.isdigit():
-            self._show_field_error(
-                self.min_len_input, "Minimum length must be a positive integer."
-            )
-            return False
-
-        min_length = int(min_len_raw)
-        if min_length <= 0:
-            self._show_field_error(
-                self.min_len_input, "Minimum length must be greater than 0."
-            )
-            return False
-
-        if min_length > len(clean_seq):
-            self._show_field_error(
-                self.min_len_input,
-                f"Minimum length ({min_length}) cannot exceed sequence length "
-                f"({len(clean_seq)}).",
-            )
-            return False
-
-        mode_val = self.mode_dropdown.value or "FWD"
-        mode = DNADirection.FWD if mode_val == "FWD" else DNADirection.REV
-
-        max_q_raw = (self.max_quality_input.value or "").strip()
-        threshold: float | None = None
-        if max_q_raw:
-            try:
-                threshold = float(max_q_raw)
-                if threshold < 0:
-                    self._show_field_error(
-                        self.max_quality_input,
-                        "Max Quality must be a non-negative number.",
-                    )
-                    return False
-            except ValueError:
-                self._show_field_error(
-                    self.max_quality_input,
-                    "Max Quality must be a valid number.",
-                )
-                return False
-
-        max_overlap_raw = (self.max_overlap_input.value or "").strip()
-        max_overlap: int | None = None
-        if max_overlap_raw:
-            if not max_overlap_raw.isdigit():
-                self._show_field_error(
-                    self.max_overlap_input,
-                    "Max Overlap must be a non-negative integer.",
-                )
-                return False
-            max_overlap = int(max_overlap_raw)
-            if max_overlap < 0:
-                self._show_field_error(
-                    self.max_overlap_input,
-                    "Max Overlap must be a non-negative integer.",
-                )
-                return False
 
         try:
             dna_obj = DNA(clean_seq)
@@ -566,106 +344,24 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             )
             self._cached_designer = designer
 
-            font_size_default = self.settings.get("font_size_default", 14)
-            font_size_header = self.settings.get("font_size_header", 18)
-
             # Update top-right quality bar chart
-            self.chart_content_container.content = (
-                self._build_quality_bar_chart(designer.all_dimers)
+            self.chart_content_container.content = self._build_chart(
+                designer.all_dimers
             )
 
-            is_reverse = mode == DNADirection.REV
-            seq_align = ft.TextAlign.RIGHT if is_reverse else ft.TextAlign.LEFT
-
             for step_idx, dimer in enumerate(designer.all_dimers):
-                seq = dimer.primer_1.seq
-                length = len(seq)
-                overlap_str = f"Overlap: {dimer.overlap} bp"
-
-                item_card = ft.Card(
-                    content=ft.Container(
-                        content=ft.Row(
-                            [
-                                ft.Column(
-                                    [
-                                        ft.Text(
-                                            f"{length} bp",
-                                            weight=ft.FontWeight.BOLD,
-                                            size=font_size_header,
-                                            text_align=ft.TextAlign.LEFT,
-                                        ),
-                                        ft.Container(
-                                            content=ft.TextField(
-                                                value=seq,
-                                                read_only=True,
-                                                dense=True,
-                                                expand=True,
-                                                text_size=font_size_default,
-                                                text_style=ft.TextStyle(
-                                                    font_family="Roboto Mono"
-                                                ),
-                                                text_align=seq_align,
-                                                content_padding=ft.Padding(
-                                                    6, 4, 6, 4
-                                                ),
-                                            ),
-                                            expand=True,
-                                            alignment=(
-                                                ft.Alignment(1, 0)
-                                                if is_reverse
-                                                else ft.Alignment(-1, 0)
-                                            ),
-                                        ),
-                                    ],
-                                    spacing=2,
-                                    expand=True,
-                                    horizontal_alignment=ft.CrossAxisAlignment.START,
-                                ),
-                                ft.Column(
-                                    [
-                                        ft.Container(
-                                            content=ft.Text(
-                                                f"Quality: {dimer.quality:.1f}",
-                                                weight=ft.FontWeight.BOLD,
-                                                size=font_size_default,
-                                                color=GUIColours.DIAGRAM_BLACK,
-                                            ),
-                                            bgcolor=GUIColours.SELECTED_ROW_BG,
-                                            padding=ft.Padding(6, 3, 6, 3),
-                                            border_radius=4,
-                                        ),
-                                        ft.Container(
-                                            content=ft.Text(
-                                                overlap_str,
-                                                weight=ft.FontWeight.BOLD,
-                                                size=font_size_default,
-                                                color=GUIColours.DIAGRAM_BLACK,
-                                            ),
-                                            bgcolor=GUIColours.SELECTED_ROW_BG,
-                                            padding=ft.Padding(6, 3, 6, 3),
-                                            border_radius=4,
-                                        ),
-                                    ],
-                                    spacing=4,
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                        ),
-                        padding=10,
-                        ink=True,
-                        on_click=lambda _ev, d=dimer, idx=step_idx: (
-                            self._on_primer_selected(d, idx)
-                        ),
-                    )
+                item_card = PrimerItemCard(
+                    dimer=dimer,
+                    step_index=step_idx,
+                    mode=mode,
+                    settings=self.settings,
+                    on_select_callback=self._on_primer_selected,
                 )
                 self.primer_list.controls.append(item_card)
 
         except (ValueError, RuntimeError, OSError) as ex:
             logger.exception("1D Primer Design failed: %s", ex)
-            self._show_error(f"Error: {ex}")
+            self.form.show_error(f"Error: {ex}")
             show_error_dialog(
                 self.app_page,
                 "Error running Primer Designer",
@@ -676,11 +372,6 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
         self.app_page.update()
         return True
-
-    def _show_error(self, message: str) -> None:
-        """Display validation error message."""
-        self.error_text.value = message
-        self.error_text.visible = True
 
     def _on_primer_selected(self, dimer: PrimerDimer, step_index: int) -> None:
         """Handle primer selection: add or raise self-dimer card."""
