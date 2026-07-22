@@ -16,13 +16,13 @@
 """DismissibleSelfDimerCard component for 1D primer designer view."""
 
 from collections.abc import Callable
+from typing import cast
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer
-from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
-from amplifyp.gui.utils.data_helpers import create_overlapped_sequence_view
+from amplifyp.gui.views.dimer.dimer_card import DimerCard
 from amplifyp.gui.views.pcr.dismissible_detail_card import DismissibleDetailCard
 
 
@@ -53,77 +53,32 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         self.font_family = font_family
         self.step_index = step_index
 
+        dimer_card = DimerCard(
+            d=dimer,
+            settings=settings,
+            font_family=font_family,
+            show_names=False,
+        )
+
+        primer_seq = dimer.primer_1.seq
+        title = f"Self-dimer ({len(primer_seq)} bp)"
+
+        font_size_subheader = settings.get("font_size_subheader", 16)
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
 
-        primer_seq = dimer.primer_1.seq
-        step_label = (
-            f"Step {step_index + 1}: " if step_index is not None else ""
+        header_row = dimer_card._build_card_header(
+            font_size_subheader, font_size_small
         )
-        title = f"{step_label}Self-dimer ({len(primer_seq)} bp)"
-
-        title_controls = [
-            ft.Container(
-                content=ft.Text(
-                    f"Overlap: {dimer.overlap} bp",
-                    weight=ft.FontWeight.BOLD,
-                    color=GUIColours.DIAGRAM_BLACK,
-                    size=font_size_small,
-                ),
-                bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(8, 4, 8, 4),
-                border_radius=4,
-            ),
-            ft.Container(
-                content=ft.Text(
-                    f"Quality: {dimer.quality:.1f}",
-                    weight=ft.FontWeight.BOLD,
-                    color=GUIColours.DIAGRAM_BLACK,
-                    size=font_size_small,
-                ),
-                bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(8, 4, 8, 4),
-                border_radius=4,
-            ),
-        ]
-
-        diagram = self._build_alignment_diagram(font_size_default)
+        metric_controls = cast(ft.Row, header_row.controls[1])
 
         super().__init__(
             card_id=card_id,
             title=title,
             settings=settings,
             dismiss_callback=dismiss_callback,
-            body_controls=[diagram],
-            title_controls=title_controls,
-        )
-
-    def _build_alignment_diagram(self, font_size_default: int) -> ft.Container:
-        """Build the visual sequence alignment diagram container control."""
-        seq1 = self.dimer.primer_1.seq
-        seq2 = self.dimer.primer_2.seq
-
-        middle_str = self.dimer.binding_strength_str
-
-        p2_line = f"5'-{seq2}-3'"
-        mid_line = f"{' ' * (3 + self.dimer.p1_pos)}{middle_str}"
-        p1_line = f"{' ' * self.dimer.p1_pos}3'-{seq1[::-1]}-5'"
-
-        diagram_stack = create_overlapped_sequence_view(
-            p2_line,
-            mid_line,
-            p1_line,
-            font_family=self.font_family,
-            font_size=font_size_default,
-            is_dimer=True,
-        )
-        return ft.Container(
-            content=ft.Row(
-                [diagram_stack],
-                scroll=ft.ScrollMode.ALWAYS,
-            ),
-            padding=ft.Padding(12, 4, 12, 4),
-            border_radius=6,
-            border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
-            height=85,
+            body_controls=[
+                dimer_card._build_alignment_diagram(font_size_default)
+            ],
+            title_controls=list(metric_controls.controls),
         )

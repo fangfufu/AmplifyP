@@ -160,7 +160,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                     [
                         ft.Container(
                             content=ft.Text(
-                                f"Overlap: {self.d.overlap} bp",
+                                quality_text,
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,
@@ -171,7 +171,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                         ),
                         ft.Container(
                             content=ft.Text(
-                                quality_text,
+                                f"Overlap: {self.d.overlap} bp",
                                 weight=ft.FontWeight.BOLD,
                                 color=GUIColours.DIAGRAM_BLACK,
                                 size=font_size_small,

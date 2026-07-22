@@ -22,7 +22,7 @@ from collections.abc import Sequence
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import DNA, DNADirection, Primer
+from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -525,13 +525,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             for step_idx, dimer in enumerate(designer.all_dimers):
                 seq = dimer.primer_1.seq
                 length = len(seq)
-
-                try:
-                    primer_obj = Primer(sequence=seq)
-                    tm_val = self.settings.calculate_primer_tm(primer_obj)
-                    tm_str = f"Tm: {tm_val:.1f}°C"
-                except (KeyError, ValueError, RuntimeError):
-                    tm_str = "Tm: N/A"
+                overlap_str = f"Overlap: {dimer.overlap} bp"
 
                 item_card = ft.Card(
                     content=ft.Container(
@@ -578,7 +572,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
                                         ),
                                         ft.Container(
                                             content=ft.Text(
-                                                tm_str,
+                                                overlap_str,
                                                 weight=ft.FontWeight.BOLD,
                                                 size=font_size_default,
                                                 color=GUIColours.DIAGRAM_BLACK,
