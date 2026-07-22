@@ -25,8 +25,6 @@ from .dna import DNA, DNADirection, Primer
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-__all__ = ["PrimerDesigner1D"]
-
 
 class PrimerDesigner1D:
     """Performs 1D primer design by truncating a DNA sequence.
