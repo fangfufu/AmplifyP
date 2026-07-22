@@ -17,7 +17,6 @@
 
 from dataclasses import dataclass, field
 from math import trunc
-from typing import Final
 
 from .dna import DNA, Primer
 from .errors import ReplicationOriginLengthError
@@ -28,9 +27,9 @@ from .settings import (
     ReplicationSettings,
 )
 
-_AMPLIFY4_SETTINGS: Final = ReplicationSettings(
-    amplify4_compatibility_mode=True
-)
+
+def _new_amplify4_settings() -> ReplicationSettings:
+    return ReplicationSettings(amplify4_compatibility_mode=True)
 
 
 @dataclass(frozen=True, slots=True)
@@ -217,7 +216,7 @@ class Amplify4RevOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).complement().seq,
             primer=primer,
-            settings=_AMPLIFY4_SETTINGS,
+            settings=_new_amplify4_settings(),
         )
 
 
@@ -242,5 +241,5 @@ class Amplify4FwdOrigin(ReplicationOrigin):
         super().__init__(
             target=DNA(target).reverse().seq,
             primer=Primer(primer).reverse().seq,
-            settings=_AMPLIFY4_SETTINGS,
+            settings=_new_amplify4_settings(),
         )

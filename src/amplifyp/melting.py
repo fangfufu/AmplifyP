@@ -94,6 +94,12 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
     if n < 2:
         return 0.0
 
+    if any(base not in "ACGT" for base in seq):
+        raise InsufficientThermodynamicDataError(
+            "Sequence contains non-standard or degenerate bases for which "
+            "nearest-neighbour parameters are not available"
+        )
+
     # Constants
     R: Final[float] = 1.987  # cal/(K*mol)
 
@@ -128,8 +134,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         ds += 4.1
 
     # Symmetry correction for self-complementary sequences (SantaLucia 1998)
-    if seq == primer.reverse_complement().seq_upper:
+    is_self_comp = seq == primer.reverse_complement().seq_upper
+    if is_self_comp:
         ds += -1.4
+    conc_factor = 1.0 if is_self_comp else 4.0
 
     # Nearest neighbour steps
     for dinuc in pairwise(seq):
@@ -152,7 +160,10 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # Divalent: Mg2+ (mM -> M)
     # Deduct dNTPs which chelate Mg2+ in a 1:1 ratio to find free Mg2+
-    div_mM = max(0.0, settings.divalent_salt_conc - settings.dntp_conc)
+    div_mM = max(
+        0.0,
+        max(0.0, settings.divalent_salt_conc) - max(0.0, settings.dntp_conc),
+    )
     div_M = div_mM * 1e-3
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
@@ -170,15 +181,12 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
     # SantaLucia 1998 works by correcting dS.
     # Owczarzy 2008 works by correcting 1/Tm.
 
-    # Let's calculate the "base" Tm (at 1M Na+) first
-    # 1M Na+ means NO entropy correction term (ln(1) = 0)
-
     # Calculate Tm_1M_Na (Kelvin)
     total_dna_conc_M = settings.dna_conc * 1e-9
     if total_dna_conc_M <= 0:
         total_dna_conc_M = 50e-9
 
-    denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
+    denom_1M = ds + R * math.log(total_dna_conc_M / conc_factor)
     if math.isclose(denom_1M, 0.0, abs_tol=1e-9):  # pragma: no cover
         raise InsufficientThermodynamicDataError(
             "Denominator is zero in Tm calculation"
@@ -200,7 +208,9 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # This effectively modifies the denom.
         if mono_M > 0:
             ds_corr = 0.368 * (n - 1) * math.log(mono_M)
-            denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+            denom_corr = (
+                ds + ds_corr + R * math.log(total_dna_conc_M / conc_factor)
+            )
             if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
                 raise InsufficientThermodynamicDataError(
                     "Denominator with salt correction is zero"
@@ -216,7 +226,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # Paper says "Monovalent ion dominant", implies treating roughly as Na+.
         # We will use the SantaLucia correction with [Mon+]
         ds_corr = 0.368 * (n - 1) * math.log(mono_M)
-        denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+        denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / conc_factor)
         if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
             raise InsufficientThermodynamicDataError(
                 "Denominator with salt correction is zero"

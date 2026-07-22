@@ -252,3 +252,10 @@ def test_origin_empty_sequence() -> None:
     """Test that empty sequences raise ReplicationOriginLengthError."""
     with pytest.raises(ReplicationOriginLengthError):
         ReplicationOrigin(target="", primer="")
+
+
+def test_amplify4_origin_settings_isolation() -> None:
+    """Test that Amplify4 origin instances have isolated settings."""
+    o1 = Amplify4FwdOrigin("ATCG", "ATCG")
+    o2 = Amplify4FwdOrigin("ATCG", "ATCG")
+    assert o1.settings is not o2.settings

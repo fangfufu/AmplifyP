@@ -420,6 +420,7 @@ class GUISettings:
         Returns:
             The melting temperature as a float.
         """
+        from amplifyp.errors import InsufficientThermodynamicDataError
         from amplifyp.melting import (
             calculate_tm_lander_amplify4,
             calculate_tm_santalucia_1998_owczarzy_2008,
@@ -431,7 +432,12 @@ class GUISettings:
         tm_settings = self.get_tm_settings()
         if tm_method == "Lander / Amplify 4":
             return calculate_tm_lander_amplify4(primer, tm_settings)
-        return calculate_tm_santalucia_1998_owczarzy_2008(primer, tm_settings)
+        try:
+            return calculate_tm_santalucia_1998_owczarzy_2008(
+                primer, tm_settings
+            )
+        except InsufficientThermodynamicDataError:
+            return calculate_tm_lander_amplify4(primer, tm_settings)
 
     def to_dict(self) -> dict[str, Any]:
         """Convert settings to a dictionary for serialisation.

@@ -144,6 +144,12 @@ def test_primer_designer_invalid_inputs() -> None:
 
     with pytest.raises(
         ValueError,
+        match="Cannot specify conflicting values for min_length",
+    ):
+        PrimerDesigner1D(dna_obj, min_length=7, target_length=5)
+
+    with pytest.raises(
+        ValueError,
         match="Minimum primer length \\(n or min_length\\) must be provided",
     ):
         PrimerDesigner1D(dna_obj)

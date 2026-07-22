@@ -24,6 +24,7 @@ from collections.abc import Callable
 import flet as ft
 
 from amplifyp.dna import Primer
+from amplifyp.errors import InsufficientThermodynamicDataError
 from amplifyp.gui.colours import GUIColours, tm_colour
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
@@ -114,7 +115,13 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     tm = self.settings.calculate_primer_tm(primer_obj)
                     self._tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except (ValueError, AttributeError, ArithmeticError):
+            except (
+                ValueError,
+                AttributeError,
+                ArithmeticError,
+                KeyError,
+                InsufficientThermodynamicDataError,
+            ):
                 logger.debug(
                     "Failed to calculate Tm for primer '%s'",
                     name,

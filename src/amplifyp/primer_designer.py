@@ -85,6 +85,15 @@ class PrimerDesigner1D:
             )
 
         length_param = min_length if min_length is not None else target_length
+        if (
+            min_length is not None
+            and target_length is not None
+            and min_length != target_length
+        ):
+            raise ValueError(
+                "Cannot specify conflicting values for min_length and "
+                "target_length."
+            )
         if length_param is not None and n is not None and length_param != n:
             raise ValueError(
                 "Cannot specify conflicting values for n and min_length."

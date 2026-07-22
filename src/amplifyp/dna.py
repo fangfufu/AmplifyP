@@ -346,7 +346,7 @@ class DNA:
         """
         if not isinstance(other, DNA):
             return NotImplemented
-        return type(self)(
+        return DNA(
             self.seq + other.seq, DNAType.LINEAR, self.name, self.direction
         )
 
@@ -421,6 +421,11 @@ class Primer(DNA):
         direction: bool | DNADirection = DNADirection.FWD,
     ) -> None:
         """Initialises a Primer object.
+
+        Note:
+            The `dna_type` and `direction` arguments are accepted for signature
+            compatibility but are always forced to `DNAType.PRIMER` and
+            `DNADirection.FWD`.
 
         Args:
             sequence (str): The nucleotide sequence of the primer.

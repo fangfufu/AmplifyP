@@ -138,17 +138,9 @@ def test_invalid_chars_handling() -> None:
     # So "ACNT" -> AC (valid), CN (invalid), NT(invalid). Only first step
     # counts.
 
-    seq_normal = "ACGT"
     seq_n = "ACNT"
-
-    tm_normal = calculate_tm_santalucia_1998_owczarzy_2008(
-        Primer(seq_normal), settings
-    )
-    tm_n = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
-
-    # With N, we lose detailed energy but shouldn't crash.
-    # The resulting Tm will be very low due to missing stacking energy.
-    assert tm_n < tm_normal
+    with pytest.raises(InsufficientThermodynamicDataError):
+        _ = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
 
 
 def test_amplify4_tm_calculation() -> None:
@@ -269,7 +261,7 @@ def test_symmetry_correction() -> None:
     tm = calculate_tm_santalucia_1998_owczarzy_2008(
         self_comp_seq, GLOBAL_TM_SETTINGS
     )
-    assert tm > 0.0
+    assert tm == pytest.approx(66.0445, abs=0.5)
 
 
 def test_negative_concentrations_safeguard() -> None:
@@ -289,8 +281,28 @@ def test_negative_concentrations_safeguard() -> None:
     assert tm_amp4 > 0.0
 
 
+def test_positive_mg_negative_dntp() -> None:
+    """Test positive divalent salt with negative dNTP concentration."""
+    pos_mg_neg_dntp = TMSettings(
+        divalent_salt_conc=1.5,
+        dntp_conc=-0.2,
+    )
+    pos_mg_zero_dntp = TMSettings(
+        divalent_salt_conc=1.5,
+        dntp_conc=0.0,
+    )
+    primer = Primer("TAATACGACTCACTATAGGG")
+    tm_neg = calculate_tm_santalucia_1998_owczarzy_2008(primer, pos_mg_neg_dntp)
+    tm_zero = calculate_tm_santalucia_1998_owczarzy_2008(
+        primer, pos_mg_zero_dntp
+    )
+    assert tm_neg == pytest.approx(tm_zero)
+
+
 def test_ambiguous_base_gc_content() -> None:
-    """Test Tm calculation for sequences with ambiguous GC base 'S'."""
+    """Test Tm calculation error for sequences with degenerate base 'S'."""
     seq_s = Primer("ACGTS")
-    tm = calculate_tm_santalucia_1998_owczarzy_2008(seq_s, GLOBAL_TM_SETTINGS)
-    assert tm > -273.15
+    with pytest.raises(InsufficientThermodynamicDataError):
+        _ = calculate_tm_santalucia_1998_owczarzy_2008(
+            seq_s, GLOBAL_TM_SETTINGS
+        )

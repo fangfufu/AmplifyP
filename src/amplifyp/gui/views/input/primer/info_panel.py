@@ -193,8 +193,13 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 f"{len(primer_obj)} bp:   {primer_obj.seq}"
             )
 
-            tm = self.settings.calculate_primer_tm(primer_obj)
-            self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+            from amplifyp.errors import InsufficientThermodynamicDataError
+
+            try:
+                tm = self.settings.calculate_primer_tm(primer_obj)
+                self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+            except (InsufficientThermodynamicDataError, KeyError, ValueError):
+                self.info_tm_text.value = "Tm = N/A"
 
             self.info_pairs_text.value = (
                 f"{primer_obj.count_at()} AT Pairs, "
