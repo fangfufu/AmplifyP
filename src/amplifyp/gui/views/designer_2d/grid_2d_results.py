@@ -51,11 +51,15 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=self.settings.get("font_size_subheader", 16),
                 ),
-                ft.Text(
-                    "Run 2D analysis to view quality and overlap matrix.",
-                    italic=True,
-                    size=self.settings.get("font_size_small", 12),
-                    color=GUIColours.TEXT_ON_SURFACE,
+                ft.Container(
+                    content=ft.Text(
+                        "Run 2D analysis to view quality and overlap matrix.",
+                        italic=True,
+                        size=self.settings.get("font_size_small", 12),
+                        color=GUIColours.TEXT_ON_SURFACE,
+                    ),
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
                 ),
             ],
             spacing=6,
