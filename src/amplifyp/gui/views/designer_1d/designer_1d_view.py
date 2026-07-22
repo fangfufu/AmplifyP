@@ -444,10 +444,9 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
     def _clear_field_error(self, e: ft.Event[ft.TextField]) -> None:
         """Clear error text when user edits an input field."""
-        if hasattr(e, "control") and isinstance(e.control, ft.TextField):
-            if e.control.error:
-                e.control.error = None
-                self.app_page.update()
+        if hasattr(e, "control") and e.control and e.control.error:
+            e.control.error = None
+            self.app_page.update()
 
     def _clear_errors(self) -> None:
         """Clear all field error indicators and general error message."""
