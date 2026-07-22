@@ -73,17 +73,31 @@ source repository. AmplifyP requires **Python 3.12** or higher.
 To run AmplifyP from the source repository, you need to follow these steps:
 
 1. Clone the repository and navigate to the directory:
+
    ```bash
    git clone https://github.com/fangfufu/AmplifyP.git
    cd AmplifyP
    ```
-2. Set up and source your Python virtual environment under `.venv` at the root
-   of the repository:
+
+2. Set up the development environment:
+
+   **Linux** — automated setup script:
+
+   ```bash
+   ./scripts/setup_linux.sh --system-deps
+   source .venv/bin/activate
+   ```
+
+   **Manual** (cross-platform):
+
    ```bash
    python -m venv .venv
    source .venv/bin/activate
+   pip install .
    ```
+
 3. Install the application and its runtime dependencies:
+
    ```bash
    pip install .
    ```
@@ -138,6 +152,8 @@ For more documentation, please refer to:
   calculations.
 - **[Development Guide](src/README.md)**: Information on setting up development
   dependencies, linters, hot-reload, and Pyodide web builds.
+- **[Linux Setup Guide](scripts/setup_linux.sh)**: Automated development
+  environment setup script for Linux with optional system dependencies.
 - **[Windows Setup Guide](docs/windows_setup.md)**: A step-by-step developer
   guide for setting up the environment, running tests, and compiling installers
   on Windows.
