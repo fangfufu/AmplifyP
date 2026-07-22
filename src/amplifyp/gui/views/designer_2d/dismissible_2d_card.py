@@ -167,10 +167,13 @@ class Dismissible2DCard(DismissibleDetailCard):
                 content_padding=ft.Padding(8, 4, 8, 4),
             )
 
+            async def _copy_seq_async() -> None:
+                await ft.Clipboard().set(primer.seq)
+
             def _copy_seq(e: ft.ControlEvent) -> None:
                 try:
                     if e.page:
-                        e.page.set_clipboard(primer.seq)
+                        e.page.run_task(_copy_seq_async)
                 except RuntimeError:
                     pass
 
