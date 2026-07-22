@@ -151,7 +151,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_text.visible = False
                 self.info_dimer_card_container.content = None
                 self.info_dimer_card_container.visible = False
-                self.height = 250
+                self.height = 260
                 self.visible = True
             else:
                 self.visible = False
@@ -240,7 +240,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_card_container.visible = False
 
             if self.settings.get("primer_info_panel_fixed_height", False):
-                self.height = 250
+                self.height = 260
             else:
                 self.height = None
             self.visible = True
