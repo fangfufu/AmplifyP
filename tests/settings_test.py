@@ -33,7 +33,7 @@ def test_length_wise_weight_tbl() -> None:
     weight_tbl[2] = 0.8
     assert weight_tbl[2] == pytest.approx(0.8)
     assert weight_tbl[100] == pytest.approx(0.5)
-    assert weight_tbl.default_weight == 0.5
+    assert weight_tbl.default_weight == pytest.approx(0.5)
     assert weight_tbl.overrides == {0: 0.6, 1: 0.7, 2: 0.8}
 
 
@@ -203,9 +203,9 @@ def test_base_pair_weights_tbl_invalid_chars() -> None:
         _ = tbl["Z", "Z"]
 
 
-def test_tm_settings_dntp_conc_alias() -> None:
-    """Test snake_case alias property for dntp_conc in TMSettings."""
-    tm = TMSettings(dnTP_conc=2.5)
-    assert tm.dntp_conc == 2.5
+def test_tm_settings_dntp_conc() -> None:
+    """Test dntp_conc field in TMSettings."""
+    tm = TMSettings(dntp_conc=2.5)
+    assert tm.dntp_conc == pytest.approx(2.5)
     tm.dntp_conc = 3.0
-    assert tm.dnTP_conc == 3.0
+    assert tm.dntp_conc == pytest.approx(3.0)

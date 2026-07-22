@@ -25,7 +25,7 @@ from amplifyp.melting import (
     calculate_tm_lander_amplify4,
     calculate_tm_santalucia_1998_owczarzy_2008,
 )
-from amplifyp.settings import GLOBAL_TM_SETTINGS
+from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
 from tests.examples.amplify4_examples import (
     primer_11bp,
     primer_1701,
@@ -241,17 +241,13 @@ def test_calculate_tm_invalid_sequences() -> None:
 def test_dntp_chelation() -> None:
     """Test that dNTPs chelate Mg2+ and reduce free Mg concentration."""
     # 50 mM Na+, 1.5 mM Mg2+, 0.0 mM dNTP
-    no_dntp = replace(GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=0.0)
+    no_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=0.0)
     # 50 mM Na+, 1.5 mM Mg2+, 0.8 mM dNTP (free Mg2+ = 0.7 mM)
-    with_dntp = replace(
-        GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=0.8
-    )
+    with_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=0.8)
     # 50 mM Na+, 1.5 mM Mg2+, 2.0 mM dNTP (excess dNTP, free Mg2+ = 0.0 mM)
-    excess_dntp = replace(
-        GLOBAL_TM_SETTINGS, divalent_salt_conc=1.5, dnTP_conc=2.0
-    )
+    excess_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=2.0)
     # 50 mM Na+, 0.0 mM Mg2+, 0.0 mM dNTP (0 divalent)
-    zero_mg = replace(GLOBAL_TM_SETTINGS, divalent_salt_conc=0.0, dnTP_conc=0.0)
+    zero_mg = TMSettings(divalent_salt_conc=0.0, dntp_conc=0.0)
 
     seq = Primer("TAATACGACTCACTATAGGG")
 
@@ -278,11 +274,10 @@ def test_symmetry_correction() -> None:
 
 def test_negative_concentrations_safeguard() -> None:
     """Test negative salt/DNA concentrations do not crash calculations."""
-    neg_settings = replace(
-        GLOBAL_TM_SETTINGS,
+    neg_settings = TMSettings(
         monovalent_salt_conc=-50.0,
         divalent_salt_conc=-1.5,
-        dnTP_conc=-0.2,
+        dntp_conc=-0.2,
         dna_conc=-10.0,
     )
     tm_std = calculate_tm_santalucia_1998_owczarzy_2008(

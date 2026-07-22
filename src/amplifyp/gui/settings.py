@@ -76,7 +76,7 @@ class GUISettings:
             "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
             "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
             "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
-            "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dnTP_conc),
+            "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dntp_conc),
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
@@ -401,8 +401,8 @@ class GUISettings:
             divalent_salt_conc=self._safe_float(
                 "tm_div_salt", GLOBAL_TM_SETTINGS.divalent_salt_conc
             ),
-            dnTP_conc=self._safe_float(
-                "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dnTP_conc
+            dntp_conc=self._safe_float(
+                "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dntp_conc
             ),
         )
         return self._cached_tm_settings

@@ -508,7 +508,7 @@ class TMSettings:
             K+, Tris+) in mM. Defaults to 50.
         divalent_salt_conc (float): Concentration of divalent cations (Mg++) in
             mM. Defaults to 1.5.
-        dnTP_conc (float): Concentration of dNTPs in mM. Defaults to 0.
+        dntp_conc (float): Concentration of dNTPs in mM. Defaults to 0.
         enthalpy (BasePairWeightsTbl): Enthalpy values (5x5 matrix).
             Defaults to DEFAULT_AMPLIFY4_TM_ENTHALPY.
         entropy (BasePairWeightsTbl): Entropy values (5x5 matrix).
@@ -519,23 +519,13 @@ class TMSettings:
     dnap_conc: float = 0.0
     monovalent_salt_conc: float = 50.0
     divalent_salt_conc: float = 1.5
-    dnTP_conc: float = 0.0
+    dntp_conc: float = 0.0
     enthalpy: BasePairWeightsTbl = field(
         default_factory=DEFAULT_AMPLIFY4_TM_ENTHALPY.copy
     )
     entropy: BasePairWeightsTbl = field(
         default_factory=DEFAULT_AMPLIFY4_TM_ENTROPY.copy
     )
-
-    @property
-    def dntp_conc(self) -> float:
-        """Return dNTP concentration using snake_case naming convention."""
-        return self.dnTP_conc
-
-    @dntp_conc.setter
-    def dntp_conc(self, value: float) -> None:
-        """Set dNTP concentration using snake_case naming convention."""
-        self.dnTP_conc = value
 
 
 GLOBAL_TM_SETTINGS: TMSettings = TMSettings()

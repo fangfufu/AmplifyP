@@ -152,7 +152,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # Divalent: Mg2+ (mM -> M)
     # Deduct dNTPs which chelate Mg2+ in a 1:1 ratio to find free Mg2+
-    div_mM = max(0.0, settings.divalent_salt_conc - settings.dnTP_conc)
+    div_mM = max(0.0, settings.divalent_salt_conc - settings.dntp_conc)
     div_M = div_mM * 1e-3
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
