@@ -300,7 +300,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self.top_right_chart_container.height = max(70.0, current_h + delta_y)
         if self._cached_designer and self._cached_designer.all_dimers:
             self.chart_content_container.content = self._build_chart(
-                self._cached_designer.all_dimers
+                list(self._cached_designer.all_dimers)
             )
         try:
             if self.app_page:
@@ -346,7 +346,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
             # Update top-right quality bar chart
             self.chart_content_container.content = self._build_chart(
-                designer.all_dimers
+                list(designer.all_dimers)
             )
 
             for step_idx, dimer in enumerate(designer.all_dimers):
@@ -412,7 +412,9 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         has_cards = len(self.right_cards_list.controls) > 0
         self.clear_cards_button.visible = has_cards
 
-    def _clear_all_cards(self, e: ft.ControlEvent) -> None:
+    def _clear_all_cards(
+        self, e: ft.Event[ft.TextButton] | None = None
+    ) -> None:
         """Clear all right-hand panel self-dimer cards."""
         self.right_cards_list.controls.clear()
         self._update_cards_header_visibility()
