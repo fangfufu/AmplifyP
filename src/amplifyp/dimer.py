@@ -128,29 +128,7 @@ class PrimerDimerGenerator:
     def _calculate_dimer_stats(
         self, s1: str, s2: str, n1: int, n2: int
     ) -> tuple[float, int, int]:
-        best_quality: float = float("-inf")
-        best_pos: int = 0
-        weights = self.settings.weights
-
-        for left_end in range(n2):
-            q: float = 0.0
-            current_overlap = min(n1, n2 - left_end)
-
-            for offset in range(current_overlap):
-                c1 = s1[n1 - 1 - offset]
-                c2 = s2[left_end + offset]
-
-                try:
-                    q += weights[c1, c2]
-                except KeyError:
-                    pass
-
-            if q >= best_quality:
-                best_quality = q
-                best_pos = left_end
-
-        overlap_len = min(n1, n2 - best_pos)
-        return best_quality, best_pos, overlap_len
+        return calculate_dimer_stats(s1, s2, n1, n2, settings=self.settings)
 
     def generate_primer_dimer(self, p1: Primer, p2: Primer) -> PrimerDimer:
         """Calculate the dimer potential (quality) between two primers.
@@ -166,30 +144,7 @@ class PrimerDimerGenerator:
         Returns:
             PrimerDimer: The best dimer alignment found.
         """
-        # Ensure p1 is the shorter primer (or equal)
-        if len(p1) < len(p2):
-            short_p, long_p = p1, p2
-        else:
-            short_p, long_p = p2, p1
-
-        n1 = len(short_p)
-        n2 = len(long_p)
-
-        seq1 = short_p.seq_upper
-        seq2 = long_p.seq_upper
-
-        best_quality, best_pos, overlap_len = self._calculate_dimer_stats(
-            seq1, seq2, n1, n2
-        )
-
-        return PrimerDimer(
-            primer_1=short_p,
-            primer_2=long_p,
-            overlap=overlap_len,
-            quality=best_quality,
-            p1_pos=best_pos,
-            settings=self.settings,
-        )
+        return generate_primer_dimer(p1, p2, settings=self.settings)
 
     def analyse_primers(self) -> None:
         """Analyse all pairs of primers for primer dimers.
@@ -222,8 +177,8 @@ class PrimerDimerGenerator:
             if memo_key in memo:
                 best_quality, best_pos, overlap_len = memo[memo_key]
             else:
-                best_quality, best_pos, overlap_len = (
-                    self._calculate_dimer_stats(s1, s2, n1, n2)
+                best_quality, best_pos, overlap_len = calculate_dimer_stats(
+                    s1, s2, n1, n2, settings=self.settings
                 )
                 memo[memo_key] = (best_quality, best_pos, overlap_len)
 
@@ -240,3 +195,92 @@ class PrimerDimerGenerator:
 
         self.primer_dimers.sort(key=lambda x: x.quality, reverse=True)
         self.__analysed = True
+
+
+def calculate_dimer_stats(
+    s1: str,
+    s2: str,
+    n1: int,
+    n2: int,
+    settings: PrimerDimerSettings = GLOBAL_PRIMER_DIMER_SETTINGS,
+) -> tuple[float, int, int]:
+    """Calculate the best dimer alignment quality, position, and overlap length.
+
+    Args:
+        s1 (str): First sequence (shorter or equal).
+        s2 (str): Second sequence (longer or equal).
+        n1 (int): Length of first sequence.
+        n2 (int): Length of second sequence.
+        settings (PrimerDimerSettings): Settings to use.
+
+    Returns:
+        tuple[float, int, int]: Best quality score, best position, and overlap
+            length.
+    """
+    best_quality: float = float("-inf")
+    best_pos: int = 0
+    weights = settings.weights
+
+    for left_end in range(n2):
+        q: float = 0.0
+        current_overlap = min(n1, n2 - left_end)
+
+        for offset in range(current_overlap):
+            c1 = s1[n1 - 1 - offset]
+            c2 = s2[left_end + offset]
+
+            try:
+                q += weights[c1, c2]
+            except KeyError:
+                pass
+
+        if q >= best_quality:
+            best_quality = q
+            best_pos = left_end
+
+    overlap_len = min(n1, n2 - best_pos)
+    return best_quality, best_pos, overlap_len
+
+
+def generate_primer_dimer(
+    p1: Primer,
+    p2: Primer,
+    settings: PrimerDimerSettings = GLOBAL_PRIMER_DIMER_SETTINGS,
+) -> PrimerDimer:
+    """Calculate the dimer potential (quality) between two primers.
+
+    The algorithm mimics the Amplify4 implementation. It aligns the 3' end
+    of the shorter primer (p1) with different positions on the longer
+    primer (p2) and scores the antiparallel overlap.
+
+    Args:
+        p1 (Primer): The first primer.
+        p2 (Primer): The second primer.
+        settings (PrimerDimerSettings): Settings to use.
+
+    Returns:
+        PrimerDimer: The best dimer alignment found.
+    """
+    if len(p1) < len(p2):
+        short_p, long_p = p1, p2
+    else:
+        short_p, long_p = p2, p1
+
+    n1 = len(short_p)
+    n2 = len(long_p)
+
+    seq1 = short_p.seq_upper
+    seq2 = long_p.seq_upper
+
+    best_quality, best_pos, overlap_len = calculate_dimer_stats(
+        seq1, seq2, n1, n2, settings=settings
+    )
+
+    return PrimerDimer(
+        primer_1=short_p,
+        primer_2=long_p,
+        overlap=overlap_len,
+        quality=best_quality,
+        p1_pos=best_pos,
+        settings=settings,
+    )
