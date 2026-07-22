@@ -55,15 +55,13 @@ class NavigationManager:
             on_clear_all=ctrl.clear_all,
             pcr_button_ref=ctrl.pcr_button_ref,
             dimers_button_ref=ctrl.dimers_button_ref,
-            visible_pcr_button_ref=ctrl.visible_pcr_button_ref,
-            visible_dimers_button_ref=ctrl.visible_dimers_button_ref,
         )
 
-        # Store aliases for backward compatibility or direct accesses
-        ctrl.visible_save_btn_control = ctrl.header.visible_save_btn_control
-        ctrl.visible_clear_btn_control = ctrl.header.visible_clear_btn_control
-        ctrl.visible_load_btn_control = ctrl.header.visible_load_btn_control
-        ctrl.visible_header_divider = ctrl.header.visible_header_divider
+        # Store aliases for direct accesses
+        ctrl.save_btn_control = ctrl.header.save_btn_control
+        ctrl.clear_btn_control = ctrl.header.clear_btn_control
+        ctrl.load_btn_control = ctrl.header.load_btn_control
+        ctrl.header_divider = ctrl.header.header_divider
 
         # Configure page appbar
         ctrl.page.appbar = ft.AppBar(
@@ -107,10 +105,10 @@ class NavigationManager:
 
         ctrl.view_container.content = view
         is_input = view == ctrl.input_view
-        ctrl.visible_save_btn_control.visible = is_input
-        ctrl.visible_clear_btn_control.visible = is_input
-        ctrl.visible_load_btn_control.visible = is_input
-        ctrl.visible_header_divider.visible = is_input
+        ctrl.save_btn_control.visible = is_input
+        ctrl.clear_btn_control.visible = is_input
+        ctrl.load_btn_control.visible = is_input
+        ctrl.header_divider.visible = is_input
 
         if view == ctrl.input_view:
             ctrl.page.on_resize = ctrl.input_view._handle_resize

@@ -68,11 +68,9 @@ class GUIController:
         self._confirm_dialog = None
         self._clear_dialog = None
 
-        # Refs for buttons (backward compatibility / lookup)
+        # Refs for buttons
         self.pcr_button_ref = ft.Ref[ft.FilledButton]()
         self.dimers_button_ref = ft.Ref[ft.FilledButton]()
-        self.visible_pcr_button_ref = ft.Ref[ft.FilledButton]()
-        self.visible_dimers_button_ref = ft.Ref[ft.FilledButton]()
 
         # Views placeholders
         self.input_view: InputView = cast(InputView, None)
@@ -85,16 +83,10 @@ class GUIController:
         self.header_container: ft.Container = cast(ft.Container, None)
 
         # UI Control placeholders
-        self.visible_save_btn_control: ft.FilledButton = cast(
-            ft.FilledButton, None
-        )
-        self.visible_clear_btn_control: ft.FilledButton = cast(
-            ft.FilledButton, None
-        )
-        self.visible_load_btn_control: ft.FilledButton = cast(
-            ft.FilledButton, None
-        )
-        self.visible_header_divider: ft.Container = cast(ft.Container, None)
+        self.save_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
+        self.clear_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
+        self.load_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
+        self.header_divider: ft.Container = cast(ft.Container, None)
         self.notification_helper: NotificationHelper = cast(
             NotificationHelper, None
         )
@@ -279,20 +271,9 @@ class GUIController:
             btn.disabled = not pcr_is_enabled
             btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
 
-        visible_btn = self.visible_pcr_button_ref.current
-        if visible_btn:
-            visible_btn.disabled = not pcr_is_enabled
-            visible_btn.text = "PCR"  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-
         dimers_btn = self.dimers_button_ref.current
         if dimers_btn:
             dimers_btn.disabled = (
-                len(active_primers) < 1
-            ) or has_invalid_selected
-
-        visible_dimers_btn = self.visible_dimers_button_ref.current
-        if visible_dimers_btn:
-            visible_dimers_btn.disabled = (
                 len(active_primers) < 1
             ) or has_invalid_selected
 

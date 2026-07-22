@@ -738,19 +738,13 @@ def test_app_views_disabled_on_invalid_selected() -> None:
 
     # Create refs for buttons
     pcr_btn = ft.FilledButton("PCR", disabled=False)
-    visible_pcr_btn = ft.FilledButton("PCR", disabled=False)
     dimers_btn = ft.FilledButton("Primer Dimers", disabled=False)
-    visible_dimers_btn = ft.FilledButton("Primer Dimers", disabled=False)
 
     # Define update_pcr_button_state with mocked references
     pcr_button_ref = MagicMock()
     pcr_button_ref.current = pcr_btn
-    visible_pcr_button_ref = MagicMock()
-    visible_pcr_button_ref.current = visible_pcr_btn
     dimers_button_ref = MagicMock()
     dimers_button_ref.current = dimers_btn
-    visible_dimers_button_ref = MagicMock()
-    visible_dimers_button_ref.current = visible_dimers_btn
 
     view = InputView(mock_page, input_data)
     view.update_ui()
@@ -779,14 +773,8 @@ def test_app_views_disabled_on_invalid_selected() -> None:
 
         if pcr_button_ref.current:
             pcr_button_ref.current.disabled = not pcr_is_enabled
-        if visible_pcr_button_ref.current:
-            visible_pcr_button_ref.current.disabled = not pcr_is_enabled
         if dimers_button_ref.current:
             dimers_button_ref.current.disabled = (
-                len(active_primers) < 1
-            ) or has_invalid_selected
-        if visible_dimers_button_ref.current:
-            visible_dimers_button_ref.current.disabled = (
                 len(active_primers) < 1
             ) or has_invalid_selected
 

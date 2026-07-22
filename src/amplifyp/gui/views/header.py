@@ -40,8 +40,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         on_load: Callable[[ft.ControlEvent], Any],
         pcr_button_ref: ft.Ref[ft.FilledButton],
         dimers_button_ref: ft.Ref[ft.FilledButton],
-        visible_pcr_button_ref: ft.Ref[ft.FilledButton],
-        visible_dimers_button_ref: ft.Ref[ft.FilledButton],
         on_clear_all: Callable[[ft.ControlEvent], Any] | None = None,
         on_switch_designer: Callable[[ft.ControlEvent], None] | None = None,
     ) -> None:
@@ -51,7 +49,6 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         self.settings = settings
 
-        # AppBar buttons (for test compatibility)
         input_button = ft.FilledButton(
             "Input",
             icon=ft.Icons.INPUT,
@@ -81,7 +78,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         dimers_button.tooltip = "Primer Dimers"
 
         designer_button = ft.FilledButton(
-            "1D Designer",
+            "Designer 1D",
             icon=ft.Icons.TUNE,
             on_click=on_switch_designer,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="1D Primer Designer",
@@ -104,25 +101,31 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         about_button.tooltip = "About"
 
-        save_btn_control = ft.FilledButton(
+        self.save_btn_control = ft.FilledButton(
             "Save all",
             icon=ft.Icons.SAVE,
             tooltip="Save all",
             on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
-        clear_btn_control = ft.FilledButton(
+        self.clear_btn_control = ft.FilledButton(
             "Clear all",
             icon=ft.Icons.DELETE,
             tooltip="Clear all",
             on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
-        load_btn_control = ft.FilledButton(
+        self.load_btn_control = ft.FilledButton(
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Load all",
             on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        )
+
+        self.header_divider = ft.Container(
+            width=1,
+            height=20,
+            bgcolor=GUIColours.OUTLINE,
         )
 
         self.appbar_actions = [
@@ -132,90 +135,10 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             designer_button,
             settings_button,
             about_button,
-            clear_btn_control,
-            save_btn_control,
-            load_btn_control,
+            self.clear_btn_control,
+            self.save_btn_control,
+            self.load_btn_control,
         ]
-
-        # Visible navigation controls (Responsive header)
-        visible_input_button = ft.FilledButton(
-            "Input",
-            icon=ft.Icons.INPUT,
-            on_click=on_switch_input,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            tooltip="Input",
-        )
-        visible_input_button.tooltip = "Input"
-
-        visible_pcr_button = ft.FilledButton(
-            "PCR",
-            ref=visible_pcr_button_ref,
-            on_click=on_pcr_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            disabled=True,
-            icon=ft.Icons.ANALYTICS,
-            tooltip="PCR",
-        )
-        visible_pcr_button.tooltip = "PCR"
-
-        visible_dimers_button = ft.FilledButton(
-            "Primer Dimers",
-            ref=visible_dimers_button_ref,
-            on_click=on_dimers_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            disabled=True,
-            icon=ft.Icons.COMPARE_ARROWS,
-            tooltip="Primer Dimers",
-        )
-        visible_dimers_button.tooltip = "Primer Dimers"
-
-        visible_designer_button = ft.FilledButton(
-            "1D Designer",
-            icon=ft.Icons.TUNE,
-            on_click=on_switch_designer,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            tooltip="1D Primer Designer",
-        )
-        visible_designer_button.tooltip = "1D Primer Designer"
-
-        visible_settings_button = ft.FilledButton(
-            "Settings",
-            icon=ft.Icons.SETTINGS,
-            on_click=on_switch_settings,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            tooltip="Settings",
-        )
-        visible_settings_button.tooltip = "Settings"
-
-        visible_about_button = ft.FilledButton(
-            "About",
-            icon=ft.Icons.INFO,
-            on_click=on_switch_about,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            tooltip="About",
-        )
-        visible_about_button.tooltip = "About"
-
-        self.visible_save_btn_control = ft.FilledButton(
-            "Save all",
-            icon=ft.Icons.SAVE,
-            tooltip="Save all",
-            on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        )
-
-        self.visible_clear_btn_control = ft.FilledButton(
-            "Clear all",
-            icon=ft.Icons.DELETE,
-            tooltip="Clear all",
-            on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        )
-
-        self.visible_load_btn_control = ft.FilledButton(
-            "Load all",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load all",
-            on_click=on_load,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        )
-
-        self.visible_header_divider = ft.Container(
-            width=1,
-            height=20,
-            bgcolor=GUIColours.OUTLINE,
-        )
 
         app_version = get_version()
         self.version_text = ft.Text(
@@ -252,22 +175,22 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                     [
                         ft.Row(
                             [
-                                visible_input_button,
-                                visible_pcr_button,
-                                visible_dimers_button,
-                                visible_designer_button,
-                                visible_settings_button,
-                                visible_about_button,
+                                input_button,
+                                pcr_button,
+                                dimers_button,
+                                designer_button,
+                                settings_button,
+                                about_button,
                             ],
                             spacing=10,
                             tight=True,
                         ),
-                        self.visible_header_divider,
+                        self.header_divider,
                         ft.Row(
                             [
-                                self.visible_clear_btn_control,
-                                self.visible_save_btn_control,
-                                self.visible_load_btn_control,
+                                self.clear_btn_control,
+                                self.save_btn_control,
+                                self.load_btn_control,
                             ],
                             spacing=10,
                             tight=True,
