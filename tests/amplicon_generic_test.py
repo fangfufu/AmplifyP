@@ -27,7 +27,7 @@ from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
 def test_duplicate_repliconf_error() -> None:
     """Test that adding a duplicate Repliconf raises DuplicateRepliconfError."""
     dna = DNA("ATGC" * 10, name="Template")
-    primer = Primer("ATGC", "Primer1")
+    primer = Primer("ATGC", name="Primer1")
     repliconf = Repliconf(dna, primer, GLOBAL_REPLICATION_SETTINGS)
     generator = AmpliconGenerator(dna)
 
@@ -40,7 +40,7 @@ def test_duplicate_repliconf_error() -> None:
 def test_remove_repliconf() -> None:
     """Test that a Repliconf can be removed from the AmpliconGenerator."""
     dna = DNA("ATGC" * 10, name="Template")
-    primer = Primer("ATGC", "Primer1")
+    primer = Primer("ATGC", name="Primer1")
     repliconf = Repliconf(dna, primer, GLOBAL_REPLICATION_SETTINGS)
     generator = AmpliconGenerator(dna)
 
@@ -54,7 +54,7 @@ def test_remove_repliconf() -> None:
 def test_remove_repliconf_not_found() -> None:
     """Test that removing a non-existent Repliconf raises ValueError."""
     dna = DNA("ATGC" * 10, name="Template")
-    primer = Primer("ATGC", "Primer1")
+    primer = Primer("ATGC", name="Primer1")
     repliconf = Repliconf(dna, primer, GLOBAL_REPLICATION_SETTINGS)
     generator = AmpliconGenerator(dna)
 

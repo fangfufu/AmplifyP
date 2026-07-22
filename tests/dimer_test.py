@@ -146,7 +146,7 @@ def test_edge_cases() -> None:
     generator = PrimerDimerGenerator()
 
     # Very short primer - unlikely to have high score
-    short_p = Primer("ATCG", "short")
+    short_p = Primer("ATCG", name="short")
 
     # Compare with itself
     res = generator.generate_primer_dimer(short_p, short_p)
@@ -158,7 +158,7 @@ def test_edge_cases() -> None:
 
     # Primers with no complementarity (poly-A vs poly-A)
     # Default weights: A-A mismatches are penalty (-20 or similar)
-    pA = Primer("AAAAA", "polyA")
+    pA = Primer("AAAAA", name="polyA")
     res_A = generator.generate_primer_dimer(pA, pA)
     # Should be low quality
     assert res_A.quality < 0
@@ -218,8 +218,8 @@ def test_primer_dimer_attributes() -> None:
 def test_primer_order_swap() -> None:
     """Test that generate_primer_dimer handles primers in any order."""
     generator = PrimerDimerGenerator()
-    p_long = Primer("AAAAATTTTT", "long")
-    p_short = Primer("AAAAA", "short")
+    p_long = Primer("AAAAATTTTT", name="long")
+    p_short = Primer("AAAAA", name="short")
 
     # Case 1: p1 is shorter (normal)
     res1 = generator.generate_primer_dimer(p_short, p_long)
