@@ -20,6 +20,8 @@ Chain Reaction (PCR) simulation. It manages templates, primers, and the
 internal amplicon generator to predict all possible amplification products.
 """
 
+from collections.abc import Iterable
+
 from amplifyp.amplicon import Amplicon, AmpliconGenerator
 from amplifyp.dna import DNA, Primer
 from amplifyp.errors import (
@@ -36,9 +38,9 @@ class PCR:
 
     Attributes:
         template (DNA): The template DNA.
-        primers (list[Primer]): The primers used in the reaction.
-        repliconfs (list[Replicon]): The replication configurations.
-        amplicon_generator (AmpliconGenerator): The amplicon generator.
+        settings (ReplicationSettings): The replication settings used.
+        amplicon_generator (AmpliconGenerator): The internal amplicon generator.
+        primers (list[Primer]): The primers configured for the reaction.
         amplicons (list[Amplicon]): The predicted amplicons.
     """
 
@@ -46,7 +48,7 @@ class PCR:
         self,
         template: DNA,
         settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
-    ):
+    ) -> None:
         """Initialise a PCR reaction.
 
         Args:
@@ -56,9 +58,11 @@ class PCR:
         """
         self.template = template
         self.settings = settings
-        self.__primers: list[Primer] = []
         self.amplicon_generator = AmpliconGenerator(self.template)
-        self.__amplicons: list[Amplicon] = []
+
+        self._primers: list[Primer] = []
+        self._primer_repliconfs: dict[Primer, Repliconf] = {}
+        self._amplicons: list[Amplicon] = []
 
     def add_primer(self, primer: Primer) -> None:
         """Add a primer to the PCR reaction.
@@ -72,14 +76,19 @@ class PCR:
             DuplicatedSequenceError: If a primer with the same sequence
                 is already added.
         """
-        for p in self.__primers:
+        seq_upper = primer.seq.upper()
+        for p in self._primers:
             if p.name == primer.name:
                 raise DuplicatedNameError(primer.name)
-            if p.seq.upper() == primer.seq.upper():
+            if p.seq.upper() == seq_upper:
                 raise DuplicatedSequenceError(primer.seq)
-        self.__primers.append(primer)
+
         repliconf = Repliconf(self.template, primer, self.settings)
         self.amplicon_generator.add_repliconf(repliconf)
+
+        self._primers.append(primer)
+        self._primer_repliconfs[primer] = repliconf
+        self._amplicons.clear()
 
     def remove_primer(self, primer: Primer) -> None:
         """Remove a primer from the PCR reaction.
@@ -90,17 +99,19 @@ class PCR:
         Raises:
             PrimerNotFoundError: If the primer is not found.
         """
-        if primer not in self.__primers:
+        if primer not in self._primer_repliconfs:
             raise PrimerNotFoundError(primer)
-        self.__primers.remove(primer)
-        repliconf = Repliconf(self.template, primer, self.settings)
-        self.amplicon_generator.remove_repliconf(repliconf)
 
-    def add_primers(self, primers: list[Primer]) -> None:
+        repliconf = self._primer_repliconfs.pop(primer)
+        self._primers.remove(primer)
+        self.amplicon_generator.remove_repliconf(repliconf)
+        self._amplicons.clear()
+
+    def add_primers(self, primers: Iterable[Primer]) -> None:
         """Add multiple primers to the PCR reaction.
 
         Args:
-            primers (list[Primer]): The primers to add.
+            primers (Iterable[Primer]): The primers to add.
         """
         for primer in primers:
             self.add_primer(primer)
@@ -108,7 +119,7 @@ class PCR:
     @property
     def primers(self) -> list[Primer]:
         """Get the primers used in the PCR reaction."""
-        return self.__primers.copy()
+        return self._primers.copy()
 
     def predict_amplicons(self) -> int:
         """Predict the amplicons for the PCR reaction.
@@ -119,8 +130,8 @@ class PCR:
         Returns:
             int: The number of amplicons predicted.
         """
-        self.__amplicons = self.amplicon_generator.get_amplicons()
-        return len(self.__amplicons)
+        self._amplicons = self.amplicon_generator.get_amplicons()
+        return len(self._amplicons)
 
     @property
     def amplicons(self) -> list[Amplicon]:
@@ -129,4 +140,19 @@ class PCR:
         Returns:
             list[Amplicon]: A list of predicted amplicon objects.
         """
-        return self.__amplicons.copy()
+        return self._amplicons.copy()
+
+    def __len__(self) -> int:
+        """Return the number of primers currently in the PCR reaction."""
+        return len(self._primers)
+
+    def __contains__(self, primer: Primer) -> bool:
+        """Check if a primer is part of the PCR reaction."""
+        return primer in self._primer_repliconfs
+
+    def __repr__(self) -> str:
+        """Return a string representation of the PCR reaction."""
+        return (
+            f"PCR(template={self.template!r}, primers={len(self._primers)}, "
+            f"amplicons={len(self._amplicons)})"
+        )

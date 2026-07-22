@@ -18,7 +18,11 @@
 import pytest
 
 from amplifyp.errors import ColumnLengthMismatchError, RowLengthMismatchError
-from amplifyp.settings import BasePairWeightsTbl, LengthWiseWeightTbl
+from amplifyp.settings import (
+    BasePairWeightsTbl,
+    LengthWiseWeightTbl,
+    TMSettings,
+)
 
 
 def test_length_wise_weight_tbl() -> None:
@@ -29,6 +33,23 @@ def test_length_wise_weight_tbl() -> None:
     weight_tbl[2] = 0.8
     assert weight_tbl[2] == pytest.approx(0.8)
     assert weight_tbl[100] == pytest.approx(0.5)
+    assert weight_tbl.default_weight == pytest.approx(0.5)
+    assert weight_tbl.overrides == {0: 0.6, 1: 0.7, 2: 0.8}
+
+
+def test_length_wise_weight_tbl_eq_and_repr() -> None:
+    """Test equality and string representation of LengthWiseWeightTbl."""
+    tbl1 = LengthWiseWeightTbl(0.5, {0: 0.6})
+    tbl2 = LengthWiseWeightTbl(0.5, {0: 0.6})
+    tbl3 = LengthWiseWeightTbl(0.5, {0: 0.7})
+
+    assert tbl1 == tbl2
+    assert tbl1 != tbl3
+    assert tbl1 != "not_a_tbl"
+    assert (
+        repr(tbl1)
+        == "LengthWiseWeightTbl(default_weight=0.5, overrides={0: 0.6})"
+    )
 
 
 def test_empty_length_wise_weight_tbl() -> None:
@@ -124,13 +145,45 @@ def test_base_pair_weights_tbl_case_sensitivity() -> None:
     assert tbl["A", "a"] == pytest.approx(1.0)
 
 
+def test_base_pair_weights_tbl_row_max_update() -> None:
+    """Test that row_max is updated when weights are modified."""
+    row = "ACGT-"
+    col = "ACGT-"
+    tbl = BasePairWeightsTbl(row, col, pairwise_weights)
+
+    assert tbl.row_max("A") == pytest.approx(1.0)
+    tbl["A", "T"] = 2.5
+    assert tbl.row_max("A") == pytest.approx(2.5)
+
+
+def test_base_pair_weights_tbl_without_gap_suffix() -> None:
+    """Test BasePairWeightsTbl when row/col do not end with a gap symbol."""
+    row = "ACGT"
+    col = "ACGT"
+    weights = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+    tbl = BasePairWeightsTbl(row, col, weights)
+    assert tbl.row() == "ACGT"
+    assert tbl.column() == "ACGT"
+
+
+def test_base_pair_weights_tbl_eq_and_repr() -> None:
+    """Test equality and string representation of BasePairWeightsTbl."""
+    row = "ACGT-"
+    col = "ACGT-"
+    tbl1 = BasePairWeightsTbl(row, col, pairwise_weights)
+    tbl2 = BasePairWeightsTbl(row, col, pairwise_weights)
+
+    assert tbl1 == tbl2
+    assert repr(tbl1) == "BasePairWeightsTbl(row='ACGT', col='ACGT')"
+
+
 def test_base_pair_weights_tbl_invalid_chars() -> None:
     """Test BasePairWeightsTbl with invalid characters (code >= 128)."""
-    # The optimised lookup table only supports ASCII (0-127).
-    # Characters outside this range should fall back to dictionary lookup
-    # or handle gracefully (be ignored in map).
-
-    # \u00C0 is À (code 192)
     weird_char = "\u00c0"
     row = "A" + weird_char
     col = "A"
@@ -138,13 +191,21 @@ def test_base_pair_weights_tbl_invalid_chars() -> None:
 
     tbl = BasePairWeightsTbl(row, col, weights)
 
-    # Should work via fallback
+    # Should work via fallback or expanded map
     assert tbl[weird_char, "A"] == pytest.approx(2.0)
 
-    # Setter should also work via fallback
+    # Setter should also work
     tbl[weird_char, "A"] = 3.0
     assert tbl[weird_char, "A"] == pytest.approx(3.0)
 
     # Also test completely invalid lookup
     with pytest.raises(KeyError):
         _ = tbl["Z", "Z"]
+
+
+def test_tm_settings_dntp_conc() -> None:
+    """Test dntp_conc field in TMSettings."""
+    tm = TMSettings(dntp_conc=2.5)
+    assert tm.dntp_conc == pytest.approx(2.5)
+    tm.dntp_conc = 3.0
+    assert tm.dntp_conc == pytest.approx(3.0)

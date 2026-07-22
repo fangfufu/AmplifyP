@@ -114,7 +114,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             padding=ft.Padding(12, 4, 12, 4),
             border_radius=6,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
-            height=110 if self.show_names else 75,
+            height=110 if self.show_names else 85,
         )
 
     def _build_card_header(

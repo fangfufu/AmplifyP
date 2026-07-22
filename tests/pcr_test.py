@@ -138,3 +138,22 @@ def test_pcr_add_primers() -> None:
     assert len(pcr.primers) == 2
     assert primer_11bp in pcr.primers
     assert primer_1701 in pcr.primers
+
+
+def test_pcr_protocols_and_cache() -> None:
+    """Test PCR len, contains, repr and amplicon cache invalidation."""
+    pcr = PCR(amplify4_linear_example)
+    assert len(pcr) == 0
+    assert primer_11bp not in pcr
+
+    pcr.add_primer(primer_11bp)
+    assert len(pcr) == 1
+    assert primer_11bp in pcr
+    assert "PCR(" in repr(pcr)
+
+    pcr.add_primer(primer_1701)
+    pcr.predict_amplicons()
+    assert len(pcr.amplicons) > 0
+
+    pcr.remove_primer(primer_1701)
+    assert len(pcr.amplicons) == 0

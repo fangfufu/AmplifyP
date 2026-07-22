@@ -55,7 +55,7 @@ NN_THERMO_DATA: Final[dict[str, tuple[float, float]]] = {
     "CC": (-8000, -19.9),
 }
 
-# Optimization: Pre-compute tuple keys for faster lookup in loops
+# Optimisation: Pre-compute tuple keys for faster lookup in loops
 # pairwise(seq) produces tuples of characters, e.g. ('A', 'A')
 _NN_THERMO_DATA_TUPLE: Final[dict[tuple[str, str], tuple[float, float]]] = {
     (k[0], k[1]): v for k, v in NN_THERMO_DATA.items()
@@ -94,6 +94,12 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
     if n < 2:
         return 0.0
 
+    if any(base not in "ACGT" for base in seq):
+        raise InsufficientThermodynamicDataError(
+            "Sequence contains non-standard or degenerate bases for which "
+            "nearest-neighbour parameters are not available"
+        )
+
     # Constants
     R: Final[float] = 1.987  # cal/(K*mol)
 
@@ -127,15 +133,18 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         dh += 2300
         ds += 4.1
 
-    # Nearest neighbor steps
+    # Symmetry correction for self-complementary sequences (SantaLucia 1998)
+    is_self_comp = seq == primer.reverse_complement().seq_upper
+    if is_self_comp:
+        ds += -1.4
+    conc_factor = 1.0 if is_self_comp else 4.0
+
+    # Nearest neighbour steps
     for dinuc in pairwise(seq):
-        if dinuc in _NN_THERMO_DATA_TUPLE:
-            val = _NN_THERMO_DATA_TUPLE[dinuc]
+        val = _NN_THERMO_DATA_TUPLE.get(dinuc)
+        if val is not None:
             dh += val[0]
             ds += val[1]
-        else:
-            # Skip invalid dinucleotides (e.g. Ns)
-            pass
 
     # Salt Correction (Owczarzy 2008)
     # References:
@@ -145,14 +154,16 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
 
     # 1. Calculate concentrations
     # Monovalent: Na+, K+, Tris+ (mM -> M)
-    mono_mM = settings.monovalent_salt_conc
+    # Clamp salt inputs to non-negative values
+    mono_mM = max(0.0, settings.monovalent_salt_conc)
     mono_M = mono_mM * 1e-3
 
     # Divalent: Mg2+ (mM -> M)
-    # We ignore dNTPs for now (which chelate Mg2+) as per standard simple
-    # inputs,
-    # or assume free Mg2+ is provided.
-    div_mM = settings.divalent_salt_conc
+    # Deduct dNTPs which chelate Mg2+ in a 1:1 ratio to find free Mg2+
+    div_mM = max(
+        0.0,
+        max(0.0, settings.divalent_salt_conc) - max(0.0, settings.dntp_conc),
+    )
     div_M = div_mM * 1e-3
 
     # 2. Determine mode (Monovalent only, Mixed, or Divalent dominant)
@@ -170,15 +181,12 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
     # SantaLucia 1998 works by correcting dS.
     # Owczarzy 2008 works by correcting 1/Tm.
 
-    # Let's calculate the "base" Tm (at 1M Na+) first
-    # 1M Na+ means NO entropy correction term (ln(1) = 0)
-
     # Calculate Tm_1M_Na (Kelvin)
     total_dna_conc_M = settings.dna_conc * 1e-9
     if total_dna_conc_M <= 0:
         total_dna_conc_M = 50e-9
 
-    denom_1M = ds + R * math.log(total_dna_conc_M / 4.0)
+    denom_1M = ds + R * math.log(total_dna_conc_M / conc_factor)
     if math.isclose(denom_1M, 0.0, abs_tol=1e-9):  # pragma: no cover
         raise InsufficientThermodynamicDataError(
             "Denominator is zero in Tm calculation"
@@ -200,7 +208,9 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # This effectively modifies the denom.
         if mono_M > 0:
             ds_corr = 0.368 * (n - 1) * math.log(mono_M)
-            denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+            denom_corr = (
+                ds + ds_corr + R * math.log(total_dna_conc_M / conc_factor)
+            )
             if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
                 raise InsufficientThermodynamicDataError(
                     "Denominator with salt correction is zero"
@@ -216,7 +226,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         # Paper says "Monovalent ion dominant", implies treating roughly as Na+.
         # We will use the SantaLucia correction with [Mon+]
         ds_corr = 0.368 * (n - 1) * math.log(mono_M)
-        denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / 4.0)
+        denom_corr = ds + ds_corr + R * math.log(total_dna_conc_M / conc_factor)
         if math.isclose(denom_corr, 0.0, abs_tol=1e-9):
             raise InsufficientThermodynamicDataError(
                 "Denominator with salt correction is zero"
@@ -235,7 +245,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         g = 8.31e-5
 
         # Calculate fraction of GC
-        fgc = (seq.count("G") + seq.count("C")) / n
+        fgc = primer.ratio_cg()
 
         log_mg = math.log(div_M)
 
@@ -298,9 +308,7 @@ def calculate_tm_lander_amplify4(
     # Sum neighbours
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
-    for i in range(seq_len - 1):
-        x = primer.seq[i]
-        y = primer.seq[i + 1]
+    for x, y in pairwise(seq):
         entr += entropy[y, x]
         enth += enthalpy[y, x]
 
@@ -315,6 +323,8 @@ def calculate_tm_lander_amplify4(
     # Or maybe it treats input as raw number?
     # We use settings.DNAConc exactly as Swift does.
     dna_conc_val = settings.dna_conc
+    if dna_conc_val <= 0:
+        dna_conc_val = 50.0
     log_dna = 1.987 * math.log(dna_conc_val / 4.0e9)
 
     # Salt: 16.6 * log(saltConc/1000) / log(10.0)

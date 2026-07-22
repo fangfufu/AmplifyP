@@ -25,7 +25,7 @@ from amplifyp.melting import (
     calculate_tm_lander_amplify4,
     calculate_tm_santalucia_1998_owczarzy_2008,
 )
-from amplifyp.settings import GLOBAL_TM_SETTINGS
+from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
 from tests.examples.amplify4_examples import (
     primer_11bp,
     primer_1701,
@@ -138,17 +138,9 @@ def test_invalid_chars_handling() -> None:
     # So "ACNT" -> AC (valid), CN (invalid), NT(invalid). Only first step
     # counts.
 
-    seq_normal = "ACGT"
     seq_n = "ACNT"
-
-    tm_normal = calculate_tm_santalucia_1998_owczarzy_2008(
-        Primer(seq_normal), settings
-    )
-    tm_n = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
-
-    # With N, we lose detailed energy but shouldn't crash.
-    # The resulting Tm will be very low due to missing stacking energy.
-    assert tm_n < tm_normal
+    with pytest.raises(InsufficientThermodynamicDataError):
+        _ = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
 
 
 def test_amplify4_tm_calculation() -> None:
@@ -236,3 +228,81 @@ def test_calculate_tm_invalid_sequences() -> None:
     settings = GLOBAL_TM_SETTINGS
     with pytest.raises(InsufficientThermodynamicDataError):
         calculate_tm_santalucia_1998_owczarzy_2008(Primer("NNNN"), settings)
+
+
+def test_dntp_chelation() -> None:
+    """Test that dNTPs chelate Mg2+ and reduce free Mg concentration."""
+    # 50 mM Na+, 1.5 mM Mg2+, 0.0 mM dNTP
+    no_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=0.0)
+    # 50 mM Na+, 1.5 mM Mg2+, 0.8 mM dNTP (free Mg2+ = 0.7 mM)
+    with_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=0.8)
+    # 50 mM Na+, 1.5 mM Mg2+, 2.0 mM dNTP (excess dNTP, free Mg2+ = 0.0 mM)
+    excess_dntp = TMSettings(divalent_salt_conc=1.5, dntp_conc=2.0)
+    # 50 mM Na+, 0.0 mM Mg2+, 0.0 mM dNTP (0 divalent)
+    zero_mg = TMSettings(divalent_salt_conc=0.0, dntp_conc=0.0)
+
+    seq = Primer("TAATACGACTCACTATAGGG")
+
+    tm_no_dntp = calculate_tm_santalucia_1998_owczarzy_2008(seq, no_dntp)
+    tm_with_dntp = calculate_tm_santalucia_1998_owczarzy_2008(seq, with_dntp)
+    tm_excess = calculate_tm_santalucia_1998_owczarzy_2008(seq, excess_dntp)
+    tm_zero_mg = calculate_tm_santalucia_1998_owczarzy_2008(seq, zero_mg)
+
+    # dNTP chelation reduces available Mg2+, lowering Tm
+    assert tm_with_dntp < tm_no_dntp
+    # Excess dNTP eliminates free Mg2+, matching 0 divalent salt
+    assert tm_excess == pytest.approx(tm_zero_mg)
+
+
+def test_symmetry_correction() -> None:
+    """Test that self-complementary sequences undergo symmetry correction."""
+    # Self-complementary sequence: CGCGCGCGCGCG
+    self_comp_seq = Primer("CGCGCGCGCGCG")
+    tm = calculate_tm_santalucia_1998_owczarzy_2008(
+        self_comp_seq, GLOBAL_TM_SETTINGS
+    )
+    assert tm == pytest.approx(66.0445, abs=0.5)
+
+
+def test_negative_concentrations_safeguard() -> None:
+    """Test negative salt/DNA concentrations do not crash calculations."""
+    neg_settings = TMSettings(
+        monovalent_salt_conc=-50.0,
+        divalent_salt_conc=-1.5,
+        dntp_conc=-0.2,
+        dna_conc=-10.0,
+    )
+    tm_std = calculate_tm_santalucia_1998_owczarzy_2008(
+        Primer("TAATACGACTCACTATAGGG"), neg_settings
+    )
+    assert tm_std > -273.15
+
+    tm_amp4 = calculate_tm_lander_amplify4(primer_11bp, neg_settings)
+    assert tm_amp4 > 0.0
+
+
+def test_positive_mg_negative_dntp() -> None:
+    """Test positive divalent salt with negative dNTP concentration."""
+    pos_mg_neg_dntp = TMSettings(
+        divalent_salt_conc=1.5,
+        dntp_conc=-0.2,
+    )
+    pos_mg_zero_dntp = TMSettings(
+        divalent_salt_conc=1.5,
+        dntp_conc=0.0,
+    )
+    primer = Primer("TAATACGACTCACTATAGGG")
+    tm_neg = calculate_tm_santalucia_1998_owczarzy_2008(primer, pos_mg_neg_dntp)
+    tm_zero = calculate_tm_santalucia_1998_owczarzy_2008(
+        primer, pos_mg_zero_dntp
+    )
+    assert tm_neg == pytest.approx(tm_zero)
+
+
+def test_ambiguous_base_gc_content() -> None:
+    """Test Tm calculation error for sequences with degenerate base 'S'."""
+    seq_s = Primer("ACGTS")
+    with pytest.raises(InsufficientThermodynamicDataError):
+        _ = calculate_tm_santalucia_1998_owczarzy_2008(
+            seq_s, GLOBAL_TM_SETTINGS
+        )

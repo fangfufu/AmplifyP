@@ -243,37 +243,45 @@ class DirIdxDb:
 
 
 class _SettingsWrapper:
-    """Wrapper to make settings hashable by identity for lru_cache."""
+    """Wrapper to make settings hashable by content for lru_cache."""
 
-    __slots__ = ("settings",)
+    __slots__ = ("_key", "settings")
 
     def __init__(self, settings: ReplicationSettings) -> None:
-        """Initialize the wrapper with settings.
+        """Initialise the wrapper with settings.
 
         Args:
             settings (ReplicationSettings): The settings object to wrap.
         """
         self.settings = settings
+        self._key = (
+            id(settings.base_pair_scores),
+            id(settings.match_weight),
+            id(settings.run_weights),
+            settings.primability_cutoff,
+            settings.stability_cutoff,
+            settings.amplify4_compatibility_mode,
+        )
 
     def __hash__(self) -> int:
-        """Return the hash of the settings object based on identity.
+        """Return the hash of the settings key.
 
         Returns:
-            int: The id of the settings object.
+            int: Hash of the settings tuple.
         """
-        return id(self.settings)
+        return hash(self._key)
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on identity.
+        """Check equality based on settings key.
 
         Args:
             other (object): The object to compare with.
 
         Returns:
-            bool: True if the wrapped settings are the same object.
+            bool: True if the wrapped settings have identical parameters.
         """
         if isinstance(other, _SettingsWrapper):
-            return self.settings is other.settings
+            return self._key == other._key and self.settings == other.settings
         return NotImplemented
 
 
@@ -311,7 +319,7 @@ def _get_scoring_tables(
         prim_denom += m[k] * row_max
         stab_denom_base += row_max
 
-        k_lookup = [(0.0, 0.0)] * 128
+        k_lookup = [(0.0, 0.0)] * 256
         for base_t in lookup_keys:
             score = S[base_p, base_t]
             k_lookup[ord(base_t)] = (m[k] * score, score)
@@ -339,8 +347,8 @@ class Repliconf:
         template (DNA): The original template DNA sequence.
         template_seq (dict[DNADirection, str]): A dictionary mapping direction
             (FWD/REV) to the processed (padded/complemented) template strings.
-        settings (Settings): The configuration settings (weights, cutoffs) used
-            for scoring.
+        settings (ReplicationSettings): The configuration settings (weights,
+            cutoffs) used for scoring.
         origin_db (DirIdxDb): The results database storing found origin indices.
     """
 
@@ -430,7 +438,7 @@ class Repliconf:
         direction = var.direction
         i = var.index
 
-        if direction:
+        if direction == DNADirection.FWD:
             # Optimised reverse slicing: template_seq[end-1:start-1:-1]
             # This creates only 1 string object instead of 2 (slice then
             # reverse)
@@ -536,10 +544,11 @@ class Repliconf:
                 seq_idx = i + start_offset
 
                 for k in k_range:
+                    k_lookup = score_lookup[k]
                     base_t = seq_bytes[seq_idx]
 
                     # Primability and Stability lookup
-                    prim_val, val = score_lookup[k][base_t]
+                    prim_val, val = k_lookup[base_t]
                     prim_num += prim_val
                     if val > 0:
                         run_len += 1
@@ -590,7 +599,11 @@ class Repliconf:
         """
         if not isinstance(other, Repliconf):
             return NotImplemented
-        return self.primer == other.primer and self.template == other.template
+        return (
+            self.primer == other.primer
+            and self.template == other.template
+            and self.settings == other.settings
+        )
 
     def __hash__(self) -> int:
         """Compute the hash of the Repliconf.

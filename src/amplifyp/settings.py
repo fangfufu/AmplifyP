@@ -59,8 +59,18 @@ class LengthWiseWeightTbl:
         """
         if overrides is None:
             overrides = {}
-        self.__default_weight = default_weight
-        self.__overrides = overrides
+        self._default_weight = default_weight
+        self._overrides = overrides
+
+    @property
+    def default_weight(self) -> float:
+        """Return the default weight."""
+        return self._default_weight
+
+    @property
+    def overrides(self) -> dict[int, float]:
+        """Return the dictionary of length overrides."""
+        return self._overrides
 
     def __copy__(self) -> "LengthWiseWeightTbl":
         """Return a deep copy of this object.
@@ -68,10 +78,10 @@ class LengthWiseWeightTbl:
         Returns:
             LengthWiseWeightTbl: A new object with the same weights.
         """
-        new_tbl = LengthWiseWeightTbl.__new__(LengthWiseWeightTbl)
-        new_tbl.__default_weight = self.__default_weight
-        new_tbl.__overrides = dict(self.__overrides)
-        return new_tbl
+        return LengthWiseWeightTbl(
+            default_weight=self._default_weight,
+            overrides=dict(self._overrides),
+        )
 
     def copy(self) -> "LengthWiseWeightTbl":
         """Return a deep copy of this object.
@@ -91,9 +101,7 @@ class LengthWiseWeightTbl:
             float: The weight associated with the length. Returns the specific
             override if present, otherwise returns the default weight.
         """
-        if key in self.__overrides:
-            return self.__overrides[key]
-        return self.__default_weight
+        return self._overrides.get(key, self._default_weight)
 
     def __setitem__(self, key: int, value: float) -> None:
         """Set the weight for a specific length.
@@ -102,7 +110,23 @@ class LengthWiseWeightTbl:
             key (int): The length to set the weight for.
             value (float): The weight value.
         """
-        self.__overrides[key] = value
+        self._overrides[key] = value
+
+    def __eq__(self, other: object) -> bool:
+        """Check equality between two LengthWiseWeightTbl instances."""
+        if not isinstance(other, LengthWiseWeightTbl):
+            return NotImplemented
+        return (
+            self._default_weight == other._default_weight
+            and self._overrides == other._overrides
+        )
+
+    def __repr__(self) -> str:
+        """Return a string representation of the LengthWiseWeightTbl object."""
+        return (
+            f"LengthWiseWeightTbl(default_weight={self._default_weight!r}, "
+            f"overrides={self._overrides!r})"
+        )
 
 
 class BasePairWeightsTbl:
@@ -134,37 +158,35 @@ class BasePairWeightsTbl:
                 match the lengths of the row and column strings (excluding
                 gaps).
         """
-        self.__row = row.upper()
-        self.__col = col.upper()
-        self.__weight: dict[tuple[str, str], float] = {}
-        self.__row_max: dict[str, float] = {}
+        self._row = row.upper()
+        self._col = col.upper()
+        self._weight: dict[tuple[str, str], float] = {}
+        self._row_max: dict[str, float] = {}
 
-        # Optimised lookups
-        self.__matrix: list[list[float]] = [
-            [0.0] * len(self.__col) for _ in range(len(self.__row))
+        # Optimised lookups (supporting 256 ASCII / Latin-1 characters)
+        self._matrix: list[list[float]] = [
+            [0.0] * len(self._col) for _ in range(len(self._row))
         ]
-        self.__row_map: list[int] = [-1] * 128
-        self.__col_map: list[int] = [-1] * 128
+        self._row_map: list[int] = [-1] * 256
+        self._col_map: list[int] = [-1] * 256
 
         # Populate row map
-        for i, char in enumerate(self.__row):
+        for i, char in enumerate(self._row):
             code = ord(char)
-            if 0 <= code < 128:
-                self.__row_map[code] = i
-                # Handle lowercase
+            if 0 <= code < 256:
+                self._row_map[code] = i
                 lower_code = ord(char.lower())
-                if 0 <= lower_code < 128:
-                    self.__row_map[lower_code] = i
+                if 0 <= lower_code < 256:
+                    self._row_map[lower_code] = i
 
         # Populate col map
-        for i, char in enumerate(self.__col):
+        for i, char in enumerate(self._col):
             code = ord(char)
-            if 0 <= code < 128:
-                self.__col_map[code] = i
-                # Handle lowercase
+            if 0 <= code < 256:
+                self._col_map[code] = i
                 lower_code = ord(char.lower())
-                if 0 <= lower_code < 128:
-                    self.__col_map[lower_code] = i
+                if 0 <= lower_code < 256:
+                    self._col_map[lower_code] = i
 
         # Expected row and column lengths
         exp_row_len = len(row) if Nucleotides.GAP not in row else len(row) - 1
@@ -175,20 +197,20 @@ class BasePairWeightsTbl:
 
         gap = Nucleotides.GAP
 
-        for i, row_val in enumerate(self.__row):
+        for i, row_val in enumerate(self._row):
             if row_val != gap:
                 # We never put the gap symbol in the table, hence the -1.
                 if len(weight[i]) != exp_col_len:
                     raise ColumnLengthMismatchError()
-                self.__row_max[row_val] = max(weight[i])
-            for j, col_val in enumerate(self.__col):
+                self._row_max[row_val] = max(weight[i])
+            for j, col_val in enumerate(self._col):
                 val: float | int
                 if row_val == gap or col_val == gap:
                     val = 0
                 else:
                     val = weight[i][j]
-                self.__weight[row_val, col_val] = val
-                self.__matrix[i][j] = val
+                self._weight[row_val, col_val] = val
+                self._matrix[i][j] = val
 
     def row(self) -> str:
         """Return the string of row nucleotides.
@@ -197,7 +219,9 @@ class BasePairWeightsTbl:
             str: The row nucleotides, excluding the last character if it was a
                 gap placeholder.
         """
-        return self.__row[:-1]
+        if self._row.endswith(Nucleotides.GAP):
+            return self._row[:-1]
+        return self._row
 
     def column(self) -> str:
         """Return the string of column nucleotides.
@@ -206,7 +230,9 @@ class BasePairWeightsTbl:
             str: The column nucleotides, excluding the last character if it was
                 a gap placeholder.
         """
-        return self.__col[:-1]
+        if self._col.endswith(Nucleotides.GAP):
+            return self._col[:-1]
+        return self._col
 
     def row_max(self, row: str) -> float:
         """Return the maximum weight available for a given row nucleotide.
@@ -218,7 +244,7 @@ class BasePairWeightsTbl:
             float: The maximum weight value in that row.
         """
         row = row.upper()
-        return self.__row_max[row]
+        return self._row_max[row]
 
     def __getitem__(self, key: tuple[str, str]) -> float:
         """Retrieve the weight for a specific nucleotide pair.
@@ -231,16 +257,16 @@ class BasePairWeightsTbl:
             float: The weight associated with the pair.
         """
         i, j = key
-        try:
-            r = self.__row_map[ord(i)]
-            c = self.__col_map[ord(j)]
+        code_i = ord(i)
+        code_j = ord(j)
+        if 0 <= code_i < 256 and 0 <= code_j < 256:
+            r = self._row_map[code_i]
+            c = self._col_map[code_j]
             if r != -1 and c != -1:
-                return self.__matrix[r][c]
-        except (TypeError, IndexError):
-            pass
+                return self._matrix[r][c]
 
         i_u, j_u = i.upper(), j.upper()
-        return self.__weight[(i_u, j_u)]
+        return self._weight[(i_u, j_u)]
 
     def __setitem__(self, key: tuple[str, str], value: float) -> None:
         """Set the weight for a specific nucleotide pair.
@@ -251,18 +277,18 @@ class BasePairWeightsTbl:
             value (float): The new weight value.
         """
         i, j = key
-        # We use upper case keys to be consistent with getitem expectation
         i_upper = i.upper()
         j_upper = j.upper()
-        self.__weight[i_upper, j_upper] = value
+        self._weight[i_upper, j_upper] = value
 
-        try:
-            r = self.__row_map[ord(i)]
-            c = self.__col_map[ord(j)]
+        code_i = ord(i)
+        code_j = ord(j)
+        if 0 <= code_i < 256 and 0 <= code_j < 256:
+            r = self._row_map[code_i]
+            c = self._col_map[code_j]
             if r != -1 and c != -1:
-                self.__matrix[r][c] = value
-        except (TypeError, IndexError):
-            pass
+                self._matrix[r][c] = value
+                self._row_max[i_upper] = max(self._matrix[r])
 
     def __len__(self) -> int:
         """Return the total number of entries in the weight table.
@@ -272,6 +298,16 @@ class BasePairWeightsTbl:
         """
         return len(self.row()) * len(self.column())
 
+    def __eq__(self, other: object) -> bool:
+        """Check equality between two BasePairWeightsTbl instances."""
+        if not isinstance(other, BasePairWeightsTbl):
+            return NotImplemented
+        return (
+            self._row == other._row
+            and self._col == other._col
+            and self._weight == other._weight
+        )
+
     def __str__(self) -> str:
         """Return a string representation of the weight table.
 
@@ -279,7 +315,11 @@ class BasePairWeightsTbl:
             str: A string representation of the internal dictionary mapping
                 pairs to weights.
         """
-        return str(self.__weight)
+        return str(self._weight)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the BasePairWeightsTbl object."""
+        return f"BasePairWeightsTbl(row={self.row()!r}, col={self.column()!r})"
 
     def __copy__(self) -> "BasePairWeightsTbl":
         """Return a deep copy of this object.
@@ -288,13 +328,13 @@ class BasePairWeightsTbl:
             BasePairWeightsTbl: A new object with the same weights.
         """
         new_tbl = BasePairWeightsTbl.__new__(BasePairWeightsTbl)
-        new_tbl.__row = self.__row
-        new_tbl.__col = self.__col
-        new_tbl.__weight = dict(self.__weight)
-        new_tbl.__row_max = dict(self.__row_max)
-        new_tbl.__matrix = [list(r) for r in self.__matrix]
-        new_tbl.__row_map = list(self.__row_map)
-        new_tbl.__col_map = list(self.__col_map)
+        new_tbl._row = self._row
+        new_tbl._col = self._col
+        new_tbl._weight = dict(self._weight)
+        new_tbl._row_max = dict(self._row_max)
+        new_tbl._matrix = [list(r) for r in self._matrix]
+        new_tbl._row_map = list(self._row_map)
+        new_tbl._col_map = list(self._col_map)
         return new_tbl
 
     def copy(self) -> "BasePairWeightsTbl":
@@ -412,16 +452,16 @@ class ReplicationSettings:
     """
 
     base_pair_scores: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_BASE_PAIR_WEIGHTS.copy()
+        default_factory=DEFAULT_BASE_PAIR_WEIGHTS.copy
     )
     primer_dimer_scores: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_PRIMER_DIMER_WEIGHTS.copy()
+        default_factory=DEFAULT_PRIMER_DIMER_WEIGHTS.copy
     )
     match_weight: LengthWiseWeightTbl = field(
-        default_factory=lambda: DEFAULT_MATCH_WEIGHTS.copy()
+        default_factory=DEFAULT_MATCH_WEIGHTS.copy
     )
     run_weights: LengthWiseWeightTbl = field(
-        default_factory=lambda: DEFAULT_RUN_WEIGHTS.copy()
+        default_factory=DEFAULT_RUN_WEIGHTS.copy
     )
     primability_cutoff: float = DEFAULT_PRIMABILITY_CUTOFF
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
@@ -468,7 +508,7 @@ class TMSettings:
             K+, Tris+) in mM. Defaults to 50.
         divalent_salt_conc (float): Concentration of divalent cations (Mg++) in
             mM. Defaults to 1.5.
-        dnTP_conc (float): Concentration of dNTPs in mM. Defaults to 0.
+        dntp_conc (float): Concentration of dNTPs in mM. Defaults to 0.
         enthalpy (BasePairWeightsTbl): Enthalpy values (5x5 matrix).
             Defaults to DEFAULT_AMPLIFY4_TM_ENTHALPY.
         entropy (BasePairWeightsTbl): Entropy values (5x5 matrix).
@@ -479,12 +519,12 @@ class TMSettings:
     dnap_conc: float = 0.0
     monovalent_salt_conc: float = 50.0
     divalent_salt_conc: float = 1.5
-    dnTP_conc: float = 0.0
+    dntp_conc: float = 0.0
     enthalpy: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTHALPY.copy()
+        default_factory=DEFAULT_AMPLIFY4_TM_ENTHALPY.copy
     )
     entropy: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_AMPLIFY4_TM_ENTROPY.copy()
+        default_factory=DEFAULT_AMPLIFY4_TM_ENTROPY.copy
     )
 
 
@@ -509,7 +549,7 @@ class PrimerDimerSettings:
     """
 
     weights: BasePairWeightsTbl = field(
-        default_factory=lambda: DEFAULT_PRIMER_DIMER_WEIGHTS.copy()
+        default_factory=DEFAULT_PRIMER_DIMER_WEIGHTS.copy
     )
     min_overlap: int = DEFAULT_PRIMER_DIMER_OVERLAP
     threshold: float = DEFAULT_PRIMER_DIMER_THRESHOLD

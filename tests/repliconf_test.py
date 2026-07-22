@@ -135,3 +135,16 @@ def test_dir_idx_methods() -> None:
 
     # __str__
     assert str(d1) == "10"
+
+
+def test_repliconf_settings_equality() -> None:
+    """Test that Repliconf equality takes ReplicationSettings into account."""
+    from amplifyp.settings import ReplicationSettings
+
+    s1 = ReplicationSettings(primability_cutoff=0.5)
+    s2 = ReplicationSettings(primability_cutoff=0.8)
+    template = DNA("TGAAAAAGGAAAAACC", DNAType.CIRCULAR)
+    primer = Primer("CCT")
+    r1 = Repliconf(template, primer, s1)
+    r2 = Repliconf(template, primer, s2)
+    assert r1 != r2
