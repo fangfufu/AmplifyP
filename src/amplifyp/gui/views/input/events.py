@@ -59,6 +59,10 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 ):
 
                     async def set_seq_cursor() -> None:
+                        """Reset cursor to start of the text field.
+
+                        This prevents losing focus when re-focusing.
+                        """
                         await e.control.focus()
                         e.control.selection = ft.TextSelection(
                             base_offset=0, extent_offset=0
@@ -108,6 +112,11 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             input_view.app_page.update()
 
     def timer_callback() -> None:
+        """Execute the on-stop-editing callback after a short delay.
+
+        This is triggered by a debouncer to handle cases where the user stops
+        interacting with an input field.
+        """
         try:
             page = input_view.page
         except RuntimeError:

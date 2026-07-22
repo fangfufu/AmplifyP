@@ -42,6 +42,7 @@ class Nucleotides(StrEnum):
             B).
         WILDCARD: Wildcard character representing any nucleotide (N).
         GAP: Gap character (-).
+        TEMPLATE: Valid characters for template DNA (SINGLE + WILDCARD + GAP).
         PRIMER: Valid characters for primers (SINGLE + DOUBLE + TRIPLE +
             WILDCARD).
         ALL_VALID: All valid characters for nucleotides (PRIMER + GAP).

@@ -25,46 +25,46 @@ from amplifyp.primer_designer import PrimerDesigner1D
 
 
 def test_primer_designer_forward_mode() -> None:
-    """Test Forward mode truncates from 3' end down to length n."""
+    """Test Forward mode truncates from 3' end down to min_length."""
     dna_obj = DNA("ATGCGTACGT")  # length 10
-    n = 7
-    designer = PrimerDesigner1D(dna_obj, n, mode=DNADirection.FWD)
+    min_length = 7
+    designer = PrimerDesigner1D(dna_obj, min_length, mode=DNADirection.FWD)
 
     assert designer.dna == dna_obj
-    assert designer.n == 7
+    assert designer.min_length == 7
     assert designer.mode == DNADirection.FWD
 
-    results = designer.results
-    assert len(results) == 4  # lengths 10, 9, 8, 7
+    dimers = designer.all_dimers
+    assert len(dimers) == 4  # lengths 10, 9, 8, 7
 
-    assert [len(dimer.primer_1) for dimer in results] == [10, 9, 8, 7]
-    assert [dimer.primer_1.seq.upper() for dimer in results] == [
+    assert [len(dimer.primer_1) for dimer in dimers] == [10, 9, 8, 7]
+    assert [dimer.primer_1.seq.upper() for dimer in dimers] == [
         "ATGCGTACGT",
         "ATGCGTACG",
         "ATGCGTAC",
         "ATGCGTA",
     ]
 
-    for dimer in results:
+    for dimer in dimers:
         assert isinstance(dimer, PrimerDimer)
         assert dimer.primer_1.seq.upper() == dimer.primer_2.seq.upper()
 
 
 def test_primer_designer_backward_mode() -> None:
-    """Test Backward mode truncates from 5' end down to length n."""
+    """Test Backward mode truncates from 5' end down to min_length."""
     dna_obj = DNA("ATGCGTACGT")  # length 10
-    n = 7
-    designer = PrimerDesigner1D(dna_obj, n, mode=DNADirection.REV)
+    min_length = 7
+    designer = PrimerDesigner1D(dna_obj, min_length, mode=DNADirection.REV)
 
     assert designer.dna == dna_obj
-    assert designer.n == 7
+    assert designer.min_length == 7
     assert designer.mode == DNADirection.REV
 
-    results = designer.results
-    assert len(results) == 4  # lengths 10, 9, 8, 7
+    dimers = designer.all_dimers
+    assert len(dimers) == 4  # lengths 10, 9, 8, 7
 
-    assert [len(dimer.primer_1) for dimer in results] == [10, 9, 8, 7]
-    assert [dimer.primer_1.seq.upper() for dimer in results] == [
+    assert [len(dimer.primer_1) for dimer in dimers] == [10, 9, 8, 7]
+    assert [dimer.primer_1.seq.upper() for dimer in dimers] == [
         "ATGCGTACGT",
         "TGCGTACGT",
         "GCGTACGT",
@@ -80,7 +80,7 @@ def test_primer_designer_default_mode() -> None:
 
 
 def test_primer_designer_query_methods() -> None:
-    """Test indexing, len, get_dimer, and best_dimer query methods."""
+    """Test indexing, len, get_dimer, and best_score query methods."""
     dna_obj = DNA(
         "ATGCGTACGT"
     )  # length 10 down to 7 -> 4 steps (index 0, 1, 2, 3)
@@ -101,9 +101,14 @@ def test_primer_designer_query_methods() -> None:
     with pytest.raises(IndexError):
         _ = designer[10]
 
-    best = designer.best_dimer
-    assert best is not None
-    assert best == min(designer.results, key=lambda d: d.quality)
+    best_pair = designer.best_score
+    assert isinstance(best_pair, tuple)
+    assert len(best_pair) == 2
+    best_idx, best_q = best_pair
+    assert designer[best_idx] == min(
+        designer.all_dimers, key=lambda d: d.quality
+    )
+    assert best_q == designer[best_idx].quality
 
 
 def test_primer_designer_invalid_inputs() -> None:
@@ -120,40 +125,6 @@ def test_primer_designer_invalid_inputs() -> None:
     ):
         PrimerDesigner1D(dna_obj, 15)
 
-    with pytest.raises(TypeError, match="mode must be a DNADirection instance"):
-        PrimerDesigner1D(dna_obj, 5, mode="invalid_mode")  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="mode must be a DNADirection instance"):
-        PrimerDesigner1D(dna_obj, 5, mode="Forward")  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="dna must be a DNA object"):
-        PrimerDesigner1D("ATGCGTACGT", 5)  # type: ignore[arg-type]
-
-    with pytest.raises(TypeError, match="dna must be a DNA object"):
-        PrimerDesigner1D(12345, 5)  # type: ignore[arg-type]
-
-    with pytest.raises(
-        TypeError, match="generator must be a PrimerDimerGenerator instance"
-    ):
-        PrimerDesigner1D(dna_obj, 5, generator="invalid")  # type: ignore[arg-type]
-
-    with pytest.raises(
-        ValueError, match="Cannot specify conflicting values for n"
-    ):
-        PrimerDesigner1D(dna_obj, 5, min_length=7)
-
-    with pytest.raises(
-        ValueError,
-        match="Cannot specify conflicting values for min_length",
-    ):
-        PrimerDesigner1D(dna_obj, min_length=7, target_length=5)
-
-    with pytest.raises(
-        ValueError,
-        match="Minimum primer length \\(n or min_length\\) must be provided",
-    ):
-        PrimerDesigner1D(dna_obj)
-
 
 def test_primer_designer_sequence_protocol_and_representations() -> None:
     """Test iteration, membership, repr, str, and query additions."""
@@ -161,39 +132,39 @@ def test_primer_designer_sequence_protocol_and_representations() -> None:
     designer = PrimerDesigner1D(dna_obj, min_length=7)
 
     assert designer.min_length == 7
-    assert designer.target_length == 7
     assert len(designer) == 4
 
     # Iteration
     dimers_list = list(designer)
     assert len(dimers_list) == 4
-    assert dimers_list == list(designer.results)
+    assert dimers_list == list(designer.all_dimers)
 
     # Membership
     assert designer[0] in designer
     assert "not_a_dimer" not in designer
 
     # repr and str
-    assert (
-        repr(designer)
-        == f"PrimerDesigner1D(dna={dna_obj!r}, n=7, mode={DNADirection.FWD!r})"
+    expected_repr = (
+        f"PrimerDesigner1D(dna={dna_obj!r}, min_length=7, "
+        f"mode={DNADirection.FWD!r})"
     )
-    assert (
-        str(designer) == "PrimerDesigner1D(4 steps, target length=7, mode=FWD)"
+    assert repr(designer) == expected_repr
+    assert str(designer) == "PrimerDesigner1D(4 steps, min_length=7, mode=FWD)"
+
+    # quality_score
+    sorted_qs = designer.quality_score(sorted=True)
+
+    assert len(sorted_qs) == 4
+    assert [score for _, score in sorted_qs] == sorted(
+        d.quality for d in designer.all_dimers
     )
 
-    # worst_dimer, filter_by_quality, and sorted_by_quality
-    worst = designer.worst_dimer
-    assert worst == max(designer.results, key=lambda d: d.quality)
+    raw_qs = designer.quality_score(sorted=False)
+    assert raw_qs == tuple(
+        (i, d.quality) for i, d in enumerate(designer.all_dimers)
+    )
 
-    filtered = designer.filter_by_quality(worst.quality)
-    assert len(filtered) == 4
-
-    sorted_best = designer.sorted_by_quality(reverse=False)
-    assert sorted_best[0] == designer.best_dimer
-
-    sorted_worst = designer.sorted_by_quality(reverse=True)
-    assert sorted_worst[0] == designer.worst_dimer
+    assert sorted_qs[0] == designer.best_score
 
 
 def test_primer_designer_custom_generator() -> None:
@@ -203,9 +174,25 @@ def test_primer_designer_custom_generator() -> None:
 
     custom_settings = PrimerDimerSettings(min_overlap=3)
     custom_gen = PrimerDimerGenerator(settings=custom_settings)
-
     dna_obj = DNA("ATGCGTACGT")
     designer = PrimerDesigner1D(dna_obj, 7, generator=custom_gen)
 
     assert designer.generator == custom_gen
     assert designer[0].settings == custom_settings
+
+
+def test_primer_designer_threshold_and_max_overlap_filtering() -> None:
+    """Test filtering self-dimers by threshold and max_overlap."""
+    dna_obj = DNA("ATGCGTACGT")
+
+    # Filter quality <= 110.0 (Len 10 is 120, Len 9 is 160)
+    designer_q = PrimerDesigner1D(dna_obj, min_length=7, threshold=110.0)
+    assert designer_q.threshold == 110.0
+    assert len(designer_q) == 2
+    assert [d.quality for d in designer_q.all_dimers] == [100.0, 60.0]
+
+    # Filter max_overlap <= 6 (Len 10 is overlap 8 -> filtered out)
+    designer_o = PrimerDesigner1D(dna_obj, min_length=7, max_overlap=6)
+    assert designer_o.max_overlap == 6
+    assert len(designer_o) == 3
+    assert [d.overlap for d in designer_o.all_dimers] == [6, 4, 6]

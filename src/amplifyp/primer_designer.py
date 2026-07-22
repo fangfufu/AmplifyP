@@ -25,6 +25,8 @@ from .dna import DNA, DNADirection, Primer
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+DEFAULT_PRIMER_DIMER_GENERATOR = PrimerDimerGenerator()
+
 
 class PrimerDesigner1D:
     """Performs 1D primer design by truncating a DNA sequence.
@@ -38,91 +40,64 @@ class PrimerDesigner1D:
     from the 5' end.
     """
 
-    __slots__ = ("_dimers", "_dna", "_generator", "_mode", "_n")
+    __slots__ = (
+        "_dimers",
+        "_dna",
+        "_generator",
+        "_max_overlap",
+        "_min_length",
+        "_mode",
+        "_threshold",
+    )
 
     def __init__(
         self,
         dna: DNA,
-        n: int | None = None,
+        min_length: int,
         mode: DNADirection = DNADirection.FWD,
-        *,
-        min_length: int | None = None,
-        target_length: int | None = None,
-        generator: PrimerDimerGenerator | None = None,
+        generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
         Args:
             dna (DNA): The input DNA object.
-            n (int, optional): The minimum primer sequence length to reach via
+            min_length (int): The minimum primer sequence length to reach via
                 truncation.
             mode (DNADirection, optional): The truncation mode.
                 `DNADirection.FWD` for 3' end truncation; `DNADirection.REV`
                 for 5' end truncation. Defaults to `DNADirection.FWD`.
-            min_length (int, optional): Explicit alias for minimum primer length
-                `n`.
-            target_length (int, optional): Alias for `n`.
             generator (PrimerDimerGenerator, optional): Custom primer dimer
-                generator to use for self-dimer analysis.
+                generator to use for self-dimer analysis. Defaults to
+                `PrimerDimerGenerator()`.
+            threshold (float | None, optional): Upper bound for quality score
+                filter. Defaults to None.
+            max_overlap (int | None, optional): Upper bound for overlap length
+                filter. Defaults to None.
 
         Raises:
-            TypeError: If `dna` is not a DNA object, `mode` is not a
-                `DNADirection` instance, or `generator` is invalid.
             ValueError: If minimum length is non-positive or greater than
                 sequence length.
         """
-        if not isinstance(dna, DNA):  # pyright: ignore[reportUnnecessaryIsInstance]
-            raise TypeError("dna must be a DNA object.")
-        if not isinstance(mode, DNADirection):  # pyright: ignore[reportUnnecessaryIsInstance]
-            raise TypeError("mode must be a DNADirection instance.")
-        if generator is not None and not isinstance(  # pyright: ignore[reportUnnecessaryIsInstance]
-            generator, PrimerDimerGenerator
-        ):
-            raise TypeError(
-                "generator must be a PrimerDimerGenerator instance."
-            )
-
-        length_param = min_length if min_length is not None else target_length
-        if (
-            min_length is not None
-            and target_length is not None
-            and min_length != target_length
-        ):
-            raise ValueError(
-                "Cannot specify conflicting values for min_length and "
-                "target_length."
-            )
-        if length_param is not None and n is not None and length_param != n:
-            raise ValueError(
-                "Cannot specify conflicting values for n and min_length."
-            )
-
-        eff_n = length_param if length_param is not None else n
-        if eff_n is None:
-            raise ValueError(
-                "Minimum primer length (n or min_length) must be provided."
-            )
-
-        clean_seq = dna.seq_upper
-
-        if eff_n <= 0:
+        if min_length <= 0:
             raise ValueError("Target length n must be greater than 0.")
-        if len(clean_seq) < eff_n:
+        if len(dna.seq_upper) < min_length:
             msg = (
-                f"Target length n ({eff_n}) cannot exceed initial "
-                f"sequence length ({len(clean_seq)})."
+                f"Target length n ({min_length}) cannot exceed initial "
+                f"sequence length ({len(dna.seq_upper)})."
             )
             raise ValueError(msg)
 
         self._dna: DNA = dna
-        self._n: int = eff_n
+        self._min_length: int = min_length
         self._mode: DNADirection = mode
-        self._generator: PrimerDimerGenerator = (
-            generator if generator is not None else PrimerDimerGenerator()
-        )
+        self._generator: PrimerDimerGenerator = generator
+        self._threshold: float | None = threshold
+        self._max_overlap: int | None = max_overlap
         self._dimers: list[PrimerDimer] = []
 
-        self._analyse(clean_seq)
+        self._analyse(dna.seq_upper)
 
     @property
     def dna(self) -> DNA:
@@ -130,19 +105,9 @@ class PrimerDesigner1D:
         return self._dna
 
     @property
-    def n(self) -> int:
-        """The target length n."""
-        return self._n
-
-    @property
     def min_length(self) -> int:
         """The minimum primer sequence length."""
-        return self._n
-
-    @property
-    def target_length(self) -> int:
-        """The minimum primer sequence length (alias for min_length)."""
-        return self._n
+        return self._min_length
 
     @property
     def mode(self) -> DNADirection:
@@ -155,69 +120,55 @@ class PrimerDesigner1D:
         return self._generator
 
     @property
-    def results(self) -> tuple[PrimerDimer, ...]:
+    def threshold(self) -> float | None:
+        """The maximum quality score cutoff filter, if set."""
+        return self._threshold
+
+    @property
+    def max_overlap(self) -> int | None:
+        """The maximum overlap length cutoff filter, if set."""
+        return self._max_overlap
+
+    @property
+    def all_dimers(self) -> tuple[PrimerDimer, ...]:
         """The stored self-dimers from initial sequence down to length n."""
         return tuple(self._dimers)
 
     @property
-    def best_dimer(self) -> PrimerDimer:
-        """Return the PrimerDimer with the lowest quality score among steps.
+    def best_score(self) -> tuple[int, float]:
+        """Return the (index, quality) pair of the optimal self-dimer.
 
         A lower self-dimer quality score indicates lower dimer formation
         potential, representing the optimal primer choice.
 
         Returns:
-            PrimerDimer: The self-dimer object with the lowest quality score.
+            tuple[int, float]: A (step_index, quality_score) tuple for the
+                self-dimer with the lowest quality score.
 
         Raises:
             RuntimeError: If no results have been generated.
         """
         if not self._dimers:
             raise RuntimeError("No analysis steps recorded.")
-        return min(self._dimers, key=lambda d: d.quality)
+        return self.quality_score(sorted=True)[0]
 
-    @property
-    def worst_dimer(self) -> PrimerDimer:
-        """Return the PrimerDimer with the highest quality score among steps.
-
-        Returns:
-            PrimerDimer: The self-dimer object with the highest quality score.
-
-        Raises:
-            RuntimeError: If no results have been generated.
-        """
-        if not self._dimers:
-            raise RuntimeError("No analysis steps recorded.")
-        return max(self._dimers, key=lambda d: d.quality)
-
-    def filter_by_quality(self, max_quality: float) -> tuple[PrimerDimer, ...]:
-        """Filter results by quality score.
-
-        Returns self-dimers with quality score <= `max_quality`.
+    def quality_score(
+        self, sorted: bool = False
+    ) -> tuple[tuple[int, float], ...]:
+        """Return (index, quality) pairs for all self-dimer results.
 
         Args:
-            max_quality (float): The maximum quality score threshold.
+            sorted (bool, optional): If True, sort pairs by quality score in
+                ascending order (best quality first). Defaults to False.
 
         Returns:
-            tuple[PrimerDimer, ...]: Self-dimers matching the criteria.
+            tuple[tuple[int, float], ...]: Sequence of (step_index, quality)
+                tuples.
         """
-        return tuple(d for d in self._dimers if d.quality <= max_quality)
-
-    def sorted_by_quality(
-        self, reverse: bool = False
-    ) -> tuple[PrimerDimer, ...]:
-        """Return self-dimer results sorted by quality score.
-
-        Args:
-            reverse (bool, optional): If True, sort in descending order of
-                quality score (worst first). Defaults to False (best first).
-
-        Returns:
-            tuple[PrimerDimer, ...]: Self-dimers sorted by quality score.
-        """
-        return tuple(
-            sorted(self._dimers, key=lambda d: d.quality, reverse=reverse)
-        )
+        pairs = [(i, d.quality) for i, d in enumerate(self._dimers)]
+        if sorted:
+            pairs.sort(key=lambda item: item[1])
+        return tuple(pairs)
 
     def __len__(self) -> int:
         """Return the number of design truncation steps."""
@@ -245,15 +196,15 @@ class PrimerDesigner1D:
     def __repr__(self) -> str:
         """Return an unambiguous string representation of PrimerDesigner1D."""
         return (
-            f"PrimerDesigner1D(dna={self._dna!r}, n={self._n}, "
-            f"mode={self._mode!r})"
+            f"PrimerDesigner1D(dna={self._dna!r}, "
+            f"min_length={self._min_length}, mode={self._mode!r})"
         )
 
     def __str__(self) -> str:
         """Return a user-friendly string representation of PrimerDesigner1D."""
         return (
             f"PrimerDesigner1D({len(self._dimers)} steps, "
-            f"target length={self._n}, mode={self._mode.name})"
+            f"min_length={self._min_length}, mode={self._mode.name})"
         )
 
     def get_dimer(self, index: int) -> PrimerDimer:
@@ -268,15 +219,32 @@ class PrimerDesigner1D:
         return self[index]
 
     def _analyse(self, initial_seq: str) -> None:
+        """Perform the 1D truncation analysis on the initial sequence.
+
+        This method iteratively truncates the sequence from either the 5' or 3'
+        end (depending on the mode) and generates a self-dimer for each
+        resulting sequence until the minimum length is reached.
+
+        Args:
+            initial_seq (str): The initial sequence string to analyze.
+        """
         self._dimers.clear()
         current_seq = initial_seq
 
-        while len(current_seq) >= self._n:
+        while len(current_seq) >= self._min_length:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
-            self._dimers.append(dimer)
+            if self._threshold is not None and dimer.quality > self._threshold:
+                pass
+            elif (
+                self._max_overlap is not None
+                and dimer.overlap > self._max_overlap
+            ):
+                pass
+            else:
+                self._dimers.append(dimer)
 
-            if len(current_seq) == self._n:
+            if len(current_seq) == self._min_length:
                 break
 
             if self._mode == DNADirection.FWD:

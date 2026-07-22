@@ -29,6 +29,11 @@ from .settings import (
 
 
 def _new_amplify4_settings() -> ReplicationSettings:
+    """Create replication settings in Amplify 4 mode.
+
+    Returns:
+        ReplicationSettings: Settings with amplify4_compatibility_mode=True.
+    """
     return ReplicationSettings(amplify4_compatibility_mode=True)
 
 
@@ -47,8 +52,8 @@ class ReplicationOrigin:
             primer's binding.
         primer (str): The primer sequence as a string, typically in 3'-5'
             orientation for calculation purposes.
-        settings (Settings): The configuration object containing scoring tables
-            and cutoff thresholds.
+        settings (ReplicationSettings): The configuration object containing
+            scoring tables and cutoff thresholds.
     """
 
     target: str
@@ -56,12 +61,8 @@ class ReplicationOrigin:
     settings: ReplicationSettings = field(
         default_factory=lambda: GLOBAL_REPLICATION_SETTINGS
     )
-    _cached_primability: float | None = field(
-        default=None, compare=False, repr=False
-    )
-    _cached_stability: float | None = field(
-        default=None, compare=False, repr=False
-    )
+    _primability: float | None = field(default=None, compare=False, repr=False)
+    _stability: float | None = field(default=None, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         """Validate that the target and primer have equal, non-zero lengths.
@@ -85,8 +86,8 @@ class ReplicationOrigin:
         Returns:
             float: The primability score, ranging from 0.0 to 1.0.
         """
-        if self._cached_primability is not None:
-            return self._cached_primability
+        if self._primability is not None:
+            return self._primability
 
         m: LengthWiseWeightTbl = self.settings.match_weight
         S: BasePairWeightsTbl = self.settings.base_pair_scores
@@ -97,7 +98,7 @@ class ReplicationOrigin:
             numerator += m[k] * S[i, j]
             denominator += m[k] * row_max(i)
         score = numerator / denominator
-        object.__setattr__(self, "_cached_primability", score)
+        object.__setattr__(self, "_primability", score)
         return score
 
     @property
@@ -116,8 +117,8 @@ class ReplicationOrigin:
         Returns:
             float: The stability score, ranging from 0.0 to 1.0.
         """
-        if self._cached_stability is not None:
-            return self._cached_stability
+        if self._stability is not None:
+            return self._stability
 
         r = self.settings.run_weights
         S = self.settings.base_pair_scores
@@ -142,7 +143,7 @@ class ReplicationOrigin:
         # We multiply the denominator by the largest score that this primer
         # can obtain.
         score = numerator / (denominator * r[max(0, len(self.primer) - 1)])
-        object.__setattr__(self, "_cached_stability", score)
+        object.__setattr__(self, "_stability", score)
         return score
 
     @property

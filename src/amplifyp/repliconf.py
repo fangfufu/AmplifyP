@@ -40,7 +40,8 @@ class DirIdx:
     """A class representing a directed index.
 
     This class encapsulates a specific position (index) on a DNA strand,
-    along with the direction (forward or reverse) of that strand.
+    along with the direction (forward or reverse) of that strand, and
+    optional cached primability and stability scores.
 
     Attributes:
         direction (DNADirection): The direction of the DNA strand.
@@ -455,8 +456,8 @@ class Repliconf:
             target,
             self._rev_primer_seq,
             self.settings,
-            _cached_primability=var.primability,
-            _cached_stability=var.stability,
+            _primability=var.primability,
+            _stability=var.stability,
         )
 
     def origin_from_db(

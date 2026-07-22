@@ -213,6 +213,12 @@ class PrimerActionController:
             self._delete_primers_impl(primers_to_delete)
 
     def _delete_primers_impl(self, primers_to_delete: set[int]) -> None:
+        """Perform the actual deletion of primers from the input data.
+
+        This method removes the primers identified by their object IDs, updates
+        the focused primer index, and re-indexes the remaining primer rows
+        in the UI.
+        """
         self._click_a = None
         self._click_b = None
         if not primers_to_delete:
@@ -338,6 +344,14 @@ class PrimerActionController:
         controls = self.owner.primers_list.controls
 
         def get_row_height(idx: int) -> float:
+            """Determine the height of a primer row.
+
+            Args:
+                idx: The index of the row.
+
+            Returns:
+                The height in pixels (55.0 for error rows, 30.0 otherwise).
+            """
             if 0 <= idx < len(controls):
                 row = controls[idx]
                 if isinstance(row, PrimerRow):
