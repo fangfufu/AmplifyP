@@ -290,7 +290,9 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         except RuntimeError:
             pass
 
-    def _clear_all_cards(self, e: ft.ControlEvent) -> None:
+    def _clear_all_cards(
+        self, e: ft.Event[ft.TextButton] | None = None
+    ) -> None:
         """Clear all active 2D detail cards."""
         self._active_cards.clear()
         self.right_cards_list.controls.clear()

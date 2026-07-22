@@ -463,7 +463,9 @@ async def load_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
         controller.filepicker_open = False
 
 
-def confirm_clear(controller: Any, _ev: ft.ControlEvent) -> None:
+def confirm_clear(
+    controller: Any, _ev: ft.Event[ft.TextButton] | None = None
+) -> None:
     """Confirm clearing of inputs and reset state."""
     if controller._clear_dialog:
         controller._clear_dialog.open = False
@@ -478,7 +480,9 @@ def confirm_clear(controller: Any, _ev: ft.ControlEvent) -> None:
     controller.page.update()
 
 
-def dismiss_clear(controller: Any, _ev: ft.ControlEvent) -> None:
+def dismiss_clear(
+    controller: Any, _ev: ft.Event[ft.TextButton] | None = None
+) -> None:
     """Dismiss clear confirmation dialogue."""
     if controller._clear_dialog:
         controller._clear_dialog.open = False
