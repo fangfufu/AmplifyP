@@ -37,6 +37,8 @@ class PrimerDimer:
         quality (float): The calculated dimer quality score.
         overlap (int): The length of the overlap region.
         p1_pos (int): The starting position of the alignment on p2 (0-indexed).
+        settings (PrimerDimerSettings): Settings used for calculating primer
+            dimer scores.
     """
 
     primer_1: Primer
