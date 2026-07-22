@@ -29,24 +29,30 @@ from main import main
 def test_gui_main() -> None:
     """Test the main function of the GUI app."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
     mock_page.window = MagicMock()
 
     main(mock_page)
 
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
+    assert mock_page.window.width == 1600
+    assert mock_page.window.height == 900
     mock_page.add.assert_called()
 
 
 def test_gui_app_main() -> None:
     """Test the main function imported directly from amplifyp.gui.app."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
     mock_page.window = MagicMock()
 
     gui_main(mock_page)
 
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
+    assert mock_page.window.width == 1600
+    assert mock_page.window.height == 900
     mock_page.add.assert_called()
 
 

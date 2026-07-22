@@ -43,7 +43,7 @@ def test_primer_designer_view_initialisation() -> None:
     assert view.top_left_container.height == 240
     assert view.top_right_chart_container.height == 240
     assert view.left_container.expand == 1
-    assert view.right_container.expand == 3
+    assert view.right_container.expand == 2
     assert view.dna_input.value == ""
     assert view.min_len_input.value == "18"
     assert view.mode_dropdown.value == "FWD"

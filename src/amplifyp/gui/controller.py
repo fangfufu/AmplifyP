@@ -188,6 +188,8 @@ class GUIController:
                     """
                 )
         else:
+            self.page.window.width = 1600
+            self.page.window.height = 900
             self.page.window.prevent_close = False
             if not self.auto_close:
                 self.page.window.prevent_close = True
