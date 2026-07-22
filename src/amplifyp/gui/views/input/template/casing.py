@@ -27,12 +27,12 @@ if TYPE_CHECKING:
     from .input import TemplateInput
 
 
-def upper_case_click(template_input: TemplateInput, e: ft.Event) -> None:
+def upper_case_click(template_input: TemplateInput, _e: ft.Event) -> None:
     """Handle upper case button click."""
     change_selection_case(template_input, to_upper=True)
 
 
-def lower_case_click(template_input: TemplateInput, e: ft.Event) -> None:
+def lower_case_click(template_input: TemplateInput, _e: ft.Event) -> None:
     """Handle lower case button click."""
     change_selection_case(template_input, to_upper=False)
 

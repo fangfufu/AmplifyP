@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 async def load_template_click(
-    template_input: TemplateInput, e: ft.Event
+    template_input: TemplateInput, _e: ft.Event
 ) -> None:
     """Open file picker to load template sequence from a TXT file."""
     from amplifyp.gui.utils.data_helpers import pick_and_read_file
@@ -47,7 +47,7 @@ async def load_template_click(
 
 
 async def save_template_click(
-    template_input: TemplateInput, e: ft.Event
+    template_input: TemplateInput, _e: ft.Event
 ) -> None:
     """Save template sequence to a TXT file."""
     template_content = template_input.input_data.template

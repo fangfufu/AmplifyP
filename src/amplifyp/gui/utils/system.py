@@ -157,7 +157,7 @@ def get_version() -> str:
 # ==============================================================================
 
 
-def confirm_dismiss(controller: Any, e: ft.ControlEvent) -> None:
+def confirm_dismiss(controller: Any, _e: ft.ControlEvent) -> None:
     """Close close confirmation dialogue."""
     dialog = controller._confirm_dialog
     if dialog:
@@ -174,7 +174,7 @@ async def confirm_exit_async(controller: Any) -> None:
         logger.debug("Window already closed, skipping destroy")
 
 
-def confirm_exit(controller: Any, e: ft.ControlEvent) -> None:
+def confirm_exit(controller: Any, _e: ft.ControlEvent) -> None:
     """Launch the async window destruction task."""
     controller.page.run_task(controller.confirm_exit_async)
 

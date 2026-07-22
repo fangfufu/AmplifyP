@@ -16,7 +16,6 @@
 """2D Primer Designer View for the Flet application."""
 
 import logging
-import traceback
 from typing import cast
 
 import flet as ft
@@ -231,8 +230,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             self._cached_designer = designer
             self.results_grid.update_grid(designer)
         except Exception as ex:
-            logger.error("Failed to run 2D primer designer: %s", ex)
-            logger.debug(traceback.format_exc())
+            logger.exception("Failed to run 2D primer designer")
             show_error_dialog(
                 self.app_page,
                 "Analysis Error",

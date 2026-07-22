@@ -195,7 +195,7 @@ def on_change_handler(input_view: Any, e: ft.Event | None) -> None:
 
 
 def handle_pasted_text(
-    input_view: Any, text: str, idx: int, field: str, control: ft.TextField
+    input_view: Any, text: str, idx: int, _field: str, _control: ft.TextField
 ) -> None:
     """Parse pasted text and insert into the primer list."""
     from amplifyp.gui.views.input.primer.clipboard import (

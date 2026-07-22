@@ -59,7 +59,7 @@ class ThemeManager:
             self.controller.header_container.bgcolor = GUIColours.SURFACE
 
     def on_platform_brightness_change(
-        self, e: ft.ControlEvent | None = None
+        self, _e: ft.ControlEvent | None = None
     ) -> None:
         """Handle system brightness shifts."""
         self.apply_theme()

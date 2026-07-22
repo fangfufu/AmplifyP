@@ -41,7 +41,7 @@ def on_pan_update(input_view: Any, e: ft.DragUpdateEvent) -> None:
         )
 
 
-def on_pan_end(input_view: Any, e: ft.DragEndEvent) -> None:
+def on_pan_end(input_view: Any, _e: ft.DragEndEvent) -> None:
     """Handle finishing the drag of the main layout divider."""
     page_width = input_view.app_page.width
     if isinstance(page_width, (int, float)) and page_width > 0:
@@ -60,7 +60,7 @@ def on_pan_end(input_view: Any, e: ft.DragEndEvent) -> None:
         input_view.update()
 
 
-def handle_resize(input_view: Any, e: ft.PageResizeEvent) -> None:
+def handle_resize(input_view: Any, _e: ft.PageResizeEvent) -> None:
     """Handle page resize to proportionally scale name column."""
     page_width = input_view.app_page.width
     if isinstance(page_width, (int, float)) and page_width > 0:
