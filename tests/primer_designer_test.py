@@ -80,7 +80,7 @@ def test_primer_designer_default_mode() -> None:
 
 
 def test_primer_designer_query_methods() -> None:
-    """Test indexing, len, get_dimer, and best_primer query methods."""
+    """Test indexing, len, get_dimer, and best_score query methods."""
     dna_obj = DNA(
         "ATGCGTACGT"
     )  # length 10 down to 7 -> 4 steps (index 0, 1, 2, 3)
@@ -101,9 +101,12 @@ def test_primer_designer_query_methods() -> None:
     with pytest.raises(IndexError):
         _ = designer[10]
 
-    best_idx = designer.best_primer
-    assert isinstance(best_idx, int)
+    best_pair = designer.best_score
+    assert isinstance(best_pair, tuple)
+    assert len(best_pair) == 2
+    best_idx, best_q = best_pair
     assert designer[best_idx] == min(designer.results, key=lambda d: d.quality)
+    assert best_q == designer[best_idx].quality
 
 
 def test_primer_designer_invalid_inputs() -> None:
@@ -146,23 +149,20 @@ def test_primer_designer_sequence_protocol_and_representations() -> None:
     assert repr(designer) == expected_repr
     assert str(designer) == "PrimerDesigner1D(4 steps, min_length=7, mode=FWD)"
 
-    # filter_by_quality and sorted_by_quality
-    worst_quality = max(d.quality for d in designer.results)
-    filtered_sorted = designer.filter_by_quality(worst_quality, sort=True)
-    assert len(filtered_sorted) == 4
-    assert all(isinstance(idx, int) for idx in filtered_sorted)
-    assert list(filtered_sorted) == list(
-        designer.sorted_by_quality(reverse=False)
+    # quality_score
+    sorted_qs = designer.quality_score(sorted=True)
+
+    assert len(sorted_qs) == 4
+    assert [score for _, score in sorted_qs] == sorted(
+        d.quality for d in designer.results
     )
 
-    filtered_unsorted = designer.filter_by_quality(worst_quality, sort=False)
-    assert list(filtered_unsorted) == [0, 1, 2, 3]
+    raw_qs = designer.quality_score(sorted=False)
+    assert raw_qs == tuple(
+        (i, d.quality) for i, d in enumerate(designer.results)
+    )
 
-    sorted_best = designer.sorted_by_quality(reverse=False)
-    assert sorted_best[0] == designer.best_primer
-
-    sorted_worst = designer.sorted_by_quality(reverse=True)
-    assert designer[sorted_worst[0]].quality == worst_quality
+    assert sorted_qs[0] == designer.best_score
 
 
 def test_primer_designer_custom_generator() -> None:

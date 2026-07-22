@@ -109,65 +109,40 @@ class PrimerDesigner1D:
         return tuple(self._dimers)
 
     @property
-    def best_primer(self) -> int:
-        """Return the index of the PrimerDimer with the lowest quality score.
+    def best_score(self) -> tuple[int, float]:
+        """Return the (index, quality) pair of the optimal self-dimer.
 
         A lower self-dimer quality score indicates lower dimer formation
         potential, representing the optimal primer choice.
 
         Returns:
-            int: The 0-indexed step position of the self-dimer with the lowest
-                quality score.
+            tuple[int, float]: A (step_index, quality_score) tuple for the
+                self-dimer with the lowest quality score.
 
         Raises:
             RuntimeError: If no results have been generated.
         """
         if not self._dimers:
             raise RuntimeError("No analysis steps recorded.")
-        return min(
-            range(len(self._dimers)), key=lambda i: self._dimers[i].quality
-        )
+        return self.quality_score(sorted=True)[0]
 
-    def filter_by_quality(
-        self, max_quality: float, sort: bool = True
-    ) -> tuple[int, ...]:
-        """Filter results by quality score.
-
-        Returns 0-indexed step positions for self-dimers with quality
-        score <= `max_quality`.
+    def quality_score(
+        self, sorted: bool = False
+    ) -> tuple[tuple[int, float], ...]:
+        """Return (index, quality) pairs for all self-dimer results.
 
         Args:
-            max_quality (float): The maximum quality score threshold.
-            sort (bool, optional): If True, sort step positions by quality
-                score in ascending order. Defaults to True.
+            sorted (bool, optional): If True, sort pairs by quality score in
+                ascending order (best quality first). Defaults to False.
 
         Returns:
-            tuple[int, ...]: Step indices matching the criteria.
+            tuple[tuple[int, float], ...]: Sequence of (step_index, quality)
+                tuples.
         """
-        matching_indices = [
-            i for i, d in enumerate(self._dimers) if d.quality <= max_quality
-        ]
-        if sort:
-            matching_indices.sort(key=lambda i: self._dimers[i].quality)
-        return tuple(matching_indices)
-
-    def sorted_by_quality(self, reverse: bool = False) -> tuple[int, ...]:
-        """Return self-dimer result step indices sorted by quality score.
-
-        Args:
-            reverse (bool, optional): If True, sort in descending order of
-                quality score (worst first). Defaults to False (best first).
-
-        Returns:
-            tuple[int, ...]: Step indices sorted by quality score.
-        """
-        return tuple(
-            sorted(
-                range(len(self._dimers)),
-                key=lambda i: self._dimers[i].quality,
-                reverse=reverse,
-            )
-        )
+        pairs = [(i, d.quality) for i, d in enumerate(self._dimers)]
+        if sorted:
+            pairs.sort(key=lambda item: item[1])
+        return tuple(pairs)
 
     def __len__(self) -> int:
         """Return the number of design truncation steps."""
