@@ -28,7 +28,7 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.gui.utils.gui_helpers import show_error_dialog
-from amplifyp.gui.views.designer.dismissible_self_dimer_card import (
+from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
     DismissibleSelfDimerCard,
 )
 from amplifyp.primer_designer import PrimerDesigner1D
@@ -540,12 +540,21 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
                                             text_align=ft.TextAlign.LEFT,
                                         ),
                                         ft.Container(
-                                            content=ft.Text(
-                                                seq,
-                                                size=font_size_default,
-                                                font_family="Roboto Mono",
+                                            content=ft.TextField(
+                                                value=seq,
+                                                read_only=True,
+                                                dense=True,
+                                                expand=True,
+                                                text_size=font_size_default,
+                                                text_style=ft.TextStyle(
+                                                    font_family="Roboto Mono"
+                                                ),
                                                 text_align=seq_align,
+                                                content_padding=ft.Padding(
+                                                    6, 4, 6, 4
+                                                ),
                                             ),
+                                            expand=True,
                                             alignment=(
                                                 ft.Alignment(1, 0)
                                                 if is_reverse

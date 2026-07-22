@@ -15,7 +15,7 @@
 
 """Designer view components module."""
 
-from .designer_view import PrimerDesignerView
+from .designer_1d_view import PrimerDesignerView
 from .dismissible_self_dimer_card import DismissibleSelfDimerCard
 
 __all__ = ["DismissibleSelfDimerCard", "PrimerDesignerView"]

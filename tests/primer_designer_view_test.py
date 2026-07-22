@@ -21,7 +21,7 @@ import flet as ft
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.designer import (
+from amplifyp.gui.views.designer_1d import (
     DismissibleSelfDimerCard,
     PrimerDesignerView,
 )
@@ -103,6 +103,8 @@ def test_primer_designer_view_reverse_mode_alignment() -> None:
     assert col.controls[0].text_align == ft.TextAlign.LEFT
     seq_container = col.controls[1]
     assert isinstance(seq_container, ft.Container)
+    assert isinstance(seq_container.content, ft.TextField)
+    assert seq_container.content.read_only is True
     assert seq_container.alignment == ft.Alignment(1, 0)
     assert seq_container.content.text_align == ft.TextAlign.RIGHT
 
