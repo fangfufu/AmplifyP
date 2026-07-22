@@ -56,13 +56,13 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         diagram = self._build_alignment_diagram(font_size_default)
 
         self.content = ft.Container(
-            padding=ft.Padding(15, 8, 15, 8),
+            padding=ft.Padding(16, 16, 16, 16),
             content=ft.Column(
                 [
                     header,
                     diagram,
                 ],
-                spacing=6,
+                spacing=12,
             ),
         )
 
@@ -111,10 +111,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                 [diagram_stack],
                 scroll=ft.ScrollMode.ALWAYS,
             ),
-            padding=ft.Padding(12, 4, 12, 4),
+            padding=ft.Padding(14, 10, 14, 10),
             border_radius=6,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
-            height=110 if self.show_names else 85,
+            height=150 if self.show_names else 120,
         )
 
     def _build_card_header(
