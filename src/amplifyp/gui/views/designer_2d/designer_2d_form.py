@@ -49,6 +49,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             expand=True,
             multiline=False,
             autofocus=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -56,6 +57,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             label="Fwd Min Len (bp)",
             value="18",
             width=160,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -64,6 +66,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="e.g. CGTACGATGC...",
             expand=True,
             multiline=False,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -71,6 +74,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             label="Rev Min Len (bp)",
             value="18",
             width=160,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -82,6 +86,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=f"{pd_settings.threshold:.1f}",
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -90,6 +95,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=str(pd_settings.min_overlap),
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -101,6 +107,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             ],
             value="MAX",
             width=110,
+            border_color=GUIColours.OUTLINE,
         )
         self.analyse_button = ft.FilledButton(
             "Analyse",

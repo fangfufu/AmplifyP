@@ -78,11 +78,15 @@ class _GUIColoursMeta(type):
     @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant colour."""
+        if cls._dark_mode:
+            return cast(str, ft.Colors.GREY_700)
         return cast(str, ft.Colors.OUTLINE_VARIANT)
 
     @property
     def OUTLINE(cls) -> str:
         """Get outline colour."""
+        if cls._dark_mode:
+            return cast(str, ft.Colors.GREY_500)
         return cast(str, ft.Colors.OUTLINE)
 
     @property
