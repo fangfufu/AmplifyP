@@ -3,8 +3,6 @@
 This document is the comprehensive guide on how to program, modify, and test the
 **AmplifyP** application and its core library.
 
-______________________________________________________________________
-
 ## 1. Development Installation
 
 AmplifyP requires Python 3.12 or higher.
@@ -21,8 +19,6 @@ source .venv/bin/activate
 pip install -e ".[dev,e2e]"
 ```
 
-______________________________________________________________________
-
 ## 2. Codebase Architecture
 
 The project directory is structured as follows:
@@ -31,8 +27,9 @@ The project directory is structured as follows:
 AmplifyP/
 ├── docs/                       # Markdown user and API documentation
 │   ├── images/                 # Visual assets (screenshots)
-│   ├── gui_guide.md            # GUI application user manual
 │   ├── api_guide.md            # Python library programmatic usage guide
+│   ├── gui_guide.md            # GUI application user manual
+│   ├── history.md              # Project history and background
 │   └── windows_setup.md        # Windows development and installer guide
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration
 ├── README.md                   # Repository overview and quick start guide
@@ -41,20 +38,23 @@ AmplifyP/
 │   ├── main.py                 # Flet GUI application command-line entry point
 │   └── amplifyp/               # Core Python library
 │       ├── __init__.py         # Package entry and version definition
-│       ├── dna.py              # DNA and Primer classes, IUB/IUPAC codes
-│       ├── pcr.py              # PCR reaction simulation engine
-│       ├── repliconf.py        # Replication configurations, padding, and caching
-│       ├── origin.py           # Origin matching, stability/primability scoring algorithms
 │       ├── amplicon.py         # Amplicon prediction and product sequence generation
 │       ├── dimer.py            # Primer self-dimer and cross-dimer analysis
-│       ├── melting.py          # Thermodynamic melting temperature calculations (Tm)
-│       ├── settings.py         # Customisable simulation and biophysical constants
+│       ├── dir_idx.py          # Directional index calculation utilities
+│       ├── dna.py              # DNA and Primer classes, IUB/IUPAC codes
 │       ├── errors.py           # Custom exception types
+│       ├── melting.py          # Thermodynamic melting temperature calculations (Tm)
+│       ├── origin.py           # Origin matching, stability/primability scoring algorithms
+│       ├── pcr.py              # PCR reaction simulation engine
+│       ├── primer_designer_1d.py # 1D primer design and analysis engine
+│       ├── primer_designer_2d.py # 2D primer pair design and matrix analysis engine
+│       ├── py.typed            # PEP 561 marker for inline type annotations
+│       ├── repliconf.py        # Replication configurations, padding, and caching
+│       ├── settings.py         # Customisable simulation and biophysical constants
 │       └── gui/                # Flet-based cross-platform GUI modules
-└── tests/                      # Unit, integration, and Playwright end-to-end tests
+└── tests/                      # Unit, integration, GUI, and end-to-end tests
+    └── gui/                    # Flet GUI tests
 ```
-
-______________________________________________________________________
 
 ## 3. Running the GUI with Hot-Reload
 
@@ -87,8 +87,6 @@ To run it on a specific port (e.g. port `34521`):
 flet run -w -r -p 34521 src/main.py
 ```
 
-______________________________________________________________________
-
 ## 4. Pyodide static builds (Client-Side Web)
 
 To build the static web version that runs entirely client-side using Pyodide in
@@ -110,8 +108,6 @@ the browser (similar to what is hosted on GitHub Pages):
    ```
 
 3. Open your browser and navigate to `http://localhost:23455`.
-
-______________________________________________________________________
 
 ## 5. Code Quality & Verification
 
@@ -136,6 +132,18 @@ This runs:
 - **`typos`** for identifying spelling errors.
 - **`mdformat`** for consistent markdown formatting.
 
+### Static Type Checking with Pyright
+
+Pyright runs automatically in CI when pushing to the `dev` branch. To reduce
+local execution delays, it is not included in the default `prek` pre-commit
+hooks.
+
+You can run `pyright` manually before pushing:
+
+```bash
+pyright
+```
+
 ### Running the Test Suite
 
 We use `pytest` for all unit, integration, and browser tests.
@@ -150,6 +158,9 @@ pytest
 
 #### 2. End-to-End (E2E) Browser Tests
 
+End-to-end (E2E) tests are not run automatically by `prek` local hooks to save
+time. You must run them manually.
+
 To run the Playwright browser automation tests that verify the Flet web server's
 behaviour:
 
@@ -158,10 +169,11 @@ behaviour:
 playwright install
 
 # Run the E2E tests
-xvfb-run -a pytest -m e2e
+pytest -m e2e
 ```
 
-______________________________________________________________________
+*(Note: On headless CI environments like GitHub Actions runners, these tests are
+executed under `xvfb`)*
 
 ## 6. Automated Release Process
 

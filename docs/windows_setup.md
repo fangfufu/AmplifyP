@@ -6,8 +6,6 @@ prerequisites, setting up Python virtual environments, running the application
 with hot-reload, executing unit and end-to-end (E2E) tests, and compiling
 release packages.
 
-______________________________________________________________________
-
 ## 1. Prerequisites
 
 Before setting up the project, ensure the following software is installed on
@@ -52,8 +50,6 @@ Required only if you wish to build the standalone installer executable (`.exe`).
   choco install innosetup -y
   ```
 
-______________________________________________________________________
-
 ## 2. Cloning the Repository
 
 Open PowerShell, Command Prompt, or Git Bash, and navigate to the directory
@@ -63,8 +59,6 @@ where you want to store the project. Run:
 git clone https://github.com/fangfufu/AmplifyP.git
 cd AmplifyP
 ```
-
-______________________________________________________________________
 
 ## 3. Creating and Activating the Virtual Environment
 
@@ -110,8 +104,6 @@ python -m venv .venv
 source .venv/Scripts/activate
 ```
 
-______________________________________________________________________
-
 ## 4. Installing Dependencies
 
 With the virtual environment activated, install the package in editable mode
@@ -120,8 +112,6 @@ along with development and end-to-end testing dependencies:
 ```powershell
 pip install -e ".[dev,e2e]"
 ```
-
-______________________________________________________________________
 
 ## 5. Running the Application
 
@@ -156,8 +146,6 @@ are saved), run the application using the Flet CLI:
   ```powershell
   flet run -w -r -p 34521 src/main.py
   ```
-
-______________________________________________________________________
 
 ## 6. Verification and Code Quality
 
@@ -205,8 +193,6 @@ playwright install
 # Run the slow E2E tests
 pytest --run-slow -m e2e
 ```
-
-______________________________________________________________________
 
 ## 7. Packaging and Building (Windows Releases)
 
