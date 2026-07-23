@@ -33,7 +33,7 @@ from amplifyp.gui.views.settings.score_table import ScoreTable
 
 
 class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
-    """Expansion tile for Origin of Replication settings."""
+    """Expansion tile for PCR settings."""
 
     def __init__(
         self,
@@ -104,7 +104,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Origin of Replication Settings",
+                "PCR Settings",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
