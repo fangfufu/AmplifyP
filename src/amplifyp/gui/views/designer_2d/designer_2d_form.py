@@ -93,7 +93,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self.overlap_filter_input = ft.TextField(
             label="Overlap Filter (bp)",
             hint_text="Unconstrained if empty",
-            value=str(pd_settings.min_overlap),
+            value="",
             expand=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
