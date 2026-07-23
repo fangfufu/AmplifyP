@@ -7,8 +7,6 @@ Reactions (PCR) and analysing primer bindings.
 This directory contains guides and instructions tailored for both users
 (biologists and researchers) and developers/contributors.
 
-______________________________________________________________________
-
 ## Table of Contents
 
 1. [AmplifyP GUI User Guide](gui_guide.md) — For biologists and researchers
@@ -17,8 +15,6 @@ ______________________________________________________________________
    bioinformaticians using AmplifyP programmatically as a library.
 3. [Windows Development Environment Setup Guide](windows_setup.md) — For setting
    up the development, testing, and packaging environment on Windows.
-
-______________________________________________________________________
 
 ## 1. [GUI User Guide](gui_guide.md)
 
@@ -37,8 +33,6 @@ three primary workspaces:
   YAML configuration files.
 
 Refer to the [GUI User Guide](gui_guide.md) to get started with the visual tool.
-
-______________________________________________________________________
 
 ## 2. [Python API Guide](api_guide.md)
 
@@ -60,8 +54,6 @@ covers:
 Refer to the [Python API Guide](api_guide.md) for full code examples and API
 details.
 
-______________________________________________________________________
-
 ## 3. [Windows Setup Guide](windows_setup.md)
 
 The **[Windows Development Environment Setup Guide](windows_setup.md)** is a
@@ -79,8 +71,6 @@ step-by-step developer setup guide for Windows. It includes:
 
 Refer to the [Windows Setup Guide](windows_setup.md) for platform-specific
 development workflows.
-
-______________________________________________________________________
 
 ## Directory Assets
 

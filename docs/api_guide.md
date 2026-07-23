@@ -7,8 +7,6 @@ The `amplifyp` library provides a fully typed, high-performance API to run
 Polymerase Chain Reaction (PCR) simulations, analyse potential primer dimer
 risks, and compute thermodynamic melting properties of DNA.
 
-______________________________________________________________________
-
 ## 1. Defining DNA and Primers
 
 The core of the library revolves around the `DNA` and `Primer` classes located
@@ -52,8 +50,6 @@ print(f"Redundancy fold: {deg_primer.redundancy_fold}")
 # Count degenerate/redundant bases
 print(f"Redundant base count: {deg_primer.redundant_base_count}")
 ```
-
-______________________________________________________________________
 
 ## 2. PCR Simulation Engine
 
@@ -107,8 +103,6 @@ for amp in pcr.amplicons:
     )
 ```
 
-______________________________________________________________________
-
 ## 3. Primer Dimer Analysis
 
 The `PrimerDimerGenerator` class in `amplifyp.dimer` identifies and scores the
@@ -144,8 +138,6 @@ for dimer in dimer_gen.primer_dimers:
     print("-" * 30)
 ```
 
-______________________________________________________________________
-
 ## 4. Thermodynamic Melting Temperature (Tm) Calculations
 
 AmplifyP provides two models for computing primer melting temperatures in
@@ -172,8 +164,6 @@ print(f"Modern Tm: {tm_modern:.2f}°C")
 tm_legacy = calculate_tm_lander_amplify4(primer)
 print(f"Legacy Tm: {tm_legacy:.2f}°C")
 ```
-
-______________________________________________________________________
 
 ## 5. Customising Simulation and Scoring Settings
 

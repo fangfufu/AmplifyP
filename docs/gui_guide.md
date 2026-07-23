@@ -7,8 +7,6 @@ analyse primer dimers.
 AmplifyP is a modern Python rewrite of William Engels's classic **Amplify4** Mac
 program, updated to run in modern desktop environments and web browsers.
 
-______________________________________________________________________
-
 ## Overview: How to Use the GUI
 
 The application workspace consists of three primary tabs at the top of the
@@ -20,8 +18,6 @@ interface:
    are displayed.
 3. **Primer Dimers**: Where potential primer-primer binding configurations are
    analysed.
-
-______________________________________________________________________
 
 ## 1. The Input View
 
@@ -59,8 +55,6 @@ right.
   - **Save / Load States**: Save all template sequences, primers, and settings
     to a local YAML file (`.yaml`), or reload a saved configuration to resume
     your work.
-
-______________________________________________________________________
 
 ## 2. PCR View
 
@@ -100,8 +94,6 @@ details in the output log:
     matches, $Q$ is equal to the amplicon length. Poorer primer matches result
     in a larger $Q$ value (lower amplification efficiency).
 
-______________________________________________________________________
-
 ## 3. Primer Dimers View
 
 Select the **Primer Dimers** tab to run a primer-primer hybridization analysis.
@@ -117,8 +109,6 @@ cross-dimers) to warn you about potential secondary structures.
   high risk of primer-dimer formation, which can poison your PCR reaction.
 - **Visualisation**: Identifies complementary base pairs using `|` (perfect
   match) and `:` (weak/ambiguous match).
-
-______________________________________________________________________
 
 ## 4. Settings & Preferences
 

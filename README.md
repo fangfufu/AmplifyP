@@ -26,8 +26,6 @@ accessed programmatically.
 
 AmplifyP is available on Linux, Windows and macOS, as well as a web application.
 
-______________________________________________________________________
-
 ## Quick start
 
 ### Web version
@@ -63,7 +61,23 @@ The **web** version runs purely on client-side, no computation is done on the
 server itself. However you do actually need to run a static web server and
 access AmplifyP via the web server. This is due to browser security restriction.
 
-______________________________________________________________________
+## GUI Guide
+
+Hopefully the GUI design for AmplifyP is intuitive enough, and you don't need a
+separate guide. However, if you want one, it is available
+**[here](docs/gui_guide.md)**.
+
+The operations related to the primer list might not be so obvious. If you want
+to highlight a primer, or drag them around, you need to click on the drag/hight
+handle. This controls which primers get to be copied or drag around. This is
+different to enabling / disabling primers for PCR simulation and primer dimer
+analysis.
+
+You can quickly highlight a range of entries in the primer list. If you double
+click the drag handle of one primer, and double click the drag handle of another
+primer, the highlight status of the primers between them (including the primers
+that you double clicked on) will be *toggled*, that means if they were not
+highlighted, they will be highlighted now.
 
 ## Running AmplifyP from the source code repository
 
@@ -79,34 +93,38 @@ To run AmplifyP from the source repository, you need to follow these steps:
    cd AmplifyP
    ```
 
-2. Set up the development environment:
+2. Set up the virtual environment:
 
-   **Linux** — automated setup script:
+   **Debian GNU/Linux**: This was verified under Debian GNU/Linux 13 (trixie), I
+   make no guarantee that it works in other Debian derived distributions.
+
+   > [!NOTE]
+   > Note that this also sets up your machine for developing AmplifyP. If you
+   > don't want that, follow the \*nix instructions.
 
    ```bash
    ./scripts/setup_linux.sh --system-deps
    source .venv/bin/activate
    ```
 
-   **Manual** (macOS / Linux):
+   **\*nix, including GNU/Linux distributions, FreeBSD and macOS**:
 
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
+   pip install .
    ```
 
-   *(On Windows, use `.venv\Scripts\activate` in PowerShell or Command Prompt)*
+   **Windows**:
 
-3. For manual setup, install the application and its runtime dependencies:
-
-   ```bash
+   ```cmd
+   python -m venv .venv
+   .venv\Scripts\activate
    pip install .
    ```
 
 If you want to do development on AmplifyP, please refer to the
 [Developers' and Contributors' Guide](src/README.md)
-
-______________________________________________________________________
 
 ## AmplifyP API
 
@@ -137,8 +155,6 @@ for amplicon in pcr.amplicons:
 For the full guide on using AmplifyP API, please refer to the
 [Python API Guide](docs/api_guide.md)
 
-______________________________________________________________________
-
 ## Further Readings
 
 For more documentation, please refer to:
@@ -159,16 +175,12 @@ For more documentation, please refer to:
   guide for setting up the environment, running tests, and compiling installers
   on Windows.
 
-______________________________________________________________________
-
 ## Attribution
 
-- **William Engels (Amplify4)**: This project is based on the original
-  [Amplify4](https://github.com/wrengels/Amplify4) software.
+- **William Engels (Amplify4)**: This project is based on
+  [Amplify4](https://github.com/wrengels/Amplify4).
 - **Roboto Mono Font**: Licenced under the SIL Open Font License, Version 1.1.
   Copyright 2015 The Roboto Mono Project Authors.
-
-______________________________________________________________________
 
 ## Licence
 
