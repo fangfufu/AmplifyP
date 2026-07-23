@@ -34,8 +34,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self,
         settings: GUISettings,
         on_submit_callback: Callable[[], Any],
-        on_clear_error_callback: Callable[[ft.ControlEvent], None]
-        | None = None,
+        on_clear_error_callback: Callable[[Any], None] | None = None,
     ) -> None:
         """Initialise the Designer2DForm."""
         super().__init__(spacing=8)
@@ -50,13 +49,15 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             expand=True,
             multiline=False,
             autofocus=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
         self.fwd_min_len_input = ft.TextField(
             label="Fwd Min Len (bp)",
             value="18",
-            width=120,
+            width=160,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -65,13 +66,15 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="e.g. CGTACGATGC...",
             expand=True,
             multiline=False,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
         self.rev_min_len_input = ft.TextField(
             label="Rev Min Len (bp)",
             value="18",
-            width=120,
+            width=160,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -83,6 +86,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=f"{pd_settings.threshold:.1f}",
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -91,6 +95,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=str(pd_settings.min_overlap),
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -101,7 +106,8 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 ft.dropdown.Option("MEAN", "Mean"),
             ],
             value="MAX",
-            width=110,
+            width=150,
+            border_color=GUIColours.OUTLINE,
         )
         self.analyse_button = ft.FilledButton(
             "Analyse",
@@ -138,11 +144,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             self.error_text,
         ]
 
-    def _on_submit_event(self, e: ft.ControlEvent) -> None:
+    def _on_submit_event(self, e: Any) -> None:
         """Handle submit/click events from form controls."""
         self.on_submit_callback()
 
-    def _clear_field_error(self, e: ft.ControlEvent) -> None:
+    def _clear_field_error(self, e: Any) -> None:
         """Clear error text when user edits an input field."""
         ctrl = getattr(e, "control", None)
         if isinstance(ctrl, ft.TextField) and ctrl.error:

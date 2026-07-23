@@ -31,6 +31,7 @@ def test_desktop_e2e_auto_close() -> None:
     """Test launching desktop app with a state file and auto-close."""
     state_file = os.path.join(
         os.path.dirname(__file__),
+        "..",
         "examples",
         "save_states",
         "amplify_4_full_example.yaml",

@@ -44,7 +44,7 @@ def test_designer_2d_view_initialisation() -> None:
     assert view.main_h_divider is not None
     assert view.left_v_divider is not None
     assert view.left_container.expand == 1
-    assert view.right_container.expand == 2
+    assert view.right_container.expand == 1
     assert view.form.fwd_dna_input.value == ""
     assert view.form.fwd_min_len_input.value == "18"
     assert view.form.rev_dna_input.value == ""
@@ -182,3 +182,84 @@ def test_dismissible_2d_card_dismiss_and_clear() -> None:
     assert len(view.right_cards_list.controls) == 1
     view._clear_all_cards(MagicMock())
     assert len(view.right_cards_list.controls) == 0
+
+
+def test_grid_cell_click_brings_existing_card_to_top() -> None:
+    """Test clicking an existing cell re-orders its detail card to top."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+
+    step_1 = designer.get_step(0)
+    step_2 = designer.get_step(1)
+
+    # Click step_1 then step_2
+    view._on_grid_step_selected(step_1)
+    view._on_grid_step_selected(step_2)
+
+    assert len(view._active_cards) == 2
+    assert view._active_cards[0].step == step_2
+    assert view._active_cards[1].step == step_1
+
+    # Click step_1 again -> step_1 should move to top (index 0)
+    view._on_grid_step_selected(step_1)
+    assert len(view._active_cards) == 2
+    assert view._active_cards[0].step == step_1
+    assert view._active_cards[1].step == step_2
+    assert view.right_cards_list.controls[0].step == step_1
+
+
+def test_grid_2d_results_view_colour_mapping() -> None:
+    """Test Grid2DResultsView applies cell background colours.
+
+    Verifies active scheme applies background colours to grid cells.
+    """
+    settings = GUISettings()
+    settings["designer_2d_colour_scheme"] = "Cool-Warm"
+
+    grid = Designer2DView(
+        MagicMock(spec=ft.Page), GUIInput(), settings
+    ).results_grid
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+
+    grid.update_grid(designer)
+    assert len(grid._cell_containers) > 0
+
+    first_key = next(iter(grid._cell_containers.keys()))
+    first_container = grid._cell_containers[first_key]
+    assert first_container.bgcolor is not None
+    assert first_container.bgcolor.startswith("#")
+
+    # Select cell -> border changes to PRIMARY but bgcolor remains preserved
+    step = designer.get_step(0)
+    grid._on_cell_click(step, first_key)
+    assert first_container.bgcolor == grid._cell_bg_colours[first_key]
+
+
+def test_designer_2d_tile_in_settings_view() -> None:
+    """Test SettingsView integrates Designer2DTile and updates setting value."""
+    from amplifyp.gui.views.settings.settings_view import SettingsView
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings_view = SettingsView(mock_page, settings)
+
+    assert hasattr(settings_view, "designer_2d_tile")
+    assert settings_view.set_designer_2d_colour_scheme is not None
+    assert settings_view.set_designer_2d_colour_scheme.value == "None"
+
+    settings_view.set_designer_2d_colour_scheme.value = "Blue-Orange"
+    mock_event = MagicMock()
+    mock_event.control = settings_view.set_designer_2d_colour_scheme
+    settings_view._on_change_handler(mock_event)
+
+    assert settings["designer_2d_colour_scheme"] == "Blue-Orange"

@@ -114,7 +114,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         )
         self.left_container = ft.Container(
             content=self.left_panel_column,
-            expand=1,
+            expand=True,
             padding=5,
         )
 
@@ -213,7 +213,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         )
         self.right_container = ft.Container(
             content=self.right_panel_column,
-            expand=2,
+            expand=True,
             padding=5,
         )
 
@@ -264,18 +264,20 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         """Handle horizontal resizing between left and right panels."""
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
         if self.left_container.width is None:
+            self.left_container.expand = None
+            self.right_container.expand = True
             page_w = (
                 self.app_page.width
                 if hasattr(self.app_page, "width")
                 and isinstance(self.app_page.width, (int, float))
                 else 800.0
             )
-            base_w = float(page_w) * 0.25
-            self.left_container.expand = None
-            self.right_container.expand = 2
-            self.left_container.width = base_w
-        current_w = float(self.left_container.width or 200.0)
-        self.left_container.width = max(250.0, current_w + delta_x)
+            self.left_container.width = max(
+                250.0, float(page_w) * 0.5 + delta_x
+            )
+        else:
+            current_w = float(self.left_container.width)
+            self.left_container.width = max(250.0, current_w + delta_x)
         try:
             if self.app_page:
                 self.update()
@@ -300,7 +302,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self.top_right_chart_container.height = max(70.0, current_h + delta_y)
         if self._cached_designer and self._cached_designer.all_dimers:
             self.chart_content_container.content = self._build_chart(
-                self._cached_designer.all_dimers
+                list(self._cached_designer.all_dimers)
             )
         try:
             if self.app_page:
@@ -346,7 +348,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
             # Update top-right quality bar chart
             self.chart_content_container.content = self._build_chart(
-                designer.all_dimers
+                list(designer.all_dimers)
             )
 
             for step_idx, dimer in enumerate(designer.all_dimers):
@@ -412,7 +414,9 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         has_cards = len(self.right_cards_list.controls) > 0
         self.clear_cards_button.visible = has_cards
 
-    def _clear_all_cards(self, e: ft.ControlEvent) -> None:
+    def _clear_all_cards(
+        self, e: ft.Event[ft.TextButton] | None = None
+    ) -> None:
         """Clear all right-hand panel self-dimer cards."""
         self.right_cards_list.controls.clear()
         self._update_cards_header_visibility()

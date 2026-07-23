@@ -234,14 +234,11 @@ class PrimerDesigner1D:
         while len(current_seq) >= self._min_length:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
-            if self._threshold is not None and dimer.quality > self._threshold:
-                pass
-            elif (
-                self._max_overlap is not None
-                and dimer.overlap > self._max_overlap
+            if (
+                self._threshold is None or dimer.quality <= self._threshold
+            ) and (
+                self._max_overlap is None or dimer.overlap <= self._max_overlap
             ):
-                pass
-            else:
                 self._dimers.append(dimer)
 
             if len(current_seq) == self._min_length:

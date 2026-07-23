@@ -36,8 +36,8 @@ def test_gui_main() -> None:
 
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
-    assert mock_page.window.width == 1600
-    assert mock_page.window.height == 900
+    assert mock_page.window.width == 1280
+    assert mock_page.window.height == 720
     mock_page.add.assert_called()
 
 
@@ -51,8 +51,8 @@ def test_gui_app_main() -> None:
 
     assert mock_page.title == "AmplifyP"
     assert mock_page.vertical_alignment == ft.MainAxisAlignment.START
-    assert mock_page.window.width == 1600
-    assert mock_page.window.height == 900
+    assert mock_page.window.width == 1280
+    assert mock_page.window.height == 720
     mock_page.add.assert_called()
 
 

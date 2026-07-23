@@ -49,6 +49,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             expand=True,
             multiline=False,
             autofocus=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -56,6 +57,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             label="Min Length (bp)",
             value="18",
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -67,6 +69,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             ],
             value="FWD",
             expand=True,
+            border_color=GUIColours.OUTLINE,
         )
         pd_settings = self.settings.get_primer_dimer_settings()
 
@@ -75,6 +78,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=f"{pd_settings.threshold:.1f}",
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
@@ -83,6 +87,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             hint_text="Unconstrained if empty",
             value=str(pd_settings.min_overlap),
             expand=True,
+            border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )

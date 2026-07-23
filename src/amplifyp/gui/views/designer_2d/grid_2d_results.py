@@ -19,7 +19,11 @@ from collections.abc import Callable
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.colours import (
+    GUIColours,
+    designer_2d_colour,
+    get_text_contrast_colour,
+)
 from amplifyp.gui.settings import GUISettings
 from amplifyp.primer_designer_2d import (
     FilterMetric,
@@ -43,6 +47,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
         self._selected_step: PrimerDimers2D | None = None
         self._cell_containers: dict[tuple[int, int], ft.Container] = {}
+        self._cell_bg_colours: dict[tuple[int, int], str | None] = {}
+        self._best_cell_keys: set[tuple[int, int]] = set()
 
         self.content_column = ft.Column(
             [
@@ -51,14 +57,18 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=self.settings.get("font_size_subheader", 16),
                 ),
-                ft.Text(
-                    "Run 2D analysis to view quality and overlap matrix.",
-                    italic=True,
-                    size=self.settings.get("font_size_small", 12),
-                    color=GUIColours.TEXT_ON_SURFACE,
+                ft.Container(
+                    content=ft.Text(
+                        "Run 2D analysis to view quality and overlap matrix.",
+                        italic=True,
+                        size=self.settings.get("font_size_small", 12),
+                        color=GUIColours.TEXT_ON_SURFACE,
+                    ),
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
                 ),
             ],
-            spacing=6,
+            spacing=2,
             expand=True,
             scroll=ft.ScrollMode.ALWAYS,
         )
@@ -72,6 +82,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         """
         self._selected_step = None
         self._cell_containers.clear()
+        self._cell_bg_colours.clear()
+        self._best_cell_keys.clear()
 
         steps = designer.all_steps
         if not steps:
@@ -81,12 +93,16 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=self.settings.get("font_size_subheader", 16),
                 ),
-                ft.Text(
-                    "No valid 2D truncation combinations matched "
-                    "the active filters.",
-                    italic=True,
-                    size=self.settings.get("font_size_small", 12),
-                    color=GUIColours.ERROR_RED,
+                ft.Container(
+                    content=ft.Text(
+                        "No valid 2D truncation combinations matched "
+                        "the active filters.",
+                        italic=True,
+                        size=self.settings.get("font_size_small", 12),
+                        color=GUIColours.ERROR_RED,
+                    ),
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
                 ),
             ]
             try:
@@ -113,6 +129,13 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
         use_max = designer.filter_metric == FilterMetric.MAX
         font_small = self.settings.get("font_size_small", 11)
+        scheme = self.settings.get("designer_2d_colour_scheme", "None")
+
+        qualities = [
+            (s.max_quality if use_max else s.mean_quality) for s in steps
+        ]
+        min_q = min(qualities) if qualities else 0.0
+        max_q = max(qualities) if qualities else 1.0
 
         # Header Row
         header_cells: list[ft.Control] = [
@@ -161,7 +184,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         size=font_small,
                     ),
                     width=80,
-                    height=46,
+                    height=36,
                     alignment=ft.Alignment(0, 0),
                     bgcolor=GUIColours.SURFACE_VARIANT,
                     border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
@@ -181,7 +204,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                                 opacity=0.5,
                             ),
                             width=72,
-                            height=46,
+                            height=36,
                             alignment=ft.Alignment(0, 0),
                             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
                             border_radius=4,
@@ -193,32 +216,24 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 o_val = step.max_overlap if use_max else step.mean_overlap
                 o_str = f"{o_val}" if use_max else f"{o_val:.1f}"
 
-                # Top half: Quality, Bottom half: Overlap
-                cell_content = ft.Column(
-                    [
-                        ft.Container(
-                            content=ft.Text(
-                                f"Q: {q_val:.1f}",
-                                weight=ft.FontWeight.BOLD,
-                                size=font_small,
-                                color=GUIColours.PRIMARY,
-                            ),
-                            alignment=ft.Alignment(0, 0),
-                            expand=True,
-                        ),
-                        ft.Divider(height=1, color=GUIColours.OUTLINE_VARIANT),
-                        ft.Container(
-                            content=ft.Text(
-                                f"O: {o_str}",
-                                size=font_small - 1,
-                                color=GUIColours.DIAGRAM_BLACK,
-                            ),
-                            alignment=ft.Alignment(0, 0),
-                            expand=True,
-                        ),
-                    ],
-                    spacing=0,
-                    alignment=ft.MainAxisAlignment.CENTER,
+                is_best = abs(q_val - min_q) < 1e-6
+                if is_best:
+                    self._best_cell_keys.add((f_len, r_len))
+
+                bg_col = designer_2d_colour(q_val, min_q, max_q, scheme)
+                self._cell_bg_colours[(f_len, r_len)] = bg_col
+                text_col = (
+                    get_text_contrast_colour(bg_col)
+                    if bg_col is not None
+                    else GUIColours.PRIMARY
+                )
+
+                cell_content = ft.Text(
+                    f"{q_val:.1f}",
+                    weight=ft.FontWeight.BOLD,
+                    size=font_small,
+                    color=text_col,
+                    text_align=ft.TextAlign.CENTER,
                 )
 
                 def _make_click_handler(
@@ -226,16 +241,29 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 ) -> Callable[[ft.ControlEvent], None]:
                     return lambda e: self._on_cell_click(st, key)
 
+                border = (
+                    ft.Border.all(2, GUIColours.SUCCESS_GREEN)
+                    if is_best
+                    else ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
+                )
+
+                tooltip_prefix = (
+                    "★ Best Quality (Lowest Score)\n" if is_best else ""
+                )
+
                 cell_container = ft.Container(
                     content=cell_content,
                     width=72,
-                    height=46,
+                    height=36,
+                    alignment=ft.Alignment(0, 0),
                     padding=2,
-                    border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
+                    bgcolor=bg_col,
+                    border=border,
                     border_radius=4,
                     ink=True,
                     on_click=_make_click_handler(step, (f_len, r_len)),
                     tooltip=(
+                        f"{tooltip_prefix}"
                         f"Forward: {f_len} bp | Reverse: {r_len} bp\n"
                         f"{'Max' if use_max else 'Mean'} Quality: {q_val:.1f}\n"
                         f"{'Max' if use_max else 'Mean'} Overlap: {o_str} bp"
@@ -248,6 +276,45 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
         # Metric Legend Header
         metric_label = "Max" if use_max else "Mean"
+        header_badges: list[ft.Control] = [
+            ft.Container(
+                content=ft.Text(
+                    f"Metric: {metric_label} Quality",
+                    size=font_small,
+                    weight=ft.FontWeight.BOLD,
+                    color=GUIColours.PRIMARY,
+                ),
+                bgcolor=GUIColours.SELECTED_ROW_BG,
+                padding=ft.Padding(6, 2, 6, 2),
+                border_radius=4,
+            ),
+            ft.Container(
+                content=ft.Text(
+                    f"★ Best Quality: {min_q:.1f}",
+                    size=font_small,
+                    weight=ft.FontWeight.BOLD,
+                    color=GUIColours.SUCCESS_GREEN,
+                ),
+                bgcolor=GUIColours.SELECTED_ROW_BG,
+                padding=ft.Padding(6, 2, 6, 2),
+                border_radius=4,
+            ),
+        ]
+        if scheme != "None":
+            header_badges.append(
+                ft.Container(
+                    content=ft.Text(
+                        f"Colour Map: {scheme} ({max_q:.1f} - {min_q:.1f})",
+                        size=font_small,
+                        weight=ft.FontWeight.BOLD,
+                        color=GUIColours.PRIMARY,
+                    ),
+                    bgcolor=GUIColours.SELECTED_ROW_BG,
+                    padding=ft.Padding(6, 2, 6, 2),
+                    border_radius=4,
+                )
+            )
+
         self.content_column.controls = [
             ft.Row(
                 [
@@ -256,29 +323,29 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=self.settings.get("font_size_subheader", 16),
                     ),
-                    ft.Container(
-                        content=ft.Text(
-                            f"Metric: {metric_label} Quality / Overlap",
-                            size=font_small,
-                            weight=ft.FontWeight.BOLD,
-                            color=GUIColours.PRIMARY,
-                        ),
-                        bgcolor=GUIColours.SELECTED_ROW_BG,
-                        padding=ft.Padding(6, 2, 6, 2),
-                        border_radius=4,
-                    ),
+                    ft.Row(header_badges, spacing=6),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.Row(
-                [
-                    ft.Column(
-                        grid_rows,
-                        spacing=4,
-                        scroll=ft.ScrollMode.ALWAYS,
-                    )
-                ],
-                scroll=ft.ScrollMode.ALWAYS,
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                grid_rows,
+                                spacing=4,
+                                scroll=ft.ScrollMode.ALWAYS,
+                            ),
+                            padding=ft.Padding(0, 12, 0, 0),
+                        ),
+                    ],
+                    scroll=ft.Scrollbar(
+                        orientation=ft.ScrollbarOrientation.TOP,
+                        thumb_visibility=True,
+                    ),
+                    expand=True,
+                ),
+                padding=ft.Padding(0, 0, 0, 0),
                 expand=True,
             ),
         ]
@@ -300,12 +367,20 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         """
         # Highlight selected cell container
         for cell_key, container in self._cell_containers.items():
+            bg_col = self._cell_bg_colours.get(cell_key)
+            is_best = cell_key in self._best_cell_keys
             if cell_key == key:
-                container.border = ft.Border.all(2, GUIColours.PRIMARY)
-                container.bgcolor = GUIColours.SELECTED_ROW_BG
+                container.border = ft.Border.all(3, GUIColours.PRIMARY)
+                container.bgcolor = (
+                    bg_col if bg_col is not None else GUIColours.SELECTED_ROW_BG
+                )
             else:
-                container.border = ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
-                container.bgcolor = None
+                container.border = (
+                    ft.Border.all(2, GUIColours.SUCCESS_GREEN)
+                    if is_best
+                    else ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
+                )
+                container.bgcolor = bg_col
 
         self._selected_step = step
         self.on_select_step_callback(step)

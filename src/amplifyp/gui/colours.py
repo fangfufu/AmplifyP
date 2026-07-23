@@ -78,11 +78,15 @@ class _GUIColoursMeta(type):
     @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant colour."""
+        if cls._dark_mode:
+            return cast(str, ft.Colors.GREY_700)
         return cast(str, ft.Colors.OUTLINE_VARIANT)
 
     @property
     def OUTLINE(cls) -> str:
         """Get outline colour."""
+        if cls._dark_mode:
+            return cast(str, ft.Colors.GREY_500)
         return cast(str, ft.Colors.OUTLINE)
 
     @property
@@ -176,7 +180,9 @@ class _GUIColoursMeta(type):
         """Get background colour for info header."""
         return cast(
             str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
+            ft.Colors.SURFACE_CONTAINER_HIGHEST
+            if cls._dark_mode
+            else ft.Colors.GREY_200,
         )
 
     @property
@@ -184,7 +190,9 @@ class _GUIColoursMeta(type):
         """Get background colour for template display gutter."""
         return cast(
             str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
+            ft.Colors.SURFACE_CONTAINER_HIGHEST
+            if cls._dark_mode
+            else ft.Colors.GREY_200,
         )
 
     @property
@@ -307,6 +315,35 @@ class _GUIColoursMeta(type):
         """Get midpoint colour for Cool-Warm temperature gradient."""
         return cast(str, ft.Colors.WHITE if cls._dark_mode else ft.Colors.BLACK)
 
+    @property
+    def GRID_2D_BLUE(cls) -> str:
+        """Get soft desaturated blue colour for 2D grid results colour map."""
+        return "#2d4a68" if cls._dark_mode else "#d0e1f9"
+
+    @property
+    def GRID_2D_ORANGE(cls) -> str:
+        """Get soft desaturated orange colour for 2D grid results colour map."""
+        return "#68482d" if cls._dark_mode else "#fdebd0"
+
+    @property
+    def GRID_2D_GREEN(cls) -> str:
+        """Get soft desaturated green colour for 2D grid results colour map."""
+        if cls.colour_deficient_mode:
+            return cls.GRID_2D_BLUE
+        return "#2d683b" if cls._dark_mode else "#d0f9d0"
+
+    @property
+    def GRID_2D_YELLOW(cls) -> str:
+        """Get soft desaturated yellow colour for 2D grid results colour map."""
+        if cls.colour_deficient_mode:
+            return cls.GRID_2D_ORANGE
+        return "#68632d" if cls._dark_mode else "#fdf6d0"
+
+    @property
+    def GRID_2D_RED(cls) -> str:
+        """Get soft desaturated red colour for 2D grid results colour map."""
+        return "#682d2d" if cls._dark_mode else "#f9d0d0"
+
 
 class GUIColours(metaclass=_GUIColoursMeta):
     """Centralised semantic colour constants for the GUI."""
@@ -417,5 +454,72 @@ def tm_colour(tm_value: float | None, scheme: str) -> str | None:
                 GUIColours.GRADIENT_MIDPOINT, GUIColours.GRADIENT_RED, t
             )
         return ColourInterpolator.get_hex(GUIColours.GRADIENT_RED)
+
+    return None
+
+
+def get_text_contrast_colour(bg_hex: str) -> str:
+    """Return high contrast text colour (dark or white) for a background hex.
+
+    Args:
+        bg_hex: Background hex colour string.
+
+    Returns:
+        Hex colour string for high contrast text.
+    """
+    try:
+        r, g, b = ColourInterpolator.to_rgb(bg_hex)
+        luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return "#ffffff" if luminance < 128 else "#111827"
+    except ValueError:
+        return GUIColours.TEXT_ON_SURFACE
+
+
+def designer_2d_colour(
+    value: float | None, min_val: float, max_val: float, scheme: str
+) -> str | None:
+    """Return a hex colour string for a 2D grid value using specified scheme.
+
+    Inverts the scale so that lower quality scores (which represent better
+    primer pairs with lower dimerisation risk) receive hotter / higher
+    intensity colours.
+
+    Args:
+        value: The numerical quality/metric score to colour.
+        min_val: Minimum metric value across the grid.
+        max_val: Maximum metric value across the grid.
+        scheme: One of "None", "Cool-Warm", "Traffic Light", or "Blue-Orange".
+
+    Returns:
+        Hex colour string, or None if scheme is disabled or invalid.
+    """
+    if value is None or scheme == "None":
+        return None
+
+    if max_val <= min_val:
+        t = 0.5
+    else:
+        t = 1.0 - max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
+
+    if scheme == "Cool-Warm":
+        return ColourInterpolator.interpolate(
+            GUIColours.GRID_2D_BLUE, GUIColours.GRID_2D_RED, t
+        )
+
+    if scheme == "Traffic Light":
+        if t < 0.5:
+            norm_t = t * 2.0
+            return ColourInterpolator.interpolate(
+                GUIColours.GRID_2D_RED, GUIColours.GRID_2D_YELLOW, norm_t
+            )
+        norm_t = (t - 0.5) * 2.0
+        return ColourInterpolator.interpolate(
+            GUIColours.GRID_2D_YELLOW, GUIColours.GRID_2D_GREEN, norm_t
+        )
+
+    if scheme == "Blue-Orange":
+        return ColourInterpolator.interpolate(
+            GUIColours.GRID_2D_BLUE, GUIColours.GRID_2D_ORANGE, t
+        )
 
     return None

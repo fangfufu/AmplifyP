@@ -397,7 +397,7 @@ def apply_parsed_state(
     controller.page.update()
 
 
-async def save_state(controller: Any, e: ft.Event[ft.Control]) -> None:
+async def save_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
     """Save app state to YAML configuration file."""
     if controller.filepicker_open:
         return
@@ -427,7 +427,7 @@ async def save_state(controller: Any, e: ft.Event[ft.Control]) -> None:
         controller.filepicker_open = False
 
 
-async def load_state(controller: Any, e: ft.Event[ft.Control]) -> None:
+async def load_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
     """Load app state from YAML configuration file."""
     if controller.filepicker_open:
         return
@@ -463,7 +463,9 @@ async def load_state(controller: Any, e: ft.Event[ft.Control]) -> None:
         controller.filepicker_open = False
 
 
-def confirm_clear(controller: Any, _ev: ft.ControlEvent) -> None:
+def confirm_clear(
+    controller: Any, _ev: ft.Event[ft.TextButton] | None = None
+) -> None:
     """Confirm clearing of inputs and reset state."""
     if controller._clear_dialog:
         controller._clear_dialog.open = False
@@ -478,14 +480,16 @@ def confirm_clear(controller: Any, _ev: ft.ControlEvent) -> None:
     controller.page.update()
 
 
-def dismiss_clear(controller: Any, _ev: ft.ControlEvent) -> None:
+def dismiss_clear(
+    controller: Any, _ev: ft.Event[ft.TextButton] | None = None
+) -> None:
     """Dismiss clear confirmation dialogue."""
     if controller._clear_dialog:
         controller._clear_dialog.open = False
     controller.page.update()
 
 
-def clear_all(controller: Any, e: ft.ControlEvent) -> None:
+def clear_all(controller: Any, _e: ft.ControlEvent) -> None:
     """Show a confirmation dialogue before clearing inputs."""
     if not controller._clear_dialog:
         controller._clear_dialog = ft.AlertDialog(

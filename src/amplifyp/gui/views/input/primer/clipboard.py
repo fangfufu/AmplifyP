@@ -70,7 +70,7 @@ def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
     return parsed
 
 
-async def copy_primers_click(primer_input: Any, e: ft.Event | None) -> None:
+async def copy_primers_click(primer_input: Any, _e: ft.Event | None) -> None:
     """Copy selected or focused primers to clipboard in TSV format."""
     primers = primer_input.input_data.primers
     selected_primers = (
@@ -107,7 +107,7 @@ async def copy_primers_click(primer_input: Any, e: ft.Event | None) -> None:
     )
 
 
-async def paste_primers_click(primer_input: Any, e: ft.Event | None) -> None:
+async def paste_primers_click(primer_input: Any, _e: ft.Event | None) -> None:
     """Paste primers from clipboard starting at focused index or end."""
     try:
         clipboard_text = await ft.Clipboard().get()

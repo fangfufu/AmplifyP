@@ -16,7 +16,6 @@
 """2D Primer Designer View for the Flet application."""
 
 import logging
-import traceback
 from typing import cast
 
 import flet as ft
@@ -105,7 +104,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         )
         self.left_container = ft.Container(
             content=self.left_panel_column,
-            expand=1,  # 1/3rd default viewport width
+            expand=1,  # 50% default viewport width
             padding=5,
         )
 
@@ -151,7 +150,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 ],
                 spacing=8,
             ),
-            expand=2,  # 2/3rds default viewport width
+            expand=1,  # 50% default viewport width
             padding=10,
         )
 
@@ -172,9 +171,9 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 and isinstance(self.app_page.width, (int, float))
                 else 800.0
             )
-            base_w = float(page_w) * 0.33
+            base_w = float(page_w) * 0.5
             self.left_container.expand = None
-            self.right_container.expand = 2
+            self.right_container.expand = 1
             self.left_container.width = base_w
         current_w = float(self.left_container.width or 300.0)
         self.left_container.width = max(250.0, current_w + delta_x)
@@ -188,10 +187,17 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         """Handle vertical resizing between top-left and bottom-left panels."""
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
         if self.top_left_container.height is None:
+            page_h = (
+                self.app_page.height
+                if hasattr(self.app_page, "height")
+                and isinstance(self.app_page.height, (int, float))
+                else 600.0
+            )
+            base_h = float(page_h) * 0.5
             self.top_left_container.expand = None
             self.bottom_left_container.expand = True
-            self.top_left_container.height = 250.0
-        current_h = float(self.top_left_container.height or 250.0)
+            self.top_left_container.height = base_h
+        current_h = float(self.top_left_container.height or 300.0)
         self.top_left_container.height = max(150.0, current_h + delta_y)
         try:
             if self.app_page:
@@ -230,9 +236,9 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             )
             self._cached_designer = designer
             self.results_grid.update_grid(designer)
+            self._clear_all_cards()
         except Exception as ex:
-            logger.error("Failed to run 2D primer designer: %s", ex)
-            logger.debug(traceback.format_exc())
+            logger.exception("Failed to run 2D primer designer")
             show_error_dialog(
                 self.app_page,
                 "Analysis Error",
@@ -250,20 +256,30 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         card_id = f"card_2d_{fwd_len}_{rev_len}"
 
         # Check if card already exists in list
-        for existing in self._active_cards:
-            if existing._card_id == card_id:
-                return
+        existing_card: Dismissible2DCard | None = None
+        for card_item in self._active_cards:
+            if card_item._card_id == card_id:
+                existing_card = card_item
+                break
 
-        card = Dismissible2DCard(
-            card_id=card_id,
-            step=step,
-            settings=self.settings,
-            dismiss_callback=self._dismiss_card,
-            font_family=self.settings.get("font_family", "Roboto Mono"),
-        )
+        if existing_card is not None:
+            # Move existing card to the top of the list
+            self._active_cards.remove(existing_card)
+            self._active_cards.insert(0, existing_card)
+            if existing_card in self.right_cards_list.controls:
+                self.right_cards_list.controls.remove(existing_card)
+            self.right_cards_list.controls.insert(0, existing_card)
+        else:
+            card = Dismissible2DCard(
+                card_id=card_id,
+                step=step,
+                settings=self.settings,
+                dismiss_callback=self._dismiss_card,
+                font_family=self.settings.get("font_family", "Roboto Mono"),
+            )
+            self._active_cards.insert(0, card)
+            self.right_cards_list.controls.insert(0, card)
 
-        self._active_cards.insert(0, card)
-        self.right_cards_list.controls.insert(0, card)
         self.clear_cards_button.visible = True
 
         try:
@@ -292,7 +308,9 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         except RuntimeError:
             pass
 
-    def _clear_all_cards(self, e: ft.ControlEvent) -> None:
+    def _clear_all_cards(
+        self, e: ft.Event[ft.TextButton] | None = None
+    ) -> None:
         """Clear all active 2D detail cards."""
         self._active_cards.clear()
         self.right_cards_list.controls.clear()

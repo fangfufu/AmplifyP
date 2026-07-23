@@ -62,13 +62,8 @@ class Dismissible2DCard(DismissibleDetailCard):
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
 
-        # Minimum overlap across all 4 dimers
-        min_overlap = min(
-            step.fwd_fwd.overlap,
-            step.rev_rev.overlap,
-            step.fwd_rev.overlap,
-            step.rev_fwd.overlap,
-        )
+        # Mean overlap across all 4 dimers
+        mean_overlap = step.mean_overlap
 
         def _make_badge(
             text: str, bg_colour: str | None = None
@@ -90,7 +85,7 @@ class Dismissible2DCard(DismissibleDetailCard):
             _make_badge(f"Max Quality: {step.max_quality:.1f}"),
             _make_badge(f"Mean Quality: {step.mean_quality:.1f}"),
             _make_badge(f"Max Overlap: {step.max_overlap} bp"),
-            _make_badge(f"Min Overlap: {min_overlap} bp"),
+            _make_badge(f"Mean Overlap: {mean_overlap:.1f} bp"),
         ]
 
         # Primer details section (Forward & Reverse)
@@ -164,13 +159,17 @@ class Dismissible2DCard(DismissibleDetailCard):
                 read_only=True,
                 expand=True,
                 dense=True,
+                border_color=GUIColours.OUTLINE,
                 content_padding=ft.Padding(8, 4, 8, 4),
             )
+
+            async def _copy_seq_async() -> None:
+                await ft.Clipboard().set(primer.seq)
 
             def _copy_seq(e: ft.ControlEvent) -> None:
                 try:
                     if e.page:
-                        e.page.set_clipboard(primer.seq)
+                        e.page.run_task(_copy_seq_async)
                 except RuntimeError:
                     pass
 
@@ -190,13 +189,17 @@ class Dismissible2DCard(DismissibleDetailCard):
                                 weight=ft.FontWeight.BOLD,
                                 size=font_size_small,
                             ),
-                            _make_badge(tm_text),
-                            _make_badge(f"AT Pairs: {at_pairs}"),
-                            _make_badge(f"GC Pairs: {gc_pairs}"),
-                            _make_badge(f"% AT: {pct_at:.1f}%"),
+                            ft.Row(
+                                [
+                                    _make_badge(tm_text),
+                                    _make_badge(f"AT Pairs: {at_pairs}"),
+                                    _make_badge(f"GC Pairs: {gc_pairs}"),
+                                    _make_badge(f"% AT: {pct_at:.1f}%"),
+                                ],
+                                spacing=8,
+                            ),
                         ],
-                        alignment=ft.MainAxisAlignment.START,
-                        spacing=8,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
                     ft.Row(
                         [
@@ -261,11 +264,17 @@ class Dismissible2DCard(DismissibleDetailCard):
                 p1_line,
                 font_family=self.font_family,
                 font_size=font_size_default,
+                is_dimer=True,
             )
 
             diagram_container = ft.Container(
-                content=diagram_stack,
+                content=ft.Row(
+                    [diagram_stack],
+                    scroll=ft.ScrollMode.ALWAYS,
+                    expand=True,
+                ),
                 padding=8,
+                alignment=ft.Alignment(-1, 0),
                 bgcolor=GUIColours.DIAGRAM_BG,
                 border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
                 border_radius=4,
