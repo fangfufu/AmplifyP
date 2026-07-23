@@ -97,6 +97,7 @@ class GUISettings:
             "ignore_inactive_name_dup_warn": True,
             "ignore_inactive_seq_dup_warn": True,
             "tm_colour_scheme": "None",
+            "designer_2d_colour_scheme": "None",
             "log_level_amplifyp": "INFO",
             "log_level_flet": "INFO",
             "log_console_enabled": True,

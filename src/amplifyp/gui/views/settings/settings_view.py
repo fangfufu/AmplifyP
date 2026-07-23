@@ -27,6 +27,7 @@ from amplifyp.gui.settings import GUISettings
 if TYPE_CHECKING:
     from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.logger import reconfigure_logging
+from amplifyp.gui.views.settings.designer_2d_tile import Designer2DTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
@@ -104,6 +105,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             font_size_table_header=font_size_table_header,
         )
 
+        self.designer_2d_tile = Designer2DTile(
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+        )
+
         self.primer_list_tile = PrimerListTile(
             settings=self.settings,
             settings_map=self.settings_map,
@@ -125,6 +133,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.replication_tile,
             self.dimer_tile,
+            self.designer_2d_tile,
             self.diagnostics_tile,
             ft.Divider(),
             self._build_reset_button(),
@@ -213,6 +222,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_tm_colour_scheme(self) -> ft.Dropdown:
         """Get the Tm colour scheme dropdown."""
         return self.primer_list_tile.set_tm_colour_scheme
+
+    @property
+    def set_designer_2d_colour_scheme(self) -> ft.Dropdown:
+        """Get the 2D Designer colour scheme dropdown."""
+        return self.designer_2d_tile.set_designer_2d_colour_scheme
 
     @property
     def set_version_checking_frequency(self) -> ft.Dropdown:
@@ -350,6 +364,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "ignore_inactive_name_dup_warn": True,
             "ignore_inactive_seq_dup_warn": True,
             "tm_colour_scheme": "None",
+            "designer_2d_colour_scheme": "None",
             "log_level_amplifyp": "INFO",
             "log_level_flet": "INFO",
             "log_console_enabled": True,
