@@ -122,8 +122,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.controls = [
             self.general_tile,
             self.primer_list_tile,
-            self.replication_tile,
             self.tm_tile,
+            self.replication_tile,
             self.dimer_tile,
             self.diagnostics_tile,
             ft.Divider(),
