@@ -85,12 +85,16 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=self.settings.get("font_size_subheader", 16),
                 ),
-                ft.Text(
-                    "No valid 2D truncation combinations matched "
-                    "the active filters.",
-                    italic=True,
-                    size=self.settings.get("font_size_small", 12),
-                    color=GUIColours.ERROR_RED,
+                ft.Container(
+                    content=ft.Text(
+                        "No valid 2D truncation combinations matched "
+                        "the active filters.",
+                        italic=True,
+                        size=self.settings.get("font_size_small", 12),
+                        color=GUIColours.ERROR_RED,
+                    ),
+                    expand=True,
+                    alignment=ft.Alignment(0, 0),
                 ),
             ]
             try:
