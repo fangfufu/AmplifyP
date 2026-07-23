@@ -146,7 +146,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     size=font_small,
                     color=GUIColours.PRIMARY,
                 ),
-                width=80,
+                width=76,
                 height=36,
                 alignment=ft.Alignment(0, 0),
                 bgcolor=GUIColours.SURFACE_VARIANT,
@@ -163,7 +163,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=font_small,
                     ),
-                    width=72,
+                    width=52,
                     height=36,
                     alignment=ft.Alignment(0, 0),
                     bgcolor=GUIColours.SURFACE_VARIANT,
@@ -183,7 +183,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=font_small,
                     ),
-                    width=80,
+                    width=76,
                     height=36,
                     alignment=ft.Alignment(0, 0),
                     bgcolor=GUIColours.SURFACE_VARIANT,
@@ -203,7 +203,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                                 color=GUIColours.TEXT_ON_SURFACE,
                                 opacity=0.5,
                             ),
-                            width=72,
+                            width=52,
                             height=36,
                             alignment=ft.Alignment(0, 0),
                             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
@@ -253,7 +253,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
                 cell_container = ft.Container(
                     content=cell_content,
-                    width=72,
+                    width=52,
                     height=36,
                     alignment=ft.Alignment(0, 0),
                     padding=2,
@@ -285,7 +285,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     color=GUIColours.PRIMARY,
                 ),
                 bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(6, 2, 6, 2),
+                padding=ft.Padding(8, 2, 12, 2),
                 border_radius=4,
             ),
             ft.Container(
@@ -296,7 +296,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     color=GUIColours.SUCCESS_GREEN,
                 ),
                 bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(6, 2, 6, 2),
+                padding=ft.Padding(8, 2, 12, 2),
                 border_radius=4,
             ),
         ]
@@ -310,7 +310,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         color=GUIColours.PRIMARY,
                     ),
                     bgcolor=GUIColours.SELECTED_ROW_BG,
-                    padding=ft.Padding(6, 2, 6, 2),
+                    padding=ft.Padding(8, 2, 12, 2),
                     border_radius=4,
                 )
             )
@@ -323,7 +323,10 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=self.settings.get("font_size_subheader", 16),
                     ),
-                    ft.Row(header_badges, spacing=6),
+                    ft.Container(
+                        content=ft.Row(header_badges, spacing=6),
+                        padding=ft.Padding(0, 0, 12, 0),
+                    ),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
