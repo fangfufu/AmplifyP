@@ -106,7 +106,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 ft.dropdown.Option("MEAN", "Mean"),
             ],
             value="MAX",
-            width=110,
+            width=150,
             border_color=GUIColours.OUTLINE,
         )
         self.analyse_button = ft.FilledButton(

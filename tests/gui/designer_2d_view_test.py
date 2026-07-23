@@ -213,3 +213,53 @@ def test_grid_cell_click_brings_existing_card_to_top() -> None:
     assert view._active_cards[0].step == step_1
     assert view._active_cards[1].step == step_2
     assert view.right_cards_list.controls[0].step == step_1
+
+
+def test_grid_2d_results_view_colour_mapping() -> None:
+    """Test Grid2DResultsView applies cell background colours.
+
+    Verifies active scheme applies background colours to grid cells.
+    """
+    settings = GUISettings()
+    settings["designer_2d_colour_scheme"] = "Cool-Warm"
+
+    grid = Designer2DView(
+        MagicMock(spec=ft.Page), GUIInput(), settings
+    ).results_grid
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+
+    grid.update_grid(designer)
+    assert len(grid._cell_containers) > 0
+
+    first_key = next(iter(grid._cell_containers.keys()))
+    first_container = grid._cell_containers[first_key]
+    assert first_container.bgcolor is not None
+    assert first_container.bgcolor.startswith("#")
+
+    # Select cell -> border changes to PRIMARY but bgcolor remains preserved
+    step = designer.get_step(0)
+    grid._on_cell_click(step, first_key)
+    assert first_container.bgcolor == grid._cell_bg_colours[first_key]
+
+
+def test_designer_2d_tile_in_settings_view() -> None:
+    """Test SettingsView integrates Designer2DTile and updates setting value."""
+    from amplifyp.gui.views.settings.settings_view import SettingsView
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings_view = SettingsView(mock_page, settings)
+
+    assert hasattr(settings_view, "designer_2d_tile")
+    assert settings_view.set_designer_2d_colour_scheme is not None
+    assert settings_view.set_designer_2d_colour_scheme.value == "None"
+
+    settings_view.set_designer_2d_colour_scheme.value = "Blue-Orange"
+    mock_event = MagicMock()
+    mock_event.control = settings_view.set_designer_2d_colour_scheme
+    settings_view._on_change_handler(mock_event)
+
+    assert settings["designer_2d_colour_scheme"] == "Blue-Orange"
