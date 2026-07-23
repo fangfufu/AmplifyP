@@ -182,3 +182,34 @@ def test_dismissible_2d_card_dismiss_and_clear() -> None:
     assert len(view.right_cards_list.controls) == 1
     view._clear_all_cards(MagicMock())
     assert len(view.right_cards_list.controls) == 0
+
+
+def test_grid_cell_click_brings_existing_card_to_top() -> None:
+    """Test clicking an existing cell re-orders its detail card to top."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+
+    step_1 = designer.get_step(0)
+    step_2 = designer.get_step(1)
+
+    # Click step_1 then step_2
+    view._on_grid_step_selected(step_1)
+    view._on_grid_step_selected(step_2)
+
+    assert len(view._active_cards) == 2
+    assert view._active_cards[0].step == step_2
+    assert view._active_cards[1].step == step_1
+
+    # Click step_1 again -> step_1 should move to top (index 0)
+    view._on_grid_step_selected(step_1)
+    assert len(view._active_cards) == 2
+    assert view._active_cards[0].step == step_1
+    assert view._active_cards[1].step == step_2
+    assert view.right_cards_list.controls[0].step == step_1

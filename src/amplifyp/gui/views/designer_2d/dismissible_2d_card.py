@@ -159,6 +159,7 @@ class Dismissible2DCard(DismissibleDetailCard):
                 read_only=True,
                 expand=True,
                 dense=True,
+                border_color=GUIColours.OUTLINE,
                 content_padding=ft.Padding(8, 4, 8, 4),
             )
 
@@ -188,13 +189,17 @@ class Dismissible2DCard(DismissibleDetailCard):
                                 weight=ft.FontWeight.BOLD,
                                 size=font_size_small,
                             ),
-                            _make_badge(tm_text),
-                            _make_badge(f"AT Pairs: {at_pairs}"),
-                            _make_badge(f"GC Pairs: {gc_pairs}"),
-                            _make_badge(f"% AT: {pct_at:.1f}%"),
+                            ft.Row(
+                                [
+                                    _make_badge(tm_text),
+                                    _make_badge(f"AT Pairs: {at_pairs}"),
+                                    _make_badge(f"GC Pairs: {gc_pairs}"),
+                                    _make_badge(f"% AT: {pct_at:.1f}%"),
+                                ],
+                                spacing=8,
+                            ),
                         ],
-                        alignment=ft.MainAxisAlignment.START,
-                        spacing=8,
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
                     ft.Row(
                         [
@@ -259,11 +264,17 @@ class Dismissible2DCard(DismissibleDetailCard):
                 p1_line,
                 font_family=self.font_family,
                 font_size=font_size_default,
+                is_dimer=True,
             )
 
             diagram_container = ft.Container(
-                content=diagram_stack,
+                content=ft.Row(
+                    [diagram_stack],
+                    scroll=ft.ScrollMode.ALWAYS,
+                    expand=True,
+                ),
                 padding=8,
+                alignment=ft.Alignment(-1, 0),
                 bgcolor=GUIColours.DIAGRAM_BG,
                 border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
                 border_radius=4,

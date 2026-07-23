@@ -255,20 +255,30 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         card_id = f"card_2d_{fwd_len}_{rev_len}"
 
         # Check if card already exists in list
-        for existing in self._active_cards:
-            if existing._card_id == card_id:
-                return
+        existing_card: Dismissible2DCard | None = None
+        for card_item in self._active_cards:
+            if card_item._card_id == card_id:
+                existing_card = card_item
+                break
 
-        card = Dismissible2DCard(
-            card_id=card_id,
-            step=step,
-            settings=self.settings,
-            dismiss_callback=self._dismiss_card,
-            font_family=self.settings.get("font_family", "Roboto Mono"),
-        )
+        if existing_card is not None:
+            # Move existing card to the top of the list
+            self._active_cards.remove(existing_card)
+            self._active_cards.insert(0, existing_card)
+            if existing_card in self.right_cards_list.controls:
+                self.right_cards_list.controls.remove(existing_card)
+            self.right_cards_list.controls.insert(0, existing_card)
+        else:
+            card = Dismissible2DCard(
+                card_id=card_id,
+                step=step,
+                settings=self.settings,
+                dismiss_callback=self._dismiss_card,
+                font_family=self.settings.get("font_family", "Roboto Mono"),
+            )
+            self._active_cards.insert(0, card)
+            self.right_cards_list.controls.insert(0, card)
 
-        self._active_cards.insert(0, card)
-        self.right_cards_list.controls.insert(0, card)
         self.clear_cards_button.visible = True
 
         try:
