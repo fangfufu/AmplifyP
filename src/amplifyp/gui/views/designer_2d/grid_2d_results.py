@@ -62,7 +62,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     alignment=ft.Alignment(0, 0),
                 ),
             ],
-            spacing=6,
+            spacing=2,
             expand=True,
             scroll=ft.ScrollMode.ALWAYS,
         )
@@ -169,7 +169,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         size=font_small,
                     ),
                     width=80,
-                    height=46,
+                    height=36,
                     alignment=ft.Alignment(0, 0),
                     bgcolor=GUIColours.SURFACE_VARIANT,
                     border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
@@ -189,7 +189,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                                 opacity=0.5,
                             ),
                             width=72,
-                            height=46,
+                            height=36,
                             alignment=ft.Alignment(0, 0),
                             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
                             border_radius=4,
@@ -201,32 +201,12 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 o_val = step.max_overlap if use_max else step.mean_overlap
                 o_str = f"{o_val}" if use_max else f"{o_val:.1f}"
 
-                # Top half: Quality, Bottom half: Overlap
-                cell_content = ft.Column(
-                    [
-                        ft.Container(
-                            content=ft.Text(
-                                f"Q: {q_val:.1f}",
-                                weight=ft.FontWeight.BOLD,
-                                size=font_small,
-                                color=GUIColours.PRIMARY,
-                            ),
-                            alignment=ft.Alignment(0, 0),
-                            expand=True,
-                        ),
-                        ft.Divider(height=1, color=GUIColours.OUTLINE_VARIANT),
-                        ft.Container(
-                            content=ft.Text(
-                                f"O: {o_str}",
-                                size=font_small - 1,
-                                color=GUIColours.DIAGRAM_BLACK,
-                            ),
-                            alignment=ft.Alignment(0, 0),
-                            expand=True,
-                        ),
-                    ],
-                    spacing=0,
-                    alignment=ft.MainAxisAlignment.CENTER,
+                cell_content = ft.Text(
+                    f"{q_val:.1f}",
+                    weight=ft.FontWeight.BOLD,
+                    size=font_small,
+                    color=GUIColours.PRIMARY,
+                    text_align=ft.TextAlign.CENTER,
                 )
 
                 def _make_click_handler(
@@ -237,7 +217,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 cell_container = ft.Container(
                     content=cell_content,
                     width=72,
-                    height=46,
+                    height=36,
+                    alignment=ft.Alignment(0, 0),
                     padding=2,
                     border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
                     border_radius=4,
@@ -266,7 +247,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     ),
                     ft.Container(
                         content=ft.Text(
-                            f"Metric: {metric_label} Quality / Overlap",
+                            f"Metric: {metric_label} Quality",
                             size=font_small,
                             weight=ft.FontWeight.BOLD,
                             color=GUIColours.PRIMARY,
@@ -278,15 +259,25 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.Row(
-                [
-                    ft.Column(
-                        grid_rows,
-                        spacing=4,
-                        scroll=ft.ScrollMode.ALWAYS,
-                    )
-                ],
-                scroll=ft.ScrollMode.ALWAYS,
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                grid_rows,
+                                spacing=4,
+                                scroll=ft.ScrollMode.ALWAYS,
+                            ),
+                            padding=ft.Padding(0, 12, 0, 0),
+                        ),
+                    ],
+                    scroll=ft.Scrollbar(
+                        orientation=ft.ScrollbarOrientation.TOP,
+                        thumb_visibility=True,
+                    ),
+                    expand=True,
+                ),
+                padding=ft.Padding(0, 0, 0, 0),
                 expand=True,
             ),
         ]
