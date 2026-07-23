@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Set up Linux development environment for AmplifyP.
 #
-# Usage: ./scripts/setup_linux.sh [--system-deps]
+# Usage: ./scripts/setup_linux.sh [--system-deps] [--skip-venv]
 
 set -euo pipefail
 
@@ -24,7 +24,7 @@ for arg in "$@"; do
   case "$arg" in
     --system-deps)  INSTALL_SYSTEM_DEPS=true ;;
     --skip-venv)    SKIP_VENV=true ;;
-    *)              echo "Unknown option: $arg"; exit 1 ;;
+    *)              echo "Unknown option: $arg" >&2; exit 1 ;;
   esac
 done
 
@@ -45,14 +45,15 @@ if [[ "$INSTALL_SYSTEM_DEPS" = true ]]; then
     libasound2-dev libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
     libmpv-dev mpv wget \
-    tesseract-ocr
+    tesseract-ocr libtesseract-dev xvfb
 
   # Install Playwright system deps
   log "Installing Playwright system dependencies..."
   if [[ -d ".venv" ]]; then
+    # shellcheck disable=SC1091
     source .venv/bin/activate 2>/dev/null || true
     if command -v playwright &>/dev/null; then
-      playwright install --with-deps chromium 2>/dev/null || true
+      playwright install-deps chromium
     fi
   fi
 
@@ -64,7 +65,7 @@ log "Checking Python version..."
 PYTHON_CMD="${PYTHON_CMD:-python3}"
 
 if ! "$PYTHON_CMD" -c "import sys; exit(0 if sys.version_info >= (3,12) else 1)" 2>/dev/null; then
-  echo "Error: Python 3.12+ is required (found: $($PYTHON_CMD --version 2>&1))"
+  echo "Error: Python 3.12+ is required (found: $($PYTHON_CMD --version 2>&1))" >&2
   exit 1
 fi
 
@@ -86,7 +87,7 @@ if [[ "$SKIP_VENV" = false ]]; then
   ok "Virtual environment active"
 else
   if [[ -z "${VIRTUAL_ENV:-}" ]]; then
-    echo "Error: --skip-venv specified but no VIRTUAL_ENV set. Activate a venv first."
+    echo "Error: --skip-venv specified but no VIRTUAL_ENV set. Activate a venv first." >&2
     exit 1
   fi
   log "Using existing virtual environment: ${VIRTUAL_ENV}"
@@ -106,7 +107,9 @@ ok "Package installed"
 log "Installing Playwright browser binaries..."
 if command -v playwright &>/dev/null; then
   playwright install chromium
-  playwright install-deps chromium 2>/dev/null || true
+  if [[ "$INSTALL_SYSTEM_DEPS" = true ]]; then
+    playwright install-deps chromium
+  fi
   ok "Playwright browsers installed"
 else
   echo "  Skipping Playwright browsers (playwright not installed)"
@@ -115,15 +118,11 @@ fi
 # 7. Git hooks with prek
 if command -v prek &>/dev/null; then
   log "Setting up prek git hook..."
-  if [[ ! -d ".git/hooks" ]]; then
-    echo "  Skipping: .git/hooks not found (not a git repo?)"
+  if [[ ! -d ".git/hooks" ]] && [[ ! -d ".git" ]]; then
+    echo "  Skipping: .git directory not found (not a git repo?)"
   else
-    # prek can manage its own hooks; just verify it works
-    if prek run --all-files --dry-run &>/dev/null || true; then
-      ok "prek available for hook checks"
-    else
-      echo "  prek installed but dry-run failed (may need system deps)"
-    fi
+    prek install --prepare-hooks
+    ok "prek git hooks installed"
   fi
 else
   echo "  prek not installed (skip git hooks setup)"
@@ -137,10 +136,16 @@ for cmd in pytest pyright ruff prek playwright; do
   if command -v "$cmd" &>/dev/null; then
     ok "$cmd available"
   else
-    echo "  ✗ $cmd not found"
+    echo "  ✗ $cmd not found" >&2
     verify_ok=false
   fi
 done
+
+if [[ "$verify_ok" = false ]]; then
+  echo "" >&2
+  echo "  Error: Some required tools are missing. Check output above." >&2
+  exit 1
+fi
 
 # 9. Summary
 echo ""
@@ -150,7 +155,7 @@ echo "========================================="
 echo ""
 echo "  Quick commands:"
 echo "    Run tests:        pytest"
-echo "    Run e2e tests:    playwright install && pytest --run-slow -m e2e"
+echo "    Run e2e tests:    playwright install && xvfb-run -a pytest -m e2e"
 echo "    Type check:       pyright"
 echo "    Lint/format:      prek run --all-files"
 echo "    Run GUI (desktop): flet run -r src/main.py"
@@ -158,8 +163,3 @@ echo "    Run GUI (web):     flet run -w -r src/main.py"
 echo ""
 echo "  To activate:        source .venv/bin/activate"
 echo ""
-
-if [[ "$verify_ok" = false ]]; then
-  echo "  Warning: Some tools missing. Check output above."
-  echo ""
-fi

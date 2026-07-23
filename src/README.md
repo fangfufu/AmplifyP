@@ -157,8 +157,8 @@ behaviour:
 # Ensure playwright browser binaries are installed
 playwright install
 
-# Run the slow E2E tests
-pytest --run-slow -m e2e
+# Run the E2E tests
+xvfb-run -a pytest -m e2e
 ```
 
 ______________________________________________________________________

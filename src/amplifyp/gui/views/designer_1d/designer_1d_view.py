@@ -265,14 +265,16 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         delta_x = getattr(e.local_delta, "x", 0.0) if e.local_delta else 0.0
         if self.left_container.width is None:
             self.left_container.expand = None
-            self.right_container.expand = None
+            self.right_container.expand = True
             page_w = (
                 self.app_page.width
                 if hasattr(self.app_page, "width")
                 and isinstance(self.app_page.width, (int, float))
                 else 800.0
             )
-            self.left_container.width = float(page_w) * 0.5
+            self.left_container.width = max(
+                250.0, float(page_w) * 0.5 + delta_x
+            )
         else:
             current_w = float(self.left_container.width)
             self.left_container.width = max(250.0, current_w + delta_x)

@@ -979,6 +979,10 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
     fill_field_reliably(page, PRIMER_INPUT_SEL, seq, index=initial_count - 1)
     time.sleep(0.3)
 
+    # Re-focus the name field and then blur to ensure name change is captured
+    page.locator(PRIMER_INPUT_SEL).nth(initial_count - 2).focus()
+    time.sleep(0.3)
+
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
     page.locator('textarea:not([aria-label="Primer List"])').first.focus()

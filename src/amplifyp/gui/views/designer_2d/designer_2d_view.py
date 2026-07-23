@@ -236,6 +236,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             )
             self._cached_designer = designer
             self.results_grid.update_grid(designer)
+            self._clear_all_cards()
         except Exception as ex:
             logger.exception("Failed to run 2D primer designer")
             show_error_dialog(

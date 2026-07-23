@@ -288,7 +288,7 @@ def test_primer_designer_view_resizing_panels() -> None:
     drag_h.local_delta = MagicMock(x=50.0, y=0.0)
     view._on_h_pan_update(drag_h)
 
-    assert view.left_container.width == 400.0
+    assert view.left_container.width == 450.0
 
     # Top-left vertical drag (increase top-left container height)
     drag_v_left = MagicMock(spec=ft.DragUpdateEvent)

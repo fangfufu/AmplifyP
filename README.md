@@ -88,15 +88,16 @@ To run AmplifyP from the source repository, you need to follow these steps:
    source .venv/bin/activate
    ```
 
-   **Manual** (cross-platform):
+   **Manual** (macOS / Linux):
 
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate
-   pip install .
    ```
 
-3. Install the application and its runtime dependencies:
+   *(On Windows, use `.venv\Scripts\activate` in PowerShell or Command Prompt)*
+
+3. For manual setup, install the application and its runtime dependencies:
 
    ```bash
    pip install .
