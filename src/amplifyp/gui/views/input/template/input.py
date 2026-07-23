@@ -421,10 +421,28 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._update_line_numbers(update=False)
         self._update_status_bar(update=False)
 
+    def _sync_dark_mode(self) -> None:
+        """Synchronise GUIColours dark_mode state with page settings."""
+        dark_setting = str(self.settings.get("dark_mode", False)).lower()
+        if dark_setting == "system":
+            brightness = str(
+                getattr(self.app_page, "platform_brightness", "")
+            ).lower()
+            GUIColours.dark_mode = brightness == "dark"
+        else:
+            GUIColours.dark_mode = dark_setting not in (
+                "false",
+                "0",
+                "no",
+                "none",
+                "",
+            )
+
     def update_ui(self) -> None:
-        """Update template UI elements to match central state."""
-        font_family = self.settings.get("font_family", "Roboto Mono")
+        """Update template controls, line numbers gutter, and status bar."""
+        self._sync_dark_mode()
         font_size = self.settings.get("font_size_default", 14)
+        font_family = self.settings.get("font_family", "Roboto Mono")
 
         self.template_sequence.text_style = ft.TextStyle(
             font_family=font_family,
@@ -463,7 +481,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             size=12,
         )
 
-        self.status_bar.bgcolor = GUIColours.GUTTER_BG
+        self.status_bar.bgcolor = GUIColours.INFO_HEADER_BG
         self.status_bar.border = ft.Border(
             top=ft.BorderSide(1, GUIColours.OUTLINE)
         )
