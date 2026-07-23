@@ -255,11 +255,10 @@ def test_designer_2d_tile_in_settings_view() -> None:
 
     assert hasattr(settings_view, "designer_2d_tile")
     assert settings_view.set_designer_2d_colour_scheme is not None
-    assert settings_view.set_designer_2d_colour_scheme.value == "None"
-
-    settings_view.set_designer_2d_colour_scheme.value = "Blue-Orange"
+    assert settings_view.set_designer_2d_colour_scheme.value == "Blue-Orange"
+    settings_view.set_designer_2d_colour_scheme.value = "Traffic Light"
     mock_event = MagicMock()
     mock_event.control = settings_view.set_designer_2d_colour_scheme
     settings_view._on_change_handler(mock_event)
 
-    assert settings["designer_2d_colour_scheme"] == "Blue-Orange"
+    assert settings["designer_2d_colour_scheme"] == "Traffic Light"
