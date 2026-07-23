@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0](https://github.com/fangfufu/AmplifyP/compare/v1.13.0...v1.14.0) (2026-07-23)
+
+
+### Features
+
+* **gui:** default 2d designer colour map to blue-orange ([332f223](https://github.com/fangfufu/AmplifyP/commit/332f223a2c7be901fa3bdb70a3c4e1f420bb40ce))
+* **gui:** default 2d overlap filter to empty ([c66a59f](https://github.com/fangfufu/AmplifyP/commit/c66a59fe423d378dbdd250f3c9b0b91548adf6b8))
+
 ## [1.13.0](https://github.com/fangfufu/AmplifyP/compare/v1.12.0...v1.13.0) (2026-07-23)
 
 
