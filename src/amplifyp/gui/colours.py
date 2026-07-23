@@ -180,7 +180,9 @@ class _GUIColoursMeta(type):
         """Get background colour for info header."""
         return cast(
             str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
+            ft.Colors.SURFACE_CONTAINER_HIGHEST
+            if cls._dark_mode
+            else ft.Colors.GREY_200,
         )
 
     @property
@@ -188,7 +190,9 @@ class _GUIColoursMeta(type):
         """Get background colour for template display gutter."""
         return cast(
             str,
-            ft.Colors.GREY_800 if cls._dark_mode else ft.Colors.GREY_200,
+            ft.Colors.SURFACE_CONTAINER_HIGHEST
+            if cls._dark_mode
+            else ft.Colors.GREY_200,
         )
 
     @property

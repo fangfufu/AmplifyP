@@ -164,6 +164,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 height=28,
                 spacing=5,
             ),
+            bgcolor=GUIColours.INFO_HEADER_BG,
             padding=ft.Padding(10, 0, 10, 0),
             height=28,
         )
