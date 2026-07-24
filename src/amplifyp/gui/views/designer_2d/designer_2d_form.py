@@ -223,8 +223,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         cleaned_fwd_seq = clean_sequence(raw_fwd_seq)
         if not cleaned_fwd_seq:
             self.fwd_dna_input.error = "Forward DNA sequence cannot be empty"
-            self.error_text.value = "Forward DNA sequence cannot be empty"
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError("Forward DNA sequence cannot be empty")
 
         # Validate Forward Min Length
@@ -234,10 +237,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 raise ValueError
         except ValueError as err:
             self.fwd_min_len_input.error = "Must be > 0"
-            self.error_text.value = (
-                "Forward minimum length must be a positive integer"
-            )
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError(
                 "Forward min length must be a positive integer"
             ) from err
@@ -246,11 +250,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             self.fwd_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_fwd_seq)})"
             )
-            self.error_text.value = (
-                f"Forward minimum length ({fwd_min_len}) cannot exceed "
-                f"sequence length ({len(cleaned_fwd_seq)})"
-            )
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError("Forward min length exceeds sequence length")
 
         # Clean and validate Reverse DNA sequence
@@ -258,8 +262,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         cleaned_rev_seq = clean_sequence(raw_rev_seq)
         if not cleaned_rev_seq:
             self.rev_dna_input.error = "Reverse DNA sequence cannot be empty"
-            self.error_text.value = "Reverse DNA sequence cannot be empty"
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError("Reverse DNA sequence cannot be empty")
 
         # Validate Reverse Min Length
@@ -269,10 +276,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 raise ValueError
         except ValueError as err:
             self.rev_min_len_input.error = "Must be > 0"
-            self.error_text.value = (
-                "Reverse minimum length must be a positive integer"
-            )
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError(
                 "Reverse min length must be a positive integer"
             ) from err
@@ -281,11 +289,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             self.rev_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_rev_seq)})"
             )
-            self.error_text.value = (
-                f"Reverse minimum length ({rev_min_len}) cannot exceed "
-                f"sequence length ({len(cleaned_rev_seq)})"
-            )
-            self.error_text.visible = True
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
             raise ValueError("Reverse min length exceeds sequence length")
 
         # Quality filter
@@ -298,8 +306,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                     raise ValueError
             except ValueError as err:
                 self.quality_filter_input.error = "Must be >= 0"
-                self.error_text.value = "Quality filter must be non-negative"
-                self.error_text.visible = True
+                try:
+                    if self.page:
+                        self.page.update()
+                except RuntimeError:
+                    pass
                 raise ValueError("Quality filter must be non-negative") from err
 
         # Overlap filter
@@ -312,8 +323,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                     raise ValueError
             except ValueError as err:
                 self.overlap_filter_input.error = "Must be >= 0"
-                self.error_text.value = "Overlap filter must be non-negative"
-                self.error_text.visible = True
+                try:
+                    if self.page:
+                        self.page.update()
+                except RuntimeError:
+                    pass
                 raise ValueError("Overlap filter must be non-negative") from err
 
         # Filter metric

@@ -99,10 +99,22 @@ def test_designer_2d_form_validation_errors() -> None:
         ValueError, match="Forward DNA sequence cannot be empty"
     ):
         form.validate_and_get_params()
+    assert form.fwd_dna_input.error == "Forward DNA sequence cannot be empty"
+
+    # Empty reverse sequence
+    form.fwd_dna_input.value = "ATGCGTACGT"
+    form.fwd_min_len_input.value = "8"
+    form.rev_dna_input.value = ""
+    with pytest.raises(
+        ValueError, match="Reverse DNA sequence cannot be empty"
+    ):
+        form.validate_and_get_params()
+    assert form.rev_dna_input.error == "Reverse DNA sequence cannot be empty"
 
     # Forward min length exceeds sequence length
     form.fwd_dna_input.value = "ATGC"
     form.fwd_min_len_input.value = "10"
+    form.rev_dna_input.value = "CGTACGATGC"
     with pytest.raises(
         ValueError, match="Forward min length exceeds sequence length"
     ):
