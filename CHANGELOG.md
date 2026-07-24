@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0](https://github.com/fangfufu/AmplifyP/compare/v1.14.0...v1.15.0) (2026-07-24)
+
+
+### Features
+
+* **gui:** add save and load for designer 1d ([c4d9e5a](https://github.com/fangfufu/AmplifyP/commit/c4d9e5aee5410f12f6c1d811a3c5b9fd6de0fd96))
+* **gui:** add save and load for designer 2d ([810440a](https://github.com/fangfufu/AmplifyP/commit/810440a89f9763435b5baea3bbf11b383cf70f81))
+* **gui:** add screenshot export facility and window flags ([2097486](https://github.com/fangfufu/AmplifyP/commit/209748611e7d628421b4971d0737c78393f534d3))
+
+
+### Bug Fixes
+
+* **gui:** handle None parameter loading and guard min len validation ([030e98d](https://github.com/fangfufu/AmplifyP/commit/030e98dfd73a315c8fe983f3125357e99d7a8b80))
+* **gui:** prevent duplicate error and support page updates in Designer 2D ([20f6c39](https://github.com/fangfufu/AmplifyP/commit/20f6c3964469c27602b15fa1681b58290cfe0f79))
+* **gui:** prevent duplicate validation error in Designer 1D form ([575da49](https://github.com/fangfufu/AmplifyP/commit/575da4974d2587db1c659f15eed686269d9ae297))
+* **gui:** validate all fields in Designer 2D form before returning error ([f426476](https://github.com/fangfufu/AmplifyP/commit/f4264766fd824b2ab961f89dcf9280d095143aa3))
+
+
+### Documentation
+
+* add 1D and 2D primer designer API guide ([2a2a414](https://github.com/fangfufu/AmplifyP/commit/2a2a41466a8735a3ad6797443c7067d8abfbc8c9))
+* document history of Amplify ([49e895a](https://github.com/fangfufu/AmplifyP/commit/49e895a1140b922cbc2ff769b5b70e66e28561c2))
+* fix GitHub alert callout rendering ([d80669d](https://github.com/fangfufu/AmplifyP/commit/d80669d646ffc0940abdcfbe896f615a5658b9f1))
+* fix GitHub alert callout rendering ([a00a8ea](https://github.com/fangfufu/AmplifyP/commit/a00a8ea54f41f152447e751e5350f3cbb0a7d7e2))
+* **readme:** format screenshot section and update links ([18b5429](https://github.com/fangfufu/AmplifyP/commit/18b542980e8e64cb2a9accb4ef62d1c896c30be6))
+* relocate GUI manual and images to docs/gui/ ([f8b5b07](https://github.com/fangfufu/AmplifyP/commit/f8b5b07f9aef998e854165fc6e13718eaea2b289))
+* revise setup and verification guides ([b4e0d03](https://github.com/fangfufu/AmplifyP/commit/b4e0d035d099cb7d4e5266e2a93ca2e3aab7bad0))
+* simplify docs/README.md index ([6a8c688](https://github.com/fangfufu/AmplifyP/commit/6a8c688f8bdc26669fc556e290ece2e878c74493))
+* **src:** document main.py CLI arguments ([6e28759](https://github.com/fangfufu/AmplifyP/commit/6e28759ed82b71c5e9184f832cd28619b59e6837))
+
 ## [1.14.0](https://github.com/fangfufu/AmplifyP/compare/v1.13.0...v1.14.0) (2026-07-23)
 
 
