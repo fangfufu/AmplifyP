@@ -25,7 +25,7 @@ from amplifyp.dna import DNA
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.gui_helpers import show_error_dialog
+from amplifyp.gui.utils.gui_helpers import NotificationHelper, show_error_dialog
 from amplifyp.gui.views.designer_1d.designer_1d_form import Designer1DForm
 from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
     DismissibleSelfDimerCard,
@@ -57,6 +57,8 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self.form = Designer1DForm(
             settings=self.settings,
             on_submit_callback=self._run_designer_event,
+            on_save_callback=self._save_designer_1d_click,
+            on_load_callback=self._load_designer_1d_click,
         )
 
         # Container for top-left controls
@@ -421,3 +423,90 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self.right_cards_list.controls.clear()
         self._update_cards_header_visibility()
         self.app_page.update()
+
+    def _show_notification(self, message: str) -> None:
+        """Show a notification message."""
+        if not hasattr(self, "_notification_helper"):
+            self._notification_helper = NotificationHelper(self.app_page)
+        self._notification_helper.show_message(message)
+
+    async def _save_designer_1d_click(self, e: ft.ControlEvent) -> None:
+        """Save Designer 1D parameters to a YAML file."""
+        params = {
+            "dna": (self.form.dna_input.value or ""),
+            "min_length": (self.form.min_len_input.value or ""),
+            "mode": (self.form.mode_dropdown.value or "FWD"),
+            "max_quality": (self.form.max_quality_input.value or ""),
+            "max_overlap": (self.form.max_overlap_input.value or ""),
+        }
+
+        import yaml
+
+        yaml_str = yaml.safe_dump(params, sort_keys=False)
+
+        from amplifyp.gui.utils.data_helpers import save_and_write_file
+
+        await save_and_write_file(
+            page=self.app_page,
+            dialog_title="Save Designer 1D Parameters",
+            file_name="designer_1d_parameters.yaml",
+            allowed_extensions=["yaml", "yml"],
+            content=yaml_str,
+            show_notification=self._show_notification,
+            success_message_desktop="Parameters saved successfully.",
+            success_message_web="Parameters ready for download!",
+        )
+
+    async def _load_designer_1d_click(self, e: ft.ControlEvent) -> None:
+        """Load Designer 1D parameters from a YAML file."""
+        from amplifyp.gui.utils.data_helpers import pick_and_read_file
+
+        content = await pick_and_read_file(
+            page=self.app_page,
+            dialog_title="Load Designer 1D Parameters",
+            allowed_extensions=["yaml", "yml"],
+            show_notification=self._show_notification,
+        )
+        if content is None:
+            return
+
+        import yaml
+
+        try:
+            params = yaml.safe_load(content)
+            if not isinstance(params, dict):
+                self._show_notification("Error: Invalid parameter file format.")
+                return
+
+            dna_val = params.get("dna")
+            self.form.dna_input.value = (
+                str(dna_val) if dna_val is not None else ""
+            )
+            min_len_val = params.get("min_length")
+            self.form.min_len_input.value = (
+                str(min_len_val) if min_len_val is not None else "18"
+            )
+
+            mode_val = str(params.get("mode", "FWD")).upper()
+            if mode_val in ("FWD", "REV"):
+                self.form.mode_dropdown.value = mode_val
+            else:
+                self.form.mode_dropdown.value = "FWD"
+
+            max_q_val = params.get("max_quality")
+            self.form.max_quality_input.value = (
+                str(max_q_val) if max_q_val is not None else ""
+            )
+            max_ov_val = params.get("max_overlap")
+            self.form.max_overlap_input.value = (
+                str(max_ov_val) if max_ov_val is not None else ""
+            )
+
+            self.form.clear_errors()
+            self.app_page.update()
+
+            self._show_notification("Parameters loaded successfully.")
+            self.run_designer()
+
+        except Exception as ex:
+            self._show_notification(f"Error parsing parameter file: {ex}")

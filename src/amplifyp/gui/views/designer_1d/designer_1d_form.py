@@ -35,12 +35,30 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         on_submit_callback: Callable[[], Any],
         on_clear_error_callback: Callable[[ft.ControlEvent], None]
         | None = None,
+        on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
+        on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer1DForm."""
         super().__init__(spacing=8)
         self.settings = settings
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
+
+        # Save and Load buttons
+        self.save_button = ft.FilledTonalButton(
+            "Save",
+            icon=ft.Icons.SAVE,
+            tooltip="Save parameters to YAML",
+            on_click=on_save_callback,
+            height=32,
+        )
+        self.load_button = ft.FilledTonalButton(
+            "Load",
+            icon=ft.Icons.UPLOAD_FILE,
+            tooltip="Load parameters from YAML",
+            on_click=on_load_callback,
+            height=32,
+        )
 
         # Input fields
         self.dna_input = ft.TextField(
@@ -102,10 +120,24 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         )
 
         self.controls = [
-            ft.Text(
-                "1D Truncation Parameters",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_subheader", 16),
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text(
+                            "1D Truncation Parameters",
+                            weight=ft.FontWeight.BOLD,
+                            size=self.settings.get("font_size_subheader", 16),
+                        ),
+                        ft.Row(
+                            [self.load_button, self.save_button],
+                            spacing=4,
+                            tight=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                margin=ft.Margin.only(bottom=6),
             ),
             ft.Row([self.dna_input]),
             ft.Row(
@@ -157,9 +189,8 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         self.error_text.value = ""
 
     def show_field_error(self, field: ft.TextField, message: str) -> None:
-        """Set error text on a specific field and display general error."""
+        """Set error text on a specific field."""
         field.error = message
-        self.show_error(message)
         try:
             if self.page:
                 self.page.update()

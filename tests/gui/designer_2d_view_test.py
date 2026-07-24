@@ -15,10 +15,13 @@
 
 """Tests for 2D Primer Designer View GUI components."""
 
-from unittest.mock import MagicMock
+import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
 import pytest
+import yaml
 
 from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.settings import GUISettings
@@ -90,20 +93,22 @@ def test_designer_2d_form_validation_errors() -> None:
     settings = GUISettings()
     form = Designer2DForm(settings=settings, on_submit_callback=lambda: None)
 
-    # Empty forward sequence
+    # Empty forward sequence and empty reverse sequence simultaneously
     form.fwd_dna_input.value = ""
-    with pytest.raises(
-        ValueError, match="Forward DNA sequence cannot be empty"
-    ):
+    form.rev_dna_input.value = ""
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
+    assert form.fwd_dna_input.error == "Forward DNA sequence cannot be empty"
+    assert form.rev_dna_input.error == "Reverse DNA sequence cannot be empty"
 
     # Forward min length exceeds sequence length
     form.fwd_dna_input.value = "ATGC"
     form.fwd_min_len_input.value = "10"
-    with pytest.raises(
-        ValueError, match="Forward min length exceeds sequence length"
-    ):
+    form.rev_dna_input.value = "CGTACGATGC"
+    form.rev_min_len_input.value = "8"
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
+    assert form.fwd_min_len_input.error == "Exceeds sequence length (4)"
 
     # Invalid quality filter
     form.fwd_dna_input.value = "ATGCGTACGT"
@@ -111,8 +116,9 @@ def test_designer_2d_form_validation_errors() -> None:
     form.rev_dna_input.value = "CGTACGATGC"
     form.rev_min_len_input.value = "8"
     form.quality_filter_input.value = "-5.0"
-    with pytest.raises(ValueError, match="Quality filter must be non-negative"):
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
+    assert form.quality_filter_input.error == "Must be >= 0"
 
 
 def test_designer_2d_view_run_analysis_and_grid() -> None:
@@ -262,3 +268,91 @@ def test_designer_2d_tile_in_settings_view() -> None:
     settings_view._on_change_handler(mock_event)
 
     assert settings["designer_2d_colour_scheme"] == "Traffic Light"
+
+
+def test_designer_2d_view_save_and_load_parameters() -> None:
+    """Test saving and loading 2D primer designer parameters."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # Set parameters on the form
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view.form.quality_filter_input.value = ""
+    view.form.overlap_filter_input.value = ""
+    view.form.filter_metric_dropdown.value = "MEAN"
+
+    saved_content = ""
+
+    async def mock_save_and_write_file(
+        page: ft.Page,
+        dialog_title: str,
+        file_name: str,
+        allowed_extensions: list[str],
+        content: str,
+        show_notification: Any,
+        **kwargs: Any,
+    ) -> bool:
+        nonlocal saved_content
+        saved_content = content
+        return True
+
+    # 1. Test Save
+    with patch(
+        "amplifyp.gui.utils.data_helpers.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        asyncio.run(view._save_designer_2d_click(MagicMock()))
+
+    assert saved_content != ""
+    parsed = yaml.safe_load(saved_content)
+    assert parsed["fwd_dna"] == "ATGCGTACGT"
+    assert parsed["fwd_min_length"] == "8"
+    assert parsed["rev_dna"] == "CGTACGATGC"
+    assert parsed["rev_min_length"] == "8"
+    assert parsed["quality_filter"] == ""
+    assert parsed["overlap_filter"] == ""
+    assert parsed["filter_metric"] == "MEAN"
+
+    # 2. Test Load
+    # Reset form to different values
+    view.form.fwd_dna_input.value = "CGT"
+    view.form.fwd_min_len_input.value = "10"
+    view.form.rev_dna_input.value = "ATG"
+    view.form.rev_min_len_input.value = "10"
+    view.form.quality_filter_input.value = "60.0"
+    view.form.overlap_filter_input.value = "3"
+    view.form.filter_metric_dropdown.value = "MAX"
+
+    async def mock_pick_and_read_file(
+        page: ft.Page,
+        dialog_title: str,
+        allowed_extensions: list[str],
+        show_notification: Any,
+    ) -> str:
+        return saved_content
+
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(side_effect=mock_pick_and_read_file),
+    ):
+        asyncio.run(view._load_designer_2d_click(MagicMock()))
+
+    # Verify loaded values in the form
+    assert view.form.fwd_dna_input.value == "ATGCGTACGT"
+    assert view.form.fwd_min_len_input.value == "8"
+    assert view.form.rev_dna_input.value == "CGTACGATGC"
+    assert view.form.rev_min_len_input.value == "8"
+    assert view.form.quality_filter_input.value == ""
+    assert view.form.overlap_filter_input.value == ""
+    assert view.form.filter_metric_dropdown.value == "MEAN"
+
+    # Verify that the analysis automatically ran (should populate
+    # _cached_designer)
+    assert view._cached_designer is not None
+    assert len(view._cached_designer) == 9

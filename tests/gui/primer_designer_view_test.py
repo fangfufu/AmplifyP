@@ -15,9 +15,12 @@
 
 """Tests for 1D Primer Designer View."""
 
-from unittest.mock import MagicMock
+import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import yaml
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -120,42 +123,44 @@ def test_primer_designer_view_validation_errors() -> None:
     # Empty sequence
     view.dna_input.value = ""
     assert view.run_designer() is False
-    assert view.error_text.visible is True
-    assert "enter a valid DNA sequence" in view.error_text.value
     assert view.dna_input.error is not None
+    assert "enter a valid DNA sequence" in view.dna_input.error
 
     # Non-digit min_length
     view.dna_input.value = "ATGCGTACGT"
     view.min_len_input.value = "abc"
     assert view.run_designer() is False
-    assert "positive integer" in view.error_text.value
     assert view.min_len_input.error is not None
+    assert "positive integer" in view.min_len_input.error
 
     # min_length <= 0
     view.min_len_input.value = "0"
     assert view.run_designer() is False
-    assert "greater than 0" in view.error_text.value
     assert view.min_len_input.error is not None
+    assert "greater than 0" in view.min_len_input.error
 
     # min_length > len(seq)
     view.min_len_input.value = "20"
     assert view.run_designer() is False
-    assert "cannot exceed sequence length" in view.error_text.value
     assert view.min_len_input.error is not None
+    assert "cannot exceed sequence length" in view.min_len_input.error
 
     # Invalid max_quality
     view.min_len_input.value = "7"
     view.max_quality_input.value = "invalid"
     assert view.run_designer() is False
-    assert "Max Quality must be a valid number" in view.error_text.value
     assert view.max_quality_input.error is not None
+    assert "Max Quality must be a valid number" in view.max_quality_input.error
     view.max_quality_input.value = ""
 
     # Invalid max_overlap
     view.max_overlap_input.value = "abc"
     assert view.run_designer() is False
-    assert "Max Overlap must be a non-negative integer" in view.error_text.value
     assert view.max_overlap_input.error is not None
+    assert (
+        "Max Overlap must be a non-negative integer"
+        in view.max_overlap_input.error
+    )
 
 
 def test_primer_designer_view_threshold_filtering() -> None:
@@ -323,3 +328,82 @@ def test_primer_designer_view_resizing_panels() -> None:
     h_after = bar_container_after.height
 
     assert h_after > h_before
+
+
+def test_primer_designer_view_save_and_load_parameters() -> None:
+    """Test saving and loading 1D primer designer parameters."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+
+    # Set parameters on the form
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+    view.form.mode_dropdown.value = "REV"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+
+    saved_content = ""
+
+    async def mock_save_and_write_file(
+        page: ft.Page,
+        dialog_title: str,
+        file_name: str,
+        allowed_extensions: list[str],
+        content: str,
+        show_notification: Any,
+        **kwargs: Any,
+    ) -> bool:
+        nonlocal saved_content
+        saved_content = content
+        return True
+
+    # 1. Test Save
+    with patch(
+        "amplifyp.gui.utils.data_helpers.save_and_write_file",
+        new=AsyncMock(side_effect=mock_save_and_write_file),
+    ):
+        asyncio.run(view._save_designer_1d_click(MagicMock()))
+
+    assert saved_content != ""
+    parsed = yaml.safe_load(saved_content)
+    assert parsed["dna"] == "ATGCGTACGT"
+    assert parsed["min_length"] == "8"
+    assert parsed["mode"] == "REV"
+    assert parsed["max_quality"] == ""
+    assert parsed["max_overlap"] == ""
+
+    # 2. Test Load
+    # Reset form to different values
+    view.form.dna_input.value = "CGT"
+    view.form.min_len_input.value = "10"
+    view.form.mode_dropdown.value = "FWD"
+    view.form.max_quality_input.value = "60.0"
+    view.form.max_overlap_input.value = "3"
+
+    async def mock_pick_and_read_file(
+        page: ft.Page,
+        dialog_title: str,
+        allowed_extensions: list[str],
+        show_notification: Any,
+    ) -> str:
+        return saved_content
+
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(side_effect=mock_pick_and_read_file),
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+
+    # Verify loaded values in the form
+    assert view.form.dna_input.value == "ATGCGTACGT"
+    assert view.form.min_len_input.value == "8"
+    assert view.form.mode_dropdown.value == "REV"
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
+
+    # Verify that the analysis automatically ran (length 10 down to 8
+    # rev produces 3 steps)
+    assert len(view.primer_list.controls) == 3

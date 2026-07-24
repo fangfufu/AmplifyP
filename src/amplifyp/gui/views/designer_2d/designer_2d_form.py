@@ -35,12 +35,30 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         settings: GUISettings,
         on_submit_callback: Callable[[], Any],
         on_clear_error_callback: Callable[[Any], None] | None = None,
+        on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
+        on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer2DForm."""
         super().__init__(spacing=8)
         self.settings = settings
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
+
+        # Save and Load buttons
+        self.save_button = ft.FilledTonalButton(
+            "Save",
+            icon=ft.Icons.SAVE,
+            tooltip="Save parameters to YAML",
+            on_click=on_save_callback,
+            height=32,
+        )
+        self.load_button = ft.FilledTonalButton(
+            "Load",
+            icon=ft.Icons.UPLOAD_FILE,
+            tooltip="Load parameters from YAML",
+            on_click=on_load_callback,
+            height=32,
+        )
 
         # Input fields
         self.fwd_dna_input = ft.TextField(
@@ -120,10 +138,24 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         )
 
         self.controls = [
-            ft.Text(
-                "2D Truncation Parameters",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_subheader", 16),
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text(
+                            "2D Truncation Parameters",
+                            weight=ft.FontWeight.BOLD,
+                            size=self.settings.get("font_size_subheader", 16),
+                        ),
+                        ft.Row(
+                            [self.load_button, self.save_button],
+                            spacing=4,
+                            tight=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                margin=ft.Margin.only(bottom=6),
             ),
             ft.Row([self.fwd_dna_input, self.fwd_min_len_input], spacing=8),
             ft.Row([self.rev_dna_input, self.rev_min_len_input], spacing=8),
@@ -185,76 +217,65 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             ValueError: If any input field contains invalid data.
         """
         self.clear_errors()
+        has_error = False
 
         # Clean and validate Forward DNA sequence
         raw_fwd_seq = self.fwd_dna_input.value or ""
         cleaned_fwd_seq = clean_sequence(raw_fwd_seq)
         if not cleaned_fwd_seq:
             self.fwd_dna_input.error = "Forward DNA sequence cannot be empty"
-            self.error_text.value = "Forward DNA sequence cannot be empty"
-            self.error_text.visible = True
-            raise ValueError("Forward DNA sequence cannot be empty")
+            has_error = True
 
         # Validate Forward Min Length
+        fwd_min_len = 18
+        fwd_min_len_valid = False
         try:
             fwd_min_len = int(self.fwd_min_len_input.value or "18")
             if fwd_min_len <= 0:
                 raise ValueError
-        except ValueError as err:
+            fwd_min_len_valid = True
+        except ValueError:
             self.fwd_min_len_input.error = "Must be > 0"
-            self.error_text.value = (
-                "Forward minimum length must be a positive integer"
-            )
-            self.error_text.visible = True
-            raise ValueError(
-                "Forward min length must be a positive integer"
-            ) from err
+            has_error = True
 
-        if len(cleaned_fwd_seq) < fwd_min_len:
+        if (
+            fwd_min_len_valid
+            and cleaned_fwd_seq
+            and len(cleaned_fwd_seq) < fwd_min_len
+        ):
             self.fwd_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_fwd_seq)})"
             )
-            self.error_text.value = (
-                f"Forward minimum length ({fwd_min_len}) cannot exceed "
-                f"sequence length ({len(cleaned_fwd_seq)})"
-            )
-            self.error_text.visible = True
-            raise ValueError("Forward min length exceeds sequence length")
+            has_error = True
 
         # Clean and validate Reverse DNA sequence
         raw_rev_seq = self.rev_dna_input.value or ""
         cleaned_rev_seq = clean_sequence(raw_rev_seq)
         if not cleaned_rev_seq:
             self.rev_dna_input.error = "Reverse DNA sequence cannot be empty"
-            self.error_text.value = "Reverse DNA sequence cannot be empty"
-            self.error_text.visible = True
-            raise ValueError("Reverse DNA sequence cannot be empty")
+            has_error = True
 
         # Validate Reverse Min Length
+        rev_min_len = 18
+        rev_min_len_valid = False
         try:
             rev_min_len = int(self.rev_min_len_input.value or "18")
             if rev_min_len <= 0:
                 raise ValueError
-        except ValueError as err:
+            rev_min_len_valid = True
+        except ValueError:
             self.rev_min_len_input.error = "Must be > 0"
-            self.error_text.value = (
-                "Reverse minimum length must be a positive integer"
-            )
-            self.error_text.visible = True
-            raise ValueError(
-                "Reverse min length must be a positive integer"
-            ) from err
+            has_error = True
 
-        if len(cleaned_rev_seq) < rev_min_len:
+        if (
+            rev_min_len_valid
+            and cleaned_rev_seq
+            and len(cleaned_rev_seq) < rev_min_len
+        ):
             self.rev_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_rev_seq)})"
             )
-            self.error_text.value = (
-                f"Reverse minimum length ({rev_min_len}) cannot exceed "
-                f"sequence length ({len(cleaned_rev_seq)})"
-            )
-            self.error_text.visible = True
-            raise ValueError("Reverse min length exceeds sequence length")
+            has_error = True
 
         # Quality filter
         threshold: float | None = None
@@ -264,11 +285,9 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 threshold = float(q_str)
                 if threshold < 0:
                     raise ValueError
-            except ValueError as err:
+            except ValueError:
                 self.quality_filter_input.error = "Must be >= 0"
-                self.error_text.value = "Quality filter must be non-negative"
-                self.error_text.visible = True
-                raise ValueError("Quality filter must be non-negative") from err
+                has_error = True
 
         # Overlap filter
         max_overlap: int | None = None
@@ -278,11 +297,17 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 max_overlap = int(o_str)
                 if max_overlap < 0:
                     raise ValueError
-            except ValueError as err:
+            except ValueError:
                 self.overlap_filter_input.error = "Must be >= 0"
-                self.error_text.value = "Overlap filter must be non-negative"
-                self.error_text.visible = True
-                raise ValueError("Overlap filter must be non-negative") from err
+                has_error = True
+
+        if has_error:
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
+            raise ValueError("Input validation failed")
 
         # Filter metric
         metric_str = (self.filter_metric_dropdown.value or "MAX").lower()

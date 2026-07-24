@@ -24,7 +24,7 @@ from amplifyp.dimer import PrimerDimerGenerator
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.gui_helpers import show_error_dialog
+from amplifyp.gui.utils.gui_helpers import NotificationHelper, show_error_dialog
 from amplifyp.gui.views.designer_2d.designer_2d_form import Designer2DForm
 from amplifyp.gui.views.designer_2d.dismissible_2d_card import Dismissible2DCard
 from amplifyp.gui.views.designer_2d.grid_2d_results import Grid2DResultsView
@@ -54,6 +54,8 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         self.form = Designer2DForm(
             settings=self.settings,
             on_submit_callback=self._run_designer_event,
+            on_save_callback=self._save_designer_2d_click,
+            on_load_callback=self._load_designer_2d_click,
         )
 
         # Top-left container (50% default vertical height)
@@ -320,3 +322,89 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 self.app_page.update()
         except RuntimeError:
             pass
+
+    def _show_notification(self, message: str) -> None:
+        """Show a notification message."""
+        if not hasattr(self, "_notification_helper"):
+            self._notification_helper = NotificationHelper(self.app_page)
+        self._notification_helper.show_message(message)
+
+    async def _save_designer_2d_click(self, e: ft.ControlEvent) -> None:
+        """Save Designer 2D parameters to a YAML file."""
+        params = {
+            "fwd_dna": (self.form.fwd_dna_input.value or ""),
+            "fwd_min_length": (self.form.fwd_min_len_input.value or ""),
+            "rev_dna": (self.form.rev_dna_input.value or ""),
+            "rev_min_length": (self.form.rev_min_len_input.value or ""),
+            "quality_filter": (self.form.quality_filter_input.value or ""),
+            "overlap_filter": (self.form.overlap_filter_input.value or ""),
+            "filter_metric": (self.form.filter_metric_dropdown.value or "MAX"),
+        }
+
+        import yaml
+
+        yaml_str = yaml.safe_dump(params, sort_keys=False)
+
+        from amplifyp.gui.utils.data_helpers import save_and_write_file
+
+        await save_and_write_file(
+            page=self.app_page,
+            dialog_title="Save Designer 2D Parameters",
+            file_name="designer_2d_parameters.yaml",
+            allowed_extensions=["yaml", "yml"],
+            content=yaml_str,
+            show_notification=self._show_notification,
+            success_message_desktop="Parameters saved successfully.",
+            success_message_web="Parameters ready for download!",
+        )
+
+    async def _load_designer_2d_click(self, e: ft.ControlEvent) -> None:
+        """Load Designer 2D parameters from a YAML file."""
+        from amplifyp.gui.utils.data_helpers import pick_and_read_file
+
+        content = await pick_and_read_file(
+            page=self.app_page,
+            dialog_title="Load Designer 2D Parameters",
+            allowed_extensions=["yaml", "yml"],
+            show_notification=self._show_notification,
+        )
+        if content is None:
+            return
+
+        import yaml
+
+        try:
+            params = yaml.safe_load(content)
+            if not isinstance(params, dict):
+                self._show_notification("Error: Invalid parameter file format.")
+                return
+
+            self.form.fwd_dna_input.value = str(params.get("fwd_dna", ""))
+            self.form.fwd_min_len_input.value = str(
+                params.get("fwd_min_length", "18")
+            )
+            self.form.rev_dna_input.value = str(params.get("rev_dna", ""))
+            self.form.rev_min_len_input.value = str(
+                params.get("rev_min_length", "18")
+            )
+            self.form.quality_filter_input.value = str(
+                params.get("quality_filter", "")
+            )
+            self.form.overlap_filter_input.value = str(
+                params.get("overlap_filter", "")
+            )
+
+            metric_val = str(params.get("filter_metric", "MAX")).upper()
+            if metric_val in ("MAX", "MEAN"):
+                self.form.filter_metric_dropdown.value = metric_val
+            else:
+                self.form.filter_metric_dropdown.value = "MAX"
+
+            self.form.clear_errors()
+            self.app_page.update()
+
+            self._show_notification("Parameters loaded successfully.")
+            self._run_designer_event()
+
+        except Exception as ex:
+            self._show_notification(f"Error parsing parameter file: {ex}")
