@@ -120,21 +120,24 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         )
 
         self.controls = [
-            ft.Row(
-                [
-                    ft.Text(
-                        "1D Truncation Parameters",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_subheader", 16),
-                    ),
-                    ft.Row(
-                        [self.load_button, self.save_button],
-                        spacing=4,
-                        tight=True,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text(
+                            "1D Truncation Parameters",
+                            weight=ft.FontWeight.BOLD,
+                            size=self.settings.get("font_size_subheader", 16),
+                        ),
+                        ft.Row(
+                            [self.load_button, self.save_button],
+                            spacing=4,
+                            tight=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                margin=ft.Margin.only(bottom=6),
             ),
             ft.Row([self.dna_input]),
             ft.Row(

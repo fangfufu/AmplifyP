@@ -35,12 +35,30 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         settings: GUISettings,
         on_submit_callback: Callable[[], Any],
         on_clear_error_callback: Callable[[Any], None] | None = None,
+        on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
+        on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer2DForm."""
         super().__init__(spacing=8)
         self.settings = settings
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
+
+        # Save and Load buttons
+        self.save_button = ft.FilledTonalButton(
+            "Save",
+            icon=ft.Icons.SAVE,
+            tooltip="Save parameters to YAML",
+            on_click=on_save_callback,
+            height=32,
+        )
+        self.load_button = ft.FilledTonalButton(
+            "Load",
+            icon=ft.Icons.UPLOAD_FILE,
+            tooltip="Load parameters from YAML",
+            on_click=on_load_callback,
+            height=32,
+        )
 
         # Input fields
         self.fwd_dna_input = ft.TextField(
@@ -120,10 +138,24 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         )
 
         self.controls = [
-            ft.Text(
-                "2D Truncation Parameters",
-                weight=ft.FontWeight.BOLD,
-                size=self.settings.get("font_size_subheader", 16),
+            ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Text(
+                            "2D Truncation Parameters",
+                            weight=ft.FontWeight.BOLD,
+                            size=self.settings.get("font_size_subheader", 16),
+                        ),
+                        ft.Row(
+                            [self.load_button, self.save_button],
+                            spacing=4,
+                            tight=True,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                margin=ft.Margin.only(bottom=6),
             ),
             ft.Row([self.fwd_dna_input, self.fwd_min_len_input], spacing=8),
             ft.Row([self.rev_dna_input, self.rev_min_len_input], spacing=8),
