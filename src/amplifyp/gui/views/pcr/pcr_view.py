@@ -285,3 +285,10 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.result_list.controls.clear()
         self._update_cards_header_visibility()
         self.app_page.update()
+
+    def open_all_cards(self) -> None:
+        """Open detail cards for all predicted amplicons."""
+        if self._cached_pcr is None:
+            return
+        for amp in reversed(self._cached_pcr.amplicons[:MAX_AMPLICONS_RENDER]):
+            self._show_amplicon_dialog(amp)

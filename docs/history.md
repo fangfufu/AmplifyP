@@ -38,6 +38,39 @@ because:
    Choosing a popular language ensures the long-term survival of the project.
 2. Python is cross-platform. This enables non-Mac user to use Amplify.
 
+## What happened to the people who were involved in the original Usenet threads?
+
+I happen to be interested in digital archaeology. I searched the name of those
+who appeared in the original Usenet threads. This section was recorded in July
+2026\. I guess I am in awe with how long this Amplify project had been going, and
+its impact. The original Usenet thread started in 1992, it was 34 years ago. The
+current generation of Amplify users were little babies when the original Amplify
+was written.
+
+I reckon most computer user these days have not come across Usenet. I have never
+really used Usenet. I have accessed it to satisfy my academic curiosity. The
+discussion on the Internet no longer happens on Usenet.
+
+### Mike Cherry
+
+[Mike Cherry](https://med.stanford.edu/profiles/j-michael-cherry) is now an
+Emeritus Professor of Genetics at Stanford University.
+
+### Gregory Gloor
+
+[Gregory Gloor](https://expertise.uwo.ca/363-gregory-b-gloor) is now the Chair
+of the Department of Biochemistry at the Schulich School of Medicine &
+Dentistry, Western University in Canada. He is
+[appointed](https://www.schulich.uwo.ca/about/news/2024/july/announcement_dr_gregory_gloor_reappointed_as_chair_department_of_biochemistry.html)
+between July 1, 2024, to June 30, 2029.
+
+### Francis Ouellette
+
+Francis Ouellette is now a consultant in bioinformatics. Francis co-founded the
+Canadian Bioinformatics Workshops (CBW) and was the
+[Scientific Director of bioinformatics.ca](https://bioinformatics.ca/people/all/bf-francis-ouellette/)
+from 1998 to 2022.
+
 [^1]: Engels W(1993),
     [Contributing software to the internet: the Amplify program](<https://www.cell.com/trends/biochemical-sciences/abstract/0968-0004(93)90148-G>)
     *Trends in Biochemical Sciences*, 18, 448-450

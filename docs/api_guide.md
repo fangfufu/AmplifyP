@@ -202,3 +202,91 @@ You can pass these custom settings objects to class constructors:
 - `PCR(template, settings=custom_replication_settings)`
 - `PrimerDimerGenerator(settings=custom_dimer_settings)`
 - `calculate_tm_santalucia_1998_owczarzy_2008(primer, settings=custom_tm_settings)`
+
+## 6. Primer Design (1D and 2D Truncation Analysis)
+
+AmplifyP includes primer design functionality to systematically evaluate dimer
+formation across sequence truncations.
+
+### 1D Primer Design (`PrimerDesigner1D`)
+
+`PrimerDesigner1D` in `amplifyp.primer_designer_1d` performs 1D truncation
+analysis by iteratively shortening a DNA sequence from either the 3' end
+(`DNADirection.FWD`) or the 5' end (`DNADirection.REV`) down to a target minimum
+length (`min_length`). At each step, self-dimer formation potential is
+evaluated.
+
+```python
+from amplifyp.dna import DNA, DNADirection
+from amplifyp.primer_designer_1d import PrimerDesigner1D
+
+dna_template = DNA("CGACTGGGCAAAGGAAATCCGTGA", name="CandidatePrimer")
+
+# Initialise 1D designer (truncating 3' end down to length 18)
+designer_1d = PrimerDesigner1D(
+    dna=dna_template,
+    min_length=18,
+    mode=DNADirection.FWD,
+)
+
+# Best truncation step (lowest quality score indicates minimal self-dimer potential)
+best_step_idx, best_quality = designer_1d.best_score
+best_dimer = designer_1d[best_step_idx]
+
+print(
+    f"Optimal length: {len(best_dimer.primer_1)} bp (Quality: {best_quality:.2f})"
+)
+print(f"Optimal sequence: {best_dimer.primer_1.seq}")
+
+# Iterate over all truncation steps
+for idx, dimer in enumerate(designer_1d.all_dimers):
+    print(
+        f"Step {idx}: length {len(dimer.primer_1)} bp, quality score = {dimer.quality:.2f}"
+    )
+```
+
+### 2D Primer Design (`PrimerDesigner2D`)
+
+`PrimerDesigner2D` in `amplifyp.primer_designer_2d` performs 2D truncation
+analysis on candidate forward and reverse primer pairs. The forward sequence is
+truncated from the 3' end while the reverse sequence is truncated from the 5'
+end.
+
+For each pair of truncated lengths down to `fwd_min_length` and
+`rev_min_length`, 4 primer dimer configurations are calculated:
+
+- Forward self-dimer (`fwd_fwd`)
+- Reverse self-dimer (`rev_rev`)
+- Forward-reverse cross-dimer (`fwd_rev`)
+- Reverse-forward cross-dimer (`rev_fwd`)
+
+Steps can be filtered using quality threshold limits and an evaluation metric
+(`FilterMetric.MAX` or `FilterMetric.MEAN`).
+
+```python
+from amplifyp.dna import DNA
+from amplifyp.primer_designer_2d import FilterMetric, PrimerDesigner2D
+
+fwd_template = DNA("CGACTGGGCAAAGGAAATCCGTGA", name="FwdCandidate")
+rev_template = DNA("GTGGGTATCACAAATTTGGGGACC", name="RevCandidate")
+
+# Initialise 2D designer (truncating forward and reverse candidates)
+designer_2d = PrimerDesigner2D(
+    fwd_dna=fwd_template,
+    fwd_min_length=18,
+    rev_dna=rev_template,
+    rev_min_length=18,
+    filter_metric=FilterMetric.MAX,
+)
+
+# Identify best combined truncation step
+best_step_idx, best_quality = designer_2d.best_score
+best_step = designer_2d[best_step_idx]
+
+print(
+    f"Optimal step index: {best_step_idx} (Max Quality Score: {best_quality:.2f})"
+)
+print(f"Forward primer sequence: {best_step.fwd_fwd.primer_1.seq}")
+print(f"Reverse primer sequence: {best_step.rev_rev.primer_1.seq}")
+print(f"Cross-dimer quality (Fwd x Rev): {best_step.fwd_rev.quality:.2f}")
+```

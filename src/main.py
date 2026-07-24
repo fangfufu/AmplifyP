@@ -26,12 +26,24 @@ from amplifyp.gui import main as app_main
 
 state_file: str | None = None
 auto_close: bool = False
+export_screenshots: bool = False
+screenshots_dir: str | None = None
+window_width: int | None = None
+window_height: int | None = None
 
 
 def main(page: ft.Page) -> None:
     """Flet entry point - delegates to amplifyp.gui."""
     try:
-        app_main(page, state_file=state_file, auto_close=auto_close)
+        app_main(
+            page,
+            state_file=state_file,
+            auto_close=auto_close,
+            export_screenshots=export_screenshots,
+            screenshots_dir=screenshots_dir,
+            window_width=window_width,
+            window_height=window_height,
+        )
     except Exception:
         logging.getLogger(__name__).exception("Unhandled exception in main")
         raise
@@ -39,7 +51,8 @@ def main(page: ft.Page) -> None:
 
 def cli(args_list: list[str] | None = None) -> None:
     """CLI entry point for argparse and running the Flet app."""
-    global state_file, auto_close
+    global state_file, auto_close, export_screenshots, screenshots_dir
+    global window_width, window_height
     parser = argparse.ArgumentParser(
         description="AmplifyP - Primer design and PCR simulation tool"
     )
@@ -55,6 +68,27 @@ def cli(args_list: list[str] | None = None) -> None:
         help="Auto-quit after rendering completes (requires --state)",
     )
     parser.add_argument(
+        "-s",
+        "--screenshots",
+        action="store_true",
+        help="Save PNG screenshots of views (requires --state)",
+    )
+    parser.add_argument(
+        "--screenshots-dir",
+        type=str,
+        help="Target directory for saved PNG screenshots",
+    )
+    parser.add_argument(
+        "--window-width",
+        type=int,
+        help="Set application window width in pixels",
+    )
+    parser.add_argument(
+        "--window-height",
+        type=int,
+        help="Set application window height in pixels",
+    )
+    parser.add_argument(
         "--web",
         action="store_true",
         help="Launch in web browser mode",
@@ -62,8 +96,14 @@ def cli(args_list: list[str] | None = None) -> None:
     parsed_args = parser.parse_args(args_list)
     if parsed_args.auto_close and not parsed_args.state:
         parser.error("--auto-close requires --state")
+    if parsed_args.screenshots and not parsed_args.state:
+        parser.error("--screenshots requires --state")
     state_file = parsed_args.state
     auto_close = parsed_args.auto_close
+    export_screenshots = parsed_args.screenshots
+    screenshots_dir = parsed_args.screenshots_dir
+    window_width = parsed_args.window_width
+    window_height = parsed_args.window_height
 
     assets_dir = os.path.join(os.path.dirname(__file__), "assets")
 

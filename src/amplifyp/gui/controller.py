@@ -52,6 +52,10 @@ class GUIController:
         page: ft.Page,
         state_file: str | None = None,
         auto_close: bool = False,
+        export_screenshots: bool = False,
+        screenshots_dir: str | Path | None = None,
+        window_width: int | None = None,
+        window_height: int | None = None,
     ) -> None:
         """Initialize the GUIController.
 
@@ -59,10 +63,20 @@ class GUIController:
             page: The Flet page instance for the application.
             state_file: Optional path to a YAML state file to load on startup.
             auto_close: If True, quit automatically after rendering is complete.
+            export_screenshots: Save PNG screenshots of views.
+            screenshots_dir: Target directory for saved PNG screenshots.
+            window_width: Optional application window width in pixels.
+            window_height: Optional application window height in pixels.
         """
         self.page = page
         self.state_file = state_file
         self.auto_close = auto_close
+        self.export_screenshots = export_screenshots
+        self.screenshots_dir = (
+            Path(screenshots_dir) if screenshots_dir else None
+        )
+        self.window_width = window_width
+        self.window_height = window_height
         self.input_data = GUIInput()
         self.settings = GUISettings()
         self.filepicker_open = False
@@ -179,6 +193,7 @@ class GUIController:
         self.page.fonts = {"Roboto Mono": "fonts/RobotoMono-Regular.ttf"}
         self.page.padding = 0
         self.page.spacing = 0
+        self.page.enable_screenshots = True
         self.page.window.icon = "/images/icon.png"
 
         # Handle close / reload warnings
@@ -193,8 +208,12 @@ class GUIController:
                     """
                 )
         else:
-            self.page.window.width = 1280
-            self.page.window.height = 720
+            self.page.window.width = (
+                self.window_width if self.window_width is not None else 1280
+            )
+            self.page.window.height = (
+                self.window_height if self.window_height is not None else 720
+            )
             self.page.window.prevent_close = False
             if not self.auto_close:
                 self.page.window.prevent_close = True
