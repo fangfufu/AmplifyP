@@ -143,27 +143,29 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """
         amplicons = pcr.amplicons
         num_amplicons = len(amplicons)
-        if num_amplicons == 0:
-            self.reset_ui()
-            return
 
-        self.diagram_container.visible = True
-        self.divider.visible = True
+        if amplicons:
+            # Sort amplicons by ascending q_score (lower is better quality)
+            amplicons = sorted(amplicons, key=lambda a: a.q_score)
+            num_amplicons = len(amplicons)
 
-        # Sort amplicons by ascending q_score (lower is better quality)
-        amplicons = sorted(amplicons, key=lambda a: a.q_score)
-        num_amplicons = len(amplicons)
-
-        # Limit to top amplicons if there are too many
-        if num_amplicons > MAX_AMPLICONS_RENDER:
-            amplicons = amplicons[:MAX_AMPLICONS_RENDER]
-            num_amplicons = MAX_AMPLICONS_RENDER
+            # Limit to top amplicons if there are too many
+            if num_amplicons > MAX_AMPLICONS_RENDER:
+                amplicons = amplicons[:MAX_AMPLICONS_RENDER]
+                num_amplicons = MAX_AMPLICONS_RENDER
 
         target_length = len(pcr.template)
 
         fwd_bindings, rev_bindings = PCRLayoutSolver.collect_primer_bindings(
             pcr, amplicons
         )
+
+        if not fwd_bindings and not rev_bindings:
+            self.reset_ui()
+            return
+
+        self.diagram_container.visible = True
+        self.divider.visible = True
 
         v_target, h_margin, c_width, t_width, v_frag_start = (
             PCRLayoutSolver.calculate_canvas_dimensions(
