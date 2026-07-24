@@ -21,10 +21,11 @@ AmplifyP requires Python 3.12 or higher.
   ```
 - **Manual Installation**: Download and run the installer from the official
   [Python Website](https://www.python.org/downloads/).
-  > [!IMPORTANT]
-  > During the Python installation process, ensure the checkbox for **"Add
-  > Python to PATH"** (or similar) is ticked. This is necessary to access Python
-  > from the command line.
+
+> [!IMPORTANT]
+> During the Python installation process, ensure the checkbox for **"Add Python
+> to PATH"** (or similar) is ticked. This is necessary to access Python from the
+> command line.
 
 ### B. Git
 
