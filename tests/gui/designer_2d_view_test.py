@@ -93,32 +93,22 @@ def test_designer_2d_form_validation_errors() -> None:
     settings = GUISettings()
     form = Designer2DForm(settings=settings, on_submit_callback=lambda: None)
 
-    # Empty forward sequence
+    # Empty forward sequence and empty reverse sequence simultaneously
     form.fwd_dna_input.value = ""
-    with pytest.raises(
-        ValueError, match="Forward DNA sequence cannot be empty"
-    ):
+    form.rev_dna_input.value = ""
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
     assert form.fwd_dna_input.error == "Forward DNA sequence cannot be empty"
-
-    # Empty reverse sequence
-    form.fwd_dna_input.value = "ATGCGTACGT"
-    form.fwd_min_len_input.value = "8"
-    form.rev_dna_input.value = ""
-    with pytest.raises(
-        ValueError, match="Reverse DNA sequence cannot be empty"
-    ):
-        form.validate_and_get_params()
     assert form.rev_dna_input.error == "Reverse DNA sequence cannot be empty"
 
     # Forward min length exceeds sequence length
     form.fwd_dna_input.value = "ATGC"
     form.fwd_min_len_input.value = "10"
     form.rev_dna_input.value = "CGTACGATGC"
-    with pytest.raises(
-        ValueError, match="Forward min length exceeds sequence length"
-    ):
+    form.rev_min_len_input.value = "8"
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
+    assert form.fwd_min_len_input.error == "Exceeds sequence length (4)"
 
     # Invalid quality filter
     form.fwd_dna_input.value = "ATGCGTACGT"
@@ -126,8 +116,9 @@ def test_designer_2d_form_validation_errors() -> None:
     form.rev_dna_input.value = "CGTACGATGC"
     form.rev_min_len_input.value = "8"
     form.quality_filter_input.value = "-5.0"
-    with pytest.raises(ValueError, match="Quality filter must be non-negative"):
+    with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
+    assert form.quality_filter_input.error == "Must be >= 0"
 
 
 def test_designer_2d_view_run_analysis_and_grid() -> None:
