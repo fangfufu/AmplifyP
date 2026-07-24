@@ -1,11 +1,35 @@
-# AmplifyP GUI User Guide
+# AmplifyP GUI User Manual
 
-This guide is for researchers and biologists who want to use the graphical user
-interface (GUI) of **AmplifyP** to run PCR simulations, predict amplicons, and
-analyse primer dimers.
+This manual is for users who want to use the graphical user interface (GUI) of
+**AmplifyP**.
 
-AmplifyP is a modern Python rewrite of William Engels's classic **Amplify4** Mac
-program, updated to run in modern desktop environments and web browsers.
+AmplifyP is a Python rewrite of William Engels's **Amplify4** Mac program,
+enabling it to be run cross-platform, including Linux, Windows and Mac.
+
+<table>
+  <tr>
+    <td width="33%" align="center">
+      <b>Template & Primer Management</b>
+    </td>
+    <td width="33%" align="center">
+      <b>Primer Binding Site & Amplicon</b>
+    </td>
+    <td width="33%" align="center">
+      <b>Primer Dimer Analysis</b>
+    </td>
+  </tr>
+  <tr>
+    <td width="33%" align="center">
+      <img src="images/input_view.png" alt="Input View" width="100%">
+    </td>
+    <td width="33%" align="center">
+      <img src="images/pcr_view.png" alt="PCR Results View" width="100%">
+    </td>
+    <td width="33%" align="center">
+      <img src="images/primer_dimer_view.png" alt="Primer Dimer Analysis" width="100%">
+    </td>
+  </tr>
+</table>
 
 ## Overview: How to Use the GUI
 
@@ -100,7 +124,7 @@ Select the **Primer Dimers** tab to run a primer-primer hybridization analysis.
 AmplifyP evaluates all combinations of active primers (both self-dimers and
 cross-dimers) to warn you about potential secondary structures.
 
-![Primer Dimers View](images/primer_dimer.png)
+![Primer Dimers View](images/primer_dimer_view.png)
 
 - **Dimer Alignments**: Shows the optimal antiparallel alignment between the two
   primers (usually aligning the 3' end of the shorter primer with the longer
