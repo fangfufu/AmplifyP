@@ -478,8 +478,14 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
                 self._show_notification("Error: Invalid parameter file format.")
                 return
 
-            self.form.dna_input.value = str(params.get("dna", ""))
-            self.form.min_len_input.value = str(params.get("min_length", "18"))
+            dna_val = params.get("dna")
+            self.form.dna_input.value = (
+                str(dna_val) if dna_val is not None else ""
+            )
+            min_len_val = params.get("min_length")
+            self.form.min_len_input.value = (
+                str(min_len_val) if min_len_val is not None else "18"
+            )
 
             mode_val = str(params.get("mode", "FWD")).upper()
             if mode_val in ("FWD", "REV"):
@@ -487,11 +493,13 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             else:
                 self.form.mode_dropdown.value = "FWD"
 
-            self.form.max_quality_input.value = str(
-                params.get("max_quality", "")
+            max_q_val = params.get("max_quality")
+            self.form.max_quality_input.value = (
+                str(max_q_val) if max_q_val is not None else ""
             )
-            self.form.max_overlap_input.value = str(
-                params.get("max_overlap", "")
+            max_ov_val = params.get("max_overlap")
+            self.form.max_overlap_input.value = (
+                str(max_ov_val) if max_ov_val is not None else ""
             )
 
             self.form.clear_errors()

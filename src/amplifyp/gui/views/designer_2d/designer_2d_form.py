@@ -228,15 +228,21 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
 
         # Validate Forward Min Length
         fwd_min_len = 18
+        fwd_min_len_valid = False
         try:
             fwd_min_len = int(self.fwd_min_len_input.value or "18")
             if fwd_min_len <= 0:
                 raise ValueError
+            fwd_min_len_valid = True
         except ValueError:
             self.fwd_min_len_input.error = "Must be > 0"
             has_error = True
 
-        if cleaned_fwd_seq and len(cleaned_fwd_seq) < fwd_min_len:
+        if (
+            fwd_min_len_valid
+            and cleaned_fwd_seq
+            and len(cleaned_fwd_seq) < fwd_min_len
+        ):
             self.fwd_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_fwd_seq)})"
             )
@@ -251,15 +257,21 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
 
         # Validate Reverse Min Length
         rev_min_len = 18
+        rev_min_len_valid = False
         try:
             rev_min_len = int(self.rev_min_len_input.value or "18")
             if rev_min_len <= 0:
                 raise ValueError
+            rev_min_len_valid = True
         except ValueError:
             self.rev_min_len_input.error = "Must be > 0"
             has_error = True
 
-        if cleaned_rev_seq and len(cleaned_rev_seq) < rev_min_len:
+        if (
+            rev_min_len_valid
+            and cleaned_rev_seq
+            and len(cleaned_rev_seq) < rev_min_len
+        ):
             self.rev_min_len_input.error = (
                 f"Exceeds sequence length ({len(cleaned_rev_seq)})"
             )
