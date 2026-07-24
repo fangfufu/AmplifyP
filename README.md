@@ -138,30 +138,30 @@ To run AmplifyP from the source repository, you need to follow these steps:
    **Debian GNU/Linux**: This was verified under Debian GNU/Linux 13 (trixie), I
    make no guarantee that it works in other Debian derived distributions.
 
-   > [!NOTE]
-   > Note that this also sets up your machine for developing AmplifyP. If you
-   > don't want that, follow the \*nix instructions.
+> [!NOTE]
+> Note that this also sets up your machine for developing AmplifyP. If you don't
+> want that, follow the \*nix instructions.
 
-   ```bash
-   ./scripts/setup_linux.sh --system-deps
-   source .venv/bin/activate
-   ```
+```bash
+./scripts/setup_linux.sh --system-deps
+source .venv/bin/activate
+```
 
-   **\*nix, including GNU/Linux distributions, FreeBSD and macOS**:
+**\*nix, including GNU/Linux distributions, FreeBSD and macOS**:
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install .
-   ```
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
+```
 
-   **Windows**:
+**Windows**:
 
-   ```cmd
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install .
-   ```
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+pip install .
+```
 
 If you want to do development on AmplifyP, please refer to the
 [Developers' and Contributors' Guide](src/README.md)
