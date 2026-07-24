@@ -26,9 +26,10 @@ The project directory is structured as follows:
 ```
 AmplifyP/
 ├── docs/                       # Markdown user and API documentation
-│   ├── images/                 # Visual assets (screenshots)
 │   ├── api_guide.md            # Python library programmatic usage guide
-│   ├── gui_guide.md            # GUI application user manual
+│   ├── gui/
+│   │   ├── images/             # Visual assets (screenshots)
+│   │   └── manual.md           # GUI application user manual
 │   ├── history.md              # Project history and background
 │   └── windows_setup.md        # Windows development and installer guide
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration
@@ -87,7 +88,28 @@ To run it on a specific port (e.g. port `34521`):
 flet run -w -r -p 34521 src/main.py
 ```
 
-## 4. Pyodide static builds (Client-Side Web)
+## 4. Command Line Arguments
+
+`src/main.py` provides several command-line arguments for launching the
+application, pre-loading state files, exporting screenshots, and configuring
+window dimensions or web mode.
+
+```bash
+python src/main.py [options]
+```
+
+| Argument                   | Type    | Description                                                        |
+| :------------------------- | :------ | :----------------------------------------------------------------- |
+| `-h`, `--help`             | Flag    | Display the help message and exit.                                 |
+| `-f`, `--state <path>`     | String  | Path to a YAML state file to load on startup.                      |
+| `--auto-close`             | Flag    | Automatically quit after rendering completes (requires `--state`). |
+| `-s`, `--screenshots`      | Flag    | Save PNG screenshots of views (requires `--state`).                |
+| `--screenshots-dir <dir>`  | String  | Target directory for saved PNG screenshots.                        |
+| `--window-width <pixels>`  | Integer | Set application window width in pixels.                            |
+| `--window-height <pixels>` | Integer | Set application window height in pixels.                           |
+| `--web`                    | Flag    | Launch in web browser mode.                                        |
+
+## 5. Pyodide static builds (Client-Side Web)
 
 To build the static web version that runs entirely client-side using Pyodide in
 the browser (similar to what is hosted on GitHub Pages):
@@ -109,7 +131,7 @@ the browser (similar to what is hosted on GitHub Pages):
 
 3. Open your browser and navigate to `http://localhost:23455`.
 
-## 5. Code Quality & Verification
+## 6. Code Quality & Verification
 
 To maintain code quality, AmplifyP uses several code style, quality, and testing
 checks.
@@ -175,7 +197,7 @@ pytest -m e2e
 *(Note: On headless CI environments like GitHub Actions runners, these tests are
 executed under `xvfb`)*
 
-## 6. Automated Release Process
+## 7. Automated Release Process
 
 The release process is automated via GitHub Actions using
 [release-please](https://github.com/googleapis/release-please). Version bumps in
