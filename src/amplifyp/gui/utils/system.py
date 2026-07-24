@@ -25,6 +25,7 @@ import re
 import subprocess
 import urllib.request
 from importlib.metadata import PackageNotFoundError
+from pathlib import Path
 from typing import Any
 
 import flet as ft
@@ -179,12 +180,101 @@ def confirm_exit(controller: Any, _e: ft.ControlEvent) -> None:
     controller.page.run_task(controller.confirm_exit_async)
 
 
+async def capture_view_screenshot_async(
+    page: ft.Page, view_name: str, screenshots_dir: Path | None = None
+) -> Path:
+    """Capture a PNG screenshot of the current page and save to directory.
+
+    Args:
+        page: The Flet page instance.
+        view_name: The name identifier for the view (e.g. 'input_view').
+        screenshots_dir: Target directory. Defaults to './screenshots'.
+
+    Returns:
+        Path object pointing to the written screenshot file.
+    """
+    if screenshots_dir is None:
+        screenshots_dir = Path.cwd() / "screenshots"
+
+    screenshots_dir.mkdir(parents=True, exist_ok=True)
+    file_path = screenshots_dir / f"{view_name}.png"
+
+    try:
+        screenshot_bytes = await page.take_screenshot()
+        if screenshot_bytes:
+            file_path.write_bytes(screenshot_bytes)
+            logger.info("Saved screenshot for %s to %s", view_name, file_path)
+            return file_path
+        logger.warning("Failed to capture screenshot bytes for %s", view_name)
+        raise RuntimeError(
+            f"Failed to capture screenshot bytes for {view_name}"
+        )
+    except Exception as ex:
+        logger.exception("Error capturing screenshot for %s: %s", view_name, ex)
+        raise
+
+
+async def capture_all_views_async(controller: Any) -> None:
+    """Switch across Input, PCR, and Dimer views and capture screenshots."""
+    try:
+        screenshots_dir = getattr(controller, "screenshots_dir", None)
+        if not isinstance(screenshots_dir, (str, Path)):
+            screenshots_dir = None
+        await asyncio.sleep(1.0)
+        controller.update_pcr_button_state(sync=True)
+
+        # 1. Input View
+        controller.switch_view(None, controller.input_view)
+        controller.page.update()
+        await asyncio.sleep(1.0)
+        await capture_view_screenshot_async(
+            controller.page, "input_view", screenshots_dir=screenshots_dir
+        )
+
+        # 2. PCR View
+        controller.switch_view(None, controller.pcr_view)
+        pcr_btn = controller.pcr_button_ref.current
+        if pcr_btn and not pcr_btn.disabled:
+            controller.pcr_view.run_pcr()
+            controller.pcr_view.open_all_cards()
+        controller.page.update()
+        await asyncio.sleep(1.0)
+        await capture_view_screenshot_async(
+            controller.page, "pcr_view", screenshots_dir=screenshots_dir
+        )
+
+        # 3. Primer Dimer View
+        dimers_btn = controller.dimers_button_ref.current
+        if dimers_btn and not dimers_btn.disabled:
+            controller.dimers_view.run_analysis()
+        controller.switch_view(None, controller.dimers_view)
+        controller.page.update()
+        await asyncio.sleep(1.0)
+        await capture_view_screenshot_async(
+            controller.page,
+            "primer_dimer_view",
+            screenshots_dir=screenshots_dir,
+        )
+
+        if getattr(controller, "auto_close", False):
+            await controller.confirm_exit_async()
+    except Exception:
+        logger.exception("Error during screenshot export sequence")
+        if getattr(controller, "auto_close", False):
+            try:
+                await controller.confirm_exit_async()
+            except RuntimeError:
+                pass
+
+
 async def restore_state_and_auto_close_async(controller: Any) -> None:
-    """Restore state from file and run auto-close sequence if requested."""
+    """Restore state from file and run screenshot export or auto-close."""
     await asyncio.sleep(0)
     if controller.state_file:
         controller._restore_state_from_file(controller.state_file)
-    if controller.auto_close and controller.state_file:
+    if getattr(controller, "export_screenshots", False):
+        await capture_all_views_async(controller)
+    elif getattr(controller, "auto_close", False) and controller.state_file:
         await controller._auto_close_and_quit_delayed()
 
 

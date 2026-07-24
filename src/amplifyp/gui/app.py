@@ -27,7 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 def main(
-    page: ft.Page, state_file: str | None = None, auto_close: bool = False
+    page: ft.Page,
+    state_file: str | None = None,
+    auto_close: bool = False,
+    export_screenshots: bool = False,
+    screenshots_dir: str | None = None,
+    window_width: int | None = None,
+    window_height: int | None = None,
 ) -> None:
     """Main entry point for the Flet application.
 
@@ -35,6 +41,10 @@ def main(
         page: The Flet page instance.
         state_file: Optional path to a YAML state file to load on startup.
         auto_close: If True, quit automatically after rendering is complete.
+        export_screenshots: Save PNG screenshots of views.
+        screenshots_dir: Optional target directory for saved PNG screenshots.
+        window_width: Optional application window width in pixels.
+        window_height: Optional application window height in pixels.
     """
     gui_settings = GUISettings()
     gui_settings.load_from_local(page)
@@ -53,6 +63,12 @@ def main(
     )
     logger.info("Starting AmplifyP GUI application")
     controller = GUIController(
-        page, state_file=state_file, auto_close=auto_close
+        page,
+        state_file=state_file,
+        auto_close=auto_close,
+        export_screenshots=export_screenshots,
+        screenshots_dir=screenshots_dir,
+        window_width=window_width,
+        window_height=window_height,
     )
     controller.initialise()
