@@ -134,7 +134,91 @@ cross-dimers) to warn you about potential secondary structures.
 - **Visualisation**: Identifies complementary base pairs using `|` (perfect
   match) and `:` (weak/ambiguous match).
 
-## 4. Settings & Preferences
+## 4. Designer 1D View
+
+The **Designer 1D** tab performs 1D primer truncation analysis. It takes a
+single DNA sequence and progressively truncates it from the 3' end down to a
+minimum length, evaluating self-dimer potential at each truncation step.
+
+### Truncation Parameters (Top-Left Panel)
+
+- **DNA Sequence**: Enter the target DNA sequence to analyse. Valid nucleotide
+  characters (`A`, `T`, `C`, `G`) are accepted; invalid characters are filtered
+  out.
+- **Min Length (bp)**: The minimum primer length for truncation (default 18).
+  The analysis generates one candidate primer per base from the full length down
+  to this minimum.
+- **Direction**: Choose **Forward** (truncation from the 3' end) or **Reverse**
+  (truncation from the 5' end).
+- **Max Quality**: Optional quality threshold. Self-dimers with quality scores
+  above this value are excluded from results. Leave empty for no filtering.
+- **Max Overlap (bp)**: Optional maximum overlap constraint. Self-dimers with
+  overlap greater than this value are excluded. Leave empty for no filtering.
+
+### Generated Primers (Bottom-Left Panel)
+
+Each truncation step produces a candidate primer. The list shows all generated
+primers with their sequence, length, and quality metrics. Click on a primer to
+display its self-dimer analysis card in the right panel.
+
+### Self-Dimer Quality Chart (Top-Right Panel)
+
+A bar chart displaying the self-dimer quality score for each primer by size
+(bp). The chart is resizable — drag the horizontal divider to adjust height.
+Click on a bar to select the corresponding primer and view its self-dimer card.
+
+### Self-Dimer Cards (Bottom-Right Panel)
+
+Clicking a primer or chart bar opens a detailed self-dimer card showing the
+alignment, match quality, and binding statistics. Cards can be dismissed
+individually or cleared all at once with the **Clear Cards** button.
+
+### Save / Load
+
+Parameters (DNA sequence, min length, direction, filters) can be saved to a YAML
+file and reloaded to resume work.
+
+## 5. Designer 2D View
+
+The **Designer 2D** tab performs 2D primer truncation analysis. It takes
+separate forward and reverse DNA sequences and truncates each from the 3' end
+down to a minimum length, evaluating all combinations of forward-reverse primer
+pairs.
+
+### Truncation Parameters (Top-Left Panel)
+
+- **Forward DNA Sequence**: The forward primer target sequence.
+- **Fwd Min Len (bp)**: Minimum length for forward primer truncation (default
+  18).
+- **Reverse DNA Sequence**: The reverse primer target sequence.
+- **Rev Min Len (bp)**: Minimum length for reverse primer truncation (default
+  18).
+- **Quality Filter**: Optional minimum quality threshold for primer pairs. Pairs
+  below this score are excluded. Leave empty for no filtering.
+- **Overlap Filter (bp)**: Optional maximum overlap constraint for primer pairs.
+  Leave empty for no filtering.
+- **Metric**: Choose **Max** (use the maximum dimer quality across all steps) or
+  **Mean** (use the average) to rank and filter results.
+
+### Results Grid (Bottom-Left Panel)
+
+A colour-coded grid showing all forward-reverse primer pair combinations. Each
+cell represents a pair at a specific truncation step, with quality scores mapped
+to colours for quick visual identification. Click on a cell to view the detailed
+pair analysis in the right panel.
+
+### 2D Primer Pair Detail Cards (Right Panel)
+
+Selecting a grid cell opens a detail card showing the forward and reverse primer
+sequences, their alignment, quality scores, and binding statistics. Cards can be
+dismissed individually or cleared with the **Clear Cards** button.
+
+### Save / Load
+
+Parameters (both sequences, minimum lengths, filters, metric) can be saved to a
+YAML file and reloaded to resume work.
+
+## 6. Settings & Preferences
 
 You can customise the matching and dimer algorithms. To open settings, click the
 gear icon or settings button in the GUI:
