@@ -189,9 +189,8 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         self.error_text.value = ""
 
     def show_field_error(self, field: ft.TextField, message: str) -> None:
-        """Set error text on a specific field and display general error."""
+        """Set error text on a specific field."""
         field.error = message
-        self.show_error(message)
         try:
             if self.page:
                 self.page.update()
