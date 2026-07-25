@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0](https://github.com/fangfufu/AmplifyP/compare/v1.15.0...v1.16.0) (2026-07-25)
+
+
+### Features
+
+* **gui:** add reverse complement button for primer input ([0339cc1](https://github.com/fangfufu/AmplifyP/commit/0339cc1a1d744fc307bba7d710b1cef8e87dcc9d))
+* **gui:** show binding sites when 0 amplicons ([ce7c702](https://github.com/fangfufu/AmplifyP/commit/ce7c70241bee3c20b95450500a271eee52bd403a))
+
+
+### Documentation
+
+* **changelog:** deduplicate 1.13.0 changelog entries ([3127d55](https://github.com/fangfufu/AmplifyP/commit/3127d554b437ac11b1705cb4b39a762b10e35def))
+* **gui:** add Designer 1D and 2D view sections to manual ([69dce92](https://github.com/fangfufu/AmplifyP/commit/69dce92553b59924a138b575972eecd3a00227d7))
+* **gui:** rewrite designer 1d view documentation ([c0da632](https://github.com/fangfufu/AmplifyP/commit/c0da6324e8820c9409276c787a9863094104beae))
+* **gui:** rewrite designer 2d view documentation ([cd86f13](https://github.com/fangfufu/AmplifyP/commit/cd86f133d93ebbc2fb56458eece3c2c30c35c366))
+* **gui:** rewrite GUI README and add CLI options ([f501e56](https://github.com/fangfufu/AmplifyP/commit/f501e56944cfb7864a34d9cd282f8ac0749ef0e3))
+* **gui:** rewrite input view documentation ([0f26cb4](https://github.com/fangfufu/AmplifyP/commit/0f26cb48868b1edf0dedf76262979309a66b0a8c))
+* **gui:** rewrite settings view user manual ([d332576](https://github.com/fangfufu/AmplifyP/commit/d33257637606bfe94fd4df6646bca5da6033968b))
+* **gui:** split manual into separate view guides ([caba2b1](https://github.com/fangfufu/AmplifyP/commit/caba2b13bb823bdadcadbbe8969b1c9e3b599f62))
+* **gui:** update PCR view documentation ([10e19f5](https://github.com/fangfufu/AmplifyP/commit/10e19f5cc3abc44f3e7e8567d84f18c6207f2e38))
+* remove code references from GUI user manual ([7ea14b4](https://github.com/fangfufu/AmplifyP/commit/7ea14b4f5ba891084bd5ffac6994801aeb990464))
+* update primer dimer view documentation ([77215b5](https://github.com/fangfufu/AmplifyP/commit/77215b50829da719ce2fe0f44fc757b67ac2f470))
+
 ## [1.15.0](https://github.com/fangfufu/AmplifyP/compare/v1.14.0...v1.15.0) (2026-07-24)
 
 
