@@ -83,7 +83,7 @@ AmplifyP via the web server. This is due to browser security restriction.
 
 ## Graphical User Interface (GUI) Manual
 
-The full user manual for AmplifyP is available **[here](docs/gui/manual.md)**.
+The full user manual for AmplifyP is available **[here](docs/gui/README.md)**.
 
 I tried to make AmplifyP's GUI intuitive. If you are using AmplifyP for checking
 existing primers against a DNA template, hopefully you don't need a user manual.
@@ -201,7 +201,7 @@ For more documentation, please refer to:
 
 - **[Amplify History](docs/history.md)**: A brief history of the Amplify
   software series.
-- **[GUI Manual](docs/gui/manual.md)**: A detailed manual for running
+- **[GUI Manual](docs/gui/README.md)**: A detailed manual for running
   simulations, primer management, and configuration in the graphical
   application.
 - **[Python API Guide](docs/api_guide.md)**: A developer guide with code
