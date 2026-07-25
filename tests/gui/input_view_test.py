@@ -1500,3 +1500,28 @@ def test_input_view_auto_activate_new_valid_primer() -> None:
 
     # It should not auto-activate because it is not valid
     assert input_data_3.primers[0]["active"] is False
+
+
+def test_input_view_reverse_complement_button() -> None:
+    """Test reverse complement button on selected primers."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # ATCG reverse complement is CGAT
+    input_data.primers = [
+        {"name": "P1", "seq": "ATCG", "active": True},
+        {"name": "P2", "seq": "GGCC", "active": True},
+    ]
+
+    view = InputView(mock_page, input_data)
+    assert view.reverse_complement_button.disabled is True
+
+    # Select first primer (index 0)
+    view.primer_input.selected_indices = {0}
+    view.primer_input._update_delete_button_disabled_state()
+    assert view.reverse_complement_button.disabled is False
+
+    # Trigger reverse complement click
+    view.reverse_complement_button.on_click(None)
+
+    assert input_data.primers[0]["seq"] == "CGAT"
+    assert input_data.primers[1]["seq"] == "GGCC"

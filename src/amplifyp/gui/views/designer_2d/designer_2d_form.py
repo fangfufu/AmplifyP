@@ -62,7 +62,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
 
         # Input fields
         self.fwd_dna_input = ft.TextField(
-            label="Forward DNA Sequence",
+            label="Forward Candidate Primer Sequence",
             hint_text="e.g. ATGCGTACGT...",
             expand=True,
             multiline=False,
@@ -80,7 +80,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             on_change=self._clear_field_error,
         )
         self.rev_dna_input = ft.TextField(
-            label="Reverse DNA Sequence",
+            label="Reverse Candidate Primer Sequence",
             hint_text="e.g. CGTACGATGC...",
             expand=True,
             multiline=False,
@@ -223,7 +223,9 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         raw_fwd_seq = self.fwd_dna_input.value or ""
         cleaned_fwd_seq = clean_sequence(raw_fwd_seq)
         if not cleaned_fwd_seq:
-            self.fwd_dna_input.error = "Forward DNA sequence cannot be empty"
+            self.fwd_dna_input.error = (
+                "Forward candidate primer sequence cannot be empty"
+            )
             has_error = True
 
         # Validate Forward Min Length
@@ -252,7 +254,9 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         raw_rev_seq = self.rev_dna_input.value or ""
         cleaned_rev_seq = clean_sequence(raw_rev_seq)
         if not cleaned_rev_seq:
-            self.rev_dna_input.error = "Reverse DNA sequence cannot be empty"
+            self.rev_dna_input.error = (
+                "Reverse candidate primer sequence cannot be empty"
+            )
             has_error = True
 
         # Validate Reverse Min Length

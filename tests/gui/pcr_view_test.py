@@ -451,3 +451,46 @@ def test_format_context_lines_alignment_long_label() -> None:
     # then 20 bp upstream = 47 spaces before binding sequence.
     # Let's check:
     assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")
+
+
+def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
+    """Test that PCRView shows binding sites when 0 amplicons are found."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # Configure 1 forward primer (no reverse primer -> 0 amplicons)
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Verify that "No amplicons found." text is in result_list controls
+    assert len(view.result_list.controls) == 1
+    no_amp_text = view.result_list.controls[0]
+    assert isinstance(no_amp_text, ft.Text)
+    assert no_amp_text.value == "No amplicons found."
+
+    # Verify diagram container is visible
+    assert view.diagram_panel.diagram_container.visible is True
+
+    # Verify gesture detectors (binding sites) exist on diagram stack
+    gesture_detectors = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+    ]
+    assert len(gesture_detectors) >= 1
+
+    # Click binding site and verify context map card appears at top
+    gesture_detectors[0].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 2
+    card = view.result_list.controls[0]
+    assert isinstance(card, ft.Card)

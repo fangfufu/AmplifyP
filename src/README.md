@@ -29,7 +29,7 @@ AmplifyP/
 │   ├── api_guide.md            # Python library programmatic usage guide
 │   ├── gui/
 │   │   ├── images/             # Visual assets (screenshots)
-│   │   └── manual.md           # GUI application user manual
+│   │   └── README.md           # GUI application user manual
 │   ├── history.md              # Project history and background
 │   └── windows_setup.md        # Windows development and installer guide
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration

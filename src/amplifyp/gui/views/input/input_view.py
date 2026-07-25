@@ -155,6 +155,11 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.primer_input.delete_selected_button
 
     @property
+    def reverse_complement_button(self) -> ft.OutlinedButton:
+        """Get the reverse complement primers button."""
+        return self.primer_input.reverse_complement_button
+
+    @property
     def primer_info_panel(self) -> ft.Card:
         """Get the primer info panel."""
         return self.primer_input.primer_info_panel

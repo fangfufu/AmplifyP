@@ -123,9 +123,13 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_delete_selected=self.delete_selected_callback,
             on_copy=self._copy_primers_click,
             on_paste=self._paste_primers_click,
+            on_reverse_complement=self._reverse_complement_selected_click,
         )
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
+        self.reverse_complement_button = (
+            self.primer_toolbar.reverse_complement_button
+        )
 
         self.error_message_text = ft.Text(
             value=(
@@ -311,8 +315,17 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             pass
 
     def _update_delete_button_disabled_state(self) -> None:
-        """Update disabled state of the delete button based on selection."""
-        self.delete_selected_button.disabled = not self.selected_indices
+        """Update disabled state of delete and rev comp buttons."""
+        is_disabled = not self.selected_indices
+        self.delete_selected_button.disabled = is_disabled
+        self.reverse_complement_button.disabled = is_disabled
+
+    def _reverse_complement_selected_click(self, _e: ft.Event | None) -> None:
+        """Reverse complement highlighted primers."""
+        if self.selected_indices:
+            self.action_controller.reverse_complement_primers(
+                self.selected_indices.copy()
+            )
 
     def _on_toggle_all_primers(self, e: ft.Event[ft.Checkbox]) -> None:
         """Toggle all primers active/inactive based on tri-state checkbox."""

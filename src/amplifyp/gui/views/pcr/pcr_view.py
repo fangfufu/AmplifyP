@@ -135,27 +135,26 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 self._cached_state_key = current_state_key
             num_amplicons = len(pcr.amplicons)
 
+            self.diagram_panel.render_diagram(pcr)
             if num_amplicons == 0:
                 self.result_list.controls.append(
                     ft.Text("No amplicons found.", selectable=True)
                 )
-            else:
-                self.diagram_panel.render_diagram(pcr)
-                if num_amplicons > MAX_AMPLICONS_RENDER:
-                    self.result_list.controls.append(
-                        ft.Container(
-                            content=ft.Text(
-                                f"Warning: {num_amplicons} amplicons "
-                                "found. Only the top "
-                                f"{MAX_AMPLICONS_RENDER} (sorted by "
-                                "quality score) are displayed to "
-                                "prevent UI freeze.",
-                                color=GUIColours.ERROR_RED,
-                                weight=ft.FontWeight.BOLD,
-                            ),
-                            padding=10,
-                        )
+            elif num_amplicons > MAX_AMPLICONS_RENDER:
+                self.result_list.controls.append(
+                    ft.Container(
+                        content=ft.Text(
+                            f"Warning: {num_amplicons} amplicons "
+                            "found. Only the top "
+                            f"{MAX_AMPLICONS_RENDER} (sorted by "
+                            "quality score) are displayed to "
+                            "prevent UI freeze.",
+                            color=GUIColours.ERROR_RED,
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        padding=10,
                     )
+                )
 
         except (OSError, ValueError, RuntimeError) as ex:
             logger.exception("PCR simulation failed: %s", ex)
