@@ -142,14 +142,14 @@ minimum length, evaluating self-dimer potential at each truncation step.
 
 ### Truncation Parameters (Top-Left Panel)
 
-- **DNA Sequence**: Enter the target DNA sequence to analyse. Valid nucleotide
-  characters (`A`, `T`, `C`, `G`) are accepted; invalid characters are filtered
-  out.
+- **Candidate Primer Sequence**: Enter the target DNA sequence to analyse. Valid
+  nucleotide characters (`A`, `T`, `C`, `G`) are accepted; invalid characters
+  are filtered out.
 - **Min Length (bp)**: The minimum primer length for truncation (default 18).
   The analysis generates one candidate primer per base from the full length down
   to this minimum.
-- **Direction**: Choose **Forward** (truncation from the 3' end) or **Reverse**
-  (truncation from the 5' end).
+- **Primer Direction**: Choose **Forward** (truncation from the 3' end) or
+  **Reverse** (truncation from the 5' end).
 - **Max Quality**: Optional quality threshold. Self-dimers with quality scores
   above this value are excluded from results. Leave empty for no filtering.
 - **Max Overlap (bp)**: Optional maximum overlap constraint. Self-dimers with

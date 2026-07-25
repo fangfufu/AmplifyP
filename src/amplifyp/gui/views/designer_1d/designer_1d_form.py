@@ -62,7 +62,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
 
         # Input fields
         self.dna_input = ft.TextField(
-            label="DNA Sequence",
+            label="Candidate Primer Sequence",
             hint_text="e.g. ATGCGTACGT...",
             expand=True,
             multiline=False,
@@ -80,7 +80,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             on_change=self._clear_field_error,
         )
         self.mode_dropdown = ft.Dropdown(
-            label="Direction",
+            label="Primer Direction",
             options=[
                 ft.dropdown.Option("FWD", "Forward"),
                 ft.dropdown.Option("REV", "Reverse"),
