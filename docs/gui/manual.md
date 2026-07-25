@@ -187,10 +187,10 @@ pairs.
 
 ### Truncation Parameters (Top-Left Panel)
 
-- **Forward DNA Sequence**: The forward primer target sequence.
+- **Forward Candidate Primer Sequence**: The forward primer target sequence.
 - **Fwd Min Len (bp)**: Minimum length for forward primer truncation (default
   18).
-- **Reverse DNA Sequence**: The reverse primer target sequence.
+- **Reverse Candidate Primer Sequence**: The reverse primer target sequence.
 - **Rev Min Len (bp)**: Minimum length for reverse primer truncation (default
   18).
 - **Quality Filter**: Optional minimum quality threshold for primer pairs. Pairs
