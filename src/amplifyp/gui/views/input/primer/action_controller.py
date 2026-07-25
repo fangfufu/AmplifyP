@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 
 import flet as ft
 
+from amplifyp.dna import DNA
 from amplifyp.gui.utils.gui_helpers import focus_async
 
 from .row import PrimerRow
@@ -211,6 +212,27 @@ class PrimerActionController:
             page.run_task(delayed_delete)
         else:
             self._delete_primers_impl(primers_to_delete)
+
+    def reverse_complement_primers(self, indices: set[int]) -> None:
+        """Reverse complement sequence of highlighted primers at indices.
+
+        Args:
+            indices: Set of zero-based indices of primers to reverse complement.
+        """
+        self.owner.sync_to_state(rebuild_if_needed=False)
+        primers = self.owner.input_data.primers
+        valid_indices = {i for i in indices if 0 <= i < len(primers)}
+        if not valid_indices:
+            return
+
+        for idx in valid_indices:
+            seq_str = str(primers[idx].get("seq", ""))
+            if seq_str:
+                primers[idx]["seq"] = DNA(seq_str).reverse_complement().seq
+
+        self.owner.update_ui()
+        if self.owner.on_change_handler is not None:
+            self.owner.on_change_handler(None)
 
     def _delete_primers_impl(self, primers_to_delete: set[int]) -> None:
         """Perform the actual deletion of primers from the input data.

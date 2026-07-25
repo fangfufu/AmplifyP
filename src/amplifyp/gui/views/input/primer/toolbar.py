@@ -33,6 +33,9 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         on_delete_selected: Callable[[ft.Event | None], None | Awaitable[None]],
         on_copy: Callable[[ft.Event | None], None | Awaitable[None]],
         on_paste: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_reverse_complement: Callable[
+            [ft.Event | None], None | Awaitable[None]
+        ],
     ) -> None:
         """Initialise the PrimerToolbar."""
         self.save_button = ft.FilledTonalButton(
@@ -64,6 +67,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             height=32,
             disabled=True,
         )
+        self.reverse_complement_button = ft.OutlinedButton(
+            "Rev Comp",
+            icon=ft.Icons.SYNC_ALT,
+            tooltip="Reverse Complement Highlighted Primers",
+            on_click=on_reverse_complement,
+            height=32,
+            disabled=True,
+        )
         self.copy_button = ft.OutlinedButton(
             "Copy",
             icon=ft.Icons.CONTENT_COPY,
@@ -89,7 +100,11 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             tight=True,
         )
         self.edit_group = ft.Row(
-            [self.delete_selected_button, self.clear_button],
+            [
+                self.reverse_complement_button,
+                self.delete_selected_button,
+                self.clear_button,
+            ],
             spacing=10,
             tight=True,
         )
