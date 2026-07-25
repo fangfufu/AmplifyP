@@ -84,7 +84,8 @@ The table comprises the following columns:
 - **Sequence Column**: Monospace text field for primer sequence entry ($5' \\to
   3'$). Sequences are automatically cleaned and validated.
 - **Melting Temperature ($T_m$) Column** *(Optional)*:
-  - Enabled when `show_primer_temperature` is set in Settings.
+  - Enabled when the **Show primer temperature column** option is enabled in
+    Settings.
   - Displays calculated $T_m$ (°C) in real-time for each sequence.
   - Can be colour-coded dynamically based on the active $T_m$ colour scheme.
 
@@ -92,9 +93,8 @@ The table comprises the following columns:
 
 - **Single-Click Selection**: Click any row to highlight it and focus its name
   field.
-- **Double-Click Range Selection**: Double-click a row to set an anchor
-  (`click_a`), then double-click a second row (`click_b`) to highlight the range
-  of primers between them.
+- **Double-Click Range Selection**: Double-click a row to set an anchor, then
+  double-click a second row to highlight the range of primers between them.
 - **Live Drag-and-Drop**: Click and drag the drag handle (`⋮⋮`) to move single
   rows or contiguous highlighted blocks up or down in real time.
 - **Header Reordering Controls**:
