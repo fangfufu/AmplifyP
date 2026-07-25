@@ -64,7 +64,7 @@ class QualityBarChart:
             bar_with_score = ft.Column(
                 [
                     ft.Text(
-                        f"{q_val:.1f}",
+                        f"{round(q_val)}",
                         size=11,
                         weight=ft.FontWeight.BOLD,
                     ),
@@ -75,7 +75,7 @@ class QualityBarChart:
                         border_radius=4,
                         tooltip=(
                             f"Step {step_idx + 1}: {primer_len} bp\n"
-                            f"Quality: {q_val:.1f}"
+                            f"Quality: {round(q_val)}"
                         ),
                     ),
                 ],

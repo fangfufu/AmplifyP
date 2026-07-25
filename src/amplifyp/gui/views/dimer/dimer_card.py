@@ -146,7 +146,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
                 if is_self
                 else f"{p1_name} vs {p2_name}"
             )
-        quality_text = f"Quality: {self.d.quality:.1f}"
+        quality_text = f"Quality: {round(self.d.quality)}"
 
         return ft.Row(
             [
