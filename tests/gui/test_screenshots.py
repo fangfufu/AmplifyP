@@ -92,6 +92,7 @@ async def test_capture_view_screenshot_async(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_capture_all_views_async(tmp_path: Path) -> None:
     """Test capture_all_views_async switching views and writing PNG files."""
