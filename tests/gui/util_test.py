@@ -130,6 +130,38 @@ def test_handle_keyboard_event_template_copy() -> None:
         mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
 
 
+def test_handle_keyboard_event_template_copy_newline_only() -> None:
+    """Test Ctrl+C with newline-only template does not write to clipboard."""
+    from unittest.mock import patch
+
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+
+    mock_controller = MagicMock()
+    mock_input_view = MagicMock()
+    mock_template_input = MagicMock()
+    mock_template_sequence = MagicMock()
+
+    mock_controller.input_view = mock_input_view
+    mock_controller.view_container.content = mock_input_view
+    mock_input_view.template_input = mock_template_input
+    mock_template_input.template_sequence = mock_template_sequence
+    mock_input_view._currently_focused_control = mock_template_sequence
+
+    mock_template_sequence.value = "\n\n\n"
+    mock_template_sequence.selection = None
+
+    mock_event = MagicMock(spec=ft.KeyboardEvent)
+    mock_event.key = "c"
+    mock_event.ctrl = True
+    mock_event.meta = False
+
+    mock_controller.page.web = False
+
+    with patch("pyperclip.copy") as mock_pyperclip_copy:
+        handle_keyboard_event(mock_controller, mock_event)
+        mock_pyperclip_copy.assert_not_called()
+
+
 def test_git_fallback_to_dot_git() -> None:
     """Test git utility fallback to reading .git directory directly."""
     from typing import Any
