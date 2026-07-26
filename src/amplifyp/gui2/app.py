@@ -1,0 +1,79 @@
+# Copyright (C) 2026 AmplifyP Contributors
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+"""PySide6 application entry point."""
+
+import logging
+import sys
+
+from PySide6.QtWidgets import QApplication
+
+from amplifyp.gui2.controller import GUIController
+from amplifyp.gui2.logger import initialise_logging
+from amplifyp.gui2.settings import GUISettings
+
+logger = logging.getLogger(__name__)
+
+
+def main(
+    state_file: str | None = None,
+    auto_close: bool = False,
+    export_screenshots: bool = False,
+    screenshots_dir: str | None = None,
+    window_width: int | None = None,
+    window_height: int | None = None,
+) -> None:
+    """Main entry point for the PySide6 application.
+
+    Args:
+        state_file: Optional path to a YAML state file to load on startup.
+        auto_close: If True, quit automatically after rendering is complete.
+        export_screenshots: Save PNG screenshots of views.
+        screenshots_dir: Optional target directory for saved PNG screenshots.
+        window_width: Optional application window width in pixels.
+        window_height: Optional application window height in pixels.
+    """
+    app = QApplication(sys.argv)
+    app.setApplicationName("AmplifyP")
+    app.setOrganizationName("AmplifyP")
+
+    gui_settings = GUISettings()
+    gui_settings.load_from_local()
+
+    initialise_logging(
+        is_web=False,
+        log_level_amplifyp=gui_settings.get("log_level_amplifyp", "DEBUG"),
+        log_level_flet=gui_settings.get("log_level_flet", "INFO"),
+        log_console_enabled=gui_settings.get("log_console_enabled", True),
+        log_file_enabled=gui_settings.get("log_file_enabled", True),
+        log_file_path=gui_settings.get("log_file_path", "(Default)"),
+        log_rotation_enabled=gui_settings.get("log_rotation_enabled", True),
+        log_rotation_max_bytes=gui_settings.get(
+            "log_rotation_max_bytes", 5242880
+        ),
+    )
+    logger.info("Starting AmplifyP PySide6 GUI application")
+
+    controller = GUIController(
+        state_file=state_file,
+        auto_close=auto_close,
+        export_screenshots=export_screenshots,
+        screenshots_dir=screenshots_dir,
+        window_width=window_width,
+        window_height=window_height,
+    )
+    controller.initialise()
+
+    sys.exit(app.exec())
