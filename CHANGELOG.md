@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0](https://github.com/fangfufu/AmplifyP/compare/v1.16.0...v1.17.0) (2026-07-26)
+
+
+### Features
+
+* **gui:** add template sequence copy button and shortcut ([fbfaa80](https://github.com/fangfufu/AmplifyP/commit/fbfaa808e321fd5f51803eceb59c66a2e0ea5d8f))
+* **gui:** remove linebreaks when copying template sequence ([8ac46eb](https://github.com/fangfufu/AmplifyP/commit/8ac46eb1595780999718f16843f91c83d91c1f69))
+* **gui:** round quality score to nearest integer ([128e71f](https://github.com/fangfufu/AmplifyP/commit/128e71f1ff4c2e23e135907d0a30f93b46344567))
+
+
+### Bug Fixes
+
+* address CodeRabbit review comments on PR [#320](https://github.com/fangfufu/AmplifyP/issues/320) ([6488edc](https://github.com/fangfufu/AmplifyP/commit/6488edcf9cb9d7c6e8ee6fa3f8993fe40991d7de))
+* suppress pyright error for run_javascript on ft.Page ([ee7698b](https://github.com/fangfufu/AmplifyP/commit/ee7698bd5e52a907673c36575c437ae8e6ee0cbb))
+
 ## [1.16.0](https://github.com/fangfufu/AmplifyP/compare/v1.15.0...v1.16.0) (2026-07-25)
 
 
