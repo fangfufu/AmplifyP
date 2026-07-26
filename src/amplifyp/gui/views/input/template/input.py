@@ -169,11 +169,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=28,
         )
 
-        self.template_sequence_wrapper = ft.Container(
-            content=self.template_sequence,
-            padding=0,
-            margin=0,
-        )
+        self.template_sequence_wrapper = self.template_sequence
 
         self.template_sequence_container = ft.Row(
             [self.template_sequence_wrapper],
@@ -247,6 +243,14 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             tight=True,
         )
 
+        self.copy_template_button = ft.OutlinedButton(
+            "Copy",
+            icon=ft.Icons.COPY,
+            tooltip="Copy template sequence without linebreaks",
+            on_click=self._on_copy_click,
+            height=32,
+        )
+
         self.clear_template_button = ft.OutlinedButton(
             "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
@@ -287,6 +291,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                                     self.load_template_button,
                                     self.save_template_button,
                                     self.clear_template_button,
+                                    self.copy_template_button,
                                     self.casing_group,
                                 ],
                                 spacing=10,
@@ -344,8 +349,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     # Case conversion & Copying                                            #
     # ------------------------------------------------------------------ #
 
-    def _on_copy(self, e: ft.Event) -> None:
-        """Remove linebreaks when copying from template textbox."""
+    def _on_copy_click(self, e: ft.Event) -> None:
+        """Copy selected template text (or full sequence) without linebreaks."""
         sel = self.template_sequence.selection
         raw_text = self.template_sequence.value or ""
         if sel is not None and sel.is_valid and sel.start != sel.end:
@@ -354,6 +359,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             selected_text = raw_text
 
         cleaned_text = clean_sequence(selected_text)
+        if not cleaned_text:
+            self._show_notification("Nothing to copy!")
+            return
+
         if self.app_page:
             if getattr(self.app_page, "web", False) and hasattr(
                 self.app_page, "run_javascript"
@@ -368,6 +377,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 import pyperclip
 
                 pyperclip.copy(cleaned_text)
+
+        self._show_notification("Copied to clipboard!")
 
     def _upper_case_click(self, e: ft.Event) -> None:
         """Handle upper case button click."""

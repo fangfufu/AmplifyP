@@ -178,7 +178,7 @@ async def focus_async(res: Any) -> None:
 
 
 def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
-    """Handle global keyboard events for primer navigation."""
+    """Handle global keyboard events for primer navigation and template copy."""
     if (
         not controller.input_view
         or controller.view_container.content != controller.input_view
@@ -186,6 +186,41 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
         return
 
     focused = controller.input_view._currently_focused_control
+
+    # Intercept Ctrl+C / Cmd+C when template sequence field is focused
+    if (
+        focused == controller.input_view.template_input.template_sequence
+        and e.key.upper() == "C"
+        and (e.ctrl or e.meta)
+    ):
+        template_input = controller.input_view.template_input
+        sel = template_input.template_sequence.selection
+        raw_text = template_input.template_sequence.value or ""
+        if sel is not None and sel.is_valid and sel.start != sel.end:
+            selected_text = raw_text[sel.start : sel.end]
+        else:
+            selected_text = raw_text
+
+        from amplifyp.gui.utils.data_helpers import clean_sequence
+
+        cleaned_text = clean_sequence(selected_text)
+
+        if getattr(controller.page, "web", False) and hasattr(
+            controller.page, "run_javascript"
+        ):
+            import json
+
+            escaped_text = json.dumps(cleaned_text)
+            controller.page.run_javascript(
+                f"navigator.clipboard.writeText({escaped_text});"
+            )
+        else:
+            import pyperclip
+
+            pyperclip.copy(cleaned_text)
+
+        return
+
     if not (
         focused
         and isinstance(focused.data, dict)
