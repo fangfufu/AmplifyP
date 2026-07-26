@@ -32,12 +32,6 @@ jobs:
           SKIP: pytest
         run: |
           prek run --all-files --show-diff-on-failure
-      - name: Run unit tests
-        run: |
-          pytest -v --cov=src/amplifyp --cov-report=xml
-      - name: Run extra CI tests
-        run: |
-          pytest -v -s -m "ci"
       - name: Run pyright analysis
         run: |
           pyright
@@ -45,17 +39,33 @@ jobs:
         if: runner.os == 'Linux' && matrix.python-version == '3.13'
         run: |
           bash ./build_web.sh --base-url /${{ github.event.repository.name }}/
-      - name: Display coverage report (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+      - name: Run unit tests
+        env:
+          COVERAGE_FILE: .coverage.basic
         run: |
-          coverage report -m
-      - name: Upload coverage to Codecov (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
-        uses: codecov/codecov-action@v7
+          pytest -v -s --cov=src/amplifyp --cov-report=
+      - name: Run extra CI tests
+        env:
+          COVERAGE_FILE: .coverage.extra
+        run: |
+          pytest -v -s -m "ci" --cov=src/amplifyp --cov-report=
       - name: Run E2E tests (Linux only, Python 3.13 only)
         if: runner.os == 'Linux' && matrix.python-version == '3.13'
+        env:
+          COVERAGE_FILE: .coverage.e2e
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
           playwright install --with-deps chromium
-          xvfb-run -a pytest -v -s -m "e2e"
+          xvfb-run -a pytest -v -s -m "e2e" --cov-report=
+      - name: Display coverage report (Linux only, Python 3.13 only)
+        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+        run: |
+          coverage combine
+          coverage xml
+          coverage report -m
+      - name: Upload coverage to Codecov (Linux only, Python 3.13 only)
+        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v7
