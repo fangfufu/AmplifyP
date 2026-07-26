@@ -370,7 +370,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 import json
 
                 escaped_text = json.dumps(cleaned_text)
-                self.app_page.run_javascript(
+                self.app_page.run_javascript(  # pyright: ignore[reportAttributeAccessIssue]
                     f"navigator.clipboard.writeText({escaped_text});"
                 )
             else:
