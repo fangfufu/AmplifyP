@@ -83,6 +83,8 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self._is_focused = False
         self._cleaned_len = 0
         self._last_left_width: float | None = None
+        self._last_active_selection: ft.TextSelection | None = None
+        self._current_selected_cleaned_text: str = ""
 
         self.template_sequence = ft.TextField(
             dense=True,
@@ -105,6 +107,41 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             value="Insertion Point After Base: 0",
             size=12,
         )
+
+        self.copy_selection_floating_button = ft.GestureDetector(
+            content=ft.Container(
+                content=ft.Row(
+                    [
+                        ft.Icon(
+                            ft.Icons.COPY,
+                            size=14,
+                            color=GUIColours.WHITE,
+                        ),
+                        ft.Text(
+                            "Copy Selection",
+                            size=12,
+                            weight=ft.FontWeight.BOLD,
+                            color=GUIColours.WHITE,
+                        ),
+                    ],
+                    spacing=5,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    tight=True,
+                ),
+                padding=ft.Padding(8, 4, 10, 4),
+                bgcolor=GUIColours.PRIMARY,
+                border_radius=5,
+                shadow=ft.BoxShadow(
+                    spread_radius=1, blur_radius=4, color="#60000000"
+                ),
+            ),
+            on_tap=self._on_copy_selection_click,
+            mouse_cursor=ft.MouseCursor.CLICK,
+            top=10,
+            right=20,
+            visible=False,
+        )
+        self.copy_selection_button = self.copy_selection_floating_button
 
         self.bases_per_line_label = ft.Text(
             value="Bases per line:",
@@ -189,6 +226,14 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             ],
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
+        )
+
+        self.sequence_layout_stack = ft.Stack(
+            [
+                self.sequence_layout,
+                self.copy_selection_floating_button,
+            ],
+            expand=True,
         )
 
         self.template_circular = ft.Checkbox(
@@ -309,23 +354,29 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         ),
                     ],
                 ),
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.ListView(
-                                [self.sequence_layout],
-                                expand=True,
-                                scroll=ft.ScrollMode.ALWAYS,
+                ft.Stack(
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ListView(
+                                        [self.sequence_layout],
+                                        expand=True,
+                                        scroll=ft.ScrollMode.ALWAYS,
+                                    ),
+                                    self.status_bar,
+                                ],
+                                spacing=0,
+                                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                             ),
-                            self.status_bar,
-                        ],
-                        spacing=0,
-                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                    ),
+                            expand=True,
+                            border=ft.Border.all(1, GUIColours.OUTLINE),
+                            border_radius=5,
+                            padding=0,
+                        ),
+                        self.copy_selection_floating_button,
+                    ],
                     expand=True,
-                    border=ft.Border.all(1, GUIColours.OUTLINE),
-                    border_radius=5,
-                    padding=0,
                 ),
             ],
             expand=True,
@@ -379,6 +430,78 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 pyperclip.copy(cleaned_text)
 
         self._show_notification("Copied to clipboard!")
+
+    def _on_copy_selection_click(self, e: ft.Event) -> None:
+        """Copy selected template sequence without linebreaks."""
+        text_to_copy = self._current_selected_cleaned_text
+
+        if not text_to_copy:
+            sel = self.template_sequence.selection
+            if (
+                sel is None
+                or not getattr(sel, "is_valid", False)
+                or getattr(sel, "base_offset", -1) < 0
+                or getattr(sel, "base_offset", None)
+                == getattr(sel, "extent_offset", None)
+            ):
+                sel = self._last_active_selection
+
+            raw_text = self.template_sequence.value or ""
+            if sel is not None and getattr(sel, "is_valid", False):
+                base = getattr(sel, "base_offset", None)
+                extent = getattr(sel, "extent_offset", None)
+                if (
+                    base is not None
+                    and extent is not None
+                    and base >= 0
+                    and extent >= 0
+                    and base != extent
+                ):
+                    start_idx = min(base, extent)
+                    end_idx = max(base, extent)
+                    text_to_copy = clean_sequence(raw_text[start_idx:end_idx])
+                elif (
+                    hasattr(sel, "start")
+                    and hasattr(sel, "end")
+                    and sel.start is not None
+                    and sel.end is not None
+                    and sel.start != sel.end
+                ):
+                    start_idx = min(sel.start, sel.end)
+                    end_idx = max(sel.start, sel.end)
+                    text_to_copy = clean_sequence(raw_text[start_idx:end_idx])
+                else:
+                    text_to_copy = clean_sequence(raw_text)
+            else:
+                text_to_copy = clean_sequence(raw_text)
+
+        if not text_to_copy:
+            self._show_notification("Nothing to copy!")
+            return
+
+        if self.app_page:
+            try:
+                self.app_page.set_clipboard(text_to_copy)
+            except Exception as ex:
+                logger.debug("Flet set_clipboard fallback error: %s", ex)
+            if getattr(self.app_page, "web", False) and hasattr(
+                self.app_page, "run_javascript"
+            ):
+                import json
+
+                escaped_text = json.dumps(text_to_copy)
+                self.app_page.run_javascript(
+                    f"navigator.clipboard.writeText({escaped_text});"
+                )
+            else:
+                try:
+                    import pyperclip
+
+                    pyperclip.copy(text_to_copy)
+                except Exception as ex:
+                    logger.debug("pyperclip copy fallback error: %s", ex)
+
+        self._show_notification("Copied selection to clipboard!")
 
     def _upper_case_click(self, e: ft.Event) -> None:
         """Handle upper case button click."""
@@ -582,7 +705,29 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
 
     def _handle_selection_change(self, e: ft.ControlEvent) -> None:
         """Handle selection change event on the template text field."""
-        self._update_status_bar(getattr(e, "selection", None))
+        sel = getattr(e, "selection", None) or self.template_sequence.selection
+        if sel is not None and getattr(sel, "is_valid", False):
+            base = getattr(sel, "base_offset", None)
+            extent = getattr(sel, "extent_offset", None)
+            if base is None or extent is None:
+                base = getattr(sel, "start", None)
+                extent = getattr(sel, "end", None)
+
+            if (
+                base is not None
+                and extent is not None
+                and base >= 0
+                and extent >= 0
+                and base != extent
+            ):
+                self._last_active_selection = sel
+                start_idx = min(base, extent)
+                end_idx = max(base, extent)
+                raw_text = self.template_sequence.value or ""
+                cleaned = clean_sequence(raw_text[start_idx:end_idx])
+                if cleaned:
+                    self._current_selected_cleaned_text = cleaned
+        self._update_status_bar(sel)
 
     def _count_bases(self, prefix: str) -> int:
         """Count the number of biological bases in a prefix string."""
@@ -594,15 +739,32 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         update: bool = True,
     ) -> None:
         """Update the status bar text based on text selection and focus."""
+        sel = (
+            selection
+            if (selection is not None and selection.is_valid)
+            else self.template_sequence.selection
+        )
+        if (sel is None or not sel.is_valid or sel.start == sel.end) and (
+            self._last_active_selection is not None
+            and self._last_active_selection.is_valid
+            and self._last_active_selection.start
+            != self._last_active_selection.end
+        ):
+            sel = self._last_active_selection
+
+        has_selection = (
+            sel is not None and sel.is_valid and sel.start != sel.end
+        ) or bool(self._current_selected_cleaned_text)
+
         if not self._is_focused:
             self.status_text.value = f"Total Bases: {self._cleaned_len}"
         else:
-            sel = (
-                selection
-                if (selection is not None and selection.is_valid)
-                else self.template_sequence.selection
-            )
-            if sel is not None and sel.is_valid:
+            if (
+                has_selection
+                and sel is not None
+                and sel.is_valid
+                and sel.start != sel.end
+            ):
                 raw_text = self.template_sequence.value or ""
                 bases_before = self._count_bases(raw_text[: sel.start])
                 bases_total = self._count_bases(raw_text[: sel.end])
@@ -615,12 +777,83 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                     self.status_text.value = (
                         f"Insertion Point After Base: {bases_before}"
                     )
+            elif sel is not None and sel.is_valid:
+                raw_text = self.template_sequence.value or ""
+                bases_before = self._count_bases(raw_text[: sel.start])
+                self.status_text.value = (
+                    f"Insertion Point After Base: {bases_before}"
+                )
             else:
                 self.status_text.value = (
                     f"Insertion Point After Base: {self._cleaned_len}"
                 )
 
+        if (
+            has_selection
+            and sel is not None
+            and sel.is_valid
+            and sel.start != sel.end
+        ):
+            raw_text = self.template_sequence.value or ""
+            text_up_to_end = raw_text[: sel.end]
+            lines = text_up_to_end.split("\n")
+            line_idx = max(0, len(lines) - 1)
+            col_idx = len(lines[-1]) if lines else 0
+
+            font_size = max(1, self.settings.get("font_size_default", 14))
+            line_height = font_size * 1.5
+            char_width = font_size * 0.70
+
+            max_digits = len(str(max(1, len(self.input_data.template))))
+            gutter_width = 20 + max_digits * char_width
+
+            top_pos = 5.0 + (line_idx * line_height)
+            left_pos = gutter_width + (col_idx * char_width) + 10.0
+
+            max_left = max(gutter_width + 50.0, self.current_left_width - 150.0)
+            left_pos = min(left_pos, max_left)
+
+            self.copy_selection_floating_button.top = top_pos
+            self.copy_selection_floating_button.left = left_pos
+            self.copy_selection_floating_button.right = None
+            self.copy_selection_button.visible = True
+        elif has_selection:
+            self.copy_selection_button.visible = True
+        else:
+            self.copy_selection_button.visible = False
+
         if update:
+            try:
+                if self.copy_selection_floating_button.page:
+                    self.copy_selection_floating_button.update()
+            except (RuntimeError, AssertionError):
+                pass
+            try:
+                if self.sequence_layout_stack.page:
+                    self.sequence_layout_stack.update()
+            except (RuntimeError, AssertionError):
+                pass
+            try:
+                page = self.status_bar.page
+            except RuntimeError:
+                page = None
+            if page:
+                try:
+                    self.status_bar.update()
+                except (RuntimeError, AssertionError):
+                    pass
+
+        if update:
+            try:
+                if self.copy_selection_floating_button.page:
+                    self.copy_selection_floating_button.update()
+            except (RuntimeError, AssertionError):
+                pass
+            try:
+                if self.sequence_layout_stack.page:
+                    self.sequence_layout_stack.update()
+            except (RuntimeError, AssertionError):
+                pass
             try:
                 page = self.status_bar.page
             except RuntimeError:

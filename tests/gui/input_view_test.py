@@ -1562,3 +1562,40 @@ def test_template_input_copy_removes_linebreaks() -> None:
     mock_page.run_javascript.assert_called_once_with(
         'navigator.clipboard.writeText("ATGCATGCATGC");'
     )
+
+
+def test_template_input_copy_selection_button() -> None:
+    """Test copy selection button visibility and copy behaviour."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+
+    template_input = view.template_input
+    assert hasattr(template_input, "copy_selection_button")
+    assert template_input.copy_selection_button.visible is False
+
+    template_input.template_sequence.value = "ATGC\nATGC\nATGC"
+
+    template_input._is_focused = True
+    template_input.template_sequence.selection = ft.TextSelection(
+        base_offset=0, extent_offset=9
+    )
+    template_input._update_status_bar(
+        template_input.template_sequence.selection, update=False
+    )
+    assert template_input.copy_selection_button.visible is True
+
+    # Test copy selection click on desktop
+    with patch("pyperclip.copy") as mock_pyperclip_copy:
+        template_input._on_copy_selection_click(MagicMock(spec=ft.Event))
+        mock_pyperclip_copy.assert_called_once_with("ATGCATGC")
+
+    # Clear selection and update status bar
+    template_input.template_sequence.selection = ft.TextSelection(
+        base_offset=3, extent_offset=3
+    )
+    template_input._update_status_bar(
+        template_input.template_sequence.selection, update=False
+    )
+    assert template_input.copy_selection_button.visible is False
