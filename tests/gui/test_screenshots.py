@@ -93,38 +93,41 @@ async def test_capture_view_screenshot_async(tmp_path: Path) -> None:
 
 
 @pytest.mark.ci  # type: ignore[untyped-decorator]
-@pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_capture_all_views_async(tmp_path: Path) -> None:
+def test_capture_all_views_async(tmp_path: Path) -> None:
     """Test capture_all_views_async switching views and writing PNG files."""
-    mock_controller = MagicMock()
-    mock_page = MagicMock(spec=ft.Page)
-    fake_bytes = b"PNG_DATA"
-    mock_page.take_screenshot = AsyncMock(return_value=fake_bytes)
+    import asyncio as _asyncio
 
-    mock_controller.page = mock_page
-    mock_controller.input_view = MagicMock()
-    mock_controller.pcr_view = MagicMock()
-    mock_controller.dimers_view = MagicMock()
-    mock_controller.auto_close = False
-    mock_controller.confirm_exit_async = AsyncMock()
+    async def _run() -> None:
+        mock_controller = MagicMock()
+        mock_page = MagicMock(spec=ft.Page)
+        fake_bytes = b"PNG_DATA"
+        mock_page.take_screenshot = AsyncMock(return_value=fake_bytes)
 
-    pcr_btn = MagicMock()
-    pcr_btn.disabled = False
-    mock_controller.pcr_button_ref.current = pcr_btn
+        mock_controller.page = mock_page
+        mock_controller.input_view = MagicMock()
+        mock_controller.pcr_view = MagicMock()
+        mock_controller.dimers_view = MagicMock()
+        mock_controller.auto_close = False
+        mock_controller.confirm_exit_async = AsyncMock()
 
-    dimers_btn = MagicMock()
-    dimers_btn.disabled = False
-    mock_controller.dimers_button_ref.current = dimers_btn
+        pcr_btn = MagicMock()
+        pcr_btn.disabled = False
+        mock_controller.pcr_button_ref.current = pcr_btn
 
-    # Monkeypatch cwd to tmp_path for screenshots dir
-    with pytest.MonkeyPatch.context() as mp:
-        mp.setattr(Path, "cwd", lambda: tmp_path)
-        await capture_all_views_async(mock_controller)
+        dimers_btn = MagicMock()
+        dimers_btn.disabled = False
+        mock_controller.dimers_button_ref.current = dimers_btn
 
-    assert (tmp_path / "screenshots" / "input_view.png").exists()
-    assert (tmp_path / "screenshots" / "pcr_view.png").exists()
-    assert (tmp_path / "screenshots" / "primer_dimer_view.png").exists()
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(Path, "cwd", lambda: tmp_path)
+            await capture_all_views_async(mock_controller)
 
-    assert mock_controller.switch_view.call_count == 3
-    mock_controller.pcr_view.run_pcr.assert_called_once()
-    mock_controller.dimers_view.run_analysis.assert_called_once()
+        assert (tmp_path / "screenshots" / "input_view.png").exists()
+        assert (tmp_path / "screenshots" / "pcr_view.png").exists()
+        assert (tmp_path / "screenshots" / "primer_dimer_view.png").exists()
+
+        assert mock_controller.switch_view.call_count == 3
+        mock_controller.pcr_view.run_pcr.assert_called_once()
+        mock_controller.dimers_view.run_analysis.assert_called_once()
+
+    _asyncio.run(_run())
