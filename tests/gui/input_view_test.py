@@ -1525,3 +1525,37 @@ def test_input_view_reverse_complement_button() -> None:
 
     assert input_data.primers[0]["seq"] == "CGAT"
     assert input_data.primers[1]["seq"] == "GGCC"
+
+
+def test_template_input_copy_removes_linebreaks() -> None:
+    """Test copying from template input sequence field removes linebreaks."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+
+    template_input = view.template_input
+    template_input.template_sequence.value = "ATGC\nATGC\nATGC"
+
+    # Test full selection copy desktop
+    with patch("pyperclip.copy") as mock_pyperclip_copy:
+        template_input.template_sequence.selection = None
+        template_input._on_copy(MagicMock(spec=ft.Event))
+        mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
+
+    # Test range selection copy desktop
+    with patch("pyperclip.copy") as mock_pyperclip_copy:
+        template_input.template_sequence.selection = ft.TextSelection(
+            base_offset=0, extent_offset=9
+        )
+        template_input._on_copy(MagicMock(spec=ft.Event))
+        mock_pyperclip_copy.assert_called_once_with("ATGCATGC")
+
+    # Test web copy
+    mock_page.web = True
+    mock_page.run_javascript = MagicMock()
+    template_input.template_sequence.selection = None
+    template_input._on_copy(MagicMock(spec=ft.Event))
+    mock_page.run_javascript.assert_called_once_with(
+        'navigator.clipboard.writeText("ATGCATGCATGC");'
+    )

@@ -341,8 +341,33 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         await save_template_click(self, e)
 
     # ------------------------------------------------------------------ #
-    # Case conversion                                                      #
+    # Case conversion & Copying                                            #
     # ------------------------------------------------------------------ #
+
+    def _on_copy(self, e: ft.Event) -> None:
+        """Remove linebreaks when copying from template textbox."""
+        sel = self.template_sequence.selection
+        raw_text = self.template_sequence.value or ""
+        if sel is not None and sel.is_valid and sel.start != sel.end:
+            selected_text = raw_text[sel.start : sel.end]
+        else:
+            selected_text = raw_text
+
+        cleaned_text = clean_sequence(selected_text)
+        if self.app_page:
+            if getattr(self.app_page, "web", False) and hasattr(
+                self.app_page, "run_javascript"
+            ):
+                import json
+
+                escaped_text = json.dumps(cleaned_text)
+                self.app_page.run_javascript(
+                    f"navigator.clipboard.writeText({escaped_text});"
+                )
+            else:
+                import pyperclip
+
+                pyperclip.copy(cleaned_text)
 
     def _upper_case_click(self, e: ft.Event) -> None:
         """Handle upper case button click."""
