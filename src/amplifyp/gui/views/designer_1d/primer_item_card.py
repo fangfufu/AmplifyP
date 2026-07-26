@@ -86,7 +86,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                         [
                             ft.Container(
                                 content=ft.Text(
-                                    f"Quality: {dimer.quality:.1f}",
+                                    f"Quality: {round(dimer.quality)}",
                                     weight=ft.FontWeight.BOLD,
                                     size=font_size_default,
                                     color=GUIColours.DIAGRAM_BLACK,

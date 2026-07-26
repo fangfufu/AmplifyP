@@ -58,8 +58,8 @@ summary header and an antiparallel sequence alignment diagram:
   - **Interaction Title**: Displays primer names as `{Primer Name} self-dimer`
     for self-dimer matches, or `{Primer 1} vs {Primer 2}` for cross-dimer
     matches. Title text is selectable.
-  - **Quality Score Badge**: Displays `Quality: {score}` (rounded to 1 decimal
-    place) in a highlighted badge. High quality scores indicate strong binding
+  - **Quality Score Badge**: Displays `Quality: {score}` (rounded to the nearest
+    integer) in a highlighted badge. High quality scores indicate strong binding
     potential and high dimerisation risk.
   - **Overlap Length Badge**: Displays `Overlap: {overlap} bp` in a highlighted
     badge.

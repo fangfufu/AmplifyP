@@ -229,7 +229,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 )
 
                 cell_content = ft.Text(
-                    f"{q_val:.1f}",
+                    f"{round(q_val)}",
                     weight=ft.FontWeight.BOLD,
                     size=font_small,
                     color=text_col,
@@ -265,7 +265,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     tooltip=(
                         f"{tooltip_prefix}"
                         f"Forward: {f_len} bp | Reverse: {r_len} bp\n"
-                        f"{'Max' if use_max else 'Mean'} Quality: {q_val:.1f}\n"
+                        f"{'Max' if use_max else 'Mean'} "
+                        f"Quality: {round(q_val)}\n"
                         f"{'Max' if use_max else 'Mean'} Overlap: {o_str} bp"
                     ),
                 )
@@ -290,7 +291,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             ),
             ft.Container(
                 content=ft.Text(
-                    f"★ Best Quality: {min_q:.1f}",
+                    f"★ Best Quality: {round(min_q)}",
                     size=font_small,
                     weight=ft.FontWeight.BOLD,
                     color=GUIColours.SUCCESS_GREEN,
@@ -301,10 +302,13 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             ),
         ]
         if scheme != "None":
+            colour_label = (
+                f"Colour Map: {scheme} ({round(max_q)} - {round(min_q)})"
+            )
             header_badges.append(
                 ft.Container(
                     content=ft.Text(
-                        f"Colour Map: {scheme} ({max_q:.1f} - {min_q:.1f})",
+                        colour_label,
                         size=font_small,
                         weight=ft.FontWeight.BOLD,
                         color=GUIColours.PRIMARY,

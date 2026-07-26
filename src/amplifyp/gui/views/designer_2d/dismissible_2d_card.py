@@ -82,8 +82,8 @@ class Dismissible2DCard(DismissibleDetailCard):
 
         # Right hand side title metric boxes
         title_controls = [
-            _make_badge(f"Max Quality: {step.max_quality:.1f}"),
-            _make_badge(f"Mean Quality: {step.mean_quality:.1f}"),
+            _make_badge(f"Max Quality: {round(step.max_quality)}"),
+            _make_badge(f"Mean Quality: {round(step.mean_quality)}"),
             _make_badge(f"Max Overlap: {step.max_overlap} bp"),
             _make_badge(f"Mean Overlap: {mean_overlap:.1f} bp"),
         ]
@@ -292,7 +292,7 @@ class Dismissible2DCard(DismissibleDetailCard):
                         [
                             ft.Container(
                                 content=ft.Text(
-                                    f"Quality: {dimer.quality:.1f}",
+                                    f"Quality: {round(dimer.quality)}",
                                     weight=ft.FontWeight.BOLD,
                                     size=font_size_small,
                                 ),

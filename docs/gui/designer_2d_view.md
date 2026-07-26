@@ -88,8 +88,9 @@ truncation combinations in a colour-coded matrix grid:
     `24 bp`, `23 bp`, ...). Top-left header origin cell reads `Rev \ Fwd`.
   - **Rows**: Reverse primer lengths sorted in descending order.
 - **Cell Representation & Quality Score**:
-  - Each cell displays the evaluated quality score formatted to 1 decimal place
-    (e.g. `42.0`), calculated using the selected metric (**Max** or **Mean**).
+  - Each cell displays the evaluated quality score rounded to the nearest
+    integer (e.g. `42`), calculated using the selected metric (**Max** or
+    **Mean**).
   - **Colour Mapping & Text Contrast**: Cell background colours are assigned
     dynamically based on quality score. Text contrast colour automatically
     switches between dark and light text for optimal legibility.
@@ -109,8 +110,8 @@ truncation combinations in a colour-coded matrix grid:
 - **Header Legend Badges**:
   - Displays summary badges above the grid for active metric
     (`Metric: Max/Mean Quality`), best quality score (e.g.
-    `★ Best Quality: 42.0`), and active colour scheme (e.g.
-    `Colour Map: Blue-Orange (120.0 - 42.0)`).
+    `★ Best Quality: 42`), and active colour scheme (e.g.
+    `Colour Map: Blue-Orange (120 - 42)`).
 - **Scrollbar**: Supported with a top horizontal scrollbar for wide matrices.
 
 ## 2D Primer Pair Detail Cards (Right Panel)

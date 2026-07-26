@@ -35,6 +35,9 @@ jobs:
       - name: Run unit tests
         run: |
           pytest -v --cov=src/amplifyp --cov-report=xml
+      - name: Run extra CI tests
+        run: |
+          pytest -v -s -m "ci"
       - name: Run pyright analysis
         run: |
           pyright
@@ -55,4 +58,4 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
           playwright install --with-deps chromium
-          xvfb-run -a pytest -v -s -m e2e
+          xvfb-run -a pytest -v -s -m "e2e"

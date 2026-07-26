@@ -81,7 +81,7 @@ horizontally scrollable container:
 - **Bar Display**: Each generated primer truncation step is represented by a
   vertical bar:
   - **Score**: Self-dimer quality score value printed above each bar (rounded to
-    1 decimal place).
+    the nearest integer).
   - **Bar Height**: Scaled relative to the maximum quality score among all
     generated primers and current panel container height.
   - **X-Axis Label**: Displays primer length in base pairs (e.g. `20 bp`) below

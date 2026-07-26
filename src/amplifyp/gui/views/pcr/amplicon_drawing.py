@@ -338,7 +338,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                         ),
                     ),
                     ft.TextSpan(
-                        f")◀      Q = {amp.q_score:.1f} "
+                        f")◀      Q = {round(amp.q_score)} "
                         f"({amp.q_score_report_str(verbose=True)})"
                     ),
                 ],

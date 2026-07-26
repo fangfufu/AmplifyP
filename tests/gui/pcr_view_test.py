@@ -85,7 +85,7 @@ def test_pcr_view_click_context_map() -> None:
     q_text = metrics_row.controls[2].content.value
     assert "Primeability: 1.000" in p_text
     assert "Stability: 1.000" in s_text
-    assert "Quality: 1.0000" in q_text
+    assert q_text == "Quality: 1"
 
     # Extract diagram_text
     diagram_text = card.content.content.controls[1].content.controls[0]
