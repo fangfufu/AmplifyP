@@ -302,10 +302,13 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             ),
         ]
         if scheme != "None":
+            colour_label = (
+                f"Colour Map: {scheme} ({round(max_q)} - {round(min_q)})"
+            )
             header_badges.append(
                 ft.Container(
                     content=ft.Text(
-                        f"Colour Map: {scheme} ({max_q:.1f} - {min_q:.1f})",
+                        colour_label,
                         size=font_small,
                         weight=ft.FontWeight.BOLD,
                         color=GUIColours.PRIMARY,

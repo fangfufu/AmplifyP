@@ -204,6 +204,8 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
         from amplifyp.gui.utils.data_helpers import clean_sequence
 
         cleaned_text = clean_sequence(selected_text)
+        if not cleaned_text:
+            return
 
         if getattr(controller.page, "web", False) and hasattr(
             controller.page, "run_javascript"
