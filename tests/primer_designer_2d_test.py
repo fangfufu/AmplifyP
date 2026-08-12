@@ -214,3 +214,58 @@ def test_primer_designer_2d_query_methods_and_protocols() -> None:
         str(designer)
         == "PrimerDesigner2D(4 steps, fwd_min_length=9, rev_min_length=9)"
     )
+
+
+def test_primer_designer_2d_amplicon_filtering() -> None:
+    """Test template DNA input and max_amplicon_count filtering."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("ACGTACGCAT")
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT")
+
+    designer = PrimerDesigner2D(
+        fwd_dna,
+        8,
+        rev_dna,
+        8,
+        template=template_dna,
+        max_amplicon_count=1,
+    )
+    assert designer.template == template_dna
+    assert designer.max_amplicon_count == 1
+
+    from amplifyp.amplicon import AmpliconGenerator
+    from amplifyp.repliconf import Repliconf
+
+    for step in designer.all_steps:
+        amp_gen = AmpliconGenerator(template_dna)
+        fwd_conf = Repliconf(template_dna, step.fwd_fwd.primer_1)
+        amp_gen.add_repliconf(fwd_conf)
+        if (
+            step.fwd_fwd.primer_1.seq.upper()
+            != step.rev_rev.primer_1.seq.upper()
+        ):
+            rev_conf = Repliconf(template_dna, step.rev_rev.primer_1)
+            amp_gen.add_repliconf(rev_conf)
+        assert len(amp_gen.get_amplicons()) <= 1
+
+
+def test_primer_designer_2d_amplicon_invalid_inputs() -> None:
+    """Test validation errors for template and max_amplicon_count."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGT")
+
+    with pytest.raises(ValueError, match="Template DNA must be provided"):
+        PrimerDesigner2D(fwd_dna, 8, rev_dna, 8, max_amplicon_count=1)
+
+    with pytest.raises(
+        ValueError, match="max_amplicon_count must be non-negative"
+    ):
+        PrimerDesigner2D(
+            fwd_dna,
+            8,
+            rev_dna,
+            8,
+            template=template_dna,
+            max_amplicon_count=-1,
+        )
