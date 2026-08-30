@@ -59,6 +59,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
             on_submit_callback=self._run_designer_event,
             on_save_callback=self._save_designer_1d_click,
             on_load_callback=self._load_designer_1d_click,
+            on_clear_all_callback=self._clear_all,
         )
 
         # Container for top-left controls
@@ -141,7 +142,7 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
                 [
                     ft.Container(
                         content=ft.Text(
-                            "Self-Dimer Quality by Primer Size (bp)",
+                            "Self-Dimer Quality by Primer Size (nt)",
                             weight=ft.FontWeight.BOLD,
                             size=self.settings.get("font_size_subheader", 16),
                         ),
@@ -233,14 +234,14 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         return self.form.dna_input
 
     @property
+    def length_display(self) -> ft.TextField:
+        """Get the length display field."""
+        return self.form.length_display
+
+    @property
     def min_len_input(self) -> ft.TextField:
         """Get the minimum length input field."""
         return self.form.min_len_input
-
-    @property
-    def mode_dropdown(self) -> ft.Dropdown:
-        """Get the direction mode dropdown."""
-        return self.form.mode_dropdown
 
     @property
     def max_quality_input(self) -> ft.TextField:
@@ -256,6 +257,11 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
     def analyse_button(self) -> ft.FilledButton:
         """Get the analyse button control."""
         return self.form.analyse_button
+
+    @property
+    def clear_all_button(self) -> ft.FilledTonalButton:
+        """Get the clear all button control."""
+        return self.form.clear_all_button
 
     @property
     def error_text(self) -> ft.Text:
@@ -424,6 +430,25 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         self._update_cards_header_visibility()
         self.app_page.update()
 
+    def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
+        """Clear all inputs, parameters, error messages, and results."""
+        self.form.dna_input.value = ""
+        self.form.length_display.value = "0"
+        self.form.min_len_input.value = ""
+        self.form.max_quality_input.value = ""
+        self.form.max_overlap_input.value = ""
+        self.form.clear_errors()
+        self.primer_list.controls.clear()
+        self._cached_designer = None
+        self.chart_content_container.content = self._build_chart([])
+        self.right_cards_list.controls.clear()
+        self._update_cards_header_visibility()
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
     def _show_notification(self, message: str) -> None:
         """Show a notification message."""
         if not hasattr(self, "_notification_helper"):
@@ -435,7 +460,6 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
         params = {
             "dna": (self.form.dna_input.value or ""),
             "min_length": (self.form.min_len_input.value or ""),
-            "mode": (self.form.mode_dropdown.value or "FWD"),
             "max_quality": (self.form.max_quality_input.value or ""),
             "max_overlap": (self.form.max_overlap_input.value or ""),
         }
@@ -459,7 +483,10 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
 
     async def _load_designer_1d_click(self, e: ft.ControlEvent) -> None:
         """Load Designer 1D parameters from a YAML file."""
-        from amplifyp.gui.utils.data_helpers import pick_and_read_file
+        from amplifyp.gui.utils.data_helpers import (
+            clean_sequence,
+            pick_and_read_file,
+        )
 
         content = await pick_and_read_file(
             page=self.app_page,
@@ -479,19 +506,14 @@ class PrimerDesignerView(ft.Row):  # type: ignore[misc]
                 return
 
             dna_val = params.get("dna")
-            self.form.dna_input.value = (
-                str(dna_val) if dna_val is not None else ""
-            )
+            dna_str = str(dna_val) if dna_val is not None else ""
+            self.form.dna_input.value = dna_str
+            self.form.length_display.value = str(len(clean_sequence(dna_str)))
+
             min_len_val = params.get("min_length")
             self.form.min_len_input.value = (
-                str(min_len_val) if min_len_val is not None else "18"
+                str(min_len_val) if min_len_val is not None else ""
             )
-
-            mode_val = str(params.get("mode", "FWD")).upper()
-            if mode_val in ("FWD", "REV"):
-                self.form.mode_dropdown.value = mode_val
-            else:
-                self.form.mode_dropdown.value = "FWD"
 
             max_q_val = params.get("max_quality")
             self.form.max_quality_input.value = (

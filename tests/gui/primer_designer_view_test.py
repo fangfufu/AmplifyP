@@ -48,12 +48,27 @@ def test_primer_designer_view_initialisation() -> None:
     assert view.left_container.expand is True
     assert view.right_container.expand is True
     assert view.dna_input.value == ""
-    assert view.min_len_input.value == "18"
-    assert view.mode_dropdown.value == "FWD"
-    assert view.max_quality_input.value == "60.0"
-    assert view.max_overlap_input.value == "3"
+    assert view.length_display.value == "0"
+    assert view.min_len_input.value == ""
+    assert view.max_quality_input.value == ""
+    assert view.max_overlap_input.value == ""
+    assert view.clear_all_button is not None
     assert len(view.primer_list.controls) == 0
     assert len(view.right_cards_list.controls) == 0
+
+
+def test_primer_designer_view_length_counter() -> None:
+    """Test dynamic length counter updating when typing DNA sequence."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    assert view.length_display.value == "0"
+
+    view.dna_input.value = "ATG CGT ACG T"
+    view.form._on_dna_change(MagicMock(spec=ft.ControlEvent))
+    assert view.length_display.value == "10"
 
 
 def test_primer_designer_view_run_analysis_success() -> None:
@@ -65,7 +80,6 @@ def test_primer_designer_view_run_analysis_success() -> None:
     view = PrimerDesignerView(mock_page, input_data, settings)
     view.dna_input.value = "ATGCGTACGT"
     view.min_len_input.value = "7"
-    view.mode_dropdown.value = "FWD"
     view.max_quality_input.value = ""
     view.max_overlap_input.value = ""
 
@@ -85,31 +99,35 @@ def test_primer_designer_view_run_analysis_success() -> None:
     assert len(chart.controls) == 4
 
 
-def test_primer_designer_view_reverse_mode_alignment() -> None:
-    """Test reverse mode right-aligns items in the primer list."""
+def test_primer_designer_view_clear_all() -> None:
+    """Test Clear All button resets the entire view to blank state."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     settings = GUISettings()
 
     view = PrimerDesignerView(mock_page, input_data, settings)
     view.dna_input.value = "ATGCGTACGT"
+    view.form._on_dna_change(MagicMock(spec=ft.ControlEvent))
     view.min_len_input.value = "7"
-    view.mode_dropdown.value = "REV"
     view.max_quality_input.value = ""
     view.max_overlap_input.value = ""
+    view.run_designer()
 
-    assert view.run_designer() is True
+    # Create a dimer card
+    view.primer_list.controls[0].content.on_click(None)
+    assert len(view.right_cards_list.controls) == 1
+    assert len(view.primer_list.controls) == 4
 
-    card = view.primer_list.controls[0]
-    col = card.content.content.controls[0]
-    assert col.horizontal_alignment == ft.CrossAxisAlignment.START
-    assert col.controls[0].text_align == ft.TextAlign.LEFT
-    seq_container = col.controls[1]
-    assert isinstance(seq_container, ft.Container)
-    assert isinstance(seq_container.content, ft.TextField)
-    assert seq_container.content.read_only is True
-    assert seq_container.alignment == ft.Alignment(1, 0)
-    assert seq_container.content.text_align == ft.TextAlign.RIGHT
+    # Trigger Clear All
+    view._clear_all(None)
+
+    assert view.dna_input.value == ""
+    assert view.length_display.value == "0"
+    assert view.min_len_input.value == ""
+    assert view.max_quality_input.value == ""
+    assert view.max_overlap_input.value == ""
+    assert len(view.primer_list.controls) == 0
+    assert len(view.right_cards_list.controls) == 0
 
 
 def test_primer_designer_view_validation_errors() -> None:
@@ -126,8 +144,14 @@ def test_primer_designer_view_validation_errors() -> None:
     assert view.dna_input.error is not None
     assert "enter a valid DNA sequence" in view.dna_input.error
 
-    # Non-digit min_length
+    # Empty min_length
     view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = ""
+    assert view.run_designer() is False
+    assert view.min_len_input.error is not None
+    assert "Minimum length is required" in view.min_len_input.error
+
+    # Non-digit min_length
     view.min_len_input.value = "abc"
     assert view.run_designer() is False
     assert view.min_len_input.error is not None
@@ -145,12 +169,12 @@ def test_primer_designer_view_validation_errors() -> None:
     assert view.min_len_input.error is not None
     assert "cannot exceed sequence length" in view.min_len_input.error
 
-    # Invalid max_quality
+    # Invalid max_quality (non-integer)
     view.min_len_input.value = "7"
     view.max_quality_input.value = "invalid"
     assert view.run_designer() is False
     assert view.max_quality_input.error is not None
-    assert "Max Quality must be a valid number" in view.max_quality_input.error
+    assert "Max Quality must be an integer" in view.max_quality_input.error
     view.max_quality_input.value = ""
 
     # Invalid max_overlap
@@ -172,7 +196,7 @@ def test_primer_designer_view_threshold_filtering() -> None:
     view = PrimerDesignerView(mock_page, input_data, settings)
     view.dna_input.value = "ATGCGTACGT"
     view.min_len_input.value = "7"
-    view.max_quality_input.value = "110.0"
+    view.max_quality_input.value = "110"
     view.max_overlap_input.value = "6"
 
     assert view.run_designer() is True
@@ -340,8 +364,8 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
 
     # Set parameters on the form
     view.form.dna_input.value = "ATGCGTACGT"
+    view.form.length_display.value = "10"
     view.form.min_len_input.value = "8"
-    view.form.mode_dropdown.value = "REV"
     view.form.max_quality_input.value = ""
     view.form.max_overlap_input.value = ""
 
@@ -371,16 +395,15 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     parsed = yaml.safe_load(saved_content)
     assert parsed["dna"] == "ATGCGTACGT"
     assert parsed["min_length"] == "8"
-    assert parsed["mode"] == "REV"
     assert parsed["max_quality"] == ""
     assert parsed["max_overlap"] == ""
 
     # 2. Test Load
     # Reset form to different values
     view.form.dna_input.value = "CGT"
+    view.form.length_display.value = "3"
     view.form.min_len_input.value = "10"
-    view.form.mode_dropdown.value = "FWD"
-    view.form.max_quality_input.value = "60.0"
+    view.form.max_quality_input.value = "60"
     view.form.max_overlap_input.value = "3"
 
     async def mock_pick_and_read_file(
@@ -399,11 +422,10 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
 
     # Verify loaded values in the form
     assert view.form.dna_input.value == "ATGCGTACGT"
+    assert view.form.length_display.value == "10"
     assert view.form.min_len_input.value == "8"
-    assert view.form.mode_dropdown.value == "REV"
     assert view.form.max_quality_input.value == ""
     assert view.form.max_overlap_input.value == ""
 
-    # Verify that the analysis automatically ran (length 10 down to 8
-    # rev produces 3 steps)
+    # Verify that the analysis automatically ran (3 steps produced)
     assert len(view.primer_list.controls) == 3

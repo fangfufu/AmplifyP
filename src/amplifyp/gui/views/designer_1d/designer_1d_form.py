@@ -26,6 +26,29 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
 
 
+def _create_field_container(
+    label_text: str,
+    field: ft.Control,
+    expand: bool | int | None = True,
+    width: int | None = None,
+) -> ft.Column:
+    """Create a column with a fixed header label above the input control."""
+    return ft.Column(
+        [
+            ft.Text(
+                label_text,
+                size=12,
+                weight=ft.FontWeight.W_500,
+                color=GUIColours.TEXT_ON_SURFACE,
+            ),
+            field,
+        ],
+        spacing=2,
+        expand=expand,
+        width=width,
+    )
+
+
 class Designer1DForm(ft.Column):  # type: ignore[misc]
     """Form controls and validation logic for 1D Primer Designer."""
 
@@ -37,6 +60,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         | None = None,
         on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
         on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
+        on_clear_all_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer1DForm."""
         super().__init__(spacing=8)
@@ -44,7 +68,7 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
 
-        # Save and Load buttons
+        # Action buttons
         self.save_button = ft.FilledTonalButton(
             "Save",
             icon=ft.Icons.SAVE,
@@ -59,51 +83,51 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             on_click=on_load_callback,
             height=32,
         )
+        self.clear_all_button = ft.FilledTonalButton(
+            "Clear All",
+            icon=ft.Icons.CLEAR_ALL,
+            tooltip="Clear all parameters and results",
+            on_click=on_clear_all_callback,
+            height=32,
+        )
 
         # Input fields
         self.dna_input = ft.TextField(
-            label="Candidate Primer Sequence",
             hint_text="e.g. ATGCGTACGT...",
             expand=True,
             multiline=False,
             autofocus=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
+            on_change=self._on_dna_change,
+        )
+        self.length_display = ft.TextField(
+            value="0",
+            read_only=True,
+            width=90,
+            text_align=ft.TextAlign.CENTER,
+            border_color=GUIColours.OUTLINE,
+            content_padding=ft.Padding(8, 4, 8, 4),
         )
         self.min_len_input = ft.TextField(
-            label="Min Length (bp)",
-            value="18",
+            hint_text="e.g. 18",
+            value="",
             expand=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
-        self.mode_dropdown = ft.Dropdown(
-            label="Primer Direction",
-            options=[
-                ft.dropdown.Option("FWD", "Forward"),
-                ft.dropdown.Option("REV", "Reverse"),
-            ],
-            value="FWD",
-            expand=True,
-            border_color=GUIColours.OUTLINE,
-        )
-        pd_settings = self.settings.get_primer_dimer_settings()
-
         self.max_quality_input = ft.TextField(
-            label="Max Quality",
             hint_text="Unconstrained if empty",
-            value=f"{pd_settings.threshold:.1f}",
+            value="",
             expand=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
         self.max_overlap_input = ft.TextField(
-            label="Max Overlap (bp)",
             hint_text="Unconstrained if empty",
-            value=str(pd_settings.min_overlap),
+            value="",
             expand=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
@@ -129,7 +153,11 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
                             size=self.settings.get("font_size_subheader", 16),
                         ),
                         ft.Row(
-                            [self.load_button, self.save_button],
+                            [
+                                self.load_button,
+                                self.save_button,
+                                self.clear_all_button,
+                            ],
                             spacing=4,
                             tight=True,
                         ),
@@ -139,28 +167,49 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
                 ),
                 margin=ft.Margin.only(bottom=6),
             ),
-            ft.Row([self.dna_input]),
             ft.Row(
-                [self.min_len_input, self.mode_dropdown],
-                alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=14,
+                [
+                    _create_field_container(
+                        "Candidate Primer Sequence", self.dna_input, expand=True
+                    ),
+                    _create_field_container(
+                        "Length (nt)",
+                        self.length_display,
+                        expand=False,
+                        width=90,
+                    ),
+                ],
+                spacing=8,
             ),
             ft.Row(
                 [
-                    self.max_quality_input,
-                    self.max_overlap_input,
+                    _create_field_container(
+                        "Min Length (nt)", self.min_len_input, expand=True
+                    ),
+                    _create_field_container(
+                        "Max Quality", self.max_quality_input, expand=True
+                    ),
+                    _create_field_container(
+                        "Max Overlap (bp)", self.max_overlap_input, expand=True
+                    ),
                     ft.Container(
                         content=self.analyse_button,
-                        margin=ft.Margin.only(left=24),
+                        margin=ft.Margin.only(top=18, left=8),
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=14,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+                spacing=8,
             ),
             self.error_text,
         ]
+
+    def _on_dna_change(self, e: ft.ControlEvent) -> None:
+        """Update length counter and clear error when DNA input changes."""
+        dna_raw = self.dna_input.value or ""
+        cleaned = clean_sequence(dna_raw)
+        self.length_display.value = str(len(cleaned))
+        self._clear_field_error(e)
 
     def _on_submit_event(self, e: ft.ControlEvent) -> None:
         """Handle submit/click events from form controls."""
@@ -250,24 +299,24 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             )
             return None
 
-        mode_val = self.mode_dropdown.value or "FWD"
-        mode = DNADirection.FWD if mode_val == "FWD" else DNADirection.REV
+        mode = DNADirection.FWD
 
         max_q_raw = (self.max_quality_input.value or "").strip()
         threshold: float | None = None
         if max_q_raw:
             try:
-                threshold = float(max_q_raw)
-                if threshold < 0:
+                q_int = int(max_q_raw)
+                if q_int < 0:
                     self.show_field_error(
                         self.max_quality_input,
-                        "Max Quality must be a non-negative number.",
+                        "Max Quality must be a non-negative integer.",
                     )
                     return None
+                threshold = float(q_int)
             except ValueError:
                 self.show_field_error(
                     self.max_quality_input,
-                    "Max Quality must be a valid number.",
+                    "Max Quality must be an integer.",
                 )
                 return None
 
