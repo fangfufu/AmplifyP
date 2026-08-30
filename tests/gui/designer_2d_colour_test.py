@@ -110,6 +110,18 @@ class TestDesigner2DColourBlueOrange:
         assert col_max == "#d0e1f9"
 
 
+class TestDesigner2DColourGreyscale:
+    """Tests for the 'Greyscale' scheme."""
+
+    def test_greyscale_min_and_max(self) -> None:
+        """Greyscale returns light grey at min and dark grey at max."""
+        col_min = designer_2d_colour(0.0, 0.0, 100.0, "Greyscale")
+        col_max = designer_2d_colour(100.0, 0.0, 100.0, "Greyscale")
+
+        assert col_min == GUIColours.GRID_2D_GREY_LIGHT
+        assert col_max == GUIColours.GRID_2D_GREY_DARK
+
+
 class TestGetTextContrastColour:
     """Tests for the get_text_contrast_colour helper."""
 

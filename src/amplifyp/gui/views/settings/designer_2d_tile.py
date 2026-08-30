@@ -48,6 +48,7 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Cool-Warm"),
                 ft.dropdown.Option("Traffic Light"),
                 ft.dropdown.Option("Blue-Orange"),
+                ft.dropdown.Option("Greyscale"),
             ],
             expand=True,
             on_select=self.on_change_handler,
