@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "amplifyp"
-version = "1.17.0"
+version = "1.17.1"
 description = """\
 Modern Python rewrite of Amplify4 for PCR simulation, \
 amplicon prediction, and primer dimer analysis\
@@ -14,7 +14,7 @@ amplicon prediction, and primer dimer analysis\
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "flet==0.86.3",
+  "flet==0.86.5",
   "pyperclip==1.11.0",
   "pyyaml==6.0.3",
 ]
