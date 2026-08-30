@@ -23,7 +23,7 @@ IGNORED_PACKAGES: set[str] = set()
 def fetch_latest_version(package_name: str) -> str | None:
     """Fetch the latest version of a package from PyPI."""
     url = f"https://pypi.org/pypi/{package_name}/json"
-    req = urllib.request.Request(  # noqa: S310
+    req = urllib.request.Request(
         url, headers={"User-Agent": "AmplifyP-Autoupdate"}
     )
     try:
