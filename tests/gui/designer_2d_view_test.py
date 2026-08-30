@@ -16,7 +16,7 @@
 """Tests for 2D Primer Designer View GUI components."""
 
 import asyncio
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -174,6 +174,43 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
         "Forward: 10 nt, Reverse: 10 nt" in card._card_id
         or card.step == step_10_10
     )
+    dimer_subcontainers_default = card._build_dimer_subcontainers(14, 12)
+    assert len(dimer_subcontainers_default.controls) == 3
+    labels_default = [
+        cast(
+            ft.Text,
+            cast(
+                ft.Row,
+                cast(ft.Column, cast(ft.Container, col).content).controls[0],
+            ).controls[0],
+        ).value
+        for col in dimer_subcontainers_default.controls
+    ]
+    assert labels_default == [
+        "Forward Self-Dimer (Fwd-Fwd)",
+        "Reverse Self-Dimer (Rev-Rev)",
+        "Forward-Reverse Cross-Dimer (Fwd-Rev)",
+    ]
+
+    card.settings["designer_2d_show_rev_fwd"] = True
+    dimer_subcontainers_enabled = card._build_dimer_subcontainers(14, 12)
+    assert len(dimer_subcontainers_enabled.controls) == 4
+    labels_enabled = [
+        cast(
+            ft.Text,
+            cast(
+                ft.Row,
+                cast(ft.Column, cast(ft.Container, col).content).controls[0],
+            ).controls[0],
+        ).value
+        for col in dimer_subcontainers_enabled.controls
+    ]
+    assert labels_enabled == [
+        "Forward Self-Dimer (Fwd-Fwd)",
+        "Reverse Self-Dimer (Rev-Rev)",
+        "Forward-Reverse Cross-Dimer (Fwd-Rev)",
+        "Reverse-Forward Cross-Dimer (Rev-Fwd)",
+    ]
 
 
 def test_designer_2d_view_clear_all() -> None:
@@ -321,6 +358,15 @@ def test_designer_2d_tile_in_settings_view() -> None:
     settings_view._on_change_handler(mock_event)
 
     assert settings["designer_2d_colour_scheme"] == "Traffic Light"
+
+    assert settings_view.set_designer_2d_show_rev_fwd is not None
+    assert settings_view.set_designer_2d_show_rev_fwd.value is False
+    settings_view.set_designer_2d_show_rev_fwd.value = True
+    mock_event_cb = MagicMock()
+    mock_event_cb.control = settings_view.set_designer_2d_show_rev_fwd
+    settings_view._on_change_handler(mock_event_cb)
+
+    assert settings["designer_2d_show_rev_fwd"] is True
 
 
 def test_designer_2d_view_save_and_load_parameters() -> None:

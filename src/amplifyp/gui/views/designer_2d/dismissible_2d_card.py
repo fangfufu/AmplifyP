@@ -152,20 +152,28 @@ class Dismissible2DCard(DismissibleDetailCard):
     def _build_dimer_subcontainers(
         self, font_size_default: int, font_size_small: int
     ) -> ft.Column:
-        """Build the 3 subcontainers for each primer dimer pair alignment.
+        """Build the 4 subcontainers for each primer dimer pair alignment.
 
         Args:
             font_size_default: Default sequence font size.
             font_size_small: Small text font size.
 
         Returns:
-            Column containing 3 styled dimer pair alignment subcontainers.
+            Column containing 4 styled dimer pair alignment subcontainers.
         """
         dimer_pairs: list[tuple[str, PrimerDimer]] = [
             ("Forward Self-Dimer (Fwd-Fwd)", self.step.fwd_fwd),
             ("Reverse Self-Dimer (Rev-Rev)", self.step.rev_rev),
             ("Forward-Reverse Cross-Dimer (Fwd-Rev)", self.step.fwd_rev),
         ]
+
+        show_rev_fwd = self.settings.get("designer_2d_show_rev_fwd", False)
+        if isinstance(show_rev_fwd, str):
+            show_rev_fwd = show_rev_fwd.lower() in ("true", "1", "yes")
+        if show_rev_fwd:
+            dimer_pairs.append(
+                ("Reverse-Forward Cross-Dimer (Rev-Fwd)", self.step.rev_fwd)
+            )
 
         subcontainers: list[ft.Control] = []
 

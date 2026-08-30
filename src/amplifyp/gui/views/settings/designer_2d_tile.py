@@ -24,6 +24,7 @@ import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 
 
 class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -55,8 +56,16 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
             border_color=GUIColours.OUTLINE,
         )
 
+        self.show_rev_fwd_checkbox = BorderedCheckbox(
+            label="Show Reverse-Forward cross-dimer",
+            on_change=self.on_change_handler,
+        )
+
         self.settings_map["designer_2d_colour_scheme"] = (
             self.set_designer_2d_colour_scheme
+        )
+        self.settings_map["designer_2d_show_rev_fwd"] = (
+            self.show_rev_fwd_checkbox
         )
 
         super().__init__(
@@ -80,6 +89,7 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
                                                         self.set_designer_2d_colour_scheme
                                                     ]
                                                 ),
+                                                self.show_rev_fwd_checkbox,
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -97,3 +107,8 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
                 )
             ],
         )
+
+    @property
+    def set_designer_2d_show_rev_fwd(self) -> BorderedCheckbox:
+        """Get the show reverse-forward cross-dimer checkbox."""
+        return self.show_rev_fwd_checkbox

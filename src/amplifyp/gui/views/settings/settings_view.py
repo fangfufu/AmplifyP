@@ -229,6 +229,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.designer_2d_tile.set_designer_2d_colour_scheme
 
     @property
+    def set_designer_2d_show_rev_fwd(self) -> BorderedCheckbox:
+        """Get the 2D Designer show reverse-forward cross-dimer checkbox."""
+        return self.designer_2d_tile.set_designer_2d_show_rev_fwd
+
+    @property
     def set_version_checking_frequency(self) -> ft.Dropdown:
         """Get the version checking frequency dropdown."""
         return self.general_tile.set_version_checking_frequency
@@ -365,6 +370,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "ignore_inactive_seq_dup_warn": True,
             "tm_colour_scheme": "None",
             "designer_2d_colour_scheme": "Blue-Orange",
+            "designer_2d_show_rev_fwd": False,
             "log_level_amplifyp": "INFO",
             "log_level_flet": "INFO",
             "log_console_enabled": True,
