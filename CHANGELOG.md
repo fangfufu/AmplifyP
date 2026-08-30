@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0](https://github.com/fangfufu/AmplifyP/compare/v1.17.1...v1.18.0) (2026-08-30)
+
+
+### Features
+
+* **designer-1d:** improve 1D inputs and cards ([ddde48e](https://github.com/fangfufu/AmplifyP/commit/ddde48eaccd448523bd62d2b45ebed3a3e499ebb))
+* **designer-2d:** simplify parameters and cards ([f034999](https://github.com/fangfufu/AmplifyP/commit/f03499923e5693f0fafa7d423e5f4d777c1ffbe0))
+* **designer:** add amplicon count filter for 2D ([e0abd86](https://github.com/fangfufu/AmplifyP/commit/e0abd861a9ed4cb719a3dd59e11ba90df66bea13))
+* **designer:** add origin count filter ([60ebf50](https://github.com/fangfufu/AmplifyP/commit/60ebf501cc0c67cf101c815480eb830edaadaa01))
+* **gui:** add greyscale palette for 2D designer ([ddb4aea](https://github.com/fangfufu/AmplifyP/commit/ddb4aead90bdb1bd5e80570b577b1d492d90d5cd))
+
+
+### Bug Fixes
+
+* Skip amplicon analysis when no cutoff is configured. ([dd38fd0](https://github.com/fangfufu/AmplifyP/commit/dd38fd0692a3d865a32a60dadf4a3c704bf3d815))
+
+
+### Code Refactoring
+
+* **core:** factorise truncations into DNA ([8031407](https://github.com/fangfufu/AmplifyP/commit/8031407183cea1b8afc30be946923b19c4627167))
+* **gui:** extract base classes for designer views ([a7817ad](https://github.com/fangfufu/AmplifyP/commit/a7817ad874a9c9a5855c0fabd0cdcca2f7f6f5e1))
+* **gui:** update primer info units to nt ([1efcaf0](https://github.com/fangfufu/AmplifyP/commit/1efcaf0ed71479f871a86f1fef97fdfe16d9e8c1))
+
 ## [1.17.1](https://github.com/fangfufu/AmplifyP/compare/v1.17.0...v1.17.1) (2026-07-27)
 
 
