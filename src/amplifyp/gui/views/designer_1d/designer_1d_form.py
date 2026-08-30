@@ -15,6 +15,8 @@
 
 """Form component and input validation for 1D Primer Designer View."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import Any
 
@@ -24,74 +26,33 @@ from amplifyp.dna import DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.gui.views.designer import BaseDesignerForm, create_field_container
 
 
-def _create_field_container(
-    label_text: str,
-    field: ft.Control,
-    expand: bool | int | None = True,
-    width: int | None = None,
-) -> ft.Column:
-    """Create a column with a fixed header label above the input control."""
-    return ft.Column(
-        [
-            ft.Text(
-                label_text,
-                size=12,
-                weight=ft.FontWeight.W_500,
-                color=GUIColours.TEXT_ON_SURFACE,
-            ),
-            field,
-        ],
-        spacing=2,
-        expand=expand,
-        width=width,
-    )
-
-
-class Designer1DForm(ft.Column):  # type: ignore[misc]
+class Designer1DForm(BaseDesignerForm):
     """Form controls and validation logic for 1D Primer Designer."""
 
     def __init__(
         self,
         settings: GUISettings,
         on_submit_callback: Callable[[], Any],
-        on_clear_error_callback: Callable[[ft.ControlEvent], None]
-        | None = None,
+        on_clear_error_callback: Callable[[Any], None] | None = None,
         on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
         on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
         on_clear_all_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer1DForm."""
-        super().__init__(spacing=8)
-        self.settings = settings
-        self.on_submit_callback = on_submit_callback
-        self.on_clear_error_callback = on_clear_error_callback
-
-        # Action buttons
-        self.save_button = ft.FilledTonalButton(
-            "Save",
-            icon=ft.Icons.SAVE,
-            tooltip="Save parameters to YAML",
-            on_click=on_save_callback,
-            height=32,
-        )
-        self.load_button = ft.FilledTonalButton(
-            "Load",
-            icon=ft.Icons.UPLOAD_FILE,
-            tooltip="Load parameters from YAML",
-            on_click=on_load_callback,
-            height=32,
-        )
-        self.clear_all_button = ft.FilledTonalButton(
-            "Clear All",
-            icon=ft.Icons.CLEAR_ALL,
-            tooltip="Clear all parameters and results",
-            on_click=on_clear_all_callback,
-            height=32,
+        super().__init__(
+            settings=settings,
+            on_submit_callback=on_submit_callback,
+            on_clear_error_callback=on_clear_error_callback,
+            on_save_callback=on_save_callback,
+            on_load_callback=on_load_callback,
+            on_clear_all_callback=on_clear_all_callback,
+            spacing=8,
         )
 
-        # Input fields
+        # 1D-specific input fields
         self.dna_input = ft.TextField(
             hint_text="e.g. ATGCGTACGT...",
             expand=True,
@@ -117,62 +78,15 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
-        self.max_quality_input = ft.TextField(
-            hint_text="Unconstrained if empty",
-            value="",
-            expand=True,
-            border_color=GUIColours.OUTLINE,
-            on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
-        )
-        self.max_overlap_input = ft.TextField(
-            hint_text="Unconstrained if empty",
-            value="",
-            expand=True,
-            border_color=GUIColours.OUTLINE,
-            on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
-        )
-        self.analyse_button = ft.FilledButton(
-            "Analyse",
-            icon=ft.Icons.PLAY_ARROW,
-            tooltip="Run 1D Primer Truncation Analysis",
-            on_click=self._on_submit_event,
-        )
-        self.error_text = ft.Text(
-            "", color=GUIColours.ERROR_RED, visible=False, size=12
-        )
 
         self.controls = [
-            ft.Container(
-                content=ft.Row(
-                    [
-                        ft.Text(
-                            "1D Truncation Parameters",
-                            weight=ft.FontWeight.BOLD,
-                            size=self.settings.get("font_size_subheader", 16),
-                        ),
-                        ft.Row(
-                            [
-                                self.load_button,
-                                self.save_button,
-                                self.clear_all_button,
-                            ],
-                            spacing=4,
-                            tight=True,
-                        ),
-                    ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                margin=ft.Margin.only(bottom=6),
-            ),
+            self._build_header_container("1D Truncation Parameters"),
             ft.Row(
                 [
-                    _create_field_container(
+                    create_field_container(
                         "Candidate Primer Sequence", self.dna_input, expand=True
                     ),
-                    _create_field_container(
+                    create_field_container(
                         "Length (nt)",
                         self.length_display,
                         expand=False,
@@ -181,25 +95,12 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
                 ],
                 spacing=8,
             ),
-            ft.Row(
-                [
-                    _create_field_container(
+            self._build_filter_row(
+                extra_controls=[
+                    create_field_container(
                         "Min Length (nt)", self.min_len_input, expand=True
                     ),
-                    _create_field_container(
-                        "Max Quality", self.max_quality_input, expand=True
-                    ),
-                    _create_field_container(
-                        "Max Overlap (bp)", self.max_overlap_input, expand=True
-                    ),
-                    ft.Container(
-                        content=self.analyse_button,
-                        margin=ft.Margin.only(top=18, left=8),
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.START,
-                spacing=8,
+                ]
             ),
             self.error_text,
         ]
@@ -211,45 +112,11 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
         self.length_display.value = str(len(cleaned))
         self._clear_field_error(e)
 
-    def _on_submit_event(self, e: ft.ControlEvent) -> None:
-        """Handle submit/click events from form controls."""
-        self.on_submit_callback()
-
-    def _clear_field_error(self, e: ft.ControlEvent) -> None:
-        """Clear error text when user edits an input field."""
-        ctrl = getattr(e, "control", None)
-        if isinstance(ctrl, ft.TextField) and ctrl.error:
-            ctrl.error = None
-            try:
-                if self.page:
-                    self.page.update()
-            except RuntimeError:
-                pass
-        if self.on_clear_error_callback:
-            self.on_clear_error_callback(e)
-
     def clear_errors(self) -> None:
         """Clear all field error indicators and general error message."""
+        super().clear_errors()
         self.dna_input.error = None
         self.min_len_input.error = None
-        self.max_quality_input.error = None
-        self.max_overlap_input.error = None
-        self.error_text.visible = False
-        self.error_text.value = ""
-
-    def show_field_error(self, field: ft.TextField, message: str) -> None:
-        """Set error text on a specific field."""
-        field.error = message
-        try:
-            if self.page:
-                self.page.update()
-        except RuntimeError:
-            pass
-
-    def show_error(self, message: str) -> None:
-        """Display validation error message."""
-        self.error_text.value = message
-        self.error_text.visible = True
 
     def validate_and_get_params(
         self,
@@ -300,41 +167,12 @@ class Designer1DForm(ft.Column):  # type: ignore[misc]
             return None
 
         mode = DNADirection.FWD
+        threshold, q_valid = self.validate_max_quality(int_only=True)
+        if not q_valid:
+            return None
 
-        max_q_raw = (self.max_quality_input.value or "").strip()
-        threshold: float | None = None
-        if max_q_raw:
-            try:
-                q_int = int(max_q_raw)
-                if q_int < 0:
-                    self.show_field_error(
-                        self.max_quality_input,
-                        "Max Quality must be a non-negative integer.",
-                    )
-                    return None
-                threshold = float(q_int)
-            except ValueError:
-                self.show_field_error(
-                    self.max_quality_input,
-                    "Max Quality must be an integer.",
-                )
-                return None
-
-        max_overlap_raw = (self.max_overlap_input.value or "").strip()
-        max_overlap: int | None = None
-        if max_overlap_raw:
-            if not max_overlap_raw.isdigit():
-                self.show_field_error(
-                    self.max_overlap_input,
-                    "Max Overlap must be a non-negative integer.",
-                )
-                return None
-            max_overlap = int(max_overlap_raw)
-            if max_overlap < 0:
-                self.show_field_error(
-                    self.max_overlap_input,
-                    "Max Overlap must be a non-negative integer.",
-                )
-                return None
+        max_overlap, o_valid = self.validate_max_overlap()
+        if not o_valid:
+            return None
 
         return clean_seq, min_length, mode, threshold, max_overlap

@@ -15,6 +15,8 @@
 
 """Dismissible2DCard component for 2D primer designer view."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 
 import flet as ft
@@ -24,6 +26,10 @@ from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import create_overlapped_sequence_view
+from amplifyp.gui.views.designer.designer_card_helpers import (
+    build_primer_summary_row,
+    create_badge,
+)
 from amplifyp.gui.views.pcr.dismissible_detail_card import DismissibleDetailCard
 from amplifyp.primer_designer_2d import PrimerDimers2D
 
@@ -62,30 +68,24 @@ class Dismissible2DCard(DismissibleDetailCard):
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
 
-        # Mean overlap across all dimers
-        mean_overlap = step.mean_overlap
-
-        def _make_badge(
-            text: str, bg_colour: str | None = None
-        ) -> ft.Container:
-            return ft.Container(
-                content=ft.Text(
-                    text,
-                    weight=ft.FontWeight.BOLD,
-                    color=GUIColours.DIAGRAM_BLACK,
-                    size=font_size_small,
-                ),
-                bgcolor=bg_colour or GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(8, 4, 8, 4),
-                border_radius=4,
-            )
-
         # Right hand side title metric boxes
         title_controls = [
-            _make_badge(f"Max Quality: {round(step.max_quality)}"),
-            _make_badge(f"Mean Quality: {round(step.mean_quality)}"),
-            _make_badge(f"Max Overlap: {step.max_overlap} bp"),
-            _make_badge(f"Mean Overlap: {mean_overlap:.1f} bp"),
+            create_badge(
+                f"Max Quality: {round(step.max_quality)}",
+                font_size=font_size_small,
+            ),
+            create_badge(
+                f"Mean Quality: {round(step.mean_quality)}",
+                font_size=font_size_small,
+            ),
+            create_badge(
+                f"Max Overlap: {step.max_overlap} bp",
+                font_size=font_size_small,
+            ),
+            create_badge(
+                f"Mean Overlap: {step.mean_overlap:.1f} bp",
+                font_size=font_size_small,
+            ),
         ]
 
         # Primer details section (Forward & Reverse)
@@ -129,87 +129,12 @@ class Dismissible2DCard(DismissibleDetailCard):
         Returns:
             Container with formatted rows for forward and reverse primers.
         """
-
-        def _make_badge(text: str) -> ft.Container:
-            return ft.Container(
-                content=ft.Text(
-                    text,
-                    weight=ft.FontWeight.BOLD,
-                    color=GUIColours.DIAGRAM_BLACK,
-                    size=font_size_small,
-                ),
-                bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(6, 3, 6, 3),
-                border_radius=4,
-            )
-
-        def _build_primer_row(label: str, primer: Primer) -> ft.Column:
-            pct_at = primer.ratio_at() * 100.0
-
-            try:
-                tm_val = self.settings.calculate_primer_tm(primer)
-                tm_text = f"Tm: {tm_val:.1f}°C"
-            except (KeyError, ValueError, RuntimeError):
-                tm_text = "Tm: N/A"
-
-            seq_field = ft.TextField(
-                value=primer.seq,
-                read_only=True,
-                expand=True,
-                dense=True,
-                border_color=GUIColours.OUTLINE,
-                content_padding=ft.Padding(8, 4, 8, 4),
-            )
-
-            async def _copy_seq_async() -> None:
-                await ft.Clipboard().set(primer.seq)
-
-            def _copy_seq(e: ft.ControlEvent) -> None:
-                try:
-                    if e.page:
-                        e.page.run_task(_copy_seq_async)
-                except RuntimeError:
-                    pass
-
-            copy_btn = ft.IconButton(
-                icon=ft.Icons.COPY,
-                icon_size=16,
-                tooltip=f"Copy {label} sequence",
-                on_click=_copy_seq,
-            )
-
-            return ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.Text(
-                                f"{label} ({len(primer.seq)} nt):",
-                                weight=ft.FontWeight.BOLD,
-                                size=font_size_small,
-                            ),
-                            ft.Row(
-                                [
-                                    _make_badge(tm_text),
-                                    _make_badge(f"% AT: {pct_at:.1f}%"),
-                                ],
-                                spacing=8,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    ),
-                    ft.Row(
-                        [
-                            seq_field,
-                            copy_btn,
-                        ],
-                        spacing=4,
-                    ),
-                ],
-                spacing=4,
-            )
-
-        fwd_col = _build_primer_row("Forward Primer", fwd_p)
-        rev_col = _build_primer_row("Reverse Primer", rev_p)
+        fwd_col = build_primer_summary_row(
+            "Forward Primer", fwd_p, self.settings, font_size_small
+        )
+        rev_col = build_primer_summary_row(
+            "Reverse Primer", rev_p, self.settings, font_size_small
+        )
 
         return ft.Container(
             content=ft.Column(
@@ -285,25 +210,15 @@ class Dismissible2DCard(DismissibleDetailCard):
                     ),
                     ft.Row(
                         [
-                            ft.Container(
-                                content=ft.Text(
-                                    f"Quality: {round(dimer.quality)}",
-                                    weight=ft.FontWeight.BOLD,
-                                    size=font_size_small,
-                                ),
-                                bgcolor=GUIColours.SELECTED_ROW_BG,
+                            create_badge(
+                                f"Quality: {round(dimer.quality)}",
+                                font_size=font_size_small,
                                 padding=ft.Padding(6, 2, 6, 2),
-                                border_radius=4,
                             ),
-                            ft.Container(
-                                content=ft.Text(
-                                    f"Overlap: {dimer.overlap} bp",
-                                    weight=ft.FontWeight.BOLD,
-                                    size=font_size_small,
-                                ),
-                                bgcolor=GUIColours.SELECTED_ROW_BG,
+                            create_badge(
+                                f"Overlap: {dimer.overlap} bp",
+                                font_size=font_size_small,
                                 padding=ft.Padding(6, 2, 6, 2),
-                                border_radius=4,
                             ),
                         ],
                         spacing=6,

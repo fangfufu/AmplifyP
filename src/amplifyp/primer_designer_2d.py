@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 
 from .amplicon import AmpliconGenerator
 from .dimer import PrimerDimer, PrimerDimerGenerator
-from .dna import DNA, Primer
+from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
 
 if TYPE_CHECKING:
@@ -170,23 +170,16 @@ class PrimerDesigner2D:
                 lengths, if max_amplicon_count is specified without template, or
                 if max_amplicon_count is negative.
         """
-        if fwd_min_length <= 0:
-            raise ValueError("Forward target length n must be greater than 0.")
-        if len(fwd_dna.seq_upper) < fwd_min_length:
-            msg = (
-                f"Forward target length n ({fwd_min_length}) cannot exceed "
-                f"initial sequence length ({len(fwd_dna.seq_upper)})."
-            )
-            raise ValueError(msg)
-
-        if rev_min_length <= 0:
-            raise ValueError("Reverse target length n must be greater than 0.")
-        if len(rev_dna.seq_upper) < rev_min_length:
-            msg = (
-                f"Reverse target length n ({rev_min_length}) cannot exceed "
-                f"initial sequence length ({len(rev_dna.seq_upper)})."
-            )
-            raise ValueError(msg)
+        fwd_dna.generate_truncations(
+            fwd_min_length,
+            DNADirection.FWD,
+            prefix="Forward target length n",
+        )
+        rev_dna.generate_truncations(
+            rev_min_length,
+            DNADirection.REV,
+            prefix="Reverse target length n",
+        )
 
         if max_amplicon_count is not None:
             if template is None:
@@ -361,24 +354,12 @@ class PrimerDesigner2D:
         truncated from 5' end.
         """
         self._steps.clear()
-
-        # Forward sequence truncation (3' end chopping)
-        fwd_seqs: list[str] = []
-        seq = self._fwd_dna.seq_upper
-        while len(seq) >= self._fwd_min_length:
-            fwd_seqs.append(seq)
-            if len(seq) == self._fwd_min_length:
-                break
-            seq = seq[:-1]
-
-        # Reverse sequence truncation (5' end chopping)
-        rev_seqs: list[str] = []
-        seq = self._rev_dna.seq_upper
-        while len(seq) >= self._rev_min_length:
-            rev_seqs.append(seq)
-            if len(seq) == self._rev_min_length:
-                break
-            seq = seq[1:]
+        fwd_seqs = self._fwd_dna.generate_truncations(
+            self._fwd_min_length, DNADirection.FWD
+        )
+        rev_seqs = self._rev_dna.generate_truncations(
+            self._rev_min_length, DNADirection.REV
+        )
 
         for fwd_seq in fwd_seqs:
             fwd_p = Primer(fwd_seq)
@@ -396,10 +377,7 @@ class PrimerDesigner2D:
                         rev_conf = Repliconf(self._template, rev_p)
                         amp_gen.add_repliconf(rev_conf)
                     amplicon_count = len(amp_gen.get_amplicons())
-                    if (
-                        self._max_amplicon_count is not None
-                        and amplicon_count > self._max_amplicon_count
-                    ):
+                    if amplicon_count > self._max_amplicon_count:
                         continue
 
                 d_ff = self._generator.generate_primer_dimer(

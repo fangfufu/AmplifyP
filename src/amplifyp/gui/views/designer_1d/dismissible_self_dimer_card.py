@@ -21,8 +21,11 @@ from typing import cast
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer
-from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.views.designer.designer_card_helpers import (
+    create_badge,
+    format_primer_properties,
+)
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
 from amplifyp.gui.views.pcr.dismissible_detail_card import DismissibleDetailCard
 
@@ -73,30 +76,11 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         )
         metric_controls = cast(ft.Row, header_row.controls[1])
 
-        primer_obj = dimer.primer_1
-        pct_at = primer_obj.ratio_at() * 100.0
-
-        try:
-            tm_val = settings.calculate_primer_tm(dimer.primer_1)
-            tm_text = f"Tm: {tm_val:.1f}°C"
-        except (KeyError, ValueError, RuntimeError):
-            tm_text = "Tm: N/A"
-
-        def _make_badge(text: str) -> ft.Container:
-            return ft.Container(
-                content=ft.Text(
-                    text,
-                    weight=ft.FontWeight.BOLD,
-                    color=GUIColours.DIAGRAM_BLACK,
-                    size=font_size_small,
-                ),
-                bgcolor=GUIColours.SELECTED_ROW_BG,
-                padding=ft.Padding(8, 4, 8, 4),
-                border_radius=4,
-            )
-
-        tm_badge = _make_badge(tm_text)
-        pct_at_badge = _make_badge(f"% AT: {pct_at:.1f}%")
+        tm_text, pct_at_text = format_primer_properties(
+            dimer.primer_1, settings
+        )
+        tm_badge = create_badge(tm_text, font_size=font_size_small)
+        pct_at_badge = create_badge(pct_at_text, font_size=font_size_small)
 
         title_controls = [
             *metric_controls.controls,

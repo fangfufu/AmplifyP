@@ -241,3 +241,43 @@ def test_dna_add_primer() -> None:
     assert isinstance(combined, DNA)
     assert combined.type == DNAType.LINEAR
     assert combined.seq == "ACGTTGCA"
+
+
+def test_dna_generate_truncations_fwd() -> None:
+    """Test Forward truncation chops bases from 3' end."""
+    dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    truncations = dna.generate_truncations(min_length=7)
+    assert truncations == [
+        "ATGCGTACGT",
+        "ATGCGTACG",
+        "ATGCGTAC",
+        "ATGCGTA",
+    ]
+
+
+def test_dna_generate_truncations_rev() -> None:
+    """Test Reverse truncation chops bases from 5' end."""
+    dna = DNA("ATGCGTACGT", direction=DNADirection.REV)
+    truncations = dna.generate_truncations(min_length=7)
+    assert truncations == [
+        "ATGCGTACGT",
+        "TGCGTACGT",
+        "GCGTACGT",
+        "CGTACGT",
+    ]
+
+
+def test_dna_generate_truncations_invalid() -> None:
+    """Test invalid arguments raise ValueError."""
+    dna = DNA("ATGCGTACGT")
+    with pytest.raises(
+        ValueError, match=r"Target length n must be greater than 0\."
+    ):
+        dna.generate_truncations(min_length=0)
+
+    msg = (
+        r"Target length n \(15\) cannot exceed initial sequence length "
+        r"\(10\)\."
+    )
+    with pytest.raises(ValueError, match=msg):
+        dna.generate_truncations(min_length=15)
