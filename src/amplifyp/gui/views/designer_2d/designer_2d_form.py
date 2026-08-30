@@ -27,6 +27,29 @@ from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.primer_designer_2d import FilterMetric
 
 
+def _create_field_container(
+    label_text: str,
+    field: ft.Control,
+    expand: bool | int | None = True,
+    width: int | None = None,
+) -> ft.Column:
+    """Create a column with a fixed header label above the input control."""
+    return ft.Column(
+        [
+            ft.Text(
+                label_text,
+                size=12,
+                weight=ft.FontWeight.W_500,
+                color=GUIColours.TEXT_ON_SURFACE,
+            ),
+            field,
+        ],
+        spacing=2,
+        expand=expand,
+        width=width,
+    )
+
+
 class Designer2DForm(ft.Column):  # type: ignore[misc]
     """Form controls and validation logic for 2D Primer Designer."""
 
@@ -37,6 +60,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         on_clear_error_callback: Callable[[Any], None] | None = None,
         on_save_callback: Callable[[ft.ControlEvent], Any] | None = None,
         on_load_callback: Callable[[ft.ControlEvent], Any] | None = None,
+        on_clear_all_callback: Callable[[ft.ControlEvent], Any] | None = None,
     ) -> None:
         """Initialise the Designer2DForm."""
         super().__init__(spacing=8)
@@ -44,7 +68,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
 
-        # Save and Load buttons
+        # Action buttons
         self.save_button = ft.FilledTonalButton(
             "Save",
             icon=ft.Icons.SAVE,
@@ -59,10 +83,16 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             on_click=on_load_callback,
             height=32,
         )
+        self.clear_all_button = ft.FilledTonalButton(
+            "Clear All",
+            icon=ft.Icons.CLEAR_ALL,
+            tooltip="Clear all parameters and results",
+            on_click=on_clear_all_callback,
+            height=32,
+        )
 
         # Input fields
         self.fwd_dna_input = ft.TextField(
-            label="Forward Candidate Primer Sequence",
             hint_text="e.g. ATGCGTACGT...",
             expand=True,
             multiline=False,
@@ -72,15 +102,14 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             on_change=self._clear_field_error,
         )
         self.fwd_min_len_input = ft.TextField(
-            label="Fwd Min Len (bp)",
-            value="18",
+            hint_text="e.g. 18",
+            value="",
             width=160,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
         self.rev_dna_input = ft.TextField(
-            label="Reverse Candidate Primer Sequence",
             hint_text="e.g. CGTACGATGC...",
             expand=True,
             multiline=False,
@@ -89,27 +118,15 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             on_change=self._clear_field_error,
         )
         self.rev_min_len_input = ft.TextField(
-            label="Rev Min Len (bp)",
-            value="18",
+            hint_text="e.g. 18",
+            value="",
             width=160,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
 
-        pd_settings = self.settings.get_primer_dimer_settings()
-
-        self.quality_filter_input = ft.TextField(
-            label="Quality Filter",
-            hint_text="Unconstrained if empty",
-            value=f"{pd_settings.threshold:.1f}",
-            expand=True,
-            border_color=GUIColours.OUTLINE,
-            on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
-        )
-        self.overlap_filter_input = ft.TextField(
-            label="Overlap Filter (bp)",
+        self.max_quality_input = ft.TextField(
             hint_text="Unconstrained if empty",
             value="",
             expand=True,
@@ -117,15 +134,13 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
-        self.filter_metric_dropdown = ft.Dropdown(
-            label="Metric",
-            options=[
-                ft.dropdown.Option("MAX", "Max"),
-                ft.dropdown.Option("MEAN", "Mean"),
-            ],
-            value="MAX",
-            width=150,
+        self.max_overlap_input = ft.TextField(
+            hint_text="Unconstrained if empty",
+            value="",
+            expand=True,
             border_color=GUIColours.OUTLINE,
+            on_submit=self._on_submit_event,
+            on_change=self._clear_field_error,
         )
         self.analyse_button = ft.FilledButton(
             "Analyse",
@@ -147,7 +162,11 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                             size=self.settings.get("font_size_subheader", 16),
                         ),
                         ft.Row(
-                            [self.load_button, self.save_button],
+                            [
+                                self.load_button,
+                                self.save_button,
+                                self.clear_all_button,
+                            ],
                             spacing=4,
                             tight=True,
                         ),
@@ -157,24 +176,72 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 ),
                 margin=ft.Margin.only(bottom=6),
             ),
-            ft.Row([self.fwd_dna_input, self.fwd_min_len_input], spacing=8),
-            ft.Row([self.rev_dna_input, self.rev_min_len_input], spacing=8),
             ft.Row(
                 [
-                    self.quality_filter_input,
-                    self.overlap_filter_input,
-                    self.filter_metric_dropdown,
+                    _create_field_container(
+                        "Forward Candidate Primer Sequence",
+                        self.fwd_dna_input,
+                        expand=True,
+                    ),
+                    _create_field_container(
+                        "Fwd Min Length (nt)",
+                        self.fwd_min_len_input,
+                        expand=False,
+                        width=160,
+                    ),
+                ],
+                spacing=8,
+            ),
+            ft.Row(
+                [
+                    _create_field_container(
+                        "Reverse Candidate Primer Sequence",
+                        self.rev_dna_input,
+                        expand=True,
+                    ),
+                    _create_field_container(
+                        "Rev Min Length (nt)",
+                        self.rev_min_len_input,
+                        expand=False,
+                        width=160,
+                    ),
+                ],
+                spacing=8,
+            ),
+            ft.Row(
+                [
+                    _create_field_container(
+                        "Max Quality",
+                        self.max_quality_input,
+                        expand=True,
+                    ),
+                    _create_field_container(
+                        "Max Overlap (bp)",
+                        self.max_overlap_input,
+                        expand=True,
+                    ),
                     ft.Container(
                         content=self.analyse_button,
-                        margin=ft.Margin.only(left=8),
+                        margin=ft.Margin.only(top=18, left=8),
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.START,
-                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.START,
                 spacing=8,
             ),
             self.error_text,
         ]
+
+    # --- Property aliases for backwards compatibility ---
+    @property
+    def quality_filter_input(self) -> ft.TextField:
+        """Alias for max_quality_input."""
+        return self.max_quality_input
+
+    @property
+    def overlap_filter_input(self) -> ft.TextField:
+        """Alias for max_overlap_input."""
+        return self.max_overlap_input
 
     def _on_submit_event(self, e: Any) -> None:
         """Handle submit/click events from form controls."""
@@ -199,8 +266,8 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
         self.fwd_min_len_input.error = None
         self.rev_dna_input.error = None
         self.rev_min_len_input.error = None
-        self.quality_filter_input.error = None
-        self.overlap_filter_input.error = None
+        self.max_quality_input.error = None
+        self.max_overlap_input.error = None
         self.error_text.visible = False
         self.error_text.value = ""
 
@@ -229,16 +296,21 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             has_error = True
 
         # Validate Forward Min Length
-        fwd_min_len = 18
+        fwd_min_len_raw = (self.fwd_min_len_input.value or "").strip()
+        fwd_min_len = 0
         fwd_min_len_valid = False
-        try:
-            fwd_min_len = int(self.fwd_min_len_input.value or "18")
-            if fwd_min_len <= 0:
-                raise ValueError
-            fwd_min_len_valid = True
-        except ValueError:
+        if not fwd_min_len_raw:
             self.fwd_min_len_input.error = "Must be > 0"
             has_error = True
+        else:
+            try:
+                fwd_min_len = int(fwd_min_len_raw)
+                if fwd_min_len <= 0:
+                    raise ValueError
+                fwd_min_len_valid = True
+            except ValueError:
+                self.fwd_min_len_input.error = "Must be > 0"
+                has_error = True
 
         if (
             fwd_min_len_valid
@@ -260,16 +332,21 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
             has_error = True
 
         # Validate Reverse Min Length
-        rev_min_len = 18
+        rev_min_len_raw = (self.rev_min_len_input.value or "").strip()
+        rev_min_len = 0
         rev_min_len_valid = False
-        try:
-            rev_min_len = int(self.rev_min_len_input.value or "18")
-            if rev_min_len <= 0:
-                raise ValueError
-            rev_min_len_valid = True
-        except ValueError:
+        if not rev_min_len_raw:
             self.rev_min_len_input.error = "Must be > 0"
             has_error = True
+        else:
+            try:
+                rev_min_len = int(rev_min_len_raw)
+                if rev_min_len <= 0:
+                    raise ValueError
+                rev_min_len_valid = True
+            except ValueError:
+                self.rev_min_len_input.error = "Must be > 0"
+                has_error = True
 
         if (
             rev_min_len_valid
@@ -283,26 +360,26 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
 
         # Quality filter
         threshold: float | None = None
-        q_str = (self.quality_filter_input.value or "").strip()
+        q_str = (self.max_quality_input.value or "").strip()
         if q_str:
             try:
                 threshold = float(q_str)
                 if threshold < 0:
                     raise ValueError
             except ValueError:
-                self.quality_filter_input.error = "Must be >= 0"
+                self.max_quality_input.error = "Must be >= 0"
                 has_error = True
 
         # Overlap filter
         max_overlap: int | None = None
-        o_str = (self.overlap_filter_input.value or "").strip()
+        o_str = (self.max_overlap_input.value or "").strip()
         if o_str:
             try:
                 max_overlap = int(o_str)
                 if max_overlap < 0:
                     raise ValueError
             except ValueError:
-                self.overlap_filter_input.error = "Must be >= 0"
+                self.max_overlap_input.error = "Must be >= 0"
                 has_error = True
 
         if has_error:
@@ -313,11 +390,7 @@ class Designer2DForm(ft.Column):  # type: ignore[misc]
                 pass
             raise ValueError("Input validation failed")
 
-        # Filter metric
-        metric_str = (self.filter_metric_dropdown.value or "MAX").lower()
-        filter_metric = (
-            FilterMetric.MEAN if metric_str == "mean" else FilterMetric.MAX
-        )
+        filter_metric = FilterMetric.MAX
 
         fwd_dna = DNA(cleaned_fwd_seq, direction=DNADirection.FWD)
         rev_dna = DNA(cleaned_rev_seq, direction=DNADirection.REV)

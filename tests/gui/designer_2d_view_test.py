@@ -49,10 +49,12 @@ def test_designer_2d_view_initialisation() -> None:
     assert view.left_container.expand == 1
     assert view.right_container.expand == 1
     assert view.form.fwd_dna_input.value == ""
-    assert view.form.fwd_min_len_input.value == "18"
+    assert view.form.fwd_min_len_input.value == ""
     assert view.form.rev_dna_input.value == ""
-    assert view.form.rev_min_len_input.value == "18"
-    assert view.form.filter_metric_dropdown.value == "MAX"
+    assert view.form.rev_min_len_input.value == ""
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
+    assert view.form.clear_all_button is not None
     assert len(view.right_cards_list.controls) == 0
 
 
@@ -65,9 +67,8 @@ def test_designer_2d_form_validation_success() -> None:
     form.fwd_min_len_input.value = "8"
     form.rev_dna_input.value = "CGTACGATGC"
     form.rev_min_len_input.value = "8"
-    form.quality_filter_input.value = "50.0"
-    form.overlap_filter_input.value = "5"
-    form.filter_metric_dropdown.value = "MEAN"
+    form.max_quality_input.value = "50.0"
+    form.max_overlap_input.value = "5"
 
     (
         fwd_dna,
@@ -85,7 +86,7 @@ def test_designer_2d_form_validation_success() -> None:
     assert rev_min_len == 8
     assert threshold == 50.0
     assert max_overlap == 5
-    assert filter_metric == FilterMetric.MEAN
+    assert filter_metric == FilterMetric.MAX
 
 
 def test_designer_2d_form_validation_errors() -> None:
@@ -107,6 +108,16 @@ def test_designer_2d_form_validation_errors() -> None:
         == "Reverse candidate primer sequence cannot be empty"
     )
 
+    # Empty min lengths
+    form.fwd_dna_input.value = "ATGCGTACGT"
+    form.rev_dna_input.value = "CGTACGATGC"
+    form.fwd_min_len_input.value = ""
+    form.rev_min_len_input.value = ""
+    with pytest.raises(ValueError, match="Input validation failed"):
+        form.validate_and_get_params()
+    assert form.fwd_min_len_input.error == "Must be > 0"
+    assert form.rev_min_len_input.error == "Must be > 0"
+
     # Forward min length exceeds sequence length
     form.fwd_dna_input.value = "ATGC"
     form.fwd_min_len_input.value = "10"
@@ -121,10 +132,10 @@ def test_designer_2d_form_validation_errors() -> None:
     form.fwd_min_len_input.value = "8"
     form.rev_dna_input.value = "CGTACGATGC"
     form.rev_min_len_input.value = "8"
-    form.quality_filter_input.value = "-5.0"
+    form.max_quality_input.value = "-5.0"
     with pytest.raises(ValueError, match="Input validation failed"):
         form.validate_and_get_params()
-    assert form.quality_filter_input.error == "Must be >= 0"
+    assert form.max_quality_input.error == "Must be >= 0"
 
 
 def test_designer_2d_view_run_analysis_and_grid() -> None:
@@ -138,9 +149,8 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
     view.form.fwd_min_len_input.value = "8"
     view.form.rev_dna_input.value = "CGTACGATGC"
     view.form.rev_min_len_input.value = "8"
-    view.form.quality_filter_input.value = ""
-    view.form.overlap_filter_input.value = ""
-    view.form.filter_metric_dropdown.value = "MAX"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
 
     view._run_designer_event()
 
@@ -161,9 +171,46 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
     card = view.right_cards_list.controls[0]
     assert isinstance(card, Dismissible2DCard)
     assert (
-        "Forward: 10 bp, Reverse: 10 bp" in card._card_id
+        "Forward: 10 nt, Reverse: 10 nt" in card._card_id
         or card.step == step_10_10
     )
+
+
+def test_designer_2d_view_clear_all() -> None:
+    """Test Clear All resets all 2D parameters, grid results, and cards."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+
+    view._run_designer_event()
+    assert view._cached_designer is not None
+    assert len(view.results_grid._cell_containers) == 9
+
+    # Add a card
+    step = view._cached_designer.get_step(0)
+    view.results_grid._on_cell_click(step, (10, 10))
+    assert len(view.right_cards_list.controls) == 1
+
+    # Clear all
+    view._clear_all(None)
+
+    assert view.form.fwd_dna_input.value == ""
+    assert view.form.fwd_min_len_input.value == ""
+    assert view.form.rev_dna_input.value == ""
+    assert view.form.rev_min_len_input.value == ""
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
+    assert view._cached_designer is None
+    assert len(view.results_grid._cell_containers) == 0
+    assert len(view.right_cards_list.controls) == 0
 
 
 def test_dismissible_2d_card_dismiss_and_clear() -> None:
@@ -289,9 +336,8 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     view.form.fwd_min_len_input.value = "8"
     view.form.rev_dna_input.value = "CGTACGATGC"
     view.form.rev_min_len_input.value = "8"
-    view.form.quality_filter_input.value = ""
-    view.form.overlap_filter_input.value = ""
-    view.form.filter_metric_dropdown.value = "MEAN"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
 
     saved_content = ""
 
@@ -321,9 +367,8 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     assert parsed["fwd_min_length"] == "8"
     assert parsed["rev_dna"] == "CGTACGATGC"
     assert parsed["rev_min_length"] == "8"
-    assert parsed["quality_filter"] == ""
-    assert parsed["overlap_filter"] == ""
-    assert parsed["filter_metric"] == "MEAN"
+    assert parsed["max_quality"] == ""
+    assert parsed["max_overlap"] == ""
 
     # 2. Test Load
     # Reset form to different values
@@ -331,9 +376,8 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     view.form.fwd_min_len_input.value = "10"
     view.form.rev_dna_input.value = "ATG"
     view.form.rev_min_len_input.value = "10"
-    view.form.quality_filter_input.value = "60.0"
-    view.form.overlap_filter_input.value = "3"
-    view.form.filter_metric_dropdown.value = "MAX"
+    view.form.max_quality_input.value = "60.0"
+    view.form.max_overlap_input.value = "3"
 
     async def mock_pick_and_read_file(
         page: ft.Page,
@@ -354,11 +398,9 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     assert view.form.fwd_min_len_input.value == "8"
     assert view.form.rev_dna_input.value == "CGTACGATGC"
     assert view.form.rev_min_len_input.value == "8"
-    assert view.form.quality_filter_input.value == ""
-    assert view.form.overlap_filter_input.value == ""
-    assert view.form.filter_metric_dropdown.value == "MEAN"
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
 
-    # Verify that the analysis automatically ran (should populate
-    # _cached_designer)
+    # Verify that the analysis automatically ran (populates _cached_designer)
     assert view._cached_designer is not None
     assert len(view._cached_designer) == 9

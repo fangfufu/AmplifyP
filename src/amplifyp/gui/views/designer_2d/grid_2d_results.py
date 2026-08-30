@@ -26,7 +26,6 @@ from amplifyp.gui.colours import (
 )
 from amplifyp.gui.settings import GUISettings
 from amplifyp.primer_designer_2d import (
-    FilterMetric,
     PrimerDesigner2D,
     PrimerDimers2D,
 )
@@ -73,6 +72,35 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             scroll=ft.ScrollMode.ALWAYS,
         )
         self.content = self.content_column
+
+    def clear_grid(self) -> None:
+        """Reset grid to empty initial state."""
+        self._selected_step = None
+        self._cell_containers.clear()
+        self._cell_bg_colours.clear()
+        self._best_cell_keys.clear()
+        self.content_column.controls = [
+            ft.Text(
+                "2D Truncation Results Grid",
+                weight=ft.FontWeight.BOLD,
+                size=self.settings.get("font_size_subheader", 16),
+            ),
+            ft.Container(
+                content=ft.Text(
+                    "Run 2D analysis to view quality and overlap matrix.",
+                    italic=True,
+                    size=self.settings.get("font_size_small", 12),
+                    color=GUIColours.TEXT_ON_SURFACE,
+                ),
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+            ),
+        ]
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
 
     def update_grid(self, designer: PrimerDesigner2D) -> None:
         """Populate and render the 2D matrix grid.
@@ -127,13 +155,10 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         fwd_lengths = sorted(fwd_lengths_set, reverse=True)
         rev_lengths = sorted(rev_lengths_set, reverse=True)
 
-        use_max = designer.filter_metric == FilterMetric.MAX
         font_small = self.settings.get("font_size_small", 11)
         scheme = self.settings.get("designer_2d_colour_scheme", "None")
 
-        qualities = [
-            (s.max_quality if use_max else s.mean_quality) for s in steps
-        ]
+        qualities = [s.max_quality for s in steps]
         min_q = min(qualities) if qualities else 0.0
         max_q = max(qualities) if qualities else 1.0
 
@@ -159,7 +184,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             header_cells.append(
                 ft.Container(
                     content=ft.Text(
-                        f"{f_len} bp",
+                        f"{f_len} nt",
                         weight=ft.FontWeight.BOLD,
                         size=font_small,
                     ),
@@ -179,7 +204,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             row_cells: list[ft.Control] = [
                 ft.Container(
                     content=ft.Text(
-                        f"{r_len} bp",
+                        f"{r_len} nt",
                         weight=ft.FontWeight.BOLD,
                         size=font_small,
                     ),
@@ -212,9 +237,9 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     )
                     continue
 
-                q_val = step.max_quality if use_max else step.mean_quality
-                o_val = step.max_overlap if use_max else step.mean_overlap
-                o_str = f"{o_val}" if use_max else f"{o_val:.1f}"
+                q_val = step.max_quality
+                o_val = step.max_overlap
+                o_str = f"{o_val}"
 
                 is_best = abs(q_val - min_q) < 1e-6
                 if is_best:
@@ -264,10 +289,9 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     on_click=_make_click_handler(step, (f_len, r_len)),
                     tooltip=(
                         f"{tooltip_prefix}"
-                        f"Forward: {f_len} bp | Reverse: {r_len} bp\n"
-                        f"{'Max' if use_max else 'Mean'} "
-                        f"Quality: {round(q_val)}\n"
-                        f"{'Max' if use_max else 'Mean'} Overlap: {o_str} bp"
+                        f"Forward: {f_len} nt | Reverse: {r_len} nt\n"
+                        f"Max Quality: {round(q_val)}\n"
+                        f"Max Overlap: {o_str} bp"
                     ),
                 )
                 self._cell_containers[(f_len, r_len)] = cell_container
@@ -276,11 +300,10 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             grid_rows.append(ft.Row(row_cells, spacing=4))
 
         # Metric Legend Header
-        metric_label = "Max" if use_max else "Mean"
         header_badges: list[ft.Control] = [
             ft.Container(
                 content=ft.Text(
-                    f"Metric: {metric_label} Quality",
+                    "Metric: Max Quality",
                     size=font_small,
                     weight=ft.FontWeight.BOLD,
                     color=GUIColours.PRIMARY,
