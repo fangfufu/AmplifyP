@@ -56,6 +56,7 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             on_submit_callback=self._run_designer_event,
             on_save_callback=self._save_designer_2d_click,
             on_load_callback=self._load_designer_2d_click,
+            on_clear_all_callback=self._clear_all,
         )
 
         # Top-left container (50% default vertical height)
@@ -323,6 +324,24 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
         except RuntimeError:
             pass
 
+    def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
+        """Clear inputs, parameters, error messages, grid, and cards."""
+        self.form.fwd_dna_input.value = ""
+        self.form.fwd_min_len_input.value = ""
+        self.form.rev_dna_input.value = ""
+        self.form.rev_min_len_input.value = ""
+        self.form.max_quality_input.value = ""
+        self.form.max_overlap_input.value = ""
+        self.form.clear_errors()
+        self._cached_designer = None
+        self.results_grid.clear_grid()
+        self._clear_all_cards()
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
     def _show_notification(self, message: str) -> None:
         """Show a notification message."""
         if not hasattr(self, "_notification_helper"):
@@ -336,9 +355,8 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
             "fwd_min_length": (self.form.fwd_min_len_input.value or ""),
             "rev_dna": (self.form.rev_dna_input.value or ""),
             "rev_min_length": (self.form.rev_min_len_input.value or ""),
-            "quality_filter": (self.form.quality_filter_input.value or ""),
-            "overlap_filter": (self.form.overlap_filter_input.value or ""),
-            "filter_metric": (self.form.filter_metric_dropdown.value or "MAX"),
+            "max_quality": (self.form.max_quality_input.value or ""),
+            "max_overlap": (self.form.max_overlap_input.value or ""),
         }
 
         import yaml
@@ -380,25 +398,27 @@ class Designer2DView(ft.Row):  # type: ignore[misc]
                 return
 
             self.form.fwd_dna_input.value = str(params.get("fwd_dna", ""))
-            self.form.fwd_min_len_input.value = str(
-                params.get("fwd_min_length", "18")
+            fwd_min_val = params.get("fwd_min_length")
+            self.form.fwd_min_len_input.value = (
+                str(fwd_min_val) if fwd_min_val is not None else ""
             )
             self.form.rev_dna_input.value = str(params.get("rev_dna", ""))
-            self.form.rev_min_len_input.value = str(
-                params.get("rev_min_length", "18")
-            )
-            self.form.quality_filter_input.value = str(
-                params.get("quality_filter", "")
-            )
-            self.form.overlap_filter_input.value = str(
-                params.get("overlap_filter", "")
+            rev_min_val = params.get("rev_min_length")
+            self.form.rev_min_len_input.value = (
+                str(rev_min_val) if rev_min_val is not None else ""
             )
 
-            metric_val = str(params.get("filter_metric", "MAX")).upper()
-            if metric_val in ("MAX", "MEAN"):
-                self.form.filter_metric_dropdown.value = metric_val
-            else:
-                self.form.filter_metric_dropdown.value = "MAX"
+            # Support both new max_quality and legacy quality_filter
+            max_q_val = params.get("max_quality", params.get("quality_filter"))
+            self.form.max_quality_input.value = (
+                str(max_q_val) if max_q_val is not None else ""
+            )
+
+            # Support both new max_overlap and legacy overlap_filter
+            max_ov_val = params.get("max_overlap", params.get("overlap_filter"))
+            self.form.max_overlap_input.value = (
+                str(max_ov_val) if max_ov_val is not None else ""
+            )
 
             self.form.clear_errors()
             self.app_page.update()

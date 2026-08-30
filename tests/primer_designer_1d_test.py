@@ -196,3 +196,44 @@ def test_primer_designer_threshold_and_max_overlap_filtering() -> None:
     assert designer_o.max_overlap == 6
     assert len(designer_o) == 3
     assert [d.overlap for d in designer_o.all_dimers] == [6, 4, 6]
+
+
+def test_primer_designer_origin_filtering() -> None:
+    """Test template DNA input and max_origin_count origin filtering."""
+    # Primer DNA: ATGCGTACGT (lengths 10, 9, 8, 7)
+    primer_dna = DNA("ATGCGTACGT")
+    # Template DNA containing multiple binding matches for ATGCGTACGT
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT")
+
+    designer = PrimerDesigner1D(
+        primer_dna,
+        min_length=7,
+        template=template_dna,
+        max_origin_count=2,
+    )
+    assert designer.template == template_dna
+    assert designer.max_origin_count == 2
+    # All stored dimers must satisfy origin_count <= max_origin_count
+    from amplifyp.repliconf import Repliconf
+
+    for dimer in designer.all_dimers:
+        repliconf = Repliconf(template_dna, dimer.primer_1)
+        repliconf.search()
+        cnt = len(repliconf.origin_db.fwd) + len(repliconf.origin_db.rev)
+        assert cnt <= 2
+
+
+def test_primer_designer_origin_invalid_inputs() -> None:
+    """Test validation errors for template and max_origin_count."""
+    dna_obj = DNA("ATGCGTACGT")
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGT")
+
+    with pytest.raises(ValueError, match="Template DNA must be provided"):
+        PrimerDesigner1D(dna_obj, min_length=7, max_origin_count=1)
+
+    with pytest.raises(
+        ValueError, match="max_origin_count must be non-negative"
+    ):
+        PrimerDesigner1D(
+            dna_obj, min_length=7, template=template_dna, max_origin_count=-1
+        )

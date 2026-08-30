@@ -21,8 +21,10 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from .amplicon import AmpliconGenerator
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, Primer
+from .repliconf import Repliconf
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -120,10 +122,12 @@ class PrimerDesigner2D:
         "_fwd_dna",
         "_fwd_min_length",
         "_generator",
+        "_max_amplicon_count",
         "_max_overlap",
         "_rev_dna",
         "_rev_min_length",
         "_steps",
+        "_template",
         "_threshold",
     )
 
@@ -137,6 +141,8 @@ class PrimerDesigner2D:
         threshold: float | None = None,
         max_overlap: int | None = None,
         filter_metric: FilterMetric = FilterMetric.MAX,
+        template: DNA | None = None,
+        max_amplicon_count: int | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner2D object and runs the analysis.
 
@@ -154,10 +160,15 @@ class PrimerDesigner2D:
                 filter. Defaults to None.
             filter_metric (FilterMetric, optional): Metric to use for filtering
                 (MAX or MEAN). Defaults to `FilterMetric.MAX`.
+            template (DNA | None, optional): Optional template DNA sequence
+                used to calculate predicted amplicons. Defaults to None.
+            max_amplicon_count (int | None, optional): Upper bound for number of
+                predicted amplicons filter. Defaults to None.
 
         Raises:
             ValueError: If minimum lengths are non-positive or exceed sequence
-                lengths.
+                lengths, if max_amplicon_count is specified without template, or
+                if max_amplicon_count is negative.
         """
         if fwd_min_length <= 0:
             raise ValueError("Forward target length n must be greater than 0.")
@@ -177,6 +188,16 @@ class PrimerDesigner2D:
             )
             raise ValueError(msg)
 
+        if max_amplicon_count is not None:
+            if template is None:
+                msg = (
+                    "Template DNA must be provided when max_amplicon_count "
+                    "filter is specified."
+                )
+                raise ValueError(msg)
+            if max_amplicon_count < 0:
+                raise ValueError("max_amplicon_count must be non-negative.")
+
         self._fwd_dna: DNA = fwd_dna
         self._fwd_min_length: int = fwd_min_length
         self._rev_dna: DNA = rev_dna
@@ -185,6 +206,8 @@ class PrimerDesigner2D:
         self._threshold: float | None = threshold
         self._max_overlap: int | None = max_overlap
         self._filter_metric: FilterMetric = FilterMetric(filter_metric)
+        self._template: DNA | None = template
+        self._max_amplicon_count: int | None = max_amplicon_count
         self._steps: list[PrimerDimers2D] = []
 
         self._analyse()
@@ -228,6 +251,16 @@ class PrimerDesigner2D:
     def filter_metric(self) -> FilterMetric:
         """The filter metric used for evaluation (MAX or MEAN)."""
         return self._filter_metric
+
+    @property
+    def template(self) -> DNA | None:
+        """The optional template DNA object, if set."""
+        return self._template
+
+    @property
+    def max_amplicon_count(self) -> int | None:
+        """The maximum amplicon count cutoff filter, if set."""
+        return self._max_amplicon_count
 
     @property
     def all_steps(self) -> tuple[PrimerDimers2D, ...]:
@@ -351,6 +384,23 @@ class PrimerDesigner2D:
             fwd_p = Primer(fwd_seq)
             for rev_seq in rev_seqs:
                 rev_p = Primer(rev_seq)
+
+                if (
+                    self._template is not None
+                    and self._max_amplicon_count is not None
+                ):
+                    amp_gen = AmpliconGenerator(self._template)
+                    fwd_conf = Repliconf(self._template, fwd_p)
+                    amp_gen.add_repliconf(fwd_conf)
+                    if fwd_seq != rev_seq:
+                        rev_conf = Repliconf(self._template, rev_p)
+                        amp_gen.add_repliconf(rev_conf)
+                    amplicon_count = len(amp_gen.get_amplicons())
+                    if (
+                        self._max_amplicon_count is not None
+                        and amplicon_count > self._max_amplicon_count
+                    ):
+                        continue
 
                 d_ff = self._generator.generate_primer_dimer(
                     fwd_p, fwd_p, reorder=False

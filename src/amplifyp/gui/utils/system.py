@@ -347,7 +347,7 @@ def on_window_event(controller: Any, e: ft.WindowEvent) -> None:
 def fetch_latest_release_version() -> str | None:
     """Fetch the latest release version tag from GitHub API."""
     url = "https://api.github.com/repos/fangfufu/AmplifyP/releases/latest"
-    req = urllib.request.Request(  # noqa: S310
+    req = urllib.request.Request(
         url,
         headers={"User-Agent": "AmplifyP-Updater"},
     )

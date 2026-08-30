@@ -57,12 +57,12 @@ class Dismissible2DCard(DismissibleDetailCard):
         fwd_len = len(fwd_p.seq)
         rev_len = len(rev_p.seq)
 
-        title = f"2D Primer Pair (Forward: {fwd_len} bp, Reverse: {rev_len} bp)"
+        title = f"2D Primer Pair (Forward: {fwd_len} nt, Reverse: {rev_len} nt)"
 
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
 
-        # Mean overlap across all 4 dimers
+        # Mean overlap across all dimers
         mean_overlap = step.mean_overlap
 
         def _make_badge(
@@ -95,13 +95,13 @@ class Dismissible2DCard(DismissibleDetailCard):
             font_size_small=font_size_small,
         )
 
-        # 4 Dimer pair subcontainers
-        subcontainers_section = self._build_4_dimer_subcontainers(
+        # Dimer pair subcontainers
+        subcontainers_section = self._build_dimer_subcontainers(
             font_size_default=font_size_default,
             font_size_small=font_size_small,
         )
 
-        body_controls = [
+        card_body = [
             primer_info_section,
             ft.Divider(height=1, color=GUIColours.OUTLINE_VARIANT),
             subcontainers_section,
@@ -112,22 +112,22 @@ class Dismissible2DCard(DismissibleDetailCard):
             title=title,
             settings=settings,
             dismiss_callback=dismiss_callback,
-            body_controls=body_controls,
+            body_controls=card_body,
             title_controls=title_controls,
         )
 
     def _build_primer_details_section(
         self, fwd_p: Primer, rev_p: Primer, font_size_small: int
     ) -> ft.Container:
-        """Build section displaying Forward and Reverse primer details.
+        """Build the top section displaying sequence and properties for Fwd/Rev.
 
         Args:
-            fwd_p: Forward Primer object.
-            rev_p: Reverse Primer object.
-            font_size_small: Font size for badges.
+            fwd_p: Forward primer object.
+            rev_p: Reverse primer object.
+            font_size_small: Font size for property badges.
 
         Returns:
-            Container control with read-only sequence fields and metric badges.
+            Container with formatted rows for forward and reverse primers.
         """
 
         def _make_badge(text: str) -> ft.Container:
@@ -144,8 +144,6 @@ class Dismissible2DCard(DismissibleDetailCard):
             )
 
         def _build_primer_row(label: str, primer: Primer) -> ft.Column:
-            at_pairs = primer.count_at()
-            gc_pairs = primer.count_cg()
             pct_at = primer.ratio_at() * 100.0
 
             try:
@@ -185,15 +183,13 @@ class Dismissible2DCard(DismissibleDetailCard):
                     ft.Row(
                         [
                             ft.Text(
-                                f"{label} ({len(primer.seq)} bp):",
+                                f"{label} ({len(primer.seq)} nt):",
                                 weight=ft.FontWeight.BOLD,
                                 size=font_size_small,
                             ),
                             ft.Row(
                                 [
                                     _make_badge(tm_text),
-                                    _make_badge(f"AT Pairs: {at_pairs}"),
-                                    _make_badge(f"GC Pairs: {gc_pairs}"),
                                     _make_badge(f"% AT: {pct_at:.1f}%"),
                                 ],
                                 spacing=8,
@@ -228,23 +224,22 @@ class Dismissible2DCard(DismissibleDetailCard):
             border_radius=6,
         )
 
-    def _build_4_dimer_subcontainers(
+    def _build_dimer_subcontainers(
         self, font_size_default: int, font_size_small: int
     ) -> ft.Column:
-        """Build the 4 subcontainers for each primer dimer pair alignment.
+        """Build the 3 subcontainers for each primer dimer pair alignment.
 
         Args:
             font_size_default: Default sequence font size.
             font_size_small: Small text font size.
 
         Returns:
-            Column containing 4 styled dimer pair alignment subcontainers.
+            Column containing 3 styled dimer pair alignment subcontainers.
         """
         dimer_pairs: list[tuple[str, PrimerDimer]] = [
             ("Forward Self-Dimer (Fwd-Fwd)", self.step.fwd_fwd),
             ("Reverse Self-Dimer (Rev-Rev)", self.step.rev_rev),
             ("Forward-Reverse Cross-Dimer (Fwd-Rev)", self.step.fwd_rev),
-            ("Reverse-Forward Cross-Dimer (Rev-Fwd)", self.step.rev_fwd),
         ]
 
         subcontainers: list[ft.Control] = []

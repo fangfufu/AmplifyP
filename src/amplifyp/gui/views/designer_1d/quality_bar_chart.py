@@ -74,7 +74,7 @@ class QualityBarChart:
                         bgcolor=GUIColours.PRIMARY,
                         border_radius=4,
                         tooltip=(
-                            f"Step {step_idx + 1}: {primer_len} bp\n"
+                            f"Step {step_idx + 1}: {primer_len} nt\n"
                             f"Quality: {round(q_val)}"
                         ),
                     ),
@@ -88,7 +88,7 @@ class QualityBarChart:
             bar_column = ft.Column(
                 [
                     bar_with_score,
-                    ft.Text(f"{primer_len}bp", size=11),
+                    ft.Text(f"{primer_len} nt", size=11),
                 ],
                 alignment=ft.MainAxisAlignment.END,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,

@@ -62,7 +62,7 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         )
 
         primer_seq = dimer.primer_1.seq
-        title = f"Self-dimer ({len(primer_seq)} bp)"
+        title = f"Self-dimer ({len(primer_seq)} nt)"
 
         font_size_subheader = settings.get("font_size_subheader", 16)
         font_size_small = settings.get("font_size_small", 12)
@@ -73,10 +73,7 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         )
         metric_controls = cast(ft.Row, header_row.controls[1])
 
-        # Re-use Primer methods for AT/GC base counts and AT percentage
         primer_obj = dimer.primer_1
-        at_pairs = primer_obj.count_at()
-        gc_pairs = primer_obj.count_cg()
         pct_at = primer_obj.ratio_at() * 100.0
 
         try:
@@ -99,15 +96,11 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             )
 
         tm_badge = _make_badge(tm_text)
-        at_badge = _make_badge(f"AT Pairs: {at_pairs}")
-        gc_badge = _make_badge(f"GC Pairs: {gc_pairs}")
         pct_at_badge = _make_badge(f"% AT: {pct_at:.1f}%")
 
         title_controls = [
             *metric_controls.controls,
             tm_badge,
-            at_badge,
-            gc_badge,
             pct_at_badge,
         ]
 

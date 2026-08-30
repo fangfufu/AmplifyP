@@ -27,14 +27,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
 
     def __init__(
         self,
-        on_save: Callable[[ft.Event | None], None | Awaitable[None]],
-        on_load: Callable[[ft.Event | None], None | Awaitable[None]],
-        on_clear: Callable[[ft.Event | None], None | Awaitable[None]],
-        on_delete_selected: Callable[[ft.Event | None], None | Awaitable[None]],
-        on_copy: Callable[[ft.Event | None], None | Awaitable[None]],
-        on_paste: Callable[[ft.Event | None], None | Awaitable[None]],
+        on_save: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_load: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_clear: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_delete_selected: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_copy: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_paste: Callable[[ft.Event | None], Awaitable[None] | None],
         on_reverse_complement: Callable[
-            [ft.Event | None], None | Awaitable[None]
+            [ft.Event | None], Awaitable[None] | None
         ],
     ) -> None:
         """Initialise the PrimerToolbar."""

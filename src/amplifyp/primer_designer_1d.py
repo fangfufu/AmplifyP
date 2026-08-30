@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING
 
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, DNADirection, Primer
+from .repliconf import Repliconf
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -44,9 +45,11 @@ class PrimerDesigner1D:
         "_dimers",
         "_dna",
         "_generator",
+        "_max_origin_count",
         "_max_overlap",
         "_min_length",
         "_mode",
+        "_template",
         "_threshold",
     )
 
@@ -58,6 +61,8 @@ class PrimerDesigner1D:
         generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
         threshold: float | None = None,
         max_overlap: int | None = None,
+        template: DNA | None = None,
+        max_origin_count: int | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
@@ -75,10 +80,15 @@ class PrimerDesigner1D:
                 filter. Defaults to None.
             max_overlap (int | None, optional): Upper bound for overlap length
                 filter. Defaults to None.
+            template (DNA | None, optional): Optional template DNA sequence
+                used to calculate replication origins. Defaults to None.
+            max_origin_count (int | None, optional): Upper bound for number of
+                replication origins filter. Defaults to None.
 
         Raises:
             ValueError: If minimum length is non-positive or greater than
-                sequence length.
+                sequence length, if max_origin_count is specified without
+                template, or if max_origin_count is negative.
         """
         if min_length <= 0:
             raise ValueError("Target length n must be greater than 0.")
@@ -88,6 +98,15 @@ class PrimerDesigner1D:
                 f"sequence length ({len(dna.seq_upper)})."
             )
             raise ValueError(msg)
+        if max_origin_count is not None:
+            if template is None:
+                msg = (
+                    "Template DNA must be provided when max_origin_count "
+                    "filter is specified."
+                )
+                raise ValueError(msg)
+            if max_origin_count < 0:
+                raise ValueError("max_origin_count must be non-negative.")
 
         self._dna: DNA = dna
         self._min_length: int = min_length
@@ -95,6 +114,8 @@ class PrimerDesigner1D:
         self._generator: PrimerDimerGenerator = generator
         self._threshold: float | None = threshold
         self._max_overlap: int | None = max_overlap
+        self._template: DNA | None = template
+        self._max_origin_count: int | None = max_origin_count
         self._dimers: list[PrimerDimer] = []
 
         self._analyse(dna.seq_upper)
@@ -128,6 +149,16 @@ class PrimerDesigner1D:
     def max_overlap(self) -> int | None:
         """The maximum overlap length cutoff filter, if set."""
         return self._max_overlap
+
+    @property
+    def template(self) -> DNA | None:
+        """The optional template DNA object, if set."""
+        return self._template
+
+    @property
+    def max_origin_count(self) -> int | None:
+        """The maximum replication origin count cutoff filter, if set."""
+        return self._max_origin_count
 
     @property
     def all_dimers(self) -> tuple[PrimerDimer, ...]:
@@ -234,10 +265,27 @@ class PrimerDesigner1D:
         while len(current_seq) >= self._min_length:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
+            origin_count: int | None = None
+            if self._template is not None:
+                repliconf = Repliconf(self._template, primer)
+                repliconf.search()
+                origin_count = len(repliconf.origin_db.fwd) + len(
+                    repliconf.origin_db.rev
+                )
+
             if (
-                self._threshold is None or dimer.quality <= self._threshold
-            ) and (
-                self._max_overlap is None or dimer.overlap <= self._max_overlap
+                (self._threshold is None or dimer.quality <= self._threshold)
+                and (
+                    self._max_overlap is None
+                    or dimer.overlap <= self._max_overlap
+                )
+                and (
+                    self._max_origin_count is None
+                    or (
+                        origin_count is not None
+                        and origin_count <= self._max_origin_count
+                    )
+                )
             ):
                 self._dimers.append(dimer)
 

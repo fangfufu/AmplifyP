@@ -344,6 +344,16 @@ class _GUIColoursMeta(type):
         """Get soft desaturated red colour for 2D grid results colour map."""
         return "#682d2d" if cls._dark_mode else "#f9d0d0"
 
+    @property
+    def GRID_2D_GREY_LIGHT(cls) -> str:
+        """Get light grey colour for 2D grid results greyscale map."""
+        return "#2c2c2c" if cls._dark_mode else "#f2f2f2"
+
+    @property
+    def GRID_2D_GREY_DARK(cls) -> str:
+        """Get dark grey colour for 2D grid results greyscale map."""
+        return "#8c8c8c" if cls._dark_mode else "#4a4a4a"
+
 
 class GUIColours(metaclass=_GUIColoursMeta):
     """Centralised semantic colour constants for the GUI."""
@@ -488,7 +498,8 @@ def designer_2d_colour(
         value: The numerical quality/metric score to colour.
         min_val: Minimum metric value across the grid.
         max_val: Maximum metric value across the grid.
-        scheme: One of "None", "Cool-Warm", "Traffic Light", or "Blue-Orange".
+        scheme: One of "None", "Cool-Warm", "Traffic Light", "Blue-Orange", or
+            "Greyscale".
 
     Returns:
         Hex colour string, or None if scheme is disabled or invalid.
@@ -500,6 +511,11 @@ def designer_2d_colour(
         t = 0.5
     else:
         t = 1.0 - max(0.0, min(1.0, (value - min_val) / (max_val - min_val)))
+
+    if scheme in ("Greyscale", "Grayscale"):
+        return ColourInterpolator.interpolate(
+            GUIColours.GRID_2D_GREY_DARK, GUIColours.GRID_2D_GREY_LIGHT, t
+        )
 
     if scheme == "Cool-Warm":
         return ColourInterpolator.interpolate(

@@ -52,7 +52,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                     ft.Column(
                         [
                             ft.Text(
-                                f"{length} bp",
+                                f"{length} nt",
                                 weight=ft.FontWeight.BOLD,
                                 size=font_size_header,
                                 text_align=ft.TextAlign.LEFT,
