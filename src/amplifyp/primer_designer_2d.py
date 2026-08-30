@@ -385,7 +385,10 @@ class PrimerDesigner2D:
             for rev_seq in rev_seqs:
                 rev_p = Primer(rev_seq)
 
-                if self._template is not None:
+                if (
+                    self._template is not None
+                    and self._max_amplicon_count is not None
+                ):
                     amp_gen = AmpliconGenerator(self._template)
                     fwd_conf = Repliconf(self._template, fwd_p)
                     amp_gen.add_repliconf(fwd_conf)
