@@ -53,14 +53,9 @@ class PrimerDimer:
     @property
     def binding_strength_str(self) -> str:
         """The binding strength of each base-pair as a string."""
-        if len(self.primer_1) <= len(self.primer_2):
-            short_p, long_p = self.primer_1, self.primer_2
-        else:
-            short_p, long_p = self.primer_2, self.primer_1
-
-        seq1 = short_p.seq_upper
-        seq2 = long_p.seq_upper
-        n1 = len(short_p)
+        seq1 = self.primer_1.seq_upper
+        seq2 = self.primer_2.seq_upper
+        n1 = len(self.primer_1)
         weights = self.settings.weights
         threshold = self.settings.symbol_threshold
 

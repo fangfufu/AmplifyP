@@ -254,6 +254,7 @@ def test_primer_order_swap() -> None:
     assert res_no_reorder.primer_2 == p_short
     assert res_default.quality == res_no_reorder.quality
     assert res_default.overlap == res_no_reorder.overlap
+    assert res_no_reorder.binding_strength_str == "|||||"
 
 
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
