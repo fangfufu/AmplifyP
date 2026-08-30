@@ -190,7 +190,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             )
             self.info_header_text.value = header_text
             self.info_seq_text.value = (
-                f"{len(primer_obj)} bp:   {primer_obj.seq}"
+                f"{len(primer_obj)} nt:   {primer_obj.seq}"
             )
 
             try:
@@ -200,8 +200,6 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_tm_text.value = "Tm = N/A"
 
             self.info_pairs_text.value = (
-                f"{primer_obj.count_at()} AT Pairs, "
-                f"{primer_obj.count_cg()} GC Pairs, "
                 f"{primer_obj.ratio_at() * 100:.1f}% AT"
             )
 

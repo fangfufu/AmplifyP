@@ -235,9 +235,9 @@ def test_input_view_primer_info_panel() -> None:
     assert view.focused_primer_index == 0
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P1"
-    assert view.info_seq_text.value == "20 bp:   AAAAAAAAAAAAAAAAAAAA"
+    assert view.info_seq_text.value == "20 nt:   AAAAAAAAAAAAAAAAAAAA"
     assert "Tm =" in view.info_tm_text.value
-    assert "20 AT Pairs, 0 GC Pairs, 100.0% AT" in view.info_pairs_text.value
+    assert "100.0% AT" in view.info_pairs_text.value
     assert view.info_redundancy_text.value == "No redundant bases."
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
