@@ -90,14 +90,7 @@ class PrimerDesigner1D:
                 sequence length, if max_origin_count is specified without
                 template, or if max_origin_count is negative.
         """
-        if min_length <= 0:
-            raise ValueError("Target length n must be greater than 0.")
-        if len(dna.seq_upper) < min_length:
-            msg = (
-                f"Target length n ({min_length}) cannot exceed initial "
-                f"sequence length ({len(dna.seq_upper)})."
-            )
-            raise ValueError(msg)
+        dna.generate_truncations(min_length, mode)
         if max_origin_count is not None:
             if template is None:
                 msg = (
@@ -118,7 +111,7 @@ class PrimerDesigner1D:
         self._max_origin_count: int | None = max_origin_count
         self._dimers: list[PrimerDimer] = []
 
-        self._analyse(dna.seq_upper)
+        self._analyse()
 
     @property
     def dna(self) -> DNA:
@@ -249,20 +242,18 @@ class PrimerDesigner1D:
         """
         return self[index]
 
-    def _analyse(self, initial_seq: str) -> None:
-        """Perform the 1D truncation analysis on the initial sequence.
+    def _analyse(self) -> None:
+        """Perform the 1D truncation analysis on the sequence.
 
-        This method iteratively truncates the sequence from either the 5' or 3'
-        end (depending on the mode) and generates a self-dimer for each
-        resulting sequence until the minimum length is reached.
-
-        Args:
-            initial_seq (str): The initial sequence string to analyze.
+        This method generates self-dimers for each truncated sequence down to
+        the minimum length.
         """
         self._dimers.clear()
-        current_seq = initial_seq
+        truncated_seqs = self._dna.generate_truncations(
+            self._min_length, self._mode
+        )
 
-        while len(current_seq) >= self._min_length:
+        for current_seq in truncated_seqs:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
             origin_count: int | None = None
@@ -288,13 +279,3 @@ class PrimerDesigner1D:
                 )
             ):
                 self._dimers.append(dimer)
-
-            if len(current_seq) == self._min_length:
-                break
-
-            if self._mode == DNADirection.FWD:
-                # Chop off a base from the 3' end (rightmost base)
-                current_seq = current_seq[:-1]
-            else:
-                # Chop off a base from the 5' end (leftmost base)
-                current_seq = current_seq[1:]

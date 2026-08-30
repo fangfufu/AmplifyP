@@ -279,6 +279,55 @@ class DNA:
         """
         return self.reverse().complement()
 
+    def generate_truncations(
+        self,
+        min_length: int,
+        direction: bool | DNADirection | None = None,
+        prefix: str = "Target length n",
+    ) -> list[str]:
+        """Generate truncated sequences down to `min_length`.
+
+        Truncates bases from the 3' end in Forward mode (`DNADirection.FWD`) or
+        from the 5' end in Reverse mode (`DNADirection.REV`).
+
+        Args:
+            min_length (int): The minimum sequence length to reach.
+            direction (bool | DNADirection | None, optional): The truncation
+                direction. Defaults to `self.direction` if None.
+            prefix (str, optional): Prefix for error message descriptions.
+                Defaults to "Target length n".
+
+        Returns:
+            list[str]: Sequence strings from initial sequence length down to
+                `min_length`.
+
+        Raises:
+            ValueError: If `min_length` is <= 0 or exceeds the sequence length.
+        """
+        if min_length <= 0:
+            raise ValueError(f"{prefix} must be greater than 0.")
+        if len(self._seq_upper) < min_length:
+            msg = (
+                f"{prefix} ({min_length}) cannot exceed initial "
+                f"sequence length ({len(self._seq_upper)})."
+            )
+            raise ValueError(msg)
+
+        dir_enum = (
+            self.direction if direction is None else DNADirection(direction)
+        )
+        seqs: list[str] = []
+        current_seq = self._seq_upper
+        while len(current_seq) >= min_length:
+            seqs.append(current_seq)
+            if len(current_seq) == min_length:
+                break
+            if dir_enum == DNADirection.FWD:
+                current_seq = current_seq[:-1]
+            else:
+                current_seq = current_seq[1:]
+        return seqs
+
     def __eq__(self, other: object) -> bool:
         """Check if two DNA objects are equal.
 
