@@ -174,8 +174,8 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
         "Forward: 10 nt, Reverse: 10 nt" in card._card_id
         or card.step == step_10_10
     )
-    dimer_subcontainers_default = card._build_dimer_subcontainers(14, 12)
-    assert len(dimer_subcontainers_default.controls) == 3
+    # Dimer subcontainers on the active card default to 3 pairs
+    assert len(card.dimer_subcontainers.controls) == 3
     labels_default = [
         cast(
             ft.Text,
@@ -184,7 +184,7 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
                 cast(ft.Column, cast(ft.Container, col).content).controls[0],
             ).controls[0],
         ).value
-        for col in dimer_subcontainers_default.controls
+        for col in card.dimer_subcontainers.controls
     ]
     assert labels_default == [
         "Forward Self-Dimer (Fwd-Fwd)",
@@ -192,9 +192,11 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
         "Forward-Reverse Cross-Dimer (Fwd-Rev)",
     ]
 
+    # Enabling setting and calling update_ui updates active card's
+    # subcontainers to 4 pairs
     card.settings["designer_2d_show_rev_fwd"] = True
-    dimer_subcontainers_enabled = card._build_dimer_subcontainers(14, 12)
-    assert len(dimer_subcontainers_enabled.controls) == 4
+    view.update_ui()
+    assert len(card.dimer_subcontainers.controls) == 4
     labels_enabled = [
         cast(
             ft.Text,
@@ -203,7 +205,7 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
                 cast(ft.Column, cast(ft.Container, col).content).controls[0],
             ).controls[0],
         ).value
-        for col in dimer_subcontainers_enabled.controls
+        for col in card.dimer_subcontainers.controls
     ]
     assert labels_enabled == [
         "Forward Self-Dimer (Fwd-Fwd)",
@@ -211,6 +213,11 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
         "Forward-Reverse Cross-Dimer (Fwd-Rev)",
         "Reverse-Forward Cross-Dimer (Rev-Fwd)",
     ]
+
+    # Disabling setting and calling card.update_ui reverts to 3 pairs
+    card.settings["designer_2d_show_rev_fwd"] = False
+    card.update_ui()
+    assert len(card.dimer_subcontainers.controls) == 3
 
 
 def test_designer_2d_view_clear_all() -> None:
