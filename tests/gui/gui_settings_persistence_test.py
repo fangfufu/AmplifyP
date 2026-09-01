@@ -209,3 +209,156 @@ def test_dark_mode_system_coercion() -> None:
     assert settings.get("dark_mode") is False
     settings["dark_mode"] = "system"
     assert settings.get("dark_mode") == "system"
+
+
+def test_gui_settings_edge_cases_and_coercions() -> None:
+    """Test GUISettings coercions, views, error fallbacks, and storage."""
+    from typing import Any, cast
+
+    from amplifyp.dna import Primer
+    from amplifyp.gui.colours import GUIColours
+
+    # 1. Initialisation with settings_dict
+    s1 = GUISettings(
+        settings_dict={"colour_deficient": "yes", "dark_mode": "true"}
+    )
+    assert s1["colour_deficient"] == "yes"
+    assert GUIColours.colour_deficient_mode is True
+    assert GUIColours.dark_mode is True
+
+    # 2. Type coercions in __setitem__
+    s = GUISettings()
+    # dark_mode non-string and string permutations
+    s["dark_mode"] = True
+    assert s["dark_mode"] is True
+    s["dark_mode"] = "system"
+    assert cast(Any, s["dark_mode"]) == "system"
+    s["dark_mode"] = "true"
+    assert s["dark_mode"] is True
+    s["dark_mode"] = "false"
+    assert s["dark_mode"] is False
+
+    # bool setting
+    s["auto_reload_on_startup"] = "yes"
+    assert s["auto_reload_on_startup"] is True
+    s["auto_reload_on_startup"] = False
+    assert s["auto_reload_on_startup"] is False
+
+    # int setting
+    s._settings["log_rotation_max_bytes"] = 100
+    s["log_rotation_max_bytes"] = "200"
+    assert s["log_rotation_max_bytes"] == 200
+    s["log_rotation_max_bytes"] = "invalid"
+    assert s["log_rotation_max_bytes"] == "invalid"
+
+    # float setting
+    s._settings["primability_cutoff"] = 0.8
+    s["primability_cutoff"] = "0.9"
+    assert s["primability_cutoff"] == 0.9
+    s["primability_cutoff"] = "invalid"
+    assert s["primability_cutoff"] == "invalid"
+
+    # colour_deficient
+    s["colour_deficient"] = "true"
+    assert s["colour_deficient"] is True
+    s["colour_deficient"] = False
+    assert s["colour_deficient"] is False
+
+    # setting keys not yet in _settings
+    s._settings.pop("colour_deficient", None)
+    s["colour_deficient"] = "yes"
+    assert GUIColours.colour_deficient_mode is True
+
+    s._settings.pop("dark_mode", None)
+    s["dark_mode"] = "yes"
+    assert GUIColours.dark_mode is True
+
+    # 3. Keys, items, iteration, membership
+    assert "dark_mode" in s.keys()
+    assert len(s.items()) > 0
+    assert "dark_mode" in list(iter(s))
+    assert "dark_mode" in s
+
+    # 4. Factory methods
+    _ = s.get_replication_settings()
+    _ = s.get_primer_dimer_settings()
+    _ = s.get_tm_settings()
+    # verify cached tm_settings branch
+    _ = s.get_tm_settings()
+
+    # 5. _safe_float and _safe_int fallback handlers
+    assert s._safe_float("missing_key", 9.9) == 9.9
+    s._settings["primability_cutoff"] = None
+    assert s._safe_float("primability_cutoff", 9.9) == 9.9
+    s._settings["primability_cutoff"] = "invalid"
+    assert s._safe_float("primability_cutoff", 9.9) == 9.9
+    s._settings["primability_cutoff"] = ""
+    assert s._safe_float("primability_cutoff", 9.9) == 9.9
+
+    assert s._safe_int("missing_key", 5) == 5
+    s._settings["log_rotation_max_bytes"] = None
+    assert s._safe_int("log_rotation_max_bytes", 5) == 5
+    s._settings["log_rotation_max_bytes"] = "invalid"
+    assert s._safe_int("log_rotation_max_bytes", 5) == 5
+    s._settings["log_rotation_max_bytes"] = ""
+    assert s._safe_int("log_rotation_max_bytes", 5) == 5
+
+    # 6. calculate_primer_tm with Lander method and SantaLucia fallback
+    s["tm_method"] = "Lander / Amplify 4"
+    tm_val = s.calculate_primer_tm(Primer("ACGTACGT"))
+    assert tm_val > 0
+
+    s["tm_method"] = "SantaLucia 1998 / Owczarzy 2008 (Default)"
+    tm_val_sl = s.calculate_primer_tm(Primer("ACGTACGT"))
+    assert tm_val_sl > 0
+
+    # Degenerate sequence falls back to Lander
+    tm_val_fallback = s.calculate_primer_tm(Primer("ACGTACGN"))
+    assert tm_val_fallback >= 0
+
+    # 7. from_dict type coercions
+    s._settings["log_rotation_max_bytes"] = 100
+    s._settings["primability_cutoff"] = 0.8
+    s.from_dict(
+        {
+            "dark_mode": "true",
+            "log_rotation_max_bytes": "invalid",
+            "primability_cutoff": "invalid",
+            "auto_reload_on_startup": True,
+        }
+    )
+    s.from_dict(
+        {
+            "dark_mode": "system",
+            "log_rotation_max_bytes": "200",
+            "primability_cutoff": "0.7",
+            "auto_reload_on_startup": False,
+        }
+    )
+
+    # 8. _get_config_path on Windows with and without APPDATA
+    with (
+        patch("sys.platform", "win32"),
+        patch.dict("os.environ", {"APPDATA": r"C:\AppData"}, clear=True),
+    ):
+        path = s._get_config_path()
+        assert str(path).startswith(r"C:\AppData")
+
+    with (
+        patch("sys.platform", "win32"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        path = s._get_config_path()
+        assert "Roaming" in str(path)
+
+    # 9. Local storage exception handling on desktop
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    with patch.object(Path, "mkdir", side_effect=OSError("save error")):
+        s.save_to_local(mock_page)
+
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch("builtins.open", side_effect=OSError("load error")),
+    ):
+        s.load_from_local(mock_page)

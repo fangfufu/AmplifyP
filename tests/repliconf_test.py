@@ -148,3 +148,22 @@ def test_repliconf_settings_equality() -> None:
     r1 = Repliconf(template, primer, s1)
     r2 = Repliconf(template, primer, s2)
     assert r1 != r2
+
+
+def test_settings_wrapper_equality() -> None:
+    """Test _SettingsWrapper equality with non-_SettingsWrapper objects."""
+    from amplifyp.repliconf import _SettingsWrapper
+    from amplifyp.settings import ReplicationSettings
+
+    wrapper = _SettingsWrapper(ReplicationSettings())
+    assert wrapper != "not_a_wrapper"
+    assert wrapper != 123
+
+
+def test_repliconf_origin_from_db() -> None:
+    """Test Repliconf.origin_from_db lookup by direction and search index."""
+    test_repliconf.search()
+    orig_fwd = test_repliconf.origin_from_db(DNADirection.FWD, 0)
+    assert orig_fwd is not None
+    orig_rev = test_repliconf.origin_from_db(DNADirection.REV, 0)
+    assert orig_rev is not None

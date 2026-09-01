@@ -457,3 +457,270 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     # Verify that the analysis automatically ran (populates _cached_designer)
     assert view._cached_designer is not None
     assert len(view._cached_designer) == 9
+
+
+def test_designer_2d_and_base_remaining_branches() -> None:
+    """Test remaining branches in designer 2D, grid, and base classes."""
+    from amplifyp.dna import Primer
+    from amplifyp.gui.views.designer.designer_card_helpers import (
+        build_primer_summary_row,
+        format_primer_properties,
+    )
+    from amplifyp.gui.views.designer.designer_form_base import BaseDesignerForm
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800.0
+    mock_page.height = 600.0
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # 1. Properties
+    assert view.form.quality_filter_input is not None
+    assert view.form.overlap_filter_input is not None
+
+    # 2. Form base methods & validations
+    base_form = BaseDesignerForm(
+        settings=settings,
+        on_submit_callback=MagicMock(),
+        on_clear_error_callback=MagicMock(),
+    )
+
+    base_form._on_submit_event(None)
+    assert cast(MagicMock, base_form.on_submit_callback).called
+
+    # _clear_field_error with page update
+    mock_field = ft.TextField(value="abc")
+    mock_field.error = "Err"
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        base_form._clear_field_error(MagicMock(control=mock_field))
+        assert mock_field.error is None
+
+    # _clear_field_error when page.update raises RuntimeError
+    mock_field.error = "Err"
+    with (
+        patch.object(mock_page, "update", side_effect=RuntimeError("Err")),
+        patch.object(ft.Control, "page", new=property(lambda self: mock_page)),
+    ):
+        base_form._clear_field_error(MagicMock(control=mock_field))
+
+    # show_field_error with page
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        base_form.show_field_error(mock_field, "Test error")
+        assert mock_field.error == "Test error"
+
+    # show_error
+    base_form.show_error("General error")
+    assert base_form.error_text.value == "General error"
+
+    # validate_max_quality
+    base_form.max_quality_input.value = "-5"
+    _q_val, is_q_v = base_form.validate_max_quality(int_only=True)
+    assert is_q_v is False
+    assert "non-negative integer" in (base_form.max_quality_input.error or "")
+
+    base_form.max_quality_input.value = "-5"
+    _q_val, is_q_v = base_form.validate_max_quality(int_only=False)
+    assert is_q_v is False
+    assert "non-negative" in (base_form.max_quality_input.error or "")
+
+    base_form.max_quality_input.value = "abc"
+    _q_val, is_q_v = base_form.validate_max_quality(int_only=False)
+    assert is_q_v is False
+    assert "must be an integer" in (base_form.max_quality_input.error or "")
+
+    # validate_max_overlap
+    base_form.max_overlap_input.value = "-3"
+    _o_val, is_o_v = base_form.validate_max_overlap()
+    assert is_o_v is False
+    assert "non-negative" in (base_form.max_overlap_input.error or "")
+
+    # 3. 2D Form validations
+    # (negative min length and invalid overlap with page update)
+    view.form.fwd_dna_input.value = "ATGC"
+    view.form.fwd_min_len_input.value = "-1"
+    view.form.rev_dna_input.value = "ATGC"
+    view.form.rev_min_len_input.value = "0"
+    view.form.max_overlap_input.value = "invalid"
+
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        with pytest.raises(ValueError):
+            view.form.validate_and_get_params()
+
+    # 4. Designer2DView run_designer error handling
+    # ValueError from validate_and_get_params
+    view._run_designer_event()
+
+    # PrimerDesigner2D exception
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+
+    with (
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.PrimerDesigner2D",
+            side_effect=RuntimeError("2D Designer error"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
+        ) as mock_err_dlg,
+    ):
+        view._run_designer_event()
+        mock_err_dlg.assert_called_once()
+
+    # 5. Designer2DView UI updates & dismiss with RuntimeError
+    view._run_designer_event()
+    assert view._cached_designer is not None
+
+    with patch.object(mock_page, "update", side_effect=RuntimeError("Err")):
+        view.update_ui()
+        view._clear_all()
+
+    # 6. _load_designer_2d_click when cancelled (returns None)
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(return_value=None),
+    ):
+        asyncio.run(view._load_designer_2d_click(MagicMock()))
+
+    # 7. DesignerViewBase: pan resize and YAML error handling
+    # Horizontal pan when left_container.width is a float
+    view.left_container.width = 400.0
+    view._on_h_pan_update(MagicMock(local_delta=MagicMock(x=20.0)))
+    assert view.left_container.width >= 400.0
+
+    # Vertical pan when top_left_container.height is None
+    view.top_left_container.height = None
+    view._on_v_pan_update(MagicMock(local_delta=MagicMock(y=20.0)))
+    assert view.top_left_container.height is not None
+
+    # Load YAML with invalid types / malformed YAML
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(return_value="[1, 2, 3]"),  # Not a dict
+    ):
+        res = asyncio.run(view._load_parameters_yaml("Test"))
+        assert res is None
+
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(return_value=":::invalid yaml"),
+    ):
+        res = asyncio.run(view._load_parameters_yaml("Test"))
+        assert res is None
+
+    # 8. Card helpers: format_primer_properties exception and copy button
+    p_bad = Primer("N" * 10, name="Bad")
+    with patch.object(
+        settings, "calculate_primer_tm", side_effect=RuntimeError("Tm err")
+    ):
+        tm_t, _pct_t = format_primer_properties(p_bad, settings)
+        assert tm_t == "Tm: N/A"
+
+    col_btn = build_primer_summary_row("Test Primer", p_bad, settings)
+    copy_btn = col_btn.controls[1].controls[1]
+
+    captured_task = None
+
+    def mock_run_task(task_fn: Any, *args: Any) -> None:
+        nonlocal captured_task
+        captured_task = task_fn(*args)
+
+    mock_page.run_task = mock_run_task
+    # Trigger copy click with page
+    copy_btn.on_click(MagicMock(page=mock_page))
+    assert captured_task is not None
+    with patch.object(ft.Clipboard, "set", new=AsyncMock()) as mock_clip:
+        asyncio.run(captured_task)
+        mock_clip.assert_called_once_with(p_bad.seq)
+
+    # Trigger with RuntimeError on page
+    with patch.object(
+        mock_page, "run_task", side_effect=RuntimeError("Task err")
+    ):
+        copy_btn.on_click(MagicMock(page=mock_page))
+
+    # 9. Dismissible2DCard: settings change with page update and string boolean
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view._run_designer_event()
+    assert view._cached_designer is not None
+
+    step = view._cached_designer.all_steps[0]
+    card = Dismissible2DCard(
+        card_id="card_1",
+        step=step,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        card.on_settings_change()
+        card.update_ui()
+
+    card.settings = {"designer_2d_show_rev_fwd": "false"}  # type: ignore[assignment]
+    sub_col_false = card._build_dimer_subcontainers(14, 12)
+    assert len(sub_col_false.controls) == 3
+
+    card.settings = {"designer_2d_show_rev_fwd": "true"}  # type: ignore[assignment]
+    sub_col = card._build_dimer_subcontainers(14, 12)
+    assert len(sub_col.controls) == 4
+
+    # 10. Grid2DResults: clear_grid with page, empty steps with RuntimeError,
+    # missing cell ("N/A"), and on_cell_click
+    grid = view.results_grid
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        grid.clear_grid()
+
+        # Empty steps with update exception
+        mock_empty_designer = MagicMock(all_steps=[])
+        with patch.object(mock_page, "update", side_effect=RuntimeError("Err")):
+            grid.update_grid(mock_empty_designer)
+        assert (
+            "No valid 2D truncation"
+            in grid.content_column.controls[1].content.value
+        )
+
+        # Missing cell in matrix (steps at (8,8) and (9,9) creating N/A cells)
+        step_8_8 = view._cached_designer.all_steps[0]
+        step_9_9 = view._cached_designer.all_steps[-1]
+        mock_diagonal_designer = MagicMock()
+        mock_diagonal_designer.all_steps = [step_8_8, step_9_9]
+        grid.update_grid(mock_diagonal_designer)
+
+        # on_cell_click
+        key = (len(step.fwd_fwd.primer_1.seq), len(step.rev_rev.primer_1.seq))
+        grid._on_cell_click(step, key)
+
+    # 11. DesignerViewBase: _bring_card_to_top_or_add & _dismiss_card
+    view._bring_card_to_top_or_add("card_1", lambda: card)
+    view._bring_card_to_top_or_add("card_1", lambda: card)  # Move to top branch
+
+    with patch.object(
+        mock_page, "update", side_effect=RuntimeError("Update err")
+    ):
+        view._bring_card_to_top_or_add(
+            "card_new",
+            lambda: Dismissible2DCard("card_new", step, settings, MagicMock()),
+        )
+        view._bring_card_to_top_or_add(
+            "card_new",
+            lambda: Dismissible2DCard("card_new", step, settings, MagicMock()),
+        )
+        view._dismiss_card(card)
+
+    # YAML load exception
+    with (
+        patch(
+            "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+            new=AsyncMock(return_value="valid: yaml"),
+        ),
+        patch("yaml.safe_load", side_effect=Exception("YAML load fail")),
+    ):
+        res = asyncio.run(view._load_parameters_yaml("Test"))
+        assert res is None

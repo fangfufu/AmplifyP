@@ -113,3 +113,134 @@ def test_dimer_view_with_dimers() -> None:
     assert "|" in text_values or ":" in text_values
     # Check that the primer names are present as labels
     assert "P1" in text_values
+
+
+def test_dimer_view_max_limit_warning() -> None:
+    """Test DimerView warning when dimer count exceeds max render limit."""
+    from typing import Any
+    from unittest.mock import patch
+
+    from amplifyp.dimer import PrimerDimerGenerator
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "GCATGCATGC", "active": True},
+    ]
+
+    view = DimerView(mock_page, input_data, settings)
+    mock_dimer = MagicMock()
+    # Create 120 mock dimers
+    fake_dimers = [mock_dimer] * 120
+
+    def mock_analyse(self: Any) -> None:
+        self.primer_dimers = fake_dimers
+
+    with (
+        patch.object(PrimerDimerGenerator, "analyse_primers", mock_analyse),
+        patch(
+            "amplifyp.gui.views.dimer.dimer_view.DimerCard",
+            return_value=ft.Container(),
+        ),
+    ):
+        success = view.run_analysis()
+        assert success is True
+        # First control should be warning container
+        assert len(view.result_list.controls) == 101
+        warning_container = view.result_list.controls[0]
+        assert isinstance(warning_container, ft.Container)
+        assert (
+            "Warning: 120 primer dimers detected"
+            in warning_container.content.value
+        )
+
+        # Run again to hit cached state key
+        success2 = view.run_analysis()
+        assert success2 is True
+
+
+def test_dimer_view_error_handling() -> None:
+    """Test DimerView exception handling during analysis."""
+    from unittest.mock import patch
+
+    from amplifyp.dimer import PrimerDimerGenerator
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+    input_data.primers = [
+        {"name": "P1", "seq": "GCATGCATGC", "active": True},
+        {"name": "P2", "seq": "GCATGCATGC", "active": True},
+    ]
+
+    view = DimerView(mock_page, input_data, settings)
+    with (
+        patch.object(
+            PrimerDimerGenerator,
+            "analyse_primers",
+            side_effect=RuntimeError("Calculation failure"),
+        ),
+        patch(
+            "amplifyp.gui.views.dimer.dimer_view.show_error_dialog"
+        ) as mock_err_dlg,
+    ):
+        success = view.run_analysis()
+        assert success is False
+        mock_err_dlg.assert_called_once()
+        assert len(view.result_list.controls) == 1
+        assert "Error running analysis" in view.result_list.controls[0].value
+
+
+def test_header_set_update_available() -> None:
+    """Test AppHeader.set_update_available updates text and url callback."""
+    from unittest.mock import patch
+
+    from amplifyp.gui.views.header import AppHeader
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.launch_url = MagicMock()
+    settings = GUISettings()
+
+    header = AppHeader(
+        settings=settings,
+        on_switch_input=MagicMock(),
+        on_switch_settings=MagicMock(),
+        on_switch_about=MagicMock(),
+        on_pcr_click=MagicMock(),
+        on_dimers_click=MagicMock(),
+        on_save=MagicMock(),
+        on_load=MagicMock(),
+        pcr_button_ref=ft.Ref[ft.FilledButton](),
+        dimers_button_ref=ft.Ref[ft.FilledButton](),
+    )
+
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        header.set_update_available("v1.0.0")
+        assert "(Update v1.0.0 available!)" in header.version_text.value
+        assert header.version_text.on_click is not None
+        header.version_text.on_click(MagicMock())
+
+    mock_page.launch_url.assert_called_once_with(
+        "https://github.com/fangfufu/AmplifyP/releases"
+    )
+
+
+def test_dimer_card_self_dimer_no_names() -> None:
+    """Test DimerCard with show_names=False for self-dimer."""
+    from amplifyp.dimer import PrimerDimer
+    from amplifyp.dna import Primer
+    from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+    p = Primer(sequence="ATGCATGC", name="P1")
+    d = PrimerDimer(
+        primer_1=p,
+        primer_2=p,
+        quality=80.0,
+        overlap=8,
+        p1_pos=0,
+    )
+    settings = GUISettings()
+    card = DimerCard(d, settings, show_names=False)
+    assert card is not None

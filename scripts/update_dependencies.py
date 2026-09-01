@@ -24,8 +24,10 @@ def fetch_latest_version(package_name: str) -> str | None:
     """Fetch the latest version of a package from PyPI."""
     url = f"https://pypi.org/pypi/{package_name}/json"
     req = urllib.request.Request(
-        url, headers={"User-Agent": "AmplifyP-Autoupdate"}
+        url,
+        headers={"User-Agent": "AmplifyP-Autoupdate"},
     )
+
     try:
         with urllib.request.urlopen(req, timeout=10) as response:  # noqa: S310
             data = json.loads(response.read().decode())

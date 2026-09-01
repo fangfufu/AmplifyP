@@ -429,3 +429,55 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
 
     # Verify that the analysis automatically ran (3 steps produced)
     assert len(view.primer_list.controls) == 3
+
+
+def test_designer_1d_remaining_branches() -> None:
+    """Test all remaining branches for 1D primer designer."""
+    from amplifyp.gui.views.designer_1d import PrimerDesignerView
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+
+    # 1. Properties
+    assert view.analyse_button is not None
+
+    # 2. Form validation: DNA sequence contains no valid nucleotides
+    view.form.dna_input.value = r"\n\t"
+    res = view.form.validate_and_get_params()
+    assert res is None
+
+    # 3. _run_designer_event
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+    view._run_designer_event(None)
+    assert len(view.primer_list.controls) == 3
+
+    # 4. run_designer exception handling
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=RuntimeError("Designer 1D err"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_err,
+    ):
+        success = view.run_designer()
+        assert success is False
+        mock_err.assert_called_once()
+
+    # 5. _clear_all with RuntimeError on update
+    with patch.object(
+        mock_page, "update", side_effect=RuntimeError("Page update err")
+    ):
+        view._clear_all()
+
+    # 6. _load_designer_1d_click when file picker cancelled (returns None)
+    with patch(
+        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+        new=AsyncMock(return_value=None),
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))

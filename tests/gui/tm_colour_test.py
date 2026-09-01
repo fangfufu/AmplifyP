@@ -183,3 +183,64 @@ class TestTmColourCoolWarm:
         """Tm >= 75 deg C gives the hottest red in dark mode."""
         GUIColours.dark_mode = True
         assert tm_colour(80.0, "Cool-Warm") == "#d32f2f"
+
+
+def test_gui_colours_properties_and_interpolator_edge_cases() -> None:
+    """Test all theme mode permutations for GUIColours and interpolator."""
+
+    from amplifyp.gui.colours import (
+        ColourInterpolator,
+        get_text_contrast_colour,
+    )
+
+    colour_attributes = [
+        "dark_mode",
+        "colour_deficient_mode",
+        "TEXT_ON_SURFACE",
+        "SUCCESS_GREEN",
+        "SURFACE",
+        "SURFACE_VARIANT",
+        "PRIMARY",
+        "OUTLINE_VARIANT",
+        "OUTLINE",
+        "ERROR_RED",
+        "DIVIDER_GREY",
+        "UPDATE_AVAILABLE_COLOUR",
+        "MUTED_GREY",
+        "DUPLICATE_BG",
+        "FOCUSED_DUPLICATE_BG",
+        "SELECTED_ROW_BG",
+        "DIAGRAM_BLACK",
+        "DIAGRAM_BG",
+        "INFO_HEADER_BG",
+        "GUTTER_BG",
+        "FWD_PRIMER",
+        "REV_PRIMER",
+        "REV_LABEL",
+        "LINK_BLUE",
+        "PURPLE",
+        "WHITE",
+        "TRANSPARENT",
+    ]
+
+    for dark in (False, True):
+        GUIColours.dark_mode = dark
+        for cd in (False, True):
+            GUIColours.colour_deficient_mode = cd
+            for attr in colour_attributes:
+                val = getattr(GUIColours, attr)
+                assert val is not None
+
+    # 3-character hex conversion
+    assert ColourInterpolator.to_rgb("#fff") == (255, 255, 255)
+    assert ColourInterpolator.to_rgb("#000") == (0, 0, 0)
+
+    # Invalid hex string raises ValueError
+    with pytest.raises(ValueError, match="Invalid hex colour"):
+        ColourInterpolator.to_rgb("not_a_valid_hex")
+
+    # get_text_contrast_colour with invalid hex fallback
+    assert (
+        get_text_contrast_colour("not_a_valid_hex")
+        == GUIColours.TEXT_ON_SURFACE
+    )
