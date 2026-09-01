@@ -16,6 +16,7 @@
 """Tests for Settings View and sub-tiles."""
 
 import asyncio
+import os
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -128,13 +129,14 @@ def test_diagnostics_tile_all_branches(tmp_path: Any) -> None:
     # 3. _on_log_file_path_change with "Select folder" - successful selection
     tile.log_file_path.value = "Select folder"
     new_dir = str(tmp_path / "new_log_dir")
+    expected_log_path = os.path.join(new_dir, "app.log")
     with patch.object(
         ft.FilePicker,
         "get_directory_path",
         new=AsyncMock(return_value=new_dir),
     ):
         asyncio.run(tile._on_log_file_path_change(MagicMock()))
-        assert settings["log_file_path"] == f"{new_dir}/app.log"
+        assert settings["log_file_path"] == expected_log_path
 
     # 4. _on_log_file_path_change with "Select folder" - cancelled selection
     tile.log_file_path.value = "Select folder"
@@ -142,7 +144,7 @@ def test_diagnostics_tile_all_branches(tmp_path: Any) -> None:
         ft.FilePicker, "get_directory_path", new=AsyncMock(return_value=None)
     ):
         asyncio.run(tile._on_log_file_path_change(MagicMock()))
-        assert tile.log_file_path.value == f"{new_dir}/app.log"
+        assert tile.log_file_path.value == expected_log_path
 
     # 5. update_ui with invalid max_bytes and missing mb option
     settings["log_rotation_max_bytes"] = "invalid_bytes"
