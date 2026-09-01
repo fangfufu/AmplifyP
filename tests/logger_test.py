@@ -457,3 +457,83 @@ def test_initialise_logging_reapplies_settings() -> None:
     assert amplifyp_logger.level == logging.ERROR
     assert amplifyp_gui_logger.level == logging.ERROR
     assert flet_logger.level == logging.INFO
+
+
+def test_logger_settings_path_and_apply_stored_settings() -> None:
+    """Test _get_settings_path and _apply_stored_settings edge cases."""
+    from unittest.mock import mock_open
+
+    from amplifyp.gui.logger import (
+        _apply_stored_settings,
+        _get_log_dir,
+        _get_settings_path,
+    )
+
+    # 1. _get_log_dir Windows without APPDATA
+    with (
+        patch("sys.platform", "win32"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        path = _get_log_dir()
+        assert "Roaming" in str(path)
+
+    # 2. _get_settings_path Windows with APPDATA
+    with (
+        patch("sys.platform", "win32"),
+        patch.dict(
+            "os.environ", {"APPDATA": r"C:\Users\test\AppData"}, clear=True
+        ),
+    ):
+        path = _get_settings_path()
+        assert str(path).startswith(r"C:\Users\test\AppData")
+
+    # 3. _get_settings_path Windows without APPDATA
+    with (
+        patch("sys.platform", "win32"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        path = _get_settings_path()
+        assert "Roaming" in str(path)
+
+    # 4. _get_settings_path Darwin with and without HOME
+    with (
+        patch("sys.platform", "darwin"),
+        patch.dict("os.environ", {"HOME": "/Users/tester"}, clear=True),
+    ):
+        path = _get_settings_path()
+        assert path.as_posix() == (
+            "/Users/tester/Library/Application Support/AmplifyP/settings.yaml"
+        )
+
+    with (
+        patch("sys.platform", "darwin"),
+        patch.dict("os.environ", {}, clear=True),
+    ):
+        path = _get_settings_path()
+        assert "Application Support" in str(path)
+
+    # 5. _get_settings_path Linux with XDG_CONFIG_HOME
+    with (
+        patch("sys.platform", "linux"),
+        patch.dict(
+            "os.environ", {"XDG_CONFIG_HOME": "/custom/xdg"}, clear=True
+        ),
+    ):
+        path = _get_settings_path()
+        assert path.as_posix() == "/custom/xdg/amplifyp/settings.yaml"
+
+    # 6. _apply_stored_settings error loading and custom log path
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch("builtins.open", side_effect=OSError("read error")),
+    ):
+        _apply_stored_settings()
+
+    with (
+        patch.object(Path, "exists", return_value=True),
+        patch(
+            "builtins.open",
+            mock_open(read_data="log_file_path: /custom/log.txt"),
+        ),
+    ):
+        _apply_stored_settings()

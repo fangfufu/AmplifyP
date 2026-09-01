@@ -16,6 +16,7 @@
 """Tests for the melting module."""
 
 from dataclasses import replace
+from typing import Any
 
 import pytest
 
@@ -306,3 +307,113 @@ def test_ambiguous_base_gc_content() -> None:
         _ = calculate_tm_santalucia_1998_owczarzy_2008(
             seq_s, GLOBAL_TM_SETTINGS
         )
+
+
+def test_calculate_tm_zero_enthalpy_and_denominators() -> None:
+    """Test defensive error handling for zero thermodynamic denominators."""
+    from unittest.mock import patch
+
+    # 1. Zero dH in SantaLucia calculation (line 196)
+    with patch.dict(
+        "amplifyp.melting._NN_THERMO_DATA_TUPLE",
+        {("A", "A"): (-920.0, -22.2)},
+    ):
+        with pytest.raises(
+            InsufficientThermodynamicDataError,
+            match="Invalid sequence: lacks standard thermodynamic base pairs",
+        ):
+            calculate_tm_santalucia_1998_owczarzy_2008(Primer("AAAAAA"))
+
+    # 2. Zero calculated base Tm in Kelvin (line 202)
+    import math
+
+    orig_isclose = math.isclose
+
+    call_count_tm = 0
+
+    def isclose_base_tm(a: float, b: float, **kw: Any) -> bool:
+        nonlocal call_count_tm
+        call_count_tm += 1
+        if call_count_tm == 4:
+            return True
+        return bool(orig_isclose(a, b, **kw))
+
+    with patch("amplifyp.melting.math.isclose", side_effect=isclose_base_tm):
+        with pytest.raises(
+            InsufficientThermodynamicDataError,
+            match="Calculated base Tm is zero",
+        ):
+            calculate_tm_santalucia_1998_owczarzy_2008(Primer("ACGTACGT"))
+
+    # 3. Denominator with salt correction is zero (monovalent mode, line 215)
+    s_mono = TMSettings(monovalent_salt_conc=50.0, divalent_salt_conc=0.0)
+    call_count_mono = 0
+
+    def isclose_mono(a: float, b: float, **kw: Any) -> bool:
+        nonlocal call_count_mono
+        call_count_mono += 1
+        if call_count_mono == 6:
+            return True
+        return bool(orig_isclose(a, b, **kw))
+
+    with patch("amplifyp.melting.math.isclose", side_effect=isclose_mono):
+        with pytest.raises(
+            InsufficientThermodynamicDataError,
+            match="Denominator with salt correction is zero",
+        ):
+            calculate_tm_santalucia_1998_owczarzy_2008(
+                Primer("ACGTACGT"), settings=s_mono
+            )
+
+    # 4. Denominator with salt correction is zero
+    # (monovalent dominant mode, line 231)
+    s_ratio = TMSettings(monovalent_salt_conc=100.0, divalent_salt_conc=0.0001)
+    call_count_ratio = 0
+
+    def isclose_ratio(a: float, b: float, **kw: Any) -> bool:
+        nonlocal call_count_ratio
+        call_count_ratio += 1
+        if call_count_ratio == 6:
+            return True
+        return bool(orig_isclose(a, b, **kw))
+
+    with patch("amplifyp.melting.math.isclose", side_effect=isclose_ratio):
+        with pytest.raises(
+            InsufficientThermodynamicDataError,
+            match="Denominator with salt correction is zero",
+        ):
+            calculate_tm_santalucia_1998_owczarzy_2008(
+                Primer("ACGTACGT"), settings=s_ratio
+            )
+
+    # 5. Inverse Tm with salt correction is zero (Mg mode, line 271)
+    s_mg = TMSettings(monovalent_salt_conc=10.0, divalent_salt_conc=1.5)
+    call_count_mg = 0
+
+    def isclose_mg(a: float, b: float, **kw: Any) -> bool:
+        nonlocal call_count_mg
+        call_count_mg += 1
+        if call_count_mg == 6:
+            return True
+        return bool(orig_isclose(a, b, **kw))
+
+    with patch("amplifyp.melting.math.isclose", side_effect=isclose_mg):
+        with pytest.raises(
+            InsufficientThermodynamicDataError,
+            match="Inverse Tm with salt correction is zero",
+        ):
+            calculate_tm_santalucia_1998_owczarzy_2008(
+                Primer("ACGTACGT"), settings=s_mg
+            )
+
+    # 6. Amplify4 zero denominator (line 340)
+    log_dna = 1.987 * math.log(50.0 / 4e9)
+
+    target_e = 10.0 * log_dna - 108.0
+    s_amp4 = TMSettings()
+    s_amp4.entropy["C", "A"] = target_e
+    with pytest.raises(
+        InsufficientThermodynamicDataError,
+        match="Denominator is zero in Tm calculation \\(Amplify4\\)",
+    ):
+        calculate_tm_lander_amplify4(Primer("AC"), settings=s_amp4)

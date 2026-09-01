@@ -494,3 +494,393 @@ def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
     assert len(view.result_list.controls) == 2
     card = view.result_list.controls[0]
     assert isinstance(card, ft.Card)
+
+
+def test_pcr_view_all_remaining_branches() -> None:
+    """Test all remaining branches across PCR view for 100% coverage."""
+    from typing import Any, cast
+    from unittest.mock import patch
+
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.dna import DNAType
+    from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
+    from amplifyp.gui.views.pcr.amplicon_drawing import (
+        AmpliconDetailCard,
+        DrawnAmplicon,
+    )
+    from amplifyp.gui.views.pcr.dismissible_detail_card import (
+        DismissibleDetailCard,
+    )
+    from amplifyp.gui.views.pcr.pcr_layout import PCRLayoutSolver
+    from amplifyp.gui.views.pcr.primer_drawing import (
+        DrawnPrimer,
+        ReplicationContextCard,
+        get_template_substring,
+    )
+    from amplifyp.origin import ReplicationOrigin
+    from amplifyp.pcr import PCR
+    from amplifyp.settings import ReplicationSettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    settings = GUISettings()
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+
+    # 1. Properties
+    assert view.diagram_container is not None
+    assert view.divider is not None
+    # 2. _on_pan_update on diagram_panel
+    view.diagram_panel._Control__page = mock_page
+    view.diagram_panel.update = MagicMock()
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=50.0))
+        )
+    assert view.diagram_panel.diagram_container.height >= 200.0
+
+    # With update raising RuntimeError
+    with (
+        patch.object(
+            view.diagram_panel, "update", side_effect=RuntimeError("Update err")
+        ),
+        patch.object(ft.Control, "page", new=property(lambda self: mock_page)),
+    ):
+        view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=-20.0))
+        )
+
+    # 3. open_all_cards when _cached_pcr is None vs present
+    view.open_all_cards()  # None -> early return
+
+    view.run_pcr()
+    view.open_all_cards()
+    assert len(view.result_list.controls) > 0
+
+    # 4. _clear_all_cards
+    view._clear_all_cards(MagicMock())
+    assert len(view.result_list.controls) == 0
+
+    # 5. Tick interval scaling for length > 10000 and length > 5000
+    view.diagram_panel._draw_template_baseline(
+        v_target=100.0,
+        h_margin=40.0,
+        c_width=600.0,
+        t_width=500.0,
+        target_length=15000,
+    )
+    view.diagram_panel._draw_template_baseline(
+        v_target=100.0,
+        h_margin=40.0,
+        c_width=600.0,
+        t_width=500.0,
+        target_length=6000,
+    )
+
+    # 6. DrawnAmplicon q_score thresholds (<700, <1500, <4000, >=4000)
+
+    p1 = Primer("A" * 20, name="P1")
+    p2 = Primer("T" * 20, name="P2")
+    canvas = ft.canvas.Canvas()
+    stack = ft.Stack()
+
+    for q in [500.0, 1000.0, 3000.0, 5000.0]:
+        amp_mock = MagicMock(spec=Amplicon)
+        amp_mock.q_score = q
+        amp_mock.circular = False
+        amp_mock.start = DirIdx(direction=DNADirection.FWD, index=100)
+        amp_mock.end = DirIdx(direction=DNADirection.REV, index=300)
+        amp_mock.product = DNA("A" * 200)
+        da = DrawnAmplicon(
+            amp=amp_mock,
+            idx=0,
+            target_length=1000,
+            t_width=500.0,
+            h_margin=40.0,
+            v_target=100.0,
+            c_width=600.0,
+            settings=settings,
+            on_click=MagicMock(),
+        )
+        da.draw(canvas, stack)
+
+    # 7. DrawnAmplicon circular: w_right >= w_left and w_right < w_left
+    amp_circ1 = MagicMock(spec=Amplicon)
+    amp_circ1.q_score = 100.0
+    amp_circ1.circular = True
+    amp_circ1.start = DirIdx(direction=DNADirection.FWD, index=800)
+    amp_circ1.end = DirIdx(direction=DNADirection.REV, index=100)
+    amp_circ1.product = DNA("A" * 300)
+
+    da_circ1 = DrawnAmplicon(
+        amp=amp_circ1,
+        idx=0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        c_width=600.0,
+        settings=settings,
+        on_click=MagicMock(),
+        v_frag_start=None,
+    )
+    da_circ1.draw(canvas, stack)
+
+    amp_circ2 = MagicMock(spec=Amplicon)
+    amp_circ2.q_score = 100.0
+    amp_circ2.circular = True
+    amp_circ2.start = DirIdx(direction=DNADirection.FWD, index=900)
+    amp_circ2.end = DirIdx(direction=DNADirection.REV, index=400)
+    amp_circ2.product = DNA("A" * 300)
+
+    da_circ2 = DrawnAmplicon(
+        amp=amp_circ2,
+        idx=0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        c_width=600.0,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    da_circ2.draw(canvas, stack)
+
+    # 8. AmpliconDetailCard short sequence (len(full_seq) < fwd_len + rev_len)
+    amp_short = MagicMock(spec=Amplicon)
+    amp_short.fwd_origin = p1
+    amp_short.rev_origin = p2
+    amp_short.start = DirIdx(direction=DNADirection.FWD, index=0)
+    amp_short.end = DirIdx(direction=DNADirection.REV, index=10)
+    amp_short.product = DNA("A" * 10)
+    amp_short.q_score = 100.0
+
+    card_short = AmpliconDetailCard(
+        amp_short, settings, dismiss_callback=MagicMock()
+    )
+    assert card_short is not None
+
+    # 9. DismissibleDetailCard close button dismiss callback
+    dismissed = False
+
+    def on_dismiss(c: ft.Card) -> None:
+        nonlocal dismissed
+        dismissed = True
+
+    card_dismiss = DismissibleDetailCard(
+        card_id="test_card",
+        title="Test Card",
+        settings=settings,
+        dismiss_callback=on_dismiss,
+        body_controls=[ft.Container()],
+    )
+    # Trigger close button
+    close_btn = card_dismiss.content.content.controls[0].controls[-1]
+    close_btn.on_click(MagicMock())
+    assert dismissed is True
+
+    # 10. PrimerDrawing: REV primer with bent leader line
+    # and get_template_substring on circular template
+    drawn_rev = DrawnPrimer(
+        name="rev1",
+        index=100,
+        conf=MagicMock(direction=DNADirection.REV),
+        var=DirIdx(direction=DNADirection.REV, index=100),
+        S=10.0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+        x_shifted=150.0,  # different from x_pos to trigger bent leader line
+    )
+    drawn_rev.draw(canvas, stack)
+
+    tmpl_circ = DNA("ATGCATGC", dna_type=DNAType.CIRCULAR)
+    region_circ = get_template_substring(tmpl_circ, 6, 6)
+    assert len(region_circ) == 6
+
+    # 11. ReplicationContextCard with amplify4_compatibility_mode
+    mock_conf = MagicMock(spec=Repliconf)
+    mock_conf.primer = Primer("ATGC", name="P1")
+    mock_conf.direction = DNADirection.FWD
+    mock_conf.template = DNA("ATGCATGCATGCATGC")
+    mock_origin = MagicMock(spec=ReplicationOrigin)
+    mock_origin.settings = ReplicationSettings(amplify4_compatibility_mode=True)
+    mock_origin.primability = 0.95
+    mock_origin.stability = 0.90
+    mock_origin.quality = 1.0
+    mock_conf.origin.return_value = mock_origin
+
+    ctx_card = ReplicationContextCard(
+        primer_name="P1",
+        padded_idx=0,
+        conf=mock_conf,
+        var=DirIdx(direction=DNADirection.FWD, index=0),
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    assert ctx_card is not None
+
+    # 12. PCRLayoutSolver: clusters hitting boundaries and missing confs
+    # Left boundary cluster
+    b_left = {
+        (0, "p1"): (
+            "p1",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=0),
+        ),
+        (1, "p2"): (
+            "p2",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=1),
+        ),
+        (2, "p3"): (
+            "p3",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=2),
+        ),
+    }
+    shifted_left = PCRLayoutSolver.calculate_shifted_x(
+        cast(Any, b_left), 1000, 500.0, 40.0
+    )
+    assert len(shifted_left) == 3
+
+    # Right boundary cluster & multi-cluster
+    b_multi = {
+        (0, "p1"): (
+            "p1",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=0),
+        ),
+        (998, "p2"): (
+            "p2",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=998),
+        ),
+        (999, "p3"): (
+            "p3",
+            10.0,
+            mock_conf,
+            DirIdx(direction=DNADirection.FWD, index=999),
+        ),
+    }
+    shifted_multi = PCRLayoutSolver.calculate_shifted_x(
+        cast(Any, b_multi), 1000, 500.0, 40.0
+    )
+    assert len(shifted_multi) == 3
+
+    # PCRLayoutSolver.collect_primer_bindings with mismatched repliconfs
+    # and search not done
+    unsearched_conf = MagicMock(spec=Repliconf)
+    unsearched_conf.searched = False
+    unsearched_conf.primer = Primer("ATGC", name="P_un")
+    unsearched_conf.origin_db = MagicMock(
+        fwd=[DirIdx(direction=DNADirection.FWD, index=0)],
+        rev=[DirIdx(direction=DNADirection.REV, index=10)],
+    )
+    unsearched_conf.origin.return_value = mock_origin
+
+    pcr_mismatch = MagicMock(spec=PCR)
+
+    pcr_mismatch.amplicons = [amp_short]
+    pcr_mismatch.amplicon_generator = MagicMock(repliconfs=[])
+    fwd_b, rev_b = PCRLayoutSolver.collect_primer_bindings(
+        pcr_mismatch, [amp_short]
+    )
+    assert len(fwd_b) == 0
+    assert len(rev_b) == 0
+
+    pcr_no_amp = MagicMock(spec=PCR)
+
+    pcr_no_amp.amplicons = []
+    pcr_no_amp.amplicon_generator = MagicMock(repliconfs=[unsearched_conf])
+    fwd_b2, rev_b2 = PCRLayoutSolver.collect_primer_bindings(pcr_no_amp, [])
+    assert unsearched_conf.search.called
+    assert len(fwd_b2) == 1
+    assert len(rev_b2) == 1
+
+    # 13. MAX_AMPLICONS_RENDER warning in run_pcr and render_diagram
+    many_amps = [amp_short] * (MAX_AMPLICONS_RENDER + 10)
+    pcr_many = MagicMock(spec=PCR)
+    pcr_many.amplicons = many_amps
+    pcr_many.template = DNA("A" * 1000)
+    pcr_many.amplicon_generator = MagicMock(repliconfs=[])
+
+    view._cached_pcr = None
+    view._cached_state_key = None
+    with patch.object(view, "_execute_pcr_simulation", return_value=pcr_many):
+        view.run_pcr()
+        assert any(
+            isinstance(c, ft.Container)
+            and "amplicons" in getattr(getattr(c, "content", None), "value", "")
+            for c in view.result_list.controls
+        )
+
+    # 14. run_pcr exception handling
+    view._cached_pcr = None
+    view._cached_state_key = None
+    with (
+        patch.object(
+            view, "_execute_pcr_simulation", side_effect=RuntimeError("PCR err")
+        ),
+        patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err,
+    ):
+        success = view.run_pcr()
+        assert success is False
+        mock_err.assert_called_once()
+
+    # 15. Duplicate context map & amplicon cards (moves to top) and dismissal
+    view._show_context_map(
+        "P1", 0, mock_conf, DirIdx(direction=DNADirection.FWD, index=0)
+    )
+    assert len(view.result_list.controls) > 0
+    first_ctrl = view.result_list.controls[0]
+    view._show_context_map(
+        "P1", 0, mock_conf, DirIdx(direction=DNADirection.FWD, index=0)
+    )
+    assert view.result_list.controls[0] == first_ctrl
+
+    # Dismiss context card
+    if hasattr(first_ctrl, "_card_id"):
+        # invoke its dismiss callback
+        close_btn = first_ctrl.content.content.controls[0].controls[-1]
+        close_btn.on_click(MagicMock())
+
+    view._show_amplicon_dialog(amp_short)
+    amp_ctrl = view.result_list.controls[0]
+    view._show_amplicon_dialog(amp_short)
+    assert view.result_list.controls[0] == amp_ctrl
+
+    # Dismiss amplicon card
+    close_btn2 = amp_ctrl.content.content.controls[0].controls[-1]
+    close_btn2.on_click(MagicMock())
+
+    # _draw_amplicons with amplicons=None
+    view.diagram_panel._draw_amplicons(
+        pcr_many,
+        target_length=15000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        c_width=600.0,
+        amplicons=None,
+    )

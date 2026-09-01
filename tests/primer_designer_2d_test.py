@@ -269,3 +269,35 @@ def test_primer_designer_2d_amplicon_invalid_inputs() -> None:
             template=template_dna,
             max_amplicon_count=-1,
         )
+
+
+def test_primer_designer_2d_empty_and_mean_score() -> None:
+    """Test 2D designer empty best_score error and FilterMetric.MEAN."""
+
+    from amplifyp.dimer import PrimerDimerGenerator
+
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+
+    # Empty steps raises RuntimeError on best_score
+    designer_empty = PrimerDesigner2D(fwd_dna, 9, rev_dna, 9, threshold=-999.0)
+    with pytest.raises(RuntimeError, match="No analysis steps recorded"):
+        _ = designer_empty.best_score
+
+    # FilterMetric.MEAN
+    custom_gen = PrimerDimerGenerator()
+    designer_mean = PrimerDesigner2D(
+        fwd_dna,
+        9,
+        rev_dna,
+        9,
+        generator=custom_gen,
+        threshold=200.0,
+        max_overlap=6,
+        filter_metric=FilterMetric.MEAN,
+    )
+    assert designer_mean.generator == custom_gen
+    assert designer_mean.threshold == 200.0
+    assert designer_mean.max_overlap == 6
+    scores = designer_mean.quality_score(sorted=True)
+    assert len(scores) > 0

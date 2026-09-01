@@ -237,3 +237,11 @@ def test_primer_designer_origin_invalid_inputs() -> None:
         PrimerDesigner1D(
             dna_obj, min_length=7, template=template_dna, max_origin_count=-1
         )
+
+
+def test_primer_designer_1d_empty_best_quality_score() -> None:
+    """Test best_score raises RuntimeError when no dimers are recorded."""
+    dna_obj = DNA("ATGCGTACGT")
+    designer = PrimerDesigner1D(dna_obj, min_length=7, threshold=-999.0)
+    with pytest.raises(RuntimeError, match="No analysis steps recorded"):
+        _ = designer.best_score

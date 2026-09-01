@@ -16,6 +16,7 @@
 """Main Flet application logic."""
 
 import logging
+from typing import Any
 
 import flet as ft
 
@@ -24,6 +25,64 @@ from amplifyp.gui.logger import initialise_logging
 from amplifyp.gui.settings import GUISettings
 
 logger = logging.getLogger(__name__)
+
+
+def _patch_flet_session() -> None:
+    """Patch Flet Session to safely handle invoke method results.
+
+    Prevents crashing the message receive loop when invoke method results
+    arrive for controls that were already unregistered or deleted.
+    """
+    try:
+        from flet.messaging.session import (  # pyright: ignore[reportMissingTypeStubs]
+            Session,
+        )
+
+        if getattr(Session, "_amplifyp_patched", False):
+            return
+
+        def safe_handle_invoke_method_results(
+            self: Any,
+            control_id: int,
+            call_id: str,
+            result: Any,
+            error: str | None,
+        ) -> None:
+            """Safely handle invoke method results without crashing."""
+            index = getattr(self, f"_{Session.__name__}__index", None)
+            method_calls = getattr(
+                self, f"_{Session.__name__}__method_calls", None
+            )
+            method_call_results = getattr(
+                self, f"_{Session.__name__}__method_call_results", None
+            )
+            if index is not None and control_id in index:
+                if method_calls is not None:
+                    evt = method_calls.pop(call_id, None)
+                    if evt is None:
+                        return
+                    if method_call_results is not None:
+                        method_call_results[evt] = (result, error)
+                    evt.set()
+            else:
+                if method_calls is not None:
+                    evt = method_calls.pop(call_id, None)
+                    if evt is not None:
+                        if method_call_results is not None:
+                            method_call_results[evt] = (result, error)
+                        evt.set()
+                logger.debug(
+                    "Ignored invoke method result for unregistered control %s",
+                    control_id,
+                )
+
+        Session.handle_invoke_method_results = safe_handle_invoke_method_results  # pyright: ignore[reportAttributeAccessIssue]
+        Session._amplifyp_patched = True  # pyright: ignore[reportAttributeAccessIssue]
+    except Exception as e:
+        logger.debug("Failed to patch Flet session: %s", e)
+
+
+_patch_flet_session()
 
 
 def main(

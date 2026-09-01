@@ -259,3 +259,33 @@ def test_amplify4_origin_settings_isolation() -> None:
     o1 = Amplify4FwdOrigin("ATCG", "ATCG")
     o2 = Amplify4FwdOrigin("ATCG", "ATCG")
     assert o1.settings is not o2.settings
+
+
+def test_dir_idx_hash() -> None:
+    """Test DirIdx hashing and dictionary key usage."""
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.dna import DNADirection
+
+    d1 = DirIdx(direction=DNADirection.FWD, index=5)
+    d2 = DirIdx(direction=DNADirection.FWD, index=5)
+    d3 = DirIdx(direction=DNADirection.REV, index=5)
+
+    assert hash(d1) == hash(d2)
+    lookup = {d1: "test"}
+    assert lookup[d2] == "test"
+    assert d3 not in lookup
+
+
+def test_dir_idx_database_getitem() -> None:
+    """Test indexing into DirIdxDb by direction and index tuple."""
+    from amplifyp.dir_idx import DirIdx, DirIdxDb
+    from amplifyp.dna import DNADirection
+
+    db = DirIdxDb(fwd=[], rev=[])
+    idx_fwd = DirIdx(direction=DNADirection.FWD, index=10)
+    idx_rev = DirIdx(direction=DNADirection.REV, index=20)
+    db.fwd.append(idx_fwd)
+    db.rev.append(idx_rev)
+
+    assert db[DNADirection.FWD, 0] == idx_fwd
+    assert db[DNADirection.REV, 0] == idx_rev

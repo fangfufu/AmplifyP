@@ -102,3 +102,16 @@ def test_fetch_latest_release_version_failure(
     """Test fetch_latest_release_version on network failure."""
     mock_urlopen.side_effect = Exception("Connection Refused")
     assert fetch_latest_release_version() is None
+
+
+def test_version_check_edge_cases() -> None:
+    """Test unknown pre-release words and unknown frequencies."""
+
+    from amplifyp.gui.utils.system import (
+        _parse_to_tuple,
+        should_check_for_updates,
+    )
+
+    assert _parse_to_tuple("1.0.0-dev1")[-2] == 0
+    assert _parse_to_tuple("1.0.0-99")[-2] == 0
+    assert should_check_for_updates("UnknownFrequency", 1000.0, 2000.0) is False

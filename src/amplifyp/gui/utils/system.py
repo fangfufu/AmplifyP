@@ -351,6 +351,7 @@ def fetch_latest_release_version() -> str | None:
         url,
         headers={"User-Agent": "AmplifyP-Updater"},
     )
+
     try:
         with urllib.request.urlopen(req, timeout=5) as response:  # noqa: S310
             data = json.loads(response.read().decode("utf-8"))

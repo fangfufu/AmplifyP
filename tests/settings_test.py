@@ -209,3 +209,12 @@ def test_tm_settings_dntp_conc() -> None:
     assert tm.dntp_conc == pytest.approx(2.5)
     tm.dntp_conc = 3.0
     assert tm.dntp_conc == pytest.approx(3.0)
+
+
+def test_base_pair_weights_tbl_non_table_equality() -> None:
+    """Test BasePairWeightsTbl equality comparison with non-table objects."""
+    from amplifyp.settings import DEFAULT_BASE_PAIR_WEIGHTS
+
+    tbl = DEFAULT_BASE_PAIR_WEIGHTS
+    assert tbl != "not_a_table"
+    assert tbl != 42

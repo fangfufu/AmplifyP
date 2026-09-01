@@ -254,6 +254,7 @@ def test_primer_order_swap() -> None:
     assert res_no_reorder.primer_2 == p_short
     assert res_default.quality == res_no_reorder.quality
     assert res_default.overlap == res_no_reorder.overlap
+    assert res_no_reorder.binding_strength_str == "|||||"
 
 
 @pytest.mark.parametrize(  # type: ignore[untyped-decorator]
@@ -292,3 +293,85 @@ def test_primer_dimer_binding_strength(
     assert dimer.quality == expected_quality
     assert dimer.p1_pos == expected_p1_pos
     assert dimer.binding_strength_str == expected_strength
+
+
+def test_primer_dimer_bonds_key_error_and_colon() -> None:
+    """Test bond symbol generation with unknown bases and custom threshold."""
+    from amplifyp.settings import BasePairWeightsTbl
+
+    # 4x4 table without degenerate base 'M' causes KeyError
+    # in weights -> score 0.0 -> ':' symbol
+    tbl = BasePairWeightsTbl(
+        row="ACGT",
+        col="ACGT",
+        weight=[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+    )
+    s_missing = PrimerDimerSettings(weights=tbl)
+    pd_unknown = PrimerDimer(
+        primer_1=Primer("MMM"),
+        primer_2=Primer("TTT"),
+        quality=10.0,
+        overlap=3,
+        p1_pos=0,
+        settings=s_missing,
+    )
+    assert pd_unknown.binding_strength_str == ":::"
+
+    # Custom settings with negative score results in space ' '
+    tbl_neg = BasePairWeightsTbl(
+        row="ACGT",
+        col="ACGT",
+        weight=[
+            [-10, -10, -10, -10],
+            [-10, -10, -10, -10],
+            [-10, -10, -10, -10],
+            [-10, -10, -10, -10],
+        ],
+    )
+    s_neg = PrimerDimerSettings(weights=tbl_neg)
+    pd_space = PrimerDimer(
+        primer_1=Primer("AAA"),
+        primer_2=Primer("TTT"),
+        quality=-10.0,
+        overlap=3,
+        p1_pos=0,
+        settings=s_neg,
+    )
+    assert pd_space.binding_strength_str == "   "
+
+
+def test_calculate_dimer_stats_key_error() -> None:
+    """Test calculate_dimer_stats with non-standard nucleotide characters."""
+    from amplifyp.dimer import calculate_dimer_stats
+
+    # 'Z' is not in standard primer dimer weights
+    best_q, best_pos, overlap = calculate_dimer_stats(
+        "AAAZAAA", "TTTTTTT", 7, 7
+    )
+    assert isinstance(best_q, float)
+    assert isinstance(best_pos, int)
+    assert isinstance(overlap, int)
+
+
+def test_primer_dimer_reverse_binding_swap() -> None:
+    """Test symmetric primers where reverse orientation has higher score."""
+    custom_settings = PrimerDimerSettings()
+
+    custom_settings.weights["A", "T"] = 10.0
+    custom_settings.weights["T", "A"] = 25.0
+
+    p1 = Primer("AAAAA", name="P1")
+    p2 = Primer("TTTTT", name="P2")
+
+    generator = PrimerDimerGenerator(settings=custom_settings)
+    res = generator.generate_primer_dimer(p1, p2)
+    assert res.primer_1 == p2
+    assert res.primer_2 == p1
+
+    generator.add_primer(p1)
+    generator.add_primer(p2)
+    generator.analyse_primers()
+    assert len(generator.primer_dimers) >= 1
+    found_dimer = generator.primer_dimers[0]
+    assert found_dimer.primer_1 == p2
+    assert found_dimer.primer_2 == p1

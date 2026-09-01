@@ -346,6 +346,8 @@ class GUIController:
         self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
+        self.designer_2d_view.update_ui()
+
         # Only redraw/re-simulate active views
         if active_view == self.pcr_view:
             self.pcr_view.run_pcr(keep_cards=True)

@@ -181,6 +181,19 @@ class Designer2DView(BaseDesignerView):
 
         self._bring_card_to_top_or_add(card_id, _factory)
 
+    def update_ui(self) -> None:
+        """Update 2D designer view components when settings change."""
+        if self._cached_designer is not None:
+            self.results_grid.update_grid(self._cached_designer)
+        for card in self._active_cards:
+            if isinstance(card, Dismissible2DCard):
+                card.on_settings_change()
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
     def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
         """Clear inputs, parameters, error messages, grid, and cards."""
         self.form.fwd_dna_input.value = ""

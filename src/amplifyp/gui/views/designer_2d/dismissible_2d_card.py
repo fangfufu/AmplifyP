@@ -96,7 +96,7 @@ class Dismissible2DCard(DismissibleDetailCard):
         )
 
         # Dimer pair subcontainers
-        subcontainers_section = self._build_dimer_subcontainers(
+        self.dimer_subcontainers = self._build_dimer_subcontainers(
             font_size_default=font_size_default,
             font_size_small=font_size_small,
         )
@@ -104,7 +104,7 @@ class Dismissible2DCard(DismissibleDetailCard):
         card_body = [
             primer_info_section,
             ft.Divider(height=1, color=GUIColours.OUTLINE_VARIANT),
-            subcontainers_section,
+            self.dimer_subcontainers,
         ]
 
         super().__init__(
@@ -115,6 +115,26 @@ class Dismissible2DCard(DismissibleDetailCard):
             body_controls=card_body,
             title_controls=title_controls,
         )
+
+    def on_settings_change(self) -> None:
+        """Update dimer subcontainers and sequence font when settings change."""
+        self.font_family = self.settings.get("font_family", self.font_family)
+        font_size_small = self.settings.get("font_size_small", 12)
+        font_size_default = self.settings.get("font_size_default", 14)
+        new_subcontainers = self._build_dimer_subcontainers(
+            font_size_default=font_size_default,
+            font_size_small=font_size_small,
+        )
+        self.dimer_subcontainers.controls = new_subcontainers.controls
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
+    def update_ui(self) -> None:
+        """Update card contents when settings change."""
+        self.on_settings_change()
 
     def _build_primer_details_section(
         self, fwd_p: Primer, rev_p: Primer, font_size_small: int
@@ -152,20 +172,28 @@ class Dismissible2DCard(DismissibleDetailCard):
     def _build_dimer_subcontainers(
         self, font_size_default: int, font_size_small: int
     ) -> ft.Column:
-        """Build the 3 subcontainers for each primer dimer pair alignment.
+        """Build the subcontainers for each primer dimer pair alignment.
 
         Args:
             font_size_default: Default sequence font size.
             font_size_small: Small text font size.
 
         Returns:
-            Column containing 3 styled dimer pair alignment subcontainers.
+            Column containing styled dimer pair alignment subcontainers.
         """
         dimer_pairs: list[tuple[str, PrimerDimer]] = [
             ("Forward Self-Dimer (Fwd-Fwd)", self.step.fwd_fwd),
             ("Reverse Self-Dimer (Rev-Rev)", self.step.rev_rev),
             ("Forward-Reverse Cross-Dimer (Fwd-Rev)", self.step.fwd_rev),
         ]
+
+        show_rev_fwd = self.settings.get("designer_2d_show_rev_fwd", False)
+        if isinstance(show_rev_fwd, str):
+            show_rev_fwd = show_rev_fwd.lower() in ("true", "1", "yes")
+        if show_rev_fwd:
+            dimer_pairs.append(
+                ("Reverse-Forward Cross-Dimer (Rev-Fwd)", self.step.rev_fwd)
+            )
 
         subcontainers: list[ft.Control] = []
 
