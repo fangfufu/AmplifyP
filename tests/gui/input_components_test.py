@@ -510,7 +510,10 @@ async def test_template_input_file_operations() -> None:
     ):
         await save_template_click(tmpl, MagicMock())
 
-    tmpl._on_copy_click(MagicMock())
+    with patch("pyperclip.copy") as mock_pyperclip_copy:
+        tmpl._on_copy_click(MagicMock())
+        mock_pyperclip_copy.assert_called_once_with(">seq1ATGCGATCGATC")
+
     tmpl._handle_menu_select("Auto")
     tmpl._handle_menu_select(60)
     tmpl._upper_case_click(MagicMock())
@@ -1000,7 +1003,9 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     input_data.template = ""
     tmpl.template_sequence.value = ""
     tmpl.template_sequence.selection = None
-    tmpl._on_copy_click(MagicMock())
+    with patch("pyperclip.copy") as mock_empty_copy:
+        tmpl._on_copy_click(MagicMock())
+        mock_empty_copy.assert_not_called()
 
     # template _validate_bases_per_line
     assert tmpl._validate_bases_per_line("50") == 50
