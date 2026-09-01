@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0](https://github.com/fangfufu/AmplifyP/compare/v1.18.0...v1.19.0) (2026-09-01)
+
+
+### Features
+
+* **gui:** add 2D designer rev-fwd dimer toggle ([161886b](https://github.com/fangfufu/AmplifyP/commit/161886b24283d36bb6b426301d4249368485753f))
+
+
+### Bug Fixes
+
+* **core:** fix dimer binding strength calculation ([2ca27a1](https://github.com/fangfufu/AmplifyP/commit/2ca27a190bbce9a8274ade0c41c6ecb29138dcd0))
+* **gui:** handle results for deleted controls ([a03db15](https://github.com/fangfufu/AmplifyP/commit/a03db1581251ce29a496711214a0eb7bb8e4e49d))
+* **gui:** refresh 2D designer cards on settings change ([c0a2595](https://github.com/fangfufu/AmplifyP/commit/c0a2595886bd1a1b58dadba13818b155f61ca8d3))
+
 ## [1.18.0](https://github.com/fangfufu/AmplifyP/compare/v1.17.1...v1.18.0) (2026-08-30)
 
 
