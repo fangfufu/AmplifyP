@@ -102,6 +102,49 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         except RuntimeError:
             pass
 
+    def show_loading(self) -> None:
+        """Display a progress indicator while analysis is running."""
+        self._selected_step = None
+        self._cell_containers.clear()
+        self._cell_bg_colours.clear()
+        self._best_cell_keys.clear()
+        font_small = self.settings.get("font_size_small", 12)
+        self.content_column.controls = [
+            ft.Text(
+                "2D Truncation Results Grid",
+                weight=ft.FontWeight.BOLD,
+                size=self.settings.get("font_size_subheader", 16),
+            ),
+            ft.Container(
+                content=ft.Column(
+                    [
+                        ft.ProgressRing(
+                            width=40,
+                            height=40,
+                            stroke_width=4,
+                            color=GUIColours.PRIMARY,
+                        ),
+                        ft.Text(
+                            "Analysing\u2026",
+                            italic=True,
+                            size=font_small,
+                            color=GUIColours.TEXT_ON_SURFACE,
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=10,
+                ),
+                expand=True,
+                alignment=ft.Alignment(0, 0),
+            ),
+        ]
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
     def update_grid(self, designer: PrimerDesigner2D) -> None:
         """Populate and render the 2D matrix grid.
 

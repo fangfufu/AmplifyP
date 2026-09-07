@@ -673,12 +673,20 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         patch(
             "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
         ) as mock_err_dlg,
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+            side_effect=lambda target, daemon: MagicMock(start=target),
+        ),
     ):
         view._run_designer_event()
         mock_err_dlg.assert_called_once()
 
     # 5. Designer2DView UI updates & dismiss with RuntimeError
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
 
     with patch.object(mock_page, "update", side_effect=RuntimeError("Err")):

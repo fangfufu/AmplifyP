@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 from collections.abc import Callable
 
 import flet as ft
@@ -164,32 +165,53 @@ class Designer2DView(BaseDesignerView):
             )
             template_dna = DNA(clean_tpl, dna_type=t_type)
 
+        # Show progress indicator immediately before spawning the thread.
+        self.results_grid.show_loading()
+        self.form.analyse_button.disabled = True
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
         pd_settings = self.settings.get_primer_dimer_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
 
-        try:
-            designer = PrimerDesigner2D(
-                fwd_dna=fwd_dna,
-                fwd_min_length=fwd_min_len,
-                rev_dna=rev_dna,
-                rev_min_length=rev_min_len,
-                generator=generator,
-                threshold=threshold,
-                max_overlap=max_overlap,
-                filter_metric=filter_metric,
-                template=template_dna,
-                max_amplicon_count=max_amplicons,
-            )
-            self._cached_designer = designer
-            self.results_grid.update_grid(designer)
-            self._clear_all_cards()
-        except Exception as ex:
-            logger.exception("Failed to run 2D primer designer")
-            show_error_dialog(
-                self.app_page,
-                "Analysis Error",
-                f"Error performing 2D primer design: {ex}",
-            )
+        def _run_analysis() -> None:
+            """Execute analysis in a background thread and update UI."""
+            try:
+                designer = PrimerDesigner2D(
+                    fwd_dna=fwd_dna,
+                    fwd_min_length=fwd_min_len,
+                    rev_dna=rev_dna,
+                    rev_min_length=rev_min_len,
+                    generator=generator,
+                    threshold=threshold,
+                    max_overlap=max_overlap,
+                    filter_metric=filter_metric,
+                    template=template_dna,
+                    max_amplicon_count=max_amplicons,
+                )
+                self._cached_designer = designer
+                self.results_grid.update_grid(designer)
+                self._clear_all_cards()
+            except Exception as ex:
+                logger.exception("Failed to run 2D primer designer")
+                show_error_dialog(
+                    self.app_page,
+                    "Analysis Error",
+                    f"Error performing 2D primer design: {ex}",
+                )
+                self.results_grid.clear_grid()
+            finally:
+                self.form.analyse_button.disabled = False
+                try:
+                    if self.app_page:
+                        self.app_page.update()
+                except RuntimeError:
+                    pass
+
+        threading.Thread(target=_run_analysis, daemon=True).start()
 
     def _handle_run_pcr(
         self, fwd_seq: str, fwd_name: str, rev_seq: str, rev_name: str
