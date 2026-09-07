@@ -24,6 +24,8 @@ from typing import Any
 
 import yaml
 
+logger = logging.getLogger(__name__)
+
 
 def _get_log_dir() -> Path:
     """Get the OS-specific directory for log storage.
@@ -312,9 +314,13 @@ def _remove_handlers_by_type(
         root_logger: The root logger to modify.
         handler_type: The handler class to remove.
     """
-    root_logger.handlers = [
-        h for h in root_logger.handlers if not isinstance(h, handler_type)
-    ]
+    for h in root_logger.handlers:
+        if isinstance(h, handler_type):
+            root_logger.removeHandler(h)
+            try:
+                h.close()
+            except Exception as exc:
+                logger.warning("Failed to close handler: %s", exc)
 
 
 def initialise_logging(
