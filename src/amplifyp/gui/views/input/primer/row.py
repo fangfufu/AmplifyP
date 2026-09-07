@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 from collections.abc import Callable
@@ -328,7 +329,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         res = scroll_target.scroll_to(offset=0)
         page = e.page or self.page
-        if inspect.iscoroutine(res) and page:
+        if inspect.iscoroutine(res):
 
             async def _do_scroll() -> None:
                 try:
@@ -341,13 +342,31 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 except (RuntimeError, AssertionError):
                     pass
 
-            page.run_task(_do_scroll)
-        else:
-            try:
-                if scroll_target.page:
-                    scroll_target.update()
-            except (RuntimeError, AssertionError):
-                pass
+            if page and callable(getattr(page, "run_task", None)):
+                try:
+                    page.run_task(_do_scroll)
+                except (RuntimeError, AttributeError):
+                    try:
+                        _task = asyncio.create_task(_do_scroll())
+                        _task.add_done_callback(lambda t: t.exception())
+                    except RuntimeError:
+                        pass
+            else:
+                try:
+                    asyncio.get_running_loop().create_task(_do_scroll())
+                except RuntimeError:
+                    _loop = asyncio.new_event_loop()
+                    try:
+                        _loop.run_until_complete(_do_scroll())
+                    except RuntimeError:
+                        pass
+                    finally:
+                        _loop.close()
+        try:
+            if scroll_target.page:
+                scroll_target.update()
+        except (RuntimeError, AssertionError):
+            pass
         self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
