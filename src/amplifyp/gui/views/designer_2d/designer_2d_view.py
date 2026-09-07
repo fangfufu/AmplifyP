@@ -183,16 +183,9 @@ class Designer2DView(BaseDesignerView):
         pd_settings = self.settings.get_primer_dimer_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
 
-        # Throttle UI updates: only repaint when the percentage changes by ≥1%
-        # or on the very last tick to avoid flooding page.update().
-        _last_pct: list[int] = [-1]
-
         def _on_progress(done: int, total: int) -> None:
-            """Forward progress ticks to the results grid (throttled)."""
-            pct = round(done / total * 100) if total > 0 else 0
-            if pct != _last_pct[0] or done == total:
-                _last_pct[0] = pct
-                self.results_grid.update_progress(done, total)
+            """Forward every progress tick to the results grid."""
+            self.results_grid.update_progress(done, total)
 
         def _run_analysis() -> None:
             """Execute analysis in a background thread and update UI."""
