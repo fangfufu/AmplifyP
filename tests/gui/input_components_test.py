@@ -322,6 +322,7 @@ def test_primer_row_components_and_events() -> None:
     assert row.name_field.data["cursor_pos"] == 3
 
     # 2. _on_blur
+    row.name_scroll.scroll_to = MagicMock(return_value=None)
     ev_blur = MagicMock()
     ev_blur.control = row.name_field
     ev_blur.page = page

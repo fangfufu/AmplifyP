@@ -238,7 +238,11 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
     view.form.max_quality_input.value = ""
     view.form.max_overlap_input.value = ""
 
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
 
     assert view._cached_designer is not None
     # 3 forward lengths (10, 9, 8) x 3 reverse lengths (10, 9, 8) = 9 steps
@@ -320,7 +324,11 @@ def test_designer_2d_view_clear_all() -> None:
     view.form.max_quality_input.value = ""
     view.form.max_overlap_input.value = ""
 
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
     assert len(view.results_grid._cell_containers) == 9
 
@@ -762,7 +770,11 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     view.form.fwd_min_len_input.value = "8"
     view.form.rev_dna_input.value = "CGTACGATGC"
     view.form.rev_min_len_input.value = "8"
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
 
     step = view._cached_designer.all_steps[0]
@@ -915,7 +927,11 @@ def test_designer_2d_view_template_and_amplicons() -> None:
     # 2. Provide template in input_data -> unconstrained amplicons
     input_data.template = "ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT"
     view.form.max_amplicons_input.value = ""
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
 
     assert view._cached_designer is not None
     assert len(view._cached_designer.all_steps) == 9
@@ -932,7 +948,11 @@ def test_designer_2d_view_template_and_amplicons() -> None:
 
     # 3. Constrained max_amplicons filter (e.g. max 1 amplicon)
     view.form.max_amplicons_input.value = "1"
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
     for step in view._cached_designer.all_steps:
         assert step.amplicon_count is not None
@@ -952,7 +972,11 @@ def test_designer_2d_view_run_pcr_callback() -> None:
     view.form.rev_dna_input.value = "ACGTACGCAT"
     view.form.rev_min_len_input.value = "8"
 
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
 
     step = view._cached_designer.all_steps[0]
