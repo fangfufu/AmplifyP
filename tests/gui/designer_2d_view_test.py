@@ -765,6 +765,11 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     ):
         copy_btn.on_click(MagicMock(page=mock_page))
 
+    # The copy-button section above rebinds run_task to a capturing mock
+    # (mock_run_task), which would create an un-awaited ProgressTracker
+    # flush coroutine on any later show_loading call. Reset to a no-op.
+    mock_page.run_task = MagicMock()
+
     # 9. Dismissible2DCard: settings change with page update and string boolean
     view.form.fwd_dna_input.value = "ATGCGTACGT"
     view.form.fwd_min_len_input.value = "8"
@@ -819,30 +824,30 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         grid.update_grid(mock_diagonal_designer)
 
         # show_loading with a known total shows a ProgressBar at 0%
+        tracker = grid.progress_tracker
         grid.show_loading(total=6)
-        assert grid._progress_bar is not None
-        assert grid._progress_bar.value == 0.0
-        assert grid._progress_label is not None
-        assert grid._progress_label.value == "0 / 6"
+        assert tracker.bar is not None
+        assert tracker.bar.value == 0.0
+        assert tracker.label is not None
+        assert tracker.label.value == "0 / 6"
 
         # show_loading with total=0 shows indeterminate bar
         grid.show_loading(total=0)
-        assert grid._progress_bar is not None
-        assert grid._progress_bar.value is None  # indeterminate
-        assert grid._progress_label is not None
-        assert "Analysing" in (grid._progress_label.value or "")
+        assert tracker.bar is not None
+        assert tracker.bar.value is None  # indeterminate
+        assert tracker.label is not None
+        assert "Analysing" in (tracker.label.value or "")
 
         # update_progress advances bar and label
         grid.show_loading(total=6)
         grid.update_progress(3, 6)
-        assert grid._progress_bar is not None
-        assert abs((grid._progress_bar.value or 0.0) - 0.5) < 0.01
-        assert grid._progress_label is not None
-        assert grid._progress_label.value == "3 / 6 (50%)"
+        assert tracker.bar is not None
+        assert abs((tracker.bar.value or 0.0) - 0.5) < 0.01
+        assert tracker.label is not None
+        assert tracker.label.value == "3 / 6 (50%)"
 
-        # update_progress is a no-op when controls are None
-        grid._progress_bar = None
-        grid._progress_label = None
+        # update_progress is a no-op when hidden
+        grid.clear_grid()
         grid.update_progress(1, 6)  # should not raise
 
         # on_cell_click

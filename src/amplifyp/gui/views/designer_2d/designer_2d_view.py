@@ -74,6 +74,7 @@ class Designer2DView(BaseDesignerView):
 
         # Grid view component for bottom-left container
         self.results_grid = Grid2DResultsView(
+            page=page,
             settings=self.settings,
             on_select_step_callback=self._on_grid_step_selected,
         )

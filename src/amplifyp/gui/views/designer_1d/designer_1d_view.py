@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
 import traceback
 from collections.abc import Callable
 
@@ -33,6 +32,7 @@ from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.gui.utils.gui_helpers import BorderedCheckbox, show_error_dialog
 from amplifyp.gui.views.designer.designer_view_base import BaseDesignerView
+from amplifyp.gui.views.designer.progress_tracker import ProgressTracker
 from amplifyp.gui.views.designer_1d.designer_1d_form import Designer1DForm
 from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
     DismissibleSelfDimerCard,
@@ -79,9 +79,11 @@ class PrimerDesignerView(BaseDesignerView):
         )
 
         # Bottom-left output: progress bar (while loading) + primer list
-        self._progress_bar: ft.ProgressBar | None = None
-        self._progress_label: ft.Text | None = None
-        self._flush_stop: bool = False
+        self.progress_tracker = ProgressTracker(
+            page=page,
+            settings=self.settings,
+            hint_text="Analysing primer truncations\u2026",
+        )
         self.primer_list = ft.ListView(
             expand=True, spacing=6, scroll=ft.ScrollMode.ALWAYS
         )
@@ -289,57 +291,14 @@ class PrimerDesignerView(BaseDesignerView):
     def show_loading(self, total: int = 0) -> None:
         """Replace primer list with a progress bar while analysis runs.
 
-        Starts a daemon flush thread that calls ``app_page.update()`` every
-        50 ms so the bar animates smoothly regardless of analysis speed.
+        The tracker schedules a flush task on the Flet event loop that
+        calls ``app_page.update()`` every 50 ms so the bar animates
+        smoothly regardless of analysis speed.
 
         Args:
             total: Total truncation steps. When 0, bar is indeterminate.
         """
-        # Stop any previous flush thread before starting a new one.
-        if self._flush_stop:
-            self._flush_stop = True
-
-        font_small = self.settings.get("font_size_small", 12)
-        self._progress_bar = ft.ProgressBar(
-            value=0.0 if total > 0 else None,
-            expand=True,
-            color=GUIColours.PRIMARY,
-            bgcolor=GUIColours.SURFACE_VARIANT,
-            bar_height=8,
-            border_radius=4,
-        )
-        self._progress_label = ft.Text(
-            f"0 / {total}" if total > 0 else "Analysing\u2026",
-            italic=True,
-            size=font_small,
-            color=GUIColours.TEXT_ON_SURFACE,
-        )
-        loading_body = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            self._progress_bar,
-                            self._progress_label,
-                        ],
-                        spacing=10,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    ft.Text(
-                        "Analysing primer truncations\u2026",
-                        size=font_small,
-                        color=GUIColours.TEXT_ON_SURFACE,
-                        opacity=0.6,
-                    ),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=8,
-            ),
-            expand=True,
-            alignment=ft.Alignment(0, 0),
-            padding=ft.Padding(24, 0, 24, 0),
-        )
+        loading_body = self.progress_tracker.show(total)
         col = self.bottom_left_container.content
         if isinstance(col, ft.Column):
             col.controls = [self._primer_list_header, loading_body]
@@ -349,49 +308,23 @@ class PrimerDesignerView(BaseDesignerView):
         except RuntimeError:
             pass
 
-        # Start independent flush loop — page.update() every 50 ms regardless
-        # of how fast the analysis thread produces progress ticks.
-        if self._flush_stop is not True:
-            self._flush_stop = False
-
-        def _flush_loop() -> None:
-            while not self._flush_stop:
-                try:
-                    if self.app_page:
-                        self.app_page.update()
-                except RuntimeError:
-                    break
-                time.sleep(0.05)
-
-        threading.Thread(target=_flush_loop, daemon=True).start()
-
     def update_progress(self, done: int, total: int) -> None:
-        """Write current progress values; the flush thread renders them.
+        """Write current progress values; the flush task renders them.
 
-        The bar value and label are updated on every call.
-        ``app_page.update()`` is called by the independent flush thread
-        at ~20 fps, so the analysis thread is never blocked by rendering.
-        Stops the flush thread when the final tick is received.
+        The bar value and label are updated on every call. The flush
+        task runs on the Flet event loop at ~20 fps, so the analysis
+        thread is never blocked by rendering. Stops the flush task when
+        the final tick is received.
 
         Args:
             done: Number of truncation steps completed so far.
             total: Total number of truncation steps.
         """
-        if self._progress_bar is None or self._progress_label is None:
-            return
-        fraction = done / total if total > 0 else 0.0
-        self._progress_bar.value = fraction
-        pct = round(fraction * 100)
-        self._progress_label.value = f"{done} / {total} ({pct}%)"
-        if done == total and self._flush_stop:
-            self._flush_stop = True
+        self.progress_tracker.update_progress(done, total)
 
     def _restore_primer_list(self) -> None:
         """Restore bottom-left panel to show the primer list."""
-        if self._flush_stop:
-            self._flush_stop = True
-        self._progress_bar = None
-        self._progress_label = None
+        self.progress_tracker.hide()
         col = self.bottom_left_container.content
         if isinstance(col, ft.Column):
             col.controls = [
