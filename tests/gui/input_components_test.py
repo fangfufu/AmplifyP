@@ -1371,7 +1371,7 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
         nonlocal captured_coro
         captured_coro = fn(*args)
 
-    mock_page = MagicMock()
+    mock_page = MagicMock(spec=ft.Page)
     mock_page.run_task = record_task
 
     row_blur_test.name_scroll.scroll_to = MagicMock(

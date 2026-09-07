@@ -117,7 +117,7 @@ def build_primer_summary_row(
 
     def _copy_seq(e: ft.ControlEvent) -> None:
         try:
-            if e.page:
+            if isinstance(e.page, ft.Page):
                 e.page.run_task(_copy_seq_async)
         except RuntimeError:
             pass

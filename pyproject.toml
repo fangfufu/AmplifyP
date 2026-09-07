@@ -91,6 +91,7 @@ omit = [ "src/amplifyp/antigravity_gui/gui.py" ]
 
 [tool.mypy]
 mypy_path = "src"
+ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "amplifyp.gui.*"

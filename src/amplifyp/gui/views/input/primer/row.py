@@ -328,7 +328,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         )
         res = scroll_target.scroll_to(offset=0)
         page = e.page or self.page
-        if inspect.iscoroutine(res) and page:
+        if inspect.iscoroutine(res) and isinstance(page, ft.Page):
 
             async def _do_scroll() -> None:
                 try:
