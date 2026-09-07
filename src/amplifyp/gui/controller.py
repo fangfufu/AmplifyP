@@ -159,7 +159,10 @@ class GUIController:
         self.pcr_view = PCRView(self.page, self.input_data, self.settings)
         self.dimers_view = DimerView(self.page, self.input_data, self.settings)
         self.designer_view = PrimerDesignerView(
-            self.page, self.input_data, self.settings
+            self.page,
+            self.input_data,
+            self.settings,
+            on_run_pcr=self.run_pcr_with_primer,
         )
         self.designer_2d_view = Designer2DView(
             self.page, self.input_data, self.settings
@@ -260,11 +263,57 @@ class GUIController:
         """Handle dimers click: switch view then run analysis."""
         self._nav_manager.on_dimers_click(e)
 
+    def run_pcr_with_primer(self, seq: str, name: str) -> None:
+        """Run PCR using template with a specific candidate primer."""
+        from amplifyp.gui.utils.data_helpers import clean_sequence
+        from amplifyp.gui.utils.gui_helpers import show_error_dialog
+
+        clean_tpl = clean_sequence(self.input_data.template)
+        if not clean_tpl:
+            show_error_dialog(
+                self.page,
+                "Template Required",
+                "Please enter a DNA template in the Input view before "
+                "running PCR.",
+            )
+            return
+
+        clean_p_seq = clean_sequence(seq)
+        if not clean_p_seq:
+            show_error_dialog(
+                self.page,
+                "Invalid Primer",
+                "The primer sequence contains no valid nucleotides.",
+            )
+            return
+
+        for p in self.input_data.primers:
+            p["active"] = False
+
+        matched = False
+        for p in self.input_data.primers:
+            if clean_sequence(p.get("seq", "")) == clean_p_seq:
+                p["active"] = True
+                p["name"] = name
+                matched = True
+                break
+
+        if not matched:
+            self.input_data.primers.append(
+                {"name": name, "seq": clean_p_seq, "active": True}
+            )
+
+        self.input_view_dirty = True
+        self.update_pcr_button_state(sync=False, update_page=False)
+        self._nav_manager.switch_view(cast(Any, None), self.pcr_view)
+        if not self.pcr_view.run_pcr():
+            self._nav_manager.switch_view(cast(Any, None), self.designer_view)
+
     def update_pcr_button_state(
         self, sync: bool = True, update_page: bool = True
     ) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
-        if sync:
+        if sync and self.input_view is not None:
             self.input_view.sync_to_state()
 
         has_template = bool(self.input_data.template.strip())
@@ -274,19 +323,22 @@ class GUIController:
         # Check if any selected (active) primer has validation errors
         # or duplicates
         has_invalid_selected = False
-        for idx, p in enumerate(self.input_data.primers):
-            if p.get("active", False) and idx < len(
-                self.input_view.primer_input.validation_errors
-            ):
-                err = self.input_view.primer_input.validation_errors[idx]
-                if err.get("name") or err.get("seq"):
-                    has_invalid_selected = True
-                    break
+        if self.input_view is not None and hasattr(
+            self.input_view, "primer_input"
+        ):
+            for idx, p in enumerate(self.input_data.primers):
+                if p.get("active", False) and idx < len(
+                    self.input_view.primer_input.validation_errors
+                ):
+                    err = self.input_view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        has_invalid_selected = True
+                        break
 
-        if hasattr(self.input_view.primer_input, "error_banner"):
-            self.input_view.primer_input.error_banner.visible = (
-                has_invalid_selected
-            )
+            if hasattr(self.input_view.primer_input, "error_banner"):
+                self.input_view.primer_input.error_banner.visible = (
+                    has_invalid_selected
+                )
 
         pcr_is_enabled = (
             has_template and has_enough_primers and not has_invalid_selected

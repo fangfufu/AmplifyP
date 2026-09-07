@@ -41,6 +41,8 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         dismiss_callback: Callable[[ft.Card], None],
         font_family: str = "Roboto Mono",
         step_index: int | None = None,
+        on_run_pcr_callback: Callable[[str, str], None] | None = None,
+        origin_count: int | None = None,
     ) -> None:
         """Initialise the DismissibleSelfDimerCard.
 
@@ -51,11 +53,15 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             dismiss_callback: Callback invoked when dismissed.
             font_family: Sequence alignment font family.
             step_index: Optional 0-indexed step number in truncation sequence.
+            on_run_pcr_callback: Optional callback to execute PCR with this
+                primer.
+            origin_count: Optional number of template binding sites.
         """
         self.dimer = dimer
         self.settings = settings
         self.font_family = font_family
         self.step_index = step_index
+        self.origin_count = origin_count
 
         dimer_card = DimerCard(
             d=dimer,
@@ -82,11 +88,31 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         tm_badge = create_badge(tm_text, font_size=font_size_small)
         pct_at_badge = create_badge(pct_at_text, font_size=font_size_small)
 
-        title_controls = [
+        title_controls: list[ft.Control] = [
             *metric_controls.controls,
             tm_badge,
             pct_at_badge,
         ]
+        if origin_count is not None:
+            sites_badge = create_badge(
+                f"Sites: {origin_count}", font_size=font_size_small
+            )
+            title_controls.append(sites_badge)
+
+        def _on_pcr_click(e: ft.ControlEvent) -> None:
+            if on_run_pcr_callback:
+                on_run_pcr_callback(
+                    primer_seq, f"1D Primer ({len(primer_seq)} nt)"
+                )
+
+        self.pcr_button = ft.FilledTonalButton(
+            "Run PCR",
+            icon=ft.Icons.PLAY_ARROW,
+            height=28,
+            tooltip=f"Run PCR using template with {len(primer_seq)} nt primer",
+            on_click=_on_pcr_click,
+        )
+        title_controls.append(self.pcr_button)
 
         super().__init__(
             card_id=card_id,

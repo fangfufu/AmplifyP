@@ -26,6 +26,7 @@ from amplifyp.dna import DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.views.designer import BaseDesignerForm, create_field_container
 
 
@@ -78,6 +79,23 @@ class Designer1DForm(BaseDesignerForm):
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
+        self.filter_dna_checkbox = BorderedCheckbox(
+            label="Check against template",
+            value=False,
+            on_change=self._on_filter_dna_change,
+        )
+        self.max_binding_sites_input = ft.TextField(
+            hint_text="Unconstrained if empty",
+            value="",
+            expand=True,
+            disabled=True,
+            border_color=GUIColours.OUTLINE,
+            height=48,
+            on_submit=self._on_submit_event,
+            on_change=self._clear_field_error,
+        )
+
+        self.analyse_button.height = 48
 
         self.controls = [
             self._build_header_container("1D Truncation Parameters"),
@@ -100,10 +118,58 @@ class Designer1DForm(BaseDesignerForm):
                     create_field_container(
                         "Min Length (nt)", self.min_len_input, expand=True
                     ),
-                ]
+                ],
+                include_analyse_button=False,
+            ),
+            ft.Row(
+                [
+                    ft.Container(
+                        content=self.filter_dna_checkbox,
+                        alignment=ft.Alignment(-1, 0),
+                        expand=True,
+                        height=48,
+                        margin=ft.Margin.only(top=23),
+                    ),
+                    create_field_container(
+                        "Max Binding Sites",
+                        self.max_binding_sites_input,
+                        expand=True,
+                    ),
+                    ft.Container(
+                        content=self.analyse_button,
+                        alignment=ft.Alignment(1, 0),
+                        height=48,
+                        margin=ft.Margin.only(top=23, left=16),
+                    ),
+                ],
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.START,
             ),
             self.error_text,
         ]
+
+    @property
+    def check_template_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
+
+    @property
+    def check_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
+
+    def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
+        """Handle enabling/disabling check against template filter."""
+        is_checked = bool(self.filter_dna_checkbox.value)
+        self.max_binding_sites_input.disabled = not is_checked
+        if not is_checked:
+            self.max_binding_sites_input.error = None
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+        self._clear_field_error(e)
 
     def _on_dna_change(self, e: ft.ControlEvent) -> None:
         """Update length counter and clear error when DNA input changes."""
@@ -117,10 +183,16 @@ class Designer1DForm(BaseDesignerForm):
         super().clear_errors()
         self.dna_input.error = None
         self.min_len_input.error = None
+        self.max_binding_sites_input.error = None
 
     def validate_and_get_params(
         self,
-    ) -> tuple[str, int, DNADirection, float | None, int | None] | None:
+    ) -> (
+        tuple[
+            str, int, DNADirection, float | None, int | None, bool, int | None
+        ]
+        | None
+    ):
         """Validate input fields and return parsed parameters tuple if valid."""
         self.clear_errors()
 
@@ -175,4 +247,31 @@ class Designer1DForm(BaseDesignerForm):
         if not o_valid:
             return None
 
-        return clean_seq, min_length, mode, threshold, max_overlap
+        filter_dna_enabled = bool(self.filter_dna_checkbox.value)
+        max_binding_sites: int | None = None
+        if filter_dna_enabled:
+            sites_raw = (self.max_binding_sites_input.value or "").strip()
+            if sites_raw:
+                if not sites_raw.isdigit():
+                    self.show_field_error(
+                        self.max_binding_sites_input,
+                        "Max binding sites must be a positive integer.",
+                    )
+                    return None
+                max_binding_sites = int(sites_raw)
+                if max_binding_sites <= 0:
+                    self.show_field_error(
+                        self.max_binding_sites_input,
+                        "Max binding sites must be greater than 0.",
+                    )
+                    return None
+
+        return (
+            clean_seq,
+            min_length,
+            mode,
+            threshold,
+            max_overlap,
+            filter_dna_enabled,
+            max_binding_sites,
+        )

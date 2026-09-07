@@ -35,6 +35,8 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         mode: DNADirection,
         settings: GUISettings,
         on_select_callback: Callable[[PrimerDimer, int], None],
+        on_run_pcr_callback: Callable[[str, str], None] | None = None,
+        origin_count: int | None = None,
     ) -> None:
         """Initialise PrimerItemCard."""
         font_size_default = settings.get("font_size_default", 14)
@@ -45,6 +47,57 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         seq = dimer.primer_1.seq
         length = len(seq)
         overlap_str = f"Overlap: {dimer.overlap} bp"
+
+        def _on_pcr_click(e: ft.ControlEvent) -> None:
+            if on_run_pcr_callback:
+                on_run_pcr_callback(seq, f"1D Primer ({length} nt)")
+
+        self.pcr_button = ft.FilledTonalButton(
+            "PCR",
+            icon=ft.Icons.PLAY_ARROW,
+            tooltip=f"Run PCR using template with {length} nt primer",
+            height=32,
+            on_click=_on_pcr_click,
+        )
+
+        badge_controls: list[ft.Control] = [
+            ft.Container(
+                content=ft.Text(
+                    f"Quality: {round(dimer.quality)}",
+                    weight=ft.FontWeight.BOLD,
+                    size=font_size_default,
+                    color=GUIColours.DIAGRAM_BLACK,
+                ),
+                bgcolor=GUIColours.SELECTED_ROW_BG,
+                padding=ft.Padding(6, 3, 6, 3),
+                border_radius=4,
+            ),
+            ft.Container(
+                content=ft.Text(
+                    overlap_str,
+                    weight=ft.FontWeight.BOLD,
+                    size=font_size_default,
+                    color=GUIColours.DIAGRAM_BLACK,
+                ),
+                bgcolor=GUIColours.SELECTED_ROW_BG,
+                padding=ft.Padding(6, 3, 6, 3),
+                border_radius=4,
+            ),
+        ]
+        if origin_count is not None:
+            badge_controls.append(
+                ft.Container(
+                    content=ft.Text(
+                        f"Sites: {origin_count}",
+                        weight=ft.FontWeight.BOLD,
+                        size=font_size_default,
+                        color=GUIColours.DIAGRAM_BLACK,
+                    ),
+                    bgcolor=GUIColours.SELECTED_ROW_BG,
+                    padding=ft.Padding(6, 3, 6, 3),
+                    border_radius=4,
+                )
+            )
 
         card_container = ft.Container(
             content=ft.Row(
@@ -83,33 +136,14 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                         horizontal_alignment=ft.CrossAxisAlignment.START,
                     ),
                     ft.Column(
-                        [
-                            ft.Container(
-                                content=ft.Text(
-                                    f"Quality: {round(dimer.quality)}",
-                                    weight=ft.FontWeight.BOLD,
-                                    size=font_size_default,
-                                    color=GUIColours.DIAGRAM_BLACK,
-                                ),
-                                bgcolor=GUIColours.SELECTED_ROW_BG,
-                                padding=ft.Padding(6, 3, 6, 3),
-                                border_radius=4,
-                            ),
-                            ft.Container(
-                                content=ft.Text(
-                                    overlap_str,
-                                    weight=ft.FontWeight.BOLD,
-                                    size=font_size_default,
-                                    color=GUIColours.DIAGRAM_BLACK,
-                                ),
-                                bgcolor=GUIColours.SELECTED_ROW_BG,
-                                padding=ft.Padding(6, 3, 6, 3),
-                                border_radius=4,
-                            ),
-                        ],
+                        badge_controls,
                         spacing=4,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         alignment=ft.MainAxisAlignment.CENTER,
+                    ),
+                    ft.Container(
+                        content=self.pcr_button,
+                        margin=ft.Margin.only(left=6),
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,

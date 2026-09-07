@@ -19,16 +19,17 @@ from __future__ import annotations
 
 import logging
 import traceback
+from collections.abc import Callable
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import DNA
+from amplifyp.dna import DNA, DNAType
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils.data_helpers import clean_sequence
-from amplifyp.gui.utils.gui_helpers import show_error_dialog
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox, show_error_dialog
 from amplifyp.gui.views.designer.designer_view_base import BaseDesignerView
 from amplifyp.gui.views.designer_1d.designer_1d_form import Designer1DForm
 from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
@@ -37,6 +38,7 @@ from amplifyp.gui.views.designer_1d.dismissible_self_dimer_card import (
 from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
 from amplifyp.gui.views.designer_1d.quality_bar_chart import QualityBarChart
 from amplifyp.primer_designer_1d import PrimerDesigner1D
+from amplifyp.repliconf import Repliconf
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +51,11 @@ class PrimerDesignerView(BaseDesignerView):
         page: ft.Page,
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
+        on_run_pcr: Callable[[str, str], None] | None = None,
     ) -> None:
         """Initialise the PrimerDesignerView."""
         super().__init__(page=page, input_data=input_data, settings=settings)
+        self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
 
         # Form component for input controls and parameters
@@ -211,6 +215,26 @@ class PrimerDesignerView(BaseDesignerView):
         return self.form.max_overlap_input
 
     @property
+    def check_template_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.form.filter_dna_checkbox
+
+    @property
+    def filter_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.form.filter_dna_checkbox
+
+    @property
+    def check_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.form.filter_dna_checkbox
+
+    @property
+    def max_binding_sites_input(self) -> ft.TextField:
+        """Get the max binding sites input field."""
+        return self.form.max_binding_sites_input
+
+    @property
     def analyse_button(self) -> ft.FilledButton:
         """Get the analyse button control."""
         return self.form.analyse_button
@@ -259,10 +283,36 @@ class PrimerDesignerView(BaseDesignerView):
         if params is None:
             return False
 
-        clean_seq, min_length, mode, threshold, max_overlap = params
+        (
+            clean_seq,
+            min_length,
+            mode,
+            threshold,
+            max_overlap,
+            filter_dna_enabled,
+            max_binding_sites,
+        ) = params
         self.primer_list.controls.clear()
 
         try:
+            template_dna: DNA | None = None
+            if filter_dna_enabled:
+                clean_tpl = clean_sequence(self.input_data.template)
+                if not clean_tpl:
+                    self.form.show_error(
+                        "Template DNA sequence is required when check against "
+                        "template is enabled. Please enter a template in the "
+                        "Input view."
+                    )
+                    self.app_page.update()
+                    return False
+                t_type = (
+                    DNAType.CIRCULAR
+                    if self.input_data.template_circular
+                    else DNAType.LINEAR
+                )
+                template_dna = DNA(clean_tpl, dna_type=t_type)
+
             dna_obj = DNA(clean_seq)
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
@@ -273,6 +323,8 @@ class PrimerDesignerView(BaseDesignerView):
                 generator=generator,
                 threshold=threshold,
                 max_overlap=max_overlap,
+                template=template_dna,
+                max_origin_count=max_binding_sites,
             )
             self._cached_designer = designer
 
@@ -282,12 +334,22 @@ class PrimerDesignerView(BaseDesignerView):
             )
 
             for step_idx, dimer in enumerate(designer.all_dimers):
+                origin_count: int | None = None
+                if template_dna is not None:
+                    repliconf = Repliconf(template_dna, dimer.primer_1)
+                    repliconf.search()
+                    origin_count = len(repliconf.origin_db.fwd) + len(
+                        repliconf.origin_db.rev
+                    )
+
                 item_card = PrimerItemCard(
                     dimer=dimer,
                     step_index=step_idx,
                     mode=mode,
                     settings=self.settings,
                     on_select_callback=self._on_primer_selected,
+                    on_run_pcr_callback=self._handle_run_pcr,
+                    origin_count=origin_count,
                 )
                 self.primer_list.controls.append(item_card)
 
@@ -305,9 +367,39 @@ class PrimerDesignerView(BaseDesignerView):
         self.app_page.update()
         return True
 
+    def _handle_run_pcr(self, primer_seq: str, primer_name: str) -> None:
+        """Handle running PCR using template with a primer from card."""
+        if self.on_run_pcr:
+            self.on_run_pcr(primer_seq, primer_name)
+        else:
+            clean_tpl = clean_sequence(self.input_data.template)
+            if not clean_tpl:
+                show_error_dialog(
+                    self.app_page,
+                    "Template Required",
+                    "Please enter a DNA template in the Input view before "
+                    "running PCR.",
+                )
+
     def _on_primer_selected(self, dimer: PrimerDimer, step_index: int) -> None:
         """Handle primer selection: add or raise self-dimer card."""
         card_id = f"1d_dimer_{dimer.primer_1.seq}_{step_index}"
+
+        origin_count: int | None = None
+        if self.form.filter_dna_checkbox.value:
+            clean_tpl = clean_sequence(self.input_data.template)
+            if clean_tpl:
+                t_type = (
+                    DNAType.CIRCULAR
+                    if self.input_data.template_circular
+                    else DNAType.LINEAR
+                )
+                tpl_dna = DNA(clean_tpl, dna_type=t_type)
+                repliconf = Repliconf(tpl_dna, dimer.primer_1)
+                repliconf.search()
+                origin_count = len(repliconf.origin_db.fwd) + len(
+                    repliconf.origin_db.rev
+                )
 
         def _factory() -> DismissibleSelfDimerCard:
             font_family = self.settings.get("font_family", "Roboto Mono")
@@ -318,6 +410,8 @@ class PrimerDesignerView(BaseDesignerView):
                 dismiss_callback=self._dismiss_card,
                 font_family=font_family,
                 step_index=step_index,
+                on_run_pcr_callback=self._handle_run_pcr,
+                origin_count=origin_count,
             )
 
         self._bring_card_to_top_or_add(card_id, _factory)
@@ -329,6 +423,9 @@ class PrimerDesignerView(BaseDesignerView):
         self.form.min_len_input.value = ""
         self.form.max_quality_input.value = ""
         self.form.max_overlap_input.value = ""
+        self.form.filter_dna_checkbox.value = False
+        self.form.max_binding_sites_input.value = ""
+        self.form.max_binding_sites_input.disabled = True
         self.form.clear_errors()
         self.primer_list.controls.clear()
         self._cached_designer = None
@@ -347,6 +444,10 @@ class PrimerDesignerView(BaseDesignerView):
             "min_length": (self.form.min_len_input.value or ""),
             "max_quality": (self.form.max_quality_input.value or ""),
             "max_overlap": (self.form.max_overlap_input.value or ""),
+            "filter_dna": bool(self.form.filter_dna_checkbox.value),
+            "max_binding_sites": (
+                self.form.max_binding_sites_input.value or ""
+            ),
         }
         await self._save_parameters_yaml(
             dialog_title="Save Designer 1D Parameters",
@@ -379,6 +480,16 @@ class PrimerDesignerView(BaseDesignerView):
         max_ov_val = params.get("max_overlap")
         self.form.max_overlap_input.value = (
             str(max_ov_val) if max_ov_val is not None else ""
+        )
+
+        filter_dna_val = params.get("filter_dna")
+        self.form.filter_dna_checkbox.value = bool(filter_dna_val)
+        self.form.max_binding_sites_input.disabled = (
+            not self.form.filter_dna_checkbox.value
+        )
+        max_sites_val = params.get("max_binding_sites")
+        self.form.max_binding_sites_input.value = (
+            str(max_sites_val) if max_sites_val is not None else ""
         )
 
         self.form.clear_errors()

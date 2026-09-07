@@ -174,12 +174,15 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         )
 
     def _build_filter_row(
-        self, extra_controls: list[ft.Control] | None = None
+        self,
+        extra_controls: list[ft.Control] | None = None,
+        include_analyse_button: bool = True,
     ) -> ft.Row:
         """Build the standard bottom filter row with filter controls.
 
         Args:
             extra_controls: Optional additional controls to prepend or append.
+            include_analyse_button: Whether to include the Analyse button.
 
         Returns:
             Flet Row containing filter controls.
@@ -196,12 +199,15 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
                 create_field_container(
                     "Max Overlap (bp)", self.max_overlap_input, expand=True
                 ),
+            ]
+        )
+        if include_analyse_button:
+            row_controls.append(
                 ft.Container(
                     content=self.analyse_button,
                     margin=ft.Margin.only(top=18, left=8),
-                ),
-            ]
-        )
+                )
+            )
 
         return ft.Row(
             row_controls,

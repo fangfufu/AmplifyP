@@ -52,6 +52,9 @@ def test_primer_designer_view_initialisation() -> None:
     assert view.min_len_input.value == ""
     assert view.max_quality_input.value == ""
     assert view.max_overlap_input.value == ""
+    assert view.filter_dna_checkbox.value is False
+    assert view.max_binding_sites_input.value == ""
+    assert view.max_binding_sites_input.disabled is True
     assert view.clear_all_button is not None
     assert len(view.primer_list.controls) == 0
     assert len(view.right_cards_list.controls) == 0
@@ -119,6 +122,9 @@ def test_primer_designer_view_clear_all() -> None:
     assert len(view.primer_list.controls) == 4
 
     # Trigger Clear All
+    view.filter_dna_checkbox.value = True
+    view.max_binding_sites_input.disabled = False
+    view.max_binding_sites_input.value = "2"
     view._clear_all(None)
 
     assert view.dna_input.value == ""
@@ -126,6 +132,9 @@ def test_primer_designer_view_clear_all() -> None:
     assert view.min_len_input.value == ""
     assert view.max_quality_input.value == ""
     assert view.max_overlap_input.value == ""
+    assert view.filter_dna_checkbox.value is False
+    assert view.max_binding_sites_input.value == ""
+    assert view.max_binding_sites_input.disabled is True
     assert len(view.primer_list.controls) == 0
     assert len(view.right_cards_list.controls) == 0
 
@@ -358,6 +367,7 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     """Test saving and loading 1D primer designer parameters."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
+    input_data.template = "ATGCGTACGTTTTATGCGTACGT"
     settings = GUISettings()
 
     view = PrimerDesignerView(mock_page, input_data, settings)
@@ -368,6 +378,9 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     view.form.min_len_input.value = "8"
     view.form.max_quality_input.value = ""
     view.form.max_overlap_input.value = ""
+    view.form.filter_dna_checkbox.value = True
+    view.form.max_binding_sites_input.disabled = False
+    view.form.max_binding_sites_input.value = "10"
 
     saved_content = ""
 
@@ -397,6 +410,8 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     assert parsed["min_length"] == "8"
     assert parsed["max_quality"] == ""
     assert parsed["max_overlap"] == ""
+    assert parsed["filter_dna"] is True
+    assert parsed["max_binding_sites"] == "10"
 
     # 2. Test Load
     # Reset form to different values
@@ -405,6 +420,9 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     view.form.min_len_input.value = "10"
     view.form.max_quality_input.value = "60"
     view.form.max_overlap_input.value = "3"
+    view.form.filter_dna_checkbox.value = False
+    view.form.max_binding_sites_input.disabled = True
+    view.form.max_binding_sites_input.value = ""
 
     async def mock_pick_and_read_file(
         page: ft.Page,
@@ -426,6 +444,9 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     assert view.form.min_len_input.value == "8"
     assert view.form.max_quality_input.value == ""
     assert view.form.max_overlap_input.value == ""
+    assert view.form.filter_dna_checkbox.value is True
+    assert view.form.max_binding_sites_input.disabled is False
+    assert view.form.max_binding_sites_input.value == "10"
 
     # Verify that the analysis automatically ran (3 steps produced)
     assert len(view.primer_list.controls) == 3
@@ -481,3 +502,334 @@ def test_designer_1d_remaining_branches() -> None:
         new=AsyncMock(return_value=None),
     ):
         asyncio.run(view._load_designer_1d_click(MagicMock()))
+
+
+def test_designer_1d_filter_dna_toggle() -> None:
+    """Test check against template checkbox enables/disables binding."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    assert view.filter_dna_checkbox.label == "Check against template"
+    assert view.check_dna_checkbox.label == "Check against template"
+    assert view.check_template_checkbox.label == "Check against template"
+    assert view.filter_dna_checkbox.value is False
+    assert view.max_binding_sites_input.disabled is True
+    assert view.max_binding_sites_input.hint_text == "Unconstrained if empty"
+
+    # Check the checkbox
+    view.filter_dna_checkbox.value = True
+    view.form._on_filter_dna_change(MagicMock())
+    assert view.max_binding_sites_input.disabled is False
+
+    # Uncheck the checkbox
+    view.filter_dna_checkbox.value = False
+    view.form._on_filter_dna_change(MagicMock())
+    assert view.max_binding_sites_input.disabled is True
+
+
+def test_designer_1d_analyse_button_layout() -> None:
+    """Test Analyse button is in the last row after Max Binding Sites."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    last_row = view.form.controls[-2]
+    assert isinstance(last_row, ft.Row)
+    assert len(last_row.controls) == 3
+    assert last_row.controls[0].content is view.filter_dna_checkbox
+    assert (
+        isinstance(last_row.controls[1], ft.Column)
+        and last_row.controls[1].controls[1] is view.max_binding_sites_input
+    )
+    assert last_row.controls[2].content is view.form.analyse_button
+    assert last_row.controls[0].expand is True
+    assert last_row.controls[1].expand is True
+    assert last_row.controls[2].expand is not True
+    assert last_row.controls[0].height == 48
+    assert last_row.controls[0].alignment == ft.Alignment(-1, 0)
+    assert last_row.controls[2].height == 48
+    assert last_row.controls[2].alignment == ft.Alignment(1, 0)
+    assert view.form.analyse_button.height == 48
+
+
+def test_designer_1d_max_binding_sites_validation() -> None:
+    """Test validation errors for max binding sites when filter is enabled."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    view.filter_dna_checkbox.value = True
+    view.max_binding_sites_input.disabled = False
+
+    # 1. Zero is invalid
+    view.max_binding_sites_input.value = "0"
+    assert view.run_designer() is False
+    assert view.max_binding_sites_input.error is not None
+    assert "greater than 0" in view.max_binding_sites_input.error
+
+    # 2. Non-digit binding sites
+    view.max_binding_sites_input.value = "abc"
+    assert view.run_designer() is False
+    assert view.max_binding_sites_input.error is not None
+    assert "positive integer" in view.max_binding_sites_input.error
+
+    # 3. Negative binding sites
+    view.max_binding_sites_input.value = "-2"
+    assert view.run_designer() is False
+    assert view.max_binding_sites_input.error is not None
+    assert "positive integer" in view.max_binding_sites_input.error
+
+
+def test_designer_1d_check_against_dna_empty_binding_sites() -> None:
+    """Test empty binding sites input allows evaluation and displays sites."""
+    from amplifyp.gui.views.designer_1d import (
+        DismissibleSelfDimerCard,
+        PrimerItemCard,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTTTTATGCGTACGTTTT"
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    view.filter_dna_checkbox.value = True
+    view.max_binding_sites_input.disabled = False
+    view.max_binding_sites_input.value = ""  # Empty text entry box
+
+    assert view.run_designer() is True
+    assert len(view.primer_list.controls) > 0
+
+    first_item = view.primer_list.controls[0]
+    assert isinstance(first_item, PrimerItemCard)
+    assert hasattr(first_item, "pcr_button")
+
+    def _contains_text(control: ft.Control, text: str) -> bool:
+        if isinstance(control, ft.Text) and text in (control.value or ""):
+            return True
+        if hasattr(control, "content") and control.content:
+            if _contains_text(control.content, text):
+                return True
+        if hasattr(control, "controls") and control.controls:
+            for child in control.controls:
+                if _contains_text(child, text):
+                    return True
+        return False
+
+    # Binding sites count MUST be shown in card badge even when cutoff empty
+    assert _contains_text(first_item, "Sites: 2")
+
+    # Detail card also displays binding sites count
+    first_item.content.on_click(None)
+    assert len(view.right_cards_list.controls) == 1
+    dimer_card = view.right_cards_list.controls[0]
+    assert isinstance(dimer_card, DismissibleSelfDimerCard)
+    assert _contains_text(dimer_card, "Sites: 2")
+    assert hasattr(dimer_card, "pcr_button")
+
+
+def test_designer_1d_template_dna_missing_validation() -> None:
+    """Test validation error when filter enabled but template DNA is empty."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = ""  # empty template
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    view.filter_dna_checkbox.value = True
+    view.max_binding_sites_input.disabled = False
+    view.max_binding_sites_input.value = "1"
+
+    success = view.run_designer()
+    assert success is False
+    assert view.error_text.visible is True
+    assert "Template DNA sequence is required" in view.error_text.value
+    assert "check against template" in view.error_text.value
+
+
+def test_designer_1d_template_dna_filtering_success() -> None:
+    """Test primer truncation filtering with template and binding sites."""
+    from amplifyp.gui.views.designer_1d import PrimerItemCard
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # Template where ATGCGTACGT appears twice
+    input_data.template = "ATGCGTACGTTTTATGCGTACGTTTT"
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "7"
+    view.filter_dna_checkbox.value = True
+    view.max_binding_sites_input.disabled = False
+    view.max_binding_sites_input.value = "2"
+
+    assert view.run_designer() is True
+    assert len(view.primer_list.controls) > 0
+    first_item = view.primer_list.controls[0]
+    assert isinstance(first_item, PrimerItemCard)
+    # Check that PCR button is present
+    assert hasattr(first_item, "pcr_button")
+
+    # When check against template is ticked, Sites: badge is present
+    def _contains_text(control: ft.Control, text: str) -> bool:
+        if isinstance(control, ft.Text) and text in (control.value or ""):
+            return True
+        if hasattr(control, "content") and control.content:
+            if _contains_text(control.content, text):
+                return True
+        if hasattr(control, "controls") and control.controls:
+            for child in control.controls:
+                if _contains_text(child, text):
+                    return True
+        return False
+
+    assert _contains_text(first_item, "Sites: 2")
+
+    # If max_binding_sites is 1, no primers match (count is 2)
+    view.max_binding_sites_input.value = "1"
+    assert view.run_designer() is True
+    assert len(view.primer_list.controls) == 0
+
+
+def test_designer_1d_check_against_dna_unticked_skips_sites_badge() -> None:
+    """Test when check against template is unticked, sites are omitted."""
+    from amplifyp.gui.views.designer_1d import (
+        DismissibleSelfDimerCard,
+        PrimerItemCard,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    # Template provided in Input view
+    input_data.template = "ATGCGTACGTTTTATGCGTACGTTTT"
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    assert view.filter_dna_checkbox.value is False
+
+    assert view.run_designer() is True
+    assert len(view.primer_list.controls) > 0
+
+    first_item = view.primer_list.controls[0]
+    assert isinstance(first_item, PrimerItemCard)
+    # PCR button is still present even when check against template is unticked
+    assert hasattr(first_item, "pcr_button")
+
+    def _contains_text(control: ft.Control, text: str) -> bool:
+        if isinstance(control, ft.Text) and text in (control.value or ""):
+            return True
+        if hasattr(control, "content") and control.content:
+            if _contains_text(control.content, text):
+                return True
+        if hasattr(control, "controls") and control.controls:
+            for child in control.controls:
+                if _contains_text(child, text):
+                    return True
+        return False
+
+    # Sites badge is omitted because check against template is unticked
+    assert not _contains_text(first_item, "Sites:")
+
+    # Click primer item to open DismissibleSelfDimerCard
+    first_item.content.on_click(None)
+    assert len(view.right_cards_list.controls) == 1
+    dimer_card = view.right_cards_list.controls[0]
+    assert isinstance(dimer_card, DismissibleSelfDimerCard)
+    # Detail card also retains PCR button and omits Sites: badge
+    assert hasattr(dimer_card, "pcr_button")
+    assert not _contains_text(dimer_card, "Sites:")
+
+
+def test_designer_1d_card_pcr_buttons() -> None:
+    """Test PCR button clicks on PrimerItemCard and DismissibleSelfDimerCard."""
+    from amplifyp.gui.views.designer_1d import (
+        DismissibleSelfDimerCard,
+        PrimerItemCard,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTTTTATGCGTACGT"
+    settings = GUISettings()
+
+    run_pcr_calls: list[tuple[str, str]] = []
+
+    def mock_on_run_pcr(seq: str, name: str) -> None:
+        run_pcr_calls.append((seq, name))
+
+    view = PrimerDesignerView(
+        mock_page, input_data, settings, on_run_pcr=mock_on_run_pcr
+    )
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    assert view.run_designer() is True
+
+    # 1. Click PCR button on PrimerItemCard
+    first_card = view.primer_list.controls[0]
+    assert isinstance(first_card, PrimerItemCard)
+    first_card.pcr_button.on_click(None)
+
+    assert len(run_pcr_calls) == 1
+    assert run_pcr_calls[0][0] == "ATGCGTACGT"
+    assert "1D Primer (10 nt)" in run_pcr_calls[0][1]
+
+    # 2. Click primer item to open DismissibleSelfDimerCard
+    first_card.content.on_click(None)
+    assert len(view.right_cards_list.controls) == 1
+    dimer_card = view.right_cards_list.controls[0]
+    assert isinstance(dimer_card, DismissibleSelfDimerCard)
+    assert hasattr(dimer_card, "pcr_button")
+
+    # Click Run PCR on the detail card
+    dimer_card.pcr_button.on_click(None)
+    assert len(run_pcr_calls) == 2
+    assert run_pcr_calls[1][0] == "ATGCGTACGT"
+
+
+def test_controller_run_pcr_with_primer() -> None:
+    """Test GUIController.run_pcr_with_primer reaction orchestration."""
+    from amplifyp.gui.controller import GUIController
+
+    mock_page = MagicMock(spec=ft.Page)
+    controller = GUIController(mock_page)
+    controller.input_data.template = "ATGCGTACGTTTTATGCGTACGT"
+    controller.input_data.primers = [
+        {"name": "OldPrimer", "seq": "TTTTTTTTTT", "active": True}
+    ]
+
+    # Mock pcr_view and nav_manager
+    controller.pcr_view = MagicMock()
+    controller.pcr_view.run_pcr.return_value = True
+    controller._nav_manager = MagicMock()
+
+    controller.run_pcr_with_primer("ATGCGTACGT", "1D Candidate (10 nt)")
+
+    # Previous primer deactivated
+    assert controller.input_data.primers[0]["active"] is False
+    # Candidate primer added and active
+    candidate = [p for p in controller.input_data.primers if p["active"]]
+    assert len(candidate) == 1
+    assert candidate[0]["name"] == "1D Candidate (10 nt)"
+    assert candidate[0]["seq"] == "ATGCGTACGT"
+    assert controller.input_view_dirty is True
+    controller._nav_manager.switch_view.assert_called_once()
+    controller.pcr_view.run_pcr.assert_called_once()
+
+    # When template is empty
+    controller.input_data.template = ""
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        controller.run_pcr_with_primer("ATGCGTACGT", "1D Candidate (10 nt)")
+        mock_err.assert_called_once()
