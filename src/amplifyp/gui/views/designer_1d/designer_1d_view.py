@@ -300,7 +300,7 @@ class PrimerDesignerView(BaseDesignerView):
             border_radius=4,
         )
         self._progress_label = ft.Text(
-            "0%" if total > 0 else "Analysing\u2026",
+            f"0 / {total}" if total > 0 else "Analysing\u2026",
             italic=True,
             size=font_small,
             color=GUIColours.TEXT_ON_SURFACE,
@@ -351,7 +351,8 @@ class PrimerDesignerView(BaseDesignerView):
             return
         fraction = done / total if total > 0 else 0.0
         self._progress_bar.value = fraction
-        self._progress_label.value = f"{round(fraction * 100)}%"
+        pct = round(fraction * 100)
+        self._progress_label.value = f"{done} / {total} ({pct}%)"
         try:
             if self.app_page:
                 self.app_page.update()

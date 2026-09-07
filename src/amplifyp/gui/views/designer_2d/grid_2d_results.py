@@ -126,7 +126,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             border_radius=4,
         )
         self._progress_label = ft.Text(
-            "0%" if total > 0 else "Analysing\u2026",
+            f"0 / {total}" if total > 0 else "Analysing\u2026",
             italic=True,
             size=font_small,
             color=GUIColours.TEXT_ON_SURFACE,
@@ -182,7 +182,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         fraction = done / total if total > 0 else 0.0
         self._progress_bar.value = fraction
         pct = round(fraction * 100)
-        self._progress_label.value = f"{pct}%"
+        self._progress_label.value = f"{done} / {total} ({pct}%)"
         try:
             if self.page:
                 self.page.update()

@@ -811,7 +811,7 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         assert grid._progress_bar is not None
         assert grid._progress_bar.value == 0.0
         assert grid._progress_label is not None
-        assert grid._progress_label.value == "0%"
+        assert grid._progress_label.value == "0 / 6"
 
         # show_loading with total=0 shows indeterminate bar
         grid.show_loading(total=0)
@@ -826,7 +826,7 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         assert grid._progress_bar is not None
         assert abs((grid._progress_bar.value or 0.0) - 0.5) < 0.01
         assert grid._progress_label is not None
-        assert grid._progress_label.value == "50%"
+        assert grid._progress_label.value == "3 / 6 (50%)"
 
         # update_progress is a no-op when controls are None
         grid._progress_bar = None

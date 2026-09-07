@@ -488,13 +488,13 @@ def test_designer_1d_remaining_branches() -> None:
         assert view._progress_bar is not None
         assert view._progress_bar.value == 0.0
         assert view._progress_label is not None
-        assert view._progress_label.value == "0%"
+        assert view._progress_label.value == "0 / 4"
 
         view.update_progress(2, 4)
         assert view._progress_bar is not None
         assert abs((view._progress_bar.value or 0.0) - 0.5) < 0.01
         assert view._progress_label is not None
-        assert view._progress_label.value == "50%"
+        assert view._progress_label.value == "2 / 4 (50%)"
 
         # update_progress no-op when controls are None
         view._progress_bar = None
