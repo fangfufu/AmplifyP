@@ -48,6 +48,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         self._cell_containers: dict[tuple[int, int], ft.Container] = {}
         self._cell_bg_colours: dict[tuple[int, int], str | None] = {}
         self._best_cell_keys: set[tuple[int, int]] = set()
+        self._progress_bar: ft.ProgressBar | None = None
+        self._progress_label: ft.Text | None = None
 
         self.content_column = ft.Column(
             [
@@ -102,13 +104,33 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         except RuntimeError:
             pass
 
-    def show_loading(self) -> None:
-        """Display a progress indicator while analysis is running."""
+    def show_loading(self, total: int = 0) -> None:
+        """Display a progress bar while analysis is running.
+
+        Args:
+            total: Total number of primer combinations to be evaluated.
+                When 0 (unknown), an indeterminate ProgressBar is shown.
+        """
         self._selected_step = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
         self._best_cell_keys.clear()
         font_small = self.settings.get("font_size_small", 12)
+
+        self._progress_bar = ft.ProgressBar(
+            value=0.0 if total > 0 else None,
+            expand=True,
+            color=GUIColours.PRIMARY,
+            bgcolor=GUIColours.SURFACE_VARIANT,
+            bar_height=8,
+            border_radius=4,
+        )
+        self._progress_label = ft.Text(
+            "0%" if total > 0 else "Analysing\u2026",
+            italic=True,
+            size=font_small,
+            color=GUIColours.TEXT_ON_SURFACE,
+        )
         self.content_column.controls = [
             ft.Text(
                 "2D Truncation Results Grid",
@@ -118,27 +140,49 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             ft.Container(
                 content=ft.Column(
                     [
-                        ft.ProgressRing(
-                            width=40,
-                            height=40,
-                            stroke_width=4,
-                            color=GUIColours.PRIMARY,
+                        ft.Row(
+                            [
+                                self._progress_bar,
+                                self._progress_label,
+                            ],
+                            spacing=10,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
                         ft.Text(
-                            "Analysing\u2026",
-                            italic=True,
+                            "Analysing primer combinations\u2026",
                             size=font_small,
                             color=GUIColours.TEXT_ON_SURFACE,
+                            opacity=0.6,
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=10,
+                    spacing=8,
                 ),
                 expand=True,
                 alignment=ft.Alignment(0, 0),
+                padding=ft.Padding(24, 0, 24, 0),
             ),
         ]
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
+    def update_progress(self, done: int, total: int) -> None:
+        """Update the progress bar during ongoing analysis.
+
+        Args:
+            done: Number of primer combinations processed so far.
+            total: Total number of primer combinations.
+        """
+        if self._progress_bar is None or self._progress_label is None:
+            return
+        fraction = done / total if total > 0 else 0.0
+        self._progress_bar.value = fraction
+        pct = round(fraction * 100)
+        self._progress_label.value = f"{pct}%"
         try:
             if self.page:
                 self.page.update()

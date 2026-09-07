@@ -165,8 +165,14 @@ class Designer2DView(BaseDesignerView):
             )
             template_dna = DNA(clean_tpl, dna_type=t_type)
 
-        # Show progress indicator immediately before spawning the thread.
-        self.results_grid.show_loading()
+        # Compute total (fwd x rev) combination count before threading so we
+        # can display a determinate progress bar from the first frame.
+        fwd_count = len(fwd_dna.seq) - fwd_min_len + 1
+        rev_count = len(rev_dna.seq) - rev_min_len + 1
+        total_combinations = fwd_count * rev_count
+
+        # Show determinate progress bar and disable button.
+        self.results_grid.show_loading(total=total_combinations)
         self.form.analyse_button.disabled = True
         try:
             if self.app_page:
@@ -176,6 +182,17 @@ class Designer2DView(BaseDesignerView):
 
         pd_settings = self.settings.get_primer_dimer_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
+
+        # Throttle UI updates: only repaint when the percentage changes by ≥1%
+        # or on the very last tick to avoid flooding page.update().
+        _last_pct: list[int] = [-1]
+
+        def _on_progress(done: int, total: int) -> None:
+            """Forward progress ticks to the results grid (throttled)."""
+            pct = round(done / total * 100) if total > 0 else 0
+            if pct != _last_pct[0] or done == total:
+                _last_pct[0] = pct
+                self.results_grid.update_progress(done, total)
 
         def _run_analysis() -> None:
             """Execute analysis in a background thread and update UI."""
@@ -191,6 +208,7 @@ class Designer2DView(BaseDesignerView):
                     filter_metric=filter_metric,
                     template=template_dna,
                     max_amplicon_count=max_amplicons,
+                    on_progress=_on_progress,
                 )
                 self._cached_designer = designer
                 self.results_grid.update_grid(designer)

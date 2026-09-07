@@ -806,6 +806,33 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         mock_diagonal_designer.all_steps = [step_8_8, step_9_9]
         grid.update_grid(mock_diagonal_designer)
 
+        # show_loading with a known total shows a ProgressBar at 0%
+        grid.show_loading(total=6)
+        assert grid._progress_bar is not None
+        assert grid._progress_bar.value == 0.0
+        assert grid._progress_label is not None
+        assert grid._progress_label.value == "0%"
+
+        # show_loading with total=0 shows indeterminate bar
+        grid.show_loading(total=0)
+        assert grid._progress_bar is not None
+        assert grid._progress_bar.value is None  # indeterminate
+        assert grid._progress_label is not None
+        assert "Analysing" in (grid._progress_label.value or "")
+
+        # update_progress advances bar and label
+        grid.show_loading(total=6)
+        grid.update_progress(3, 6)
+        assert grid._progress_bar is not None
+        assert abs((grid._progress_bar.value or 0.0) - 0.5) < 0.01
+        assert grid._progress_label is not None
+        assert grid._progress_label.value == "50%"
+
+        # update_progress is a no-op when controls are None
+        grid._progress_bar = None
+        grid._progress_label = None
+        grid.update_progress(1, 6)  # should not raise
+
         # on_cell_click
         key = (len(step.fwd_fwd.primer_1.seq), len(step.rev_rev.primer_1.seq))
         grid._on_cell_click(step, key)

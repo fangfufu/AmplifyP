@@ -343,3 +343,36 @@ def test_primer_designer_2d_empty_and_mean_score() -> None:
     assert designer_mean.max_overlap == 6
     scores = designer_mean.quality_score(sorted=True)
     assert len(scores) > 0
+
+
+def test_primer_designer_2d_on_progress_callback() -> None:
+    """Test on_progress callback fires once per combination with
+    correct args."""
+    # 3 fwd lengths (10, 9, 8) x 2 rev lengths (10, 9) = 6 combinations
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    fwd_min, rev_min = 8, 9
+    expected_total = (len(fwd_dna.seq) - fwd_min + 1) * (
+        len(rev_dna.seq) - rev_min + 1
+    )
+
+    calls: list[tuple[int, int]] = []
+
+    def _cb(done: int, total: int) -> None:
+        calls.append((done, total))
+
+    PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=fwd_min,
+        rev_dna=rev_dna,
+        rev_min_length=rev_min,
+        on_progress=_cb,
+    )
+
+    # Exactly one call per combination.
+    assert len(calls) == expected_total
+    # total is consistent across all calls.
+    assert all(t == expected_total for _, t in calls)
+    # done values are strictly increasing from 1 to total.
+    done_values = [d for d, _ in calls]
+    assert done_values == list(range(1, expected_total + 1))
