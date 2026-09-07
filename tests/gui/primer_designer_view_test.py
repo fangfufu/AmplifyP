@@ -470,11 +470,46 @@ def test_designer_1d_remaining_branches() -> None:
     res = view.form.validate_and_get_params()
     assert res is None
 
-    # 3. _run_designer_event
+    # 3. _run_designer_event — run thread synchronously via mock
     view.form.dna_input.value = "ATGCGTACGT"
     view.form.min_len_input.value = "8"
-    view._run_designer_event(None)
+    with patch(
+        "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+        side_effect=lambda target, daemon: type(
+            "T", (), {"start": lambda self: target()}
+        )(),
+    ):
+        view._run_designer_event(None)
     assert len(view.primer_list.controls) == 3
+
+    # 3b. show_loading / update_progress / _restore_primer_list
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        view.show_loading(total=4)
+        assert view._progress_bar is not None
+        assert view._progress_bar.value == 0.0
+        assert view._progress_label is not None
+        assert view._progress_label.value == "0%"
+
+        view.update_progress(2, 4)
+        assert view._progress_bar is not None
+        assert abs((view._progress_bar.value or 0.0) - 0.5) < 0.01
+        assert view._progress_label is not None
+        assert view._progress_label.value == "50%"
+
+        # update_progress no-op when controls are None
+        view._progress_bar = None
+        view._progress_label = None
+        view.update_progress(1, 4)  # should not raise
+
+        # show_loading indeterminate (total=0)
+        view.show_loading(total=0)
+        assert view._progress_bar is not None
+        assert view._progress_bar.value is None
+        assert view._progress_label is not None
+        assert "Analysing" in (view._progress_label.value or "")
+
+        view._restore_primer_list()
+        assert view._progress_bar is None
 
     # 4. run_designer exception handling
     with (
@@ -502,6 +537,27 @@ def test_designer_1d_remaining_branches() -> None:
         new=AsyncMock(return_value=None),
     ):
         asyncio.run(view._load_designer_1d_click(MagicMock()))
+
+    # 7. _start_designer error path (thread synchronous)
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=RuntimeError("Start designer err"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_start_err,
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: target()}
+            )(),
+        ),
+    ):
+        view._start_designer()
+        mock_start_err.assert_called_once()
 
 
 def test_designer_1d_filter_dna_toggle() -> None:

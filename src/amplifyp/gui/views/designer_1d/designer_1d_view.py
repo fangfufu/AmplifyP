@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import traceback
 from collections.abc import Callable
 
@@ -76,19 +77,25 @@ class PrimerDesignerView(BaseDesignerView):
             border_radius=5,
         )
 
-        # Bottom-left output list of primers
+        # Bottom-left output: progress bar (while loading) + primer list
+        self._progress_bar: ft.ProgressBar | None = None
+        self._progress_label: ft.Text | None = None
         self.primer_list = ft.ListView(
             expand=True, spacing=6, scroll=ft.ScrollMode.ALWAYS
+        )
+        self._primer_list_header = ft.Text(
+            "Generated Primers",
+            weight=ft.FontWeight.BOLD,
+            size=self.settings.get("font_size_subheader", 16),
+        )
+        self._primer_list_body = ft.Container(
+            content=self.primer_list, expand=True
         )
         self.bottom_left_container = ft.Container(
             content=ft.Column(
                 [
-                    ft.Text(
-                        "Generated Primers",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.settings.get("font_size_subheader", 16),
-                    ),
-                    ft.Container(content=self.primer_list, expand=True),
+                    self._primer_list_header,
+                    self._primer_list_body,
                 ],
                 spacing=6,
             ),
@@ -275,10 +282,224 @@ class PrimerDesignerView(BaseDesignerView):
 
     def _run_designer_event(self, e: ft.ControlEvent | None = None) -> None:
         """Event handler wrapper for running analysis."""
-        self.run_designer()
+        self._start_designer()
+
+    def show_loading(self, total: int = 0) -> None:
+        """Replace primer list with a progress bar while analysis runs.
+
+        Args:
+            total: Total truncation steps. When 0, bar is indeterminate.
+        """
+        font_small = self.settings.get("font_size_small", 12)
+        self._progress_bar = ft.ProgressBar(
+            value=0.0 if total > 0 else None,
+            expand=True,
+            color=GUIColours.PRIMARY,
+            bgcolor=GUIColours.SURFACE_VARIANT,
+            bar_height=8,
+            border_radius=4,
+        )
+        self._progress_label = ft.Text(
+            "0%" if total > 0 else "Analysing\u2026",
+            italic=True,
+            size=font_small,
+            color=GUIColours.TEXT_ON_SURFACE,
+        )
+        loading_body = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            self._progress_bar,
+                            self._progress_label,
+                        ],
+                        spacing=10,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    ft.Text(
+                        "Analysing primer truncations\u2026",
+                        size=font_small,
+                        color=GUIColours.TEXT_ON_SURFACE,
+                        opacity=0.6,
+                    ),
+                ],
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.CENTER,
+                spacing=8,
+            ),
+            expand=True,
+            alignment=ft.Alignment(0, 0),
+            padding=ft.Padding(24, 0, 24, 0),
+        )
+        col = self.bottom_left_container.content
+        if isinstance(col, ft.Column):
+            col.controls = [self._primer_list_header, loading_body]
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
+    def update_progress(self, done: int, total: int) -> None:
+        """Advance the progress bar during ongoing analysis.
+
+        Args:
+            done: Number of truncation steps completed so far.
+            total: Total number of truncation steps.
+        """
+        if self._progress_bar is None or self._progress_label is None:
+            return
+        fraction = done / total if total > 0 else 0.0
+        self._progress_bar.value = fraction
+        self._progress_label.value = f"{round(fraction * 100)}%"
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
+    def _restore_primer_list(self) -> None:
+        """Restore bottom-left panel to show the primer list."""
+        self._progress_bar = None
+        self._progress_label = None
+        col = self.bottom_left_container.content
+        if isinstance(col, ft.Column):
+            col.controls = [
+                self._primer_list_header,
+                self._primer_list_body,
+            ]
+
+    def _start_designer(self) -> None:
+        """Validate inputs, show progress bar, and run analysis in a thread."""
+        params = self.form.validate_and_get_params()
+        if params is None:
+            return
+
+        (
+            clean_seq,
+            min_length,
+            mode,
+            threshold,
+            max_overlap,
+            filter_dna_enabled,
+            max_binding_sites,
+        ) = params
+        self.primer_list.controls.clear()
+
+        template_dna: DNA | None = None
+        if filter_dna_enabled:
+            clean_tpl = clean_sequence(self.input_data.template)
+            if not clean_tpl:
+                self.form.show_error(
+                    "Template DNA sequence is required when check against "
+                    "template is enabled. Please enter a template in the "
+                    "Input view."
+                )
+                try:
+                    if self.app_page:
+                        self.app_page.update()
+                except RuntimeError:
+                    pass
+                return
+            t_type = (
+                DNAType.CIRCULAR
+                if self.input_data.template_circular
+                else DNAType.LINEAR
+            )
+            template_dna = DNA(clean_tpl, dna_type=t_type)
+
+        dna_obj = DNA(clean_seq)
+        # Total truncation steps is deterministic before threading.
+        total_steps = len(dna_obj.seq) - min_length + 1
+
+        self.show_loading(total=total_steps)
+        self.form.analyse_button.disabled = True
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
+        pd_settings = self.settings.get_primer_dimer_settings()
+        generator = PrimerDimerGenerator(settings=pd_settings)
+
+        def _on_progress(done: int, total: int) -> None:
+            """Forward every progress tick to the progress bar."""
+            self.update_progress(done, total)
+
+        def _run_analysis() -> None:
+            """Execute 1D analysis in a background thread and update UI."""
+            try:
+                designer = PrimerDesigner1D(
+                    dna=dna_obj,
+                    min_length=min_length,
+                    mode=mode,
+                    generator=generator,
+                    threshold=threshold,
+                    max_overlap=max_overlap,
+                    template=template_dna,
+                    max_origin_count=max_binding_sites,
+                    on_progress=_on_progress,
+                )
+                self._cached_designer = designer
+
+                # Restore list panel before populating
+                self._restore_primer_list()
+
+                # Update top-right quality bar chart
+                self.chart_content_container.content = self._build_chart(
+                    list(designer.all_dimers)
+                )
+
+                for step_idx, dimer in enumerate(designer.all_dimers):
+                    origin_count: int | None = None
+                    if template_dna is not None:
+                        repliconf = Repliconf(template_dna, dimer.primer_1)
+                        repliconf.search()
+                        origin_count = len(repliconf.origin_db.fwd) + len(
+                            repliconf.origin_db.rev
+                        )
+
+                    item_card = PrimerItemCard(
+                        dimer=dimer,
+                        step_index=step_idx,
+                        mode=mode,
+                        settings=self.settings,
+                        on_select_callback=self._on_primer_selected,
+                        on_run_pcr_callback=self._handle_run_pcr,
+                        origin_count=origin_count,
+                    )
+                    self.primer_list.controls.append(item_card)
+
+            except (ValueError, RuntimeError, OSError) as ex:
+                logger.exception("1D Primer Design failed: %s", ex)
+                self.form.show_error(f"Error: {ex}")
+                show_error_dialog(
+                    self.app_page,
+                    "Error running Primer Designer",
+                    f"{ex}\n{traceback.format_exc()}",
+                )
+                self._restore_primer_list()
+            finally:
+                self.form.analyse_button.disabled = False
+                try:
+                    if self.app_page:
+                        self.app_page.update()
+                except RuntimeError:
+                    pass
+
+        threading.Thread(target=_run_analysis, daemon=True).start()
 
     def run_designer(self) -> bool:
-        """Validate inputs, run 1D primer design analysis, and update UI."""
+        """Validate inputs, run 1D primer design analysis, and update UI.
+
+        Returns:
+            True on success, False on validation failure or analysis error.
+
+        .. deprecated::
+            Use :meth:`_start_designer` for new callers. This synchronous
+            wrapper is retained for backwards compatibility with existing tests.
+        """
         params = self.form.validate_and_get_params()
         if params is None:
             return False

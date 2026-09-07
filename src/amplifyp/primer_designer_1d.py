@@ -24,7 +24,7 @@ from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 DEFAULT_PRIMER_DIMER_GENERATOR = PrimerDimerGenerator()
 
@@ -49,6 +49,7 @@ class PrimerDesigner1D:
         "_max_overlap",
         "_min_length",
         "_mode",
+        "_on_progress",
         "_template",
         "_threshold",
     )
@@ -63,6 +64,7 @@ class PrimerDesigner1D:
         max_overlap: int | None = None,
         template: DNA | None = None,
         max_origin_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
@@ -84,6 +86,10 @@ class PrimerDesigner1D:
                 used to calculate replication origins. Defaults to None.
             max_origin_count (int | None, optional): Upper bound for number of
                 replication origins filter. Defaults to None.
+            on_progress (Callable[[int, int], None] | None, optional): Optional
+                callback invoked after each truncation step is processed.
+                Receives ``(done, total)`` where *done* counts completed steps
+                and *total* is the number of truncations. Defaults to None.
 
         Raises:
             ValueError: If minimum length is non-positive or greater than
@@ -109,6 +115,7 @@ class PrimerDesigner1D:
         self._max_overlap: int | None = max_overlap
         self._template: DNA | None = template
         self._max_origin_count: int | None = max_origin_count
+        self._on_progress: Callable[[int, int], None] | None = on_progress
         self._dimers: list[PrimerDimer] = []
 
         self._analyse()
@@ -253,6 +260,9 @@ class PrimerDesigner1D:
             self._min_length, self._mode
         )
 
+        total = len(truncated_seqs)
+        done = 0
+
         for current_seq in truncated_seqs:
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
@@ -279,3 +289,7 @@ class PrimerDesigner1D:
                 )
             ):
                 self._dimers.append(dimer)
+
+            done += 1
+            if self._on_progress is not None:
+                self._on_progress(done, total)
