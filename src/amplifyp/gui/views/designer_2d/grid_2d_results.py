@@ -15,6 +15,7 @@
 
 """Grid component for displaying 2D quality and overlap results matrix."""
 
+import threading
 from collections.abc import Callable
 
 import flet as ft
@@ -50,6 +51,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         self._best_cell_keys: set[tuple[int, int]] = set()
         self._progress_bar: ft.ProgressBar | None = None
         self._progress_label: ft.Text | None = None
+        self._flush_stop: threading.Event | None = None
 
         self.content_column = ft.Column(
             [
@@ -77,6 +79,9 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
     def clear_grid(self) -> None:
         """Reset grid to empty initial state."""
+        if self._flush_stop is not None:
+            self._flush_stop.set()
+            self._flush_stop = None
         self._selected_step = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
@@ -107,10 +112,17 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
     def show_loading(self, total: int = 0) -> None:
         """Display a progress bar while analysis is running.
 
+        Starts a daemon flush thread that calls ``page.update()`` every 50 ms
+        so the bar animates smoothly regardless of analysis speed.
+
         Args:
             total: Total number of primer combinations to be evaluated.
                 When 0 (unknown), an indeterminate ProgressBar is shown.
         """
+        # Stop any previous flush thread before starting a new one.
+        if self._flush_stop is not None:
+            self._flush_stop.set()
+
         self._selected_step = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
@@ -170,8 +182,28 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         except RuntimeError:
             pass
 
+        # Start independent flush loop — page.update() every 50 ms regardless
+        # of how fast the analysis thread produces progress ticks.
+        self._flush_stop = threading.Event()
+        stop = self._flush_stop
+
+        def _flush_loop() -> None:
+            while not stop.wait(timeout=0.05):
+                try:
+                    if self.page:
+                        self.page.update()
+                except RuntimeError:
+                    break
+
+        threading.Thread(target=_flush_loop, daemon=True).start()
+
     def update_progress(self, done: int, total: int) -> None:
-        """Update the progress bar during ongoing analysis.
+        """Write current progress values; the flush thread renders them.
+
+        The bar value and label are updated on every call.
+        ``page.update()`` is called by the independent flush thread
+        at ~20 fps, so the analysis thread is never blocked by rendering.
+        Stops the flush thread when the final tick is received.
 
         Args:
             done: Number of primer combinations processed so far.
@@ -183,11 +215,9 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         self._progress_bar.value = fraction
         pct = round(fraction * 100)
         self._progress_label.value = f"{done} / {total} ({pct}%)"
-        try:
-            if self.page:
-                self.page.update()
-        except RuntimeError:
-            pass
+        if done == total and self._flush_stop is not None:
+            self._flush_stop.set()
+            self._flush_stop = None
 
     def update_grid(self, designer: PrimerDesigner2D) -> None:
         """Populate and render the 2D matrix grid.

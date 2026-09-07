@@ -80,6 +80,7 @@ class PrimerDesignerView(BaseDesignerView):
         # Bottom-left output: progress bar (while loading) + primer list
         self._progress_bar: ft.ProgressBar | None = None
         self._progress_label: ft.Text | None = None
+        self._flush_stop: threading.Event | None = None
         self.primer_list = ft.ListView(
             expand=True, spacing=6, scroll=ft.ScrollMode.ALWAYS
         )
@@ -287,9 +288,16 @@ class PrimerDesignerView(BaseDesignerView):
     def show_loading(self, total: int = 0) -> None:
         """Replace primer list with a progress bar while analysis runs.
 
+        Starts a daemon flush thread that calls ``app_page.update()`` every
+        50 ms so the bar animates smoothly regardless of analysis speed.
+
         Args:
             total: Total truncation steps. When 0, bar is indeterminate.
         """
+        # Stop any previous flush thread before starting a new one.
+        if self._flush_stop is not None:
+            self._flush_stop.set()
+
         font_small = self.settings.get("font_size_small", 12)
         self._progress_bar = ft.ProgressBar(
             value=0.0 if total > 0 else None,
@@ -340,8 +348,28 @@ class PrimerDesignerView(BaseDesignerView):
         except RuntimeError:
             pass
 
+        # Start independent flush loop — page.update() every 50 ms regardless
+        # of how fast the analysis thread produces progress ticks.
+        self._flush_stop = threading.Event()
+        stop = self._flush_stop
+
+        def _flush_loop() -> None:
+            while not stop.wait(timeout=0.05):
+                try:
+                    if self.app_page:
+                        self.app_page.update()
+                except RuntimeError:
+                    break
+
+        threading.Thread(target=_flush_loop, daemon=True).start()
+
     def update_progress(self, done: int, total: int) -> None:
-        """Advance the progress bar during ongoing analysis.
+        """Write current progress values; the flush thread renders them.
+
+        The bar value and label are updated on every call.
+        ``app_page.update()`` is called by the independent flush thread
+        at ~20 fps, so the analysis thread is never blocked by rendering.
+        Stops the flush thread when the final tick is received.
 
         Args:
             done: Number of truncation steps completed so far.
@@ -353,14 +381,15 @@ class PrimerDesignerView(BaseDesignerView):
         self._progress_bar.value = fraction
         pct = round(fraction * 100)
         self._progress_label.value = f"{done} / {total} ({pct}%)"
-        try:
-            if self.app_page:
-                self.app_page.update()
-        except RuntimeError:
-            pass
+        if done == total and self._flush_stop is not None:
+            self._flush_stop.set()
+            self._flush_stop = None
 
     def _restore_primer_list(self) -> None:
         """Restore bottom-left panel to show the primer list."""
+        if self._flush_stop is not None:
+            self._flush_stop.set()
+            self._flush_stop = None
         self._progress_bar = None
         self._progress_label = None
         col = self.bottom_left_container.content
