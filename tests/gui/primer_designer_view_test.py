@@ -475,6 +475,7 @@ def test_designer_1d_remaining_branches() -> None:
     # 3. _run_designer_event — run thread synchronously via mock
     view.form.dna_input.value = "ATGCGTACGT"
     view.form.min_len_input.value = "8"
+    view._flush_stop = True
     with patch(
         "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
         side_effect=lambda target, daemon: type(
@@ -486,6 +487,7 @@ def test_designer_1d_remaining_branches() -> None:
 
     # 3b. show_loading / update_progress / _restore_primer_list
     with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        view._flush_stop = True
         view.show_loading(total=4)
         assert view._progress_bar is not None
         assert view._progress_bar.value == 0.0
@@ -543,6 +545,7 @@ def test_designer_1d_remaining_branches() -> None:
     # 7. _start_designer error path (thread synchronous)
     view.form.dna_input.value = "ATGCGTACGT"
     view.form.min_len_input.value = "8"
+    view._flush_stop = True
     with (
         patch(
             "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",

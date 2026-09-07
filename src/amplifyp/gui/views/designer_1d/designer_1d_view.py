@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 import traceback
 from collections.abc import Callable
 
@@ -80,7 +81,7 @@ class PrimerDesignerView(BaseDesignerView):
         # Bottom-left output: progress bar (while loading) + primer list
         self._progress_bar: ft.ProgressBar | None = None
         self._progress_label: ft.Text | None = None
-        self._flush_stop: threading.Event | None = None
+        self._flush_stop: bool = False
         self.primer_list = ft.ListView(
             expand=True, spacing=6, scroll=ft.ScrollMode.ALWAYS
         )
@@ -295,8 +296,8 @@ class PrimerDesignerView(BaseDesignerView):
             total: Total truncation steps. When 0, bar is indeterminate.
         """
         # Stop any previous flush thread before starting a new one.
-        if self._flush_stop is not None:
-            self._flush_stop.set()
+        if self._flush_stop:
+            self._flush_stop = True
 
         font_small = self.settings.get("font_size_small", 12)
         self._progress_bar = ft.ProgressBar(
@@ -350,16 +351,17 @@ class PrimerDesignerView(BaseDesignerView):
 
         # Start independent flush loop — page.update() every 50 ms regardless
         # of how fast the analysis thread produces progress ticks.
-        self._flush_stop = threading.Event()
-        stop = self._flush_stop
+        if self._flush_stop is not True:
+            self._flush_stop = False
 
         def _flush_loop() -> None:
-            while not stop.wait(timeout=0.05):
+            while not self._flush_stop:
                 try:
                     if self.app_page:
                         self.app_page.update()
                 except RuntimeError:
                     break
+                time.sleep(0.05)
 
         threading.Thread(target=_flush_loop, daemon=True).start()
 
@@ -381,15 +383,13 @@ class PrimerDesignerView(BaseDesignerView):
         self._progress_bar.value = fraction
         pct = round(fraction * 100)
         self._progress_label.value = f"{done} / {total} ({pct}%)"
-        if done == total and self._flush_stop is not None:
-            self._flush_stop.set()
-            self._flush_stop = None
+        if done == total and self._flush_stop:
+            self._flush_stop = True
 
     def _restore_primer_list(self) -> None:
         """Restore bottom-left panel to show the primer list."""
-        if self._flush_stop is not None:
-            self._flush_stop.set()
-            self._flush_stop = None
+        if self._flush_stop:
+            self._flush_stop = True
         self._progress_bar = None
         self._progress_label = None
         col = self.bottom_left_container.content
