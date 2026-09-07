@@ -165,7 +165,10 @@ class GUIController:
             on_run_pcr=self.run_pcr_with_primer,
         )
         self.designer_2d_view = Designer2DView(
-            self.page, self.input_data, self.settings
+            self.page,
+            self.input_data,
+            self.settings,
+            on_run_pcr=self.run_pcr_with_primer_pair,
         )
         self.about_view = AboutView(self.page, self.settings)
 
@@ -309,11 +312,71 @@ class GUIController:
         if not self.pcr_view.run_pcr():
             self._nav_manager.switch_view(cast(Any, None), self.designer_view)
 
+    def run_pcr_with_primer_pair(
+        self, fwd_seq: str, fwd_name: str, rev_seq: str, rev_name: str
+    ) -> None:
+        """Run PCR using template with candidate forward and reverse primers."""
+        from amplifyp.gui.utils.data_helpers import clean_sequence
+        from amplifyp.gui.utils.gui_helpers import show_error_dialog
+
+        clean_tpl = clean_sequence(self.input_data.template)
+        if not clean_tpl:
+            show_error_dialog(
+                self.page,
+                "Template Required",
+                "Please enter a DNA template in the Input view before "
+                "running PCR.",
+            )
+            return
+
+        clean_fwd = clean_sequence(fwd_seq)
+        clean_rev = clean_sequence(rev_seq)
+        if not clean_fwd or not clean_rev:
+            show_error_dialog(
+                self.page,
+                "Invalid Primers",
+                "The primer sequences must contain valid nucleotides.",
+            )
+            return
+
+        for p in self.input_data.primers:
+            p["active"] = False
+
+        fwd_found = False
+        rev_found = False
+        for p in self.input_data.primers:
+            p_seq = clean_sequence(p.get("seq", ""))
+            if not fwd_found and p_seq == clean_fwd:
+                p["active"] = True
+                p["name"] = fwd_name
+                fwd_found = True
+            elif not rev_found and p_seq == clean_rev:
+                p["active"] = True
+                p["name"] = rev_name
+                rev_found = True
+
+        if not fwd_found:
+            self.input_data.primers.append(
+                {"name": fwd_name, "seq": clean_fwd, "active": True}
+            )
+        if not rev_found:
+            self.input_data.primers.append(
+                {"name": rev_name, "seq": clean_rev, "active": True}
+            )
+
+        self.input_view_dirty = True
+        self.update_pcr_button_state(sync=False, update_page=False)
+        self._nav_manager.switch_view(cast(Any, None), self.pcr_view)
+        if not self.pcr_view.run_pcr():
+            self._nav_manager.switch_view(
+                cast(Any, None), self.designer_2d_view
+            )
+
     def update_pcr_button_state(
         self, sync: bool = True, update_page: bool = True
     ) -> None:
         """Enable PCR and dimers buttons only if input is valid."""
-        if sync and self.input_view is not None:
+        if sync and self.input_view is not None:  # pyright: ignore[reportUnnecessaryComparison]
             self.input_view.sync_to_state()
 
         has_template = bool(self.input_data.template.strip())
@@ -323,7 +386,7 @@ class GUIController:
         # Check if any selected (active) primer has validation errors
         # or duplicates
         has_invalid_selected = False
-        if self.input_view is not None and hasattr(
+        if self.input_view is not None and hasattr(  # pyright: ignore[reportUnnecessaryComparison]
             self.input_view, "primer_input"
         ):
             for idx, p in enumerate(self.input_data.primers):
@@ -370,7 +433,10 @@ class GUIController:
 
         # Only update the active view immediately to prevent lag!
         active_view = self.view_container.content
-        if active_view == self.input_view:
+        if (
+            self.input_view is not None  # pyright: ignore[reportUnnecessaryComparison]
+            and active_view == self.input_view
+        ):
             self.input_view.update_ui()
             # Immediately reposition the info panel if its position changed
             if e is not None:

@@ -63,6 +63,7 @@ class PrimerDimers2D:
     rev_rev: PrimerDimer
     fwd_rev: PrimerDimer
     rev_fwd: PrimerDimer
+    amplicon_count: int | None = None
 
     @property
     def max_quality(self) -> float:
@@ -366,10 +367,8 @@ class PrimerDesigner2D:
             for rev_seq in rev_seqs:
                 rev_p = Primer(rev_seq)
 
-                if (
-                    self._template is not None
-                    and self._max_amplicon_count is not None
-                ):
+                amplicon_count: int | None = None
+                if self._template is not None:
                     amp_gen = AmpliconGenerator(self._template)
                     fwd_conf = Repliconf(self._template, fwd_p)
                     amp_gen.add_repliconf(fwd_conf)
@@ -377,7 +376,12 @@ class PrimerDesigner2D:
                         rev_conf = Repliconf(self._template, rev_p)
                         amp_gen.add_repliconf(rev_conf)
                     amplicon_count = len(amp_gen.get_amplicons())
-                    if amplicon_count > self._max_amplicon_count:
+                    if amplicon_count < 1:
+                        continue
+                    if (
+                        self._max_amplicon_count is not None
+                        and amplicon_count > self._max_amplicon_count
+                    ):
                         continue
 
                 d_ff = self._generator.generate_primer_dimer(
@@ -398,6 +402,7 @@ class PrimerDesigner2D:
                     rev_rev=d_rr,
                     fwd_rev=d_fr,
                     rev_fwd=d_rf,
+                    amplicon_count=amplicon_count,
                 )
 
                 if self._filter_metric == FilterMetric.MAX:

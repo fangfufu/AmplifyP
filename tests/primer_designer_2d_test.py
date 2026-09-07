@@ -247,6 +247,48 @@ def test_primer_designer_2d_amplicon_filtering() -> None:
             rev_conf = Repliconf(template_dna, step.rev_rev.primer_1)
             amp_gen.add_repliconf(rev_conf)
         assert len(amp_gen.get_amplicons()) <= 1
+        assert step.amplicon_count is not None
+        assert step.amplicon_count <= 1
+
+
+def test_primer_designer_2d_template_unconstrained_amplicons() -> None:
+    """Test template DNA input with unconstrained amplicons."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("ACGTACGCAT")
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT")
+
+    designer = PrimerDesigner2D(
+        fwd_dna,
+        8,
+        rev_dna,
+        8,
+        template=template_dna,
+        max_amplicon_count=None,
+    )
+    assert designer.template == template_dna
+    assert designer.max_amplicon_count is None
+    assert len(designer.all_steps) == 9  # 3 fwd x 3 rev
+    for step in designer.all_steps:
+        assert step.amplicon_count is not None
+        assert isinstance(step.amplicon_count, int)
+        assert step.amplicon_count >= 1
+
+
+def test_primer_designer_2d_zero_amplicons_filtered() -> None:
+    """Test that candidate pairs generating 0 amplicons are excluded."""
+    fwd_dna = DNA("AAAAAAAAAA")
+    rev_dna = DNA("CCCCCCCCCC")
+    # Template has no binding sites for these primers
+    template_dna = DNA("GGGGGGGGGGGGGGGGGGGG")
+
+    designer = PrimerDesigner2D(
+        fwd_dna,
+        8,
+        rev_dna,
+        8,
+        template=template_dna,
+    )
+    assert len(designer.all_steps) == 0
 
 
 def test_primer_designer_2d_amplicon_invalid_inputs() -> None:

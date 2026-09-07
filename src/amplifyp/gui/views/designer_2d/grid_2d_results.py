@@ -276,6 +276,11 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     "★ Best Quality (Lowest Score)\n" if is_best else ""
                 )
 
+                amplicon_str = (
+                    f"\nAmplicons: {step.amplicon_count}"
+                    if step.amplicon_count is not None
+                    else ""
+                )
                 cell_container = ft.Container(
                     content=cell_content,
                     width=52,
@@ -292,6 +297,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         f"Forward: {f_len} nt | Reverse: {r_len} nt\n"
                         f"Max Quality: {round(q_val)}\n"
                         f"Max Overlap: {o_str} bp"
+                        f"{amplicon_str}"
                     ),
                 )
                 self._cell_containers[(f_len, r_len)] = cell_container

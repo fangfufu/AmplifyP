@@ -18,13 +18,16 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimerGenerator
+from amplifyp.dna import DNA, DNAType
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
+from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.gui.utils.gui_helpers import show_error_dialog
 from amplifyp.gui.views.designer.designer_view_base import BaseDesignerView
 from amplifyp.gui.views.designer_2d.designer_2d_form import Designer2DForm
@@ -43,9 +46,11 @@ class Designer2DView(BaseDesignerView):
         page: ft.Page,
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
+        on_run_pcr: Callable[[str, str, str, str], None] | None = None,
     ) -> None:
         """Initialise the Designer2DView."""
         super().__init__(page=page, input_data=input_data, settings=settings)
+        self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner2D | None = None
 
         # Form component for 2D input controls and parameters
@@ -57,10 +62,10 @@ class Designer2DView(BaseDesignerView):
             on_clear_all_callback=self._clear_all,
         )
 
-        # Top-left container (50% default vertical height)
+        # Top-left container (height sized to fit 2D parameter rows)
         self.top_left_container = ft.Container(
             content=self.form,
-            expand=1,
+            height=380,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
@@ -72,10 +77,10 @@ class Designer2DView(BaseDesignerView):
             on_select_step_callback=self._on_grid_step_selected,
         )
 
-        # Bottom-left container (50% default vertical height)
+        # Bottom-left container
         self.bottom_left_container = ft.Container(
             content=self.results_grid,
-            expand=1,
+            expand=True,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
@@ -131,9 +136,33 @@ class Designer2DView(BaseDesignerView):
                 threshold,
                 max_overlap,
                 filter_metric,
+                filter_dna_enabled,
+                max_amplicons,
             ) = self.form.validate_and_get_params()
         except ValueError:
             return
+
+        template_dna: DNA | None = None
+        if filter_dna_enabled:
+            clean_tpl = clean_sequence(self.input_data.template)
+            if not clean_tpl:
+                self.form.show_error(
+                    "Template DNA sequence is required when check against "
+                    "template is enabled. Please enter a template in the "
+                    "Input view."
+                )
+                try:
+                    if self.app_page:
+                        self.app_page.update()
+                except RuntimeError:
+                    pass
+                return
+            t_type = (
+                DNAType.CIRCULAR
+                if self.input_data.template_circular
+                else DNAType.LINEAR
+            )
+            template_dna = DNA(clean_tpl, dna_type=t_type)
 
         pd_settings = self.settings.get_primer_dimer_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
@@ -148,6 +177,8 @@ class Designer2DView(BaseDesignerView):
                 threshold=threshold,
                 max_overlap=max_overlap,
                 filter_metric=filter_metric,
+                template=template_dna,
+                max_amplicon_count=max_amplicons,
             )
             self._cached_designer = designer
             self.results_grid.update_grid(designer)
@@ -159,6 +190,22 @@ class Designer2DView(BaseDesignerView):
                 "Analysis Error",
                 f"Error performing 2D primer design: {ex}",
             )
+
+    def _handle_run_pcr(
+        self, fwd_seq: str, fwd_name: str, rev_seq: str, rev_name: str
+    ) -> None:
+        """Handle running PCR using template with primers from card."""
+        if self.on_run_pcr:
+            self.on_run_pcr(fwd_seq, fwd_name, rev_seq, rev_name)
+        else:
+            clean_tpl = clean_sequence(self.input_data.template)
+            if not clean_tpl:
+                show_error_dialog(
+                    self.app_page,
+                    "Template Required",
+                    "Please enter a DNA template in the Input view before "
+                    "running PCR.",
+                )
 
     def _on_grid_step_selected(self, step: PrimerDimers2D) -> None:
         """Handle selection of a step from the 2D grid results.
@@ -177,6 +224,7 @@ class Designer2DView(BaseDesignerView):
                 settings=self.settings,
                 dismiss_callback=self._dismiss_card,
                 font_family=self.settings.get("font_family", "Roboto Mono"),
+                on_run_pcr_callback=self._handle_run_pcr,
             )
 
         self._bring_card_to_top_or_add(card_id, _factory)
@@ -197,11 +245,16 @@ class Designer2DView(BaseDesignerView):
     def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
         """Clear inputs, parameters, error messages, grid, and cards."""
         self.form.fwd_dna_input.value = ""
+        self.form.fwd_length_display.value = "0"
         self.form.fwd_min_len_input.value = ""
         self.form.rev_dna_input.value = ""
+        self.form.rev_length_display.value = "0"
         self.form.rev_min_len_input.value = ""
         self.form.max_quality_input.value = ""
         self.form.max_overlap_input.value = ""
+        self.form.filter_dna_checkbox.value = False
+        self.form.max_amplicons_input.value = ""
+        self.form.max_amplicons_input.disabled = True
         self.form.clear_errors()
         self._cached_designer = None
         self.results_grid.clear_grid()
@@ -221,6 +274,8 @@ class Designer2DView(BaseDesignerView):
             "rev_min_length": (self.form.rev_min_len_input.value or ""),
             "max_quality": (self.form.max_quality_input.value or ""),
             "max_overlap": (self.form.max_overlap_input.value or ""),
+            "filter_dna": bool(self.form.filter_dna_checkbox.value),
+            "max_amplicons": (self.form.max_amplicons_input.value or ""),
         }
         await self._save_parameters_yaml(
             dialog_title="Save Designer 2D Parameters",
@@ -236,12 +291,19 @@ class Designer2DView(BaseDesignerView):
         if params is None:
             return
 
-        self.form.fwd_dna_input.value = str(params.get("fwd_dna", ""))
+        fwd_val = params.get("fwd_dna")
+        fwd_str = str(fwd_val) if fwd_val is not None else ""
+        self.form.fwd_dna_input.value = fwd_str
+        self.form.fwd_length_display.value = str(len(clean_sequence(fwd_str)))
         fwd_min_val = params.get("fwd_min_length")
         self.form.fwd_min_len_input.value = (
             str(fwd_min_val) if fwd_min_val is not None else ""
         )
-        self.form.rev_dna_input.value = str(params.get("rev_dna", ""))
+
+        rev_val = params.get("rev_dna")
+        rev_str = str(rev_val) if rev_val is not None else ""
+        self.form.rev_dna_input.value = rev_str
+        self.form.rev_length_display.value = str(len(clean_sequence(rev_str)))
         rev_min_val = params.get("rev_min_length")
         self.form.rev_min_len_input.value = (
             str(rev_min_val) if rev_min_val is not None else ""
@@ -257,6 +319,18 @@ class Designer2DView(BaseDesignerView):
         max_ov_val = params.get("max_overlap", params.get("overlap_filter"))
         self.form.max_overlap_input.value = (
             str(max_ov_val) if max_ov_val is not None else ""
+        )
+
+        filter_dna_val = params.get("filter_dna")
+        self.form.filter_dna_checkbox.value = bool(filter_dna_val)
+        self.form.max_amplicons_input.disabled = (
+            not self.form.filter_dna_checkbox.value
+        )
+        max_amp_val = params.get(
+            "max_amplicons", params.get("max_amplicon_count")
+        )
+        self.form.max_amplicons_input.value = (
+            str(max_amp_val) if max_amp_val is not None else ""
         )
 
         self.form.clear_errors()

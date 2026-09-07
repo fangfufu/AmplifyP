@@ -26,6 +26,7 @@ from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.views.designer import BaseDesignerForm, create_field_container
 from amplifyp.primer_designer_2d import FilterMetric
 
@@ -61,7 +62,15 @@ class Designer2DForm(BaseDesignerForm):
             autofocus=True,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
+            on_change=self._on_fwd_dna_change,
+        )
+        self.fwd_length_display = ft.TextField(
+            value="0",
+            read_only=True,
+            width=90,
+            text_align=ft.TextAlign.CENTER,
+            border_color=GUIColours.OUTLINE,
+            content_padding=ft.Padding(8, 4, 8, 4),
         )
         self.fwd_min_len_input = ft.TextField(
             hint_text="e.g. 18",
@@ -77,7 +86,22 @@ class Designer2DForm(BaseDesignerForm):
             multiline=False,
             border_color=GUIColours.OUTLINE,
             on_submit=self._on_submit_event,
-            on_change=self._clear_field_error,
+            on_change=self._on_rev_dna_change,
+        )
+        self.rev_comp_button = ft.OutlinedButton(
+            "Rev Comp",
+            icon=ft.Icons.SYNC_ALT,
+            tooltip="Reverse Complement Reverse Candidate Primer",
+            on_click=self._on_reverse_complement_click,
+            height=48,
+        )
+        self.rev_length_display = ft.TextField(
+            value="0",
+            read_only=True,
+            width=90,
+            text_align=ft.TextAlign.CENTER,
+            border_color=GUIColours.OUTLINE,
+            content_padding=ft.Padding(8, 4, 8, 4),
         )
         self.rev_min_len_input = ft.TextField(
             hint_text="e.g. 18",
@@ -87,6 +111,23 @@ class Designer2DForm(BaseDesignerForm):
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
+        self.filter_dna_checkbox = BorderedCheckbox(
+            label="Check against template",
+            value=False,
+            on_change=self._on_filter_dna_change,
+        )
+        self.max_amplicons_input = ft.TextField(
+            hint_text="Unconstrained if empty",
+            value="",
+            expand=True,
+            disabled=True,
+            border_color=GUIColours.OUTLINE,
+            height=48,
+            on_submit=self._on_submit_event,
+            on_change=self._clear_field_error,
+        )
+
+        self.analyse_button.height = 48
 
         self.controls = [
             self._build_header_container("2D Truncation Parameters"),
@@ -96,6 +137,12 @@ class Designer2DForm(BaseDesignerForm):
                         "Forward Candidate Primer Sequence",
                         self.fwd_dna_input,
                         expand=True,
+                    ),
+                    create_field_container(
+                        "Length (nt)",
+                        self.fwd_length_display,
+                        expand=False,
+                        width=90,
                     ),
                     create_field_container(
                         "Fwd Min Length (nt)",
@@ -113,6 +160,16 @@ class Designer2DForm(BaseDesignerForm):
                         self.rev_dna_input,
                         expand=True,
                     ),
+                    ft.Container(
+                        content=self.rev_comp_button,
+                        margin=ft.Margin.only(top=23),
+                    ),
+                    create_field_container(
+                        "Length (nt)",
+                        self.rev_length_display,
+                        expand=False,
+                        width=90,
+                    ),
                     create_field_container(
                         "Rev Min Length (nt)",
                         self.rev_min_len_input,
@@ -122,11 +179,50 @@ class Designer2DForm(BaseDesignerForm):
                 ],
                 spacing=8,
             ),
-            self._build_filter_row(),
+            self._build_filter_row(include_analyse_button=False),
+            ft.Row(
+                [
+                    ft.Container(
+                        content=self.filter_dna_checkbox,
+                        alignment=ft.Alignment(-1, 0),
+                        expand=True,
+                        height=48,
+                        margin=ft.Margin.only(top=23),
+                    ),
+                    create_field_container(
+                        "Max Amplicons",
+                        self.max_amplicons_input,
+                        expand=True,
+                    ),
+                    ft.Container(
+                        content=self.analyse_button,
+                        alignment=ft.Alignment(1, 0),
+                        height=48,
+                        margin=ft.Margin.only(top=23, left=16),
+                    ),
+                ],
+                spacing=8,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            ),
             self.error_text,
         ]
 
     # --- Property aliases for backwards compatibility ---
+    @property
+    def check_template_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
+
+    @property
+    def check_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
+
+    @property
+    def max_amplicon_input(self) -> ft.TextField:
+        """Get the max amplicons input control."""
+        return self.max_amplicons_input
+
     @property
     def quality_filter_input(self) -> ft.TextField:
         """Alias for max_quality_input."""
@@ -137,6 +233,49 @@ class Designer2DForm(BaseDesignerForm):
         """Alias for max_overlap_input."""
         return self.max_overlap_input
 
+    def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
+        """Handle enabling/disabling check against template filter."""
+        is_checked = bool(self.filter_dna_checkbox.value)
+        self.max_amplicons_input.disabled = not is_checked
+        if not is_checked:
+            self.max_amplicons_input.error = None
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+        self._clear_field_error(e)
+
+    def _on_fwd_dna_change(self, e: ft.ControlEvent) -> None:
+        """Update forward length counter and clear error when DNA changes."""
+        dna_raw = self.fwd_dna_input.value or ""
+        cleaned = clean_sequence(dna_raw)
+        self.fwd_length_display.value = str(len(cleaned))
+        self._clear_field_error(e)
+
+    def _on_rev_dna_change(self, e: ft.ControlEvent) -> None:
+        """Update reverse length counter and clear error when DNA changes."""
+        dna_raw = self.rev_dna_input.value or ""
+        cleaned = clean_sequence(dna_raw)
+        self.rev_length_display.value = str(len(cleaned))
+        self._clear_field_error(e)
+
+    def _on_reverse_complement_click(self, _e: ft.ControlEvent | None) -> None:
+        """Reverse complement current reverse candidate primer sequence."""
+        seq_str = self.rev_dna_input.value or ""
+        cleaned = clean_sequence(seq_str)
+        if not cleaned:
+            return
+        rev_comp_seq = DNA(cleaned).reverse_complement().seq
+        self.rev_dna_input.value = rev_comp_seq
+        self.rev_length_display.value = str(len(rev_comp_seq))
+        self.rev_dna_input.error = None
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
     def clear_errors(self) -> None:
         """Clear all field error indicators and general error message."""
         super().clear_errors()
@@ -144,6 +283,7 @@ class Designer2DForm(BaseDesignerForm):
         self.fwd_min_len_input.error = None
         self.rev_dna_input.error = None
         self.rev_min_len_input.error = None
+        self.max_amplicons_input.error = None
 
     def _validate_primer_input(
         self,
@@ -185,12 +325,23 @@ class Designer2DForm(BaseDesignerForm):
 
     def validate_and_get_params(
         self,
-    ) -> tuple[DNA, int, DNA, int, float | None, int | None, FilterMetric]:
+    ) -> tuple[
+        DNA,
+        int,
+        DNA,
+        int,
+        float | None,
+        int | None,
+        FilterMetric,
+        bool,
+        int | None,
+    ]:
         """Validate input fields and return 2D primer designer parameters.
 
         Returns:
             Tuple of (fwd_dna, fwd_min_length, rev_dna, rev_min_length,
-                threshold, max_overlap, filter_metric).
+                threshold, max_overlap, filter_metric, filter_dna_enabled,
+                max_amplicons).
 
         Raises:
             ValueError: If any input field contains invalid data.
@@ -212,7 +363,24 @@ class Designer2DForm(BaseDesignerForm):
         if not o_valid:
             self.max_overlap_input.error = "Must be >= 0"
 
-        if not (fwd_valid and rev_valid and q_valid and o_valid):
+        filter_dna_enabled = bool(self.filter_dna_checkbox.value)
+        max_amplicons: int | None = None
+        amplicons_valid = True
+        if filter_dna_enabled:
+            amplicons_raw = (self.max_amplicons_input.value or "").strip()
+            if amplicons_raw:
+                try:
+                    max_amplicons = int(amplicons_raw)
+                    if max_amplicons <= 0:
+                        self.max_amplicons_input.error = "Must be > 0"
+                        amplicons_valid = False
+                except ValueError:
+                    self.max_amplicons_input.error = "Must be > 0"
+                    amplicons_valid = False
+
+        if not (
+            fwd_valid and rev_valid and q_valid and o_valid and amplicons_valid
+        ):
             try:
                 if self.page:
                     self.page.update()
@@ -232,4 +400,6 @@ class Designer2DForm(BaseDesignerForm):
             threshold,
             max_overlap,
             filter_metric,
+            filter_dna_enabled,
+            max_amplicons,
         )
