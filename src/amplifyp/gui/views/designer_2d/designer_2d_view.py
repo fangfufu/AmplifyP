@@ -54,6 +54,7 @@ class Designer2DView(BaseDesignerView):
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner2D | None = None
         self._analysis_running = False
+        self._cancel_event: threading.Event | None = None
 
         # Form component for 2D input controls and parameters
         self.form = Designer2DForm(
@@ -129,8 +130,13 @@ class Designer2DView(BaseDesignerView):
         ]
 
     def _run_designer_event(self) -> None:
-        """Run 2D primer truncation analysis based on form inputs."""
-        if self._analysis_running:
+        """Run 2D primer truncation analysis or abort the running one.
+
+        While an analysis is running, the button acts as an abort button and
+        the click requests a stop instead of starting a new run.
+        """
+        if self._analysis_running and self._cancel_event is not None:
+            self._cancel_event.set()
             return
         try:
             (
@@ -175,11 +181,12 @@ class Designer2DView(BaseDesignerView):
         rev_count = len(rev_dna.seq) - rev_min_len + 1
         total_combinations = fwd_count * rev_count
 
-        # Show determinate progress bar, guard against re-entry, disable
-        # button.
+        # Show determinate progress bar, guard against re-entry, and switch
+        # the button into abort mode.
         self.results_grid.show_loading(total=total_combinations)
         self._analysis_running = True
-        self.form.analyse_button.disabled = True
+        self._cancel_event = threading.Event()
+        self._set_button_abort_mode(True)
         try:
             if self.app_page:
                 self.app_page.update()
@@ -213,6 +220,7 @@ class Designer2DView(BaseDesignerView):
                     template=template_dna,
                     max_amplicon_count=max_amplicons,
                     on_progress=_on_progress,
+                    cancel_event=self._cancel_event,
                 )
                 self._cached_designer = designer
                 self._schedule_on_event_loop(
@@ -231,6 +239,10 @@ class Designer2DView(BaseDesignerView):
         """Populate the results grid on the event loop after analysis."""
         self.results_grid.update_grid(designer)
         self._clear_all_cards()
+        if designer.aborted:
+            self._show_notification(
+                "Analysis aborted — showing results analysed so far."
+            )
 
     async def _on_analysis_error(self, ex: Exception) -> None:
         """Show the analysis failure UI on the event loop."""
@@ -241,9 +253,23 @@ class Designer2DView(BaseDesignerView):
         )
         self.results_grid.clear_grid()
 
+    def _set_button_abort_mode(self, abort_mode: bool) -> None:
+        """Toggle the analyse button between Analyse and Abort appearance."""
+        button = self.form.analyse_button
+        if abort_mode:
+            button.content = "Abort"
+            button.icon = ft.Icons.STOP
+            button.tooltip = "Stop analysis and keep results so far"
+        else:
+            button.content = "Analyse"
+            button.icon = ft.Icons.PLAY_ARROW
+            button.tooltip = "Run Primer Truncation Analysis"
+
     async def _on_analysis_finished(self) -> None:
-        """Re-enable the analyse button and flush the page after analysis."""
+        """Restore the analyse button and flush the page after analysis."""
         self.form.analyse_button.disabled = False
+        self._set_button_abort_mode(False)
+        self._cancel_event = None
         try:
             if self.app_page:
                 self.app_page.update()

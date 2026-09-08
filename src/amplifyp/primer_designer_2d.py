@@ -27,6 +27,7 @@ from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
 
 if TYPE_CHECKING:
+    import threading
     from collections.abc import Callable, Iterator
 
 DEFAULT_PRIMER_DIMER_GENERATOR = PrimerDimerGenerator()
@@ -119,6 +120,8 @@ class PrimerDesigner2D:
     """
 
     __slots__ = (
+        "_aborted",
+        "_cancel_event",
         "_filter_metric",
         "_fwd_dna",
         "_fwd_min_length",
@@ -146,6 +149,7 @@ class PrimerDesigner2D:
         template: DNA | None = None,
         max_amplicon_count: int | None = None,
         on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner2D object and runs the analysis.
 
@@ -169,8 +173,12 @@ class PrimerDesigner2D:
                 predicted amplicons filter. Defaults to None.
             on_progress (Callable[[int, int], None] | None, optional): Optional
                 callback invoked after each (fwd, rev) pair is processed.
-                Receives ``(done, total)`` where *done* counts completed pairs
-                and *total* is the full combination count. Defaults to None.
+                 Receives ``(done, total)`` where *done* counts completed pairs
+                 and *total* is the full combination count. Defaults to None.
+            cancel_event (threading.Event | None, optional): Optional event
+                used to abort the analysis. When set, the analysis stops
+                after the current (fwd, rev) pair is processed and the steps
+                analysed so far are retained. Defaults to None.
 
         Raises:
             ValueError: If minimum lengths are non-positive or exceed sequence
@@ -209,6 +217,8 @@ class PrimerDesigner2D:
         self._template: DNA | None = template
         self._max_amplicon_count: int | None = max_amplicon_count
         self._on_progress: Callable[[int, int], None] | None = on_progress
+        self._cancel_event: threading.Event | None = cancel_event
+        self._aborted: bool = False
         self._steps: list[PrimerDimers2D] = []
 
         self._analyse()
@@ -262,6 +272,11 @@ class PrimerDesigner2D:
     def max_amplicon_count(self) -> int | None:
         """The maximum amplicon count cutoff filter, if set."""
         return self._max_amplicon_count
+
+    @property
+    def aborted(self) -> bool:
+        """Whether the analysis was stopped before completion."""
+        return self._aborted
 
     @property
     def all_steps(self) -> tuple[PrimerDimers2D, ...]:
@@ -373,8 +388,17 @@ class PrimerDesigner2D:
         done = 0
 
         for fwd_seq in fwd_seqs:
+            if self._cancel_event is not None and self._cancel_event.is_set():
+                self._aborted = True
+                break
             fwd_p = Primer(fwd_seq)
             for rev_seq in rev_seqs:
+                if (
+                    self._cancel_event is not None
+                    and self._cancel_event.is_set()
+                ):
+                    self._aborted = True
+                    break
                 rev_p = Primer(rev_seq)
 
                 amplicon_count: int | None = None

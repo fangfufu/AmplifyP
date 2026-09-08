@@ -16,6 +16,7 @@
 """Tests for 1D Primer Designer View."""
 
 import asyncio
+import threading
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -866,3 +867,86 @@ def test_controller_run_pcr_with_primer() -> None:
     with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
         controller.run_pcr_with_primer("ATGCGTACGT", "1D Candidate (10 nt)")
         mock_err.assert_called_once()
+
+
+def test_designer_1d_analyse_button_toggles_to_abort() -> None:
+    """Test Analyse button becomes Abort during a run and restores after."""
+    mock_page = MagicMock(spec=ft.Page)
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+
+    # Simulate an in-flight analysis
+    view._analysis_running = True
+    view._cancel_event = threading.Event()
+    view._set_button_abort_mode(True)
+    button = view.form.analyse_button
+    assert button.content == "Abort"
+    assert button.icon == ft.Icons.STOP
+    assert button.disabled is False
+
+    # Click while running routes to abort, not a new run
+    view._run_designer_event(None)
+    assert view._cancel_event is not None
+    assert view._cancel_event.is_set()
+
+    # Finishing the run restores the button
+    view._analysis_running = False
+    asyncio.run(view._on_analysis_finished())
+    assert button.content == "Analyse"
+    assert button.icon == ft.Icons.PLAY_ARROW
+    assert view._cancel_event is None
+    assert view._analysis_running is False
+
+
+def test_designer_1d_abort_returns_partial_results() -> None:
+    """Test aborting mid-run keeps primers analysed so far."""
+    from amplifyp.primer_designer_1d import PrimerDesigner1D as RealDesigner
+
+    mock_page = MagicMock(spec=ft.Page)
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    # DNA length 10, min length 7 => 4 truncation steps
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "7"
+
+    def factory(**kwargs: Any) -> Any:
+        cancel = kwargs.get("cancel_event")
+        orig_progress = kwargs.get("on_progress")
+
+        def progress(done: int, total: int) -> None:
+            if cancel is not None:
+                cancel.set()
+            if orig_progress is not None:
+                orig_progress(done, total)
+
+        kwargs["on_progress"] = progress
+        return RealDesigner(**kwargs)
+
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=factory,
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: target()}
+            )(),
+        ),
+        patch.object(
+            view,
+            "_schedule_on_event_loop",
+            side_effect=lambda func, *args: asyncio.run(func(*args)),
+        ),
+    ):
+        view._start_designer()
+
+    # Analysis aborted after the first step; partial dimer retained.
+    assert view._cached_designer is not None
+    assert view._cached_designer.aborted is True
+    assert len(view._cached_designer.all_dimers) == 1
+    assert len(view.primer_list.controls) == 1
+
+    # Button restored to Analyse mode after the aborted run.
+    assert view.form.analyse_button.content == "Analyse"
+    assert view.form.analyse_button.icon == ft.Icons.PLAY_ARROW
+    assert view._analysis_running is False
+    assert view._cancel_event is None

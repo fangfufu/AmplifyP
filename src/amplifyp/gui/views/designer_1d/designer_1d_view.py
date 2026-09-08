@@ -60,6 +60,7 @@ class PrimerDesignerView(BaseDesignerView):
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
         self._analysis_running = False
+        self._cancel_event: threading.Event | None = None
 
         # Form component for input controls and parameters
         self.form = Designer1DForm(
@@ -286,8 +287,27 @@ class PrimerDesignerView(BaseDesignerView):
         )
 
     def _run_designer_event(self, e: ft.ControlEvent | None = None) -> None:
-        """Event handler wrapper for running analysis."""
+        """Event handler wrapper for running analysis or aborting it.
+
+        While an analysis is running, the button acts as an abort button and
+        the click requests a stop instead of starting a new run.
+        """
+        if self._analysis_running and self._cancel_event is not None:
+            self._cancel_event.set()
+            return
         self._start_designer()
+
+    def _set_button_abort_mode(self, abort_mode: bool) -> None:
+        """Toggle the analyse button between Analyse and Abort appearance."""
+        button = self.form.analyse_button
+        if abort_mode:
+            button.content = "Abort"
+            button.icon = ft.Icons.STOP
+            button.tooltip = "Stop analysis and keep results so far"
+        else:
+            button.content = "Analyse"
+            button.icon = ft.Icons.PLAY_ARROW
+            button.tooltip = "Run Primer Truncation Analysis"
 
     def show_loading(self, total: int = 0) -> None:
         """Replace primer list with a progress bar while analysis runs.
@@ -402,6 +422,10 @@ class PrimerDesignerView(BaseDesignerView):
         """Populate the results UI on the event loop after analysis."""
         self._restore_primer_list()
         self._update_chart_and_primer_list(designer, origin_counts, mode)
+        if designer.aborted:
+            self._show_notification(
+                "Analysis aborted — showing primers analysed so far."
+            )
 
     async def _on_analysis_error(self, ex: Exception, tb: str) -> None:
         """Show the analysis failure UI on the event loop."""
@@ -414,8 +438,10 @@ class PrimerDesignerView(BaseDesignerView):
         self._restore_primer_list()
 
     async def _on_analysis_finished(self) -> None:
-        """Re-enable the analyse button and flush the page after analysis."""
+        """Restore the analyse button and flush the page after analysis."""
         self.form.analyse_button.disabled = False
+        self._set_button_abort_mode(False)
+        self._cancel_event = None
         try:
             if self.app_page:
                 self.app_page.update()
@@ -469,7 +495,8 @@ class PrimerDesignerView(BaseDesignerView):
 
         self.show_loading(total=total_steps)
         self._analysis_running = True
-        self.form.analyse_button.disabled = True
+        self._cancel_event = threading.Event()
+        self._set_button_abort_mode(True)
         try:
             if self.app_page:
                 self.app_page.update()
@@ -501,6 +528,7 @@ class PrimerDesignerView(BaseDesignerView):
                     template=template_dna,
                     max_origin_count=max_binding_sites,
                     on_progress=_on_progress,
+                    cancel_event=self._cancel_event,
                 )
                 self._cached_designer = designer
                 origin_counts = self._compute_origin_counts(

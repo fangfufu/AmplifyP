@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from amplifyp.dimer import PrimerDimer
@@ -268,3 +270,59 @@ def test_primer_designer_1d_on_progress_callback() -> None:
     # done values are strictly increasing from 1 to total.
     done_values = [d for d, _ in calls]
     assert done_values == list(range(1, expected_total + 1))
+
+
+def test_primer_designer_1d_no_cancel_event_not_aborted() -> None:
+    """Test aborted is False when no cancel event is provided."""
+    dna_obj = DNA("ATGCGTACGT")
+    designer = PrimerDesigner1D(dna_obj, min_length=7)
+    assert designer.aborted is False
+
+
+def test_primer_designer_1d_cancel_event_aborts_early() -> None:
+    """Test cancel event stops analysis and retains partial results."""
+    # DNA length 10, min_length 7 => 4 steps (10, 9, 8, 7)
+    dna_obj = DNA("ATGCGTACGT")
+    min_length = 7
+    expected_total = len(dna_obj.seq) - min_length + 1
+    cancel = threading.Event()
+
+    def _cb(done: int, total: int) -> None:
+        if done == 2:
+            cancel.set()
+
+    designer = PrimerDesigner1D(
+        dna_obj, min_length=min_length, on_progress=_cb, cancel_event=cancel
+    )
+
+    # Analysis stopped after the step that triggered the cancel.
+    assert designer.aborted is True
+    assert len(designer) == 2
+    assert len(designer) < expected_total
+
+
+def test_primer_designer_1d_cancel_event_pre_set() -> None:
+    """Test a pre-set cancel event aborts before any step completes."""
+    dna_obj = DNA("ATGCGTACGT")
+    cancel = threading.Event()
+    cancel.set()
+
+    designer = PrimerDesigner1D(dna_obj, min_length=7, cancel_event=cancel)
+
+    assert designer.aborted is True
+    assert len(designer) == 0
+
+
+def test_primer_designer_1d_unset_cancel_event_runs_to_completion() -> None:
+    """Test an unset cancel event does not affect full analysis."""
+    dna_obj = DNA("ATGCGTACGT")
+    min_length = 7
+    expected_total = len(dna_obj.seq) - min_length + 1
+    cancel = threading.Event()
+
+    designer = PrimerDesigner1D(
+        dna_obj, min_length=min_length, cancel_event=cancel
+    )
+
+    assert designer.aborted is False
+    assert len(designer) == expected_total
