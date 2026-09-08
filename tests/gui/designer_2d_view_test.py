@@ -49,6 +49,28 @@ def _assert_2d_form_defaults(view: Designer2DView) -> None:
     assert view.form.max_amplicons_input.disabled is True
 
 
+def _run_2d_analysis() -> Designer2DView:
+    """Create a 2D view, fill the form, and run the designer synchronously."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+    return view
+
+
 def test_designer_2d_view_initialisation() -> None:
     """Test initial UI setup of Designer2DView."""
     mock_page = MagicMock(spec=ft.Page)
@@ -231,24 +253,7 @@ def test_designer_2d_form_validation_errors() -> None:
 
 def test_designer_2d_view_run_analysis_and_grid() -> None:
     """Test running 2D analysis populates grid and allows card creation."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    settings = GUISettings()
-
-    view = Designer2DView(mock_page, input_data, settings)
-    view.form.fwd_dna_input.value = "ATGCGTACGT"
-    view.form.fwd_min_len_input.value = "8"
-    view.form.rev_dna_input.value = "CGTACGATGC"
-    view.form.rev_min_len_input.value = "8"
-    view.form.max_quality_input.value = ""
-    view.form.max_overlap_input.value = ""
-
-    with patch(
-        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
-        side_effect=lambda target, daemon: MagicMock(start=target),
-    ):
-        view._run_designer_event()
-
+    view = _run_2d_analysis()
     assert view._cached_designer is not None
     # 3 forward lengths (10, 9, 8) x 3 reverse lengths (10, 9, 8) = 9 steps
     assert len(view._cached_designer) == 9
@@ -317,23 +322,7 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
 
 def test_designer_2d_view_clear_all() -> None:
     """Test Clear All resets all 2D parameters, grid results, and cards."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    settings = GUISettings()
-
-    view = Designer2DView(mock_page, input_data, settings)
-    view.form.fwd_dna_input.value = "ATGCGTACGT"
-    view.form.fwd_min_len_input.value = "8"
-    view.form.rev_dna_input.value = "CGTACGATGC"
-    view.form.rev_min_len_input.value = "8"
-    view.form.max_quality_input.value = ""
-    view.form.max_overlap_input.value = ""
-
-    with patch(
-        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
-        side_effect=lambda target, daemon: MagicMock(start=target),
-    ):
-        view._run_designer_event()
+    view = _run_2d_analysis()
     assert view._cached_designer is not None
     assert len(view.results_grid._cell_containers) == 9
 
