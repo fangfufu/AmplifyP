@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0](https://github.com/fangfufu/AmplifyP/compare/v1.19.0...v1.20.0) (2026-09-08)
+
+
+### Features
+
+* **designer-1d,2d:** show fine-grained primer count in progress label ([83984cc](https://github.com/fangfufu/AmplifyP/commit/83984ccf25b9ef636fd60c654f0dbf28e8dcc63f))
+* **designer-1d:** show deterministic progress bar during analysis ([a6d700e](https://github.com/fangfufu/AmplifyP/commit/a6d700e99e9d958bf699581cc8c9abece8647aba))
+* **designer-2d:** add progress indicator in truncation results grid ([dc31f31](https://github.com/fangfufu/AmplifyP/commit/dc31f3135678f06ec5468a19c56c242f3a5cee01))
+* **designer-2d:** show deterministic progress bar during analysis ([9030e35](https://github.com/fangfufu/AmplifyP/commit/9030e35687bb19abfecb95acc02c7c11ad5c2d15))
+* **gui:** add template checking and PCR to Designer 1D ([428d609](https://github.com/fangfufu/AmplifyP/commit/428d609faf45e86d5a8da279d97ed4c43e116f03))
+* **gui:** add template checking and PCR to Designer 2D ([838281d](https://github.com/fangfufu/AmplifyP/commit/838281daaea7710a70e0f6f4331d1332fba80315))
+
+
+### Bug Fixes
+
+* **designer-1d,2d:** flush progress bar on event loop via shared tracker ([afc37e9](https://github.com/fangfufu/AmplifyP/commit/afc37e937ec8723672ad6fcaa4de480365c6d3ea))
+* **designer-1d,2d:** throttle progress bar page.update() to ~20 fps ([b0f4e7b](https://github.com/fangfufu/AmplifyP/commit/b0f4e7b91d959d91f2a1f4cb67be969d7bbffdd1))
+* **designer-1d:** replace threading.Event with bool flag in flush loop ([c6a93bc](https://github.com/fangfufu/AmplifyP/commit/c6a93bc157ed318e2eb05bc719fc45ea2ae63985))
+* **designer-1d:** use asyncio.create_task fallback when page.run_task unavailable ([6a22882](https://github.com/fangfufu/AmplifyP/commit/6a228825997ccab2db54804797208883501790c0))
+* **gui/designer-2d:** validate sequence before rev-complement ([deaed10](https://github.com/fangfufu/AmplifyP/commit/deaed10797818802026b18a5b4878be0f37a6357))
+* **gui/input:** complete blur scroll when scheduling fails ([a6dbfe6](https://github.com/fangfufu/AmplifyP/commit/a6dbfe63a16a16e261230f44c442373244d3686e))
+* **gui:** discard loop-less callbacks instead of temp loop ([9bf537f](https://github.com/fangfufu/AmplifyP/commit/9bf537f6ec221e4a12a0861178316841e6fbaad8))
+* **gui:** marshal designer analysis UI onto Flet event loop ([65e35f5](https://github.com/fangfufu/AmplifyP/commit/65e35f55d1b5438ea702f212463647f21b4867e2))
+* **logger:** close handlers explicitly in _remove_handlers_by_type ([0001548](https://github.com/fangfufu/AmplifyP/commit/0001548138a512b2f9cd53be4b108afaffd03574))
+* **logger:** remove handlers from a snapshot copy ([f16678f](https://github.com/fangfufu/AmplifyP/commit/f16678fb7ce5184d6d6f0c9f8fc314b37816fb62))
+* **logger:** remove redundant None check in _get_valid_level ([6521c89](https://github.com/fangfufu/AmplifyP/commit/6521c89c4a99fc4f21fe6698bd3dcf7aec186213))
+* **types:** remove redundant isinstance/None guards ([0d2e05b](https://github.com/fangfufu/AmplifyP/commit/0d2e05b6f4bce57f9cab494d1c20dd389ad82883))
+* **types:** resolve page run_task and mypy pyright issues ([7c0c12f](https://github.com/fangfufu/AmplifyP/commit/7c0c12f03cbd3d49b616cf29fe6ddd1424cd9003))
+
+
+### Code Refactoring
+
+* **gui:** deduplicate Sonar-flagged code ([8818de3](https://github.com/fangfufu/AmplifyP/commit/8818de3403d03ccd9fd260fc97544bfe8a2b8a4a))
+
+
+### Performance Improvements
+
+* **designer-2d:** update progress bar on every primer pair checked ([bc71328](https://github.com/fangfufu/AmplifyP/commit/bc7132848991d3fca6f908d8ec4e15a26dab1837))
+
 ## [1.19.0](https://github.com/fangfufu/AmplifyP/compare/v1.18.0...v1.19.0) (2026-09-01)
 
 
