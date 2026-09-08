@@ -25,10 +25,12 @@ from .designer_form_base import (
     create_field_container,
 )
 from .designer_view_base import BaseDesignerView
+from .progress_tracker import ProgressTracker
 
 __all__ = [
     "BaseDesignerForm",
     "BaseDesignerView",
+    "ProgressTracker",
     "build_primer_summary_row",
     "create_badge",
     "create_field_container",

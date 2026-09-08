@@ -44,6 +44,10 @@ class Dismissible2DCard(DismissibleDetailCard):
         settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
         font_family: str = "Roboto Mono",
+        on_run_pcr_callback: (
+            Callable[[str, str, str, str], None] | None
+        ) = None,
+        amplicon_count: int | None = None,
     ) -> None:
         """Initialise the Dismissible2DCard.
 
@@ -53,10 +57,19 @@ class Dismissible2DCard(DismissibleDetailCard):
             settings: GUI settings object.
             dismiss_callback: Callback invoked when dismissed.
             font_family: Sequence alignment font family.
+            on_run_pcr_callback: Optional callback to execute PCR with this
+                primer pair.
+            amplicon_count: Optional number of amplicons predicted on template.
         """
         self.step = step
         self.settings = settings
         self.font_family = font_family
+        self.on_run_pcr_callback = on_run_pcr_callback
+        self.amplicon_count = (
+            amplicon_count
+            if amplicon_count is not None
+            else step.amplicon_count
+        )
 
         fwd_p = step.fwd_fwd.primer_1
         rev_p = step.rev_rev.primer_1
@@ -87,6 +100,35 @@ class Dismissible2DCard(DismissibleDetailCard):
                 font_size=font_size_small,
             ),
         ]
+
+        if self.amplicon_count is not None:
+            title_controls.append(
+                create_badge(
+                    f"Amplicons: {self.amplicon_count}",
+                    font_size=font_size_small,
+                )
+            )
+
+        def _on_pcr_click(e: ft.ControlEvent) -> None:
+            if self.on_run_pcr_callback:
+                self.on_run_pcr_callback(
+                    fwd_p.seq,
+                    f"2D Fwd ({fwd_len} nt)",
+                    rev_p.seq,
+                    f"2D Rev ({rev_len} nt)",
+                )
+
+        self.pcr_button = ft.FilledTonalButton(
+            "Run PCR",
+            icon=ft.Icons.PLAY_ARROW,
+            height=28,
+            tooltip=(
+                f"Run PCR using template with {fwd_len} nt and "
+                f"{rev_len} nt primers"
+            ),
+            on_click=_on_pcr_click,
+        )
+        title_controls.append(self.pcr_button)
 
         # Primer details section (Forward & Reverse)
         primer_info_section = self._build_primer_details_section(

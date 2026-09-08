@@ -27,7 +27,7 @@ from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
 DEFAULT_PRIMER_DIMER_GENERATOR = PrimerDimerGenerator()
 
@@ -63,6 +63,7 @@ class PrimerDimers2D:
     rev_rev: PrimerDimer
     fwd_rev: PrimerDimer
     rev_fwd: PrimerDimer
+    amplicon_count: int | None = None
 
     @property
     def max_quality(self) -> float:
@@ -124,6 +125,7 @@ class PrimerDesigner2D:
         "_generator",
         "_max_amplicon_count",
         "_max_overlap",
+        "_on_progress",
         "_rev_dna",
         "_rev_min_length",
         "_steps",
@@ -143,6 +145,7 @@ class PrimerDesigner2D:
         filter_metric: FilterMetric = FilterMetric.MAX,
         template: DNA | None = None,
         max_amplicon_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner2D object and runs the analysis.
 
@@ -164,6 +167,10 @@ class PrimerDesigner2D:
                 used to calculate predicted amplicons. Defaults to None.
             max_amplicon_count (int | None, optional): Upper bound for number of
                 predicted amplicons filter. Defaults to None.
+            on_progress (Callable[[int, int], None] | None, optional): Optional
+                callback invoked after each (fwd, rev) pair is processed.
+                Receives ``(done, total)`` where *done* counts completed pairs
+                and *total* is the full combination count. Defaults to None.
 
         Raises:
             ValueError: If minimum lengths are non-positive or exceed sequence
@@ -201,6 +208,7 @@ class PrimerDesigner2D:
         self._filter_metric: FilterMetric = FilterMetric(filter_metric)
         self._template: DNA | None = template
         self._max_amplicon_count: int | None = max_amplicon_count
+        self._on_progress: Callable[[int, int], None] | None = on_progress
         self._steps: list[PrimerDimers2D] = []
 
         self._analyse()
@@ -361,15 +369,16 @@ class PrimerDesigner2D:
             self._rev_min_length, DNADirection.REV
         )
 
+        total = len(fwd_seqs) * len(rev_seqs)
+        done = 0
+
         for fwd_seq in fwd_seqs:
             fwd_p = Primer(fwd_seq)
             for rev_seq in rev_seqs:
                 rev_p = Primer(rev_seq)
 
-                if (
-                    self._template is not None
-                    and self._max_amplicon_count is not None
-                ):
+                amplicon_count: int | None = None
+                if self._template is not None:
                     amp_gen = AmpliconGenerator(self._template)
                     fwd_conf = Repliconf(self._template, fwd_p)
                     amp_gen.add_repliconf(fwd_conf)
@@ -377,7 +386,18 @@ class PrimerDesigner2D:
                         rev_conf = Repliconf(self._template, rev_p)
                         amp_gen.add_repliconf(rev_conf)
                     amplicon_count = len(amp_gen.get_amplicons())
-                    if amplicon_count > self._max_amplicon_count:
+                    if amplicon_count < 1:
+                        done += 1
+                        if self._on_progress is not None:
+                            self._on_progress(done, total)
+                        continue
+                    if (
+                        self._max_amplicon_count is not None
+                        and amplicon_count > self._max_amplicon_count
+                    ):
+                        done += 1
+                        if self._on_progress is not None:
+                            self._on_progress(done, total)
                         continue
 
                 d_ff = self._generator.generate_primer_dimer(
@@ -398,6 +418,7 @@ class PrimerDesigner2D:
                     rev_rev=d_rr,
                     fwd_rev=d_fr,
                     rev_fwd=d_rf,
+                    amplicon_count=amplicon_count,
                 )
 
                 if self._filter_metric == FilterMetric.MAX:
@@ -408,8 +429,17 @@ class PrimerDesigner2D:
                     o_val = step.mean_overlap
 
                 if self._threshold is not None and q_val > self._threshold:
+                    done += 1
+                    if self._on_progress is not None:
+                        self._on_progress(done, total)
                     continue
                 if self._max_overlap is not None and o_val > self._max_overlap:
+                    done += 1
+                    if self._on_progress is not None:
+                        self._on_progress(done, total)
                     continue
 
                 self._steps.append(step)
+                done += 1
+                if self._on_progress is not None:
+                    self._on_progress(done, total)

@@ -25,6 +25,7 @@ from amplifyp.gui.colours import (
     get_text_contrast_colour,
 )
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.views.designer.progress_tracker import ProgressTracker
 from amplifyp.primer_designer_2d import (
     PrimerDesigner2D,
     PrimerDimers2D,
@@ -36,13 +37,25 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
     def __init__(
         self,
+        page: ft.Page,
         settings: GUISettings,
         on_select_step_callback: Callable[[PrimerDimers2D], None],
     ) -> None:
-        """Initialise the Grid2DResultsView."""
+        """Initialise the Grid2DResultsView.
+
+        Args:
+            page: Flet page used to schedule progress flush tasks.
+            settings: GUI settings for fonts and colour schemes.
+            on_select_step_callback: Callback when a grid cell is selected.
+        """
         super().__init__(expand=True)
         self.settings = settings
         self.on_select_step_callback = on_select_step_callback
+        self.progress_tracker = ProgressTracker(
+            page=page,
+            settings=settings,
+            hint_text="Analysing primer combinations\u2026",
+        )
 
         self._selected_step: PrimerDimers2D | None = None
         self._cell_containers: dict[tuple[int, int], ft.Container] = {}
@@ -75,6 +88,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
     def clear_grid(self) -> None:
         """Reset grid to empty initial state."""
+        self.progress_tracker.hide()
         self._selected_step = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
@@ -101,6 +115,51 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 self.page.update()
         except RuntimeError:
             pass
+
+    def show_loading(self, total: int = 0) -> None:
+        """Display a progress bar while analysis is running.
+
+        The tracker schedules a flush task on the Flet event loop that
+        calls ``page.update()`` every 50 ms so the bar animates smoothly
+        regardless of analysis speed.
+
+        Args:
+            total: Total number of primer combinations to be evaluated.
+                When 0 (unknown), an indeterminate ProgressBar is shown.
+        """
+        self._selected_step = None
+        self._cell_containers.clear()
+        self._cell_bg_colours.clear()
+        self._best_cell_keys.clear()
+
+        loading_body = self.progress_tracker.show(total)
+        self.content_column.controls = [
+            ft.Text(
+                "2D Truncation Results Grid",
+                weight=ft.FontWeight.BOLD,
+                size=self.settings.get("font_size_subheader", 16),
+            ),
+            loading_body,
+        ]
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
+    def update_progress(self, done: int, total: int) -> None:
+        """Write current progress values; the flush task renders them.
+
+        The bar value and label are updated on every call. The flush task
+        runs on the Flet event loop at ~20 fps, so the analysis thread is
+        never blocked by rendering. Stops the flush task when the final
+        tick is received.
+
+        Args:
+            done: Number of primer combinations processed so far.
+            total: Total number of primer combinations.
+        """
+        self.progress_tracker.update_progress(done, total)
 
     def update_grid(self, designer: PrimerDesigner2D) -> None:
         """Populate and render the 2D matrix grid.
@@ -276,6 +335,11 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                     "★ Best Quality (Lowest Score)\n" if is_best else ""
                 )
 
+                amplicon_str = (
+                    f"\nAmplicons: {step.amplicon_count}"
+                    if step.amplicon_count is not None
+                    else ""
+                )
                 cell_container = ft.Container(
                     content=cell_content,
                     width=52,
@@ -292,6 +356,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                         f"Forward: {f_len} nt | Reverse: {r_len} nt\n"
                         f"Max Quality: {round(q_val)}\n"
                         f"Max Overlap: {o_str} bp"
+                        f"{amplicon_str}"
                     ),
                 )
                 self._cell_containers[(f_len, r_len)] = cell_container

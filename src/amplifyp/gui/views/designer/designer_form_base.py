@@ -24,6 +24,7 @@ import flet as ft
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 
 
 def create_field_container(
@@ -140,6 +141,13 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
             "", color=GUIColours.ERROR_RED, visible=False, size=12
         )
 
+        # Check against template filter (common to 1D and 2D forms)
+        self.filter_dna_checkbox = BorderedCheckbox(
+            label="Check against template",
+            value=False,
+            on_change=self._on_filter_dna_change,
+        )
+
     def _build_header_container(self, title: str) -> ft.Container:
         """Build standard form header row with title and action buttons.
 
@@ -174,12 +182,15 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         )
 
     def _build_filter_row(
-        self, extra_controls: list[ft.Control] | None = None
+        self,
+        extra_controls: list[ft.Control] | None = None,
+        include_analyse_button: bool = True,
     ) -> ft.Row:
         """Build the standard bottom filter row with filter controls.
 
         Args:
             extra_controls: Optional additional controls to prepend or append.
+            include_analyse_button: Whether to include the Analyse button.
 
         Returns:
             Flet Row containing filter controls.
@@ -196,18 +207,57 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
                 create_field_container(
                     "Max Overlap (bp)", self.max_overlap_input, expand=True
                 ),
+            ]
+        )
+        if include_analyse_button:
+            row_controls.append(
                 ft.Container(
                     content=self.analyse_button,
                     margin=ft.Margin.only(top=18, left=8),
-                ),
-            ]
-        )
+                )
+            )
 
         return ft.Row(
             row_controls,
             alignment=ft.MainAxisAlignment.START,
             vertical_alignment=ft.CrossAxisAlignment.START,
             spacing=8,
+        )
+
+    def _build_analyse_row(
+        self,
+        max_label: str,
+        max_input: ft.TextField,
+    ) -> ft.Row:
+        """Build the bottom row: filter checkbox, max-value field, Analyse.
+
+        Args:
+            max_label: Label for the max-value input field.
+            max_input: The max-value TextField control.
+
+        Returns:
+            Flet Row containing the filter checkbox, max field and Analyse
+            button.
+        """
+        return ft.Row(
+            [
+                ft.Container(
+                    content=self.filter_dna_checkbox,
+                    alignment=ft.Alignment(-1, 0),
+                    expand=True,
+                    height=48,
+                    margin=ft.Margin.only(top=23),
+                ),
+                create_field_container(max_label, max_input, expand=True),
+                ft.Container(
+                    content=self.analyse_button,
+                    alignment=ft.Alignment(1, 0),
+                    height=48,
+                    margin=ft.Margin.only(top=23, left=16),
+                ),
+            ],
+            spacing=8,
+            vertical_alignment=ft.CrossAxisAlignment.START,
         )
 
     def _on_submit_event(self, e: Any) -> None:
@@ -226,6 +276,13 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
                 pass
         if self.on_clear_error_callback:
             self.on_clear_error_callback(e)
+
+    def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
+        """Handle the check-against-template toggle.
+
+        Subclasses override this to enable/disable their max-value input
+        field when the filter is toggled.
+        """
 
     def clear_errors(self) -> None:
         """Clear all field error indicators and general error message."""
@@ -256,6 +313,16 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         """
         self.error_text.value = message
         self.error_text.visible = True
+
+    @property
+    def check_template_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
+
+    @property
+    def check_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
+        """Get the check against template checkbox control."""
+        return self.filter_dna_checkbox
 
     def validate_max_quality(
         self, int_only: bool = False

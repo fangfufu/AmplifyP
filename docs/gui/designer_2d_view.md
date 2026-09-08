@@ -41,33 +41,45 @@ and filter evaluation metric:
 - **Forward Candidate Primer Sequence**: Text field for inputting the forward
   candidate sequence. Raw sequence input is automatically cleaned to remove
   invalid characters. Must contain at least one valid base.
-- **Fwd Min Len (bp)**: Minimum forward primer length integer (default: `18`).
-  The forward sequence is truncated from the 3' end base-by-base down to this
-  minimum length. Must be a positive integer greater than 0 and cannot exceed
-  the forward sequence length.
+- **Forward Length (nt)**: Unmodifiable text field displaying the current
+  cleaned nucleotide length of the forward candidate primer sequence.
+- **Fwd Min Length (nt)**: Minimum forward primer length integer (default:
+  `18`). The forward sequence is truncated from the 3' end base-by-base down to
+  this minimum length. Must be a positive integer greater than 0 and cannot
+  exceed the forward sequence length.
 - **Reverse Candidate Primer Sequence**: Text field for inputting the reverse
   candidate sequence. Raw sequence input is automatically cleaned. Must contain
   at least one valid base.
-- **Rev Min Len (bp)**: Minimum reverse primer length integer (default: `18`).
-  The reverse sequence is truncated from the 5' end base-by-base down to this
-  minimum length. Must be a positive integer greater than 0 and cannot exceed
-  the reverse sequence length.
-- **Quality Filter**: Maximum quality score threshold cutoff. Defaults to the
-  configured dimer quality threshold (e.g. `60.0`). Leave blank for
-  unconstrained quality filtering. Pair combinations with quality scores
-  exceeding this cutoff are excluded.
-- **Overlap Filter (bp)**: Maximum overlap length constraint integer. Leave
+- **Rev Comp**: Outlined button directly following the reverse sequence text
+  field to immediately reverse-complement the reverse candidate sequence in
+  place.
+- **Reverse Length (nt)**: Unmodifiable text field displaying the current
+  cleaned nucleotide length of the reverse candidate primer sequence.
+- **Rev Min Length (nt)**: Minimum reverse primer length integer (default:
+  `18`). The reverse sequence is truncated from the 5' end base-by-base down to
+  this minimum length. Must be a positive integer greater than 0 and cannot
+  exceed the reverse sequence length.
+- **Max Quality**: Upper bound quality cutoff. Leave blank for unconstrained
+  quality filtering. Pair combinations with quality scores exceeding this cutoff
+  are excluded.
+- **Max Overlap (bp)**: Upper bound overlap length cutoff in base pairs. Leave
   blank for unconstrained overlap filtering. Pair combinations with overlap
-  lengths exceeding this constraint are excluded.
-- **Metric**: Dropdown selector to choose how quality scores and overlap lengths
-  are evaluated across the 4 dimer alignments for filtering and grid
-  representation:
-  - **Max** (default): Evaluates pair filtering and grid values based on the
-    maximum quality score / overlap length among all 4 dimer alignments.
-  - **Mean**: Evaluates pair filtering and grid values based on the mean
-    (average) quality score / overlap length across all 4 dimer alignments.
-- **Analyse Button**: Triggers validation and runs the 2D primer truncation
-  analysis. Can also be executed by pressing Enter inside any text input field.
+  lengths exceeding this cutoff are excluded.
+- **Check against template**: Bordered tickbox enabling evaluation of candidate
+  primer pairs against the template DNA sequence from the Input view. When
+  enabled, predicted amplicons are computed for each candidate pair and at least
+  1 amplicon is enforced (pairs generating 0 amplicons are excluded). If no
+  template sequence is present in the Input view, an error notification is
+  displayed.
+- **Max Amplicons**: Maximum allowed predicted amplicons on the template
+  sequence. Enabled only when **Check against template** is selected. Leave
+  blank for unconstrained amplicon evaluation (all pairs matching quality and
+  overlap thresholds and having at least 1 amplicon are displayed alongside
+  their predicted amplicon count). Must be a positive integer greater than 0;
+  candidate pairs exceeding this limit are excluded.
+- **Analyse Button**: Positioned on the right side of the bottom row. Triggers
+  validation and runs the 2D primer truncation analysis. Can also be executed by
+  pressing Enter inside any text input field.
 - **Save / Load Parameters**:
   - **Save Button**: Saves the current form parameters to a YAML file using a
     file save dialog.
@@ -130,11 +142,14 @@ list:
     automatically raised to the top of the list.
 - **Card Contents**:
   - **Card Header**: Displays title
-    `2D Primer Pair (Forward: {fwd_len} bp, Reverse: {rev_len} bp)` alongside a
+    `2D Primer Pair (Forward: {fwd_len} nt, Reverse: {rev_len} nt)` alongside a
     close/dismiss button.
   - **Title Metric Badges**: Highlighted summary badges for
     `Max Quality: {score}`, `Mean Quality: {score}`,
-    `Max Overlap: {overlap} bp`, and `Mean Overlap: {overlap} bp`.
+    `Max Overlap: {overlap} bp`, and `Mean Overlap: {overlap} bp`. If template
+    evaluation was performed, an `Amplicons: {count}` badge is also displayed.
+  - **Run PCR Button**: Directly simulates PCR with the candidate forward and
+    reverse primer pair against the template in the PCR view.
   - **Primer Details Container**: Displays read-only sequence fields for both
     primers alongside individual copy buttons and thermodynamic/composition
     badges:

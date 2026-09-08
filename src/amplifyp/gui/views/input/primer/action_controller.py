@@ -201,7 +201,7 @@ class PrimerActionController:
             page = self.owner.page
         except RuntimeError as e:
             logger.debug("Failed to get owner page: %s", e)
-        if page:
+        if isinstance(page, ft.Page):
 
             async def delayed_delete() -> None:
                 import asyncio

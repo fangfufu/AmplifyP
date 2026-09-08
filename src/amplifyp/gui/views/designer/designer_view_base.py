@@ -17,7 +17,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+import logging
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 import flet as ft
@@ -28,6 +30,8 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils import data_helpers
 from amplifyp.gui.utils.gui_helpers import NotificationHelper
+
+logger = logging.getLogger(__name__)
 
 
 class BaseDesignerView(ft.Row):  # type: ignore[misc]
@@ -172,6 +176,40 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    def _schedule_on_event_loop(
+        self, func: Callable[..., Coroutine[Any, Any, Any]], *args: Any
+    ) -> None:
+        """Schedule an async function on the Flet page event loop.
+
+        Marshals UI mutations made by background analysis threads onto the
+        loop that owns the controls. Prefers the page-owned loop via
+        ``page.run_task``. If the page cannot schedule tasks but a loop is
+        already running on the current thread, the task is created there.
+        When the page is detached and no loop exists, the callback is
+        discarded: UI mutations must never run on a worker thread or a
+        temporary event loop.
+
+        Args:
+            func: The async function to execute on the event loop.
+            *args: Positional arguments passed to ``func``.
+        """
+        page = self.app_page
+        if page:
+            try:
+                page.run_task(func, *args)
+                return
+            except (RuntimeError, TypeError, AttributeError):
+                pass
+        coro = func(*args)
+        try:
+            asyncio.get_running_loop().create_task(coro)
+        except RuntimeError:
+            coro.close()
+            logger.warning(
+                "Discarded %s: no page event loop available",
+                getattr(func, "__qualname__", repr(func)),
+            )
 
     def _bring_card_to_top_or_add(
         self, card_id: str, create_card_fn: Callable[[], ft.Card]

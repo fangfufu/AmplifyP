@@ -247,6 +247,48 @@ def test_primer_designer_2d_amplicon_filtering() -> None:
             rev_conf = Repliconf(template_dna, step.rev_rev.primer_1)
             amp_gen.add_repliconf(rev_conf)
         assert len(amp_gen.get_amplicons()) <= 1
+        assert step.amplicon_count is not None
+        assert step.amplicon_count <= 1
+
+
+def test_primer_designer_2d_template_unconstrained_amplicons() -> None:
+    """Test template DNA input with unconstrained amplicons."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("ACGTACGCAT")
+    template_dna = DNA("ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT")
+
+    designer = PrimerDesigner2D(
+        fwd_dna,
+        8,
+        rev_dna,
+        8,
+        template=template_dna,
+        max_amplicon_count=None,
+    )
+    assert designer.template == template_dna
+    assert designer.max_amplicon_count is None
+    assert len(designer.all_steps) == 9  # 3 fwd x 3 rev
+    for step in designer.all_steps:
+        assert step.amplicon_count is not None
+        assert isinstance(step.amplicon_count, int)
+        assert step.amplicon_count >= 1
+
+
+def test_primer_designer_2d_zero_amplicons_filtered() -> None:
+    """Test that candidate pairs generating 0 amplicons are excluded."""
+    fwd_dna = DNA("AAAAAAAAAA")
+    rev_dna = DNA("CCCCCCCCCC")
+    # Template has no binding sites for these primers
+    template_dna = DNA("GGGGGGGGGGGGGGGGGGGG")
+
+    designer = PrimerDesigner2D(
+        fwd_dna,
+        8,
+        rev_dna,
+        8,
+        template=template_dna,
+    )
+    assert len(designer.all_steps) == 0
 
 
 def test_primer_designer_2d_amplicon_invalid_inputs() -> None:
@@ -301,3 +343,36 @@ def test_primer_designer_2d_empty_and_mean_score() -> None:
     assert designer_mean.max_overlap == 6
     scores = designer_mean.quality_score(sorted=True)
     assert len(scores) > 0
+
+
+def test_primer_designer_2d_on_progress_callback() -> None:
+    """Test on_progress callback fires once per combination with
+    correct args."""
+    # 3 fwd lengths (10, 9, 8) x 2 rev lengths (10, 9) = 6 combinations
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    fwd_min, rev_min = 8, 9
+    expected_total = (len(fwd_dna.seq) - fwd_min + 1) * (
+        len(rev_dna.seq) - rev_min + 1
+    )
+
+    calls: list[tuple[int, int]] = []
+
+    def _cb(done: int, total: int) -> None:
+        calls.append((done, total))
+
+    PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=fwd_min,
+        rev_dna=rev_dna,
+        rev_min_length=rev_min,
+        on_progress=_cb,
+    )
+
+    # Exactly one call per combination.
+    assert len(calls) == expected_total
+    # total is consistent across all calls.
+    assert all(t == expected_total for _, t in calls)
+    # done values are strictly increasing from 1 to total.
+    done_values = [d for d, _ in calls]
+    assert done_values == list(range(1, expected_total + 1))

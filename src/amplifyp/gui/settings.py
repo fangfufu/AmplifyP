@@ -15,9 +15,9 @@
 
 """Centralised GUI settings and configuration."""
 
+from __future__ import annotations
+
 import logging
-import os
-import sys
 from collections.abc import ItemsView, Iterator, KeysView
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -26,6 +26,7 @@ import flet as ft
 import yaml
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.os_paths import get_settings_yaml_path
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -296,7 +297,7 @@ class GUISettings:
         except (ValueError, TypeError):
             return default
 
-    def get_replication_settings(self) -> "ReplicationSettings":
+    def get_replication_settings(self) -> ReplicationSettings:
         """Get ReplicationSettings from the central settings.
 
         Constructs a ReplicationSettings object using the current GUI
@@ -337,7 +338,7 @@ class GUISettings:
             base_pair_scores=base_pair_scores,
         )
 
-    def get_primer_dimer_settings(self) -> "PrimerDimerSettings":
+    def get_primer_dimer_settings(self) -> PrimerDimerSettings:
         """Get PrimerDimerSettings from the central settings.
 
         Constructs a PrimerDimerSettings object using the current GUI
@@ -375,7 +376,7 @@ class GUISettings:
             weights=weights,
         )
 
-    def get_tm_settings(self) -> "TMSettings":
+    def get_tm_settings(self) -> TMSettings:
         """Get TMSettings from the central settings.
 
         Constructs a TMSettings object using the current GUI settings
@@ -409,7 +410,7 @@ class GUISettings:
         )
         return self._cached_tm_settings
 
-    def calculate_primer_tm(self, primer: "Primer") -> float:
+    def calculate_primer_tm(self, primer: Primer) -> float:
         """Calculate the melting temperature of a primer based on settings.
 
         Uses the configured TM method (SantaLucia 1998 / Owczarzy 2008
@@ -506,32 +507,7 @@ class GUISettings:
             - Linux: $XDG_CONFIG_HOME/amplifyp/settings.yaml or
                 ~/.config/amplifyp/settings.yaml
         """
-        if sys.platform.startswith("win"):
-            appdata = os.environ.get("APPDATA")
-            if appdata:
-                return Path(appdata) / "AmplifyP" / "settings.yaml"
-            return (
-                Path(os.path.expanduser("~"))
-                / "AppData"
-                / "Roaming"
-                / "AmplifyP"
-                / "settings.yaml"
-            )
-        elif sys.platform.startswith("darwin"):
-            home = os.environ.get("HOME") or os.path.expanduser("~")
-            return (
-                Path(home)
-                / "Library"
-                / "Application Support"
-                / "AmplifyP"
-                / "settings.yaml"
-            )
-        else:
-            xdg_config = os.environ.get("XDG_CONFIG_HOME")
-            if xdg_config:
-                return Path(xdg_config) / "amplifyp" / "settings.yaml"
-            home = os.environ.get("HOME") or os.path.expanduser("~")
-            return Path(home) / ".config" / "amplifyp" / "settings.yaml"
+        return get_settings_yaml_path()
 
     def load_from_local(self, page: ft.Page) -> None:
         """Load settings from local storage.

@@ -47,11 +47,19 @@ truncation direction, length constraints, and dimer filtering parameters:
 - **Max Overlap (bp)**: Maximum overlap length constraint. Defaults to the
   minimum dimer overlap setting (e.g. `3`). Leave blank for unconstrained
   overlap filtering.
-- **Analyse Button**: Triggers validation and runs the 1D primer truncation
-  analysis. Can also be executed by pressing Enter inside any input field.
+- **Check against template**: Checkbox to enable checking candidate primers
+  against the template DNA sequence defined in the Input view.
+- **Max Binding Sites**: Maximum number of template binding sites (replication
+  origins) allowed for each candidate primer. Enabled when "Check against
+  template" is checked. Leave blank ("Unconstrained if empty") to evaluate and
+  display binding site counts without filtering out primers. When specified,
+  must be a positive integer greater than 0.
+- **Analyse Button**: Positioned in the bottom parameters row after Max Binding
+  Sites. Triggers validation and runs the 1D primer truncation analysis. Can
+  also be executed by pressing Enter inside any input field.
 - **Save / Load Parameters**:
-  - **Save Button**: Saves the current form parameters to a YAML file using a
-    file save dialog.
+  - **Save Button**: Saves the current form parameters (including sequence
+    filter and max binding sites) to a YAML file using a file save dialog.
   - **Load Button**: Opens a file picker dialog to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
@@ -62,11 +70,15 @@ The bottom-left panel displays all candidate primer lengths generated during
 truncation analysis in a vertical scrollable list:
 
 - **Primer Item Cards**: Each card represents a candidate primer step:
-  - **Length Header**: Displays primer length in base pairs (e.g. `20 bp`).
+  - **Length Header**: Displays primer length in base pairs (e.g. `20 nt`).
   - **Sequence Field**: Read-only monospace text field. Text is left-aligned for
     Forward direction primers and right-aligned for Reverse direction primers.
   - **Metrics Badges**: Displays highlighted badges for **Quality**
-    (`Quality: {score}`) and **Overlap** (`Overlap: {length} bp`).
+    (`Quality: {score}`), **Overlap** (`Overlap: {length} bp`), and optionally
+    **Binding Sites** (`Sites: {count}`) when "Check against template" is
+    enabled.
+  - **PCR Button**: A dedicated button on each card to run the PCR simulation
+    using the template DNA sequence and this candidate primer directly.
 - **Interactive Selection**: Clicking anywhere on a primer item card selects
   that primer step and opens or brings to top its detailed self-dimer card in
   the right-hand panel.
@@ -106,11 +118,14 @@ vertical scrollable list:
   - If a card for that specific primer step already exists in the list, it is
     automatically raised to the top of the stack.
 - **Card Contents**:
-  - **Card Header**: Displays title `Self-dimer ({length} bp)` alongside a
-    close/dismiss button.
+  - **Card Header**: Displays title `Self-dimer ({length} nt)` alongside a
+    close/dismiss button and a **Run PCR** button to simulate PCR using the
+    template with this primer.
   - **Thermodynamic & Base Composition Badges**:
     - **Quality Score**: `Quality: {score}`
     - **Overlap**: `Overlap: {overlap} bp`
+    - **Binding Sites**: `Sites: {count}` (if "Check against template" is
+      enabled)
     - **Melting Temperature ($T_m$)**: `Tm: {value}°C` calculated using
       configured thermodynamic settings.
     - **AT Pairs**: `AT Pairs: {count}`

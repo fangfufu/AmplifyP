@@ -246,6 +246,7 @@ def test_serialise_state_multiline() -> None:
     assert "line1" in yaml_out
 
 
+@pytest.mark.ci  # type: ignore[untyped-decorator]
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     """Test data helpers, UI widgets, file ops, and system lifecycle."""
@@ -668,6 +669,7 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     assert ctrl._confirm_dialog is not None
 
 
+@pytest.mark.ci  # type: ignore[untyped-decorator]
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_data_helpers_and_system_utilities_extra() -> None:
     """Test edge branches in data helpers and system lifecycle."""

@@ -166,6 +166,17 @@ class BorderedCheckbox(ft.Container):  # type: ignore[misc]
         else:
             self.checkbox.value = bool(val)
 
+    @property
+    def label(self) -> str | None:
+        """Get the label of the inner checkbox."""
+        val = self.checkbox.label
+        return str(val) if val is not None else None
+
+    @label.setter
+    def label(self, val: str | None) -> None:
+        """Set the label of the inner checkbox."""
+        self.checkbox.label = val
+
 
 async def focus_async(res: Any) -> None:
     """Await a coroutine returned from a focus call (e.g. control.focus())."""

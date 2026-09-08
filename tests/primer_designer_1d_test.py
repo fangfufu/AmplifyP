@@ -245,3 +245,26 @@ def test_primer_designer_1d_empty_best_quality_score() -> None:
     designer = PrimerDesigner1D(dna_obj, min_length=7, threshold=-999.0)
     with pytest.raises(RuntimeError, match="No analysis steps recorded"):
         _ = designer.best_score
+
+
+def test_primer_designer_1d_on_progress_callback() -> None:
+    """Test on_progress callback fires once per truncation step."""
+    # DNA length 10, min_length 7 => 4 steps (10, 9, 8, 7)
+    dna_obj = DNA("ATGCGTACGT")
+    min_length = 7
+    expected_total = len(dna_obj.seq) - min_length + 1
+
+    calls: list[tuple[int, int]] = []
+
+    def _cb(done: int, total: int) -> None:
+        calls.append((done, total))
+
+    PrimerDesigner1D(dna_obj, min_length=min_length, on_progress=_cb)
+
+    # Exactly one call per truncation step.
+    assert len(calls) == expected_total
+    # total is consistent across all calls.
+    assert all(t == expected_total for _, t in calls)
+    # done values are strictly increasing from 1 to total.
+    done_values = [d for d, _ in calls]
+    assert done_values == list(range(1, expected_total + 1))

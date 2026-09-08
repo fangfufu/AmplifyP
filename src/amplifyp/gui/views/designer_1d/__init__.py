@@ -17,5 +17,10 @@
 
 from .designer_1d_view import PrimerDesignerView
 from .dismissible_self_dimer_card import DismissibleSelfDimerCard
+from .primer_item_card import PrimerItemCard
 
-__all__ = ["DismissibleSelfDimerCard", "PrimerDesignerView"]
+__all__ = [
+    "DismissibleSelfDimerCard",
+    "PrimerDesignerView",
+    "PrimerItemCard",
+]

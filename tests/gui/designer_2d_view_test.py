@@ -34,6 +34,56 @@ from amplifyp.gui.views.designer_2d import (
 from amplifyp.primer_designer_2d import FilterMetric, PrimerDesigner2D
 
 
+def _assert_2d_form_defaults(view: Designer2DView) -> None:
+    """Assert every 2D designer form field is at its default value."""
+    assert view.form.fwd_dna_input.value == ""
+    assert view.form.fwd_length_display.value == "0"
+    assert view.form.fwd_min_len_input.value == ""
+    assert view.form.rev_dna_input.value == ""
+    assert view.form.rev_length_display.value == "0"
+    assert view.form.rev_min_len_input.value == ""
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
+    assert view.form.filter_dna_checkbox.value is False
+    assert view.form.max_amplicons_input.value == ""
+    assert view.form.max_amplicons_input.disabled is True
+
+
+def _sync_run_task(func: Any, *args: Any) -> None:
+    """Execute an event-loop task synchronously (unit-test page double).
+
+    The ProgressTracker animation flush loop is skipped: it only stops
+    when the analysis finishes, which cannot happen while it blocks the
+    test thread.
+    """
+    if getattr(func, "__name__", "") == "_flush_task":
+        return
+    asyncio.run(func(*args))
+
+
+def _run_2d_analysis() -> Designer2DView:
+    """Create a 2D view, fill the form, and run the designer synchronously."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGATGC"
+    view.form.rev_min_len_input.value = "8"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+    return view
+
+
 def test_designer_2d_view_initialisation() -> None:
     """Test initial UI setup of Designer2DView."""
     mock_page = MagicMock(spec=ft.Page)
@@ -48,14 +98,56 @@ def test_designer_2d_view_initialisation() -> None:
     assert view.left_v_divider is not None
     assert view.left_container.expand == 1
     assert view.right_container.expand == 1
-    assert view.form.fwd_dna_input.value == ""
-    assert view.form.fwd_min_len_input.value == ""
-    assert view.form.rev_dna_input.value == ""
-    assert view.form.rev_min_len_input.value == ""
-    assert view.form.max_quality_input.value == ""
-    assert view.form.max_overlap_input.value == ""
+    _assert_2d_form_defaults(view)
     assert view.form.clear_all_button is not None
     assert len(view.right_cards_list.controls) == 0
+
+
+def test_designer_2d_view_length_counter() -> None:
+    """Test dynamic length counter updating when typing DNA sequences."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+    assert view.form.fwd_length_display.value == "0"
+    assert view.form.rev_length_display.value == "0"
+
+    view.form.fwd_dna_input.value = "ATG CGT ACG T"
+    view.form._on_fwd_dna_change(MagicMock(spec=ft.ControlEvent))
+    assert view.form.fwd_length_display.value == "10"
+
+    view.form.rev_dna_input.value = "CGT ACG AT GC"
+    view.form._on_rev_dna_change(MagicMock(spec=ft.ControlEvent))
+    assert view.form.rev_length_display.value == "10"
+
+
+def test_designer_2d_view_reverse_complement_button() -> None:
+    """Test reverse complement button on reverse candidate primer input."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # Empty sequence click does nothing
+    view.form.rev_dna_input.value = ""
+    view.form._on_reverse_complement_click(None)
+    assert view.form.rev_dna_input.value == ""
+    assert view.form.rev_length_display.value == "0"
+
+    # Valid sequence is reverse complemented and updates length
+    view.form.rev_dna_input.value = "ATGC"
+    view.form.rev_length_display.value = "4"
+    view.form.rev_dna_input.error = "Error"
+    view.form._on_reverse_complement_click(None)
+    assert view.form.rev_dna_input.value == "GCAT"
+    assert view.form.rev_length_display.value == "4"
+    assert view.form.rev_dna_input.error is None
+
+    # Reverse complement again restores original
+    view.form._on_reverse_complement_click(None)
+    assert view.form.rev_dna_input.value == "ATGC"
 
 
 def test_designer_2d_form_validation_success() -> None:
@@ -78,6 +170,8 @@ def test_designer_2d_form_validation_success() -> None:
         threshold,
         max_overlap,
         filter_metric,
+        filter_dna_enabled,
+        max_amplicons,
     ) = form.validate_and_get_params()
 
     assert fwd_dna.seq_upper == "ATGCGTACGT"
@@ -87,6 +181,8 @@ def test_designer_2d_form_validation_success() -> None:
     assert threshold == 50.0
     assert max_overlap == 5
     assert filter_metric == FilterMetric.MAX
+    assert filter_dna_enabled is False
+    assert max_amplicons is None
 
 
 def test_designer_2d_form_validation_errors() -> None:
@@ -137,23 +233,40 @@ def test_designer_2d_form_validation_errors() -> None:
         form.validate_and_get_params()
     assert form.max_quality_input.error == "Must be >= 0"
 
+    # Invalid max_amplicons when filter_dna is enabled
+    form.max_quality_input.value = ""
+    form.filter_dna_checkbox.value = True
+    form.max_amplicons_input.value = "0"
+    with pytest.raises(ValueError, match="Input validation failed"):
+        form.validate_and_get_params()
+    assert form.max_amplicons_input.error == "Must be > 0"
+
+    form.max_amplicons_input.value = "-1"
+    with pytest.raises(ValueError, match="Input validation failed"):
+        form.validate_and_get_params()
+    assert form.max_amplicons_input.error == "Must be > 0"
+
+    form.max_amplicons_input.value = "invalid"
+    with pytest.raises(ValueError, match="Input validation failed"):
+        form.validate_and_get_params()
+    assert form.max_amplicons_input.error == "Must be > 0"
+
+    # Empty max_amplicons is valid (unconstrained)
+    form.max_amplicons_input.value = ""
+    res = form.validate_and_get_params()
+    assert res[7] is True  # filter_dna_enabled
+    assert res[8] is None  # max_amplicons
+
+    # Positive integer max_amplicons is valid
+    form.max_amplicons_input.value = "2"
+    res = form.validate_and_get_params()
+    assert res[7] is True
+    assert res[8] == 2
+
 
 def test_designer_2d_view_run_analysis_and_grid() -> None:
     """Test running 2D analysis populates grid and allows card creation."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    settings = GUISettings()
-
-    view = Designer2DView(mock_page, input_data, settings)
-    view.form.fwd_dna_input.value = "ATGCGTACGT"
-    view.form.fwd_min_len_input.value = "8"
-    view.form.rev_dna_input.value = "CGTACGATGC"
-    view.form.rev_min_len_input.value = "8"
-    view.form.max_quality_input.value = ""
-    view.form.max_overlap_input.value = ""
-
-    view._run_designer_event()
-
+    view = _run_2d_analysis()
     assert view._cached_designer is not None
     # 3 forward lengths (10, 9, 8) x 3 reverse lengths (10, 9, 8) = 9 steps
     assert len(view._cached_designer) == 9
@@ -222,19 +335,7 @@ def test_designer_2d_view_run_analysis_and_grid() -> None:
 
 def test_designer_2d_view_clear_all() -> None:
     """Test Clear All resets all 2D parameters, grid results, and cards."""
-    mock_page = MagicMock(spec=ft.Page)
-    input_data = GUIInput()
-    settings = GUISettings()
-
-    view = Designer2DView(mock_page, input_data, settings)
-    view.form.fwd_dna_input.value = "ATGCGTACGT"
-    view.form.fwd_min_len_input.value = "8"
-    view.form.rev_dna_input.value = "CGTACGATGC"
-    view.form.rev_min_len_input.value = "8"
-    view.form.max_quality_input.value = ""
-    view.form.max_overlap_input.value = ""
-
-    view._run_designer_event()
+    view = _run_2d_analysis()
     assert view._cached_designer is not None
     assert len(view.results_grid._cell_containers) == 9
 
@@ -243,15 +344,14 @@ def test_designer_2d_view_clear_all() -> None:
     view.results_grid._on_cell_click(step, (10, 10))
     assert len(view.right_cards_list.controls) == 1
 
+    view.form.filter_dna_checkbox.value = True
+    view.form.max_amplicons_input.disabled = False
+    view.form.max_amplicons_input.value = "3"
+
     # Clear all
     view._clear_all(None)
 
-    assert view.form.fwd_dna_input.value == ""
-    assert view.form.fwd_min_len_input.value == ""
-    assert view.form.rev_dna_input.value == ""
-    assert view.form.rev_min_len_input.value == ""
-    assert view.form.max_quality_input.value == ""
-    assert view.form.max_overlap_input.value == ""
+    _assert_2d_form_defaults(view)
     assert view._cached_designer is None
     assert len(view.results_grid._cell_containers) == 0
     assert len(view.right_cards_list.controls) == 0
@@ -422,6 +522,8 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     assert parsed["rev_min_length"] == "8"
     assert parsed["max_quality"] == ""
     assert parsed["max_overlap"] == ""
+    assert parsed["filter_dna"] is False
+    assert parsed["max_amplicons"] == ""
 
     # 2. Test Load
     # Reset form to different values
@@ -431,6 +533,9 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
     view.form.rev_min_len_input.value = "10"
     view.form.max_quality_input.value = "60.0"
     view.form.max_overlap_input.value = "3"
+    view.form.filter_dna_checkbox.value = True
+    view.form.max_amplicons_input.disabled = False
+    view.form.max_amplicons_input.value = "5"
 
     async def mock_pick_and_read_file(
         page: ft.Page,
@@ -448,11 +553,16 @@ def test_designer_2d_view_save_and_load_parameters() -> None:
 
     # Verify loaded values in the form
     assert view.form.fwd_dna_input.value == "ATGCGTACGT"
+    assert view.form.fwd_length_display.value == "10"
     assert view.form.fwd_min_len_input.value == "8"
     assert view.form.rev_dna_input.value == "CGTACGATGC"
+    assert view.form.rev_length_display.value == "10"
     assert view.form.rev_min_len_input.value == "8"
     assert view.form.max_quality_input.value == ""
     assert view.form.max_overlap_input.value == ""
+    assert view.form.filter_dna_checkbox.value is False
+    assert view.form.max_amplicons_input.value == ""
+    assert view.form.max_amplicons_input.disabled is True
 
     # Verify that the analysis automatically ran (populates _cached_designer)
     assert view._cached_designer is not None
@@ -471,6 +581,7 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     mock_page = MagicMock(spec=ft.Page)
     mock_page.width = 800.0
     mock_page.height = 600.0
+    mock_page.run_task = _sync_run_task
     input_data = GUIInput()
     settings = GUISettings()
 
@@ -568,12 +679,20 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         patch(
             "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
         ) as mock_err_dlg,
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+            side_effect=lambda target, daemon: MagicMock(start=target),
+        ),
     ):
         view._run_designer_event()
         mock_err_dlg.assert_called_once()
 
     # 5. Designer2DView UI updates & dismiss with RuntimeError
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
 
     with patch.object(mock_page, "update", side_effect=RuntimeError("Err")):
@@ -644,12 +763,21 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     ):
         copy_btn.on_click(MagicMock(page=mock_page))
 
+    # The copy-button section above rebinds run_task to a capturing mock
+    # (mock_run_task), which would create an un-awaited ProgressTracker
+    # flush coroutine on any later show_loading call. Reset to a no-op.
+    mock_page.run_task = MagicMock()
+
     # 9. Dismissible2DCard: settings change with page update and string boolean
     view.form.fwd_dna_input.value = "ATGCGTACGT"
     view.form.fwd_min_len_input.value = "8"
     view.form.rev_dna_input.value = "CGTACGATGC"
     view.form.rev_min_len_input.value = "8"
-    view._run_designer_event()
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
     assert view._cached_designer is not None
 
     step = view._cached_designer.all_steps[0]
@@ -693,6 +821,33 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         mock_diagonal_designer.all_steps = [step_8_8, step_9_9]
         grid.update_grid(mock_diagonal_designer)
 
+        # show_loading with a known total shows a ProgressBar at 0%
+        tracker = grid.progress_tracker
+        grid.show_loading(total=6)
+        assert tracker.bar is not None
+        assert tracker.bar.value == 0.0
+        assert tracker.label is not None
+        assert tracker.label.value == "0 / 6"
+
+        # show_loading with total=0 shows indeterminate bar
+        grid.show_loading(total=0)
+        assert tracker.bar is not None
+        assert tracker.bar.value is None  # indeterminate
+        assert tracker.label is not None
+        assert "Analysing" in (tracker.label.value or "")
+
+        # update_progress advances bar and label
+        grid.show_loading(total=6)
+        grid.update_progress(3, 6)
+        assert tracker.bar is not None
+        assert abs((tracker.bar.value or 0.0) - 0.5) < 0.01
+        assert tracker.label is not None
+        assert tracker.label.value == "3 / 6 (50%)"
+
+        # update_progress is a no-op when hidden
+        grid.clear_grid()
+        grid.update_progress(1, 6)  # should not raise
+
         # on_cell_click
         key = (len(step.fwd_fwd.primer_1.seq), len(step.rev_rev.primer_1.seq))
         grid._on_cell_click(step, key)
@@ -724,3 +879,189 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     ):
         res = asyncio.run(view._load_parameters_yaml("Test"))
         assert res is None
+
+
+def test_designer_2d_form_checkbox_toggle() -> None:
+    """Test toggling check against template checkbox enables/disables input."""
+    settings = GUISettings()
+    form = Designer2DForm(settings=settings, on_submit_callback=lambda: None)
+
+    assert form.check_template_checkbox is form.filter_dna_checkbox
+    assert form.check_dna_checkbox is form.filter_dna_checkbox
+    assert form.max_amplicon_input is form.max_amplicons_input
+
+    # Initially disabled
+    assert form.max_amplicons_input.disabled is True
+
+    # Toggle on
+    form.filter_dna_checkbox.value = True
+    form._on_filter_dna_change(MagicMock())
+    assert form.max_amplicons_input.disabled is False
+
+    # Set error, then toggle off
+    form.max_amplicons_input.error = "Error"
+    form.filter_dna_checkbox.value = False
+    form._on_filter_dna_change(MagicMock())
+    assert form.max_amplicons_input.disabled is True
+    assert form.max_amplicons_input.error is None
+
+
+def test_designer_2d_view_template_and_amplicons() -> None:
+    """Test template DNA evaluation and amplicon filtering in Designer2DView."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "ACGTACGCAT"
+    view.form.rev_min_len_input.value = "8"
+    view.form.max_quality_input.value = ""
+    view.form.max_overlap_input.value = ""
+    view.form.filter_dna_checkbox.value = True
+
+    # 1. Missing template -> shows form error
+    view._run_designer_event()
+    assert view.form.error_text.visible is True
+    assert "Template DNA sequence is required" in view.form.error_text.value
+    assert view._cached_designer is None
+
+    # 2. Provide template in input_data -> unconstrained amplicons
+    input_data.template = "ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT"
+    view.form.max_amplicons_input.value = ""
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+
+    assert view._cached_designer is not None
+    assert len(view._cached_designer.all_steps) == 9
+    for step in view._cached_designer.all_steps:
+        assert step.amplicon_count is not None
+        assert step.amplicon_count >= 1
+
+    # Select step and verify card displays Amplicons badge
+    first_step = view._cached_designer.all_steps[0]
+    view._on_grid_step_selected(first_step)
+    assert len(view._active_cards) == 1
+    card = cast(Dismissible2DCard, view._active_cards[0])
+    assert card.amplicon_count == first_step.amplicon_count
+
+    # 3. Constrained max_amplicons filter (e.g. max 1 amplicon)
+    view.form.max_amplicons_input.value = "1"
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+    assert view._cached_designer is not None
+    for step in view._cached_designer.all_steps:
+        assert step.amplicon_count is not None
+        assert step.amplicon_count <= 1
+
+
+def test_designer_2d_view_run_pcr_callback() -> None:
+    """Test Dismissible2DCard Run PCR button triggers PCR callback."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+    input_data = GUIInput()
+    settings = GUISettings()
+    pcr_mock = MagicMock()
+
+    view = Designer2DView(mock_page, input_data, settings, on_run_pcr=pcr_mock)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "ACGTACGCAT"
+    view.form.rev_min_len_input.value = "8"
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+    assert view._cached_designer is not None
+
+    step = view._cached_designer.all_steps[0]
+    view._on_grid_step_selected(step)
+    card = cast(Dismissible2DCard, view._active_cards[0])
+
+    assert hasattr(card, "pcr_button")
+    card.pcr_button.on_click(MagicMock())
+    pcr_mock.assert_called_once()
+    args = pcr_mock.call_args[0]
+    assert args[0] == step.fwd_fwd.primer_1.seq
+    assert args[2] == step.rev_rev.primer_1.seq
+
+
+def test_controller_run_pcr_with_primer_pair() -> None:
+    """Test GUIController run_pcr_with_primer_pair sets primers and runs PCR."""
+    from amplifyp.gui.controller import GUIController
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.overlay = []
+    mock_page.window = MagicMock()
+
+    with (
+        patch("amplifyp.gui.controller.UpdateManager"),
+        patch("amplifyp.gui.controller.NotificationHelper"),
+    ):
+        ctrl = GUIController(mock_page)
+
+    # 1. Missing template -> error dialog
+    ctrl.input_data.template = ""
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        ctrl.run_pcr_with_primer_pair("ATGCGTACGT", "Fwd", "CGTACGATGC", "Rev")
+        mock_err.assert_called_once()
+        assert "Template Required" in mock_err.call_args[0][1]
+
+    # 2. Valid template -> sets active primers and executes PCR
+    ctrl.input_data.template = "ATGCGTACGTTTTATGCGTACGTTTTATGCGTACGT"
+    ctrl.input_data.primers = [
+        {"name": "Old", "seq": "TTTTTTTTTT", "active": True}
+    ]
+    ctrl.pcr_view = MagicMock()
+    ctrl.pcr_view.run_pcr.return_value = True
+    ctrl._nav_manager = MagicMock()
+
+    ctrl.run_pcr_with_primer_pair("ATGCGTACGT", "Fwd 1", "CGTACGATGC", "Rev 1")
+    ctrl.pcr_view.run_pcr.assert_called_once()
+
+    active_primers = [p for p in ctrl.input_data.primers if p.get("active")]
+    assert len(active_primers) == 2
+    assert active_primers[0]["name"] == "Fwd 1"
+    assert active_primers[0]["seq"] == "ATGCGTACGT"
+    assert active_primers[1]["name"] == "Rev 1"
+    assert active_primers[1]["seq"] == "CGTACGATGC"
+
+
+def test_schedule_on_event_loop_fallbacks() -> None:
+    """Test _schedule_on_event_loop running-loop and detached-page paths."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task.side_effect = RuntimeError("detached")
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # Detached page + no running loop: callback discarded, not executed
+    # on a temporary worker-thread loop.
+    executed = False
+
+    async def _discarded() -> None:
+        nonlocal executed
+        executed = True
+
+    view._schedule_on_event_loop(_discarded)
+    assert executed is False
+
+    # Running loop on the current thread: task created on that loop.
+    async def _drive() -> None:
+        nonlocal executed
+        view._schedule_on_event_loop(_discarded)
+        await asyncio.sleep(0)
+        assert executed is True
+
+    asyncio.run(_drive())
