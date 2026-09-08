@@ -28,13 +28,22 @@ jobs:
         run: |
           prek run --all-files --show-diff-on-failure
       - name: Run unit tests
+        env:
+          COVERAGE_FILE: .coverage.basic
         run: |
-          pytest -v --cov=src/amplifyp --cov-report=xml
+          pytest -v --cov=src/amplifyp --cov-report=
+      - name: Run extra CI tests
+        env:
+          COVERAGE_FILE: .coverage.extra
+        run: |
+          pytest -v -m "ci" --cov=src/amplifyp --cov-report=
       - name: Run pyright analysis
         run: |
           pyright
       - name: Display coverage report
         run: |
+          coverage combine
+          coverage xml
           coverage report -m
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7

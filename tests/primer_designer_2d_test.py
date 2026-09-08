@@ -462,3 +462,66 @@ def test_primer_designer_2d_unset_cancel_event_runs_to_completion() -> None:
 
     assert designer.aborted is False
     assert len(designer) == expected_total
+
+
+def test_primer_designer_2d_on_progress_skipped_branches() -> None:
+    """Test progress callback invocations when steps are filtered out."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    progress_calls: list[tuple[int, int]] = []
+
+    def on_prog(done: int, total: int) -> None:
+        progress_calls.append((done, total))
+
+    # 1. amplicon_count < 1 with template that produces 0 amplicons
+    template = DNA("A" * 50)
+    designer_tpl = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        template=template,
+        on_progress=on_prog,
+    )
+    assert len(designer_tpl) == 0
+    assert len(progress_calls) == 1
+
+    # 2. threshold filter skip with progress callback
+    progress_calls.clear()
+    designer_thresh = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        threshold=-1.0,
+        on_progress=on_prog,
+    )
+    assert len(designer_thresh) == 0
+    assert len(progress_calls) == 1
+
+    # 3. max_overlap filter skip with progress callback
+    progress_calls.clear()
+    designer_overlap = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        max_overlap=-1,
+        on_progress=on_prog,
+    )
+    assert len(designer_overlap) == 0
+    assert len(progress_calls) == 1
+
+    # 4. max_amplicon_count filter skip with progress callback
+    progress_calls.clear()
+    designer_max_amp = PrimerDesigner2D(
+        fwd_dna=DNA("ATGCATGCATGC"),
+        fwd_min_length=12,
+        rev_dna=DNA("GCATGCATGCAT"),
+        rev_min_length=12,
+        template=DNA("ATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC"),
+        max_amplicon_count=0,
+        on_progress=on_prog,
+    )
+    assert len(designer_max_amp) == 0
+    assert len(progress_calls) == 1

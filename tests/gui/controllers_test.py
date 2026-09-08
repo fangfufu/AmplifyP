@@ -387,3 +387,99 @@ async def test_gui_controller_methods_and_delegations() -> None:
         controller._dismiss_clear(MagicMock())
         controller.clear_all(MagicMock())
         controller._on_keyboard_event(MagicMock())
+
+
+def test_gui_controller_run_pcr_methods() -> None:
+    """Test run_pcr_with_primer and run_pcr_with_primer_pair edge cases."""
+    page = MagicMock(spec=ft.Page)
+    controller = GUIController(page)
+    controller.pcr_view = MagicMock()
+    controller.designer_view = MagicMock()
+    controller.designer_2d_view = MagicMock()
+    controller._nav_manager = MagicMock()
+
+    # 1. run_pcr_with_primer without template
+    controller.input_data.template = ""
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        controller.run_pcr_with_primer("ATGC", "Primer1")
+        mock_err.assert_called_once_with(
+            page,
+            "Template Required",
+            "Please enter a DNA template in the Input view before running PCR.",
+        )
+
+    # 2. run_pcr_with_primer with invalid primer sequence (no valid nucleotides)
+    controller.input_data.template = "ATGCGATCGATC"
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        controller.run_pcr_with_primer("   ", "PrimerInvalid")
+        mock_err.assert_called_once_with(
+            page,
+            "Invalid Primer",
+            "The primer sequence contains no valid nucleotides.",
+        )
+
+    # 3. run_pcr_with_primer matching existing primer in list and pcr_view fails
+    controller.input_data.primers = [
+        {"name": "OldName", "seq": "ATGC", "active": False},
+        {"name": "Other", "seq": "GGCC", "active": True},
+    ]
+    controller.pcr_view.run_pcr.return_value = False
+    controller.run_pcr_with_primer("ATGC", "NewName")
+    assert controller.input_data.primers[0]["name"] == "NewName"
+    assert controller.input_data.primers[0]["active"] is True
+    assert controller.input_data.primers[1]["active"] is False
+    controller._nav_manager.switch_view.assert_called_with(
+        None, controller.designer_view
+    )
+
+    # 4. run_pcr_with_primer_pair without template
+    controller.input_data.template = ""
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        controller.run_pcr_with_primer_pair("ATGC", "Fwd", "CGTA", "Rev")
+        mock_err.assert_called_once_with(
+            page,
+            "Template Required",
+            "Please enter a DNA template in the Input view before running PCR.",
+        )
+
+    # 5. run_pcr_with_primer_pair with invalid fwd or rev
+    controller.input_data.template = "ATGCGATCGATC"
+    with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
+        controller.run_pcr_with_primer_pair("   ", "Fwd", "CGTA", "Rev")
+        mock_err.assert_called_once_with(
+            page,
+            "Invalid Primers",
+            "The primer sequences must contain valid nucleotides.",
+        )
+
+    # 6. run_pcr_with_primer_pair matching existing primers and pcr_view fails
+    controller.input_data.primers = [
+        {"name": "FwdOld", "seq": "AAAA", "active": False},
+        {"name": "RevOld", "seq": "TTTT", "active": False},
+    ]
+    controller.pcr_view.run_pcr.return_value = False
+    controller.run_pcr_with_primer_pair("AAAA", "FwdNew", "TTTT", "RevNew")
+    assert controller.input_data.primers[0]["name"] == "FwdNew"
+    assert controller.input_data.primers[0]["active"] is True
+    assert controller.input_data.primers[1]["name"] == "RevNew"
+    assert controller.input_data.primers[1]["active"] is True
+    controller._nav_manager.switch_view.assert_called_with(
+        None, controller.designer_2d_view
+    )
+
+    # 7. run_pcr_with_primer not matching existing and pcr_view succeeds
+    controller.input_data.primers = []
+    controller.pcr_view.run_pcr.return_value = True
+    controller.run_pcr_with_primer("CCGG", "NewPrimer")
+    assert len(controller.input_data.primers) == 1
+    assert controller.input_data.primers[0]["name"] == "NewPrimer"
+    assert controller.input_data.primers[0]["seq"] == "CCGG"
+    assert controller.input_data.primers[0]["active"] is True
+
+    # 8. run_pcr_with_primer_pair not matching existing and pcr succeeds
+    controller.input_data.primers = []
+    controller.pcr_view.run_pcr.return_value = True
+    controller.run_pcr_with_primer_pair("ACGT", "FwdPair", "TGCA", "RevPair")
+    assert len(controller.input_data.primers) == 2
+    assert controller.input_data.primers[0]["name"] == "FwdPair"
+    assert controller.input_data.primers[1]["name"] == "RevPair"
