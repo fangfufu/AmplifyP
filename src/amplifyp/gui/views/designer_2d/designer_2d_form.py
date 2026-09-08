@@ -23,6 +23,7 @@ from typing import Any
 import flet as ft
 
 from amplifyp.dna import DNA, DNADirection
+from amplifyp.errors import InvalidDNASequenceError
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
@@ -227,7 +228,18 @@ class Designer2DForm(BaseDesignerForm):
         cleaned = clean_sequence(seq_str)
         if not cleaned:
             return
-        rev_comp_seq = DNA(cleaned).reverse_complement().seq
+        try:
+            rev_comp_seq = DNA(cleaned).reverse_complement().seq
+        except InvalidDNASequenceError:
+            self.rev_dna_input.error = (
+                "Invalid DNA sequence: only A, T, C, G (and N) are allowed"
+            )
+            try:
+                if self.page:
+                    self.page.update()
+            except RuntimeError:
+                pass
+            return
         self.rev_dna_input.value = rev_comp_seq
         self.rev_length_display.value = str(len(rev_comp_seq))
         self.rev_dna_input.error = None
