@@ -237,8 +237,8 @@ def _get_valid_level(level_str: str) -> int:
     Returns:
         The logging level constant.
     """
-    level: int | None = getattr(logging, level_str.upper(), None)
-    if level is not None and isinstance(level, int):
+    level = getattr(logging, level_str.upper(), None)
+    if isinstance(level, int):
         return level
     return logging.INFO
 
