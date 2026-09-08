@@ -1322,6 +1322,10 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     view.primer_input.focused_primer_index = None
     act.header_add_click(None)
 
+    # Template input sync dark mode non-system branch
+    settings["dark_mode"] = "true"
+    view.template_input._sync_dark_mode()
+
     # 20. primer/row.py _on_blur exception paths
     row_blur_test = _make_primer_row(0, "BlurTest", "ATGC", settings)
 
@@ -1361,3 +1365,92 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
         row_blur_test._on_blur(
             MagicMock(control=row_blur_test.seq_field, page=mock_page)
         )
+
+    # 21. primer/row.py _on_field_blur_scroll_into_view fallbacks
+    row_fallback = _make_primer_row(0, "FallbackTest", "ATGC", settings)
+    a_coros: list[Any] = []
+
+    def make_a_coro(offset: int = 0) -> Any:
+        async def _ac() -> None:
+            pass
+
+        co = _ac()
+        a_coros.append(co)
+        return co
+
+    row_fallback.name_scroll.scroll_to = MagicMock(side_effect=make_a_coro)
+
+    # Path A: page.run_task raises RuntimeError, falls back to running loop
+    mock_failing_page = MagicMock(spec=ft.Page)
+    mock_failing_page.run_task = MagicMock(
+        side_effect=RuntimeError("run_task failed")
+    )
+    with patch.object(
+        ft.Control, "page", new=property(lambda self: mock_failing_page)
+    ):
+        row_fallback._on_blur(
+            MagicMock(control=row_fallback.name_field, page=mock_failing_page)
+        )
+    await asyncio.sleep(0)
+
+
+def test_primer_row_blur_no_running_loop_fallbacks() -> None:
+    """Test primer row blur fallbacks when no event loop is running."""
+    _, _, _, settings = _setup_test_view()
+    mock_failing_page = MagicMock(spec=ft.Page)
+    mock_failing_page.run_task = MagicMock(
+        side_effect=RuntimeError("run_task failed")
+    )
+
+    # Path B: no running loop, new_event_loop runs _do_scroll to completion
+    scroll_called = False
+
+    async def make_b_coro(offset: int = 0) -> None:
+        nonlocal scroll_called
+        scroll_called = True
+
+    row_fallback_b = _make_primer_row(0, "FallbackTestB", "ATGC", settings)
+    row_fallback_b.name_scroll.scroll_to = MagicMock(side_effect=make_b_coro)
+    with patch.object(
+        ft.Control, "page", new=property(lambda self: mock_failing_page)
+    ):
+        row_fallback_b._on_blur(
+            MagicMock(control=row_fallback_b.name_field, page=mock_failing_page)
+        )
+    assert scroll_called
+
+    # Path C: new_event_loop.run_until_complete raises RuntimeError
+    coros_to_close: list[Any] = []
+
+    def make_coro(offset: int = 0) -> Any:
+        async def _c() -> None:
+            pass
+
+        co = _c()
+        coros_to_close.append(co)
+        return co
+
+    row_fallback_c = _make_primer_row(0, "FallbackTestC", "ATGC", settings)
+    row_fallback_c.name_scroll.scroll_to = MagicMock(side_effect=make_coro)
+    mock_loop = MagicMock()
+
+    def fail_loop(coro: Any) -> None:
+        coro.close()
+        for c in coros_to_close:
+            c.close()
+        raise RuntimeError("loop error")
+
+    mock_loop.run_until_complete.side_effect = fail_loop
+    with (
+        patch.object(
+            ft.Control, "page", new=property(lambda self: mock_failing_page)
+        ),
+        patch(
+            "amplifyp.gui.views.input.primer.row.asyncio.new_event_loop",
+            return_value=mock_loop,
+        ),
+    ):
+        row_fallback_c._on_blur(
+            MagicMock(control=row_fallback_c.name_field, page=mock_failing_page)
+        )
+        mock_loop.close.assert_called_once()

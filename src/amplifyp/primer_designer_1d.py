@@ -24,6 +24,7 @@ from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
 
 if TYPE_CHECKING:
+    import threading
     from collections.abc import Callable, Iterator
 
 DEFAULT_PRIMER_DIMER_GENERATOR = PrimerDimerGenerator()
@@ -42,6 +43,8 @@ class PrimerDesigner1D:
     """
 
     __slots__ = (
+        "_aborted",
+        "_cancel_event",
         "_dimers",
         "_dna",
         "_generator",
@@ -65,6 +68,7 @@ class PrimerDesigner1D:
         template: DNA | None = None,
         max_origin_count: int | None = None,
         on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
@@ -88,8 +92,13 @@ class PrimerDesigner1D:
                 replication origins filter. Defaults to None.
             on_progress (Callable[[int, int], None] | None, optional): Optional
                 callback invoked after each truncation step is processed.
-                Receives ``(done, total)`` where *done* counts completed steps
-                and *total* is the number of truncations. Defaults to None.
+                 Receives ``(done, total)`` where *done* counts completed
+                 steps and *total* is the number of truncations. Defaults to
+                 None.
+            cancel_event (threading.Event | None, optional): Optional event
+                used to abort the analysis. When set, the analysis stops
+                after the current truncation step and the primers analysed
+                so far are retained. Defaults to None.
 
         Raises:
             ValueError: If minimum length is non-positive or greater than
@@ -116,6 +125,8 @@ class PrimerDesigner1D:
         self._template: DNA | None = template
         self._max_origin_count: int | None = max_origin_count
         self._on_progress: Callable[[int, int], None] | None = on_progress
+        self._cancel_event: threading.Event | None = cancel_event
+        self._aborted: bool = False
         self._dimers: list[PrimerDimer] = []
 
         self._analyse()
@@ -159,6 +170,11 @@ class PrimerDesigner1D:
     def max_origin_count(self) -> int | None:
         """The maximum replication origin count cutoff filter, if set."""
         return self._max_origin_count
+
+    @property
+    def aborted(self) -> bool:
+        """Whether the analysis was stopped before completion."""
+        return self._aborted
 
     @property
     def all_dimers(self) -> tuple[PrimerDimer, ...]:
@@ -264,6 +280,9 @@ class PrimerDesigner1D:
         done = 0
 
         for current_seq in truncated_seqs:
+            if self._cancel_event is not None and self._cancel_event.is_set():
+                self._aborted = True
+                break
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
             origin_count: int | None = None

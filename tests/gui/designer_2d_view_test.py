@@ -16,6 +16,7 @@
 """Tests for 2D Primer Designer View GUI components."""
 
 import asyncio
+import threading
 from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -1065,3 +1066,190 @@ def test_schedule_on_event_loop_fallbacks() -> None:
         assert executed is True
 
     asyncio.run(_drive())
+
+
+def test_designer_2d_analyse_button_toggles_to_abort() -> None:
+    """Test Analyse button becomes Abort during a run and restores after."""
+    mock_page = MagicMock(spec=ft.Page)
+    view = Designer2DView(mock_page, GUIInput(), GUISettings())
+
+    # Simulate an in-flight analysis
+    view._analysis_running = True
+    view._cancel_event = threading.Event()
+    view._set_button_abort_mode(True)
+    button = view.form.analyse_button
+    assert button.content == "Abort"
+    assert button.icon == ft.Icons.STOP
+    assert button.disabled is False
+
+    # Click while running routes to abort, not a new run
+    view._run_designer_event()
+    assert view._cancel_event is not None
+    assert view._cancel_event.is_set()
+
+    # Finishing the run restores the button
+    view._analysis_running = False
+    asyncio.run(view._on_analysis_finished())
+    assert button.content == "Analyse"
+    assert button.icon == ft.Icons.PLAY_ARROW
+    assert view._cancel_event is None
+    assert view._analysis_running is False
+
+
+def test_designer_2d_abort_returns_partial_results() -> None:
+    """Test aborting mid-run keeps steps analysed so far."""
+    from amplifyp.primer_designer_2d import PrimerDesigner2D as RealDesigner
+
+    mock_page = MagicMock(spec=ft.Page)
+    view = Designer2DView(mock_page, GUIInput(), GUISettings())
+    # 3 fwd lengths (10, 9, 8) x 2 rev lengths (10, 9) = 6 combinations
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "CGTACGTACG"
+    view.form.rev_min_len_input.value = "9"
+
+    def factory(**kwargs: Any) -> Any:
+        cancel = kwargs.get("cancel_event")
+        orig_progress = kwargs.get("on_progress")
+
+        def progress(done: int, total: int) -> None:
+            if cancel is not None:
+                cancel.set()
+            if orig_progress is not None:
+                orig_progress(done, total)
+
+        kwargs["on_progress"] = progress
+        return RealDesigner(**kwargs)
+
+    with (
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.PrimerDesigner2D",
+            side_effect=factory,
+        ),
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: target()}
+            )(),
+        ),
+        patch.object(
+            view,
+            "_schedule_on_event_loop",
+            side_effect=lambda func, *args: asyncio.run(func(*args)),
+        ),
+    ):
+        view._run_designer_event()
+
+    # Analysis aborted after the first combination; partial step retained.
+    assert view._cached_designer is not None
+    assert view._cached_designer.aborted is True
+    assert len(view._cached_designer.all_steps) == 1
+
+    # Button restored to Analyse mode after the aborted run.
+    assert view.form.analyse_button.content == "Analyse"
+    assert view.form.analyse_button.icon == ft.Icons.PLAY_ARROW
+    assert view._analysis_running is False
+    assert view._cancel_event is None
+
+
+def test_designer_form_base_build_filter_row_with_button() -> None:
+    """Test _build_filter_row with include_analyse_button."""
+    settings = GUISettings()
+    form = Designer2DForm(settings, on_submit_callback=lambda: None)
+    row = form._build_filter_row(
+        extra_controls=[ft.Text("Extra")], include_analyse_button=True
+    )
+    assert len(row.controls) == 4
+
+
+def test_designer_2d_properties_and_branches() -> None:
+    """Test 2D designer edge cases and update exception handling."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # 1. _run_designer_event with missing template and update RuntimeError
+    mock_page.update.side_effect = RuntimeError("update failed")
+    view.form.fwd_dna_input.value = "ATGCATGCATGC"
+    view.form.fwd_min_len_input.value = "10"
+    view.form.rev_dna_input.value = "CGTACGTACGTA"
+    view.form.rev_min_len_input.value = "10"
+    view.form.filter_dna_checkbox.value = True
+    view.input_data.template = ""
+    view._run_designer_event()
+    assert "Template DNA sequence is required" in (
+        view.form.error_text.value or ""
+    )
+
+    # 2. _run_designer_event with template and update error on abort setup
+    view.input_data.template = "ATGCATGCATGCATGCATGC"
+    with (
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.PrimerDesigner2D"
+        ),
+        patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: None}
+            )(),
+        ),
+    ):
+        view._run_designer_event()
+        assert view._analysis_running is True
+    view._analysis_running = False
+
+    # 3. _on_analysis_finished catches RuntimeError
+    asyncio.run(view._on_analysis_finished())
+    assert view.form.analyse_button.disabled is False
+
+    # 3b. _on_analysis_finished with stale cancel_event returns early
+    current_event = threading.Event()
+    stale_event = threading.Event()
+    view._cancel_event = current_event
+    view._set_button_abort_mode(True)
+    asyncio.run(view._on_analysis_finished(stale_event))
+    assert view._cancel_event is current_event
+    assert view.form.analyse_button.content == "Abort"
+    # Call with matching cancel_event restores button and clears cancel event
+    asyncio.run(view._on_analysis_finished(current_event))
+    assert view._cancel_event is None
+    assert view.form.analyse_button.content == "Analyse"
+
+    # 4. _handle_run_pcr with no on_run_pcr and missing template
+    view.on_run_pcr = None
+    view.input_data.template = ""
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
+    ) as mock_err:
+        view._handle_run_pcr("ATGC", "Fwd", "CGTA", "Rev")
+        mock_err.assert_called_once()
+
+    # 5. Designer2DForm filter_dna_checkbox change updates page
+    form = view.form
+    with patch.object(type(form), "page", new=property(lambda s: mock_page)):
+        mock_page.update.reset_mock()
+        mock_page.update.side_effect = None
+        form.filter_dna_checkbox.value = False
+        form._on_filter_dna_change(MagicMock())
+        mock_page.update.assert_called()
+
+        # 6. Designer2DForm _on_reverse_complement_click on invalid DNA
+        from amplifyp.errors import InvalidDNASequenceError
+
+        form.rev_dna_input.value = "ATGC"
+        with patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_form.DNA",
+            side_effect=InvalidDNASequenceError(["X"]),
+        ):
+            mock_page.update.side_effect = RuntimeError("update error")
+            form._on_reverse_complement_click(None)
+            assert "Invalid DNA sequence" in (form.rev_dna_input.error or "")
+
+        # 7. Designer2DForm _on_reverse_complement_click success updates page
+        mock_page.update.side_effect = None
+        form.rev_dna_input.value = "ATGC"
+        form._on_reverse_complement_click(None)
+        assert form.rev_dna_input.value == "GCAT"
+        assert form.rev_dna_input.error is None
+        mock_page.update.assert_called()

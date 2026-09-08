@@ -17,6 +17,8 @@
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from amplifyp.dimer import PrimerDimer
@@ -376,3 +378,150 @@ def test_primer_designer_2d_on_progress_callback() -> None:
     # done values are strictly increasing from 1 to total.
     done_values = [d for d, _ in calls]
     assert done_values == list(range(1, expected_total + 1))
+
+
+def test_primer_designer_2d_no_cancel_event_not_aborted() -> None:
+    """Test aborted is False when no cancel event is provided."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    designer = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=8,
+        rev_dna=rev_dna,
+        rev_min_length=9,
+    )
+    assert designer.aborted is False
+
+
+def test_primer_designer_2d_cancel_event_aborts_early() -> None:
+    """Test cancel event stops analysis and retains partial results."""
+    # 3 fwd lengths (10, 9, 8) x 2 rev lengths (10, 9) = 6 combinations
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    fwd_min, rev_min = 8, 9
+    expected_total = (len(fwd_dna.seq) - fwd_min + 1) * (
+        len(rev_dna.seq) - rev_min + 1
+    )
+    cancel = threading.Event()
+
+    def _cb(done: int, total: int) -> None:
+        if done == 3:
+            cancel.set()
+
+    designer = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=fwd_min,
+        rev_dna=rev_dna,
+        rev_min_length=rev_min,
+        on_progress=_cb,
+        cancel_event=cancel,
+    )
+
+    # Analysis stopped after the combination that triggered the cancel.
+    assert designer.aborted is True
+    assert len(designer) == 3
+    assert len(designer) < expected_total
+
+
+def test_primer_designer_2d_cancel_event_pre_set() -> None:
+    """Test a pre-set cancel event aborts before any step completes."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    cancel = threading.Event()
+    cancel.set()
+
+    designer = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=8,
+        rev_dna=rev_dna,
+        rev_min_length=9,
+        cancel_event=cancel,
+    )
+
+    assert designer.aborted is True
+    assert len(designer) == 0
+
+
+def test_primer_designer_2d_unset_cancel_event_runs_to_completion() -> None:
+    """Test an unset cancel event does not affect full analysis."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    fwd_min, rev_min = 8, 9
+    expected_total = (len(fwd_dna.seq) - fwd_min + 1) * (
+        len(rev_dna.seq) - rev_min + 1
+    )
+    cancel = threading.Event()
+
+    designer = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=fwd_min,
+        rev_dna=rev_dna,
+        rev_min_length=rev_min,
+        cancel_event=cancel,
+    )
+
+    assert designer.aborted is False
+    assert len(designer) == expected_total
+
+
+def test_primer_designer_2d_on_progress_skipped_branches() -> None:
+    """Test progress callback invocations when steps are filtered out."""
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    progress_calls: list[tuple[int, int]] = []
+
+    def on_prog(done: int, total: int) -> None:
+        progress_calls.append((done, total))
+
+    # 1. amplicon_count < 1 with template that produces 0 amplicons
+    template = DNA("A" * 50)
+    designer_tpl = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        template=template,
+        on_progress=on_prog,
+    )
+    assert len(designer_tpl) == 0
+    assert len(progress_calls) == 1
+
+    # 2. threshold filter skip with progress callback
+    progress_calls.clear()
+    designer_thresh = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        threshold=-1.0,
+        on_progress=on_prog,
+    )
+    assert len(designer_thresh) == 0
+    assert len(progress_calls) == 1
+
+    # 3. max_overlap filter skip with progress callback
+    progress_calls.clear()
+    designer_overlap = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=10,
+        rev_dna=rev_dna,
+        rev_min_length=10,
+        max_overlap=-1,
+        on_progress=on_prog,
+    )
+    assert len(designer_overlap) == 0
+    assert len(progress_calls) == 1
+
+    # 4. max_amplicon_count filter skip with progress callback
+    progress_calls.clear()
+    designer_max_amp = PrimerDesigner2D(
+        fwd_dna=DNA("ATGCATGCATGC"),
+        fwd_min_length=12,
+        rev_dna=DNA("GCATGCATGCAT"),
+        rev_min_length=12,
+        template=DNA("ATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC"),
+        max_amplicon_count=0,
+        on_progress=on_prog,
+    )
+    assert len(designer_max_amp) == 0
+    assert len(progress_calls) == 1

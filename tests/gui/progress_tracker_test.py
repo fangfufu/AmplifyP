@@ -238,3 +238,21 @@ def test_flush_task_exits_immediately_when_pre_stopped() -> None:
         asyncio.run(tracker._flush_task(stop))
 
     assert page.update.call_count == 0
+
+
+def test_show_handles_run_task_exception() -> None:
+    """Test show() gracefully handles exceptions when page.run_task fails."""
+    page = MagicMock(spec=ft.Page)
+    page.run_task.side_effect = RuntimeError("Could not schedule task")
+    tracker = _make_tracker(page)
+
+    with patch(
+        "amplifyp.gui.views.designer.progress_tracker.logger.debug"
+    ) as mock_debug:
+        body = tracker.show(total=5)
+        assert body is not None
+        mock_debug.assert_called_once()
+        assert (
+            "Could not schedule progress flush task"
+            in mock_debug.call_args[0][0]
+        )

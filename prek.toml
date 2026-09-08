@@ -3,7 +3,7 @@
 #:schema https://www.schemastore.org/prek.json
 
 ci = {
-    skip = ["pytest"],
+    skip = ["pytest", "pyright"],
     autofix_commit_msg = """
 [pre-commit.ci] auto fixes from pre-commit.com hooks
 
@@ -84,6 +84,13 @@ hooks = [
 [[repos]]
 repo = "local"
 hooks = [
+  {
+    id = "pyright",
+    name = "pyright",
+    entry = "pyright",
+    language = "system",
+    pass_filenames = false
+  },
   {
     id = "pytest",
     name = "pytest",

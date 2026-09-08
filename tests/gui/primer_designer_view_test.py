@@ -16,6 +16,7 @@
 """Tests for 1D Primer Designer View."""
 
 import asyncio
+import threading
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -866,3 +867,264 @@ def test_controller_run_pcr_with_primer() -> None:
     with patch("amplifyp.gui.utils.gui_helpers.show_error_dialog") as mock_err:
         controller.run_pcr_with_primer("ATGCGTACGT", "1D Candidate (10 nt)")
         mock_err.assert_called_once()
+
+
+def test_designer_1d_analyse_button_toggles_to_abort() -> None:
+    """Test Analyse button becomes Abort during a run and restores after."""
+    mock_page = MagicMock(spec=ft.Page)
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+
+    # Simulate an in-flight analysis
+    view._analysis_running = True
+    view._cancel_event = threading.Event()
+    view._set_button_abort_mode(True)
+    button = view.form.analyse_button
+    assert button.content == "Abort"
+    assert button.icon == ft.Icons.STOP
+    assert button.disabled is False
+
+    # Click while running routes to abort, not a new run
+    view._run_designer_event(None)
+    assert view._cancel_event is not None
+    assert view._cancel_event.is_set()
+
+    # Finishing the run restores the button
+    view._analysis_running = False
+    asyncio.run(view._on_analysis_finished())
+    assert button.content == "Analyse"
+    assert button.icon == ft.Icons.PLAY_ARROW
+    assert view._cancel_event is None
+    assert view._analysis_running is False
+
+
+def test_designer_1d_abort_returns_partial_results() -> None:
+    """Test aborting mid-run keeps primers analysed so far."""
+    from amplifyp.primer_designer_1d import PrimerDesigner1D as RealDesigner
+
+    mock_page = MagicMock(spec=ft.Page)
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    # DNA length 10, min length 7 => 4 truncation steps
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "7"
+
+    def factory(**kwargs: Any) -> Any:
+        cancel = kwargs.get("cancel_event")
+        orig_progress = kwargs.get("on_progress")
+
+        def progress(done: int, total: int) -> None:
+            if cancel is not None:
+                cancel.set()
+            if orig_progress is not None:
+                orig_progress(done, total)
+
+        kwargs["on_progress"] = progress
+        return RealDesigner(**kwargs)
+
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=factory,
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: target()}
+            )(),
+        ),
+        patch.object(
+            view,
+            "_schedule_on_event_loop",
+            side_effect=lambda func, *args: asyncio.run(func(*args)),
+        ),
+    ):
+        view._start_designer()
+
+    # Analysis aborted after the first step; partial dimer retained.
+    assert view._cached_designer is not None
+    assert view._cached_designer.aborted is True
+    assert len(view._cached_designer.all_dimers) == 1
+    assert len(view.primer_list.controls) == 1
+
+    # Button restored to Analyse mode after the aborted run.
+    assert view.form.analyse_button.content == "Analyse"
+    assert view.form.analyse_button.icon == ft.Icons.PLAY_ARROW
+    assert view._analysis_running is False
+    assert view._cancel_event is None
+
+
+def test_designer_1d_properties_and_branches() -> None:
+    """Test 1D designer properties, error handling, and update edge cases."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+    view = PrimerDesignerView(mock_page, input_data, settings)
+
+    # 1. analyse_button property
+    assert view.analyse_button == view.form.analyse_button
+
+    # 2. _run_designer_event when not running calls _start_designer
+    with patch.object(view, "_start_designer") as mock_start:
+        view._analysis_running = False
+        view._run_designer_event(MagicMock())
+        mock_start.assert_called_once()
+
+    # 3. show_loading catches RuntimeError when app_page.update() fails
+    mock_page.update.side_effect = RuntimeError("update error")
+    view.show_loading(total=5)
+
+    # 4. _on_analysis_finished catches RuntimeError
+    asyncio.run(view._on_analysis_finished())
+    assert view.form.analyse_button.disabled is False
+
+    # 4b. _on_analysis_finished with stale cancel_event returns early
+    current_event = threading.Event()
+    stale_event = threading.Event()
+    view._cancel_event = current_event
+    view._set_button_abort_mode(True)
+    asyncio.run(view._on_analysis_finished(stale_event))
+    assert view._cancel_event is current_event
+    assert view.form.analyse_button.content == "Abort"
+    # Call with matching cancel_event restores button and clears cancel event
+    asyncio.run(view._on_analysis_finished(current_event))
+    assert view._cancel_event is None
+    assert view.form.analyse_button.content == "Analyse"
+
+    # 5. _start_designer re-entry guard
+    view._analysis_running = True
+    with patch.object(view.form, "validate_and_get_params") as mock_params:
+        view._start_designer()
+        mock_params.assert_not_called()
+    view._analysis_running = False
+
+    # 6. _start_designer with invalid params
+    with patch.object(view.form, "validate_and_get_params", return_value=None):
+        with patch.object(view, "show_loading") as mock_loading:
+            view._start_designer()
+            mock_loading.assert_not_called()
+
+    # 7. _start_designer with template filtering enabled but missing template
+    mock_page.update.side_effect = RuntimeError("update error")
+    view.form.dna_input.value = "ATGCATGCATGC"
+    view.form.min_len_input.value = "10"
+    view.form.filter_dna_checkbox.value = True
+    view.input_data.template = ""
+    view._start_designer()
+    assert "Template DNA sequence is required" in (
+        view.form.error_text.value or ""
+    )
+
+    # 8. _start_designer with template filtering (circular and linear template)
+    mock_page.update.side_effect = RuntimeError("update error")
+    view.input_data.template = "ATGCATGCATGCATGC"
+    view.input_data.template_circular = True
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D"
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: None}
+            )(),
+        ),
+    ):
+        view._start_designer()
+        assert view._analysis_running is True
+    view._analysis_running = False
+
+    # 9. _on_analysis_error displays error in form and dialog, and restores list
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_dialog,
+        patch.object(view, "_restore_primer_list") as mock_restore,
+    ):
+        asyncio.run(
+            view._on_analysis_error(ValueError("Invalid run"), "Traceback info")
+        )
+        assert "Error: Invalid run" in (view.form.error_text.value or "")
+        mock_dialog.assert_called_once()
+        mock_restore.assert_called_once()
+
+    # 10. clear_all catches RuntimeError on update
+    mock_page.update.side_effect = RuntimeError("clear_all update error")
+    view._clear_all()
+
+    # 11. _handle_run_pcr without callback when template is missing
+    view.on_run_pcr = None
+    view.input_data.template = ""
+    with patch(
+        "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+    ) as mock_dialog:
+        view._handle_run_pcr("ATGC", "Primer1")
+        mock_dialog.assert_called_once()
+
+    # 12. _load_designer_1d_click returns early if load returns None
+    with patch.object(
+        view, "_load_parameters_yaml", new_callable=AsyncMock, return_value=None
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+
+    # 13. _run_analysis worker thread error handling
+    mock_page.update.side_effect = None
+    view.form.dna_input.value = "ATGCATGCATGC"
+    view.form.min_len_input.value = "10"
+    view.form.filter_dna_checkbox.value = False
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=ValueError("Designer calculation error"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.threading.Thread",
+            side_effect=lambda target, daemon: type(
+                "T", (), {"start": lambda self: target()}
+            )(),
+        ),
+        patch.object(
+            view,
+            "_schedule_on_event_loop",
+            side_effect=lambda func, *args: asyncio.run(func(*args)),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ),
+    ):
+        view._start_designer()
+        assert "Error: Designer calculation error" in (
+            view.form.error_text.value or ""
+        )
+
+    # 14. run_designer() exception handling
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.PrimerDesigner1D",
+            side_effect=RuntimeError("Direct run failure"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_dialog,
+    ):
+        res = view.run_designer()
+        assert res is False
+        mock_dialog.assert_called_once()
+
+    # 15. designer_1d_form filter_dna_checkbox change updates page
+    form = view.form
+    with patch.object(type(form), "page", new=property(lambda s: mock_page)):
+        mock_page.update.reset_mock()
+        form.filter_dna_checkbox.value = False
+        form._on_filter_dna_change(MagicMock())
+        mock_page.update.assert_called()
+
+    # 16. designer_1d_form validate_and_get_params with no valid nucleotides
+    form.dna_input.value = "   "
+    assert form.validate_and_get_params() is None
+    assert "valid DNA sequence" in (form.dna_input.error or "")
+    with patch(
+        "amplifyp.gui.views.designer_1d.designer_1d_form.clean_sequence",
+        return_value="",
+    ):
+        form.dna_input.value = "NOTEMPTY"
+        assert form.validate_and_get_params() is None
+        assert "contains no valid nucleotides" in (form.dna_input.error or "")

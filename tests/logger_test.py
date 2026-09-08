@@ -537,3 +537,20 @@ def test_logger_settings_path_and_apply_stored_settings() -> None:
         ),
     ):
         _apply_stored_settings()
+
+
+def test_remove_handlers_by_type_close_exception() -> None:
+    """Test that exceptions during handler.close() are caught and logged."""
+    from unittest.mock import MagicMock
+
+    from amplifyp.gui.logger import _remove_handlers_by_type
+
+    mock_handler = MagicMock(spec=logging.StreamHandler)
+    mock_handler.close.side_effect = RuntimeError("Failed to close")
+    root_logger = logging.getLogger()
+    root_logger.addHandler(mock_handler)
+
+    with patch("amplifyp.gui.logger.logger.warning") as mock_warning:
+        _remove_handlers_by_type(root_logger, logging.StreamHandler)
+        mock_warning.assert_called_once()
+        assert "Failed to close handler" in mock_warning.call_args[0][0]

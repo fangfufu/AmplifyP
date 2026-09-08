@@ -68,6 +68,21 @@ def test_show_error_dialog() -> None:
     assert dialog not in mock_page.overlay
 
 
+def test_bordered_checkbox() -> None:
+    """Test BorderedCheckbox value and label properties."""
+    from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
+
+    box = BorderedCheckbox(label="Option", value=False)
+    assert box.label == "Option"
+    box.label = "New Option"
+    assert box.label == "New Option"
+    box.label = None
+    assert box.label is None
+    assert box.value is False
+    box.value = "true"
+    assert box.value is True
+
+
 def test_get_version_and_sha() -> None:
     """Test get_git_sha, get_full_sha, and get_version."""
     from unittest.mock import MagicMock, patch
@@ -331,6 +346,11 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
         assert triggered is True
 
     checkbox = BorderedCheckbox(label="Option", value=False)
+    assert checkbox.label == "Option"
+    checkbox.label = "New Option"
+    assert checkbox.label == "New Option"
+    checkbox.label = None
+    assert checkbox.label is None
     assert checkbox.value is False
     checkbox.value = "true"
     assert checkbox.value is True
@@ -350,6 +370,8 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
 
     # 3. File I/O helpers
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 1200.0
+    mock_page.height = 800.0
     mock_page.services = []
     mock_page.overlay = []
     mock_page.web = False
