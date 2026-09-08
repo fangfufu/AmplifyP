@@ -1035,3 +1035,33 @@ def test_controller_run_pcr_with_primer_pair() -> None:
     assert active_primers[0]["seq"] == "ATGCGTACGT"
     assert active_primers[1]["name"] == "Rev 1"
     assert active_primers[1]["seq"] == "CGTACGATGC"
+
+
+def test_schedule_on_event_loop_fallbacks() -> None:
+    """Test _schedule_on_event_loop running-loop and detached-page paths."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task.side_effect = RuntimeError("detached")
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = Designer2DView(mock_page, input_data, settings)
+
+    # Detached page + no running loop: callback discarded, not executed
+    # on a temporary worker-thread loop.
+    executed = False
+
+    async def _discarded() -> None:
+        nonlocal executed
+        executed = True
+
+    view._schedule_on_event_loop(_discarded)
+    assert executed is False
+
+    # Running loop on the current thread: task created on that loop.
+    async def _drive() -> None:
+        nonlocal executed
+        view._schedule_on_event_loop(_discarded)
+        await asyncio.sleep(0)
+        assert executed is True
+
+    asyncio.run(_drive())

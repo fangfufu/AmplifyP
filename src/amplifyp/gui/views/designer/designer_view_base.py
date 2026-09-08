@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -29,6 +30,8 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils import data_helpers
 from amplifyp.gui.utils.gui_helpers import NotificationHelper
+
+logger = logging.getLogger(__name__)
 
 
 class BaseDesignerView(ft.Row):  # type: ignore[misc]
@@ -180,9 +183,12 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         """Schedule an async function on the Flet page event loop.
 
         Marshals UI mutations made by background analysis threads onto the
-        loop that owns the controls. Falls back to the currently running
-        loop, then a temporary loop, when the page cannot schedule tasks
-        (detached page or test doubles without a real session).
+        loop that owns the controls. Prefers the page-owned loop via
+        ``page.run_task``. If the page cannot schedule tasks but a loop is
+        already running on the current thread, the task is created there.
+        When the page is detached and no loop exists, the callback is
+        discarded: UI mutations must never run on a worker thread or a
+        temporary event loop.
 
         Args:
             func: The async function to execute on the event loop.
@@ -199,11 +205,11 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         try:
             asyncio.get_running_loop().create_task(coro)
         except RuntimeError:
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(coro)
-            finally:
-                loop.close()
+            coro.close()
+            logger.warning(
+                "Discarded %s: no page event loop available",
+                getattr(func, "__qualname__", repr(func)),
+            )
 
     def _bring_card_to_top_or_add(
         self, card_id: str, create_card_fn: Callable[[], ft.Card]
