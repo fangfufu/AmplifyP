@@ -370,6 +370,8 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
 
     # 3. File I/O helpers
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 1200.0
+    mock_page.height = 800.0
     mock_page.services = []
     mock_page.overlay = []
     mock_page.web = False
