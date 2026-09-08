@@ -291,7 +291,7 @@ def _remove_handlers_by_type(
         root_logger: The root logger to modify.
         handler_type: The handler class to remove.
     """
-    for h in root_logger.handlers:
+    for h in tuple(root_logger.handlers):
         if isinstance(h, handler_type):
             root_logger.removeHandler(h)
             try:
