@@ -342,26 +342,28 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 except (RuntimeError, AssertionError):
                     pass
 
+            scheduled = False
             if page and callable(getattr(page, "run_task", None)):
                 try:
                     page.run_task(_do_scroll)
+                    scheduled = True
                 except (RuntimeError, AttributeError):
-                    try:
-                        _task = asyncio.create_task(_do_scroll())
-                        _task.add_done_callback(lambda t: t.exception())
-                    except RuntimeError:
-                        pass
-            else:
+                    pass
+            if not scheduled:
                 try:
-                    asyncio.get_running_loop().create_task(_do_scroll())
+                    _task = asyncio.get_running_loop().create_task(_do_scroll())
+                    _task.add_done_callback(lambda t: t.exception())
+                    scheduled = True
                 except RuntimeError:
-                    _loop = asyncio.new_event_loop()
-                    try:
-                        _loop.run_until_complete(_do_scroll())
-                    except RuntimeError:
-                        pass
-                    finally:
-                        _loop.close()
+                    pass
+            if not scheduled:
+                _loop = asyncio.new_event_loop()
+                try:
+                    _loop.run_until_complete(_do_scroll())
+                except RuntimeError:
+                    pass
+                finally:
+                    _loop.close()
         try:
             if scroll_target.page:
                 scroll_target.update()
