@@ -185,7 +185,8 @@ class Designer2DView(BaseDesignerView):
         # the button into abort mode.
         self.results_grid.show_loading(total=total_combinations)
         self._analysis_running = True
-        self._cancel_event = threading.Event()
+        cancel_event = threading.Event()
+        self._cancel_event = cancel_event
         self._set_button_abort_mode(True)
         try:
             if self.app_page:
@@ -220,7 +221,7 @@ class Designer2DView(BaseDesignerView):
                     template=template_dna,
                     max_amplicon_count=max_amplicons,
                     on_progress=_on_progress,
-                    cancel_event=self._cancel_event,
+                    cancel_event=cancel_event,
                 )
                 self._cached_designer = designer
                 self._schedule_on_event_loop(
@@ -231,7 +232,9 @@ class Designer2DView(BaseDesignerView):
                 self._schedule_on_event_loop(self._on_analysis_error, ex)
             finally:
                 self._analysis_running = False
-                self._schedule_on_event_loop(self._on_analysis_finished)
+                self._schedule_on_event_loop(
+                    self._on_analysis_finished, cancel_event
+                )
 
         threading.Thread(target=_run_analysis, daemon=True).start()
 
@@ -265,8 +268,12 @@ class Designer2DView(BaseDesignerView):
             button.icon = ft.Icons.PLAY_ARROW
             button.tooltip = "Run Primer Truncation Analysis"
 
-    async def _on_analysis_finished(self) -> None:
+    async def _on_analysis_finished(
+        self, cancel_event: threading.Event | None = None
+    ) -> None:
         """Restore the analyse button and flush the page after analysis."""
+        if cancel_event is not None and self._cancel_event is not cancel_event:
+            return
         self.form.analyse_button.disabled = False
         self._set_button_abort_mode(False)
         self._cancel_event = None

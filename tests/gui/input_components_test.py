@@ -832,7 +832,6 @@ async def test_input_additional_branches() -> None:
     tmpl._handle_change(MagicMock())
 
 
-@pytest.mark.filterwarnings("ignore::RuntimeWarning")  # type: ignore[untyped-decorator]
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_all_remaining_input_branches_to_100_percent() -> None:
     """Test all remaining branches across input views for 100% coverage."""
@@ -1394,33 +1393,31 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
         )
     await asyncio.sleep(0)
 
-    # Path B: page.run_task raises, and get_running_loop raises RuntimeError
-    b_coros: list[Any] = []
 
-    def make_b_coro(offset: int = 0) -> Any:
-        async def _bc() -> None:
-            pass
+def test_primer_row_blur_no_running_loop_fallbacks() -> None:
+    """Test primer row blur fallbacks when no event loop is running."""
+    _, _, _, settings = _setup_test_view()
+    mock_failing_page = MagicMock(spec=ft.Page)
+    mock_failing_page.run_task = MagicMock(
+        side_effect=RuntimeError("run_task failed")
+    )
 
-        co = _bc()
-        b_coros.append(co)
-        return co
+    # Path B: no running loop, new_event_loop runs _do_scroll to completion
+    scroll_called = False
+
+    async def make_b_coro(offset: int = 0) -> None:
+        nonlocal scroll_called
+        scroll_called = True
 
     row_fallback_b = _make_primer_row(0, "FallbackTestB", "ATGC", settings)
     row_fallback_b.name_scroll.scroll_to = MagicMock(side_effect=make_b_coro)
-    with (
-        patch.object(
-            ft.Control, "page", new=property(lambda self: mock_failing_page)
-        ),
-        patch(
-            "amplifyp.gui.views.input.primer.row.asyncio.get_running_loop",
-            side_effect=RuntimeError("no running loop"),
-        ),
+    with patch.object(
+        ft.Control, "page", new=property(lambda self: mock_failing_page)
     ):
         row_fallback_b._on_blur(
             MagicMock(control=row_fallback_b.name_field, page=mock_failing_page)
         )
-    for c in b_coros:
-        c.close()
+    assert scroll_called
 
     # Path C: new_event_loop.run_until_complete raises RuntimeError
     coros_to_close: list[Any] = []
@@ -1447,10 +1444,6 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     with (
         patch.object(
             ft.Control, "page", new=property(lambda self: mock_failing_page)
-        ),
-        patch(
-            "amplifyp.gui.views.input.primer.row.asyncio.get_running_loop",
-            side_effect=RuntimeError("no running loop"),
         ),
         patch(
             "amplifyp.gui.views.input.primer.row.asyncio.new_event_loop",

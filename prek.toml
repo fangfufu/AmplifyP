@@ -87,8 +87,7 @@ hooks = [
   {
     id = "pyright",
     name = "pyright",
-    entry = ".venv/bin/pyright",
-    args = ["--pythonpath", ".venv/bin/python"],
+    entry = "pyright",
     language = "system",
     pass_filenames = false
   },

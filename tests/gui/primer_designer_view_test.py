@@ -976,6 +976,19 @@ def test_designer_1d_properties_and_branches() -> None:
     asyncio.run(view._on_analysis_finished())
     assert view.form.analyse_button.disabled is False
 
+    # 4b. _on_analysis_finished with stale cancel_event returns early
+    current_event = threading.Event()
+    stale_event = threading.Event()
+    view._cancel_event = current_event
+    view._set_button_abort_mode(True)
+    asyncio.run(view._on_analysis_finished(stale_event))
+    assert view._cancel_event is current_event
+    assert view.form.analyse_button.content == "Abort"
+    # Call with matching cancel_event restores button and clears cancel event
+    asyncio.run(view._on_analysis_finished(current_event))
+    assert view._cancel_event is None
+    assert view.form.analyse_button.content == "Analyse"
+
     # 5. _start_designer re-entry guard
     view._analysis_running = True
     with patch.object(view.form, "validate_and_get_params") as mock_params:
