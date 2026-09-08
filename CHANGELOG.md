@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0](https://github.com/fangfufu/AmplifyP/compare/v1.20.0...v1.21.0) (2026-09-08)
+
+
+### Features
+
+* **gui/designer:** abort button keeps partial analysis results ([b0ed4cf](https://github.com/fangfufu/AmplifyP/commit/b0ed4cf557f721f38723f0078358521b8e081fdc))
+
+
+### Bug Fixes
+
+* address review comments on PR [#346](https://github.com/fangfufu/AmplifyP/issues/346) ([1b415b9](https://github.com/fangfufu/AmplifyP/commit/1b415b9564a9eaf85c7a259c936b796dd758649e))
+
 ## [1.20.0](https://github.com/fangfufu/AmplifyP/compare/v1.19.0...v1.20.0) (2026-09-08)
 
 

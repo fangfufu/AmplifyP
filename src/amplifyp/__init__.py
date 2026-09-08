@@ -21,4 +21,4 @@ replication configurations, and calculating binding statistics such as
 primability and stability.
 """
 
-__version__ = "1.20.0"
+__version__ = "1.21.0"
