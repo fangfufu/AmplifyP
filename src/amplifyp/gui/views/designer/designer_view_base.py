@@ -17,7 +17,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+import asyncio
+from collections.abc import Callable, Coroutine
 from typing import Any
 
 import flet as ft
@@ -172,6 +173,37 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    def _schedule_on_event_loop(
+        self, func: Callable[..., Coroutine[Any, Any, Any]], *args: Any
+    ) -> None:
+        """Schedule an async function on the Flet page event loop.
+
+        Marshals UI mutations made by background analysis threads onto the
+        loop that owns the controls. Falls back to the currently running
+        loop, then a temporary loop, when the page cannot schedule tasks
+        (detached page or test doubles without a real session).
+
+        Args:
+            func: The async function to execute on the event loop.
+            *args: Positional arguments passed to ``func``.
+        """
+        page = self.app_page
+        if page:
+            try:
+                page.run_task(func, *args)
+                return
+            except (RuntimeError, TypeError, AttributeError):
+                pass
+        coro = func(*args)
+        try:
+            asyncio.get_running_loop().create_task(coro)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(coro)
+            finally:
+                loop.close()
 
     def _bring_card_to_top_or_add(
         self, card_id: str, create_card_fn: Callable[[], ft.Card]

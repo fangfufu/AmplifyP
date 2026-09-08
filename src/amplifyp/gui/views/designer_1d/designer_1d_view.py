@@ -59,6 +59,7 @@ class PrimerDesignerView(BaseDesignerView):
         super().__init__(page=page, input_data=input_data, settings=settings)
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
+        self._analysis_running = False
 
         # Form component for input controls and parameters
         self.form = Designer1DForm(
@@ -332,17 +333,47 @@ class PrimerDesignerView(BaseDesignerView):
                 self._primer_list_body,
             ]
 
-    def _update_chart_and_primer_list(
+    def _compute_origin_counts(
         self,
         designer: PrimerDesigner1D,
         template_dna: DNA | None,
-        mode: DNADirection,
-    ) -> None:
-        """Update the quality chart and populate the primer list with cards.
+    ) -> list[int | None]:
+        """Count template binding sites per dimer.
+
+        Runs in the analysis worker thread; performs no UI mutation.
 
         Args:
             designer: The completed 1D primer designer.
             template_dna: Template DNA for origin counting, or None.
+
+        Returns:
+            Per-dimer binding-site counts, or None entries when no template.
+        """
+        if template_dna is None:
+            return [None] * len(designer.all_dimers)
+
+        counts: list[int | None] = []
+        for dimer in designer.all_dimers:
+            repliconf = Repliconf(template_dna, dimer.primer_1)
+            repliconf.search()
+            counts.append(
+                len(repliconf.origin_db.fwd) + len(repliconf.origin_db.rev)
+            )
+        return counts
+
+    def _update_chart_and_primer_list(
+        self,
+        designer: PrimerDesigner1D,
+        origin_counts: list[int | None],
+        mode: DNADirection,
+    ) -> None:
+        """Update the quality chart and populate the primer list with cards.
+
+        Must run on the Flet event loop.
+
+        Args:
+            designer: The completed 1D primer designer.
+            origin_counts: Per-dimer binding-site counts, or None entries.
             mode: The truncation mode used for the design.
         """
         # Update top-right quality bar chart
@@ -351,14 +382,6 @@ class PrimerDesignerView(BaseDesignerView):
         )
 
         for step_idx, dimer in enumerate(designer.all_dimers):
-            origin_count: int | None = None
-            if template_dna is not None:
-                repliconf = Repliconf(template_dna, dimer.primer_1)
-                repliconf.search()
-                origin_count = len(repliconf.origin_db.fwd) + len(
-                    repliconf.origin_db.rev
-                )
-
             item_card = PrimerItemCard(
                 dimer=dimer,
                 step_index=step_idx,
@@ -366,12 +389,43 @@ class PrimerDesignerView(BaseDesignerView):
                 settings=self.settings,
                 on_select_callback=self._on_primer_selected,
                 on_run_pcr_callback=self._handle_run_pcr,
-                origin_count=origin_count,
+                origin_count=origin_counts[step_idx],
             )
             self.primer_list.controls.append(item_card)
 
+    async def _on_analysis_success(
+        self,
+        designer: PrimerDesigner1D,
+        origin_counts: list[int | None],
+        mode: DNADirection,
+    ) -> None:
+        """Populate the results UI on the event loop after analysis."""
+        self._restore_primer_list()
+        self._update_chart_and_primer_list(designer, origin_counts, mode)
+
+    async def _on_analysis_error(self, ex: Exception, tb: str) -> None:
+        """Show the analysis failure UI on the event loop."""
+        self.form.show_error(f"Error: {ex}")
+        show_error_dialog(
+            self.app_page,
+            "Error running Primer Designer",
+            f"{ex}\n{tb}",
+        )
+        self._restore_primer_list()
+
+    async def _on_analysis_finished(self) -> None:
+        """Re-enable the analyse button and flush the page after analysis."""
+        self.form.analyse_button.disabled = False
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
     def _start_designer(self) -> None:
         """Validate inputs, show progress bar, and run analysis in a thread."""
+        if self._analysis_running:
+            return
         params = self.form.validate_and_get_params()
         if params is None:
             return
@@ -414,6 +468,7 @@ class PrimerDesignerView(BaseDesignerView):
         total_steps = len(dna_obj.seq) - min_length + 1
 
         self.show_loading(total=total_steps)
+        self._analysis_running = True
         self.form.analyse_button.disabled = True
         try:
             if self.app_page:
@@ -429,7 +484,12 @@ class PrimerDesignerView(BaseDesignerView):
             self.update_progress(done, total)
 
         def _run_analysis() -> None:
-            """Execute 1D analysis in a background thread and update UI."""
+            """Execute 1D analysis in a background thread.
+
+            Computation (PrimerDesigner1D and Repliconf origin counting)
+            stays in the worker thread; UI mutations are marshalled onto
+            the Flet event loop.
+            """
             try:
                 designer = PrimerDesigner1D(
                     dna=dna_obj,
@@ -443,27 +503,20 @@ class PrimerDesignerView(BaseDesignerView):
                     on_progress=_on_progress,
                 )
                 self._cached_designer = designer
-
-                # Restore list panel before populating
-                self._restore_primer_list()
-                self._update_chart_and_primer_list(designer, template_dna, mode)
-
+                origin_counts = self._compute_origin_counts(
+                    designer, template_dna
+                )
+                self._schedule_on_event_loop(
+                    self._on_analysis_success, designer, origin_counts, mode
+                )
             except (ValueError, RuntimeError, OSError) as ex:
                 logger.exception("1D Primer Design failed: %s", ex)
-                self.form.show_error(f"Error: {ex}")
-                show_error_dialog(
-                    self.app_page,
-                    "Error running Primer Designer",
-                    f"{ex}\n{traceback.format_exc()}",
+                self._schedule_on_event_loop(
+                    self._on_analysis_error, ex, traceback.format_exc()
                 )
-                self._restore_primer_list()
             finally:
-                self.form.analyse_button.disabled = False
-                try:
-                    if self.app_page:
-                        self.app_page.update()
-                except RuntimeError:
-                    pass
+                self._analysis_running = False
+                self._schedule_on_event_loop(self._on_analysis_finished)
 
         threading.Thread(target=_run_analysis, daemon=True).start()
 
@@ -525,7 +578,11 @@ class PrimerDesignerView(BaseDesignerView):
                 max_origin_count=max_binding_sites,
             )
             self._cached_designer = designer
-            self._update_chart_and_primer_list(designer, template_dna, mode)
+            self._update_chart_and_primer_list(
+                designer,
+                self._compute_origin_counts(designer, template_dna),
+                mode,
+            )
 
         except (ValueError, RuntimeError, OSError) as ex:
             logger.exception("1D Primer Design failed: %s", ex)

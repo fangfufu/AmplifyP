@@ -49,9 +49,22 @@ def _assert_2d_form_defaults(view: Designer2DView) -> None:
     assert view.form.max_amplicons_input.disabled is True
 
 
+def _sync_run_task(func: Any, *args: Any) -> None:
+    """Execute an event-loop task synchronously (unit-test page double).
+
+    The ProgressTracker animation flush loop is skipped: it only stops
+    when the analysis finishes, which cannot happen while it blocks the
+    test thread.
+    """
+    if getattr(func, "__name__", "") == "_flush_task":
+        return
+    asyncio.run(func(*args))
+
+
 def _run_2d_analysis() -> Designer2DView:
     """Create a 2D view, fill the form, and run the designer synchronously."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
     input_data = GUIInput()
     settings = GUISettings()
 
@@ -568,6 +581,7 @@ def test_designer_2d_and_base_remaining_branches() -> None:
     mock_page = MagicMock(spec=ft.Page)
     mock_page.width = 800.0
     mock_page.height = 600.0
+    mock_page.run_task = _sync_run_task
     input_data = GUIInput()
     settings = GUISettings()
 
@@ -895,6 +909,7 @@ def test_designer_2d_form_checkbox_toggle() -> None:
 def test_designer_2d_view_template_and_amplicons() -> None:
     """Test template DNA evaluation and amplicon filtering in Designer2DView."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
     input_data = GUIInput()
     settings = GUISettings()
 
@@ -951,6 +966,7 @@ def test_designer_2d_view_template_and_amplicons() -> None:
 def test_designer_2d_view_run_pcr_callback() -> None:
     """Test Dismissible2DCard Run PCR button triggers PCR callback."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
     input_data = GUIInput()
     settings = GUISettings()
     pcr_mock = MagicMock()

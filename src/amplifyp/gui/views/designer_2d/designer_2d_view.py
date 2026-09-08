@@ -53,6 +53,7 @@ class Designer2DView(BaseDesignerView):
         super().__init__(page=page, input_data=input_data, settings=settings)
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner2D | None = None
+        self._analysis_running = False
 
         # Form component for 2D input controls and parameters
         self.form = Designer2DForm(
@@ -129,6 +130,8 @@ class Designer2DView(BaseDesignerView):
 
     def _run_designer_event(self) -> None:
         """Run 2D primer truncation analysis based on form inputs."""
+        if self._analysis_running:
+            return
         try:
             (
                 fwd_dna,
@@ -172,8 +175,10 @@ class Designer2DView(BaseDesignerView):
         rev_count = len(rev_dna.seq) - rev_min_len + 1
         total_combinations = fwd_count * rev_count
 
-        # Show determinate progress bar and disable button.
+        # Show determinate progress bar, guard against re-entry, disable
+        # button.
         self.results_grid.show_loading(total=total_combinations)
+        self._analysis_running = True
         self.form.analyse_button.disabled = True
         try:
             if self.app_page:
@@ -189,7 +194,12 @@ class Designer2DView(BaseDesignerView):
             self.results_grid.update_progress(done, total)
 
         def _run_analysis() -> None:
-            """Execute analysis in a background thread and update UI."""
+            """Execute analysis in a background thread.
+
+            PrimerDesigner2D computation and progress reporting stay in the
+            worker thread; all other UI mutations are marshalled onto the
+            Flet event loop.
+            """
             try:
                 designer = PrimerDesigner2D(
                     fwd_dna=fwd_dna,
@@ -205,25 +215,40 @@ class Designer2DView(BaseDesignerView):
                     on_progress=_on_progress,
                 )
                 self._cached_designer = designer
-                self.results_grid.update_grid(designer)
-                self._clear_all_cards()
+                self._schedule_on_event_loop(
+                    self._on_analysis_success, designer
+                )
             except Exception as ex:
                 logger.exception("Failed to run 2D primer designer")
-                show_error_dialog(
-                    self.app_page,
-                    "Analysis Error",
-                    f"Error performing 2D primer design: {ex}",
-                )
-                self.results_grid.clear_grid()
+                self._schedule_on_event_loop(self._on_analysis_error, ex)
             finally:
-                self.form.analyse_button.disabled = False
-                try:
-                    if self.app_page:
-                        self.app_page.update()
-                except RuntimeError:
-                    pass
+                self._analysis_running = False
+                self._schedule_on_event_loop(self._on_analysis_finished)
 
         threading.Thread(target=_run_analysis, daemon=True).start()
+
+    async def _on_analysis_success(self, designer: PrimerDesigner2D) -> None:
+        """Populate the results grid on the event loop after analysis."""
+        self.results_grid.update_grid(designer)
+        self._clear_all_cards()
+
+    async def _on_analysis_error(self, ex: Exception) -> None:
+        """Show the analysis failure UI on the event loop."""
+        show_error_dialog(
+            self.app_page,
+            "Analysis Error",
+            f"Error performing 2D primer design: {ex}",
+        )
+        self.results_grid.clear_grid()
+
+    async def _on_analysis_finished(self) -> None:
+        """Re-enable the analyse button and flush the page after analysis."""
+        self.form.analyse_button.disabled = False
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
 
     def _handle_run_pcr(
         self, fwd_seq: str, fwd_name: str, rev_seq: str, rev_name: str
@@ -356,7 +381,9 @@ class Designer2DView(BaseDesignerView):
         )
 
         filter_dna_val = params.get("filter_dna")
-        self.form.filter_dna_checkbox.value = bool(filter_dna_val)
+        self.form.filter_dna_checkbox.value = (
+            filter_dna_val if filter_dna_val is not None else False
+        )
         self.form.max_amplicons_input.disabled = (
             not self.form.filter_dna_checkbox.value
         )
