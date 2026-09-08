@@ -34,6 +34,21 @@ from amplifyp.gui.views.designer_2d import (
 from amplifyp.primer_designer_2d import FilterMetric, PrimerDesigner2D
 
 
+def _assert_2d_form_defaults(view: Designer2DView) -> None:
+    """Assert every 2D designer form field is at its default value."""
+    assert view.form.fwd_dna_input.value == ""
+    assert view.form.fwd_length_display.value == "0"
+    assert view.form.fwd_min_len_input.value == ""
+    assert view.form.rev_dna_input.value == ""
+    assert view.form.rev_length_display.value == "0"
+    assert view.form.rev_min_len_input.value == ""
+    assert view.form.max_quality_input.value == ""
+    assert view.form.max_overlap_input.value == ""
+    assert view.form.filter_dna_checkbox.value is False
+    assert view.form.max_amplicons_input.value == ""
+    assert view.form.max_amplicons_input.disabled is True
+
+
 def test_designer_2d_view_initialisation() -> None:
     """Test initial UI setup of Designer2DView."""
     mock_page = MagicMock(spec=ft.Page)
@@ -48,17 +63,7 @@ def test_designer_2d_view_initialisation() -> None:
     assert view.left_v_divider is not None
     assert view.left_container.expand == 1
     assert view.right_container.expand == 1
-    assert view.form.fwd_dna_input.value == ""
-    assert view.form.fwd_length_display.value == "0"
-    assert view.form.fwd_min_len_input.value == ""
-    assert view.form.rev_dna_input.value == ""
-    assert view.form.rev_length_display.value == "0"
-    assert view.form.rev_min_len_input.value == ""
-    assert view.form.max_quality_input.value == ""
-    assert view.form.max_overlap_input.value == ""
-    assert view.form.filter_dna_checkbox.value is False
-    assert view.form.max_amplicons_input.value == ""
-    assert view.form.max_amplicons_input.disabled is True
+    _assert_2d_form_defaults(view)
     assert view.form.clear_all_button is not None
     assert len(view.right_cards_list.controls) == 0
 
@@ -344,17 +349,7 @@ def test_designer_2d_view_clear_all() -> None:
     # Clear all
     view._clear_all(None)
 
-    assert view.form.fwd_dna_input.value == ""
-    assert view.form.fwd_length_display.value == "0"
-    assert view.form.fwd_min_len_input.value == ""
-    assert view.form.rev_dna_input.value == ""
-    assert view.form.rev_length_display.value == "0"
-    assert view.form.rev_min_len_input.value == ""
-    assert view.form.max_quality_input.value == ""
-    assert view.form.max_overlap_input.value == ""
-    assert view.form.filter_dna_checkbox.value is False
-    assert view.form.max_amplicons_input.value == ""
-    assert view.form.max_amplicons_input.disabled is True
+    _assert_2d_form_defaults(view)
     assert view._cached_designer is None
     assert len(view.results_grid._cell_containers) == 0
     assert len(view.right_cards_list.controls) == 0

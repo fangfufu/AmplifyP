@@ -24,6 +24,8 @@ from typing import Any
 
 import yaml
 
+from amplifyp.gui.os_paths import get_settings_yaml_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -196,32 +198,7 @@ def _get_settings_path() -> Path:
     Returns:
         Path object pointing to settings.yaml.
     """
-    if sys.platform.startswith("win"):
-        appdata = os.environ.get("APPDATA")
-        if appdata:
-            return Path(appdata) / "AmplifyP" / "settings.yaml"
-        return (
-            Path(os.path.expanduser("~"))
-            / "AppData"
-            / "Roaming"
-            / "AmplifyP"
-            / "settings.yaml"
-        )
-    elif sys.platform.startswith("darwin"):
-        home = os.environ.get("HOME") or os.path.expanduser("~")
-        return (
-            Path(home)
-            / "Library"
-            / "Application Support"
-            / "AmplifyP"
-            / "settings.yaml"
-        )
-    else:
-        xdg_config = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config:
-            return Path(xdg_config) / "amplifyp" / "settings.yaml"
-        home = os.environ.get("HOME") or os.path.expanduser("~")
-        return Path(home) / ".config" / "amplifyp" / "settings.yaml"
+    return get_settings_yaml_path()
 
 
 # Apply stored settings when the module is loaded
@@ -260,7 +237,7 @@ def _get_valid_level(level_str: str) -> int:
     Returns:
         The logging level constant.
     """
-    level = getattr(logging, level_str.upper(), None)
+    level: int | None = getattr(logging, level_str.upper(), None)
     if level is not None and isinstance(level, int):
         return level
     return logging.INFO

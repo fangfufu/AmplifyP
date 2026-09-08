@@ -89,6 +89,40 @@ def _setup_test_view() -> tuple[InputView, MagicMock, GUIInput, GUISettings]:
     return view, page, input_data, settings
 
 
+def _make_primer_row(
+    idx: int,
+    name: str,
+    seq: str,
+    settings: GUISettings,
+) -> PrimerRow:
+    """Construct a PrimerRow with mock event handlers for testing."""
+    return PrimerRow(
+        idx=idx,
+        name=name,
+        seq=seq,
+        is_active=True,
+        is_dup=False,
+        name_error=None,
+        seq_error=None,
+        font_family="Roboto Mono",
+        name_column_width=150.0,
+        settings=settings,
+        on_change_handler=MagicMock(),
+        handle_field_focus=MagicMock(),
+        handle_field_blur=MagicMock(),
+        handle_field_submit=MagicMock(),
+        on_row_click=MagicMock(),
+        on_row_double_click=MagicMock(),
+        on_divider_pan=MagicMock(),
+        on_divider_pan_end=MagicMock(),
+        is_focused=True,
+        is_last_row=True,
+        on_drag_start=MagicMock(),
+        on_drag_update=MagicMock(),
+        on_drag_end=MagicMock(),
+    )
+
+
 def test_input_layout_and_resizing() -> None:
     """Test layout pan and resize handlers."""
     view, _page, _, _ = _setup_test_view()
@@ -567,31 +601,7 @@ async def test_all_subcomponent_edge_cases() -> None:
     assert view.primer_input.focused_primer_index is None
 
     # 4. primer/row.py (Tm calculation in __init__ with invalid seq)
-    row_bad_tm = PrimerRow(
-        idx=0,
-        name="Bad",
-        seq="NNNNNNNN",
-        is_active=True,
-        is_dup=False,
-        name_error=None,
-        seq_error=None,
-        font_family="Roboto Mono",
-        name_column_width=150.0,
-        settings=settings,
-        on_change_handler=MagicMock(),
-        handle_field_focus=MagicMock(),
-        handle_field_blur=MagicMock(),
-        handle_field_submit=MagicMock(),
-        on_row_click=MagicMock(),
-        on_row_double_click=MagicMock(),
-        on_divider_pan=MagicMock(),
-        on_divider_pan_end=MagicMock(),
-        is_focused=True,
-        is_last_row=True,
-        on_drag_start=MagicMock(),
-        on_drag_update=MagicMock(),
-        on_drag_end=MagicMock(),
-    )
+    row_bad_tm = _make_primer_row(0, "Bad", "NNNNNNNN", settings)
     assert row_bad_tm is not None
 
     # Drag divider handlers in PrimerRow
@@ -614,31 +624,7 @@ async def test_all_subcomponent_edge_cases() -> None:
     with patch.object(
         settings, "calculate_primer_tm", side_effect=ValueError("Tm err")
     ):
-        row_tm_err = PrimerRow(
-            idx=0,
-            name="TmErr",
-            seq="ATGC",
-            is_active=True,
-            is_dup=False,
-            name_error=None,
-            seq_error=None,
-            font_family="Roboto Mono",
-            name_column_width=150.0,
-            settings=settings,
-            on_change_handler=MagicMock(),
-            handle_field_focus=MagicMock(),
-            handle_field_blur=MagicMock(),
-            handle_field_submit=MagicMock(),
-            on_row_click=MagicMock(),
-            on_row_double_click=MagicMock(),
-            on_divider_pan=MagicMock(),
-            on_divider_pan_end=MagicMock(),
-            is_focused=True,
-            is_last_row=True,
-            on_drag_start=MagicMock(),
-            on_drag_update=MagicMock(),
-            on_drag_end=MagicMock(),
-        )
+        row_tm_err = _make_primer_row(0, "TmErr", "ATGC", settings)
         assert row_tm_err.tm_text.value == "-"
 
     # Drag swapping
@@ -1337,31 +1323,7 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     act.header_add_click(None)
 
     # 20. primer/row.py _on_blur exception paths
-    row_blur_test = PrimerRow(
-        idx=0,
-        name="BlurTest",
-        seq="ATGC",
-        is_active=True,
-        is_dup=False,
-        name_error=None,
-        seq_error=None,
-        font_family="Roboto Mono",
-        name_column_width=150.0,
-        settings=settings,
-        on_change_handler=MagicMock(),
-        handle_field_focus=MagicMock(),
-        handle_field_blur=MagicMock(),
-        handle_field_submit=MagicMock(),
-        on_row_click=MagicMock(),
-        on_row_double_click=MagicMock(),
-        on_divider_pan=MagicMock(),
-        on_divider_pan_end=MagicMock(),
-        is_focused=True,
-        is_last_row=True,
-        on_drag_start=MagicMock(),
-        on_drag_update=MagicMock(),
-        on_drag_end=MagicMock(),
-    )
+    row_blur_test = _make_primer_row(0, "BlurTest", "ATGC", settings)
 
     async def failing_coro_scroll(offset: int = 0) -> None:
         raise RuntimeError("Scroll failure")

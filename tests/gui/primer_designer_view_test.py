@@ -30,6 +30,20 @@ from amplifyp.gui.views.designer_1d import (
 )
 
 
+def _contains_text(control: ft.Control, text: str) -> bool:
+    """Recursively check whether any text in the control tree matches."""
+    if isinstance(control, ft.Text) and text in (control.value or ""):
+        return True
+    if hasattr(control, "content") and control.content:
+        if _contains_text(control.content, text):
+            return True
+    if hasattr(control, "controls") and control.controls:
+        for child in control.controls:
+            if _contains_text(child, text):
+                return True
+    return False
+
+
 def test_primer_designer_view_initialisation() -> None:
     """Test initial UI setup of PrimerDesignerView."""
     mock_page = MagicMock(spec=ft.Page)
@@ -667,18 +681,6 @@ def test_designer_1d_check_against_dna_empty_binding_sites() -> None:
     assert isinstance(first_item, PrimerItemCard)
     assert hasattr(first_item, "pcr_button")
 
-    def _contains_text(control: ft.Control, text: str) -> bool:
-        if isinstance(control, ft.Text) and text in (control.value or ""):
-            return True
-        if hasattr(control, "content") and control.content:
-            if _contains_text(control.content, text):
-                return True
-        if hasattr(control, "controls") and control.controls:
-            for child in control.controls:
-                if _contains_text(child, text):
-                    return True
-        return False
-
     # Binding sites count MUST be shown in card badge even when cutoff empty
     assert _contains_text(first_item, "Sites: 2")
 
@@ -737,18 +739,6 @@ def test_designer_1d_template_dna_filtering_success() -> None:
     assert hasattr(first_item, "pcr_button")
 
     # When check against template is ticked, Sites: badge is present
-    def _contains_text(control: ft.Control, text: str) -> bool:
-        if isinstance(control, ft.Text) and text in (control.value or ""):
-            return True
-        if hasattr(control, "content") and control.content:
-            if _contains_text(control.content, text):
-                return True
-        if hasattr(control, "controls") and control.controls:
-            for child in control.controls:
-                if _contains_text(child, text):
-                    return True
-        return False
-
     assert _contains_text(first_item, "Sites: 2")
 
     # If max_binding_sites is 1, no primers match (count is 2)
@@ -782,18 +772,6 @@ def test_designer_1d_check_against_dna_unticked_skips_sites_badge() -> None:
     assert isinstance(first_item, PrimerItemCard)
     # PCR button is still present even when check against template is unticked
     assert hasattr(first_item, "pcr_button")
-
-    def _contains_text(control: ft.Control, text: str) -> bool:
-        if isinstance(control, ft.Text) and text in (control.value or ""):
-            return True
-        if hasattr(control, "content") and control.content:
-            if _contains_text(control.content, text):
-                return True
-        if hasattr(control, "controls") and control.controls:
-            for child in control.controls:
-                if _contains_text(child, text):
-                    return True
-        return False
 
     # Sites badge is omitted because check against template is unticked
     assert not _contains_text(first_item, "Sites:")

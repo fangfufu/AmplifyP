@@ -26,7 +26,6 @@ from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
-from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.views.designer import BaseDesignerForm, create_field_container
 from amplifyp.primer_designer_2d import FilterMetric
 
@@ -111,11 +110,6 @@ class Designer2DForm(BaseDesignerForm):
             on_submit=self._on_submit_event,
             on_change=self._clear_field_error,
         )
-        self.filter_dna_checkbox = BorderedCheckbox(
-            label="Check against template",
-            value=False,
-            on_change=self._on_filter_dna_change,
-        )
         self.max_amplicons_input = ft.TextField(
             hint_text="Unconstrained if empty",
             value="",
@@ -180,44 +174,11 @@ class Designer2DForm(BaseDesignerForm):
                 spacing=8,
             ),
             self._build_filter_row(include_analyse_button=False),
-            ft.Row(
-                [
-                    ft.Container(
-                        content=self.filter_dna_checkbox,
-                        alignment=ft.Alignment(-1, 0),
-                        expand=True,
-                        height=48,
-                        margin=ft.Margin.only(top=23),
-                    ),
-                    create_field_container(
-                        "Max Amplicons",
-                        self.max_amplicons_input,
-                        expand=True,
-                    ),
-                    ft.Container(
-                        content=self.analyse_button,
-                        alignment=ft.Alignment(1, 0),
-                        height=48,
-                        margin=ft.Margin.only(top=23, left=16),
-                    ),
-                ],
-                spacing=8,
-                vertical_alignment=ft.CrossAxisAlignment.START,
-            ),
+            self._build_analyse_row("Max Amplicons", self.max_amplicons_input),
             self.error_text,
         ]
 
     # --- Property aliases for backwards compatibility ---
-    @property
-    def check_template_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
-        """Get the check against template checkbox control."""
-        return self.filter_dna_checkbox
-
-    @property
-    def check_dna_checkbox(self) -> BorderedCheckbox | ft.Checkbox:
-        """Get the check against template checkbox control."""
-        return self.filter_dna_checkbox
-
     @property
     def max_amplicon_input(self) -> ft.TextField:
         """Get the max amplicons input control."""

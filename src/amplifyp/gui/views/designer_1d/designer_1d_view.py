@@ -25,7 +25,7 @@ from collections.abc import Callable
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import DNA, DNAType
+from amplifyp.dna import DNA, DNADirection, DNAType
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -332,6 +332,44 @@ class PrimerDesignerView(BaseDesignerView):
                 self._primer_list_body,
             ]
 
+    def _update_chart_and_primer_list(
+        self,
+        designer: PrimerDesigner1D,
+        template_dna: DNA | None,
+        mode: DNADirection,
+    ) -> None:
+        """Update the quality chart and populate the primer list with cards.
+
+        Args:
+            designer: The completed 1D primer designer.
+            template_dna: Template DNA for origin counting, or None.
+            mode: The truncation mode used for the design.
+        """
+        # Update top-right quality bar chart
+        self.chart_content_container.content = self._build_chart(
+            list(designer.all_dimers)
+        )
+
+        for step_idx, dimer in enumerate(designer.all_dimers):
+            origin_count: int | None = None
+            if template_dna is not None:
+                repliconf = Repliconf(template_dna, dimer.primer_1)
+                repliconf.search()
+                origin_count = len(repliconf.origin_db.fwd) + len(
+                    repliconf.origin_db.rev
+                )
+
+            item_card = PrimerItemCard(
+                dimer=dimer,
+                step_index=step_idx,
+                mode=mode,
+                settings=self.settings,
+                on_select_callback=self._on_primer_selected,
+                on_run_pcr_callback=self._handle_run_pcr,
+                origin_count=origin_count,
+            )
+            self.primer_list.controls.append(item_card)
+
     def _start_designer(self) -> None:
         """Validate inputs, show progress bar, and run analysis in a thread."""
         params = self.form.validate_and_get_params()
@@ -408,31 +446,7 @@ class PrimerDesignerView(BaseDesignerView):
 
                 # Restore list panel before populating
                 self._restore_primer_list()
-
-                # Update top-right quality bar chart
-                self.chart_content_container.content = self._build_chart(
-                    list(designer.all_dimers)
-                )
-
-                for step_idx, dimer in enumerate(designer.all_dimers):
-                    origin_count: int | None = None
-                    if template_dna is not None:
-                        repliconf = Repliconf(template_dna, dimer.primer_1)
-                        repliconf.search()
-                        origin_count = len(repliconf.origin_db.fwd) + len(
-                            repliconf.origin_db.rev
-                        )
-
-                    item_card = PrimerItemCard(
-                        dimer=dimer,
-                        step_index=step_idx,
-                        mode=mode,
-                        settings=self.settings,
-                        on_select_callback=self._on_primer_selected,
-                        on_run_pcr_callback=self._handle_run_pcr,
-                        origin_count=origin_count,
-                    )
-                    self.primer_list.controls.append(item_card)
+                self._update_chart_and_primer_list(designer, template_dna, mode)
 
             except (ValueError, RuntimeError, OSError) as ex:
                 logger.exception("1D Primer Design failed: %s", ex)
@@ -511,31 +525,7 @@ class PrimerDesignerView(BaseDesignerView):
                 max_origin_count=max_binding_sites,
             )
             self._cached_designer = designer
-
-            # Update top-right quality bar chart
-            self.chart_content_container.content = self._build_chart(
-                list(designer.all_dimers)
-            )
-
-            for step_idx, dimer in enumerate(designer.all_dimers):
-                origin_count: int | None = None
-                if template_dna is not None:
-                    repliconf = Repliconf(template_dna, dimer.primer_1)
-                    repliconf.search()
-                    origin_count = len(repliconf.origin_db.fwd) + len(
-                        repliconf.origin_db.rev
-                    )
-
-                item_card = PrimerItemCard(
-                    dimer=dimer,
-                    step_index=step_idx,
-                    mode=mode,
-                    settings=self.settings,
-                    on_select_callback=self._on_primer_selected,
-                    on_run_pcr_callback=self._handle_run_pcr,
-                    origin_count=origin_count,
-                )
-                self.primer_list.controls.append(item_card)
+            self._update_chart_and_primer_list(designer, template_dna, mode)
 
         except (ValueError, RuntimeError, OSError) as ex:
             logger.exception("1D Primer Design failed: %s", ex)
