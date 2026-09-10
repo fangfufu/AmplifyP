@@ -13,7 +13,7 @@ user control over split panel widths and heights.
 - **Two-Column Split**:
   - **Left Column**: Contains the **1D Truncation Parameters** form (top) and
     the **Generated Primers** list (bottom).
-  - **Right Column**: Contains the **Self-Dimer Quality by Primer Size (bp)**
+  - **Right Column**: Contains the **Self-Dimer Quality by Primer Size (nt)**
     chart (top) and the **Self-Dimer Cards** panel (bottom).
 - **Interactive Resizers**:
   - **Main Horizontal Divider**: Drag the vertical splitter bar (minimum 250 px
@@ -28,25 +28,25 @@ user control over split panel widths and heights.
 
 ## 1D Truncation Parameters (Top-Left Panel)
 
-The **1D Truncation Parameters** form configures the input DNA sequence,
-truncation direction, length constraints, and dimer filtering parameters:
+The **1D Truncation Parameters** form configures the input DNA sequence, length
+constraints, and dimer filtering parameters. Truncation always proceeds in the
+forward direction, removing bases from the 3' end and maintaining the 5'
+terminus:
 
 - **Candidate Primer Sequence**: Enter the nucleotide sequence to analyse. Raw
   sequence input is automatically cleaned to filter out non-nucleotide
   characters. Must contain at least one valid base.
-- **Min Length (bp)**: Minimum primer length integer (default: `18`). The
-  analysis generates candidate primers base-by-base from full sequence length
-  down to this minimum value. Must be a positive integer greater than 0 and
-  cannot exceed the input sequence length.
-- **Primer Direction**: Dropdown selector for truncation orientation:
-  - **Forward**: Truncates sequence from the 3' end (maintains the 5' terminus).
-  - **Reverse**: Truncates sequence from the 5' end (maintains the 3' terminus).
-- **Max Quality**: Maximum quality score threshold. Defaults to the configured
-  primer dimer quality threshold (e.g. `60.0`). Leave blank for unconstrained
-  quality filtering.
-- **Max Overlap (bp)**: Maximum overlap length constraint. Defaults to the
-  minimum dimer overlap setting (e.g. `3`). Leave blank for unconstrained
-  overlap filtering.
+- **Length (nt)**: Read-only counter next to the sequence field showing the
+  cleaned sequence length in nucleotides. Updates as you type.
+- **Min Length (nt)**: Minimum primer length. Required field (no default); leave
+  the "e.g. 18" hint in mind when filling it in. The analysis generates
+  candidate primers base-by-base from full sequence length down to this minimum
+  value. Must be a positive integer greater than 0 and cannot exceed the input
+  sequence length.
+- **Max Quality**: Maximum quality score threshold. Integer only (no default).
+  Leave blank for unconstrained quality filtering.
+- **Max Overlap (bp)**: Maximum overlap length constraint. Non-negative integer
+  (no default). Leave blank for unconstrained overlap filtering.
 - **Check against template**: Checkbox to enable checking candidate primers
   against the template DNA sequence defined in the Input view.
 - **Max Binding Sites**: Maximum number of template binding sites (replication
@@ -57,26 +57,33 @@ truncation direction, length constraints, and dimer filtering parameters:
 - **Analyse Button**: Positioned in the bottom parameters row after Max Binding
   Sites. Triggers validation and runs the 1D primer truncation analysis. Can
   also be executed by pressing Enter inside any input field.
-- **Save / Load Parameters**:
+- **Save / Load / Clear All Parameters**:
   - **Save Button**: Saves the current form parameters (including sequence
     filter and max binding sites) to a YAML file using a file save dialog.
   - **Load Button**: Opens a file picker dialog to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
+  - **Clear All Button**: Clears all form parameters and the analysis results
+    (primer list, chart, and cards).
 
 ## Generated Primers List (Bottom-Left Panel)
 
 The bottom-left panel displays all candidate primer lengths generated during
-truncation analysis in a vertical scrollable list:
+truncation analysis in a vertical scrollable list. While an analysis is running,
+the list is replaced by a determinate **progress bar** labelled *"Analysing
+primer truncations…"* that fills as each truncation length is evaluated.
 
+- **Progress & Abort**: During analysis, the **Analyse** button changes to an
+  **Abort** button ("Stop analysis and keep results so far"). Clicking **Abort**
+  cancels the running analysis and keeps the primers analysed so far, showing a
+  notification: *"Analysis aborted — showing primers analysed so far."*
 - **Primer Item Cards**: Each card represents a candidate primer step:
-  - **Length Header**: Displays primer length in base pairs (e.g. `20 nt`).
-  - **Sequence Field**: Read-only monospace text field. Text is left-aligned for
-    Forward direction primers and right-aligned for Reverse direction primers.
+  - **Length Header**: Displays primer length in nucleotides (e.g. `20 nt`).
+  - **Sequence Field**: Read-only monospace text field, left-aligned.
   - **Metrics Badges**: Displays highlighted badges for **Quality**
-    (`Quality: {score}`), **Overlap** (`Overlap: {length} bp`), and optionally
-    **Binding Sites** (`Sites: {count}`) when "Check against template" is
-    enabled.
+    (`Quality: {score}`, rounded to the nearest integer), **Overlap**
+    (`Overlap: {length} bp`), and optionally **Binding Sites**
+    (`Sites: {count}`) when "Check against template" is enabled.
   - **PCR Button**: A dedicated button on each card to run the PCR simulation
     using the template DNA sequence and this candidate primer directly.
 - **Interactive Selection**: Clicking anywhere on a primer item card selects
@@ -96,7 +103,7 @@ horizontally scrollable container:
     the nearest integer).
   - **Bar Height**: Scaled relative to the maximum quality score among all
     generated primers and current panel container height.
-  - **X-Axis Label**: Displays primer length in base pairs (e.g. `20 bp`) below
+  - **X-Axis Label**: Displays primer length in nucleotides (e.g. `20 nt`) below
     each bar.
   - **Tooltip**: Hovering over a bar displays details including truncation step
     number, primer length, and quality score.
@@ -127,10 +134,9 @@ vertical scrollable list:
     - **Binding Sites**: `Sites: {count}` (if "Check against template" is
       enabled)
     - **Melting Temperature ($T_m$)**: `Tm: {value}°C` calculated using
-      configured thermodynamic settings.
-    - **AT Pairs**: `AT Pairs: {count}`
-    - **GC Pairs**: `GC Pairs: {count}`
-    - **% AT Content**: `% AT: {percentage}%`
+      configured thermodynamic settings (shown as `Tm: N/A` when it cannot be
+      calculated).
+    - **% AT Content**: `% AT: {percentage}%`.
   - **Antiparallel Alignment Diagram**: Rendered in a monospace font displaying
     a 5-line structural alignment diagram:
     1. Top primer name

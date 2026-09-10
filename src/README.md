@@ -34,6 +34,11 @@ AmplifyP/
 │   └── windows_setup.md        # Windows development and installer guide
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration
 ├── README.md                   # Repository overview and quick start guide
+├── scripts/                    # Development and maintenance scripts
+│   ├── gen_git_sha.py          # Generates the git SHA module for frozen builds
+│   ├── setup_linux.sh          # Linux virtual environment and system dependency setup
+│   ├── update_dependencies.py  # Bumps pinned dependency versions
+│   └── update_screenshots.py   # Regenerates the GUI manual screenshots
 ├── src/
 │   ├── README.md               # This document (Development Guide)
 │   ├── main.py                 # Flet GUI application command-line entry point
@@ -147,20 +152,25 @@ prek run --all-files
 
 This runs:
 
-- **`ruff`** for linting and code formatting checks.
-- **`mypy`** for strict static type-checking.
-- **`vulture`** for detecting unused code.
+- **`pre-commit-hooks`** housekeeping checks (YAML validation, trailing
+  whitespace, end-of-file newlines, JSON formatting, and more).
 - **`yamlfmt`** for formatting configuration YAML files.
+- **`ruff`** for linting (`ruff-check`) and code formatting (`ruff-format`).
 - **`typos`** for identifying spelling errors.
+- **`vulture`** for detecting unused code.
+- **`mypy`** for strict static type-checking.
+- **`pyright`** for additional static type-checking.
+- **`pytest`** for the fast test suite (E2E and CI-only tests are excluded via
+  the default markers).
 - **`mdformat`** for consistent markdown formatting.
 
 ### Static Type Checking with Pyright
 
-Pyright runs automatically in CI when pushing to the `dev` branch. To reduce
-local execution delays, it is not included in the default `prek` pre-commit
-hooks.
+`pyright` is one of the `prek` hooks, so it runs as part of
+`prek run --all-files`. In CI, the `pytest` and `pyright` hooks are skipped by
+`prek` and `pyright` runs as a dedicated workflow step instead.
 
-You can run `pyright` manually before pushing:
+You can also run `pyright` on its own:
 
 ```bash
 pyright

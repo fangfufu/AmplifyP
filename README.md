@@ -177,7 +177,16 @@ click through the GUI. Below is some example code.
 from amplifyp.dna import DNA, Primer, DNAType
 from amplifyp.pcr import PCR
 
-template = DNA("CATGATGA...", DNAType.LINEAR, name="Template")
+# Template contains the forward primer at its 5' end and the reverse
+# complement of the reverse primer downstream, so one 92 bp amplicon
+# is predicted.
+template = DNA(
+    "CGACTGGGCAAAGGAAATCC"
+    "ATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC"
+    "CCCAAATTTGTGATACCCAC",
+    DNAType.LINEAR,
+    name="Template",
+)
 primer_fwd = Primer("CGACTGGGCAAAGGAAATCC", name="FwdPrimer")
 primer_rev = Primer("GTGGGTATCACAAATTTGGG", name="RevPrimer")
 

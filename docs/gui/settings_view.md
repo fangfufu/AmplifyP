@@ -144,9 +144,13 @@ Configures display options for pair-wise 2D primer truncation analysis in
 Designer 2D View.
 
 - **2D Results Grid colour map scheme**: Dropdown palette selector (`None`,
-  `Cool-Warm`, `Traffic Light`, `Blue-Orange` [default]). Controls the heat map
-  colour scheme for displaying amplicon scores across 2D primer length
-  combination grids.
+  `Cool-Warm`, `Traffic Light`, `Blue-Orange` [default], `Greyscale`). Controls
+  the heat map colour scheme for displaying amplicon scores across 2D primer
+  length combination grids.
+- **Show Reverse-Forward cross-dimer**: Bordered checkbox (default: unchecked).
+  When enabled, Designer 2D also evaluates and displays the Reverse-Forward
+  cross-dimer alignment (reverse primer 3' end against the forward primer) in
+  addition to the three default dimer alignments.
 
 ## 7. Diagnostics Settings
 

@@ -6,14 +6,17 @@ progressive length truncations down to specified target minimum lengths,
 evaluating all pair combinations and computing self-dimerisation and
 cross-dimerisation quality scores and overlap lengths.
 
-For each pair combination step, 4 primer dimer alignments are evaluated:
+For each pair combination step, 3 primer dimer alignments are evaluated by
+default (a 4th is optional, see below):
 
 1. **Forward Self-Dimer**: Self-dimerisation potential of the forward primer.
 2. **Reverse Self-Dimer**: Self-dimerisation potential of the reverse primer.
 3. **Forward-Reverse Cross-Dimer**: Cross-dimerisation alignment with the
    forward primer 3' end against the reverse primer.
-4. **Reverse-Forward Cross-Dimer**: Cross-dimerisation alignment with the
-   reverse primer 3' end against the forward primer.
+4. **Reverse-Forward Cross-Dimer** (optional): Cross-dimerisation alignment with
+   the reverse primer 3' end against the forward primer. Only evaluated and
+   displayed when the **Show Reverse-Forward cross-dimer** checkbox in GUI
+   Settings (Designer 2D tile) is enabled. It is disabled by default.
 
 The view features a two-panel split layout with interactive resizers, providing
 user control over split panel widths and heights.
@@ -28,24 +31,25 @@ user control over split panel widths and heights.
 - **Interactive Resizers**:
   - **Main Horizontal Divider**: Drag the vertical splitter bar (minimum 250 px
     left width) to resize the left column relative to the right cards panel.
-  - **Left Vertical Divider**: Drag the horizontal splitter bar (minimum 150 px
-    top height) to adjust the height of the top-left parameters form relative to
-    the bottom-left results grid matrix.
+  - **Left Vertical Divider**: Drag the horizontal splitter bar (minimum 110 px
+    top height, default 380 px) to adjust the height of the top-left parameters
+    form relative to the bottom-left results grid matrix.
 
 ## 2D Truncation Parameters (Top-Left Panel)
 
 The **2D Truncation Parameters** form configures the forward and reverse
-candidate DNA sequences, minimum length constraints, dimer filtering thresholds,
-and filter evaluation metric:
+candidate DNA sequences, minimum length constraints, and dimer filtering
+thresholds:
 
 - **Forward Candidate Primer Sequence**: Text field for inputting the forward
   candidate sequence. Raw sequence input is automatically cleaned to remove
   invalid characters. Must contain at least one valid base.
-- **Forward Length (nt)**: Unmodifiable text field displaying the current
-  cleaned nucleotide length of the forward candidate primer sequence.
-- **Fwd Min Length (nt)**: Minimum forward primer length integer (default:
-  `18`). The forward sequence is truncated from the 3' end base-by-base down to
-  this minimum length. Must be a positive integer greater than 0 and cannot
+- **Length (nt)**: Unmodifiable text field next to the forward sequence field
+  displaying the current cleaned nucleotide length of the forward candidate
+  primer sequence.
+- **Fwd Min Length (nt)**: Minimum forward primer length. Required field (no
+  default). The forward sequence is truncated from the 3' end base-by-base down
+  to this minimum length. Must be a positive integer greater than 0 and cannot
   exceed the forward sequence length.
 - **Reverse Candidate Primer Sequence**: Text field for inputting the reverse
   candidate sequence. Raw sequence input is automatically cleaned. Must contain
@@ -53,18 +57,20 @@ and filter evaluation metric:
 - **Rev Comp**: Outlined button directly following the reverse sequence text
   field to immediately reverse-complement the reverse candidate sequence in
   place.
-- **Reverse Length (nt)**: Unmodifiable text field displaying the current
-  cleaned nucleotide length of the reverse candidate primer sequence.
-- **Rev Min Length (nt)**: Minimum reverse primer length integer (default:
-  `18`). The reverse sequence is truncated from the 5' end base-by-base down to
-  this minimum length. Must be a positive integer greater than 0 and cannot
+- **Length (nt)**: Unmodifiable text field next to the reverse sequence field
+  displaying the current cleaned nucleotide length of the reverse candidate
+  primer sequence.
+- **Rev Min Length (nt)**: Minimum reverse primer length. Required field (no
+  default). The reverse sequence is truncated from the 5' end base-by-base down
+  to this minimum length. Must be a positive integer greater than 0 and cannot
   exceed the reverse sequence length.
-- **Max Quality**: Upper bound quality cutoff. Leave blank for unconstrained
-  quality filtering. Pair combinations with quality scores exceeding this cutoff
-  are excluded.
-- **Max Overlap (bp)**: Upper bound overlap length cutoff in base pairs. Leave
-  blank for unconstrained overlap filtering. Pair combinations with overlap
-  lengths exceeding this cutoff are excluded.
+- **Max Quality**: Upper bound quality cutoff. Non-negative integer (no
+  default). Leave blank for unconstrained quality filtering. Pair combinations
+  with quality scores exceeding this cutoff are excluded.
+- **Max Overlap (bp)**: Upper bound overlap length cutoff in base pairs.
+  Non-negative integer (no default). Leave blank for unconstrained overlap
+  filtering. Pair combinations with overlap lengths exceeding this cutoff are
+  excluded.
 - **Check against template**: Bordered tickbox enabling evaluation of candidate
   primer pairs against the template DNA sequence from the Input view. When
   enabled, predicted amplicons are computed for each candidate pair and at least
@@ -80,34 +86,42 @@ and filter evaluation metric:
 - **Analyse Button**: Positioned on the right side of the bottom row. Triggers
   validation and runs the 2D primer truncation analysis. Can also be executed by
   pressing Enter inside any text input field.
-- **Save / Load Parameters**:
+- **Save / Load / Clear All Parameters**:
   - **Save Button**: Saves the current form parameters to a YAML file using a
     file save dialog.
   - **Load Button**: Opens a file picker dialog to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
+  - **Clear All Button**: Clears all form parameters and the analysis results
+    (grid and cards).
 
 ## 2D Truncation Results Grid (Bottom-Left Panel)
 
 The **2D Truncation Results Grid** presents all valid forward-reverse primer
-truncation combinations in a colour-coded matrix grid:
+truncation combinations in a colour-coded matrix grid. While an analysis is
+running, the grid is replaced by a determinate **progress bar** labelled
+*"Analysing primer combinations…"* that fills as each forward-reverse
+combination is evaluated. The **Analyse** button changes to an **Abort** button
+during analysis; clicking **Abort** cancels the running analysis and keeps the
+results analysed so far, showing a notification: *"Analysis aborted — showing
+results analysed so far."*
 
 - **Empty / No Match State**: Displays an italicised placeholder message prior
   to running an analysis, or an error message if no truncation combinations
   match active quality and overlap filters.
 - **Grid Axes**:
   - **Columns**: Forward primer lengths sorted in descending order (e.g.
-    `24 bp`, `23 bp`, ...). Top-left header origin cell reads `Rev \ Fwd`.
+    `24 nt`, `23 nt`, ...). Top-left header origin cell reads `Rev \ Fwd`.
   - **Rows**: Reverse primer lengths sorted in descending order.
 - **Cell Representation & Quality Score**:
-  - Each cell displays the evaluated quality score rounded to the nearest
-    integer (e.g. `42`), calculated using the selected metric (**Max** or
-    **Mean**).
+  - Each cell displays the maximum dimer quality score across the evaluated
+    dimer alignments for that pair, rounded to the nearest integer (e.g. `42`).
   - **Colour Mapping & Text Contrast**: Cell background colours are assigned
     dynamically based on quality score. Text contrast colour automatically
     switches between dark and light text for optimal legibility.
   - **Colour Schemes**: Configurable via GUI Settings (under Designer 2D
-    Settings): `None`, `Cool-Warm`, `Traffic Light`, or `Blue-Orange`.
+    Settings): `None`, `Cool-Warm`, `Traffic Light`, `Blue-Orange` (default), or
+    `Greyscale`.
 - **Optimal Pair Highlighting**:
   - Cell(s) with the minimum quality score (optimal low dimerisation risk) are
     highlighted with a green border and tagged with a star
@@ -116,14 +130,14 @@ truncation combinations in a colour-coded matrix grid:
   - Clicking a grid cell highlights it with a primary border and opens or raises
     its detailed pair card in the right panel.
 - **Tooltips**:
-  - Hovering over a cell displays details including Forward length, Reverse
-    length, Max/Mean Quality, Max/Mean Overlap (bp), and Best Quality indicator
-    if applicable.
+  - Hovering over a cell displays the `★ Best Quality (Lowest Score)` marker if
+    applicable, the Forward and Reverse lengths (nt), `Max Quality`,
+    `Max Overlap` (bp), and `Amplicons: {count}` when template evaluation was
+    performed.
 - **Header Legend Badges**:
-  - Displays summary badges above the grid for active metric
-    (`Metric: Max/Mean Quality`), best quality score (e.g.
-    `★ Best Quality: 42`), and active colour scheme (e.g.
-    `Colour Map: Blue-Orange (120 - 42)`).
+  - Displays summary badges above the grid for the evaluation metric
+    (`Metric: Max Quality`), best quality score (e.g. `★ Best Quality: 42`), and
+    active colour scheme (e.g. `Colour Map: Blue-Orange (120 - 42)`).
 - **Scrollbar**: Supported with a top horizontal scrollbar for wide matrices.
 
 ## 2D Primer Pair Detail Cards (Right Panel)
@@ -156,16 +170,16 @@ list:
     - **Forward Primer & Reverse Primer Sequence Fields**: Monospace text
       fields.
     - **Melting Temperature ($T_m$)**: `Tm: {value}°C` calculated using
-      configured thermodynamic settings.
-    - **AT Pairs**: `AT Pairs: {count}`
-    - **GC Pairs**: `GC Pairs: {count}`
-    - **% AT Content**: `% AT: {percentage}%`
-  - **4 Dimer Alignment Subcontainers**: Rendered in distinct bordered boxes for
-    each of the 4 dimer alignments:
+      configured thermodynamic settings (shown as `Tm: N/A` when it cannot be
+      calculated).
+    - **% AT Content**: `% AT: {percentage}%`.
+  - **Dimer Alignment Subcontainers**: Rendered in distinct bordered boxes for
+    each evaluated dimer alignment:
     1. **Forward Self-Dimer (Fwd-Fwd)**
     2. **Reverse Self-Dimer (Rev-Rev)**
     3. **Forward-Reverse Cross-Dimer (Fwd-Rev)**
-    4. **Reverse-Forward Cross-Dimer (Rev-Fwd)**
+    4. **Reverse-Forward Cross-Dimer (Rev-Fwd)** — only when the **Show
+       Reverse-Forward cross-dimer** setting is enabled.
     - Each subcontainer displays label header, metric badges
       (`Quality: {score}`, `Overlap: {length} bp`), and an antiparallel sequence
       alignment diagram rendered in a monospace font.

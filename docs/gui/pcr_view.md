@@ -21,7 +21,7 @@ PCR amplicons on an interactive canvas.
     labels.
   - **Reverse Primers**: Rendered in **red** floating below the baseline as
     up-pointing triangles, accompanied by vertically rotated primer name labels.
-  - **Match Strength Scaling**: Triangle sizes scale dynamically between 6.0 and
+  - **Match Strength Scaling**: Triangle sizes scale dynamically between 7.0 and
     16.0 pixels proportional to primer binding match quality.
   - **Overlap De-collision**: Closely spaced primer binding sites automatically
     shift horizontally with bent leader lines connecting to their exact template
