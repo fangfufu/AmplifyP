@@ -1346,3 +1346,42 @@ def test_designer_2d_dimer_card_title_and_badges() -> None:
     # Mean Quality and Mean Overlap must NOT be present
     assert not any("Mean Quality:" in text for text in badge_texts)
     assert not any("Mean Overlap:" in text for text in badge_texts)
+
+
+def test_dismissible_2d_card_separator_setting() -> None:
+    """Test Dismissible2DCard formats boundaries using configured separator."""
+    from amplifyp.dna import DNA, DNADirection
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.designer_2d.dismissible_2d_card import (
+        Dismissible2DCard,
+    )
+    from amplifyp.primer_designer_2d import PrimerDesigner2D
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+    step = designer.get_step(0)
+
+    # Test Space separator
+    settings_space = GUISettings()
+    settings_space["dimer_sequence_separator"] = "Space (' ')"
+    card_space = Dismissible2DCard(
+        "card_sp", step, settings_space, dismiss_callback=MagicMock()
+    )
+    first_sub_space = card_space.dimer_subcontainers.controls[0]
+    first_diag_space = first_sub_space.content.controls[1].content.controls[0]
+    spans_space = "".join(span.text for span in first_diag_space.spans)
+    assert "5' " in spans_space
+    assert " 3'" in spans_space
+
+    # Test Dash separator
+    settings_dash = GUISettings()
+    settings_dash["dimer_sequence_separator"] = "Dash ('-')"
+    card_dash = Dismissible2DCard(
+        "card_ds", step, settings_dash, dismiss_callback=MagicMock()
+    )
+    first_sub_dash = card_dash.dimer_subcontainers.controls[0]
+    first_diag_dash = first_sub_dash.content.controls[1].content.controls[0]
+    spans_dash = "".join(span.text for span in first_diag_dash.spans)
+    assert "5'-" in spans_dash
+    assert "-3'" in spans_dash

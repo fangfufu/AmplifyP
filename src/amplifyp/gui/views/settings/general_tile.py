@@ -95,6 +95,16 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             on_select=self._on_colour_scheme_change,
             border_color=GUIColours.OUTLINE,
         )
+        self.set_dimer_sequence_separator = ft.Dropdown(
+            label="Dimer Card Sequence Separator",
+            options=[
+                ft.dropdown.Option("Space (' ')"),
+                ft.dropdown.Option("Dash ('-')"),
+            ],
+            width=500,
+            on_select=self.on_change_handler,
+            border_color=GUIColours.OUTLINE,
+        )
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
@@ -150,6 +160,9 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
 
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
+        self.settings_map["dimer_sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
 
         super().__init__(
             title=ft.Text(
@@ -172,6 +185,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ),
                                         self.set_font_family,
                                         self.set_colour_scheme,
+                                        self.set_dimer_sequence_separator,
                                         self._dummy_colour_deficient,
                                         ft.Divider(),
                                         ft.Text(

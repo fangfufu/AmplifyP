@@ -204,6 +204,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.general_tile.set_font_family
 
     @property
+    def set_dimer_sequence_separator(self) -> ft.Dropdown:
+        """Get the dimer sequence separator dropdown."""
+        return self.general_tile.set_dimer_sequence_separator
+
+    @property
     def set_colour_deficient(self) -> ft.Checkbox:
         """Get the colour deficient mode checkbox."""
         return self.general_tile.set_colour_deficient
@@ -362,6 +367,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
+            "dimer_sequence_separator": "Space (' ')",
             "colour_deficient": False,
             "dark_mode": "system",
             "improved_visualisation": True,

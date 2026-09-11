@@ -31,6 +31,10 @@ update checks, and settings backup file operations.
     `Light (Colour Deficient Friendly)`, `Dark (Colour Deficient Friendly)`,
     `System` [default], `System (Colour Deficient Friendly)`). Syncs dark mode
     and colour deficient mode settings.
+  - **Dimer Card Sequence Separator**: Sequence boundary spacing selector
+    (`Space (' ')` [default], `Dash ('-')`). Configures whether dimer alignment
+    cards format sequence ends with whitespace (`5' ... 3'`) or hyphens
+    (`5'-...-3'`).
 - **Autosave / Reload**:
   - **Automatically reload last template and primers on startup**: Bordered
     checkbox (default: checked). When enabled, automatically saves the active

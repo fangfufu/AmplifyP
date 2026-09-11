@@ -244,3 +244,39 @@ def test_dimer_card_self_dimer_no_names() -> None:
     settings = GUISettings()
     card = DimerCard(d, settings, show_names=False)
     assert card is not None
+
+
+def test_dimer_card_separator_setting() -> None:
+    """Test DimerCard formats boundaries using configured separator."""
+    from amplifyp.dimer import PrimerDimer
+    from amplifyp.dna import Primer
+    from amplifyp.gui.views.dimer.dimer_card import DimerCard
+
+    p1 = Primer(sequence="ATGCATGC", name="P1")
+    p2 = Primer(sequence="CGTACGTA", name="P2")
+    d = PrimerDimer(
+        primer_1=p1,
+        primer_2=p2,
+        quality=80.0,
+        overlap=8,
+        p1_pos=0,
+    )
+
+    # Test default Space separator
+    settings = GUISettings()
+    settings["dimer_sequence_separator"] = "Space (' ')"
+    card_space = DimerCard(d, settings)
+    card_space_col = card_space.content.content
+    diagram_text_space = card_space_col.controls[1].content.controls[0]
+    text_space = "".join(span.text for span in diagram_text_space.spans)
+    assert "5' CGTACGTA 3'" in text_space
+    assert "3' CGTACGTA 5'" in text_space
+
+    # Test Dash separator
+    settings["dimer_sequence_separator"] = "Dash ('-')"
+    card_dash = DimerCard(d, settings)
+    card_dash_col = card_dash.content.content
+    diagram_text_dash = card_dash_col.controls[1].content.controls[0]
+    text_dash = "".join(span.text for span in diagram_text_dash.spans)
+    assert "5'-CGTACGTA-3'" in text_dash
+    assert "3'-CGTACGTA-5'" in text_dash

@@ -81,6 +81,7 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
+            "dimer_sequence_separator": "Space (' ')",
             "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
