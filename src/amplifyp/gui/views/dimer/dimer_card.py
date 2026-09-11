@@ -84,7 +84,10 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         middle_str = self.d.binding_strength_str
 
         sep_setting = (
-            self.settings.get("dimer_sequence_separator", "Space (' ')")
+            self.settings.get(
+                "sequence_separator",
+                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            )
             if hasattr(self.settings, "get")
             else " "
         )

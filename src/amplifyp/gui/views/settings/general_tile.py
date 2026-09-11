@@ -96,16 +96,20 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             border_color=GUIColours.OUTLINE,
         )
         self.set_dimer_sequence_separator = ft.Dropdown(
-            label="Dimer Card Sequence Separator",
+            label="5'/3' Sequence Separator",
             options=[
                 ft.dropdown.Option("Space (' ')"),
                 ft.dropdown.Option("Dash ('-')"),
             ],
-            value=self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            value=self.settings.get(
+                "sequence_separator",
+                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            ),
             width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
+        self.set_sequence_separator = self.set_dimer_sequence_separator
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
@@ -162,6 +166,9 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
         self.settings_map["dimer_sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
+        self.settings_map["sequence_separator"] = (
             self.set_dimer_sequence_separator
         )
 
@@ -392,7 +399,8 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             "version_checking_frequency", "Once per Month"
         )
         self.set_dimer_sequence_separator.value = self.settings.get(
-            "dimer_sequence_separator", "Space (' ')"
+            "sequence_separator",
+            self.settings.get("dimer_sequence_separator", "Space (' ')"),
         )
 
     @property

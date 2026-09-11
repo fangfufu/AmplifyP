@@ -57,6 +57,7 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_pd_threshold is not None
     assert view.set_font_family is not None
     assert view.set_dimer_sequence_separator is not None
+    assert view.set_sequence_separator is not None
     assert view.set_dimer_sequence_separator.value == "Space (' ')"
     assert [opt.key for opt in view.set_dimer_sequence_separator.options] == [
         "Space (' ')",
