@@ -101,6 +101,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Space (' ')"),
                 ft.dropdown.Option("Dash ('-')"),
             ],
+            value=self.settings.get("dimer_sequence_separator", "Space (' ')"),
             width=500,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
@@ -389,6 +390,9 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         """Sync component with settings state."""
         self.set_version_checking_frequency.value = self.settings.get(
             "version_checking_frequency", "Once per Month"
+        )
+        self.set_dimer_sequence_separator.value = self.settings.get(
+            "dimer_sequence_separator", "Space (' ')"
         )
 
     @property
