@@ -107,8 +107,8 @@ def test_dimer_view_with_dimers() -> None:
 
     # Check that sequence indicators are present in the text spans
     text_values = "".join(span.text for span in diagram_text.spans)
-    assert "5'-" in text_values
-    assert "3'-" in text_values
+    assert "5' " in text_values
+    assert "3' " in text_values
     # Mid line should contain bond characters like '|' or ':'
     assert "|" in text_values or ":" in text_values
     # Check that the primer names are present as labels

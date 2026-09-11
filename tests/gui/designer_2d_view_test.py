@@ -1253,3 +1253,96 @@ def test_designer_2d_properties_and_branches() -> None:
         assert form.rev_dna_input.value == "GCAT"
         assert form.rev_dna_input.error is None
         mock_page.update.assert_called()
+
+
+def test_designer_2d_grid_matrix_increasing_order() -> None:
+    """Test 2D grid matrix runs increasing length in both dimensions."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = Designer2DView(mock_page, GUIInput(), settings)
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)  # length 10
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)  # length 10
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)  # lengths 8, 9, 10
+
+    view.results_grid.update_grid(designer)
+
+    # Traverse to Column with grid_rows:
+    # content_column.controls[1] -> Container -> Row -> Container -> Column
+    outer_container = view.results_grid.content_column.controls[1]
+    assert isinstance(outer_container, ft.Container)
+    inner_row = outer_container.content
+    assert isinstance(inner_row, ft.Row)
+    inner_container = inner_row.controls[0]
+    assert isinstance(inner_container, ft.Container)
+    grid_rows_column = inner_container.content
+    assert isinstance(grid_rows_column, ft.Column)
+    grid_rows = grid_rows_column.controls
+
+    # Check header row (columns: Rev \ Fwd, 8 nt, 9 nt, 10 nt)
+    header_row = grid_rows[0]
+    assert isinstance(header_row, ft.Row)
+    header_texts = [
+        cell.content.value
+        for cell in header_row.controls
+        if isinstance(cell, ft.Container) and isinstance(cell.content, ft.Text)
+    ]
+    assert header_texts == ["Rev \\ Fwd", "8 nt", "9 nt", "10 nt"]
+
+    # Check data rows (rows: 8 nt, 9 nt, 10 nt)
+    data_rows = grid_rows[1:]
+    row_headers = [
+        row.controls[0].content.value
+        for row in data_rows
+        if isinstance(row, ft.Row)
+        and isinstance(row.controls[0], ft.Container)
+        and isinstance(row.controls[0].content, ft.Text)
+    ]
+    assert row_headers == ["8 nt", "9 nt", "10 nt"]
+
+
+def test_designer_2d_dimer_card_title_and_badges() -> None:
+    """Test 2D panel title is renamed and cards omit mean metrics."""
+    from amplifyp.gui.views.designer_2d.dismissible_2d_card import (
+        Dismissible2DCard,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = Designer2DView(mock_page, GUIInput(), settings)
+
+    # Check panel title
+    assert view.right_title.value == "2D Primer Pair Dimer Cards"
+
+    fwd_dna = DNA("ATGCGTACGT", direction=DNADirection.FWD)
+    rev_dna = DNA("CGTACGATGC", direction=DNADirection.REV)
+    designer = PrimerDesigner2D(fwd_dna, 8, rev_dna, 8)
+    step = designer.get_step(0)
+
+    card = Dismissible2DCard(
+        card_id="test_card",
+        step=step,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+
+    # Check title metric badges in card header row
+    card_container = card.content
+    assert isinstance(card_container, ft.Container)
+    card_col = card_container.content
+    assert isinstance(card_col, ft.Column)
+    title_row = card_col.controls[0]
+    assert isinstance(title_row, ft.Row)
+
+    badge_texts = []
+    for ctrl in title_row.controls:
+        if isinstance(ctrl, ft.Container) and isinstance(ctrl.content, ft.Text):
+            badge_texts.append(ctrl.content.value or "")
+
+    # Max Quality and Max Overlap must be present
+    assert any("Max Quality:" in text for text in badge_texts)
+    assert any("Max Overlap:" in text for text in badge_texts)
+
+    # Mean Quality and Mean Overlap must NOT be present
+    assert not any("Mean Quality:" in text for text in badge_texts)
+    assert not any("Mean Overlap:" in text for text in badge_texts)

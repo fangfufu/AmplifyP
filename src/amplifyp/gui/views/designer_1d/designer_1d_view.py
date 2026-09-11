@@ -268,8 +268,12 @@ class PrimerDesignerView(BaseDesignerView):
         current_h = float(self.top_right_chart_container.height or 140.0)
         self.top_right_chart_container.height = max(70.0, current_h + delta_y)
         if self._cached_designer and self._cached_designer.all_dimers:
+            sorted_dimers = sorted(
+                self._cached_designer.all_dimers,
+                key=lambda d: len(d.primer_1.seq),
+            )
             self.chart_content_container.content = self._build_chart(
-                list(self._cached_designer.all_dimers)
+                sorted_dimers
             )
         try:
             if self.app_page:
@@ -396,12 +400,16 @@ class PrimerDesignerView(BaseDesignerView):
             origin_counts: Per-dimer binding-site counts, or None entries.
             mode: The truncation mode used for the design.
         """
-        # Update top-right quality bar chart
-        self.chart_content_container.content = self._build_chart(
-            list(designer.all_dimers)
-        )
+        # Sort primers from shortest to longest (increasing length)
+        dimer_data = list(zip(designer.all_dimers, origin_counts, strict=True))
+        dimer_data.sort(key=lambda item: len(item[0].primer_1.seq))
 
-        for step_idx, dimer in enumerate(designer.all_dimers):
+        sorted_dimers = [dimer for dimer, _ in dimer_data]
+
+        # Update top-right quality bar chart
+        self.chart_content_container.content = self._build_chart(sorted_dimers)
+
+        for step_idx, (dimer, origin_count) in enumerate(dimer_data):
             item_card = PrimerItemCard(
                 dimer=dimer,
                 step_index=step_idx,
@@ -409,7 +417,7 @@ class PrimerDesignerView(BaseDesignerView):
                 settings=self.settings,
                 on_select_callback=self._on_primer_selected,
                 on_run_pcr_callback=self._handle_run_pcr,
-                origin_count=origin_counts[step_idx],
+                origin_count=origin_count,
             )
             self.primer_list.controls.append(item_card)
 

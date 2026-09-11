@@ -26,8 +26,8 @@ user control over split panel widths and heights.
 - **Two-Panel Split**:
   - **Left Column**: Contains the **2D Truncation Parameters** form (top-left)
     and the **2D Truncation Results Grid** matrix (bottom-left).
-  - **Right Panel**: Contains the **2D Primer Pair Detail Cards** panel
-    displaying dismissible detail cards for selected pair combinations.
+  - **Right Panel**: Contains the **2D Primer Pair Dimer Cards** panel
+    displaying dismissible dimer cards for selected pair combinations.
 - **Interactive Resizers**:
   - **Main Horizontal Divider**: Drag the vertical splitter bar (minimum 250 px
     left width) to resize the left column relative to the right cards panel.
@@ -140,17 +140,17 @@ results analysed so far."*
     active colour scheme (e.g. `Colour Map: Blue-Orange (120 - 42)`).
 - **Scrollbar**: Supported with a top horizontal scrollbar for wide matrices.
 
-## 2D Primer Pair Detail Cards (Right Panel)
+## 2D Primer Pair Dimer Cards (Right Panel)
 
 The right panel displays detailed pair alignment cards in a vertical scrollable
 list:
 
 - **Header Controls**:
-  - **Panel Header**: Displays title **2D Primer Pair Detail Cards**.
+  - **Panel Header**: Displays title **2D Primer Pair Dimer Cards**.
   - **Clear Cards Button**: Appears when one or more cards are open. Clicking
     **Clear Cards** dismisses all open cards simultaneously.
 - **Card Selection & Positioning**:
-  - Selecting a cell in the results grid creates a dismissible detail card
+  - Selecting a cell in the results grid creates a dismissible dimer card
     positioned at the top of the right panel list.
   - If a card for that pair combination already exists in the list, it is
     automatically raised to the top of the list.
@@ -159,8 +159,7 @@ list:
     `2D Primer Pair (Forward: {fwd_len} nt, Reverse: {rev_len} nt)` alongside a
     close/dismiss button.
   - **Title Metric Badges**: Highlighted summary badges for
-    `Max Quality: {score}`, `Mean Quality: {score}`,
-    `Max Overlap: {overlap} bp`, and `Mean Overlap: {overlap} bp`. If template
+    `Max Quality: {score}` and `Max Overlap: {overlap} bp`. If template
     evaluation was performed, an `Amplicons: {count}` badge is also displayed.
   - **Run PCR Button**: Directly simulates PCR with the candidate forward and
     reverse primer pair against the template in the PCR view.

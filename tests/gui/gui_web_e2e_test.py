@@ -859,8 +859,8 @@ def test_e2e_dimer_alignment(
 
         # If sequence OCR succeeded, also run the pixel-shift check.
         if top_word is not None and bottom_word is not None:
-            top_prefix_ok = top_word[0].startswith("5'-")
-            bot_prefix_ok = bottom_word[0].startswith("3'-")
+            top_prefix_ok = top_word[0].startswith("5'")
+            bot_prefix_ok = bottom_word[0].startswith("3'")
             if top_prefix_ok and bot_prefix_ok:
                 top_left = top_word[1]
                 top_width = top_word[3]

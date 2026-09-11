@@ -52,9 +52,10 @@ class QualityBarChart:
         max_bar_h = max(10.0, container_height - 98.0)
         bar_stack_height = max_bar_h + 20.0
 
+        sorted_dimers = sorted(dimers, key=lambda d: len(d.primer_1.seq))
         bar_controls: list[ft.Control] = []
 
-        for step_idx, dimer in enumerate(dimers):
+        for step_idx, dimer in enumerate(sorted_dimers):
             primer_seq = dimer.primer_1.seq
             primer_len = len(primer_seq)
             q_val = dimer.quality

@@ -88,15 +88,7 @@ class Dismissible2DCard(DismissibleDetailCard):
                 font_size=font_size_small,
             ),
             create_badge(
-                f"Mean Quality: {round(step.mean_quality)}",
-                font_size=font_size_small,
-            ),
-            create_badge(
                 f"Max Overlap: {step.max_overlap} bp",
-                font_size=font_size_small,
-            ),
-            create_badge(
-                f"Mean Overlap: {step.mean_overlap:.1f} bp",
                 font_size=font_size_small,
             ),
         ]
@@ -244,9 +236,9 @@ class Dismissible2DCard(DismissibleDetailCard):
             seq2 = dimer.primer_2.seq
             middle_str = dimer.binding_strength_str
 
-            p2_line = f"5'-{seq2}-3'"
+            p2_line = f"5' {seq2} 3'"
             mid_line = f"{' ' * (3 + dimer.p1_pos)}{middle_str}"
-            p1_line = f"{' ' * dimer.p1_pos}3'-{seq1[::-1]}-5'"
+            p1_line = f"{' ' * dimer.p1_pos}3' {seq1[::-1]} 5'"
 
             diagram_stack = create_overlapped_sequence_view(
                 p2_line,

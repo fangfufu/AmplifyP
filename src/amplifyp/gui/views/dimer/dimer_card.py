@@ -85,9 +85,9 @@ class DimerCard(ft.Card):  # type: ignore[misc]
 
         # Build visually aligned lines.
         p2_name_line = self.d.primer_2.name if self.show_names else ""
-        p2_line = f"5'-{seq2}-3'"
+        p2_line = f"5' {seq2} 3'"
         mid_line = f"{' ' * (3 + self.d.p1_pos)}{middle_str}"
-        p1_line = f"{' ' * self.d.p1_pos}3'-{seq1[::-1]}-5'"
+        p1_line = f"{' ' * self.d.p1_pos}3' {seq1[::-1]} 5'"
         p1_pad = max(
             0, self.d.p1_pos + len(seq1) + 5 - len(self.d.primer_1.name)
         )
