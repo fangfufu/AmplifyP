@@ -76,7 +76,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
-            width=500,
+            width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -91,7 +91,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
-            width=500,
+            width=700,
             on_select=self._on_colour_scheme_change,
             border_color=GUIColours.OUTLINE,
         )
@@ -102,7 +102,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Dash ('-')"),
             ],
             value=self.settings.get("dimer_sequence_separator", "Space (' ')"),
-            width=500,
+            width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -126,7 +126,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Once per Month"),
                 ft.dropdown.Option("Disabled"),
             ],
-            width=500,
+            width=700,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -239,7 +239,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,

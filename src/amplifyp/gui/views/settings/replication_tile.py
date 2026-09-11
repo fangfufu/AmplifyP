@@ -134,7 +134,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

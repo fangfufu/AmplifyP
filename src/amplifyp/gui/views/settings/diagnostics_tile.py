@@ -58,7 +58,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             label="AmplifyP Log Level",
             options=[ft.dropdown.Option(level) for level in LOG_LEVELS],
             value=settings.get("log_level_amplifyp", "INFO"),
-            width=500,
+            width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -71,7 +71,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                 if level != "DEBUG"
             ],
             value=settings.get("log_level_flet", "INFO"),
-            width=500,
+            width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -100,7 +100,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Max Log Size (MB)",
             options=[ft.dropdown.Option(mb) for mb in mb_options],
             value=current_max_mb,
-            width=500,
+            width=700,
             disabled=True,
             border_color=GUIColours.OUTLINE,
             on_select=self.on_change_handler,
@@ -109,7 +109,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         current_path = settings.get("log_file_path", "(Default)")
         self.log_file_path = ft.Dropdown(
             label="Log File Path",
-            width=500,
+            width=700,
             on_select=self._on_log_file_path_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -162,7 +162,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
