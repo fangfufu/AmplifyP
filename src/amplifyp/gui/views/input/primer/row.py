@@ -345,7 +345,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             scheduled = False
             if page and callable(getattr(page, "run_task", None)):
                 try:
-                    page.run_task(_do_scroll)
+                    page.run_task(_do_scroll)  # pyright: ignore[reportAttributeAccessIssue]
                     scheduled = True
                 except (RuntimeError, AttributeError):
                     pass

@@ -50,15 +50,15 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
         self.settings = settings
 
-        input_button = ft.FilledButton(
+        self.input_button = ft.FilledButton(
             "Input",
             icon=ft.Icons.INPUT,
             on_click=on_switch_input,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Input",
         )
-        input_button.tooltip = "Input"
+        self.input_button.tooltip = "Input"
 
-        pcr_button = ft.FilledButton(
+        self.pcr_button = ft.FilledButton(
             "PCR",
             ref=pcr_button_ref,
             on_click=on_pcr_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
@@ -66,9 +66,9 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
         )
-        pcr_button.tooltip = "PCR"
+        self.pcr_button.tooltip = "PCR"
 
-        dimers_button = ft.FilledButton(
+        self.dimers_button = ft.FilledButton(
             "Primer Dimers",
             ref=dimers_button_ref,
             on_click=on_dimers_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
@@ -76,39 +76,67 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
         )
-        dimers_button.tooltip = "Primer Dimers"
+        self.dimers_button.tooltip = "Primer Dimers"
 
-        designer_button = ft.FilledButton(
+        self.designer_button = ft.FilledButton(
             "Designer 1D",
             icon=ft.Icons.TUNE,
             on_click=on_switch_designer,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="1D Primer Designer",
         )
-        designer_button.tooltip = "1D Primer Designer"
+        self.designer_button.tooltip = "1D Primer Designer"
 
-        designer_2d_button = ft.FilledButton(
+        self.designer_2d_button = ft.FilledButton(
             "Designer 2D",
             icon=ft.Icons.GRID_ON,
             on_click=on_switch_designer_2d,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="2D Primer Designer",
         )
-        designer_2d_button.tooltip = "2D Primer Designer"
+        self.designer_2d_button.tooltip = "2D Primer Designer"
 
-        settings_button = ft.FilledButton(
+        self.settings_button = ft.FilledButton(
             "Settings",
             icon=ft.Icons.SETTINGS,
             on_click=on_switch_settings,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="Settings",
         )
-        settings_button.tooltip = "Settings"
+        self.settings_button.tooltip = "Settings"
 
-        about_button = ft.FilledButton(
+        self.about_button = ft.FilledButton(
             "About",
             icon=ft.Icons.INFO,
             on_click=on_switch_about,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             tooltip="About",
         )
-        about_button.tooltip = "About"
+        self.about_button.tooltip = "About"
+
+        self.nav_buttons: list[ft.FilledButton] = [
+            self.input_button,
+            self.pcr_button,
+            self.dimers_button,
+            self.designer_button,
+            self.designer_2d_button,
+            self.settings_button,
+            self.about_button,
+        ]
+        self._active_button: ft.FilledButton = self.input_button
+        self._view_to_button: dict[Any, ft.FilledButton] = {}
+        self._name_to_button: dict[str, ft.FilledButton] = {
+            "input": self.input_button,
+            "pcr": self.pcr_button,
+            "dimer": self.dimers_button,
+            "dimers": self.dimers_button,
+            "primer_dimers": self.dimers_button,
+            "primer dimers": self.dimers_button,
+            "designer": self.designer_button,
+            "designer_1d": self.designer_button,
+            "designer 1d": self.designer_button,
+            "designer_2d": self.designer_2d_button,
+            "designer 2d": self.designer_2d_button,
+            "settings": self.settings_button,
+            "about": self.about_button,
+        }
+        self.set_active_button(self.input_button)
 
         self.save_btn_control = ft.FilledButton(
             "Save all",
@@ -138,13 +166,13 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         )
 
         self.appbar_actions = [
-            input_button,
-            pcr_button,
-            dimers_button,
-            designer_button,
-            designer_2d_button,
-            settings_button,
-            about_button,
+            self.input_button,
+            self.pcr_button,
+            self.dimers_button,
+            self.designer_button,
+            self.designer_2d_button,
+            self.settings_button,
+            self.about_button,
             self.clear_btn_control,
             self.save_btn_control,
             self.load_btn_control,
@@ -185,13 +213,13 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                     [
                         ft.Row(
                             [
-                                input_button,
-                                pcr_button,
-                                dimers_button,
-                                designer_button,
-                                designer_2d_button,
-                                settings_button,
-                                about_button,
+                                self.input_button,
+                                self.pcr_button,
+                                self.dimers_button,
+                                self.designer_button,
+                                self.designer_2d_button,
+                                self.settings_button,
+                                self.about_button,
                             ],
                             spacing=10,
                             tight=True,
@@ -214,6 +242,66 @@ class AppHeader(ft.Column):  # type: ignore[misc]
                 ),
             ),
         ]
+
+    @property
+    def active_style(self) -> ft.ButtonStyle:
+        """Create button style for the active view navigation button."""
+        return ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DEFAULT: GUIColours.NAV_ACTIVE_BG,
+                ft.ControlState.DISABLED: GUIColours.DISABLED_BG,
+            },
+            color={
+                ft.ControlState.DEFAULT: GUIColours.NAV_ACTIVE_FG,
+                ft.ControlState.DISABLED: GUIColours.DISABLED_FG,
+            },
+        )
+
+    @property
+    def inactive_style(self) -> ft.ButtonStyle:
+        """Create button style for inactive view navigation buttons."""
+        return ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DEFAULT: GUIColours.NAV_INACTIVE_BG,
+                ft.ControlState.DISABLED: GUIColours.DISABLED_BG,
+            },
+            color={
+                ft.ControlState.DEFAULT: GUIColours.NAV_INACTIVE_FG,
+                ft.ControlState.DISABLED: GUIColours.DISABLED_FG,
+            },
+        )
+
+    @property
+    def active_button(self) -> ft.FilledButton:
+        """Get the currently highlighted navigation button."""
+        return self._active_button
+
+    def set_active_button(self, target_button: ft.FilledButton) -> None:
+        """Set the active navigation button and apply highlighting."""
+        self._active_button = target_button
+        active_style = self.active_style
+        inactive_style = self.inactive_style
+        for btn in self.nav_buttons:
+            btn.style = active_style if btn is target_button else inactive_style
+
+    def register_view_buttons(
+        self, view_map: dict[Any, ft.FilledButton]
+    ) -> None:
+        """Register mapping from view controls to navigation buttons."""
+        self._view_to_button.update(view_map)
+
+    def set_active_view(self, view: Any) -> None:
+        """Update active view highlight based on view control or identifier."""
+        target_btn: ft.FilledButton | None = None
+        if view in self.nav_buttons:
+            target_btn = view
+        elif view in self._view_to_button:
+            target_btn = self._view_to_button[view]
+        elif isinstance(view, str):
+            target_btn = self._name_to_button.get(view.lower().strip())
+
+        if target_btn is not None:
+            self.set_active_button(target_btn)
 
     def set_update_available(self, new_version: str) -> None:
         """Update the version text to show that a new version is available."""

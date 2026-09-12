@@ -57,6 +57,14 @@ class ThemeManager:
             and self.controller.header_container
         ):
             self.controller.header_container.bgcolor = GUIColours.SURFACE
+        if (
+            hasattr(self.controller, "header")
+            and self.controller.header is not None
+            and hasattr(self.controller.header, "set_active_button")
+        ):
+            self.controller.header.set_active_button(
+                self.controller.header.active_button
+            )
 
     def on_platform_brightness_change(
         self, _e: ft.ControlEvent | None = None

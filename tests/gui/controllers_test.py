@@ -55,40 +55,93 @@ def test_navigation_manager_flow() -> None:
 
     assert mock_ctrl.header is not None
     assert mock_ctrl.header_container is not None
+    assert mock_ctrl.header.active_button == mock_ctrl.header.input_button
 
     # Switch to dirty input_view
     nav_manager.switch_view(MagicMock(), mock_ctrl.input_view)
     assert mock_ctrl.input_view_dirty is False
     mock_ctrl.input_view.update_ui.assert_called()
     assert mock_ctrl.page.on_resize == mock_ctrl.input_view._handle_resize
+    assert mock_ctrl.header.active_button == mock_ctrl.header.input_button
 
     # Switch to pcr_view
     nav_manager.switch_view(MagicMock(), mock_ctrl.pcr_view)
     assert mock_ctrl.page.on_resize == mock_ctrl.pcr_view._handle_resize
+    assert mock_ctrl.header.active_button == mock_ctrl.header.pcr_button
 
     # Switch to settings_view
     nav_manager.switch_view(MagicMock(), mock_ctrl.settings_view)
     assert mock_ctrl.page.on_resize is None
+    assert mock_ctrl.header.active_button == mock_ctrl.header.settings_button
 
     # on_pcr_click when run_pcr returns False -> reverts to input_view
     mock_ctrl.pcr_view.run_pcr.return_value = False
     nav_manager.on_pcr_click(MagicMock())
     assert mock_ctrl.view_container.content == mock_ctrl.input_view
+    assert mock_ctrl.header.active_button == mock_ctrl.header.input_button
 
     # on_pcr_click when run_pcr returns True -> stays on pcr_view
     mock_ctrl.pcr_view.run_pcr.return_value = True
     nav_manager.on_pcr_click(MagicMock())
     assert mock_ctrl.view_container.content == mock_ctrl.pcr_view
+    assert mock_ctrl.header.active_button == mock_ctrl.header.pcr_button
 
     # on_dimers_click when run_analysis returns False -> reverts to input_view
     mock_ctrl.dimers_view.run_analysis.return_value = False
     nav_manager.on_dimers_click(MagicMock())
     assert mock_ctrl.view_container.content == mock_ctrl.input_view
+    assert mock_ctrl.header.active_button == mock_ctrl.header.input_button
 
     # on_dimers_click when run_analysis returns True -> stays on dimers_view
     mock_ctrl.dimers_view.run_analysis.return_value = True
     nav_manager.on_dimers_click(MagicMock())
     assert mock_ctrl.view_container.content == mock_ctrl.dimers_view
+    assert mock_ctrl.header.active_button == mock_ctrl.header.dimers_button
+
+
+def test_app_header_active_view_highlighting() -> None:
+    """Test AppHeader active navigation button highlighting."""
+    from amplifyp.gui.views.header import AppHeader
+
+    settings = GUISettings()
+    pcr_ref = ft.Ref[ft.FilledButton]()
+    dimers_ref = ft.Ref[ft.FilledButton]()
+    header = AppHeader(
+        settings=settings,
+        on_switch_input=MagicMock(),
+        on_switch_settings=MagicMock(),
+        on_switch_about=MagicMock(),
+        on_pcr_click=MagicMock(),
+        on_dimers_click=MagicMock(),
+        on_save=MagicMock(),
+        on_load=MagicMock(),
+        pcr_button_ref=pcr_ref,
+        dimers_button_ref=dimers_ref,
+    )
+
+    # Initially, input_button is active
+    assert header.active_button == header.input_button
+    assert header.input_button.style == header.active_style
+    assert header.settings_button.style == header.inactive_style
+
+    # Switch by button
+    header.set_active_button(header.settings_button)
+    assert header.active_button == header.settings_button
+    assert header.settings_button.style == header.active_style
+    assert header.input_button.style == header.inactive_style
+
+    # Switch by name string
+    header.set_active_view("designer_2d")
+    assert header.active_button == header.designer_2d_button
+
+    header.set_active_view("about")
+    assert header.active_button == header.about_button
+
+    # Switch by registered view object
+    mock_custom_view = MagicMock()
+    header.register_view_buttons({mock_custom_view: header.designer_button})
+    header.set_active_view(mock_custom_view)
+    assert header.active_button == header.designer_button
 
 
 def test_theme_manager_and_brightness_changes() -> None:
