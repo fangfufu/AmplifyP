@@ -525,3 +525,63 @@ def test_primer_designer_2d_on_progress_skipped_branches() -> None:
     )
     assert len(designer_max_amp) == 0
     assert len(progress_calls) == 1
+
+
+def test_primer_designer_2d_circular_vs_linear_template() -> None:
+    """Test that circular vs linear template affects amplicons and results."""
+    from amplifyp.dna import DNAType
+
+    fwd_seq = "ATGCATGCAT"
+    rev_seq = "CGTACGTACG"
+    # Template with reverse binding site before forward binding site
+    template_str = "A" * 10 + rev_seq + "C" * 20 + fwd_seq + "T" * 10
+
+    t_linear = DNA(template_str, dna_type=DNAType.LINEAR)
+    t_circ = DNA(template_str, dna_type=DNAType.CIRCULAR)
+
+    # Without max_amplicon_count filter: circular yields more amplicons
+    # due to origin wraparound
+    des_linear = PrimerDesigner2D(
+        fwd_dna=DNA(fwd_seq),
+        fwd_min_length=10,
+        rev_dna=DNA(rev_seq),
+        rev_min_length=10,
+        template=t_linear,
+    )
+    des_circ = PrimerDesigner2D(
+        fwd_dna=DNA(fwd_seq),
+        fwd_min_length=10,
+        rev_dna=DNA(rev_seq),
+        rev_min_length=10,
+        template=t_circ,
+    )
+
+    assert len(des_linear.all_steps) == 1
+    assert len(des_circ.all_steps) == 1
+    assert des_linear.all_steps[0].amplicon_count == 4
+    assert des_circ.all_steps[0].amplicon_count == 16
+    assert (
+        des_linear.all_steps[0].amplicon_count
+        != des_circ.all_steps[0].amplicon_count
+    )
+
+    # With max_amplicon_count=5: linear step is kept, circular is filtered
+    des_linear_filtered = PrimerDesigner2D(
+        fwd_dna=DNA(fwd_seq),
+        fwd_min_length=10,
+        rev_dna=DNA(rev_seq),
+        rev_min_length=10,
+        template=t_linear,
+        max_amplicon_count=5,
+    )
+    des_circ_filtered = PrimerDesigner2D(
+        fwd_dna=DNA(fwd_seq),
+        fwd_min_length=10,
+        rev_dna=DNA(rev_seq),
+        rev_min_length=10,
+        template=t_circ,
+        max_amplicon_count=5,
+    )
+
+    assert len(des_linear_filtered.all_steps) == 1
+    assert len(des_circ_filtered.all_steps) == 0

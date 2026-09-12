@@ -1385,3 +1385,59 @@ def test_dismissible_2d_card_separator_setting() -> None:
     spans_dash = "".join(span.text for span in first_diag_dash.spans)
     assert "5'-" in spans_dash
     assert "-3'" in spans_dash
+
+
+def test_designer_2d_view_template_circular_affects_results() -> None:
+    """Test that input_data.template_circular changes 2D designer results."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+
+    fwd_seq = "ATGCATGCAT"
+    rev_seq = "CGTACGTACG"
+    template_str = "A" * 10 + rev_seq + "C" * 20 + fwd_seq + "T" * 10
+
+    # 1. Linear template (template_circular = False) with max_amplicons = 5
+    input_linear = GUIInput()
+    input_linear.template = template_str
+    input_linear.template_circular = False
+
+    view_linear = Designer2DView(mock_page, input_linear, GUISettings())
+    view_linear.form.fwd_dna_input.value = fwd_seq
+    view_linear.form.fwd_min_len_input.value = "10"
+    view_linear.form.rev_dna_input.value = rev_seq
+    view_linear.form.rev_min_len_input.value = "10"
+    view_linear.form.filter_dna_checkbox.value = True
+    view_linear.form.max_amplicons_input.value = "5"
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view_linear._run_designer_event()
+
+    assert view_linear._cached_designer is not None
+    assert len(view_linear._cached_designer.all_steps) == 1
+    assert view_linear._cached_designer.all_steps[0].amplicon_count == 4
+
+    # 2. Circular template (template_circular = True) with max_amplicons = 5
+    input_circ = GUIInput()
+    input_circ.template = template_str
+    input_circ.template_circular = True
+
+    view_circ = Designer2DView(mock_page, input_circ, GUISettings())
+    view_circ.form.fwd_dna_input.value = fwd_seq
+    view_circ.form.fwd_min_len_input.value = "10"
+    view_circ.form.rev_dna_input.value = rev_seq
+    view_circ.form.rev_min_len_input.value = "10"
+    view_circ.form.filter_dna_checkbox.value = True
+    view_circ.form.max_amplicons_input.value = "5"
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view_circ._run_designer_event()
+
+    assert view_circ._cached_designer is not None
+    # 16 amplicons on circular template > max_amplicons of 5 -> filtered out
+    assert len(view_circ._cached_designer.all_steps) == 0
