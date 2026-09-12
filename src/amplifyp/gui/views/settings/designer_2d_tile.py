@@ -70,7 +70,7 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Designer 2D Settings",
+                "Designer 2D",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

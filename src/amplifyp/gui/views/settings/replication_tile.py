@@ -104,7 +104,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "PCR Settings",
+                "PCR",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

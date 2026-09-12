@@ -250,11 +250,11 @@ def test_e2e_primer_lifecycle_and_state(
     page.get_by_role("button", name="Settings").filter(
         visible=True
     ).first.click(force=True)
-    page.get_by_role("button", name="General Settings").filter(
+    page.get_by_role("button", name="General").filter(
         visible=True
     ).first.wait_for(state="visible", timeout=15000)
     primer_list_settings_btn = page.get_by_role(
-        "button", name="Primer List Settings"
+        "button", name="Primer List"
     ).first
     primer_list_settings_btn.wait_for(state="attached", timeout=15000)
     primer_list_settings_btn.scroll_into_view_if_needed()
@@ -546,30 +546,30 @@ def test_e2e_settings_backup(
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
     def expand_backup_tile() -> None:
-        """Click the General Settings tile header to expand it.
+        """Click the General tile header to expand it.
 
         Debug findings:
-        - General Settings tile header is role='button' with textContent
-          'General Settings'.
+        - General tile header is role='button' with textContent
+          'General'.
         - After clicking, the header merges into a group.
         - The 2 expanded buttons appear as role='button' with
           textContent 'Save Settings' and 'Load Settings'.
         - We locate them by name (textContent) via get_by_role.
         """
         backup_btn = (
-            page.get_by_role("button", name="General Settings")
+            page.get_by_role("button", name="General")
             .filter(visible=True)
             .first
         )
         backup_btn.wait_for(state="attached", timeout=15000)
-        print("  Clicking General Settings tile to expand...")
+        print("  Clicking General tile to expand...")
         backup_btn.click(force=True)
         # Wait for 'Save Settings' button to appear
         page.get_by_role("button", name="Save Settings").wait_for(
             state="attached", timeout=10000
         )
         time.sleep(1.5)
-        print("  General Settings tile expanded.")
+        print("  General tile expanded.")
 
     def navigate_to_settings() -> None:
         """Click the Settings tab and wait for expansion tiles to load."""
@@ -577,8 +577,8 @@ def test_e2e_settings_backup(
         page.get_by_role("button", name="Settings").filter(
             visible=True
         ).first.click(force=True)
-        # General Settings tile header must be visible before proceeding
-        page.get_by_role("button", name="General Settings").filter(
+        # General tile header must be visible before proceeding
+        page.get_by_role("button", name="General").filter(
             visible=True
         ).first.wait_for(state="visible", timeout=15000)
 

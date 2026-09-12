@@ -88,7 +88,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer Dimer Settings",
+                "Primer Dimer",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

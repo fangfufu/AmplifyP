@@ -51,6 +51,15 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.controls[0] == view.general_tile
     assert view.controls[1] == view.appearance_tile
 
+    assert view.general_tile.title.value == "General"
+    assert view.appearance_tile.title.value == "Appearance"
+    assert view.primer_list_tile.title.value == "Primer List"
+    assert view.tm_tile.title.value == "Primer Melting Temperature (Tm)"
+    assert view.replication_tile.title.value == "PCR"
+    assert view.dimer_tile.title.value == "Primer Dimer"
+    assert view.designer_2d_tile.title.value == "Designer 2D"
+    assert view.diagnostics_tile.title.value == "Diagnostics"
+
     assert view.set_primability_cutoff is not None
     assert view.set_stability_cutoff is not None
     assert view.set_amp4_compat is not None

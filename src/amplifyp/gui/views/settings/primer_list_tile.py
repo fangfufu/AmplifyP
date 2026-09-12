@@ -114,7 +114,7 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer List Settings",
+                "Primer List",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

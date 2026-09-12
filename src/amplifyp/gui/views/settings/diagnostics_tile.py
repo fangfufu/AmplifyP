@@ -147,7 +147,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Diagnostics Settings",
+                "Diagnostics",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),

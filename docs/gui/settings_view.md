@@ -7,19 +7,19 @@ designer colour mapping, logging diagnostics, and local setting persistence.
 
 Settings are organised into eight collapsible expansion tiles:
 
-1. **General Settings**
-2. **Appearance Settings**
-3. **Primer List Settings**
-4. **Primer Melting Temperature (Tm) Settings**
-5. **PCR Settings**
-6. **Primer Dimer Settings**
-7. **Designer 2D Settings**
-8. **Diagnostics Settings**
+1. **General**
+2. **Appearance**
+3. **Primer List**
+4. **Primer Melting Temperature (Tm)**
+5. **PCR**
+6. **Primer Dimer**
+7. **Designer 2D**
+8. **Diagnostics**
 
 A **Reset to Default** button at the bottom restores all configuration values to
 their factory defaults.
 
-## 1. General Settings
+## 1. General
 
 Configures template auto-loading on startup, software update checks, and
 settings backup file operations.
@@ -43,7 +43,7 @@ settings backup file operations.
     configuration file and immediately apply theme and parameter changes across
     the UI.
 
-## 2. Appearance Settings
+## 2. Appearance
 
 Configures application theme, typeface, and sequence alignment formatting across
 the UI.
@@ -60,7 +60,7 @@ the UI.
   dimer alignment cards and PCR context cards format with whitespace
   (`5' ... 3'`) or hyphens (`5'-...-3'`).
 
-## 3. Primer List Settings
+## 3. Primer List
 
 Controls table layout, duplicate warnings, temperature displays, and automatic
 activation behavior within the [Input View](input_view.md) primer list.
@@ -86,7 +86,7 @@ activation behavior within the [Input View](input_view.md) primer list.
   [default], `Cool-Warm`, `Traffic Light`) for background colour-coding of $T_m$
   values in the primer list.
 
-## 4. Primer Melting Temperature (Tm) Settings
+## 4. Primer Melting Temperature (Tm)
 
 Configures thermodynamic conditions and calculation methods used for computing
 primer melting temperatures ($T_m$).
@@ -108,7 +108,7 @@ primer melting temperatures ($T_m$).
     in mM (default: `1.5`).
   - **dNTP Conc (mM)**: Concentration of dNTPs in mM (default: `0.0`).
 
-## 5. PCR Settings
+## 5. PCR
 
 Configures pairwise nucleotide scoring weights, primability, stability
 thresholds, and compatibility modes for PCR replication calculations.
@@ -131,7 +131,7 @@ thresholds, and compatibility modes for PCR replication calculations.
     checked). Enables enhanced visual match diagrams and bond strength symbols
     in PCR view cards.
 
-## 6. Primer Dimer Settings
+## 6. Primer Dimer
 
 Configures scoring and thresholds for evaluating primer self-dimers and
 cross-dimers in the Primer Dimers View and info panels.
@@ -148,7 +148,7 @@ cross-dimers in the Primer Dimers View and info panels.
     interaction to be reported in the [Primer Dimers View](primer_dimer_view.md)
     (default: `60.0`).
 
-## 7. Designer 2D Settings
+## 7. Designer 2D
 
 Configures display options for pair-wise 2D primer truncation analysis in
 Designer 2D View.
@@ -162,7 +162,7 @@ Designer 2D View.
   cross-dimer alignment (reverse primer 3' end against the forward primer) in
   addition to the three default dimer alignments.
 
-## 8. Diagnostics Settings
+## 8. Diagnostics
 
 Configures application logging, log file output, log level thresholds, and log
 file rotation parameters.

@@ -98,7 +98,7 @@ class AppearanceTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Appearance Settings",
+                "Appearance",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
