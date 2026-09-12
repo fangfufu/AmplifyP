@@ -137,3 +137,18 @@ def test_cli_web(monkeypatch: pytest.MonkeyPatch) -> None:
     kwargs = mock_run.call_args.kwargs
     assert kwargs["view"] == flet.AppView.WEB_BROWSER
     assert kwargs["port"] == 34521
+
+
+def test_cli_web_custom_port(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test cli() with --web and custom --port flag."""
+    import main as main_module
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(flet, "run", mock_run)
+
+    main_module.cli(["--web", "--port", "43425"])
+
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["view"] == flet.AppView.WEB_BROWSER
+    assert kwargs["port"] == 43425

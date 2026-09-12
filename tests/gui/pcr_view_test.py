@@ -925,3 +925,82 @@ def test_pcr_view_all_remaining_branches() -> None:
         c_width=600.0,
         amplicons=None,
     )
+
+
+def test_drawn_primer_direction_arrows() -> None:
+    """Test that forward primers point right and reverse primers point left."""
+    import flet.canvas as cv
+
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+
+    # Forward primer test
+    canvas_fwd = cv.Canvas(shapes=[])
+    stack_fwd = ft.Stack()
+    drawn_fwd = DrawnPrimer(
+        name="fwd1",
+        index=100,
+        conf=MagicMock(direction=DNADirection.FWD),
+        var=DirIdx(direction=DNADirection.FWD, index=100),
+        S=10.0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    drawn_fwd.draw(canvas_fwd, stack_fwd)
+
+    assert len(canvas_fwd.shapes) == 2
+    fwd_line = canvas_fwd.shapes[0]
+    fwd_triangle = canvas_fwd.shapes[1]
+
+    # Leader line terminates at v_target - 25 - S / 2
+    assert fwd_line.elements[-1].y == 100.0 - 25 - 5.0
+
+    # Triangle: tip points right (tip.x > base.x)
+    tip_elem = fwd_triangle.elements[0]
+    base_elem1 = fwd_triangle.elements[1]
+    base_elem2 = fwd_triangle.elements[2]
+    assert tip_elem.x > base_elem1.x
+    assert tip_elem.x == drawn_fwd.x_pos + 5.0
+    assert base_elem1.x == drawn_fwd.x_pos - 5.0
+    assert base_elem2.x == drawn_fwd.x_pos - 5.0
+
+    # Reverse primer test
+    canvas_rev = cv.Canvas(shapes=[])
+    stack_rev = ft.Stack()
+    drawn_rev = DrawnPrimer(
+        name="rev1",
+        index=200,
+        conf=MagicMock(direction=DNADirection.REV),
+        var=DirIdx(direction=DNADirection.REV, index=200),
+        S=10.0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    drawn_rev.draw(canvas_rev, stack_rev)
+
+    assert len(canvas_rev.shapes) == 2
+    rev_line = canvas_rev.shapes[0]
+    rev_triangle = canvas_rev.shapes[1]
+
+    # Leader line terminates at v_target + 25 + S / 2
+    assert rev_line.elements[-1].y == 100.0 + 25 + 5.0
+
+    # Triangle: tip points left (tip.x < base.x)
+    rev_tip_elem = rev_triangle.elements[0]
+    rev_base_elem1 = rev_triangle.elements[1]
+    rev_base_elem2 = rev_triangle.elements[2]
+    assert rev_tip_elem.x < rev_base_elem1.x
+    assert rev_tip_elem.x == drawn_rev.x_pos - 5.0
+    assert rev_base_elem1.x == drawn_rev.x_pos + 5.0
+    assert rev_base_elem2.x == drawn_rev.x_pos + 5.0

@@ -93,6 +93,12 @@ def cli(args_list: list[str] | None = None) -> None:
         action="store_true",
         help="Launch in web browser mode",
     )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=34521,
+        help="Port number for web browser mode (default: 34521)",
+    )
     parsed_args = parser.parse_args(args_list)
     if parsed_args.auto_close and not parsed_args.state:
         parser.error("--auto-close requires --state")
@@ -114,7 +120,7 @@ def cli(args_list: list[str] | None = None) -> None:
         view_mode = (
             ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
         )
-        port_number = 34521 if parsed_args.web else 0
+        port_number = parsed_args.port if parsed_args.web else 0
 
     ft.run(  # pyright: ignore[reportUnknownMemberType]
         main,
