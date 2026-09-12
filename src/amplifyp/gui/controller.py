@@ -99,9 +99,11 @@ class GUIController:
         self.header_container: ft.Container = cast(ft.Container, None)
 
         # UI Control placeholders
-        self.save_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
-        self.clear_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
-        self.load_btn_control: ft.FilledButton = cast(ft.FilledButton, None)
+        self.save_btn_control: ft.OutlinedButton = cast(ft.OutlinedButton, None)
+        self.clear_btn_control: ft.OutlinedButton = cast(
+            ft.OutlinedButton, None
+        )
+        self.load_btn_control: ft.OutlinedButton = cast(ft.OutlinedButton, None)
         self.header_divider: ft.Container = cast(ft.Container, None)
         self.notification_helper: NotificationHelper = cast(
             NotificationHelper, None

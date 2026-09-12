@@ -56,6 +56,9 @@ def test_navigation_manager_flow() -> None:
     assert mock_ctrl.header is not None
     assert mock_ctrl.header_container is not None
     assert mock_ctrl.header.active_button == mock_ctrl.header.input_button
+    assert isinstance(mock_ctrl.save_btn_control, ft.OutlinedButton)
+    assert isinstance(mock_ctrl.clear_btn_control, ft.OutlinedButton)
+    assert isinstance(mock_ctrl.load_btn_control, ft.OutlinedButton)
 
     # Switch to dirty input_view
     nav_manager.switch_view(MagicMock(), mock_ctrl.input_view)

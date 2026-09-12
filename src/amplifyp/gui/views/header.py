@@ -138,21 +138,21 @@ class AppHeader(ft.Column):  # type: ignore[misc]
         }
         self.set_active_button(self.input_button)
 
-        self.save_btn_control = ft.FilledButton(
+        self.save_btn_control = ft.OutlinedButton(
             "Save all",
             icon=ft.Icons.SAVE,
             tooltip="Save all",
             on_click=on_save,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
-        self.clear_btn_control = ft.FilledButton(
+        self.clear_btn_control = ft.OutlinedButton(
             "Clear all",
             icon=ft.Icons.DELETE,
             tooltip="Clear all",
             on_click=on_clear_all,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
 
-        self.load_btn_control = ft.FilledButton(
+        self.load_btn_control = ft.OutlinedButton(
             "Load all",
             icon=ft.Icons.UPLOAD_FILE,
             tooltip="Load all",
