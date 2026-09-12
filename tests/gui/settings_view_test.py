@@ -25,6 +25,7 @@ import yaml
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings import SettingsView
+from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
 
@@ -44,7 +45,12 @@ def test_settings_view_properties_and_methods() -> None:
         on_reset=mock_on_reset,
     )
 
-    # 1. Properties
+    # 1. Properties and tile order
+    assert hasattr(view, "appearance_tile")
+    assert hasattr(view, "general_tile")
+    assert view.controls[0] == view.general_tile
+    assert view.controls[1] == view.appearance_tile
+
     assert view.set_primability_cutoff is not None
     assert view.set_stability_cutoff is not None
     assert view.set_amp4_compat is not None
@@ -56,6 +62,7 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_pd_min_overlap is not None
     assert view.set_pd_threshold is not None
     assert view.set_font_family is not None
+    assert view.set_colour_scheme is not None
     assert view.set_dimer_sequence_separator is not None
     assert view.set_sequence_separator is not None
     assert view.set_dimer_sequence_separator.value == "Space (' ')"
@@ -367,3 +374,50 @@ def test_general_tile_all_branches() -> None:
         assert settings["colour_deficient"] == expected_def
         tile.update_colour_scheme_dropdown()
         assert tile.set_colour_scheme.value == scheme_val
+
+
+def test_appearance_tile_all_branches() -> None:
+    """Test all branches of AppearanceTile."""
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    tile = AppearanceTile(
+        settings=settings,
+        settings_map={},
+        on_change_handler=mock_on_change,
+        header_size=18,
+        font_size_default=14,
+    )
+
+    # 1. Properties
+    assert tile.set_font_family is not None
+    assert tile.set_colour_scheme is not None
+    assert tile.set_colour_deficient is not None
+    assert tile.set_dimer_sequence_separator is not None
+    assert tile.set_sequence_separator is not None
+    assert tile.set_dimer_sequence_separator.value == "Space (' ')"
+
+    # 2. Colour scheme dropdown and syncing (all 6 branches)
+    schemes = [
+        ("Dark", True, False),
+        ("Dark (Colour Deficient Friendly)", True, True),
+        ("Light (Colour Deficient Friendly)", False, True),
+        ("System", "system", False),
+        ("System (Colour Deficient Friendly)", "system", True),
+        ("Light", False, False),
+    ]
+    for scheme_val, expected_dark, expected_def in schemes:
+        tile.set_colour_scheme.value = scheme_val
+        tile._on_colour_scheme_change(MagicMock())
+        assert settings["dark_mode"] == expected_dark
+        assert settings["colour_deficient"] == expected_def
+        tile.update_colour_scheme_dropdown()
+        assert tile.set_colour_scheme.value == scheme_val
+        assert mock_on_change.called
+
+    # 3. update_ui
+    settings["sequence_separator"] = "Dash ('-')"
+    settings["dark_mode"] = True
+    settings["colour_deficient"] = False
+    tile.update_ui()
+    assert tile.set_dimer_sequence_separator.value == "Dash ('-')"
+    assert tile.set_colour_scheme.value == "Dark"

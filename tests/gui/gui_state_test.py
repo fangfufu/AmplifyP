@@ -573,9 +573,10 @@ def test_general_settings_auto_reload() -> None:
     settings = GUISettings()
     assert settings["auto_reload_on_startup"] is True
 
-    # 2. Verify SettingsView includes GeneralTile
+    # 2. Verify SettingsView includes GeneralTile and AppearanceTile
     settings_view = SettingsView(mock_page)
     assert hasattr(settings_view, "general_tile")
+    assert hasattr(settings_view, "appearance_tile")
     assert settings_view.set_auto_reload_on_startup.value is True
 
     # Toggle checkbox
