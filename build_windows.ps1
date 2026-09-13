@@ -8,9 +8,13 @@ if ($null -eq $env:VIRTUAL_ENV -and (Test-Path ".venv")) {
     . .venv\Scripts\Activate.ps1
 }
 
-# Disable rich output/animations under CI
-if ($env:CI -eq "true") {
-    $env:FLET_CLI_NO_RICH_OUTPUT = "1"
+# Disable rich output and skip Flutter Doctor Android toolchain checks
+$env:FLET_CLI_NO_RICH_OUTPUT = "1"
+$env:FLET_CLI_SKIP_FLUTTER_DOCTOR = "1"
+
+# Disable Android toolchain requirement in Flutter config if flutter command is available
+if (Get-Command "flutter" -ErrorAction SilentlyContinue) {
+    flutter config --no-enable-android | Out-Null
 }
 
 # Determine the version

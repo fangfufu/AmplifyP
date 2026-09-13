@@ -8,9 +8,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
-# Disable rich output/animations under CI
+# Disable rich output and skip Flutter Doctor Android toolchain checks
+export FLET_CLI_SKIP_FLUTTER_DOCTOR=1
 if [[ "${CI:-}" = "true" ]]; then
   export FLET_CLI_NO_RICH_OUTPUT=1
+fi
+
+if command -v flutter >/dev/null 2>&1; then
+  flutter config --no-enable-android >/dev/null 2>&1 || true
 fi
 
 # Source the virtual environment if it exists and is not already sourced
