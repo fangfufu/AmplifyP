@@ -430,3 +430,49 @@ def test_appearance_tile_all_branches() -> None:
     tile.update_ui()
     assert tile.set_dimer_sequence_separator.value == "Dash ('-')"
     assert tile.set_colour_scheme.value == "Dark"
+
+
+def test_general_tile_appearance_compatibility_accessors() -> None:
+    """Test backward compatibility properties and methods on GeneralTile."""
+    mock_on_change = MagicMock()
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings_map: dict[str, Any] = {}
+    appearance_tile = AppearanceTile(
+        settings=settings,
+        settings_map=settings_map,
+        on_change_handler=mock_on_change,
+        header_size=18,
+        font_size_default=14,
+    )
+    general_tile = GeneralTile(
+        page=mock_page,
+        settings=settings,
+        settings_map=settings_map,
+        on_change_handler=mock_on_change,
+        appearance_tile=appearance_tile,
+        header_size=18,
+        font_size_default=14,
+        sync_to_state_callback=MagicMock(),
+        update_ui_callback=MagicMock(),
+    )
+
+    assert general_tile.set_font_family is appearance_tile.set_font_family
+    assert general_tile.set_colour_scheme is appearance_tile.set_colour_scheme
+    assert (
+        general_tile.set_dimer_sequence_separator
+        is appearance_tile.set_dimer_sequence_separator
+    )
+    assert (
+        general_tile.set_sequence_separator
+        is appearance_tile.set_sequence_separator
+    )
+    assert (
+        general_tile.set_colour_deficient
+        is appearance_tile.set_colour_deficient
+    )
+
+    general_tile.sync_colour_scheme_to_settings()
+    general_tile.update_colour_scheme_dropdown()
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    general_tile._on_colour_scheme_change(mock_event)

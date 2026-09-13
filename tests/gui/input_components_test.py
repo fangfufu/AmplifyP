@@ -1315,6 +1315,7 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
 
     # 19. primer/action_controller.py all remaining branches
     act = view.primer_input.action_controller
+    page.run_task = mock_run_task
     view.primer_input.app_page = page
 
     # Coroutine focus task in handle_row_click (when not yet selected)
@@ -1497,3 +1498,92 @@ def test_primer_row_blur_no_running_loop_fallbacks() -> None:
             MagicMock(control=row_fallback_c.name_field, page=mock_failing_page)
         )
         mock_loop.close.assert_called_once()
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_input_components_additional_coverage() -> None:
+    """Test formatter, fit-to-window selection, and delayed delete."""
+    from amplifyp.gui.views.input.template.formatter import (
+        adjust_wrap_length,
+        update_line_numbers,
+    )
+
+    view, mock_page, input_data, settings = _setup_test_view()
+    tmpl = view.template_input
+    input_data.template = "ATGC" * 10
+
+    # 1. adjust_wrap_length with "Fit to window" and page present
+    settings["template_bases_per_line"] = "Fit to window"
+    tmpl.bases_per_line_value_text.value = "Fit to window"
+    tmpl.bases_per_line_value_text.update = MagicMock()
+    with patch.object(
+        ft.Container, "page", new=property(lambda self: mock_page)
+    ):
+        # Normal update
+        res = adjust_wrap_length(tmpl, 500.0, update=True)
+        assert res == 0
+        tmpl.template_sequence_wrapper.update.assert_called()
+        tmpl.template_sequence.update.assert_called()
+        tmpl.template_sequence_container.update.assert_called()
+        tmpl.bases_per_line_value_text.update.assert_called()
+
+        # Exception handling in adjust_wrap_length
+        tmpl.template_sequence_wrapper.update.side_effect = RuntimeError(
+            "update error"
+        )
+        res_err = adjust_wrap_length(tmpl, 500.0, update=True)
+        assert res_err == 0
+        tmpl.template_sequence_wrapper.update.side_effect = None
+
+        # 2. update_line_numbers with "Fit to window" and update=True
+        # gutter_only=True
+        update_line_numbers(tmpl, update=True, gutter_only=True)
+        tmpl.line_numbers_container.update.assert_called()
+
+        # gutter_only=False
+        tmpl.update = MagicMock()
+        update_line_numbers(tmpl, update=True, gutter_only=False)
+        tmpl.update.assert_called_once()
+
+        # Exception handling in update_line_numbers
+        tmpl.line_numbers_container.update.side_effect = RuntimeError(
+            "gutter err"
+        )
+        update_line_numbers(tmpl, update=True, gutter_only=True)
+        tmpl.line_numbers_container.update.side_effect = None
+
+    # 3. _handle_change in "Fit to window" mode (wrap_length <= 0)
+    settings["template_bases_per_line"] = "Fit to window"
+    tmpl.bases_per_line_value_text.value = "Fit to window"
+    tmpl.template_sequence.value = "ATGCATGC"
+    tmpl.template_sequence.selection = ft.TextSelection(
+        base_offset=2, extent_offset=5
+    )
+    tmpl._handle_change(
+        MagicMock(control=tmpl.template_sequence, page=mock_page)
+    )
+    assert tmpl.template_sequence.selection.base_offset == 2
+
+    # 4. delayed_delete in primer action controller
+    mock_ft_page = MagicMock(spec=ft.Page)
+    pending_tasks: list[asyncio.Task[Any]] = []
+
+    def mock_run_task(coro_fn: Any, *args: Any) -> None:
+        pending_tasks.append(asyncio.create_task(coro_fn(*args)))
+
+    mock_ft_page.run_task = mock_run_task
+
+    view.primer_input.selected_indices = {0}
+    input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": True},
+        {"name": "P2", "seq": "GGCC", "active": True},
+    ]
+
+    with patch.object(
+        type(view.primer_input), "page", new=property(lambda self: mock_ft_page)
+    ):
+        view.primer_input.action_controller.delete_primers({0})
+        assert len(pending_tasks) == 1
+        await asyncio.gather(*pending_tasks)
+        assert len(input_data.primers) == 1
+        assert input_data.primers[0]["name"] == "P2"

@@ -215,8 +215,10 @@ def test_header_set_update_available() -> None:
         pcr_button_ref=ft.Ref[ft.FilledButton](),
         dimers_button_ref=ft.Ref[ft.FilledButton](),
     )
-
-    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+    header.version_text.update = MagicMock()
+    with patch.object(
+        type(header), "page", new=property(lambda self: mock_page)
+    ):
         header.set_update_available("v1.0.0")
         assert "(Update v1.0.0 available!)" in header.version_text.value
         assert header.version_text.on_click is not None
@@ -225,6 +227,7 @@ def test_header_set_update_available() -> None:
     mock_page.launch_url.assert_called_once_with(
         "https://github.com/fangfufu/AmplifyP/releases"
     )
+    header.version_text.update.assert_called_once()
 
 
 def test_dimer_card_self_dimer_no_names() -> None:

@@ -362,3 +362,22 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
         patch("builtins.open", side_effect=OSError("load error")),
     ):
         s.load_from_local(mock_page)
+
+
+def test_sequence_separator_synchronisation() -> None:
+    """Test sequence separator bidirectional synchronisation."""
+    # 1. Initialise with sequence_separator
+    settings_a = GUISettings({"sequence_separator": " "})
+    assert settings_a["dimer_sequence_separator"] == " "
+    assert settings_a["sequence_separator"] == " "
+
+    # 2. Initialise with legacy dimer_sequence_separator
+    settings_b = GUISettings({"dimer_sequence_separator": "-"})
+    assert settings_b["sequence_separator"] == "-"
+    assert settings_b["dimer_sequence_separator"] == "-"
+
+    # 3. from_dict with legacy dimer_sequence_separator
+    settings_c = GUISettings()
+    settings_c.from_dict({"dimer_sequence_separator": " / "})
+    assert settings_c["sequence_separator"] == " / "
+    assert settings_c["dimer_sequence_separator"] == " / "

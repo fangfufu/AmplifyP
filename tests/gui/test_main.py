@@ -152,3 +152,52 @@ def test_cli_web_custom_port(monkeypatch: pytest.MonkeyPatch) -> None:
     kwargs = mock_run.call_args.kwargs
     assert kwargs["view"] == flet.AppView.WEB_BROWSER
     assert kwargs["port"] == 43425
+
+
+def test_main_unhandled_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test main() logging and re-raising unhandled exceptions."""
+    import main as main_module
+
+    mock_page = MagicMock(spec=ft.Page)
+    monkeypatch.setattr(
+        main_module,
+        "app_main",
+        MagicMock(side_effect=RuntimeError("Fatal error")),
+    )
+
+    with pytest.raises(RuntimeError, match="Fatal error"):
+        main_module.main(mock_page)
+
+
+def test_cli_auto_close_without_state() -> None:
+    """Test cli() error when --auto-close is supplied without --state."""
+    import main as main_module
+
+    with pytest.raises(SystemExit):
+        main_module.cli(["--auto-close"])
+
+
+def test_cli_screenshots_without_state() -> None:
+    """Test cli() error when --screenshots is supplied without --state."""
+    import main as main_module
+
+    with pytest.raises(SystemExit):
+        main_module.cli(["--screenshots"])
+
+
+def test_cli_emscripten_platform(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test cli() view mode and port on emscripten / pyodide platform."""
+    from unittest.mock import patch
+
+    import main as main_module
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(flet, "run", mock_run)
+
+    with patch("sys.platform", "emscripten"):
+        main_module.cli([])
+
+    mock_run.assert_called_once()
+    kwargs = mock_run.call_args.kwargs
+    assert kwargs["view"] is None
+    assert kwargs["port"] == 0

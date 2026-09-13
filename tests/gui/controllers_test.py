@@ -146,6 +146,10 @@ def test_app_header_active_view_highlighting() -> None:
     header.set_active_view(mock_custom_view)
     assert header.active_button == header.designer_button
 
+    # Switch by button directly via set_active_view
+    header.set_active_view(header.input_button)
+    assert header.active_button == header.input_button
+
 
 def test_theme_manager_and_brightness_changes() -> None:
     """Test ThemeManager theme mode resolution and brightness changes."""
