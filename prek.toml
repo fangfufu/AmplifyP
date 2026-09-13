@@ -117,7 +117,8 @@ hooks = [
       "mdformat-gfm-alerts",
       "mdformat-footnote",
       "mdformat-ruff",
-      "mdformat-config"
+      "mdformat-config",
+      "mdformat-frontmatter"
     ]
   }
 ]
