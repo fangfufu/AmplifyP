@@ -3,7 +3,9 @@
     "src/"
   ],
   "exclude": [
-    "tests/"
+    "tests/",
+    "src/build/",
+    "src/dist/"
   ],
   "typeCheckingMode": "strict",
   "executionEnvironments": [

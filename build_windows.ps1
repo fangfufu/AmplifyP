@@ -33,11 +33,16 @@ if ($LASTEXITCODE -ne 0) { throw "python scripts/gen_git_sha.py failed with exit
 Write-Host "==> Building Flet Windows binary..."
 if (Test-Path "build\windows") { Remove-Item -Recurse -Force "build\windows" }
 if (Test-Path "build\AmplifyP") { Remove-Item -Recurse -Force "build\AmplifyP" }
-flet build windows src -o build/windows --project AmplifyP --yes
+flet build windows src -o build/windows --project AmplifyP --build-version $version --yes
 if ($LASTEXITCODE -ne 0) { throw "flet build failed with exit code $LASTEXITCODE" }
 
 Write-Host "==> Moving build artefacts..."
 Move-Item -Path "build\windows" -Destination "build\AmplifyP"
+
+# Clean up temporary files
+if (Test-Path "src\amplifyp\gui\git_sha.py") { Remove-Item -Force "src\amplifyp\gui\git_sha.py" }
+if (Test-Path "src\build") { Remove-Item -Recurse -Force "src\build" }
+if (Test-Path "src\dist") { Remove-Item -Recurse -Force "src\dist" }
 
 Write-Host "==> Packaging ZIP archive..."
 $zipFile = "amplifyp-windows-$version.zip"
@@ -46,13 +51,30 @@ python -c "import shutil; shutil.make_archive('amplifyp-windows-$version', 'zip'
 if ($LASTEXITCODE -ne 0) { throw "ZIP packaging failed with exit code $LASTEXITCODE" }
 
 # Build the Inno Setup installer if iscc compiler is available
+$isccPath = $null
 if (Get-Command "iscc" -ErrorAction SilentlyContinue) {
-    Write-Host "==> Building Windows installer..."
-    iscc amplifyp.iss /DVersion=$version /O.
-    if ($LASTEXITCODE -ne 0) { throw "iscc compiler failed with exit code $LASTEXITCODE" }
+    $isccPath = "iscc"
 } else {
-    Write-Host "==> Inno Setup (iscc) not found in PATH. Skipping installer build."
-    Write-Host "    To install Inno Setup, run: winget install JRSoftware.InnoSetup"
+    $knownIsccPaths = @(
+        "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
+        "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+        "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+    )
+    foreach ($path in $knownIsccPaths) {
+        if (Test-Path $path) {
+            $isccPath = $path
+            break
+        }
+    }
 }
 
-Write-Host "==> Build complete: amplifyp-windows-$version.zip"
+if ($isccPath) {
+    Write-Host "==> Building Windows installer with $isccPath..."
+    & $isccPath amplifyp.iss /DVersion=$version /O.
+    if ($LASTEXITCODE -ne 0) { throw "iscc compiler failed with exit code $LASTEXITCODE" }
+    Write-Host "==> Build complete: $zipFile and amplifyp-windows-setup-$version.exe"
+} else {
+    Write-Host "==> Inno Setup (iscc) not found in PATH or standard directories. Skipping installer build."
+    Write-Host "    To install Inno Setup, run: winget install JRSoftware.InnoSetup"
+    Write-Host "==> Build complete: $zipFile"
+}
