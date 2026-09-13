@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0](https://github.com/fangfufu/AmplifyP/compare/v1.21.0...v1.22.0) (2026-09-13)
+
+
+### Features
+
+* **gui:** add dimer sequence separator setting ([7368eb1](https://github.com/fangfufu/AmplifyP/commit/7368eb1f4b2e69cde8a021022633e6987372bf80))
+* **gui:** add fit to window bases per line mode ([2dacc83](https://github.com/fangfufu/AmplifyP/commit/2dacc83621220850f10faa0c9b8f6d90d04bb7d3))
+* **gui:** apply 5'/3' separator to PCR view ([4091a80](https://github.com/fangfufu/AmplifyP/commit/4091a80c23b55b42edf25af9550ed10318f71244))
+* **gui:** highlight button of active view ([55547b0](https://github.com/fangfufu/AmplifyP/commit/55547b04e9e76ecf93b0572275584bb5bb30a457))
+* **gui:** orient PCR primer indicator triangles ([894c158](https://github.com/fangfufu/AmplifyP/commit/894c1581519a9598e9661a898950edb441d47c4d))
+* **gui:** refine designer 1d/2d and dimer cards ([abc2b3d](https://github.com/fangfufu/AmplifyP/commit/abc2b3d14da5ffe94a620364592df6f9c8bfa77c))
+
+
+### Bug Fixes
+
+* GitHub issue template ([a9c9e6a](https://github.com/fangfufu/AmplifyP/commit/a9c9e6a534051b0a38da98458908a736a86f501d))
+* GitHub issue template ([dd155b2](https://github.com/fangfufu/AmplifyP/commit/dd155b225104efcb88595c19ca4918cf69a6ea4a))
+* **gui:** set default dimer separator to space ([706baf7](https://github.com/fangfufu/AmplifyP/commit/706baf75eb55ac05bf1cc5f0cea991c251ec342c))
+* resolve white screen in Windows installer ([e015462](https://github.com/fangfufu/AmplifyP/commit/e01546275c4ea5d0c6b8334da91388e99c13362d))
+
+
+### Code Refactoring
+
+* **gui:** extract appearance settings tile ([d1b3f9e](https://github.com/fangfufu/AmplifyP/commit/d1b3f9e0864b7f69f5408fadce086421b97479cb))
+* **gui:** remove 'Settings' from tile titles ([95a485c](https://github.com/fangfufu/AmplifyP/commit/95a485c14ebf3cae7cb9f337322f43d53cf55b34))
+* remove pyperclip and use native clipboard ([c2d055a](https://github.com/fangfufu/AmplifyP/commit/c2d055a09a5c64bcccfa26cb6ff458758b89ff6b))
+
 ## [1.21.0](https://github.com/fangfufu/AmplifyP/compare/v1.20.0...v1.21.0) (2026-09-08)
 
 
