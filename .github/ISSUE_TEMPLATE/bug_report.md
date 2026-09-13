@@ -1,5 +1,6 @@
 ---
 name: Bug report
+about: Report a bug for AmplifyP
 labels: 'bug'
 ---
 

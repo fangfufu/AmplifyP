@@ -1,6 +1,7 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Suggest a new feature for AmplifyP
+labels: 'enhancement'
 ---
 
 **Is your feature request related to a problem? Please describe.** A clear and
