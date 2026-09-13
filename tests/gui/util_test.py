@@ -115,9 +115,10 @@ def test_get_version_and_sha() -> None:
     assert __version__ in version_str
 
 
-def test_handle_keyboard_event_template_copy() -> None:
-    """Test Ctrl+C / Cmd+C copies sequence without linebreaks."""
-    from unittest.mock import patch
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_keyboard_event_template_copy() -> None:
+    """Test Ctrl+C copies cleaned template sequence to clipboard."""
+    from unittest.mock import AsyncMock, patch
 
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
@@ -142,15 +143,23 @@ def test_handle_keyboard_event_template_copy() -> None:
 
     mock_controller.page.web = False
 
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    captured_task = None
+
+    def capture_run_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_controller.page.run_task = capture_run_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         handle_keyboard_event(mock_controller, mock_event)
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
 
 
 def test_handle_keyboard_event_template_copy_newline_only() -> None:
     """Test Ctrl+C with newline-only template does not write to clipboard."""
-    from unittest.mock import patch
-
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
     mock_controller = MagicMock()
@@ -173,10 +182,88 @@ def test_handle_keyboard_event_template_copy_newline_only() -> None:
     mock_event.meta = False
 
     mock_controller.page.web = False
+    mock_controller.page.run_task = MagicMock()
 
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    handle_keyboard_event(mock_controller, mock_event)
+    mock_controller.page.run_task.assert_not_called()
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_keyboard_event_template_copy_mac_cmd_c() -> None:
+    """Test Mac Cmd+C (meta=True, ctrl=False) writes to clipboard."""
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+
+    mock_controller = MagicMock()
+    mock_input_view = MagicMock()
+    mock_template_input = MagicMock()
+    mock_template_sequence = MagicMock()
+
+    mock_controller.input_view = mock_input_view
+    mock_controller.view_container.content = mock_input_view
+    mock_input_view.template_input = mock_template_input
+    mock_template_input.template_sequence = mock_template_sequence
+    mock_input_view._currently_focused_control = mock_template_sequence
+
+    mock_template_sequence.value = "ATGC\nATGC\nATGC"
+    mock_template_sequence.selection = None
+
+    mock_event = MagicMock(spec=ft.KeyboardEvent)
+    mock_event.key = "c"
+    mock_event.ctrl = False
+    mock_event.meta = True
+
+    mock_controller.page.web = False
+
+    captured_task = None
+
+    def capture_run_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_controller.page.run_task = capture_run_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         handle_keyboard_event(mock_controller, mock_event)
-        mock_pyperclip_copy.assert_not_called()
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_copy_text_to_clipboard() -> None:
+    """Test copy_text_to_clipboard with empty text, web page, and desktop."""
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
+
+    # Empty text does nothing
+    mock_page = MagicMock()
+    mock_page.web = True
+    copy_text_to_clipboard(mock_page, "")
+    mock_page.run_javascript.assert_not_called()
+
+    # Web page runs JS
+    copy_text_to_clipboard(mock_page, "ATGC")
+    mock_page.run_javascript.assert_called_once_with(
+        'navigator.clipboard.writeText("ATGC");'
+    )
+
+    # Desktop uses run_task and ft.Clipboard().set
+    mock_page.web = False
+    captured_task = None
+
+    def capture_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_page.run_task = capture_task
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
+        copy_text_to_clipboard(mock_page, "GCTA")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("GCTA")
 
 
 def test_git_fallback_to_dot_git() -> None:
@@ -569,8 +656,18 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     ev_copy.ctrl = True
     ev_copy.meta = False
 
-    with patch("pyperclip.copy") as mock_clip:
+    captured_clip_task = None
+
+    def capture_clip_task(task: Any) -> None:
+        nonlocal captured_clip_task
+        captured_clip_task = task
+
+    mock_page.run_task = capture_clip_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_clip:
         handle_keyboard_event(ctrl, ev_copy)
+        assert captured_clip_task is not None
+        await captured_clip_task()
         mock_clip.assert_called_with("AT")
 
     mock_page.web = True

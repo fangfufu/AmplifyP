@@ -363,21 +363,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             self._show_notification("Nothing to copy!")
             return
 
-        if self.app_page:
-            if getattr(self.app_page, "web", False) and hasattr(
-                self.app_page, "run_javascript"
-            ):
-                import json
+        from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
 
-                escaped_text = json.dumps(cleaned_text)
-                self.app_page.run_javascript(  # pyright: ignore[reportAttributeAccessIssue]
-                    f"navigator.clipboard.writeText({escaped_text});"
-                )
-            else:
-                import pyperclip
-
-                pyperclip.copy(cleaned_text)
-
+        copy_text_to_clipboard(self.app_page, cleaned_text)
         self._show_notification("Copied to clipboard!")
 
     def _upper_case_click(self, e: ft.Event) -> None:

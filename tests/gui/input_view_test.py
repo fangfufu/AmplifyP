@@ -22,6 +22,7 @@ import typing
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -1527,10 +1528,18 @@ def test_input_view_reverse_complement_button() -> None:
     assert input_data.primers[1]["seq"] == "GGCC"
 
 
-def test_template_input_copy_removes_linebreaks() -> None:
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_template_input_copy_removes_linebreaks() -> None:
     """Test copying from template input sequence field removes linebreaks."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = False
+    captured_task = None
+
+    def capture_run_task(task: typing.Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_page.run_task = capture_run_task
     input_data = GUIInput()
     view = InputView(mock_page, input_data)
 
@@ -1541,18 +1550,22 @@ def test_template_input_copy_removes_linebreaks() -> None:
     template_input.template_sequence.value = "ATGC\nATGC\nATGC"
 
     # Test full selection copy desktop
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         template_input.template_sequence.selection = None
         template_input._on_copy_click(MagicMock(spec=ft.Event))
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
 
     # Test range selection copy desktop
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         template_input.template_sequence.selection = ft.TextSelection(
             base_offset=0, extent_offset=9
         )
         template_input._on_copy_click(MagicMock(spec=ft.Event))
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGC")
 
     # Test web copy
     mock_page.web = True
