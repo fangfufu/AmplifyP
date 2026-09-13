@@ -565,7 +565,7 @@ def test_e2e_settings_backup(
         print("  Clicking General tile to expand...")
         backup_btn.click(force=True)
         # Wait for 'Save Settings' button to appear
-        page.get_by_role("button", name="Save Settings").wait_for(
+        page.get_by_role("button", name="Save Settings", exact=True).wait_for(
             state="attached", timeout=10000
         )
         time.sleep(1.5)
@@ -598,7 +598,7 @@ def test_e2e_settings_backup(
 
     # 3. Click 'Save Settings' button — triggers download
     print("Clicking Save Settings...")
-    save_btn = page.get_by_role("button", name="Save Settings")
+    save_btn = page.get_by_role("button", name="Save Settings", exact=True)
     with page.expect_download(timeout=20000) as download_info:
         save_btn.click(force=True)
     download = download_info.value
@@ -628,7 +628,7 @@ def test_e2e_settings_backup(
 
     # 5. Click 'Load Settings' button — triggers file chooser
     print("Clicking Load Settings...")
-    load_btn = page.get_by_role("button", name="Load Settings")
+    load_btn = page.get_by_role("button", name="Load Settings", exact=True)
     with page.expect_file_chooser(timeout=15000) as fc_info:
         load_btn.click(force=True)
     file_chooser = fc_info.value
@@ -687,8 +687,9 @@ def wait_for_ui(
                 top = ocr_data["top"][i]
                 width = ocr_data["width"][i]
                 height = ocr_data["height"][i]
-                center_x = left + width / 2
-                center_y = top + height / 2
+                # Adjust for 2x upscale in _preprocess_for_ocr
+                center_x = (left + width / 2) / 2
+                center_y = (top + height / 2) / 2
                 return center_x, center_y
         time.sleep(1.0)
     raise TimeoutError(
@@ -720,9 +721,6 @@ def test_e2e_dimer_alignment(
     print("Waiting for UI to load via OCR...")
     wait_for_ui(page, "Template")
 
-    dimers_x, dimers_y = wait_for_ui(page, "Dimers")
-    print(f"Dimers button located at ({dimers_x}, {dimers_y})")
-
     name_x, name_y = wait_for_ui(page, "Name")
     print(f"Name header located at ({name_x}, {name_y})")
 
@@ -749,10 +747,16 @@ def test_e2e_dimer_alignment(
     page.keyboard.press("Tab")
     time.sleep(2.0)  # Allow blur timer and state sync to complete
 
+    # 3. Activate the primer by clicking its row checkbox
+    # Checkbox is positioned directly to the left of the Name field
+    page.mouse.click(name_x - 40, name_y + 36)
+    time.sleep(1.5)
+
     # Save a debug screenshot of the input page after clicking Add
     page.screenshot(path=str(tmp_path / "debug_after_add.png"))
 
-    # 4. Navigate to Primer Dimers view by clicking the saved coordinates
+    # 4. Navigate to Primer Dimers view (now enabled with active styling)
+    dimers_x, dimers_y = wait_for_ui(page, "Dimers")
     print(f"Navigating to Primer Dimers. Click: ({dimers_x}, {dimers_y})")
     page.mouse.click(dimers_x, dimers_y)
     time.sleep(2)
@@ -849,7 +853,7 @@ def test_e2e_dimer_alignment(
         # CanvasKit renders sequences and dimer card headers on a WebGL
         # canvas that Tesseract cannot reliably read.  Verify the dimer
         # view loaded by checking for the "Primer Dimers" header text.
-        has_dimers_header = any("dimers" in w[0].lower() for w in found_words)
+        has_dimers_header = any("dimer" in w[0].lower() for w in found_words)
         print(f"Dimers header found: {has_dimers_header}")
 
         # Primary assertion: dimer view must have loaded.
