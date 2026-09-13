@@ -66,6 +66,20 @@ class NavigationManager:
         ctrl.load_btn_control = ctrl.header.load_btn_control
         ctrl.header_divider = ctrl.header.header_divider
 
+        # Register views for active button highlighting
+        ctrl.header.register_view_buttons(
+            {
+                ctrl.input_view: ctrl.header.input_button,
+                ctrl.pcr_view: ctrl.header.pcr_button,
+                ctrl.dimers_view: ctrl.header.dimers_button,
+                ctrl.designer_view: ctrl.header.designer_button,
+                ctrl.designer_2d_view: ctrl.header.designer_2d_button,
+                ctrl.settings_view: ctrl.header.settings_button,
+                ctrl.about_view: ctrl.header.about_button,
+            }
+        )
+        ctrl.header.set_active_view(ctrl.input_view)
+
         # Configure page appbar
         ctrl.page.appbar = ft.AppBar(
             visible=False,
@@ -112,6 +126,9 @@ class NavigationManager:
         ctrl.clear_btn_control.visible = is_input
         ctrl.load_btn_control.visible = is_input
         ctrl.header_divider.visible = is_input
+
+        if hasattr(ctrl, "header") and ctrl.header is not None:
+            ctrl.header.set_active_view(view)
 
         if view == ctrl.input_view:
             ctrl.page.on_resize = ctrl.input_view._handle_resize

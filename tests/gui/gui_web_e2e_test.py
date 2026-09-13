@@ -250,11 +250,11 @@ def test_e2e_primer_lifecycle_and_state(
     page.get_by_role("button", name="Settings").filter(
         visible=True
     ).first.click(force=True)
-    page.get_by_role("button", name="General Settings").filter(
+    page.get_by_role("button", name="General").filter(
         visible=True
     ).first.wait_for(state="visible", timeout=15000)
     primer_list_settings_btn = page.get_by_role(
-        "button", name="Primer List Settings"
+        "button", name="Primer List"
     ).first
     primer_list_settings_btn.wait_for(state="attached", timeout=15000)
     primer_list_settings_btn.scroll_into_view_if_needed()
@@ -546,30 +546,30 @@ def test_e2e_settings_backup(
     page.on("console", lambda msg: print(f"Browser console: {msg.text}"))
 
     def expand_backup_tile() -> None:
-        """Click the General Settings tile header to expand it.
+        """Click the General tile header to expand it.
 
         Debug findings:
-        - General Settings tile header is role='button' with textContent
-          'General Settings'.
+        - General tile header is role='button' with textContent
+          'General'.
         - After clicking, the header merges into a group.
         - The 2 expanded buttons appear as role='button' with
           textContent 'Save Settings' and 'Load Settings'.
         - We locate them by name (textContent) via get_by_role.
         """
         backup_btn = (
-            page.get_by_role("button", name="General Settings")
+            page.get_by_role("button", name="General")
             .filter(visible=True)
             .first
         )
         backup_btn.wait_for(state="attached", timeout=15000)
-        print("  Clicking General Settings tile to expand...")
+        print("  Clicking General tile to expand...")
         backup_btn.click(force=True)
         # Wait for 'Save Settings' button to appear
-        page.get_by_role("button", name="Save Settings").wait_for(
+        page.get_by_role("button", name="Save Settings", exact=True).wait_for(
             state="attached", timeout=10000
         )
         time.sleep(1.5)
-        print("  General Settings tile expanded.")
+        print("  General tile expanded.")
 
     def navigate_to_settings() -> None:
         """Click the Settings tab and wait for expansion tiles to load."""
@@ -577,8 +577,8 @@ def test_e2e_settings_backup(
         page.get_by_role("button", name="Settings").filter(
             visible=True
         ).first.click(force=True)
-        # General Settings tile header must be visible before proceeding
-        page.get_by_role("button", name="General Settings").filter(
+        # General tile header must be visible before proceeding
+        page.get_by_role("button", name="General").filter(
             visible=True
         ).first.wait_for(state="visible", timeout=15000)
 
@@ -598,7 +598,7 @@ def test_e2e_settings_backup(
 
     # 3. Click 'Save Settings' button — triggers download
     print("Clicking Save Settings...")
-    save_btn = page.get_by_role("button", name="Save Settings")
+    save_btn = page.get_by_role("button", name="Save Settings", exact=True)
     with page.expect_download(timeout=20000) as download_info:
         save_btn.click(force=True)
     download = download_info.value
@@ -628,7 +628,7 @@ def test_e2e_settings_backup(
 
     # 5. Click 'Load Settings' button — triggers file chooser
     print("Clicking Load Settings...")
-    load_btn = page.get_by_role("button", name="Load Settings")
+    load_btn = page.get_by_role("button", name="Load Settings", exact=True)
     with page.expect_file_chooser(timeout=15000) as fc_info:
         load_btn.click(force=True)
     file_chooser = fc_info.value
@@ -687,8 +687,9 @@ def wait_for_ui(
                 top = ocr_data["top"][i]
                 width = ocr_data["width"][i]
                 height = ocr_data["height"][i]
-                center_x = left + width / 2
-                center_y = top + height / 2
+                # Adjust for 2x upscale in _preprocess_for_ocr
+                center_x = (left + width / 2) / 2
+                center_y = (top + height / 2) / 2
                 return center_x, center_y
         time.sleep(1.0)
     raise TimeoutError(
@@ -720,9 +721,6 @@ def test_e2e_dimer_alignment(
     print("Waiting for UI to load via OCR...")
     wait_for_ui(page, "Template")
 
-    dimers_x, dimers_y = wait_for_ui(page, "Dimers")
-    print(f"Dimers button located at ({dimers_x}, {dimers_y})")
-
     name_x, name_y = wait_for_ui(page, "Name")
     print(f"Name header located at ({name_x}, {name_y})")
 
@@ -749,10 +747,16 @@ def test_e2e_dimer_alignment(
     page.keyboard.press("Tab")
     time.sleep(2.0)  # Allow blur timer and state sync to complete
 
+    # 3. Activate the primer by clicking its row checkbox
+    # Checkbox is positioned directly to the left of the Name field
+    page.mouse.click(name_x - 40, name_y + 36)
+    time.sleep(1.5)
+
     # Save a debug screenshot of the input page after clicking Add
     page.screenshot(path=str(tmp_path / "debug_after_add.png"))
 
-    # 4. Navigate to Primer Dimers view by clicking the saved coordinates
+    # 4. Navigate to Primer Dimers view (now enabled with active styling)
+    dimers_x, dimers_y = wait_for_ui(page, "Dimers")
     print(f"Navigating to Primer Dimers. Click: ({dimers_x}, {dimers_y})")
     page.mouse.click(dimers_x, dimers_y)
     time.sleep(2)
@@ -849,7 +853,7 @@ def test_e2e_dimer_alignment(
         # CanvasKit renders sequences and dimer card headers on a WebGL
         # canvas that Tesseract cannot reliably read.  Verify the dimer
         # view loaded by checking for the "Primer Dimers" header text.
-        has_dimers_header = any("dimers" in w[0].lower() for w in found_words)
+        has_dimers_header = any("dimer" in w[0].lower() for w in found_words)
         print(f"Dimers header found: {has_dimers_header}")
 
         # Primary assertion: dimer view must have loaded.
@@ -859,8 +863,8 @@ def test_e2e_dimer_alignment(
 
         # If sequence OCR succeeded, also run the pixel-shift check.
         if top_word is not None and bottom_word is not None:
-            top_prefix_ok = top_word[0].startswith("5'-")
-            bot_prefix_ok = bottom_word[0].startswith("3'-")
+            top_prefix_ok = top_word[0].startswith("5'")
+            bot_prefix_ok = bottom_word[0].startswith("3'")
             if top_prefix_ok and bot_prefix_ok:
                 top_left = top_word[1]
                 top_width = top_word[3]

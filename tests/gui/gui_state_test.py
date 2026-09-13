@@ -55,6 +55,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
+    settings_view.set_dimer_sequence_separator.value = "Dash ('-')"
     settings_view.primer_list_tile.set_primer_info_panel_position.value = (
         "bottom"
     )
@@ -133,6 +134,7 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
+    assert new_settings_view.set_dimer_sequence_separator.value == "Dash ('-')"
     assert (
         new_settings_view.primer_list_tile.set_primer_info_panel_position.value
         == "bottom"
@@ -571,9 +573,10 @@ def test_general_settings_auto_reload() -> None:
     settings = GUISettings()
     assert settings["auto_reload_on_startup"] is True
 
-    # 2. Verify SettingsView includes GeneralTile
+    # 2. Verify SettingsView includes GeneralTile and AppearanceTile
     settings_view = SettingsView(mock_page)
     assert hasattr(settings_view, "general_tile")
+    assert hasattr(settings_view, "appearance_tile")
     assert settings_view.set_auto_reload_on_startup.value is True
 
     # Toggle checkbox

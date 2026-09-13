@@ -683,15 +683,20 @@ def test_designer_1d_check_against_dna_empty_binding_sites() -> None:
     assert hasattr(first_item, "pcr_button")
 
     # Binding sites count MUST be shown in card badge even when cutoff empty
-    assert _contains_text(first_item, "Sites: 2")
+    # first_item is the shortest primer (8 nt) which has 4 binding sites
+    assert _contains_text(first_item, "Sites: 4")
 
     # Detail card also displays binding sites count
     first_item.content.on_click(None)
     assert len(view.right_cards_list.controls) == 1
     dimer_card = view.right_cards_list.controls[0]
     assert isinstance(dimer_card, DismissibleSelfDimerCard)
-    assert _contains_text(dimer_card, "Sites: 2")
+    assert _contains_text(dimer_card, "Sites: 4")
     assert hasattr(dimer_card, "pcr_button")
+
+    # The longest primer (10 nt) is at the end and has 2 binding sites
+    last_item = view.primer_list.controls[-1]
+    assert _contains_text(last_item, "Sites: 2")
 
 
 def test_designer_1d_template_dna_missing_validation() -> None:
@@ -811,14 +816,14 @@ def test_designer_1d_card_pcr_buttons() -> None:
     view.min_len_input.value = "8"
     assert view.run_designer() is True
 
-    # 1. Click PCR button on PrimerItemCard
+    # 1. Click PCR button on PrimerItemCard (first card is shortest: 8 nt)
     first_card = view.primer_list.controls[0]
     assert isinstance(first_card, PrimerItemCard)
     first_card.pcr_button.on_click(None)
 
     assert len(run_pcr_calls) == 1
-    assert run_pcr_calls[0][0] == "ATGCGTACGT"
-    assert "1D Primer (10 nt)" in run_pcr_calls[0][1]
+    assert run_pcr_calls[0][0] == "ATGCGTAC"
+    assert "1D Primer (8 nt)" in run_pcr_calls[0][1]
 
     # 2. Click primer item to open DismissibleSelfDimerCard
     first_card.content.on_click(None)
@@ -830,7 +835,15 @@ def test_designer_1d_card_pcr_buttons() -> None:
     # Click Run PCR on the detail card
     dimer_card.pcr_button.on_click(None)
     assert len(run_pcr_calls) == 2
-    assert run_pcr_calls[1][0] == "ATGCGTACGT"
+    assert run_pcr_calls[1][0] == "ATGCGTAC"
+
+    # 3. Test last card (longest: 10 nt)
+    last_card = view.primer_list.controls[-1]
+    assert isinstance(last_card, PrimerItemCard)
+    last_card.pcr_button.on_click(None)
+    assert len(run_pcr_calls) == 3
+    assert run_pcr_calls[2][0] == "ATGCGTACGT"
+    assert "1D Primer (10 nt)" in run_pcr_calls[2][1]
 
 
 def test_controller_run_pcr_with_primer() -> None:
@@ -1128,3 +1141,36 @@ def test_designer_1d_properties_and_branches() -> None:
         form.dna_input.value = "NOTEMPTY"
         assert form.validate_and_get_params() is None
         assert "contains no valid nucleotides" in (form.dna_input.error or "")
+
+
+def test_designer_1d_increasing_length_order() -> None:
+    """Test that 1D chart and Generated Primers list run shortest to longest."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"  # length 10
+    view.min_len_input.value = "7"  # min length 7 -> 4 steps: 7, 8, 9, 10 nt
+    assert view.run_designer() is True
+
+    # Check primer_list controls are sorted from shortest to longest
+    assert len(view.primer_list.controls) == 4
+    lengths = [
+        len(card.dimer.primer_1.seq) for card in view.primer_list.controls
+    ]
+    assert lengths == [7, 8, 9, 10]
+
+    # Check QualityBarChart bars are ordered from shortest to longest
+    chart = view.chart_content_container.content
+    assert isinstance(chart, ft.Row)
+    assert len(chart.controls) == 4
+    # The bottom text of each bar_column indicates the length
+    bar_lengths = []
+    for bar_item in chart.controls:
+        assert isinstance(bar_item, ft.Container)
+        bar_col = bar_item.content
+        assert isinstance(bar_col, ft.Column)
+        lbl_text = bar_col.controls[1].value  # e.g. "7 nt"
+        bar_lengths.append(int(lbl_text.split()[0]))
+    assert bar_lengths == [7, 8, 9, 10]

@@ -5,32 +5,25 @@ customising algorithm parameters, visual appearance, primer list behavior,
 melting temperature ($T_m$) calculations, primer dimer threshold scoring, 2D
 designer colour mapping, logging diagnostics, and local setting persistence.
 
-Settings are organised into seven collapsible expansion tiles:
+Settings are organised into eight collapsible expansion tiles:
 
-1. **General Settings**
-2. **Primer List Settings**
-3. **Primer Melting Temperature (Tm) Settings**
-4. **PCR Settings**
-5. **Primer Dimer Settings**
-6. **Designer 2D Settings**
-7. **Diagnostics Settings**
+1. **General**
+2. **Appearance**
+3. **Primer List**
+4. **Primer Melting Temperature (Tm)**
+5. **PCR**
+6. **Primer Dimer**
+7. **Designer 2D**
+8. **Diagnostics**
 
 A **Reset to Default** button at the bottom restores all configuration values to
 their factory defaults.
 
-## 1. General Settings
+## 1. General
 
-Configures application appearance, template auto-loading on startup, software
-update checks, and settings backup file operations.
+Configures template auto-loading on startup, software update checks, and
+settings backup file operations.
 
-- **Appearance**:
-  - **Font Family**: Monospace font dropdown selector (`Roboto Mono` [default],
-    `Courier New`, `Consolas`, `monospace`). Applied across sequence displays
-    and alignment cards.
-  - **Colour Scheme**: Theme dropdown selector (`Light`, `Dark`,
-    `Light (Colour Deficient Friendly)`, `Dark (Colour Deficient Friendly)`,
-    `System` [default], `System (Colour Deficient Friendly)`). Syncs dark mode
-    and colour deficient mode settings.
 - **Autosave / Reload**:
   - **Automatically reload last template and primers on startup**: Bordered
     checkbox (default: checked). When enabled, automatically saves the active
@@ -50,7 +43,24 @@ update checks, and settings backup file operations.
     configuration file and immediately apply theme and parameter changes across
     the UI.
 
-## 2. Primer List Settings
+## 2. Appearance
+
+Configures application theme, typeface, and sequence alignment formatting across
+the UI.
+
+- **Font Family**: Monospace font dropdown selector (`Roboto Mono` [default],
+  `Courier New`, `Consolas`, `monospace`). Applied across sequence displays and
+  alignment cards.
+- **Colour Scheme**: Theme dropdown selector (`Light`, `Dark`,
+  `Light (Colour Deficient Friendly)`, `Dark (Colour Deficient Friendly)`,
+  `System` [default], `System (Colour Deficient Friendly)`). Syncs dark mode and
+  colour deficient mode settings.
+- **5'/3' Sequence Separator**: Sequence boundary spacing selector
+  (`Space (' ')` [default], `Dash ('-')`). Configures whether sequence ends in
+  dimer alignment cards and PCR context cards format with whitespace
+  (`5' ... 3'`) or hyphens (`5'-...-3'`).
+
+## 3. Primer List
 
 Controls table layout, duplicate warnings, temperature displays, and automatic
 activation behavior within the [Input View](input_view.md) primer list.
@@ -76,7 +86,7 @@ activation behavior within the [Input View](input_view.md) primer list.
   [default], `Cool-Warm`, `Traffic Light`) for background colour-coding of $T_m$
   values in the primer list.
 
-## 3. Primer Melting Temperature (Tm) Settings
+## 4. Primer Melting Temperature (Tm)
 
 Configures thermodynamic conditions and calculation methods used for computing
 primer melting temperatures ($T_m$).
@@ -98,7 +108,7 @@ primer melting temperatures ($T_m$).
     in mM (default: `1.5`).
   - **dNTP Conc (mM)**: Concentration of dNTPs in mM (default: `0.0`).
 
-## 4. PCR Settings
+## 5. PCR
 
 Configures pairwise nucleotide scoring weights, primability, stability
 thresholds, and compatibility modes for PCR replication calculations.
@@ -121,7 +131,7 @@ thresholds, and compatibility modes for PCR replication calculations.
     checked). Enables enhanced visual match diagrams and bond strength symbols
     in PCR view cards.
 
-## 5. Primer Dimer Settings
+## 6. Primer Dimer
 
 Configures scoring and thresholds for evaluating primer self-dimers and
 cross-dimers in the Primer Dimers View and info panels.
@@ -138,17 +148,21 @@ cross-dimers in the Primer Dimers View and info panels.
     interaction to be reported in the [Primer Dimers View](primer_dimer_view.md)
     (default: `60.0`).
 
-## 6. Designer 2D Settings
+## 7. Designer 2D
 
 Configures display options for pair-wise 2D primer truncation analysis in
 Designer 2D View.
 
 - **2D Results Grid colour map scheme**: Dropdown palette selector (`None`,
-  `Cool-Warm`, `Traffic Light`, `Blue-Orange` [default]). Controls the heat map
-  colour scheme for displaying amplicon scores across 2D primer length
-  combination grids.
+  `Cool-Warm`, `Traffic Light`, `Blue-Orange` [default], `Greyscale`). Controls
+  the heat map colour scheme for displaying amplicon scores across 2D primer
+  length combination grids.
+- **Show Reverse-Forward cross-dimer**: Bordered checkbox (default: unchecked).
+  When enabled, Designer 2D also evaluates and displays the Reverse-Forward
+  cross-dimer alignment (reverse primer 3' end against the forward primer) in
+  addition to the three default dimer alignments.
 
-## 7. Diagnostics Settings
+## 8. Diagnostics
 
 Configures application logging, log file output, log level thresholds, and log
 file rotation parameters.

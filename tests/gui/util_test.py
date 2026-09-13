@@ -38,6 +38,8 @@ def test_format_sequence() -> None:
     seq = "ATGC" * 10  # 40 bp
     formatted = format_sequence(seq, wrap_length=10)
     assert formatted == "ATGCATGCAT\nGCATGCATGC\nATGCATGCAT\nGCATGCATGC"
+    assert format_sequence(seq, wrap_length=0) == seq
+    assert format_sequence(seq, wrap_length=-1) == seq
 
 
 def test_show_error_dialog() -> None:
@@ -115,9 +117,10 @@ def test_get_version_and_sha() -> None:
     assert __version__ in version_str
 
 
-def test_handle_keyboard_event_template_copy() -> None:
-    """Test Ctrl+C / Cmd+C copies sequence without linebreaks."""
-    from unittest.mock import patch
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_keyboard_event_template_copy() -> None:
+    """Test Ctrl+C copies cleaned template sequence to clipboard."""
+    from unittest.mock import AsyncMock, patch
 
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
@@ -142,15 +145,23 @@ def test_handle_keyboard_event_template_copy() -> None:
 
     mock_controller.page.web = False
 
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    captured_task = None
+
+    def capture_run_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_controller.page.run_task = capture_run_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         handle_keyboard_event(mock_controller, mock_event)
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
 
 
 def test_handle_keyboard_event_template_copy_newline_only() -> None:
     """Test Ctrl+C with newline-only template does not write to clipboard."""
-    from unittest.mock import patch
-
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
     mock_controller = MagicMock()
@@ -173,10 +184,88 @@ def test_handle_keyboard_event_template_copy_newline_only() -> None:
     mock_event.meta = False
 
     mock_controller.page.web = False
+    mock_controller.page.run_task = MagicMock()
 
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    handle_keyboard_event(mock_controller, mock_event)
+    mock_controller.page.run_task.assert_not_called()
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_keyboard_event_template_copy_mac_cmd_c() -> None:
+    """Test Mac Cmd+C (meta=True, ctrl=False) writes to clipboard."""
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+
+    mock_controller = MagicMock()
+    mock_input_view = MagicMock()
+    mock_template_input = MagicMock()
+    mock_template_sequence = MagicMock()
+
+    mock_controller.input_view = mock_input_view
+    mock_controller.view_container.content = mock_input_view
+    mock_input_view.template_input = mock_template_input
+    mock_template_input.template_sequence = mock_template_sequence
+    mock_input_view._currently_focused_control = mock_template_sequence
+
+    mock_template_sequence.value = "ATGC\nATGC\nATGC"
+    mock_template_sequence.selection = None
+
+    mock_event = MagicMock(spec=ft.KeyboardEvent)
+    mock_event.key = "c"
+    mock_event.ctrl = False
+    mock_event.meta = True
+
+    mock_controller.page.web = False
+
+    captured_task = None
+
+    def capture_run_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_controller.page.run_task = capture_run_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         handle_keyboard_event(mock_controller, mock_event)
-        mock_pyperclip_copy.assert_not_called()
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_copy_text_to_clipboard() -> None:
+    """Test copy_text_to_clipboard with empty text, web page, and desktop."""
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
+
+    # Empty text does nothing
+    mock_page = MagicMock()
+    mock_page.web = True
+    copy_text_to_clipboard(mock_page, "")
+    mock_page.run_javascript.assert_not_called()
+
+    # Web page runs JS
+    copy_text_to_clipboard(mock_page, "ATGC")
+    mock_page.run_javascript.assert_called_once_with(
+        'navigator.clipboard.writeText("ATGC");'
+    )
+
+    # Desktop uses run_task and ft.Clipboard().set
+    mock_page.web = False
+    captured_task = None
+
+    def capture_task(task: Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_page.run_task = capture_task
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
+        copy_text_to_clipboard(mock_page, "GCTA")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("GCTA")
 
 
 def test_git_fallback_to_dot_git() -> None:
@@ -569,8 +658,18 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     ev_copy.ctrl = True
     ev_copy.meta = False
 
-    with patch("pyperclip.copy") as mock_clip:
+    captured_clip_task = None
+
+    def capture_clip_task(task: Any) -> None:
+        nonlocal captured_clip_task
+        captured_clip_task = task
+
+    mock_page.run_task = capture_clip_task
+
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_clip:
         handle_keyboard_event(ctrl, ev_copy)
+        assert captured_clip_task is not None
+        await captured_clip_task()
         mock_clip.assert_called_with("AT")
 
     mock_page.web = True
@@ -1014,3 +1113,340 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
         ),
     ):
         await restore_state_and_auto_close_async(ctrl)
+
+
+def test_debounced_callback_start_runtime_error() -> None:
+    """Test Debouncer fallback when Timer.start raises RuntimeError."""
+    from unittest.mock import patch
+
+    from amplifyp.gui.utils.gui_helpers import Debouncer
+
+    called = False
+
+    def on_cb() -> None:
+        nonlocal called
+        called = True
+
+    debounced = Debouncer(delay_seconds=0.1)
+    with patch(
+        "threading.Timer.start", side_effect=RuntimeError("Thread fail")
+    ):
+        debounced.trigger(on_cb)
+        assert called is True
+        assert debounced._timer is None
+
+    # Test cancel
+    mock_timer = MagicMock()
+    debounced._timer = mock_timer
+    debounced.cancel()
+    mock_timer.cancel.assert_called_once()
+    assert debounced._timer is None
+
+
+def test_copy_text_to_clipboard_run_task_exception() -> None:
+    """Test copy_text_to_clipboard handles run_task exceptions gracefully."""
+    from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.run_task.side_effect = RuntimeError("run_task failure")
+    copy_text_to_clipboard(mock_page, "ATGC")
+    mock_page.run_task.assert_called_once()
+
+
+def _make_key_event(
+    key: str,
+    ctrl: bool = False,
+    shift: bool = False,
+    alt: bool = False,
+    meta: bool = False,
+) -> ft.KeyboardEvent:
+    """Helper to create a valid ft.KeyboardEvent for testing."""
+    return ft.KeyboardEvent(
+        name="keydown",
+        key=key,
+        shift=shift,
+        ctrl=ctrl,
+        alt=alt,
+        meta=meta,
+        control=None,
+    )
+
+
+def test_handle_keyboard_event_comprehensive() -> None:
+    """Test handle_keyboard_event navigation, boundaries, and errors."""
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+    from amplifyp.gui.views.input.primer.row import PrimerRow
+
+    # 1. Non-active input view early exit
+    mock_ctrl = MagicMock()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.view_container.content = MagicMock()  # not input_view
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    mock_ctrl.input_view.primer_input.assert_not_called()
+
+    # 2. Template sequence focused Ctrl+C / Cmd+C
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    template_seq = ft.TextField(value="AT GC \n TA")
+    mock_ctrl.input_view._currently_focused_control = template_seq
+    mock_ctrl.input_view.template_input.template_sequence = template_seq
+    mock_ctrl.page = MagicMock()
+    mock_ctrl.page.web = True
+
+    # With selection range
+    template_seq.selection = ft.TextSelection(base_offset=0, extent_offset=5)
+    ev_copy = _make_key_event(key="c", ctrl=True)
+    handle_keyboard_event(mock_ctrl, ev_copy)
+    mock_ctrl.page.run_javascript.assert_called_once()
+
+    # With empty selection (copies full text)
+    mock_ctrl.page.run_javascript.reset_mock()
+    template_seq.selection = None
+    handle_keyboard_event(mock_ctrl, ev_copy)
+    mock_ctrl.page.run_javascript.assert_called_once()
+
+    # Empty cleaned text does nothing
+    template_seq.value = "   \n  "
+    mock_ctrl.page.run_javascript.reset_mock()
+    handle_keyboard_event(mock_ctrl, ev_copy)
+    mock_ctrl.page.run_javascript.assert_not_called()
+
+    # 3. Ignored controls (focused is None or not TextField with dict data)
+    mock_ctrl.input_view._currently_focused_control = None
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
+    invalid_focus = ft.Container()
+    mock_ctrl.input_view._currently_focused_control = invalid_focus
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
+    non_dict_focus = ft.TextField()
+    non_dict_focus.data = "invalid"
+    mock_ctrl.input_view._currently_focused_control = non_dict_focus
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
+    # 4. Primer row Tab navigation
+    row_0 = MagicMock(spec=PrimerRow)
+    row_0.idx = 0
+    row_0.name_field = ft.TextField(value="P0")
+    row_0.seq_field = ft.TextField(value="ATGC")
+    row_0.seq_field.focus = MagicMock()
+    row_0.name_field.focus = MagicMock()
+    row_0.seq_field.update = MagicMock()
+    row_0.name_field.update = MagicMock()
+
+    row_1 = MagicMock(spec=PrimerRow)
+    row_1.idx = 1
+    row_1.name_field = ft.TextField(value="P1")
+    row_1.seq_field = ft.TextField(value="GCAT")
+    row_1.seq_field.focus = MagicMock()
+    row_1.name_field.focus = MagicMock()
+    row_1.seq_field.update = MagicMock()
+    row_1.name_field.update = MagicMock()
+
+    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0, row_1]
+
+    # Tab from row 0 name -> row 0 seq
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    row_0.seq_field.focus.assert_called_once()
+
+    # Tab from row 0 seq -> row 1 name
+    row_0.seq_field.data = {"idx": 0, "field": "seq"}
+    mock_ctrl.input_view._currently_focused_control = row_0.seq_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    row_1.name_field.focus.assert_called_once()
+
+    # Tab on last row seq (no next row) -> early return
+    row_1.seq_field.data = {"idx": 1, "field": "seq"}
+    mock_ctrl.input_view._currently_focused_control = row_1.seq_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
+    # 5. Arrow Left / Right navigation
+    # Arrow Right at end of name field -> jumps to seq field
+    row_0.name_field.value = "P0"
+    row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 2}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
+    row_0.seq_field.focus.assert_called_once()
+
+    # Arrow Right NOT at end of name field -> does nothing
+    row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 0}
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
+    row_0.seq_field.focus.assert_not_called()
+
+    # Arrow Left at pos 0 of seq field -> jumps to name field
+    row_0.seq_field.data = {"idx": 0, "field": "seq", "cursor_pos": 0}
+    mock_ctrl.input_view._currently_focused_control = row_0.seq_field
+    row_0.name_field.focus = MagicMock()
+    row_0.name_field.update = MagicMock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Left"))
+    row_0.name_field.focus.assert_called_once()
+
+    # Arrow Left NOT at pos 0 -> does nothing
+    row_0.seq_field.data = {"idx": 0, "field": "seq", "cursor_pos": 1}
+    row_0.name_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Left"))
+    row_0.name_field.focus.assert_not_called()
+
+    # 6. Arrow Up / Down navigation
+    # Arrow Down from row 0 name to row 1 name
+    row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 1}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_1.name_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Down"))
+    row_1.name_field.focus.assert_called_once()
+
+    # Arrow Up from row 1 name to row 0 name with update exception handling
+    row_1.name_field.data = {"idx": 1, "field": "name", "cursor_pos": 1}
+    mock_ctrl.input_view._currently_focused_control = row_1.name_field
+    row_0.name_field.focus.reset_mock()
+    row_0.name_field.update = MagicMock(side_effect=RuntimeError("Update err"))
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Up"))
+    row_0.name_field.focus.assert_called_once()
+
+    # Async focus task execution
+    import asyncio
+
+    from amplifyp.gui.utils.gui_helpers import focus_async
+
+    async def sample_coro() -> str:
+        return "done"
+
+    asyncio.run(focus_async(sample_coro()))
+
+    async def async_focus() -> None:
+        pass
+
+    coro = async_focus()
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_1.name_field.focus = MagicMock(return_value=coro)
+    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Down"))
+    mock_ctrl.page.run_task.assert_called_once()
+
+
+def test_data_helpers_coverage_additional(tmp_path: Any) -> None:
+    """Test _resolve_font_family, file IO, and state persistence helpers."""
+    from amplifyp.gui.utils.data_helpers import (
+        _read_file,
+        _resolve_font_family,
+        _write_file,
+        get_last_state_path,
+        load_last_state,
+        save_last_state,
+    )
+
+    # 1. _resolve_font_family
+    assert _resolve_font_family("") == "Roboto Mono"
+    assert _resolve_font_family("Courier") == "Courier"
+    assert _resolve_font_family("CustomFontMono") == "CustomFontMono"
+
+    # 2. _read_file and _write_file
+    sample_path = str(tmp_path / "sample.txt")
+    _write_file(sample_path, "Hello World")
+    assert _read_file(sample_path) == "Hello World"
+
+    # 3. get_last_state_path, save_last_state, load_last_state
+    mock_ctrl = MagicMock()
+    mock_ctrl.settings._get_config_path.return_value = (
+        tmp_path / "settings.yaml"
+    )
+    last_state = get_last_state_path(mock_ctrl)
+    assert last_state.name == "last_state.yaml"
+
+    # auto_reload disabled
+    mock_ctrl.settings.get.return_value = False
+    save_last_state(mock_ctrl)
+    load_last_state(mock_ctrl)
+
+    # auto_reload enabled on desktop
+    mock_ctrl.settings.get.return_value = True
+    mock_ctrl.page = MagicMock(web=False)
+    mock_ctrl._get_last_state_path.return_value = tmp_path / "last_state.yaml"
+    mock_ctrl.input_data.to_dict.return_value = {
+        "template": "ATGC",
+        "primers": [],
+    }
+    save_last_state(mock_ctrl)
+    assert (tmp_path / "last_state.yaml").exists()
+
+    load_last_state(mock_ctrl)
+    mock_ctrl.input_view.sync_to_state.assert_called()
+
+
+def test_system_utils_coverage_additional() -> None:
+    """Test _get_sha fallback, get_version missing package, and confirm exit."""
+    import subprocess
+    from unittest.mock import mock_open, patch
+
+    from amplifyp.gui.utils.system import (
+        _get_sha,
+        confirm_dismiss,
+        confirm_exit,
+    )
+
+    # 1. _get_sha reading ref file from .git/HEAD
+    def fake_exists(path: str) -> bool:
+        return True
+
+    def fake_open(path: str, *args: Any, **kwargs: Any) -> Any:
+        if "HEAD" in str(path):
+            return mock_open(read_data="ref: refs/heads/main\n")()
+        return mock_open(
+            read_data="1234567890abcdef1234567890abcdef12345678\n"
+        )()
+
+    with (
+        patch("subprocess.run", side_effect=subprocess.SubprocessError),
+        patch("builtins.open", side_effect=fake_open),
+        patch("os.path.exists", side_effect=fake_exists),
+    ):
+        sha_short = _get_sha(full=False)
+        assert sha_short == "1234567"
+        sha_full = _get_sha(full=True)
+        assert sha_full == "1234567890abcdef1234567890abcdef12345678"
+
+    # 2. _get_sha reading detached SHA directly in HEAD
+    with (
+        patch("subprocess.run", side_effect=subprocess.SubprocessError),
+        patch("builtins.open", mock_open(read_data="9876543210fedcba\n")),
+        patch("os.path.exists", return_value=True),
+    ):
+        sha_detached = _get_sha(full=False)
+        assert sha_detached == "9876543"
+
+    # 3. _get_sha fallback to .git-sha file when .git/HEAD doesn't exist
+    def fake_exists_dist(path: str) -> bool:
+        return ".git-sha" in str(path)
+
+    with (
+        patch("subprocess.run", side_effect=subprocess.SubprocessError),
+        patch("builtins.open", mock_open(read_data="distsha123\n")),
+        patch("os.path.exists", side_effect=fake_exists_dist),
+    ):
+        sha_dist = _get_sha(full=False)
+        assert sha_dist == "distsha123"
+
+    # 4. _get_sha complete fallback to unknown
+    with (
+        patch("subprocess.run", side_effect=subprocess.SubprocessError),
+        patch("os.path.exists", return_value=False),
+    ):
+        sha_unknown = _get_sha(full=True)
+        assert sha_unknown == "unknown"
+
+    # 5. confirm_dismiss dialog closing
+    mock_ctrl = MagicMock()
+    mock_ctrl._confirm_dialog = MagicMock(open=True)
+    confirm_dismiss(mock_ctrl, MagicMock())
+    assert mock_ctrl._confirm_dialog.open is False
+    mock_ctrl.page.update.assert_called_once()
+
+    # 6. confirm_exit launches async task
+    confirm_exit(mock_ctrl, MagicMock())
+    mock_ctrl.page.run_task.assert_called_once_with(
+        mock_ctrl.confirm_exit_async
+    )

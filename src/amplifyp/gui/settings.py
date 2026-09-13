@@ -81,6 +81,8 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
+            "dimer_sequence_separator": "Space (' ')",
+            "sequence_separator": "Space (' ')",
             "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
@@ -137,6 +139,14 @@ class GUISettings:
 
         if settings_dict is not None:
             self._settings.update(settings_dict)
+            if "sequence_separator" in settings_dict:
+                self._settings["dimer_sequence_separator"] = str(
+                    settings_dict["sequence_separator"]
+                )
+            elif "dimer_sequence_separator" in settings_dict:
+                self._settings["sequence_separator"] = str(
+                    settings_dict["dimer_sequence_separator"]
+                )
             if "colour_deficient" in settings_dict:
                 val = settings_dict["colour_deficient"]
                 if isinstance(val, str):
@@ -198,6 +208,9 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
+        if key in ("dimer_sequence_separator", "sequence_separator"):
+            self._settings["dimer_sequence_separator"] = str(value)
+            self._settings["sequence_separator"] = str(value)
         self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
@@ -489,6 +502,14 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
+        if "sequence_separator" in settings_dict:
+            self._settings["dimer_sequence_separator"] = str(
+                settings_dict["sequence_separator"]
+            )
+        elif "dimer_sequence_separator" in settings_dict:
+            self._settings["sequence_separator"] = str(
+                settings_dict["dimer_sequence_separator"]
+            )
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)
         )

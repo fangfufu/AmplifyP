@@ -94,7 +94,7 @@ hooks = [
   {
     id = "pytest",
     name = "pytest",
-    entry = ".venv/bin/pytest",
+    entry = "pytest",
     language = "system",
     pass_filenames = false
   }

@@ -88,7 +88,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer Dimer Settings",
+                "Primer Dimer",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -116,7 +116,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

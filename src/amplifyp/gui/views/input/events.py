@@ -72,7 +72,7 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                         except Exception:  # noqa: S110
                             pass
 
-                    page.run_task(set_seq_cursor)
+                    page.run_task(set_seq_cursor)  # pyright: ignore[reportAttributeAccessIssue]
                 input_view._skip_seq_focus_reset = False
 
         input_view.primer_input._update_row_highlights()

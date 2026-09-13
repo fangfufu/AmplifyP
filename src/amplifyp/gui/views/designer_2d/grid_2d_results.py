@@ -211,8 +211,8 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             fwd_lengths_set.add(fwd_len)
             rev_lengths_set.add(rev_len)
 
-        fwd_lengths = sorted(fwd_lengths_set, reverse=True)
-        rev_lengths = sorted(rev_lengths_set, reverse=True)
+        fwd_lengths = sorted(fwd_lengths_set)
+        rev_lengths = sorted(rev_lengths_set)
 
         font_small = self.settings.get("font_size_small", 11)
         scheme = self.settings.get("designer_2d_colour_scheme", "None")

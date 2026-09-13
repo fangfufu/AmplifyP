@@ -92,7 +92,7 @@ class DrawnPrimer:
         """Draw the primer indicator elements onto the canvas and stack.
 
         Draws connector lines (straight or bent if shifted), direction-
-        specific triangles (down-pointing blue for forward, up-pointing
+        specific triangles (right-pointing blue for forward, left-pointing
         red for reverse), rotated labels, and click overlays.
 
         Args:
@@ -102,7 +102,7 @@ class DrawnPrimer:
         x_render = self.x_shifted if self.x_shifted is not None else self.x_pos
 
         if self.direction == DNADirection.FWD:
-            # Draw FWD primers (blue, float above baseline, pointing down)
+            # Draw FWD primers (blue, float above baseline, pointing right)
             if abs(x_render - self.x_pos) > 0.1:
                 # Bent leader line:
                 # 1. vertical up
@@ -114,7 +114,9 @@ class DrawnPrimer:
                             cv.Path.MoveTo(self.x_pos, self.v_target),
                             cv.Path.LineTo(self.x_pos, self.v_target - 10),
                             cv.Path.LineTo(x_render, self.v_target - 20),
-                            cv.Path.LineTo(x_render, self.v_target - 25),
+                            cv.Path.LineTo(
+                                x_render, self.v_target - 25 - self.S / 2
+                            ),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.FWD_PRIMER,
@@ -129,7 +131,9 @@ class DrawnPrimer:
                     cv.Path(
                         [
                             cv.Path.MoveTo(self.x_pos, self.v_target),
-                            cv.Path.LineTo(self.x_pos, self.v_target - 25),
+                            cv.Path.LineTo(
+                                self.x_pos, self.v_target - 25 - self.S / 2
+                            ),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.FWD_PRIMER,
@@ -138,19 +142,24 @@ class DrawnPrimer:
                         ),
                     )
                 )
-            # Down-pointing triangle of size S:
-            # Tip: (x_render, self.v_target - 25)
+            # Right-pointing triangle of size S:
+            # Tip: (x_render + S/2, self.v_target - 25 - S/2)
             # Top-Left: (x_render - S/2, self.v_target - 25 - S)
-            # Top-Right: (x_render + S/2, self.v_target - 25 - S)
+            # Bottom-Left: (x_render - S/2, self.v_target - 25)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(x_render, self.v_target - 25),
-                        cv.Path.LineTo(
-                            x_render - self.S / 2, self.v_target - 25 - self.S
+                        cv.Path.MoveTo(
+                            x_render + self.S / 2,
+                            self.v_target - 25 - self.S / 2,
                         ),
                         cv.Path.LineTo(
-                            x_render + self.S / 2, self.v_target - 25 - self.S
+                            x_render - self.S / 2,
+                            self.v_target - 25 - self.S,
+                        ),
+                        cv.Path.LineTo(
+                            x_render - self.S / 2,
+                            self.v_target - 25,
                         ),
                         cv.Path.Close(),
                     ],
@@ -191,7 +200,7 @@ class DrawnPrimer:
                 )
             )
         else:
-            # Draw REV primers (red, float below baseline, pointing up)
+            # Draw REV primers (red, float below baseline, pointing left)
             if abs(x_render - self.x_pos) > 0.1:
                 # Bent leader line:
                 # 1. vertical down
@@ -203,7 +212,9 @@ class DrawnPrimer:
                             cv.Path.MoveTo(self.x_pos, self.v_target),
                             cv.Path.LineTo(self.x_pos, self.v_target + 10),
                             cv.Path.LineTo(x_render, self.v_target + 20),
-                            cv.Path.LineTo(x_render, self.v_target + 25),
+                            cv.Path.LineTo(
+                                x_render, self.v_target + 25 + self.S / 2
+                            ),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.REV_PRIMER,
@@ -218,7 +229,9 @@ class DrawnPrimer:
                     cv.Path(
                         [
                             cv.Path.MoveTo(self.x_pos, self.v_target),
-                            cv.Path.LineTo(self.x_pos, self.v_target + 25),
+                            cv.Path.LineTo(
+                                self.x_pos, self.v_target + 25 + self.S / 2
+                            ),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.REV_PRIMER,
@@ -227,19 +240,24 @@ class DrawnPrimer:
                         ),
                     )
                 )
-            # Up-pointing triangle of size S:
-            # Tip: (x_render, self.v_target + 25)
-            # Bottom-Left: (x_render - S/2, self.v_target + 25 + S)
+            # Left-pointing triangle of size S:
+            # Tip: (x_render - S/2, self.v_target + 25 + S/2)
+            # Top-Right: (x_render + S/2, self.v_target + 25)
             # Bottom-Right: (x_render + S/2, self.v_target + 25 + S)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(x_render, self.v_target + 25),
-                        cv.Path.LineTo(
-                            x_render - self.S / 2, self.v_target + 25 + self.S
+                        cv.Path.MoveTo(
+                            x_render - self.S / 2,
+                            self.v_target + 25 + self.S / 2,
                         ),
                         cv.Path.LineTo(
-                            x_render + self.S / 2, self.v_target + 25 + self.S
+                            x_render + self.S / 2,
+                            self.v_target + 25,
+                        ),
+                        cv.Path.LineTo(
+                            x_render + self.S / 2,
+                            self.v_target + 25 + self.S,
                         ),
                         cv.Path.Close(),
                     ],
@@ -314,6 +332,8 @@ def format_context_lines(
     N: int,
     direction: DNADirection,
     improved_visualisation: bool = False,
+    settings: GUISettings | None = None,
+    separator: str | None = None,
 ) -> tuple[str, str, str]:
     """Format context alignment lines for binding site context map.
 
@@ -331,11 +351,26 @@ def format_context_lines(
         direction: The DNA direction (FWD or REV).
         improved_visualisation: If True, includes complementary strand
             display for forward primers.
+        settings: Optional GUI settings to retrieve separator configuration.
+        separator: Optional explicit separator override (' ' or '-').
 
     Returns:
         A tuple of (top_line, primer_line, bottom_line) strings for
         the context map visualisation.
     """
+    if separator is not None:
+        sep = "-" if (separator == "Dash ('-')" or separator == "-") else " "
+    elif settings is not None and hasattr(settings, "get"):
+        sep_setting = settings.get(
+            "sequence_separator",
+            settings.get("dimer_sequence_separator", "Space (' ')"),
+        )
+        sep = (
+            "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
+        )
+    else:
+        sep = " "
+
     if direction == DNADirection.FWD:
         start_genomic = (padded_idx - L) % N
         primer_display_seq = conf.primer.seq
@@ -359,7 +394,7 @@ def format_context_lines(
     # Construct primer line:
     primer_line = (
         f"{primer_label:<{label_width}}"
-        f"{primer_ends[0]}-{primer_display_seq}-{primer_ends[1]}"
+        f"{primer_ends[0]}{sep}{primer_display_seq}{sep}{primer_ends[1]}"
     )
 
     # Construct strength line:
@@ -396,20 +431,20 @@ def format_context_lines(
         comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
         comp_line = (
-            f"{' ' * (9 + extra_spaces)}3'-"
-            f"{comp_upstream}{comp_binding}{comp_downstream}-5'"
+            f"{' ' * (9 + extra_spaces)}3'{sep}"
+            f"{comp_upstream}{comp_binding}{comp_downstream}{sep}5'"
         )
         bottom_line = (
             f"{bonds_line}\n"
             f"{comp_line}\n"
             f"{context_line_prefix}{' ' * extra_spaces}"
-            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"5'{sep}{upstream_seq}{binding_seq}{downstream_seq}{sep}3'"
         )
     else:
         bottom_line = (
             f"{bonds_line}\n"
             f"{context_line_prefix}{' ' * extra_spaces}"
-            f"5'-{upstream_seq}{binding_seq}{downstream_seq}-3'"
+            f"5'{sep}{upstream_seq}{binding_seq}{downstream_seq}{sep}3'"
         )
 
     return top_line, primer_line, bottom_line
@@ -464,6 +499,7 @@ class ReplicationContextCard(DismissibleDetailCard):
             improved_visualisation=bool(
                 settings.get("improved_visualisation", False)
             ),
+            settings=settings,
         )
 
         font_family = settings.get("font_family", "Roboto Mono")

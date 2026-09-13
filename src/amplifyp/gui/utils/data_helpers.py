@@ -71,6 +71,8 @@ def _resolve_font_family(font_family: str) -> str:
 def format_sequence(seq: str, wrap_length: int = 80) -> str:
     """Format sequence into lines of specified length."""
     clean = clean_sequence(seq)
+    if wrap_length <= 0:
+        return clean
     return "\n".join(
         [clean[i : i + wrap_length] for i in range(0, len(clean), wrap_length)]
     )

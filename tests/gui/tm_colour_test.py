@@ -221,6 +221,12 @@ def test_gui_colours_properties_and_interpolator_edge_cases() -> None:
         "PURPLE",
         "WHITE",
         "TRANSPARENT",
+        "NAV_ACTIVE_BG",
+        "NAV_ACTIVE_FG",
+        "NAV_INACTIVE_BG",
+        "NAV_INACTIVE_FG",
+        "DISABLED_BG",
+        "DISABLED_FG",
     ]
 
     for dark in (False, True):

@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import threading
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
@@ -28,6 +29,8 @@ if TYPE_CHECKING:
     pass
 
 from amplifyp.gui.colours import GUIColours
+
+logger = logging.getLogger(__name__)
 
 # ==============================================================================
 # UI Helper Functions & Classes (formerly ui.py)
@@ -183,6 +186,35 @@ async def focus_async(res: Any) -> None:
     await res
 
 
+def copy_text_to_clipboard(page: ft.Page | None, text: str) -> None:
+    """Copy text to clipboard across web and desktop platforms.
+
+    On web, runs JavaScript to invoke the Navigator clipboard API. On desktop,
+    uses Flet's native ``ft.Clipboard().set()`` via ``page.run_task``.
+    """
+    if not text:
+        return
+
+    if page and getattr(page, "web", False) and hasattr(page, "run_javascript"):
+        import json
+
+        escaped_text = json.dumps(text)
+        page.run_javascript(  # pyright: ignore[reportAttributeAccessIssue]
+            f"navigator.clipboard.writeText({escaped_text});"
+        )
+        return
+
+    if page and callable(getattr(page, "run_task", None)):
+
+        async def _copy_async() -> None:
+            await ft.Clipboard().set(text)
+
+        try:
+            page.run_task(_copy_async)  # pyright: ignore[reportAttributeAccessIssue]
+        except Exception as ex:
+            logger.debug("Flet Clipboard run_task failed: %s", ex)
+
+
 # ==============================================================================
 # Keyboard Navigation Helper (formerly keyboard.py)
 # ==============================================================================
@@ -218,20 +250,7 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
         if not cleaned_text:
             return
 
-        if getattr(controller.page, "web", False) and hasattr(
-            controller.page, "run_javascript"
-        ):
-            import json
-
-            escaped_text = json.dumps(cleaned_text)
-            controller.page.run_javascript(
-                f"navigator.clipboard.writeText({escaped_text});"
-            )
-        else:
-            import pyperclip
-
-            pyperclip.copy(cleaned_text)
-
+        copy_text_to_clipboard(controller.page, cleaned_text)
         return
 
     if not (

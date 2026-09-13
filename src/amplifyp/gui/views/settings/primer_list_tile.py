@@ -48,7 +48,7 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option(key="top", text="Top"),
                 ft.dropdown.Option(key="bottom", text="Bottom"),
             ],
-            width=500,
+            width=700,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -114,7 +114,7 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer List Settings",
+                "Primer List",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -137,7 +137,7 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,

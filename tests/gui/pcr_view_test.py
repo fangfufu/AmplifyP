@@ -404,9 +404,9 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
         and span.style.color == GUIColours.MUTED_GREY
     ]
     assert len(comp_spans) == 1
-    # Check that it contains "3'-" and "-5'" and the translated comp sequence
-    assert "3'-" in comp_spans[0].text
-    assert "-5'" in comp_spans[0].text
+    # Check that it contains "3' " and " 5'" and the translated comp sequence
+    assert "3' " in comp_spans[0].text
+    assert " 5'" in comp_spans[0].text
 
 
 def test_format_context_lines_alignment_long_label() -> None:
@@ -434,12 +434,12 @@ def test_format_context_lines_alignment_long_label() -> None:
     # which is "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)".
     # Let's count length: 34 + 10 = 44 characters.
     # The label is padded to 44. The sequence prefix is 44 + 3 = 47.
-    # So the primer sequence starts at index 47.
-    # Verify that primer sequence starts with '3\'-' at offset 44
-    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+    # Verify that primer sequence starts with '3\' ' at offset 44
+    # (default space)
+    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' ")
 
     # The mid line should be:
-    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-CCC...C-5'"
+    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' CCC...C 5'"
     # The bonds line in bottom line is the first line of bottom_line.
     # The bonds line starts with:
     # 12 + 20 + extra_spaces = 32 + (44 - 29) = 47 spaces.
@@ -447,10 +447,24 @@ def test_format_context_lines_alignment_long_label() -> None:
     assert lines_bot[0].startswith(" " * 47 + "|")
 
     # The context line in bottom_line starts with:
-    # "Context  " (9 chars) + 15 spaces + "5'-" (3 chars) = 27 spaces,
+    # "Context  " (9 chars) + 15 spaces + "5' " (3 chars) = 27 spaces,
     # then 20 bp upstream = 47 spaces before binding sequence.
-    # Let's check:
-    assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")
+    assert lines_bot[1].startswith("Context  " + " " * 15 + "5' ")
+
+    # Test dash separator option
+    _top_d, mid_d, bot_d = format_context_lines(
+        primer_name=long_name,
+        padded_idx=50,
+        conf=conf,
+        origin=origin,
+        L=20,
+        N=100,
+        direction=DNADirection.REV,
+        separator="Dash ('-')",
+    )
+    assert mid_d.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+    lines_bot_d = bot_d.split("\n")
+    assert lines_bot_d[1].startswith("Context  " + " " * 15 + "5'-")
 
 
 def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
@@ -734,6 +748,33 @@ def test_pcr_view_all_remaining_branches() -> None:
         dismiss_callback=MagicMock(),
     )
     assert ctx_card is not None
+    spans_text = "".join(
+        span.text
+        for span in ctx_card.content.content.controls[1]
+        .content.controls[0]
+        .spans
+    )
+    assert "5' " in spans_text
+    assert " 3'" in spans_text
+
+    dash_settings = GUISettings()
+    dash_settings["sequence_separator"] = "Dash ('-')"
+    ctx_card_dash = ReplicationContextCard(
+        primer_name="P1",
+        padded_idx=0,
+        conf=mock_conf,
+        var=DirIdx(direction=DNADirection.FWD, index=0),
+        settings=dash_settings,
+        dismiss_callback=MagicMock(),
+    )
+    spans_text_dash = "".join(
+        span.text
+        for span in ctx_card_dash.content.content.controls[1]
+        .content.controls[0]
+        .spans
+    )
+    assert "5'-" in spans_text_dash
+    assert "-3'" in spans_text_dash
 
     # 12. PCRLayoutSolver: clusters hitting boundaries and missing confs
     # Left boundary cluster
@@ -884,3 +925,82 @@ def test_pcr_view_all_remaining_branches() -> None:
         c_width=600.0,
         amplicons=None,
     )
+
+
+def test_drawn_primer_direction_arrows() -> None:
+    """Test that forward primers point right and reverse primers point left."""
+    import flet.canvas as cv
+
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+
+    # Forward primer test
+    canvas_fwd = cv.Canvas(shapes=[])
+    stack_fwd = ft.Stack()
+    drawn_fwd = DrawnPrimer(
+        name="fwd1",
+        index=100,
+        conf=MagicMock(direction=DNADirection.FWD),
+        var=DirIdx(direction=DNADirection.FWD, index=100),
+        S=10.0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    drawn_fwd.draw(canvas_fwd, stack_fwd)
+
+    assert len(canvas_fwd.shapes) == 2
+    fwd_line = canvas_fwd.shapes[0]
+    fwd_triangle = canvas_fwd.shapes[1]
+
+    # Leader line terminates at v_target - 25 - S / 2
+    assert fwd_line.elements[-1].y == 100.0 - 25 - 5.0
+
+    # Triangle: tip points right (tip.x > base.x)
+    tip_elem = fwd_triangle.elements[0]
+    base_elem1 = fwd_triangle.elements[1]
+    base_elem2 = fwd_triangle.elements[2]
+    assert tip_elem.x > base_elem1.x
+    assert tip_elem.x == drawn_fwd.x_pos + 5.0
+    assert base_elem1.x == drawn_fwd.x_pos - 5.0
+    assert base_elem2.x == drawn_fwd.x_pos - 5.0
+
+    # Reverse primer test
+    canvas_rev = cv.Canvas(shapes=[])
+    stack_rev = ft.Stack()
+    drawn_rev = DrawnPrimer(
+        name="rev1",
+        index=200,
+        conf=MagicMock(direction=DNADirection.REV),
+        var=DirIdx(direction=DNADirection.REV, index=200),
+        S=10.0,
+        target_length=1000,
+        t_width=500.0,
+        h_margin=40.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    drawn_rev.draw(canvas_rev, stack_rev)
+
+    assert len(canvas_rev.shapes) == 2
+    rev_line = canvas_rev.shapes[0]
+    rev_triangle = canvas_rev.shapes[1]
+
+    # Leader line terminates at v_target + 25 + S / 2
+    assert rev_line.elements[-1].y == 100.0 + 25 + 5.0
+
+    # Triangle: tip points left (tip.x < base.x)
+    rev_tip_elem = rev_triangle.elements[0]
+    rev_base_elem1 = rev_triangle.elements[1]
+    rev_base_elem2 = rev_triangle.elements[2]
+    assert rev_tip_elem.x < rev_base_elem1.x
+    assert rev_tip_elem.x == drawn_rev.x_pos - 5.0
+    assert rev_base_elem1.x == drawn_rev.x_pos + 5.0
+    assert rev_base_elem2.x == drawn_rev.x_pos + 5.0

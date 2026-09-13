@@ -39,6 +39,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         origin_count: int | None = None,
     ) -> None:
         """Initialise PrimerItemCard."""
+        self.dimer = dimer
         font_size_default = settings.get("font_size_default", 14)
         font_size_header = settings.get("font_size_header", 18)
 

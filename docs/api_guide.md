@@ -61,15 +61,14 @@ potential amplicons.
 from amplifyp.dna import DNA, Primer, DNAType
 from amplifyp.pcr import PCR
 
-# 1. Define your DNA template and primers
+# 1. Define your DNA template and primers.
+#    The template contains the forward primer near its 5' end and the reverse
+#    complement of the reverse primer downstream, so the reaction predicts a
+#    single 92 bp amplicon.
 template = DNA(
-    "CATGATGAAATAACATAAGGTGGTCCCGTCGAAAGCCGAAGCGCAGAGCTGTCATACTCGAAGGCAGCAGCGAC"
-    "CTTCATCTCGTCGAAAGCGAGTACGCAAAGCTTGTCGGCGTCATCAACTCCATCACTGTCCATTAGGTCTATGA"
-    "CCACATCCAAACATCCTCTTTTTATGTCCACATCTGATAACCATCTGTACAAAGTCGTACGACTGGGCAAAGGA"
-    "AATCCTTTTTTGTACAGATGGTTATACGCTCGAGGGCCTGCGGTGTGGAGACAAATAGCTGTAGAAATGTCGTC"
-    "GGAATTGAACGTAGCTCTTTGTCCACCATTCTTCAGTATCCGTATCTGCGTGTCCGTGAAGATTTTGCGTAGAG"
-    "ACTCCTCCAACTGTTGAGACTCCCTCAGCTGCTGCTCTAAACGACGCATTTCGTACTCCAAAGTACGAATTTTT"
-    "TCCCTCAAGCTCTTATTTTCATTAAACAATGAACAGGACCTAACGCACAGTCACGTTATTGTTTACATAAATGA",
+    "CGACTGGGCAAAGGAAATCC"
+    "ATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGCATGC"
+    "CCCAAATTTGTGATACCCAC",  # reverse complement of "GTGGGTATCACAAATTTGGG"
     DNAType.LINEAR,
     name="TestTemplate",
 )
@@ -92,18 +91,72 @@ print(f"Predicted {num_amplicons} amplicon(s).")
 for amp in pcr.amplicons:
     print(f"Product Sequence: {amp.product.seq}")
     print(f"Product Length: {len(amp.product)} bp")
-    print(f"Left Primer: {amp.origin_start.primer.name}")
-    print(f"Right Primer: {amp.origin_end.primer.name}")
+    print(f"Forward Primer: {amp.fwd_origin.name}")
+    print(f"Reverse Primer: {amp.rev_origin.name}")
     print(f"Quality Score (Q): {amp.q_score:.2f}")
+    # amp.start / amp.end are DirIdx positions on the template. Primability and
+    # stability are cached scores in the range 0.0-1.0 (None if not yet
+    # computed).
+    if amp.start.primability is not None:
+        print(
+            f"Primability/Stability (Forward): {amp.start.primability:.2f} / "
+            f"{amp.start.stability:.2f}"
+        )
+    if amp.end.primability is not None:
+        print(
+            f"Primability/Stability (Reverse): {amp.end.primability:.2f} / "
+            f"{amp.end.stability:.2f}"
+        )
+    print(f"Template span: {amp.start.index} .. {amp.end.index}")
+```
+
+## 3. Inspecting Amplicons, Origins, and Replication Configurations
+
+The result types returned by the PCR engine live in dedicated modules:
+
+- `amplifyp.amplicon` — `Amplicon` (a predicted PCR product: `product` DNA
+  sequence, `fwd_origin` / `rev_origin` primers, `start` / `end` template
+  positions, `q_score`, `circular`) and `AmpliconGenerator` (collects
+  `Repliconf` objects for a template and combines their origins into amplicons).
+- `amplifyp.origin` — `ReplicationOrigin`, which scores a primer/target pair and
+  exposes `primability` and `stability` (both in the range `0.0`–`1.0`), a
+  combined `quality` score, and `binding_strength_str` (a visual base-pairing
+  alignment string).
+- `amplifyp.repliconf` — `Repliconf`, a single primer/template search
+  configuration. Call `search()` to populate `origin_db` with the found
+  replication origin positions (`DirIdx` objects).
+- `amplifyp.dir_idx` — `DirIdx`, a position on the template combining an integer
+  `index` with a `DNADirection` (plus optional cached primability / stability
+  scores), and `DirIdxDb`, the results database used by `Repliconf`.
+
+```python
+from amplifyp.dna import DNA, Primer, DNAType
+from amplifyp.repliconf import Repliconf
+
+# Template starts with the primer sequence, so one forward origin is found.
+template = DNA(
+    "CGACTGGGCAAAGGAAATCCATGCATGCATGCCCAAATTTGTGATACCCAC",
+    DNAType.LINEAR,
+    name="Template",
+)
+primer = Primer("CGACTGGGCAAAGGAAATCC", name="FwdPrimer")
+
+repliconf = Repliconf(template, primer)
+repliconf.search()
+
+# Iterate over all forward replication origins found. Note that origin
+# indices are in the padded template coordinate system, where a linear
+# template is padded by the primer length at its 5' end (so index
+# `len(primer)` corresponds to the true 5' end of the template).
+for origin_idx in repliconf.origin_db.fwd:
     print(
-        f"Primability/Stability (Left): {amp.origin_start.primability:.1f}% / {amp.origin_start.stability:.1f}%"
-    )
-    print(
-        f"Primability/Stability (Right): {amp.origin_end.primability:.1f}% / {amp.origin_end.stability:.1f}%"
+        f"Forward origin at position {origin_idx.index}: "
+        f"primability={origin_idx.primability}, "
+        f"stability={origin_idx.stability}"
     )
 ```
 
-## 3. Primer Dimer Analysis
+## 4. Primer Dimer Analysis
 
 The `PrimerDimerGenerator` class in `amplifyp.dimer` identifies and scores the
 potential of primers to hybridise with each other (self-dimer or cross-dimer
@@ -138,7 +191,7 @@ for dimer in dimer_gen.primer_dimers:
     print("-" * 30)
 ```
 
-## 4. Thermodynamic Melting Temperature (Tm) Calculations
+## 5. Thermodynamic Melting Temperature (Tm) Calculations
 
 AmplifyP provides two models for computing primer melting temperatures in
 `amplifyp.melting`:
@@ -165,7 +218,7 @@ tm_legacy = calculate_tm_lander_amplify4(primer)
 print(f"Legacy Tm: {tm_legacy:.2f}°C")
 ```
 
-## 5. Customising Simulation and Scoring Settings
+## 6. Customising Simulation and Scoring Settings
 
 The scoring thresholds, pairwise scores, and physical constants (like salt and
 primer concentrations) are fully customisable.
@@ -177,17 +230,19 @@ from amplifyp.settings import (
     PrimerDimerSettings,
 )
 
-# 1. Customise PCR matching thresholds (stability and primability cutoffs)
+# 1. Customise PCR matching thresholds (stability and primability cutoffs).
+#    Cutoffs are fractions in the range 0.0-1.0, not percentages.
 custom_replication_settings = ReplicationSettings(
-    primability_cutoff=85.0,  # Require 85% primability minimum
-    stability_cutoff=80.0,  # Require 80% stability minimum
+    primability_cutoff=0.85,  # Require 85% primability minimum
+    stability_cutoff=0.80,  # Require 80% stability minimum
 )
 
-# 2. Customise thermodynamic parameters (concentration in M, e.g. 200 nM primers, 50 mM salt)
+# 2. Customise thermodynamic parameters.
+#    Concentration units: dna_conc in nM, salt/dNTP concentrations in mM.
 custom_tm_settings = TMSettings(
-    oligo_concentration=2.0e-7,
-    monovalent_concentration=0.05,
-    divalent_concentration=0.0015,
+    dna_conc=200.0,  # Total strand (oligo) concentration in nM
+    monovalent_salt_conc=50.0,  # Monovalent cations (Na+, K+, Tris+) in mM
+    divalent_salt_conc=1.5,  # Divalent cations (Mg2+) in mM
 )
 
 # 3. Customise primer dimer thresholds
@@ -203,7 +258,7 @@ You can pass these custom settings objects to class constructors:
 - `PrimerDimerGenerator(settings=custom_dimer_settings)`
 - `calculate_tm_santalucia_1998_owczarzy_2008(primer, settings=custom_tm_settings)`
 
-## 6. Primer Design (1D and 2D Truncation Analysis)
+## 7. Primer Design (1D and 2D Truncation Analysis)
 
 AmplifyP includes primer design functionality to systematically evaluate dimer
 formation across sequence truncations.

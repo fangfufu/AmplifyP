@@ -104,7 +104,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "PCR Settings",
+                "PCR",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -134,7 +134,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                 ),
-                                width=500,
+                                width=700,
                             ),
                         ],
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

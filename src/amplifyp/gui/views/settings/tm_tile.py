@@ -90,7 +90,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer Melting Temperature (Tm) Settings",
+                "Primer Melting Temperature (Tm)",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -114,7 +114,7 @@ class TmTile(ft.ExpansionTile):  # type: ignore[misc]
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                         ),
-                                        width=500,
+                                        width=700,
                                     ),
                                 ],
                                 alignment=ft.MainAxisAlignment.CENTER,

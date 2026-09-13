@@ -1,9 +1,8 @@
 # AmplifyP GUI — Input View
 
-The **Input View** (also referred to as the Substrate View) is the main
-configuration interface in AmplifyP. It allows you to specify the target DNA
-template sequence, configure DNA topology, and manage the list of primers used
-for PCR simulation and primer dimer analysis.
+The **Input View** is the main configuration interface in AmplifyP. It allows
+you to specify the target DNA template sequence, configure DNA topology, and
+manage the list of primers used for PCR simulation and primer dimer analysis.
 
 The window is split horizontally into a **Template Sequence Panel** on the left
 and a **Primer List Panel** on the right, separated by an interactive, draggable
@@ -31,12 +30,16 @@ target DNA template sequence.
 - **Bases Per Line & Wrap Control**:
   - **Wrap Selector**: A popup menu in the status bar allows choosing the number
     of bases displayed per line (preset options from 10 to 100 in steps of 10,
-    or **Auto**).
+    **Auto**, or **Fit to window**).
   - **Auto Wrapping**: When set to **Auto**, the wrap length is calculated
-    dynamically based on available panel width.
+    dynamically based on available panel width up to 100 bases in steps of 10.
+  - **Fit to Window Wrapping**: When set to **Fit to window**, the text input
+    box extends to the width of the divider and relies on native text autowrap
+    without injecting extra linebreaks, and the base number gutter is turned
+    off.
   - **Horizontal Scrollbar**: Automatic text wrapping at window borders is
     disabled in favour of horizontal scrolling to maintain strict visual
-    alignment.
+    alignment when using fixed widths.
 - **Topology Toggle**:
   - **Circular Checkbox**: Toggle the template topology between **Linear** and
     **Circular**. Circular topology is essential for simulating plasmid PCR,
@@ -52,7 +55,13 @@ target DNA template sequence.
   - **Load**: Opens a file picker to import a template sequence from a plain
     text file (`.txt`).
   - **Save**: Saves the current template sequence to a plain text file (`.txt`).
+  - **Copy**: Copies the template sequence to the system clipboard without
+    linebreaks (cleaned of non-nucleotide characters).
   - **Clear**: Clears the template sequence text field.
+  - **Copy Shortcut**: While the template sequence field is focused, pressing
+    **Ctrl+C** (or **Cmd+C** on macOS) copies the selected bases — or the whole
+    template if nothing is selected — to the clipboard without linebreaks,
+    instead of the raw editor selection.
 - **Status Bar**:
   - Located at the bottom of the template box, displaying sequence metadata:
     - **Total Bases**: Shows total cleaned sequence length (e.g.,
@@ -130,8 +139,7 @@ the top or bottom of the list via Settings):
 - **Header & Sequence**: Displays primer name, length in base pairs, and full
   sequence ($5' \\to 3'$).
 - **Melting Temperature**: Displays exact $T_m$ (°C).
-- **Base Composition**: Displays count of AT pairs, GC pairs, and overall AT
-  percentage.
+- **Base Composition**: Displays the overall AT percentage (e.g. `45.0% AT`).
 - **Degeneracy & Redundancy**: Displays redundant IUPAC base count and
   calculated redundancy fold.
 - **Self-Dimer Analysis**: Performs real-time self-dimer prediction. If

@@ -107,8 +107,8 @@ class Designer2DView(BaseDesignerView):
         )
 
         # Customise right-hand panel header
-        self.right_title.value = "2D Primer Pair Detail Cards"
-        self.clear_cards_button.tooltip = "Clear All 2D Pair Cards"
+        self.right_title.value = "2D Primer Pair Dimer Cards"
+        self.clear_cards_button.tooltip = "Clear All 2D Pair Dimer Cards"
 
         self.right_container = ft.Container(
             content=ft.Column(

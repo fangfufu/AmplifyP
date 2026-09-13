@@ -22,6 +22,7 @@ import typing
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -1281,6 +1282,14 @@ def test_template_input_fixed_width() -> None:
     template_input.adjust_wrap_length(1000)
     assert template_input.template_sequence.value == "A" * 80 + "\n" + "A" * 20
 
+    # Modify bases per line to Fit to window
+    template_input._handle_menu_select("Fit to window")
+    wrap_len = template_input.adjust_wrap_length(1000)
+    assert wrap_len == 0
+    assert template_input.line_numbers_container.visible is False
+    assert template_input.bases_per_line_value_text.value == "Fit to window"
+    assert template_input.template_sequence.value == "A" * 100
+
 
 def test_template_input_paste_updates_gutter() -> None:
     """Test pasting a long sequence updates the gutter markers."""
@@ -1360,6 +1369,48 @@ def test_template_input_auto_wrap() -> None:
     # Set width to fit 20 bases per line
     wrap_len = template_input.adjust_wrap_length(380)
     assert wrap_len == 20
+
+
+def test_template_input_fit_to_window_wrap() -> None:
+    """Test 'Fit to window' wrap length dynamically fills window width."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "A" * 300
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    template_input = view.template_input
+
+    # Verify popup menu items include Fit to window after 100
+    menu_item_contents = [
+        getattr(item, "content", None)
+        for item in template_input.bases_per_line_menu.items
+    ]
+    assert "100" in menu_item_contents
+    assert "Fit to window" in menu_item_contents
+    idx_100 = menu_item_contents.index("100")
+    idx_fit = menu_item_contents.index("Fit to window")
+    assert idx_fit == idx_100 + 1
+
+    # Select Fit to window
+    template_input._handle_menu_select("Fit to window")
+    assert template_input.bases_per_line_value_text.value == "Fit to window"
+    assert template_input.line_numbers_container.visible is False
+    assert template_input.line_numbers_container.width == 0
+
+    # Test wrap length calculation on left_width = 1000
+    wrap_len_1000 = template_input.adjust_wrap_length(1000)
+    assert wrap_len_1000 == 0
+    assert template_input.line_numbers_container.visible is False
+    assert template_input.template_sequence.width == 1000 - 15.0
+    assert "\n" not in (template_input.template_sequence.value or "")
+    assert template_input.template_sequence.value == "A" * 300
+
+    # Switching back to Auto or fixed width restores gutter
+    template_input._handle_menu_select("Auto")
+    assert template_input.line_numbers_container.visible is True
+    assert template_input.line_numbers_container.width > 0
 
 
 def test_primer_row_keyboard_navigation() -> None:
@@ -1527,10 +1578,18 @@ def test_input_view_reverse_complement_button() -> None:
     assert input_data.primers[1]["seq"] == "GGCC"
 
 
-def test_template_input_copy_removes_linebreaks() -> None:
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_template_input_copy_removes_linebreaks() -> None:
     """Test copying from template input sequence field removes linebreaks."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = False
+    captured_task = None
+
+    def capture_run_task(task: typing.Any) -> None:
+        nonlocal captured_task
+        captured_task = task
+
+    mock_page.run_task = capture_run_task
     input_data = GUIInput()
     view = InputView(mock_page, input_data)
 
@@ -1541,18 +1600,22 @@ def test_template_input_copy_removes_linebreaks() -> None:
     template_input.template_sequence.value = "ATGC\nATGC\nATGC"
 
     # Test full selection copy desktop
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         template_input.template_sequence.selection = None
         template_input._on_copy_click(MagicMock(spec=ft.Event))
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGCATGC")
 
     # Test range selection copy desktop
-    with patch("pyperclip.copy") as mock_pyperclip_copy:
+    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
         template_input.template_sequence.selection = ft.TextSelection(
             base_offset=0, extent_offset=9
         )
         template_input._on_copy_click(MagicMock(spec=ft.Event))
-        mock_pyperclip_copy.assert_called_once_with("ATGCATGC")
+        assert captured_task is not None
+        await captured_task()
+        mock_set.assert_called_once_with("ATGCATGC")
 
     # Test web copy
     mock_page.web = True

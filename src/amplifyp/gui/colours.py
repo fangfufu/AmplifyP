@@ -76,6 +76,36 @@ class _GUIColoursMeta(type):
         return cast(str, ft.Colors.PRIMARY)
 
     @property
+    def NAV_ACTIVE_BG(cls) -> str:
+        """Get background colour for active navigation button."""
+        return cast(str, ft.Colors.PRIMARY)
+
+    @property
+    def NAV_ACTIVE_FG(cls) -> str:
+        """Get foreground text colour for active navigation button."""
+        return cast(str, ft.Colors.ON_PRIMARY)
+
+    @property
+    def NAV_INACTIVE_BG(cls) -> str:
+        """Get background colour for inactive navigation button."""
+        return cast(str, ft.Colors.SECONDARY_CONTAINER)
+
+    @property
+    def NAV_INACTIVE_FG(cls) -> str:
+        """Get foreground text colour for inactive navigation button."""
+        return cast(str, ft.Colors.ON_SECONDARY_CONTAINER)
+
+    @property
+    def DISABLED_BG(cls) -> str:
+        """Get background colour for disabled button."""
+        return str(ft.Colors.with_opacity(0.12, ft.Colors.ON_SURFACE))
+
+    @property
+    def DISABLED_FG(cls) -> str:
+        """Get foreground colour for disabled button."""
+        return str(ft.Colors.with_opacity(0.38, ft.Colors.ON_SURFACE))
+
+    @property
     def OUTLINE_VARIANT(cls) -> str:
         """Get outline variant colour."""
         if cls._dark_mode:
