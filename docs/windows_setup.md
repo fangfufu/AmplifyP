@@ -210,8 +210,8 @@ Open PowerShell and run:
 
 > [!NOTE]
 > An Android SDK or toolchain is **not** required when building for Windows. The
-> build script automatically skips Flutter Doctor Android checks and disables
-> Android requirements in the Flutter configuration.
+> build script automatically skips Flutter Doctor Android checks and temporarily
+> disables Android requirements in the Flutter configuration.
 
 ### Output Artefacts
 
@@ -222,5 +222,5 @@ created:
 - **`amplifyp-windows-<version>.zip`**: A ZIP archive of the application
   directory.
 - **`amplifyp-windows-setup-<version>.exe`**: The standalone Windows
-  installation wizard (only if Inno Setup's `iscc` compiler is installed and
-  available in the system PATH).
+  installation wizard (only if Inno Setup's `iscc` compiler is available on the
+  system PATH or found in a supported standard installation directory).
