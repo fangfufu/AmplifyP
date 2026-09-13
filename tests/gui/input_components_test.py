@@ -404,19 +404,46 @@ def test_template_casing_and_formatter() -> None:
 
     # 2. adjust_wrap_length & validate_bases_per_line
     assert validate_bases_per_line(template_input, "Auto") == "Auto"
+    assert (
+        validate_bases_per_line(template_input, "Fit to window")
+        == "Fit to window"
+    )
+    assert (
+        validate_bases_per_line(template_input, "fit to window")
+        == "Fit to window"
+    )
+    assert (
+        validate_bases_per_line(template_input, "Unrestricted")
+        == "Fit to window"
+    )
+    assert (
+        validate_bases_per_line(template_input, "best fit") == "Fit to window"
+    )
     assert validate_bases_per_line(template_input, "60") == 60
     assert validate_bases_per_line(template_input, "invalid") is None
 
     template_input.bases_per_line_value_text.value = "Auto"
     wrap_len = adjust_wrap_length(template_input, 600.0, update=False)
     assert wrap_len >= 10
+    assert template_input.line_numbers_container.visible is True
+
+    template_input.bases_per_line_value_text.value = "Fit to window"
+    wrap_len_fit = adjust_wrap_length(template_input, 600.0, update=False)
+    assert wrap_len_fit == 0
+    assert template_input.line_numbers_container.visible is False
+    assert template_input.line_numbers_container.width == 0
+    assert template_input.bases_per_line_value_text.value == "Fit to window"
 
     template_input.bases_per_line_value_text.value = "40"
     wrap_len = adjust_wrap_length(template_input, 600.0, update=False)
     assert wrap_len == 40
+    assert template_input.line_numbers_container.visible is True
 
     # 3. update_line_numbers
     update_line_numbers(template_input, update=False, gutter_only=True)
+    template_input.bases_per_line_value_text.value = "Fit to window"
+    update_line_numbers(template_input, update=False, gutter_only=True)
+    assert template_input.line_numbers_container.visible is False
 
 
 def test_input_events_coordination() -> None:
@@ -560,7 +587,11 @@ async def test_template_input_file_operations() -> None:
         mock_set.assert_called_once_with(">seq1ATGCGATCGATC")
 
     tmpl._handle_menu_select("Auto")
+    tmpl._handle_menu_select("Fit to window")
+    assert tmpl.bases_per_line_value_text.value == "Fit to window"
+    assert tmpl.line_numbers_container.visible is False
     tmpl._handle_menu_select(60)
+    assert tmpl.line_numbers_container.visible is True
     tmpl._upper_case_click(MagicMock())
     tmpl._lower_case_click(MagicMock())
     tmpl._show_notification("Message")
@@ -1006,6 +1037,8 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
 
     # template _validate_bases_per_line
     assert tmpl._validate_bases_per_line("50") == 50
+    assert tmpl._validate_bases_per_line("Fit to window") == "Fit to window"
+    assert tmpl._validate_bases_per_line("Unrestricted") == "Fit to window"
 
     # 9. events.py & action_controller.py edge cases
     # auto_add_empty_row_if_needed

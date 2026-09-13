@@ -135,6 +135,14 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                     on_click=lambda e, v=val: self._handle_menu_select(v),
                 )
                 for val in range(10, 110, 10)
+            ]
+            + [
+                ft.PopupMenuItem(
+                    content="Fit to window",
+                    on_click=lambda e: self._handle_menu_select(
+                        "Fit to window"
+                    ),
+                )
             ],
             padding=0,
         )
@@ -408,7 +416,10 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
     def _validate_bases_per_line(
         self, val_str: str | None = None
     ) -> int | str | None:
-        """Validate bases per line, enforcing 10..100 or Auto."""
+        """Validate bases per line.
+
+        Enforces 10..100, Auto, or Fit to window.
+        """
         from .formatter import validate_bases_per_line
 
         return validate_bases_per_line(self, val_str)
@@ -536,7 +547,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         wrap_length = self.adjust_wrap_length(left_width, update=False)
 
         if has_selection:
-            if clean_idx <= 0:
+            if wrap_length <= 0:
+                new_pos = max(0, min(len(cleaned), clean_idx))
+            elif clean_idx <= 0:
                 new_pos = 0
             elif clean_idx >= len(cleaned):
                 num_newlines = max(0, (len(cleaned) - 1) // wrap_length)

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 def adjust_wrap_length(
     template_input: TemplateInput, left_width: float, update: bool = True
 ) -> int:
-    """Adjust wrap length based on selected width or Auto.
+    """Adjust wrap length based on selected width, Auto, or Fit to window.
 
     Args:
         template_input: The parent TemplateInput component.
@@ -36,7 +36,8 @@ def adjust_wrap_length(
         update: Whether to trigger a UI update after adjusting.
 
     Returns:
-        The computed wrap length (number of bases per line).
+        The computed wrap length (number of bases per line), or 0 for
+        Fit to window.
     """
     template_input._last_left_width = left_width
     template_input.sequence_layout.width = max(100.0, left_width - 15.0)
@@ -44,12 +45,43 @@ def adjust_wrap_length(
     font_size = max(1, template_input.settings.get("font_size_default", 14))
     char_width = font_size * 0.70
 
+    wrap_setting = validate_bases_per_line(template_input)
+
+    if wrap_setting == "Fit to window":
+        template_input.line_numbers_container.visible = False
+        template_input.line_numbers_container.width = 0
+        template_input.bases_per_line_value_text.value = "Fit to window"
+
+        # Text input box should be as wide as the divider
+        target_width = max(100.0, left_width - 15.0)
+        template_input.template_sequence_wrapper.width = target_width
+        template_input.template_sequence.width = target_width
+        template_input.template_sequence.expand = False
+
+        # Rely on native autowrap behaviour without extra linebreaks
+        template_input.template_sequence.value = (
+            template_input.input_data.template
+        )
+        update_line_numbers(template_input, update=update)
+
+        try:
+            if template_input.page:
+                template_input.template_sequence_wrapper.update()
+                template_input.template_sequence.update()
+                template_input.template_sequence_container.update()
+                template_input.bases_per_line_value_text.update()
+        except (AssertionError, RuntimeError):
+            pass
+
+        return 0
+
     # Calculate dynamic gutter width based on template digits
     template_len = len(template_input.input_data.template)
     max_digits = len(str(max(1, template_len)))
     gutter_width = 20 + max_digits * char_width
+    template_input.line_numbers_container.visible = True
+    template_input.line_numbers_container.width = gutter_width
 
-    wrap_setting = validate_bases_per_line(template_input)
     if wrap_setting == "Auto":
         available_width = left_width - gutter_width - 100
         max_fit = int(available_width / char_width)
@@ -79,6 +111,10 @@ def adjust_wrap_length(
             template_input.template_sequence_wrapper.update()
             template_input.template_sequence.update()
             template_input.template_sequence_container.update()
+            try:
+                template_input.bases_per_line_value_text.update()
+            except (AssertionError, RuntimeError):
+                pass
     except (AssertionError, RuntimeError):
         pass
 
@@ -97,6 +133,27 @@ def update_line_numbers(
         update: Whether to trigger a UI update after adjusting.
         gutter_only: If True, only update the gutter text and container.
     """
+    wrap_setting = validate_bases_per_line(template_input)
+    if wrap_setting == "Fit to window":
+        template_input.line_numbers_container.visible = False
+        template_input.line_numbers_container.width = 0
+        template_input.line_numbers_text.value = ""
+        if update:
+            try:
+                page = template_input.page
+            except RuntimeError:
+                page = None
+            if page:
+                try:
+                    if gutter_only:
+                        template_input.line_numbers_container.update()
+                    else:
+                        template_input.update()
+                except (RuntimeError, AssertionError):
+                    pass
+        return
+
+    template_input.line_numbers_container.visible = True
     text = template_input.template_sequence.value or ""
     lines = text.split("\n")
     line_indices = []
@@ -134,19 +191,26 @@ def update_line_numbers(
 def validate_bases_per_line(
     template_input: TemplateInput, val_str: str | None = None
 ) -> int | str | None:
-    """Validate bases per line, enforcing 10..100 or Auto.
+    """Validate bases per line, enforcing 10..100, Auto, or Fit to window.
 
     Args:
         template_input: The parent TemplateInput component.
         val_str: Optional string value to validate. If None, reads from UI.
 
     Returns:
-        ``"Auto"``, an integer multiple of 10 between 10 and 100, or None.
+        ``"Auto"``, ``"Fit to window"``, an integer multiple of 10 between 10
+        and 100, or None.
     """
     if val_str is None:
         val_str = (template_input.bases_per_line_value_text.value or "").strip()
     if val_str.lower() == "auto":
         return "Auto"
+    if (
+        val_str.lower().startswith("fit to window")
+        or val_str.lower().startswith("unrestricted")
+        or val_str.lower().startswith("best fit")
+    ):
+        return "Fit to window"
     try:
         val_int = int(val_str.strip())
         if 10 <= val_int <= 100 and val_int % 10 == 0:

@@ -38,6 +38,8 @@ def test_format_sequence() -> None:
     seq = "ATGC" * 10  # 40 bp
     formatted = format_sequence(seq, wrap_length=10)
     assert formatted == "ATGCATGCAT\nGCATGCATGC\nATGCATGCAT\nGCATGCATGC"
+    assert format_sequence(seq, wrap_length=0) == seq
+    assert format_sequence(seq, wrap_length=-1) == seq
 
 
 def test_show_error_dialog() -> None:

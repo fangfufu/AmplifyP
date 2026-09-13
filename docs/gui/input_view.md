@@ -30,12 +30,16 @@ target DNA template sequence.
 - **Bases Per Line & Wrap Control**:
   - **Wrap Selector**: A popup menu in the status bar allows choosing the number
     of bases displayed per line (preset options from 10 to 100 in steps of 10,
-    or **Auto**).
+    **Auto**, or **Fit to window**).
   - **Auto Wrapping**: When set to **Auto**, the wrap length is calculated
-    dynamically based on available panel width.
+    dynamically based on available panel width up to 100 bases in steps of 10.
+  - **Fit to Window Wrapping**: When set to **Fit to window**, the text input
+    box extends to the width of the divider and relies on native text autowrap
+    without injecting extra linebreaks, and the base number gutter is turned
+    off.
   - **Horizontal Scrollbar**: Automatic text wrapping at window borders is
     disabled in favour of horizontal scrolling to maintain strict visual
-    alignment.
+    alignment when using fixed widths.
 - **Topology Toggle**:
   - **Circular Checkbox**: Toggle the template topology between **Linear** and
     **Circular**. Circular topology is essential for simulating plasmid PCR,
