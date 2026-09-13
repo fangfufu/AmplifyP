@@ -113,6 +113,7 @@ python src/main.py [options]
 | `--window-width <pixels>`  | Integer | Set application window width in pixels.                            |
 | `--window-height <pixels>` | Integer | Set application window height in pixels.                           |
 | `--web`                    | Flag    | Launch in web browser mode.                                        |
+| `--port <number>`          | Integer | Port number for web browser mode (default: `34521`).               |
 
 ## 5. Pyodide static builds (Client-Side Web)
 

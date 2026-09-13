@@ -77,6 +77,7 @@ primer truncations…"* that fills as each truncation length is evaluated.
   **Abort** button ("Stop analysis and keep results so far"). Clicking **Abort**
   cancels the running analysis and keeps the primers analysed so far, showing a
   notification: *"Analysis aborted — showing primers analysed so far."*
+- **Ordering**: Candidate primers are listed from shortest to longest.
 - **Primer Item Cards**: Each card represents a candidate primer step:
   - **Length Header**: Displays primer length in nucleotides (e.g. `20 nt`).
   - **Sequence Field**: Read-only monospace text field, left-aligned.

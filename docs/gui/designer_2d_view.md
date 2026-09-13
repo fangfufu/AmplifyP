@@ -110,9 +110,9 @@ results analysed so far."*
   to running an analysis, or an error message if no truncation combinations
   match active quality and overlap filters.
 - **Grid Axes**:
-  - **Columns**: Forward primer lengths sorted in descending order (e.g.
-    `24 nt`, `23 nt`, ...). Top-left header origin cell reads `Rev \ Fwd`.
-  - **Rows**: Reverse primer lengths sorted in descending order.
+  - **Columns**: Forward primer lengths sorted in ascending order (e.g. `10 nt`,
+    `11 nt`, ...). Top-left header origin cell reads `Rev \ Fwd`.
+  - **Rows**: Reverse primer lengths sorted in ascending order.
 - **Cell Representation & Quality Score**:
   - Each cell displays the maximum dimer quality score across the evaluated
     dimer alignments for that pair, rounded to the nearest integer (e.g. `42`).

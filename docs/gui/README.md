@@ -33,6 +33,28 @@ candidate primers. It is a modern Python rewrite of William Engels's
   </tr>
 </table>
 
+## Top Header Bar
+
+Every view shares a common header bar at the top of the window:
+
+- **Application Title & Version**: Displays the **AmplifyP** name alongside the
+  current application version in dimmed text. When a newer release is detected,
+  the version text turns a prominent colour, shows an update notice, and becomes
+  clickable to open the GitHub releases page.
+- **View Navigation Buttons**: `Input`, `PCR`, `Primer Dimers`, `Designer 1D`,
+  `Designer 2D`, `Settings`, and `About`. The button for the currently active
+  view is highlighted with filled primary styling, while inactive view buttons
+  use a subdued secondary container tonal styling. The **PCR** and **Primer
+  Dimers** buttons are disabled until a valid template with at least one active
+  primer is present.
+- **Action Buttons**: `Clear all`, `Save all`, and `Load all` rendered as
+  outlined buttons, separated from the navigation buttons by a vertical divider.
+  - **Clear all**: Prompts for confirmation, then clears the template sequence
+    and the primer list.
+  - **Save all**: Exports the current template sequence and primer list to a
+    YAML state file.
+  - **Load all**: Imports a previously saved YAML state file.
+
 ## Documentation by View
 
 The user manual is divided into dedicated guides for each view in the interface:
@@ -92,6 +114,7 @@ amplifyp [OPTIONS]
 | `--window-width <PIXELS>`  |       | Set initial application window width in pixels.                                    |
 | `--window-height <PIXELS>` |       | Set initial application window height in pixels.                                   |
 | `--web`                    |       | Launch application in web browser mode rather than desktop window mode.            |
+| `--port <NUMBER>`          |       | Port number for web browser mode (default: `34521`).                               |
 | `--help`                   | `-h`  | Display command help message and exit.                                             |
 
 ### Usage Examples
