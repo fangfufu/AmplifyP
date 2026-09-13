@@ -209,8 +209,8 @@ Open PowerShell and run:
 ```
 
 > [!NOTE]
-> An Android SDK or toolchain is **not** required when building for Windows.
-> The build script automatically skips Flutter Doctor Android checks and disables
+> An Android SDK or toolchain is **not** required when building for Windows. The
+> build script automatically skips Flutter Doctor Android checks and disables
 > Android requirements in the Flutter configuration.
 
 ### Output Artefacts
