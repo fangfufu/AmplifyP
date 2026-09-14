@@ -31,8 +31,8 @@ optional-dependencies.dev = [
   "pytest-cov==7.1.0",
   "pytest-testmon==2.2.0",
   "pytest-playwright==0.9.0",
-  "pyright==1.1.411",
-  "prek==0.5.2",
+  "pyright==1.1.414",
+  "prek==0.5.3",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright==0.9.0",
