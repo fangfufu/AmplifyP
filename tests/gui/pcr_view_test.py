@@ -1130,3 +1130,64 @@ def test_pcr_view_ranking_change_with_warning_banner() -> None:
 
     assert "sorted by quality score" in str(warning_text.value)
     assert settings["pcr_amplicon_ranking"] == "Quality score"
+
+
+def test_pcr_view_ranking_change_open_all_cards() -> None:
+    """Test open_all_cards follows the selected ranking after ranking change."""
+    from amplifyp.gui.settings import GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    settings = GUISettings()
+    input_data = GUIInput()
+    # A repeated template produces amplicons where "Position, then length"
+    # and "Quality score" rankings order amplicons differently.
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC" * 2
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+    assert view._cached_pcr is not None
+
+    # Initial order under default "Position, then length"
+    view.open_all_cards()
+    initial_card_ids = [
+        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    ]
+    raw_amp_ids = [
+        (
+            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
+            f"{a.start.index}_{a.end.index}"
+        )
+        for a in view._cached_pcr.amplicons
+    ]
+
+    # Switch ranking via dropdown to "Quality score"
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+    view._on_ranking_change(mock_event)
+
+    # Open all cards and verify expansion follows the selected ranking
+    view.open_all_cards()
+    qual_card_ids = [
+        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    ]
+    sorted_amp_ids = [
+        (
+            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
+            f"{a.start.index}_{a.end.index}"
+        )
+        for a in view.diagram_panel._sorted_amplicons
+    ]
+
+    assert len(qual_card_ids) >= 2
+    assert qual_card_ids == sorted_amp_ids
+    assert qual_card_ids != raw_amp_ids
+    assert qual_card_ids != initial_card_ids
