@@ -1100,3 +1100,33 @@ def test_pcr_view_ranking_dropdown() -> None:
 
     assert settings["pcr_amplicon_ranking"] == "Quality score"
     assert len(view.diagram_panel._sorted_amplicons) == 1
+
+
+def test_pcr_view_ranking_change_with_warning_banner() -> None:
+    """Test ranking update updates warning text when amplicons exceed limit."""
+    from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    view = PCRView(mock_page, input_data, settings)
+
+    mock_pcr = MagicMock()
+    mock_pcr.amplicons = [
+        MagicMock(q_score=float(i), start=MagicMock(index=i), product="A")
+        for i in range(MAX_AMPLICONS_RENDER + 1)
+    ]
+    view._cached_pcr = mock_pcr
+
+    warning_text = ft.Text("Warning: 101 amplicons found...")
+    warning_container = ft.Container(content=warning_text)
+    view.result_list.controls = [warning_container]
+
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+
+    view._on_ranking_change(mock_event)
+
+    assert "sorted by quality score" in str(warning_text.value)
+    assert settings["pcr_amplicon_ranking"] == "Quality score"

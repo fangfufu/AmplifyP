@@ -1242,6 +1242,11 @@ def test_handle_keyboard_event_comprehensive() -> None:
     mock_ctrl.input_view._currently_focused_control = invalid_focus
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
 
+    # Focused control is non-TextField but has idx and field in data (line 265)
+    non_text_with_data = ft.Container(data={"idx": 0, "field": "name"})
+    mock_ctrl.input_view._currently_focused_control = non_text_with_data
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
     non_dict_focus = ft.TextField()
     non_dict_focus.data = "invalid"
     mock_ctrl.input_view._currently_focused_control = non_dict_focus
@@ -1285,6 +1290,71 @@ def test_handle_keyboard_event_comprehensive() -> None:
     mock_ctrl.input_view._currently_focused_control = row_1.seq_field
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
 
+    # Shift+Tab on row 1 seq -> jumps to row 1 name
+    row_1.seq_field.data = {"idx": 1, "field": "seq"}
+    mock_ctrl.input_view._currently_focused_control = row_1.seq_field
+    row_1.name_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+    row_1.name_field.focus.assert_called_once()
+
+    # Shift+Tab on row 1 seq when row not found in controls -> early return
+    row_1.seq_field.data = {"idx": 999, "field": "seq"}
+    mock_ctrl.input_view._currently_focused_control = row_1.seq_field
+    row_1.name_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+    row_1.name_field.focus.assert_not_called()
+
+    # Shift+Tab on row 1 name -> jumps to row 0 seq
+    row_1.name_field.data = {"idx": 1, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_1.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+    row_0.seq_field.focus.assert_called_once()
+
+    # Shift+Tab on row 1 name when prev_row not found -> early return
+    row_1.name_field.data = {"idx": 5, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_1.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+    row_0.seq_field.focus.assert_not_called()
+
+    # Shift+Tab on row 0 name (idx == 0) -> early return
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+    row_0.seq_field.focus.assert_not_called()
+
+    # Shift+Tab on unrecognized field -> early return
+    row_0.name_field.data = {"idx": 0, "field": "unknown_shift"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab", shift=True))
+
+    # Tab on row 0 name when row not found in controls -> early return
+    row_0.name_field.data = {"idx": 999, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    row_0.seq_field.focus.assert_not_called()
+
+    # Tab on unrecognized field -> early return
+    row_0.name_field.data = {"idx": 0, "field": "unknown_tab"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+
+    # Tab navigation when target_field.focus() returns a coroutine
+    async def async_tab_focus() -> None:
+        pass
+
+    coro_tab = async_tab_focus()
+    row_0.seq_field.focus = MagicMock(return_value=coro_tab)
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    mock_ctrl.page.run_task.assert_called_once()
+    row_0.seq_field.focus = MagicMock()
+
     # 5. Arrow Left / Right navigation
     # Arrow Right at end of name field -> jumps to seq field
     row_0.name_field.value = "P0"
@@ -1293,6 +1363,13 @@ def test_handle_keyboard_event_comprehensive() -> None:
     row_0.seq_field.focus.reset_mock()
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
     row_0.seq_field.focus.assert_called_once()
+
+    # Arrow Right at end of name field when row not found -> does nothing
+    row_0.name_field.data = {"idx": 999, "field": "name", "cursor_pos": 2}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
+    row_0.seq_field.focus.assert_not_called()
 
     # Arrow Right NOT at end of name field -> does nothing
     row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 0}
@@ -1308,11 +1385,45 @@ def test_handle_keyboard_event_comprehensive() -> None:
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Left"))
     row_0.name_field.focus.assert_called_once()
 
+    # Arrow Left at pos 0 when row not found -> does nothing
+    row_0.seq_field.data = {"idx": 999, "field": "seq", "cursor_pos": 0}
+    mock_ctrl.input_view._currently_focused_control = row_0.seq_field
+    row_0.name_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Left"))
+    row_0.name_field.focus.assert_not_called()
+
     # Arrow Left NOT at pos 0 -> does nothing
     row_0.seq_field.data = {"idx": 0, "field": "seq", "cursor_pos": 1}
     row_0.name_field.focus.reset_mock()
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Left"))
     row_0.name_field.focus.assert_not_called()
+
+    # Arrow Right on unknown field -> does nothing
+    row_0.name_field.data = {"idx": 0, "field": "other", "cursor_pos": 2}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
+
+    # Arrow Right when target_field.focus() returns a coroutine
+    row_0.name_field.value = "P0"
+    row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 2}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+
+    async def async_arr_focus() -> None:
+        pass
+
+    coro_arr = async_arr_focus()
+    row_0.seq_field.focus = MagicMock(return_value=coro_arr)
+    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
+    mock_ctrl.page.run_task.assert_called_once()
+    row_0.seq_field.focus = MagicMock()
+
+    # Enter key sets _enter_key_pressed and returns
+    row_0.name_field.data = {"idx": 0, "field": "name", "cursor_pos": 0}
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    mock_ctrl.input_view._enter_key_pressed = False
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Enter"))
+    assert mock_ctrl.input_view._enter_key_pressed is True
 
     # 6. Arrow Up / Down navigation
     # Arrow Down from row 0 name to row 1 name
