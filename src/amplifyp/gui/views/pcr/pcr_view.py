@@ -154,6 +154,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         val = str(getattr(e.control, "value", None) or "Position, then length")
         self.settings["pcr_amplicon_ranking"] = val
         if self._cached_pcr is not None:
+            self.diagram_panel.reset_ui()
             self.diagram_panel.render_diagram(self._cached_pcr)
             num_amplicons = len(self._cached_pcr.amplicons)
             if num_amplicons > MAX_AMPLICONS_RENDER:

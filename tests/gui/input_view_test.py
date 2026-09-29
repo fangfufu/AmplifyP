@@ -1676,3 +1676,26 @@ def test_enter_press_middle_of_string() -> None:
     assert len(input_data.primers) == 2
     assert input_data.primers[0]["seq"] == "AAAA"
     assert input_data.primers[1]["seq"] == "TTTT"
+
+
+def test_multiline_paste_into_empty_field() -> None:
+    """Test pasting multiline primers into an empty field parses correctly."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "", "seq": "", "active": False},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row0 = view.primers_list.controls[0]
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = row0.name_field
+    row0.name_field.value = "PrimerA\nPrimerB\n"
+
+    view._on_change_handler(mock_event)
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "PrimerA"
+    assert input_data.primers[1]["name"] == "PrimerB"

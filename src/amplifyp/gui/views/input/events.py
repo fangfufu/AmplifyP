@@ -191,10 +191,7 @@ def on_change_handler(input_view: Any, e: ft.Event | None) -> None:
                 is_enter = getattr(input_view, "_enter_key_pressed", False) or (
                     val.count("\n") == 1
                     and "\t" not in val
-                    and (
-                        val.replace("\n", "") == existing_val
-                        or not existing_val
-                    )
+                    and val.replace("\n", "") == existing_val
                 )
 
                 if is_enter and "\t" not in val:

@@ -15,7 +15,7 @@
 
 """Tests for PCR View and primer binding site context map popups."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import flet as ft
 
@@ -1092,7 +1092,11 @@ def test_pcr_view_ranking_dropdown() -> None:
     mock_event = MagicMock(spec=ft.ControlEvent)
     mock_event.control = view.ranking_dropdown
     view.ranking_dropdown.value = "Quality score"
-    view._on_ranking_change(mock_event)
+    with patch.object(
+        view.diagram_panel, "reset_ui", wraps=view.diagram_panel.reset_ui
+    ) as mock_reset_ui:
+        view._on_ranking_change(mock_event)
+        mock_reset_ui.assert_called_once()
 
     assert settings["pcr_amplicon_ranking"] == "Quality score"
     assert len(view.diagram_panel._sorted_amplicons) == 1
