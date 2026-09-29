@@ -105,10 +105,10 @@ rm -rf squashfs-root
 ./appimagetool-x86_64.AppImage --appimage-extract
 
 export ARCH=x86_64
-./squashfs-root/AppRun build/AmplifyP amplifyp-linux.AppImage
+./squashfs-root/AppRun build/AmplifyP amplifyp-x86_64.AppImage
 
 # Clean up extracted appimagetool dir and temporary flet build directories
 rm -rf squashfs-root
 rm -rf src/build src/dist
 
-echo "==> Build complete: amplifyp-linux.tar.gz and amplifyp-linux.AppImage"
+echo "==> Build complete: amplifyp-linux.tar.gz and amplifyp-x86_64.AppImage"
