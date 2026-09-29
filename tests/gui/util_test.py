@@ -721,6 +721,23 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     ctrl.input_view._currently_focused_control = row1.seq_field
     handle_keyboard_event(ctrl, ev_tab)
 
+    # Shift+Tab backwards navigation
+    ev_shift_tab = MagicMock()
+    ev_shift_tab.key = "Tab"
+    ev_shift_tab.shift = True
+
+    ctrl.input_view._currently_focused_control = row1.seq_field
+    handle_keyboard_event(ctrl, ev_shift_tab)
+    row1.name_field.focus.assert_called()
+
+    ctrl.input_view._currently_focused_control = row1.name_field
+    handle_keyboard_event(ctrl, ev_shift_tab)
+    row0.seq_field.focus.assert_called()
+
+    # Shift+Tab at row0 name (boundary)
+    ctrl.input_view._currently_focused_control = row0.name_field
+    handle_keyboard_event(ctrl, ev_shift_tab)
+
     # Arrow keys navigation
     ctrl.input_view._currently_focused_control = row0.name_field
     ev_right = MagicMock()
