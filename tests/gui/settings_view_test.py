@@ -104,8 +104,17 @@ def test_settings_view_properties_and_methods() -> None:
     assert mock_on_change.called
 
     # 4. _on_reset_handler
+    settings["designer_1d_show_tm"] = False
+    settings["designer_1d_show_pct_at"] = True
+    settings["pcr_amplicon_ranking"] = "Quality score"
     view._on_reset_handler(mock_event)
     assert mock_on_reset.called
+    assert settings["designer_1d_show_tm"] is True
+    assert settings["designer_1d_show_pct_at"] is False
+    assert settings["pcr_amplicon_ranking"] == "Position, then length"
+    assert view.set_designer_1d_show_tm.value is True
+    assert view.set_designer_1d_show_pct_at.value is False
+    assert view.set_pcr_amplicon_ranking.value == "Position, then length"
 
     # 5. get_replication_settings, get_state, set_state
     repl_settings = view.get_replication_settings()
