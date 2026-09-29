@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0](https://github.com/fangfufu/AmplifyP/compare/v1.22.0...v1.23.0) (2026-09-29)
+
+
+### Features
+
+* **gui:** add vertical ranking for pcr amplicons ([f4387d4](https://github.com/fangfufu/AmplifyP/commit/f4387d4e447fed9a8bd568bb205da27aed335164))
+* **gui:** configure designer 1d card badge display ([acf3a8c](https://github.com/fangfufu/AmplifyP/commit/acf3a8c9156d0f7c37ba3d3a65799f9e97c76fac))
+
+
+### Bug Fixes
+
+* **ci:** rename AppImage artifact to omit linux ([d1f4c1b](https://github.com/fangfufu/AmplifyP/commit/d1f4c1bb36b1cba8d564c6f651fa650232d502d7))
+* **gui:** clear diagram on ranking change and fix multiline paste ([5b03eaa](https://github.com/fangfufu/AmplifyP/commit/5b03eaa86e0c5df79d878d7d4e3a0f98b9d87767))
+* **gui:** prevent enter from corrupting primer input ([345c8d3](https://github.com/fangfufu/AmplifyP/commit/345c8d3439a9b9e88b0809635d9a490fee5b1929))
+* **gui:** restore missing settings on reset ([ae0383e](https://github.com/fangfufu/AmplifyP/commit/ae0383edb0138f051e482df29642a0bc1ecf5e75))
+* **gui:** support shift+tab in primer input ([1bee3ef](https://github.com/fangfufu/AmplifyP/commit/1bee3ef0785bcdd3ab645abe514639513d01316e))
+
 ## [1.22.0](https://github.com/fangfufu/AmplifyP/compare/v1.21.0...v1.22.0) (2026-09-13)
 
 
