@@ -738,6 +738,12 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     ctrl.input_view._currently_focused_control = row0.name_field
     handle_keyboard_event(ctrl, ev_shift_tab)
 
+    # Enter keypress records _enter_key_pressed
+    ev_enter = MagicMock()
+    ev_enter.key = "Enter"
+    handle_keyboard_event(ctrl, ev_enter)
+    assert getattr(ctrl.input_view, "_enter_key_pressed", False) is True
+
     # Arrow keys navigation
     ctrl.input_view._currently_focused_control = row0.name_field
     ev_right = MagicMock()

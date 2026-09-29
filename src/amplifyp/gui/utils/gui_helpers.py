@@ -271,6 +271,10 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
 
     target_field: ft.TextField | None = None
 
+    if e.key == "Enter":
+        if hasattr(controller, "input_view") and controller.input_view:
+            controller.input_view._enter_key_pressed = True
+
     if e.key == "Tab":
         controls = controller.input_view.primer_input.primers_list.controls
         is_shift = bool(getattr(e, "shift", False))
