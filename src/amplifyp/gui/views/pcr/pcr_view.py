@@ -88,7 +88,41 @@ class PCRView(ft.Column):  # type: ignore[misc]
             visible=False,
         )
 
+        self.ranking_dropdown = ft.Dropdown(
+            label="Amplicon vertical ranking",
+            value=self.settings.get(
+                "pcr_amplicon_ranking", "Position, then length"
+            ),
+            options=[
+                ft.dropdown.Option("Position, then length"),
+                ft.dropdown.Option("Quality score"),
+                ft.dropdown.Option("Position, then quality"),
+            ],
+            on_select=self._on_ranking_change,
+            width=280,
+            text_size=self.settings.get("font_size_small", 12),
+            label_style=ft.TextStyle(
+                size=self.settings.get("font_size_small", 12)
+            ),
+            dense=True,
+            border_color=GUIColours.OUTLINE,
+        )
+
+        self.diagram_header = ft.Row(
+            [
+                ft.Text(
+                    "Amplicon Map",
+                    weight=ft.FontWeight.BOLD,
+                    size=self.settings.get("font_size_header", 18),
+                ),
+                self.ranking_dropdown,
+            ],
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            visible=False,
+        )
+
         self.controls = [
+            self.diagram_header,
             self.diagram_panel,
             self.cards_header,
             ft.Container(content=self.result_list, expand=True),
@@ -115,6 +149,29 @@ class PCRView(ft.Column):  # type: ignore[misc]
         if self.diagram_panel.diagram_container.visible:
             self.run_pcr(keep_cards=True)
 
+    def _on_ranking_change(self, e: ft.ControlEvent) -> None:
+        """Handle change in amplicon ranking method."""
+        val = str(getattr(e.control, "value", None) or "Position, then length")
+        self.settings["pcr_amplicon_ranking"] = val
+        if self._cached_pcr is not None:
+            self.diagram_panel.render_diagram(self._cached_pcr)
+            num_amplicons = len(self._cached_pcr.amplicons)
+            if num_amplicons > MAX_AMPLICONS_RENDER:
+                for ctrl in self.result_list.controls:
+                    if isinstance(ctrl, ft.Container) and isinstance(
+                        ctrl.content, ft.Text
+                    ):
+                        if "Warning:" in str(ctrl.content.value):
+                            ctrl.content.value = (
+                                f"Warning: {num_amplicons} amplicons "
+                                "found. Only the top "
+                                f"{MAX_AMPLICONS_RENDER} (sorted by "
+                                f"{val.lower()}) are displayed to "
+                                "prevent UI freeze."
+                            )
+                            break
+            self.app_page.update()
+
     def run_pcr(self, keep_cards: bool = False) -> bool:
         """Execute the PCR simulation and update the UI."""
         saved_cards = self._reset_pcr_ui(keep_cards)
@@ -137,24 +194,37 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
             self.diagram_panel.render_diagram(pcr)
             if num_amplicons == 0:
+                self.diagram_header.visible = False
                 self.result_list.controls.append(
                     ft.Text("No amplicons found.", selectable=True)
                 )
-            elif num_amplicons > MAX_AMPLICONS_RENDER:
-                self.result_list.controls.append(
-                    ft.Container(
-                        content=ft.Text(
-                            f"Warning: {num_amplicons} amplicons "
-                            "found. Only the top "
-                            f"{MAX_AMPLICONS_RENDER} (sorted by "
-                            "quality score) are displayed to "
-                            "prevent UI freeze.",
-                            color=GUIColours.ERROR_RED,
-                            weight=ft.FontWeight.BOLD,
-                        ),
-                        padding=10,
+            else:
+                self.diagram_header.visible = True
+                self.ranking_dropdown.value = str(
+                    self.settings.get(
+                        "pcr_amplicon_ranking", "Position, then length"
                     )
                 )
+                if num_amplicons > MAX_AMPLICONS_RENDER:
+                    ranking_desc = str(
+                        self.settings.get(
+                            "pcr_amplicon_ranking", "Position, then length"
+                        )
+                    ).lower()
+                    self.result_list.controls.append(
+                        ft.Container(
+                            content=ft.Text(
+                                f"Warning: {num_amplicons} amplicons "
+                                "found. Only the top "
+                                f"{MAX_AMPLICONS_RENDER} (sorted by "
+                                f"{ranking_desc}) are displayed to "
+                                "prevent UI freeze.",
+                                color=GUIColours.ERROR_RED,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            padding=10,
+                        )
+                    )
 
         except (OSError, ValueError, RuntimeError) as ex:
             logger.exception("PCR simulation failed: %s", ex)
@@ -180,6 +250,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         """Reset the PCR view UI controls and canvas shapes."""
         saved_cards = list(self.result_list.controls) if keep_cards else []
         self.result_list.controls.clear()
+        self.diagram_header.visible = False
         self._update_cards_header_visibility()
         self.diagram_panel.reset_ui()
         return saved_cards
@@ -289,5 +360,10 @@ class PCRView(ft.Column):  # type: ignore[misc]
         """Open detail cards for all predicted amplicons."""
         if self._cached_pcr is None:
             return
-        for amp in reversed(self._cached_pcr.amplicons[:MAX_AMPLICONS_RENDER]):
+        amplicons_to_show = getattr(
+            self.diagram_panel,
+            "_sorted_amplicons",
+            self._cached_pcr.amplicons[:MAX_AMPLICONS_RENDER],
+        )
+        for amp in reversed(amplicons_to_show):
             self._show_amplicon_dialog(amp)

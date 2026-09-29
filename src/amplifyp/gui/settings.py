@@ -119,6 +119,7 @@ class GUISettings:
             "auto_activate_new_valid_primer": False,
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
+            "pcr_amplicon_ranking": "Position, then length",
         }
 
         # Initialise base-pair weights

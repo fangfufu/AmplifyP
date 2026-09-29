@@ -494,3 +494,16 @@ def test_designer_1d_tile_settings() -> None:
     view.sync_to_state()
     assert settings["designer_1d_show_tm"] is False
     assert settings["designer_1d_show_pct_at"] is True
+
+
+def test_pcr_amplicon_ranking_settings() -> None:
+    """Test amplicon vertical ranking dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    # Test amplicon vertical ranking dropdown
+    assert view.set_pcr_amplicon_ranking.value == "Position, then length"
+    view.set_pcr_amplicon_ranking.value = "Quality score"
+    view.sync_to_state()
+    assert settings["pcr_amplicon_ranking"] == "Quality score"

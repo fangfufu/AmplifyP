@@ -1004,3 +1004,95 @@ def test_drawn_primer_direction_arrows() -> None:
     assert rev_tip_elem.x == drawn_rev.x_pos - 5.0
     assert rev_base_elem1.x == drawn_rev.x_pos + 5.0
     assert rev_base_elem2.x == drawn_rev.x_pos + 5.0
+
+
+def test_sort_amplicons() -> None:
+    """Test amplicon sorting under different ranking modes."""
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.dna import DNA, DNADirection, Primer
+    from amplifyp.gui.views.pcr.pcr_diagram_panel import sort_amplicons
+
+    f_primer = Primer("AAAA", name="F")
+    r_primer = Primer("TTTT", name="R")
+
+    # amp1: start=10, len=90, q=500
+    amp1 = Amplicon(
+        product=DNA("A" * 90),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=10),
+        end=DirIdx(direction=DNADirection.REV, index=100),
+        q_score=500.0,
+        circular=False,
+    )
+    # amp2: start=10, len=50, q=300
+    amp2 = Amplicon(
+        product=DNA("A" * 50),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=10),
+        end=DirIdx(direction=DNADirection.REV, index=60),
+        q_score=300.0,
+        circular=False,
+    )
+    # amp3: start=5, len=75, q=800
+    amp3 = Amplicon(
+        product=DNA("A" * 75),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=5),
+        end=DirIdx(direction=DNADirection.REV, index=80),
+        q_score=800.0,
+        circular=False,
+    )
+
+    amps = [amp1, amp2, amp3]
+
+    # 1. Position, then length: amp3 (pos 5), then amp2 (pos 10, len 50),
+    # then amp1 (pos 10, len 90)
+    res_pos_len = sort_amplicons(amps, "Position, then length")
+    assert res_pos_len == [amp3, amp2, amp1]
+
+    # 2. Quality score: amp2 (q 300), then amp1 (q 500), then amp3 (q 800)
+    res_quality = sort_amplicons(amps, "Quality score")
+    assert res_quality == [amp2, amp1, amp3]
+
+    # 3. Position, then quality
+    res_pos_q = sort_amplicons(amps, "Position, then quality")
+    assert res_pos_q == [amp3, amp2, amp1]
+
+
+def test_pcr_view_ranking_dropdown() -> None:
+    """Test PCRView ranking dropdown change updates settings and diagram."""
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.user_data import GUIInput
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    settings = GUISettings()
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+
+    assert view.diagram_header.visible is True
+    assert view.ranking_dropdown.value == "Position, then length"
+    assert len(view.diagram_panel._sorted_amplicons) == 1
+
+    # Switch ranking via dropdown to "Quality score"
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+    view._on_ranking_change(mock_event)
+
+    assert settings["pcr_amplicon_ranking"] == "Quality score"
+    assert len(view.diagram_panel._sorted_amplicons) == 1

@@ -469,3 +469,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_designer_1d_show_pct_at(self) -> BorderedCheckbox:
         """Get the show % AT checkbox."""
         return self.designer_1d_tile.set_designer_1d_show_pct_at
+
+    @property
+    def set_pcr_amplicon_ranking(self) -> ft.Dropdown:
+        """Get the amplicon vertical ranking dropdown."""
+        return self.replication_tile.set_amplicon_ranking

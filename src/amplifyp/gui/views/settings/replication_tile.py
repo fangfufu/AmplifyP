@@ -72,11 +72,26 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Improved Primer Binding Site Visualisation",
             on_change=on_change_handler,
         )
+        self.set_amplicon_ranking = ft.Dropdown(
+            label="Amplicon vertical ranking",
+            value=self.settings.get(
+                "pcr_amplicon_ranking", "Position, then length"
+            ),
+            options=[
+                ft.dropdown.Option("Position, then length"),
+                ft.dropdown.Option("Quality score"),
+                ft.dropdown.Option("Position, then quality"),
+            ],
+            on_select=on_change_handler,
+            text_size=font_size_default,
+            border_color=GUIColours.OUTLINE,
+        )
 
         settings_map["primability_cutoff"] = self.set_primability_cutoff
         settings_map["stability_cutoff"] = self.set_stability_cutoff
         settings_map["amp4_compat"] = self.set_amp4_compat
         settings_map["improved_visualisation"] = self.set_improved_visualisation
+        settings_map["pcr_amplicon_ranking"] = self.set_amplicon_ranking
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
@@ -130,6 +145,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                         self.set_stability_cutoff,
                                         self.set_amp4_compat,
                                         self.set_improved_visualisation,
+                                        self.set_amplicon_ranking,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
