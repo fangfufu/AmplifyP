@@ -476,3 +476,21 @@ def test_general_tile_appearance_compatibility_accessors() -> None:
     general_tile.update_colour_scheme_dropdown()
     mock_event = MagicMock(spec=ft.ControlEvent)
     general_tile._on_colour_scheme_change(mock_event)
+
+
+def test_designer_1d_tile_settings() -> None:
+    """Test Designer 1D tile settings in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert hasattr(view, "designer_1d_tile")
+    assert view.set_designer_1d_show_tm.value is True
+    assert view.set_designer_1d_show_pct_at.value is False
+
+    # Toggle Designer 1D settings
+    view.set_designer_1d_show_tm.value = False
+    view.set_designer_1d_show_pct_at.value = True
+    view.sync_to_state()
+    assert settings["designer_1d_show_tm"] is False
+    assert settings["designer_1d_show_pct_at"] is True

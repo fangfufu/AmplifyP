@@ -117,6 +117,8 @@ class GUISettings:
             "primer_info_panel_position": "bottom",
             "primer_info_panel_fixed_height": False,
             "auto_activate_new_valid_primer": False,
+            "designer_1d_show_tm": True,
+            "designer_1d_show_pct_at": False,
         }
 
         # Initialise base-pair weights
