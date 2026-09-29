@@ -1625,3 +1625,77 @@ async def test_template_input_copy_removes_linebreaks() -> None:
     mock_page.run_javascript.assert_called_once_with(
         'navigator.clipboard.writeText("ATGCATGCATGC");'
     )
+
+
+def test_enter_press_middle_of_string() -> None:
+    """Test pressing Enter in middle of string does not corrupt rows."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "Primer1", "seq": "AAAA", "active": True},
+        {"name": "Primer2", "seq": "TTTT", "active": True},
+    ]
+
+    submit_called = False
+
+    def on_stop_editing(e: ft.Event | None) -> None:
+        nonlocal submit_called
+        submit_called = True
+
+    view = InputView(mock_page, input_data, on_stop_editing=on_stop_editing)
+    view.update_ui()
+
+    row0 = view.primers_list.controls[0]
+
+    # 1. Press Enter in middle of name field
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = row0.name_field
+    row0.name_field.value = "Pri\nmer1"
+
+    view._on_change_handler(mock_event)
+
+    assert row0.name_field.value == "Primer1"
+    assert row0.name_field.selection is not None
+    assert row0.name_field.selection.base_offset == len("Primer1")
+    assert submit_called
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "Primer1"
+    assert input_data.primers[1]["name"] == "Primer2"
+
+    # 2. Press Enter in middle of seq field
+    submit_called = False
+    mock_event.control = row0.seq_field
+    row0.seq_field.value = "AA\nAA"
+
+    view._on_change_handler(mock_event)
+
+    assert row0.seq_field.value == "AAAA"
+    assert row0.seq_field.selection is not None
+    assert row0.seq_field.selection.base_offset == len("AAAA")
+    assert submit_called
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["seq"] == "AAAA"
+    assert input_data.primers[1]["seq"] == "TTTT"
+
+
+def test_multiline_paste_into_empty_field() -> None:
+    """Test pasting multiline primers into an empty field parses correctly."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "", "seq": "", "active": False},
+    ]
+
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row0 = view.primers_list.controls[0]
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = row0.name_field
+    row0.name_field.value = "PrimerA\nPrimerB\n"
+
+    view._on_change_handler(mock_event)
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "PrimerA"
+    assert input_data.primers[1]["name"] == "PrimerB"

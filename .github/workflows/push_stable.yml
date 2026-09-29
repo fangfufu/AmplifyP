@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
@@ -39,7 +39,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.13'
+          python-version: '3.12'
       - name: Set version environment variable
         env:
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
@@ -84,7 +84,7 @@ jobs:
         run: |
           ./build_linux.sh --install-deps
           mv amplifyp-linux.tar.gz amplifyp-linux-${VERSION}.tar.gz
-          mv amplifyp-linux.AppImage amplifyp-linux-${VERSION}.AppImage
+          mv amplifyp-x86_64.AppImage amplifyp-${VERSION}-x86_64.AppImage
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
         run: |
@@ -112,7 +112,7 @@ jobs:
           name: amplifyp-${{ runner.os }}
           path: |
             amplifyp-linux-*.tar.gz
-            amplifyp-linux-*.AppImage
+            amplifyp-*-x86_64.AppImage
             amplifyp-macos-*.dmg
             amplifyp-windows-*.zip
             amplifyp-windows-setup-*.exe
@@ -137,7 +137,7 @@ jobs:
         run: |
           gh release upload ${{ needs.release-please.outputs.tag_name }} \
             amplifyp-linux-*.tar.gz \
-            amplifyp-linux-*.AppImage \
+            amplifyp-*-x86_64.AppImage \
             amplifyp-macos-*.dmg \
             amplifyp-windows-*.zip \
             amplifyp-windows-setup-*.exe \

@@ -104,8 +104,17 @@ def test_settings_view_properties_and_methods() -> None:
     assert mock_on_change.called
 
     # 4. _on_reset_handler
+    settings["designer_1d_show_tm"] = False
+    settings["designer_1d_show_pct_at"] = True
+    settings["pcr_amplicon_ranking"] = "Quality score"
     view._on_reset_handler(mock_event)
     assert mock_on_reset.called
+    assert settings["designer_1d_show_tm"] is True
+    assert settings["designer_1d_show_pct_at"] is False
+    assert settings["pcr_amplicon_ranking"] == "Position, then length"
+    assert view.set_designer_1d_show_tm.value is True
+    assert view.set_designer_1d_show_pct_at.value is False
+    assert view.set_pcr_amplicon_ranking.value == "Position, then length"
 
     # 5. get_replication_settings, get_state, set_state
     repl_settings = view.get_replication_settings()
@@ -476,3 +485,34 @@ def test_general_tile_appearance_compatibility_accessors() -> None:
     general_tile.update_colour_scheme_dropdown()
     mock_event = MagicMock(spec=ft.ControlEvent)
     general_tile._on_colour_scheme_change(mock_event)
+
+
+def test_designer_1d_tile_settings() -> None:
+    """Test Designer 1D tile settings in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert hasattr(view, "designer_1d_tile")
+    assert view.set_designer_1d_show_tm.value is True
+    assert view.set_designer_1d_show_pct_at.value is False
+
+    # Toggle Designer 1D settings
+    view.set_designer_1d_show_tm.value = False
+    view.set_designer_1d_show_pct_at.value = True
+    view.sync_to_state()
+    assert settings["designer_1d_show_tm"] is False
+    assert settings["designer_1d_show_pct_at"] is True
+
+
+def test_pcr_amplicon_ranking_settings() -> None:
+    """Test amplicon vertical ranking dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    # Test amplicon vertical ranking dropdown
+    assert view.set_pcr_amplicon_ranking.value == "Position, then length"
+    view.set_pcr_amplicon_ranking.value = "Quality score"
+    view.sync_to_state()
+    assert settings["pcr_amplicon_ranking"] == "Quality score"

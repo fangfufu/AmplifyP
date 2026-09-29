@@ -85,14 +85,15 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         tm_text, pct_at_text = format_primer_properties(
             dimer.primer_1, settings
         )
-        tm_badge = create_badge(tm_text, font_size=font_size_small)
-        pct_at_badge = create_badge(pct_at_text, font_size=font_size_small)
-
-        title_controls: list[ft.Control] = [
-            *metric_controls.controls,
-            tm_badge,
-            pct_at_badge,
-        ]
+        title_controls: list[ft.Control] = list(metric_controls.controls)
+        if settings.get("designer_1d_show_tm", True):
+            title_controls.append(
+                create_badge(tm_text, font_size=font_size_small)
+            )
+        if settings.get("designer_1d_show_pct_at", False):
+            title_controls.append(
+                create_badge(pct_at_text, font_size=font_size_small)
+            )
         if origin_count is not None:
             sites_badge = create_badge(
                 f"Sites: {origin_count}", font_size=font_size_small

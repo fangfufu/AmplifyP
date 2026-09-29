@@ -1174,3 +1174,41 @@ def test_designer_1d_increasing_length_order() -> None:
         lbl_text = bar_col.controls[1].value  # e.g. "7 nt"
         bar_lengths.append(int(lbl_text.split()[0]))
     assert bar_lengths == [7, 8, 9, 10]
+
+
+def test_designer_1d_card_badges_settings() -> None:
+    """Test Tm and % AT badge visibility on DismissibleSelfDimerCard."""
+    from amplifyp.dimer import PrimerDimer
+    from amplifyp.dna import Primer
+
+    p = Primer("ATGCGTACGT", name="TestPrimer")
+    dimer = PrimerDimer(
+        primer_1=p,
+        primer_2=p,
+        quality=80.0,
+        overlap=8,
+        p1_pos=0,
+    )
+    settings = GUISettings()
+
+    # Default: show_tm=True, show_pct_at=False
+    card_default = DismissibleSelfDimerCard(
+        card_id="c1",
+        dimer=dimer,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    assert _contains_text(card_default, "Tm:")
+    assert not _contains_text(card_default, "% AT:")
+
+    # When show_tm=False and show_pct_at=True
+    settings["designer_1d_show_tm"] = False
+    settings["designer_1d_show_pct_at"] = True
+    card_custom = DismissibleSelfDimerCard(
+        card_id="c2",
+        dimer=dimer,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    assert not _contains_text(card_custom, "Tm:")
+    assert _contains_text(card_custom, "% AT:")

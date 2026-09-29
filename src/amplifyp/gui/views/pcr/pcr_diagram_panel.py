@@ -15,6 +15,8 @@
 
 """Diagram panel widget for rendering PCR execution targets."""
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -33,7 +35,42 @@ from .amplicon_drawing import DrawnAmplicon
 from .pcr_layout import PCRLayoutSolver
 from .primer_drawing import DrawnPrimer
 
-__all__ = ["PCRDrawingPanel"]
+__all__ = ["PCRDrawingPanel", "sort_amplicons"]
+
+
+def sort_amplicons(
+    amplicons: list[Amplicon], ranking_mode: str
+) -> list[Amplicon]:
+    """Sort amplicons according to the chosen vertical ranking mode.
+
+    Args:
+        amplicons: List of amplicons to sort.
+        ranking_mode: Mode to sort by. Options:
+            - 'Position, then length': Primary 5' start pos, secondary length,
+              tertiary quality score.
+            - 'Quality score': Primary quality score (ascending), secondary
+              start pos, tertiary length.
+            - 'Position, then quality': Primary 5' start pos, secondary
+              quality score, tertiary length.
+
+    Returns:
+        Sorted list of amplicons.
+    """
+    if ranking_mode == "Position, then length":
+        return sorted(
+            amplicons,
+            key=lambda a: (a.start.index, len(a.product), a.q_score),
+        )
+    if ranking_mode == "Position, then quality":
+        return sorted(
+            amplicons,
+            key=lambda a: (a.start.index, a.q_score, len(a.product)),
+        )
+    # Default fallback / "Quality score": lower q_score is better quality
+    return sorted(
+        amplicons,
+        key=lambda a: (a.q_score, a.start.index, len(a.product)),
+    )
 
 
 class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
@@ -46,8 +83,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self,
         page: ft.Page,
         settings: GUISettings,
-        on_primer_click: Callable[[str, int, "Repliconf", "DirIdx"], None],
-        on_amplicon_click: Callable[["Amplicon"], None],
+        on_primer_click: Callable[[str, int, Repliconf, DirIdx], None],
+        on_amplicon_click: Callable[[Amplicon], None],
     ) -> None:
         """Initialise the PCRDrawingPanel.
 
@@ -129,13 +166,14 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_stack.controls.append(self.diagram_canvas)
         self.diagram_container.visible = False
         self.divider.visible = False
+        self._sorted_amplicons: list[Amplicon] = []
 
     def render_diagram(self, pcr: PCR) -> None:
         """Perform coordinates calculations and render diagram elements.
 
         This draws baseline, primers, and amplicons.
-        Sorts amplicons by quality score and limits rendering to
-        MAX_AMPLICONS_RENDER if there are too many.
+        Sorts amplicons according to the configured ranking mode and limits
+        rendering to MAX_AMPLICONS_RENDER if there are too many.
 
         Args:
             pcr: The PCR simulation instance containing amplicons and
@@ -145,8 +183,12 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         num_amplicons = len(amplicons)
 
         if amplicons:
-            # Sort amplicons by ascending q_score (lower is better quality)
-            amplicons = sorted(amplicons, key=lambda a: a.q_score)
+            ranking_mode = str(
+                self.settings.get(
+                    "pcr_amplicon_ranking", "Position, then length"
+                )
+            )
+            amplicons = sort_amplicons(amplicons, ranking_mode)
             num_amplicons = len(amplicons)
 
             # Limit to top amplicons if there are too many
@@ -154,6 +196,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 amplicons = amplicons[:MAX_AMPLICONS_RENDER]
                 num_amplicons = MAX_AMPLICONS_RENDER
 
+        self._sorted_amplicons = amplicons
         target_length = len(pcr.template)
 
         fwd_bindings, rev_bindings = PCRLayoutSolver.collect_primer_bindings(
@@ -326,10 +369,10 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
     def _draw_primers(
         self,
         fwd_bindings: dict[
-            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+            tuple[int, str], tuple[str, float, Repliconf, DirIdx]
         ],
         rev_bindings: dict[
-            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+            tuple[int, str], tuple[str, float, Repliconf, DirIdx]
         ],
         target_length: int,
         t_width: float,
@@ -357,7 +400,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
 
         def make_click(
-            n_val: str, idx_val: int, c_val: "Repliconf", v_val: "DirIdx"
+            n_val: str, idx_val: int, c_val: Repliconf, v_val: DirIdx
         ) -> Callable[[], None]:
             """Return a lambda that calls the on_primer_click callback."""
             return lambda: self.on_primer_click(n_val, idx_val, c_val, v_val)
@@ -414,7 +457,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         h_margin: float,
         v_target: float,
         c_width: float,
-        amplicons: list["Amplicon"] | None = None,
+        amplicons: list[Amplicon] | None = None,
         v_frag_start: float | None = None,
     ) -> None:
         """Draw amplicons using DrawnAmplicon instances.

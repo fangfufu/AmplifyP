@@ -15,7 +15,7 @@
 
 """Tests for PCR View and primer binding site context map popups."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import flet as ft
 
@@ -1004,3 +1004,190 @@ def test_drawn_primer_direction_arrows() -> None:
     assert rev_tip_elem.x == drawn_rev.x_pos - 5.0
     assert rev_base_elem1.x == drawn_rev.x_pos + 5.0
     assert rev_base_elem2.x == drawn_rev.x_pos + 5.0
+
+
+def test_sort_amplicons() -> None:
+    """Test amplicon sorting under different ranking modes."""
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.dna import DNA, DNADirection, Primer
+    from amplifyp.gui.views.pcr.pcr_diagram_panel import sort_amplicons
+
+    f_primer = Primer("AAAA", name="F")
+    r_primer = Primer("TTTT", name="R")
+
+    # amp1: start=10, len=90, q=500
+    amp1 = Amplicon(
+        product=DNA("A" * 90),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=10),
+        end=DirIdx(direction=DNADirection.REV, index=100),
+        q_score=500.0,
+        circular=False,
+    )
+    # amp2: start=10, len=50, q=300
+    amp2 = Amplicon(
+        product=DNA("A" * 50),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=10),
+        end=DirIdx(direction=DNADirection.REV, index=60),
+        q_score=300.0,
+        circular=False,
+    )
+    # amp3: start=5, len=75, q=800
+    amp3 = Amplicon(
+        product=DNA("A" * 75),
+        fwd_origin=f_primer,
+        rev_origin=r_primer,
+        start=DirIdx(direction=DNADirection.FWD, index=5),
+        end=DirIdx(direction=DNADirection.REV, index=80),
+        q_score=800.0,
+        circular=False,
+    )
+
+    amps = [amp1, amp2, amp3]
+
+    # 1. Position, then length: amp3 (pos 5), then amp2 (pos 10, len 50),
+    # then amp1 (pos 10, len 90)
+    res_pos_len = sort_amplicons(amps, "Position, then length")
+    assert res_pos_len == [amp3, amp2, amp1]
+
+    # 2. Quality score: amp2 (q 300), then amp1 (q 500), then amp3 (q 800)
+    res_quality = sort_amplicons(amps, "Quality score")
+    assert res_quality == [amp2, amp1, amp3]
+
+    # 3. Position, then quality
+    res_pos_q = sort_amplicons(amps, "Position, then quality")
+    assert res_pos_q == [amp3, amp2, amp1]
+
+
+def test_pcr_view_ranking_dropdown() -> None:
+    """Test PCRView ranking dropdown change updates settings and diagram."""
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.user_data import GUIInput
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    settings = GUISettings()
+    input_data = GUIInput()
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+
+    assert view.diagram_header.visible is True
+    assert view.ranking_dropdown.value == "Position, then length"
+    assert len(view.diagram_panel._sorted_amplicons) == 1
+
+    # Switch ranking via dropdown to "Quality score"
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+    with patch.object(
+        view.diagram_panel, "reset_ui", wraps=view.diagram_panel.reset_ui
+    ) as mock_reset_ui:
+        view._on_ranking_change(mock_event)
+        mock_reset_ui.assert_called_once()
+
+    assert settings["pcr_amplicon_ranking"] == "Quality score"
+    assert len(view.diagram_panel._sorted_amplicons) == 1
+
+
+def test_pcr_view_ranking_change_with_warning_banner() -> None:
+    """Test ranking update updates warning text when amplicons exceed limit."""
+    from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    view = PCRView(mock_page, input_data, settings)
+
+    mock_pcr = MagicMock()
+    mock_pcr.amplicons = [
+        MagicMock(q_score=float(i), start=MagicMock(index=i), product="A")
+        for i in range(MAX_AMPLICONS_RENDER + 1)
+    ]
+    view._cached_pcr = mock_pcr
+
+    warning_text = ft.Text("Warning: 101 amplicons found...")
+    warning_container = ft.Container(content=warning_text)
+    view.result_list.controls = [warning_container]
+
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+
+    view._on_ranking_change(mock_event)
+
+    assert "sorted by quality score" in str(warning_text.value)
+    assert settings["pcr_amplicon_ranking"] == "Quality score"
+
+
+def test_pcr_view_ranking_change_open_all_cards() -> None:
+    """Test open_all_cards follows the selected ranking after ranking change."""
+    from amplifyp.gui.settings import GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    settings = GUISettings()
+    input_data = GUIInput()
+    # A repeated template produces amplicons where "Position, then length"
+    # and "Quality score" rankings order amplicons differently.
+    input_data.template = (
+        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC" * 2
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "tTccACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+    assert view._cached_pcr is not None
+
+    # Initial order under default "Position, then length"
+    view.open_all_cards()
+    initial_card_ids = [
+        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    ]
+    raw_amp_ids = [
+        (
+            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
+            f"{a.start.index}_{a.end.index}"
+        )
+        for a in view._cached_pcr.amplicons
+    ]
+
+    # Switch ranking via dropdown to "Quality score"
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = view.ranking_dropdown
+    view.ranking_dropdown.value = "Quality score"
+    view._on_ranking_change(mock_event)
+
+    # Open all cards and verify expansion follows the selected ranking
+    view.open_all_cards()
+    qual_card_ids = [
+        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    ]
+    sorted_amp_ids = [
+        (
+            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
+            f"{a.start.index}_{a.end.index}"
+        )
+        for a in view.diagram_panel._sorted_amplicons
+    ]
+
+    assert len(qual_card_ids) >= 2
+    assert qual_card_ids == sorted_amp_ids
+    assert qual_card_ids != raw_amp_ids
+    assert qual_card_ids != initial_card_ids

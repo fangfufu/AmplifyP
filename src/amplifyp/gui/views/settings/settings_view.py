@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.logger import reconfigure_logging
 from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
+from amplifyp.gui.views.settings.designer_1d_tile import Designer1DTile
 from amplifyp.gui.views.settings.designer_2d_tile import Designer2DTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
@@ -115,6 +116,13 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             font_size_table_header=font_size_table_header,
         )
 
+        self.designer_1d_tile = Designer1DTile(
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            header_size=header_size,
+        )
+
         self.designer_2d_tile = Designer2DTile(
             settings=self.settings,
             settings_map=self.settings_map,
@@ -144,6 +152,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.tm_tile,
             self.replication_tile,
             self.dimer_tile,
+            self.designer_1d_tile,
             self.designer_2d_tile,
             self.diagnostics_tile,
             ft.Divider(),
@@ -411,6 +420,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "auto_reload_on_startup": True,
             "primer_info_panel_position": "bottom",
             "primer_info_panel_fixed_height": False,
+            "designer_1d_show_tm": True,
+            "designer_1d_show_pct_at": False,
+            "pcr_amplicon_ranking": "Position, then length",
         }
 
         for r_char in Nucleotides.PRIMER:
@@ -450,3 +462,18 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self.settings.from_dict(state)
         self.update_ui()
         self.app_page.update()
+
+    @property
+    def set_designer_1d_show_tm(self) -> BorderedCheckbox:
+        """Get the show melting temperature checkbox."""
+        return self.designer_1d_tile.set_designer_1d_show_tm
+
+    @property
+    def set_designer_1d_show_pct_at(self) -> BorderedCheckbox:
+        """Get the show % AT checkbox."""
+        return self.designer_1d_tile.set_designer_1d_show_pct_at
+
+    @property
+    def set_pcr_amplicon_ranking(self) -> ft.Dropdown:
+        """Get the amplicon vertical ranking dropdown."""
+        return self.replication_tile.set_amplicon_ranking

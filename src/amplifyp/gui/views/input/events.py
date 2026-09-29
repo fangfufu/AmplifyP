@@ -179,6 +179,32 @@ def on_change_handler(input_view: Any, e: ft.Event | None) -> None:
         if isinstance(data, dict) and "idx" in data and "field" in data:
             val = str(e.control.value or "")
             if "\t" in val or "\n" in val:
+                existing_val = ""
+                idx = data["idx"]
+                if idx < len(input_view.input_data.primers):
+                    existing_val = str(
+                        input_view.input_data.primers[idx].get(
+                            data["field"], ""
+                        )
+                    )
+
+                is_enter = getattr(input_view, "_enter_key_pressed", False) or (
+                    val.count("\n") == 1
+                    and "\t" not in val
+                    and val.replace("\n", "") == existing_val
+                )
+
+                if is_enter and "\t" not in val:
+                    input_view._enter_key_pressed = False
+                    cleaned_val = val.replace("\n", "")
+                    e.control.value = cleaned_val
+                    e.control.selection = ft.TextSelection(
+                        base_offset=len(cleaned_val),
+                        extent_offset=len(cleaned_val),
+                    )
+                    input_view._handle_field_submit(e)
+                    return
+
                 non_empty_lines = [
                     line for line in val.splitlines() if line.strip()
                 ]

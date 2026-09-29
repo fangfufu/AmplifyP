@@ -271,35 +271,73 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
 
     target_field: ft.TextField | None = None
 
+    if e.key == "Enter":
+        if hasattr(controller, "input_view") and controller.input_view:
+            controller.input_view._enter_key_pressed = True
+
     if e.key == "Tab":
         controls = controller.input_view.primer_input.primers_list.controls
-        if field == "name":
-            for row in controls:
-                if isinstance(row, PrimerRow) and row.idx == idx:
-                    target_field = row.seq_field
+        is_shift = bool(getattr(e, "shift", False))
+
+        if is_shift:
+            if field == "seq":
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.name_field
+                        target_field.selection = ft.TextSelection(
+                            base_offset=0, extent_offset=0
+                        )
+                        target_field.update()
+                        break
+                else:
+                    return
+            elif field == "name":
+                if idx > 0:
+                    prev_row = None
+                    for row in controls:
+                        if isinstance(row, PrimerRow) and row.idx == idx - 1:
+                            prev_row = row
+                            break
+                    if prev_row:
+                        target_field = prev_row.seq_field
+                        target_field.selection = ft.TextSelection(
+                            base_offset=0, extent_offset=0
+                        )
+                        target_field.update()
+                    else:
+                        return
+                else:
+                    return
+            else:
+                return
+        else:
+            if field == "name":
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx:
+                        target_field = row.seq_field
+                        target_field.selection = ft.TextSelection(
+                            base_offset=0, extent_offset=0
+                        )
+                        target_field.update()
+                        break
+                else:
+                    return
+            elif field == "seq":
+                next_row = None
+                for row in controls:
+                    if isinstance(row, PrimerRow) and row.idx == idx + 1:
+                        next_row = row
+                        break
+                if next_row:
+                    target_field = next_row.name_field
                     target_field.selection = ft.TextSelection(
                         base_offset=0, extent_offset=0
                     )
                     target_field.update()
-                    break
+                else:
+                    return
             else:
                 return
-        elif field == "seq":
-            next_row = None
-            for row in controls:
-                if isinstance(row, PrimerRow) and row.idx == idx + 1:
-                    next_row = row
-                    break
-            if next_row:
-                target_field = next_row.name_field
-                target_field.selection = ft.TextSelection(
-                    base_offset=0, extent_offset=0
-                )
-                target_field.update()
-            else:
-                return
-        else:
-            return
 
         controller.input_view._skip_seq_focus_reset = True
         res = target_field.focus()
