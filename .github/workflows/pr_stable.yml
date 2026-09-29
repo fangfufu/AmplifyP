@@ -12,8 +12,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-22.04, ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.12', '3.13', '3.14']
+        include:
+          - os: ubuntu-22.04
+            python-version: '3.12'
+            run-e2e: true
+          - os: ubuntu-latest
+            python-version: '3.14'
+            run-e2e: true
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
@@ -35,8 +42,8 @@ jobs:
       - name: Run pyright analysis
         run: |
           pyright
-      - name: Build Flet web app (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+      - name: Build Flet web app (Linux only)
+        if: matrix.run-e2e == true
         run: |
           bash ./build_web.sh --base-url /${{ github.event.repository.name }}/
       - name: Run unit tests
@@ -49,8 +56,8 @@ jobs:
           COVERAGE_FILE: .coverage.extra
         run: |
           pytest -v -s -m "ci" --cov=src/amplifyp --cov-report=
-      - name: Run E2E tests (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+      - name: Run E2E tests (Linux only)
+        if: matrix.run-e2e == true
         env:
           COVERAGE_FILE: .coverage.e2e
         run: |
@@ -58,14 +65,14 @@ jobs:
           sudo apt-get install -y xvfb tesseract-ocr libtesseract-dev
           playwright install --with-deps chromium
           xvfb-run -a pytest -v -s -m "e2e" --cov-report=
-      - name: Display coverage report (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+      - name: Display coverage report (Linux only)
+        if: runner.os == 'Linux'
         run: |
           coverage combine
           coverage xml
           coverage report -m
-      - name: Upload coverage to Codecov (Linux only, Python 3.13 only)
-        if: runner.os == 'Linux' && matrix.python-version == '3.13'
+      - name: Upload coverage to Codecov (Linux only)
+        if: runner.os == 'Linux'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         uses: codecov/codecov-action@v7
