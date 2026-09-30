@@ -105,7 +105,11 @@ rm -rf squashfs-root
 ./appimagetool-x86_64.AppImage --appimage-extract
 
 export ARCH=x86_64
-./squashfs-root/AppRun build/AmplifyP amplifyp-x86_64.AppImage
+APPIMAGE_ARGS=()
+if [[ -n "${UPDATE_INFORMATION:-}" ]]; then
+  APPIMAGE_ARGS+=("-u" "${UPDATE_INFORMATION}")
+fi
+./squashfs-root/AppRun "${APPIMAGE_ARGS[@]}" build/AmplifyP amplifyp-x86_64.AppImage
 
 # Clean up extracted appimagetool dir and temporary flet build directories
 rm -rf squashfs-root

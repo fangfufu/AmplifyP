@@ -81,10 +81,15 @@ jobs:
           path: amplifyp-web.tar.gz
       - name: Build Flet Linux binary
         if: runner.os == 'Linux'
+        env:
+          UPDATE_INFORMATION: "gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|amplifyp-*-x86_64.AppImage.zsync"
         run: |
           ./build_linux.sh --install-deps
           mv amplifyp-linux.tar.gz amplifyp-linux-${VERSION}.tar.gz
           mv amplifyp-x86_64.AppImage amplifyp-${VERSION}-x86_64.AppImage
+          if [[ -f amplifyp-x86_64.AppImage.zsync ]]; then
+            mv amplifyp-x86_64.AppImage.zsync amplifyp-${VERSION}-x86_64.AppImage.zsync
+          fi
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
         run: |
@@ -113,6 +118,7 @@ jobs:
           path: |
             amplifyp-linux-*.tar.gz
             amplifyp-*-x86_64.AppImage
+            amplifyp-*-x86_64.AppImage.zsync
             amplifyp-macos-*.dmg
             amplifyp-windows-*.zip
             amplifyp-windows-setup-*.exe
@@ -138,6 +144,7 @@ jobs:
           gh release upload ${{ needs.release-please.outputs.tag_name }} \
             amplifyp-linux-*.tar.gz \
             amplifyp-*-x86_64.AppImage \
+            amplifyp-*-x86_64.AppImage.zsync \
             amplifyp-macos-*.dmg \
             amplifyp-windows-*.zip \
             amplifyp-windows-setup-*.exe \
