@@ -20,13 +20,14 @@ from typing import Any
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.utils.gui_helpers import show_error_dialog
 
 
 class NavigationManager:
     """Manages view switching, header setup, and resize event routing."""
 
     def __init__(self, controller: Any) -> None:
-        """Initialize NavigationManager with a reference to the controller."""
+        """Initialise NavigationManager with a reference to the controller."""
         self.controller = controller
 
     def setup_navigation_controls(self) -> None:
@@ -139,24 +140,109 @@ class NavigationManager:
 
         ctrl.page.update()
 
-    def on_pcr_click(self, e: ft.ControlEvent) -> None:
-        """Handle PCR click: switch view then run PCR.
+    def _validate_for_pcr(self) -> tuple[str, str] | None:
+        """Validate state before navigating to the PCR view.
 
-        The view is switched first so the diagram canvas renders
-        while the PCR view is the active content.  This avoids
-        Flet's diff algorithm marking canvas shapes as 'already
-        sent' before the view becomes visible.
+        Returns:
+            A tuple of (title, message) if validation fails, or None if valid.
+        """
+        ctrl = self.controller
+        has_template = bool(ctrl.input_data.template.strip())
+        if not has_template:
+            return (
+                "Template Required",
+                "Please enter a DNA template in the Input view before "
+                "running PCR.",
+            )
+
+        active_primers = [
+            p for p in ctrl.input_data.primers if p.get("active", False)
+        ]
+        if not active_primers:
+            return (
+                "Primers Required",
+                "Please select at least one primer before running PCR.",
+            )
+
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            for idx, p in enumerate(ctrl.input_data.primers):
+                if p.get("active", False) and idx < len(
+                    ctrl.input_view.primer_input.validation_errors
+                ):
+                    err = ctrl.input_view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        return (
+                            "Invalid Primers",
+                            "One or more selected primers are invalid, have "
+                            "empty names/sequences, or have duplicate "
+                            "names/sequences.",
+                        )
+        return None
+
+    def _validate_for_dimers(self) -> tuple[str, str] | None:
+        """Validate state before navigating to the Primer Dimers view.
+
+        Returns:
+            A tuple of (title, message) if validation fails, or None if valid.
+        """
+        ctrl = self.controller
+        active_primers = [
+            p for p in ctrl.input_data.primers if p.get("active", False)
+        ]
+        if not active_primers:
+            return (
+                "Primers Required",
+                "Please select at least one primer before running primer "
+                "dimer analysis.",
+            )
+
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            for idx, p in enumerate(ctrl.input_data.primers):
+                if p.get("active", False) and idx < len(
+                    ctrl.input_view.primer_input.validation_errors
+                ):
+                    err = ctrl.input_view.primer_input.validation_errors[idx]
+                    if err.get("name") or err.get("seq"):
+                        return (
+                            "Invalid Primers",
+                            "One or more selected primers are invalid, have "
+                            "empty names/sequences, or have duplicate "
+                            "names/sequences.",
+                        )
+        return None
+
+    def on_pcr_click(self, e: ft.ControlEvent) -> None:
+        """Handle PCR click: validate input, switch view, then run PCR.
+
+        The view is switched only if validation passes, ensuring canvas
+        shapes render while the PCR view is active.
         """
         ctrl = self.controller
         ctrl.update_pcr_button_state(sync=True)
+        validation_error = self._validate_for_pcr()
+        if validation_error:
+            title, message = validation_error
+            show_error_dialog(ctrl.page, title, message)
+            return
+
         self.switch_view(e, ctrl.pcr_view)
         if not ctrl.pcr_view.run_pcr():
             self.switch_view(e, ctrl.input_view)
 
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
-        """Handle dimers click: switch view then run analysis."""
+        """Handle dimers click: validate, switch view, and run analysis."""
         ctrl = self.controller
         ctrl.update_pcr_button_state(sync=True)
+        validation_error = self._validate_for_dimers()
+        if validation_error:
+            title, message = validation_error
+            show_error_dialog(ctrl.page, title, message)
+            return
+
         self.switch_view(e, ctrl.dimers_view)
         if not ctrl.dimers_view.run_analysis():
             self.switch_view(e, ctrl.input_view)

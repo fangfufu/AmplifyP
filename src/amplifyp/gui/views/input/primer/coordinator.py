@@ -19,7 +19,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.utils.data_helpers import clean_sequence
 
 from .row import PrimerRow
@@ -130,20 +129,6 @@ class PrimerCoordinator:
         ignore_inactive_seq_dup = self.owner.settings.get(
             "ignore_inactive_seq_dup_warn", True
         )
-
-        dup_indices = get_duplicate_primer_indices(
-            ui_primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
-        )
-        for p in ui_primers:
-            container = p.get("container")
-            if container is None:
-                continue
-
-            c_idx = container.data
-            is_dup = c_idx in dup_indices
-            new_color = GUIColours.DUPLICATE_BG if is_dup else None
-            if container.bgcolor != new_color:
-                container.bgcolor = new_color
 
         # Run background primer construction/validation
         new_validation_errors = validate_primers(

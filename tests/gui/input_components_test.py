@@ -22,6 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import flet as ft
 import pytest
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.input.events import (
@@ -1587,3 +1588,34 @@ async def test_input_components_additional_coverage() -> None:
         await asyncio.gather(*pending_tasks)
         assert len(input_data.primers) == 1
         assert input_data.primers[0]["name"] == "P2"
+
+
+def test_reconcile_and_highlight_incomplete_primer() -> None:
+    """Test ticking incomplete primer preserves active state and highlights."""
+    from amplifyp.gui.views.input.primer.validation import (
+        reconcile_primer_states,
+    )
+
+    # Ticking an empty primer
+    ui_pr = [{"name": "", "seq": "", "active": True}]
+    prev_pr = [{"name": "", "seq": "", "active": False}]
+    reconciled = reconcile_primer_states(ui_pr, prev_pr)
+    assert reconciled[0]["active"] is True
+    assert reconciled[0]["show_empty_errors"] is True
+
+    # Unticking an empty primer
+    ui_pr_inactive = [{"name": "", "seq": "", "active": False}]
+    reconciled_inactive = reconcile_primer_states(ui_pr_inactive, reconciled)
+    assert reconciled_inactive[0]["active"] is False
+    assert reconciled_inactive[0]["show_empty_errors"] is False
+
+    # Row highlight reflects validation errors
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "", "seq": "", "active": True}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+    view.primer_input.primers_list.update_row_highlights()
+
+    row = view.primer_input.primers_list.controls[0]
+    assert row.bgcolor == GUIColours.ERROR_BG

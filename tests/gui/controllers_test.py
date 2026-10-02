@@ -29,6 +29,7 @@ from amplifyp.gui.controllers.navigation import NavigationManager
 from amplifyp.gui.controllers.theme import ThemeManager
 from amplifyp.gui.controllers.updater import UpdateManager
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
 
 
@@ -77,6 +78,15 @@ def test_navigation_manager_flow() -> None:
     assert mock_ctrl.page.on_resize is None
     assert mock_ctrl.header.active_button == mock_ctrl.header.settings_button
 
+    mock_ctrl.input_data = GUIInput()
+    mock_ctrl.input_data.template = "ATGCATGC"
+    mock_ctrl.input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": True}
+    ]
+    mock_ctrl.input_view.primer_input.validation_errors = [
+        {"name": None, "seq": None}
+    ]
+
     # on_pcr_click when run_pcr returns False -> reverts to input_view
     mock_ctrl.pcr_view.run_pcr.return_value = False
     nav_manager.on_pcr_click(MagicMock())
@@ -100,6 +110,116 @@ def test_navigation_manager_flow() -> None:
     nav_manager.on_dimers_click(MagicMock())
     assert mock_ctrl.view_container.content == mock_ctrl.dimers_view
     assert mock_ctrl.header.active_button == mock_ctrl.header.dimers_button
+
+
+def test_navigation_manager_validation_blocks_transition() -> None:
+    """Test PCR/Dimer click handlers block transitions on invalid state."""
+    from amplifyp.gui.controllers.navigation import NavigationManager
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.settings = GUISettings()
+    mock_ctrl.page = MagicMock(spec=ft.Page)
+    mock_ctrl.pcr_button_ref = ft.Ref[ft.FilledButton]()
+    mock_ctrl.dimers_button_ref = ft.Ref[ft.FilledButton]()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.pcr_view = MagicMock()
+    mock_ctrl.dimers_view = MagicMock()
+    mock_ctrl.view_container = MagicMock()
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    mock_ctrl.header = MagicMock()
+    mock_ctrl.header.active_button = mock_ctrl.header.input_button
+    mock_ctrl.input_data = GUIInput()
+
+    nav_manager = NavigationManager(mock_ctrl)
+
+    # 1. on_pcr_click with missing template
+    mock_ctrl.input_data.template = ""
+    mock_ctrl.input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": True}
+    ]
+    mock_ctrl.input_view.primer_input.validation_errors = [
+        {"name": None, "seq": None}
+    ]
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_pcr_click(MagicMock())
+        mock_err.assert_called_once_with(
+            mock_ctrl.page,
+            "Template Required",
+            "Please enter a DNA template in the Input view before running PCR.",
+        )
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+        mock_ctrl.pcr_view.run_pcr.assert_not_called()
+
+    # 2. on_pcr_click with no active primers
+    mock_ctrl.input_data.template = "ATGC"
+    mock_ctrl.input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": False}
+    ]
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_pcr_click(MagicMock())
+        mock_err.assert_called_once_with(
+            mock_ctrl.page,
+            "Primers Required",
+            "Please select at least one primer before running PCR.",
+        )
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+        mock_ctrl.pcr_view.run_pcr.assert_not_called()
+
+    # 3. on_pcr_click with invalid active primer (e.g. empty name)
+    mock_ctrl.input_data.template = "ATGC"
+    mock_ctrl.input_data.primers = [{"name": "", "seq": "ATGC", "active": True}]
+    mock_ctrl.input_view.primer_input.validation_errors = [
+        {"name": "Name cannot be empty", "seq": None}
+    ]
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_pcr_click(MagicMock())
+        mock_err.assert_called_once_with(
+            mock_ctrl.page,
+            "Invalid Primers",
+            "One or more selected primers are invalid, have empty "
+            "names/sequences, or have duplicate names/sequences.",
+        )
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+        mock_ctrl.pcr_view.run_pcr.assert_not_called()
+
+    # 4. on_dimers_click with no active primers
+    mock_ctrl.input_data.primers = []
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_dimers_click(MagicMock())
+        mock_err.assert_called_once_with(
+            mock_ctrl.page,
+            "Primers Required",
+            "Please select at least one primer before running primer "
+            "dimer analysis.",
+        )
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+        mock_ctrl.dimers_view.run_analysis.assert_not_called()
+
+    # 5. on_dimers_click with invalid active primer
+    mock_ctrl.input_data.primers = [{"name": "P1", "seq": "", "active": True}]
+    mock_ctrl.input_view.primer_input.validation_errors = [
+        {"name": None, "seq": "Sequence cannot be empty"}
+    ]
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_dimers_click(MagicMock())
+        mock_err.assert_called_once_with(
+            mock_ctrl.page,
+            "Invalid Primers",
+            "One or more selected primers are invalid, have empty "
+            "names/sequences, or have duplicate names/sequences.",
+        )
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+        mock_ctrl.dimers_view.run_analysis.assert_not_called()
 
 
 def test_app_header_active_view_highlighting() -> None:

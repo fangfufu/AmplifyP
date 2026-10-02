@@ -177,10 +177,11 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
     def update_row_highlights(self) -> None:
         """Update background colours of all row containers.
 
-        Highlights rows based on selection (focused primer) and
-        duplicates (by name or sequence).
+        Highlights rows based on selection (focused primer),
+        duplicates (by name or sequence), and validation errors.
         """
         dup_indices = self.primer_input._get_duplicate_indices()
+        validation_errors = getattr(self.primer_input, "validation_errors", [])
         for row in self.controls:
             if isinstance(row, PrimerRow) and row.data is not None:
                 c_idx = row.data
@@ -188,9 +189,14 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 is_focused = c_idx in getattr(
                     self.primer_input, "selected_indices", set()
                 )
+                is_error = False
+                if c_idx < len(validation_errors):
+                    err = validation_errors[c_idx]
+                    if err and (err.get("name") or err.get("seq")):
+                        is_error = True
 
                 row.update_highlight_and_reorder(
-                    is_focused=is_focused, is_dup=is_dup
+                    is_focused=is_focused, is_dup=is_dup, is_error=is_error
                 )
         try:
             if self.page:

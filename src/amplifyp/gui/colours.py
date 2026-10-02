@@ -185,6 +185,16 @@ class _GUIColoursMeta(type):
         )
 
     @property
+    def ERROR_BG(cls) -> str:
+        """Get background colour for an error primer row."""
+        return cls.DUPLICATE_BG
+
+    @property
+    def FOCUSED_ERROR_BG(cls) -> str:
+        """Get background colour for a focused error primer row."""
+        return cls.FOCUSED_DUPLICATE_BG
+
+    @property
     def SELECTED_ROW_BG(cls) -> str:
         """Get selected/focused row background colour."""
         return cast(

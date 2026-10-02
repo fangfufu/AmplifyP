@@ -372,18 +372,20 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
-        self, is_focused: bool, is_dup: bool
+        self, is_focused: bool, is_dup: bool, is_error: bool = False
     ) -> None:
         """Update the background colour.
 
         Args:
             is_focused: Whether this row is currently focused.
             is_dup: Whether this primer is a duplicate.
+            is_error: Whether this primer has a validation error.
         """
-        if is_dup and is_focused:
-            self.bgcolor = GUIColours.FOCUSED_DUPLICATE_BG
-        elif is_dup:
-            self.bgcolor = GUIColours.DUPLICATE_BG
+        has_issue = is_dup or is_error
+        if has_issue and is_focused:
+            self.bgcolor = GUIColours.FOCUSED_ERROR_BG
+        elif has_issue:
+            self.bgcolor = GUIColours.ERROR_BG
         elif is_focused:
             self.bgcolor = GUIColours.SELECTED_ROW_BG
         else:

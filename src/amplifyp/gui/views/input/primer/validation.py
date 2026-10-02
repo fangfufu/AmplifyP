@@ -141,17 +141,9 @@ def reconcile_primer_states(
         was_active = prev_p.get("active", False)
         is_active = p.get("active", True)
 
-        show_empty_errors = prev_p.get("show_empty_errors", False)
-        if is_active and not is_filled:
-            is_active = False
-            show_empty_errors = True
-        elif is_active and is_filled:
-            name_err, seq_err = validate_primer(
-                p_name, p_seq, show_empty_errors=False
-            )
-            if (name_err is not None or seq_err is not None) and not was_active:
-                is_active = False
-        elif not is_active:
+        if is_active:
+            show_empty_errors = not is_filled
+        else:
             show_empty_errors = False
 
         if auto_activate_new and is_filled and not was_active:
@@ -189,14 +181,14 @@ def validate_primers(
         name_val = str(p.get("name", "")).strip()
         seq_val = clean_sequence(str(p.get("seq", "")))
 
-        show_empty_errors = bool(p.get("show_empty_errors", False))
+        is_active = p.get("active", True)
+        show_empty_errors = bool(p.get("show_empty_errors", is_active))
         name_err, seq_err = validate_primer(
             name_val, seq_val, show_empty_errors=show_empty_errors
         )
 
         n_lower = name_val.lower()
         s_lower = seq_val.lower()
-        is_active = p.get("active", True)
 
         if not seq_err and s_lower:
             is_seq_dup = (

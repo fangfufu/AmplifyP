@@ -62,7 +62,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "PCR",
             ref=pcr_button_ref,
             on_click=on_pcr_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            disabled=True,
+            disabled=False,
             icon=ft.Icons.ANALYTICS,
             tooltip="PCR",
         )
@@ -72,7 +72,7 @@ class AppHeader(ft.Column):  # type: ignore[misc]
             "Primer Dimers",
             ref=dimers_button_ref,
             on_click=on_dimers_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            disabled=True,
+            disabled=False,
             icon=ft.Icons.COMPARE_ARROWS,
             tooltip="Primer Dimers",
         )

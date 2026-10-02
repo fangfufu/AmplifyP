@@ -24,6 +24,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import flet as ft
 import pytest
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.input import InputView
@@ -150,18 +151,21 @@ def test_input_view_activation_validation() -> None:
     checkbox.value = True
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Validation errors populated and checkbox value reverted to False
+    # Validation errors populated and checkbox remains True
     assert name_field.error == "Name cannot be empty"
     assert seq_field.error == "Sequence cannot be empty"
     assert checkbox.disabled is False
-    assert checkbox.value is False
+    assert checkbox.value is True
+    assert row.bgcolor == GUIColours.ERROR_BG
 
-    # Simulate typing or changing focus to deactivate the error state
+    # Deactivate the checkbox
+    checkbox.value = False
     view.sync_to_state(rebuild_if_needed=False)
 
     # Empty validation errors should be cleared when syncing inactive state
     assert name_field.error is None
     assert seq_field.error is None
+    assert row.bgcolor is None
 
     # Fill name and sequence and check the box
     checkbox.value = True
@@ -752,10 +756,6 @@ def test_app_views_disabled_on_invalid_selected() -> None:
 
     # Define the update function like in app.py
     def update_pcr_button_state() -> None:
-        has_template = bool(input_data.template.strip())
-        active_primers = input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 1
-
         has_invalid_selected = False
         for idx, p in enumerate(input_data.primers):
             if p.get("active", False):
@@ -768,22 +768,16 @@ def test_app_views_disabled_on_invalid_selected() -> None:
         if hasattr(view.primer_input, "error_banner"):
             view.primer_input.error_banner.visible = has_invalid_selected
 
-        pcr_is_enabled = (
-            has_template and has_enough_primers and not has_invalid_selected
-        )
-
+        # Buttons remain enabled
         if pcr_button_ref.current:
-            pcr_button_ref.current.disabled = not pcr_is_enabled
+            pcr_button_ref.current.disabled = False
         if dimers_button_ref.current:
-            dimers_button_ref.current.disabled = (
-                len(active_primers) < 1
-            ) or has_invalid_selected
+            dimers_button_ref.current.disabled = False
 
     # Verify initially enabled (valid primers)
     update_pcr_button_state()
     assert pcr_btn.disabled is False
     assert dimers_btn.disabled is False
-    assert view.primer_input.error_banner.visible is False
 
     # Make P1 invalid but keep it active
     view.primer_input.primers_list.controls[0].seq_field.value = "GCATGCATGX"
@@ -792,10 +786,13 @@ def test_app_views_disabled_on_invalid_selected() -> None:
     # Run status update
     update_pcr_button_state()
 
-    # Buttons should now be disabled and error banner should be visible
-    assert pcr_btn.disabled is True
-    assert dimers_btn.disabled is True
-    assert view.primer_input.error_banner.visible is True
+    # Buttons remain clickable and problematic row is highlighted
+    assert pcr_btn.disabled is False
+    assert dimers_btn.disabled is False
+    assert (
+        view.primer_input.primers_list.controls[0].bgcolor
+        == GUIColours.ERROR_BG
+    )
 
 
 def test_header_checkbox_state() -> None:

@@ -195,7 +195,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 self.primer_title_row,
                 self.primer_info_panel,
                 self.primer_list_container,
-                self.error_banner,
             ],
             expand=True,
             spacing=5,
@@ -214,14 +213,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 self.primer_title_row,
                 self.primer_info_panel,
                 self.primer_list_container,
-                self.error_banner,
             ]
         else:
             new_controls = [
                 self.primer_title_row,
                 self.primer_list_container,
                 self.primer_info_panel,
-                self.error_banner,
             ]
 
         if isinstance(self.content, ft.Column):
@@ -364,17 +361,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states."""
         primers = self.input_data.primers
-        non_empty = [
+        target_primers = [
             p
             for p in primers
-            if str(p.get("name", "")).strip()
+            if p.get("active", False)
+            or str(p.get("name", "")).strip()
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
-        if not non_empty:
+        if not target_primers:
             self.all_primers_checkbox.value = None
-        elif all(p.get("active", True) for p in non_empty):
+        elif all(p.get("active", True) for p in target_primers):
             self.all_primers_checkbox.value = True
-        elif all(not p.get("active", True) for p in non_empty):
+        elif all(not p.get("active", True) for p in target_primers):
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
