@@ -147,6 +147,22 @@ class NavigationManager:
             A tuple of (title, message) if validation fails, or None if valid.
         """
         ctrl = self.controller
+        primers_valid = True
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            res = ctrl.input_view.primer_input.validate_for_run()
+            if isinstance(res, bool):
+                primers_valid = res
+            elif hasattr(ctrl.input_view.primer_input, "validation_errors"):
+                val_errs = ctrl.input_view.primer_input.validation_errors
+                for idx, p in enumerate(ctrl.input_data.primers):
+                    if p.get("active", False) and idx < len(val_errs):
+                        err = val_errs[idx]
+                        if err and (err.get("name") or err.get("seq")):
+                            primers_valid = False
+                            break
+
         has_template = bool(ctrl.input_data.template.strip())
         if not has_template:
             return (
@@ -164,21 +180,13 @@ class NavigationManager:
                 "Please select at least one primer before running PCR.",
             )
 
-        if ctrl.input_view is not None and hasattr(
-            ctrl.input_view, "primer_input"
-        ):
-            for idx, p in enumerate(ctrl.input_data.primers):
-                if p.get("active", False) and idx < len(
-                    ctrl.input_view.primer_input.validation_errors
-                ):
-                    err = ctrl.input_view.primer_input.validation_errors[idx]
-                    if err.get("name") or err.get("seq"):
-                        return (
-                            "Invalid Primers",
-                            "One or more selected primers are invalid, have "
-                            "empty names/sequences, or have duplicate "
-                            "names/sequences.",
-                        )
+        if not primers_valid:
+            return (
+                "Invalid Primers",
+                "One or more selected primers are invalid, have "
+                "empty names/sequences, or have duplicate "
+                "names/sequences.",
+            )
         return None
 
     def _validate_for_dimers(self) -> tuple[str, str] | None:
@@ -188,6 +196,22 @@ class NavigationManager:
             A tuple of (title, message) if validation fails, or None if valid.
         """
         ctrl = self.controller
+        primers_valid = True
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            res = ctrl.input_view.primer_input.validate_for_run()
+            if isinstance(res, bool):
+                primers_valid = res
+            elif hasattr(ctrl.input_view.primer_input, "validation_errors"):
+                val_errs = ctrl.input_view.primer_input.validation_errors
+                for idx, p in enumerate(ctrl.input_data.primers):
+                    if p.get("active", False) and idx < len(val_errs):
+                        err = val_errs[idx]
+                        if err and (err.get("name") or err.get("seq")):
+                            primers_valid = False
+                            break
+
         active_primers = [
             p for p in ctrl.input_data.primers if p.get("active", False)
         ]
@@ -198,21 +222,13 @@ class NavigationManager:
                 "dimer analysis.",
             )
 
-        if ctrl.input_view is not None and hasattr(
-            ctrl.input_view, "primer_input"
-        ):
-            for idx, p in enumerate(ctrl.input_data.primers):
-                if p.get("active", False) and idx < len(
-                    ctrl.input_view.primer_input.validation_errors
-                ):
-                    err = ctrl.input_view.primer_input.validation_errors[idx]
-                    if err.get("name") or err.get("seq"):
-                        return (
-                            "Invalid Primers",
-                            "One or more selected primers are invalid, have "
-                            "empty names/sequences, or have duplicate "
-                            "names/sequences.",
-                        )
+        if not primers_valid:
+            return (
+                "Invalid Primers",
+                "One or more selected primers are invalid, have "
+                "empty names/sequences, or have duplicate "
+                "names/sequences.",
+            )
         return None
 
     def on_pcr_click(self, e: ft.ControlEvent) -> None:
@@ -229,6 +245,11 @@ class NavigationManager:
             show_error_dialog(ctrl.page, title, message)
             return
 
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            ctrl.input_view.primer_input.reset_validation_mode()
+
         self.switch_view(e, ctrl.pcr_view)
         if not ctrl.pcr_view.run_pcr():
             self.switch_view(e, ctrl.input_view)
@@ -242,6 +263,11 @@ class NavigationManager:
             title, message = validation_error
             show_error_dialog(ctrl.page, title, message)
             return
+
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            ctrl.input_view.primer_input.reset_validation_mode()
 
         self.switch_view(e, ctrl.dimers_view)
         if not ctrl.dimers_view.run_analysis():

@@ -1186,8 +1186,9 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
         on_drag_update=MagicMock(),
         on_drag_end=MagicMock(),
     )
-    assert row_err_init.name_field.error == "Name err init"
-    assert row_err_init.seq_field.error == "Seq err init"
+    assert row_err_init.name_field.error is None
+    assert row_err_init.seq_field.error is None
+    assert row_err_init.height == 30
 
     row = view.primer_input.primers_list.controls[0]
     if isinstance(row, PrimerRow):
@@ -1601,7 +1602,7 @@ def test_reconcile_and_highlight_incomplete_primer() -> None:
     prev_pr = [{"name": "", "seq": "", "active": False}]
     reconciled = reconcile_primer_states(ui_pr, prev_pr)
     assert reconciled[0]["active"] is True
-    assert reconciled[0]["show_empty_errors"] is True
+    assert reconciled[0]["show_empty_errors"] is False
 
     # Unticking an empty primer
     ui_pr_inactive = [{"name": "", "seq": "", "active": False}]
@@ -1609,13 +1610,17 @@ def test_reconcile_and_highlight_incomplete_primer() -> None:
     assert reconciled_inactive[0]["active"] is False
     assert reconciled_inactive[0]["show_empty_errors"] is False
 
-    # Row highlight reflects validation errors
+    # While drafting, incomplete primer does not highlight row in red
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.primers = [{"name": "", "seq": "", "active": True}]
     view = InputView(mock_page, input_data)
     view.update_ui()
-    view.primer_input.primers_list.update_row_highlights()
-
     row = view.primer_input.primers_list.controls[0]
+    assert row.bgcolor is None
+
+    # On validate_for_run (e.g. clicking PCR / Dimers), invalid
+    # row is highlighted
+    is_valid = view.primer_input.validate_for_run()
+    assert is_valid is False
     assert row.bgcolor == GUIColours.ERROR_BG

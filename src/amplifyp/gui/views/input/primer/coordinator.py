@@ -78,8 +78,12 @@ class PrimerCoordinator:
 
         Returns:
             Set of indices corresponding to primers with duplicate names
-            or sequences in the central state.
+            or sequences in the central state, or empty set if validation
+            is not enforced.
         """
+        if not getattr(self.owner, "enforce_validation", False):
+            return set()
+
         ignore_inactive_name_dup = self.owner.settings.get(
             "ignore_inactive_name_dup_warn", True
         )
@@ -130,10 +134,27 @@ class PrimerCoordinator:
             "ignore_inactive_seq_dup_warn", True
         )
 
+        enforce_val = getattr(self.owner, "enforce_validation", False)
+
         # Run background primer construction/validation
         new_validation_errors = validate_primers(
-            primers, ignore_inactive_name_dup, ignore_inactive_seq_dup
+            primers,
+            ignore_inactive_name_dup,
+            ignore_inactive_seq_dup,
+            check_empty=enforce_val,
+            check_duplicates=enforce_val,
         )
+
+        if enforce_val:
+            all_valid = True
+            for idx, p in enumerate(primers):
+                if p.get("active", False) and idx < len(new_validation_errors):
+                    err = new_validation_errors[idx]
+                    if err and (err.get("name") or err.get("seq")):
+                        all_valid = False
+                        break
+            if all_valid:
+                self.owner.enforce_validation = False
 
         self.owner.input_data.primers = primers
         self.owner.validation_errors = new_validation_errors

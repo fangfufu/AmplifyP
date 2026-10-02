@@ -115,17 +115,24 @@ def test_input_view_duplicate_warning() -> None:
     second_row.name_field.value = "P1"
     view.sync_to_state()
 
-    # Both rows should have colour warning set to RED_50
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+    # While drafting, duplicate warnings are not shown dynamically
+    assert view.primers_list.controls[0].bgcolor is None
+    assert view.primers_list.controls[1].bgcolor is None
+
+    # When validation is enforced (e.g. PCR / Dimers click)
+    view.primer_input.validate_for_run()
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
     # Resolve duplicate name, introduce duplicate sequence (case-insensitive)
     second_row.name_field.value = "P2"
     second_row.seq_field.value = "gcatgcatgc"
     view.sync_to_state()
 
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+    # Re-validate for run
+    view.primer_input.validate_for_run()
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
 
 def test_input_view_activation_validation() -> None:
@@ -151,12 +158,19 @@ def test_input_view_activation_validation() -> None:
     checkbox.value = True
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Validation errors populated and checkbox remains True
-    assert name_field.error == "Name cannot be empty"
-    assert seq_field.error == "Sequence cannot be empty"
+    # In drafting mode, errors are not shown and row is not highlighted
+    assert name_field.error is None
+    assert seq_field.error is None
     assert checkbox.disabled is False
     assert checkbox.value is True
+    assert row.bgcolor is None
+
+    # When validate_for_run is invoked, row is highlighted in red
+    is_valid = view.primer_input.validate_for_run()
+    assert is_valid is False
     assert row.bgcolor == GUIColours.ERROR_BG
+    assert name_field.error is None
+    assert seq_field.error is None
 
     # Deactivate the checkbox
     checkbox.value = False
@@ -301,9 +315,9 @@ def test_input_view_sequence_validation() -> None:
     container = view.primers_list.controls[0]
     seq_field = container.seq_field
 
-    assert seq_field.error is not None
-    assert "contains invalid characters" in seq_field.error
-    assert container.height is None  # Row container expanded/autosized
+    assert seq_field.error is None
+    assert container.height == 30
+    assert container.bgcolor == GUIColours.ERROR_BG
 
     # Fix the sequence
     seq_field.value = "GCATGCATGC"
@@ -314,6 +328,7 @@ def test_input_view_sequence_validation() -> None:
 
     assert seq_field.error is None
     assert container.height == 30
+    assert container.bgcolor is None
 
 
 def test_input_view_row_highlighting() -> None:
@@ -584,6 +599,7 @@ def test_input_view_ignore_inactive_dup_warn() -> None:
     settings["ignore_inactive_name_dup_warn"] = False
     view2 = InputView(mock_page, input_data, settings=settings)
     view2.update_ui()
+    view2.primer_input.validate_for_run()
 
     # Both primers should have duplicate name error
     assert view2.primer_input.validation_errors[0] == {
@@ -594,8 +610,8 @@ def test_input_view_ignore_inactive_dup_warn() -> None:
         "name": "Duplicate primer name",
         "seq": None,
     }
-    assert view2.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view2.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+    assert view2.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view2.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
     # Test sequence duplicates with ignore_inactive_seq_dup_warn=True
     input_data2 = GUIInput()
@@ -650,7 +666,12 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     view.primers_list.controls[1].name_field.value = "P1"
     view.sync_to_state()
 
-    # Check both are marked as invalid with "Duplicate primer name"
+    # While drafting, duplicate errors are not shown dynamically
+    assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
+    assert view.primers_list.controls[0].bgcolor is None
+
+    # When validate_for_run is called
+    view.primer_input.validate_for_run()
     assert view.primer_input.validation_errors[0] == {
         "name": "Duplicate primer name",
         "seq": None,
@@ -659,6 +680,8 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
         "name": "Duplicate primer name",
         "seq": None,
     }
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
     # Checkboxes must NOT be disabled, and active status should remain True
     assert input_data.primers[0]["active"] is True

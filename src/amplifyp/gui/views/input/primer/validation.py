@@ -48,8 +48,9 @@ def validate_primer(
     if not name.strip() and show_empty_errors:
         name_err = "Name cannot be empty"
 
-    if not seq.strip() and show_empty_errors:
-        seq_err = "Sequence cannot be empty"
+    if not seq.strip():
+        if show_empty_errors:
+            seq_err = "Sequence cannot be empty"
     else:
         try:
             Primer(sequence=seq, name=name)
@@ -141,10 +142,7 @@ def reconcile_primer_states(
         was_active = prev_p.get("active", False)
         is_active = p.get("active", True)
 
-        if is_active:
-            show_empty_errors = not is_filled
-        else:
-            show_empty_errors = False
+        show_empty_errors = bool(p.get("show_empty_errors", False))
 
         if auto_activate_new and is_filled and not was_active:
             name_err, seq_err = validate_primer(
@@ -171,6 +169,8 @@ def validate_primers(
     primers: list[dict[str, Any]],
     ignore_inactive_name_dup: bool = True,
     ignore_inactive_seq_dup: bool = True,
+    check_empty: bool = True,
+    check_duplicates: bool = True,
 ) -> list[dict[str, str | None]]:
     """Validate a list of primers, detecting format and duplicate errors."""
     counts = _count_names_and_sequences(primers)
@@ -182,7 +182,9 @@ def validate_primers(
         seq_val = clean_sequence(str(p.get("seq", "")))
 
         is_active = p.get("active", True)
-        show_empty_errors = bool(p.get("show_empty_errors", is_active))
+        show_empty_errors = check_empty and (
+            is_active or bool(p.get("show_empty_errors", False))
+        )
         name_err, seq_err = validate_primer(
             name_val, seq_val, show_empty_errors=show_empty_errors
         )
@@ -190,7 +192,7 @@ def validate_primers(
         n_lower = name_val.lower()
         s_lower = seq_val.lower()
 
-        if not seq_err and s_lower:
+        if check_duplicates and not seq_err and s_lower:
             is_seq_dup = (
                 (is_active and active_seqs_count.get(s_lower, 0) > 1)
                 if ignore_inactive_seq_dup
@@ -199,7 +201,7 @@ def validate_primers(
             if is_seq_dup:
                 seq_err = "Duplicate primer sequence"
 
-        if not name_err and n_lower:
+        if check_duplicates and not name_err and n_lower:
             is_name_dup = (
                 (is_active and active_names_count.get(n_lower, 0) > 1)
                 if ignore_inactive_name_dup

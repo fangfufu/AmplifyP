@@ -61,11 +61,7 @@ class PrimerLayoutManager:
 
         for row in self.owner.primers_list.controls:
             if isinstance(row, PrimerRow):
-                row_h = (
-                    30.0
-                    if not (row.name_field.error or row.seq_field.error)
-                    else 55.0
-                )
+                row_h = 30.0
                 row_top = current_y
                 row_bottom = current_y + row_h
 

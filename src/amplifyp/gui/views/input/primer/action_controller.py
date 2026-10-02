@@ -363,8 +363,6 @@ class PrimerActionController:
         primers = self.owner.input_data.primers
         changed = False
 
-        controls = self.owner.primers_list.controls
-
         def get_row_height(idx: int) -> float:
             """Determine the height of a primer row.
 
@@ -372,16 +370,8 @@ class PrimerActionController:
                 idx: The index of the row.
 
             Returns:
-                The height in pixels (55.0 for error rows, 30.0 otherwise).
+                The height in pixels (30.0).
             """
-            if 0 <= idx < len(controls):
-                row = controls[idx]
-                if isinstance(row, PrimerRow):
-                    return (
-                        55.0
-                        if (row.name_field.error or row.seq_field.error)
-                        else 30.0
-                    )
             return 30.0
 
         # Try to move block down
