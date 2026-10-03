@@ -626,11 +626,7 @@ async def test_all_subcomponent_edge_cases() -> None:
     ui_pr = [{"name": "P1", "seq": "123INVALID", "active": True}]
     prev_pr = [{"name": "P1", "seq": "123INVALID", "active": False}]
     reconciled = reconcile_primer_states(ui_pr, prev_pr)
-    validated = validate_primers(
-        reconciled,
-        ignore_inactive_name_dup=True,
-        ignore_inactive_seq_dup=True,
-    )
+    validated = validate_primers(reconciled)
     assert len(validated) == 1
 
     # 3. primer/list.py (on_scroll, focused index clamp, non-row controls)

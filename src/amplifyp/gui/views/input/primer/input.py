@@ -388,18 +388,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         Highlights problematic rows in red when errors exist.
         """
         self.enforce_validation = True
-        ignore_inactive_name_dup = self.settings.get(
-            "ignore_inactive_name_dup_warn", True
-        )
-        ignore_inactive_seq_dup = self.settings.get(
-            "ignore_inactive_seq_dup_warn", True
-        )
         from .validation import validate_primers
 
         self.validation_errors = validate_primers(
             self.input_data.primers,
-            ignore_inactive_name_dup=ignore_inactive_name_dup,
-            ignore_inactive_seq_dup=ignore_inactive_seq_dup,
             check_empty=True,
             check_duplicates=True,
         )

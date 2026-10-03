@@ -80,20 +80,11 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 {"name": "", "seq": "", "active": False}
             ]
 
-        ignore_inactive_name_dup = self.primer_input.settings.get(
-            "ignore_inactive_name_dup_warn", True
-        )
-        ignore_inactive_seq_dup = self.primer_input.settings.get(
-            "ignore_inactive_seq_dup_warn", True
-        )
-
         from .validation import validate_primers
 
         enforce_val = getattr(self.primer_input, "enforce_validation", False)
         self.primer_input.validation_errors = validate_primers(
             self.primer_input.input_data.primers,
-            ignore_inactive_name_dup,
-            ignore_inactive_seq_dup,
             check_empty=enforce_val,
             check_duplicates=enforce_val,
         )

@@ -84,18 +84,7 @@ class PrimerCoordinator:
         if not getattr(self.owner, "enforce_validation", False):
             return set()
 
-        ignore_inactive_name_dup = self.owner.settings.get(
-            "ignore_inactive_name_dup_warn", True
-        )
-        ignore_inactive_seq_dup = self.owner.settings.get(
-            "ignore_inactive_seq_dup_warn", True
-        )
-
-        return get_duplicate_primer_indices(
-            self.owner.input_data.primers,
-            ignore_inactive_name_dup,
-            ignore_inactive_seq_dup,
-        )
+        return get_duplicate_primer_indices(self.owner.input_data.primers)
 
     def sync_to_state(
         self, rebuild_if_needed: bool = False, skip_extract: bool = False
@@ -127,20 +116,11 @@ class PrimerCoordinator:
             if checkbox:
                 checkbox.value = reconciled_p["active"]
 
-        ignore_inactive_name_dup = self.owner.settings.get(
-            "ignore_inactive_name_dup_warn", True
-        )
-        ignore_inactive_seq_dup = self.owner.settings.get(
-            "ignore_inactive_seq_dup_warn", True
-        )
-
         enforce_val = getattr(self.owner, "enforce_validation", False)
 
         # Run background primer construction/validation
         new_validation_errors = validate_primers(
             primers,
-            ignore_inactive_name_dup,
-            ignore_inactive_seq_dup,
             check_empty=enforce_val,
             check_duplicates=enforce_val,
         )

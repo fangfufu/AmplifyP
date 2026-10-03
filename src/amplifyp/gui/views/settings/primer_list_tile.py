@@ -58,18 +58,6 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
             on_change=self.on_change_handler,
         )
 
-        self.ignore_inactive_name_dup_checkbox = BorderedCheckbox(
-            label=("Ignore inactive primers when checking for duplicate names"),
-            on_change=self.on_change_handler,
-        )
-
-        self.ignore_inactive_seq_dup_checkbox = BorderedCheckbox(
-            label=(
-                "Ignore inactive primers when checking for duplicate sequences"
-            ),
-            on_change=self.on_change_handler,
-        )
-
         self.set_show_primer_temperature = BorderedCheckbox(
             label="Show primer temperature column",
             on_change=self.on_change_handler,
@@ -98,12 +86,6 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
         self.settings_map["primer_info_panel_fixed_height"] = (
             self.fixed_height_primer_info_checkbox
         )
-        self.settings_map["ignore_inactive_name_dup_warn"] = (
-            self.ignore_inactive_name_dup_checkbox
-        )
-        self.settings_map["ignore_inactive_seq_dup_warn"] = (
-            self.ignore_inactive_seq_dup_checkbox
-        )
         self.settings_map["show_primer_temperature"] = (
             self.set_show_primer_temperature
         )
@@ -128,8 +110,6 @@ class PrimerListTile(ft.ExpansionTile):  # type: ignore[misc]
                                     [
                                         self.set_primer_info_panel_position,
                                         self.fixed_height_primer_info_checkbox,
-                                        self.ignore_inactive_name_dup_checkbox,
-                                        self.ignore_inactive_seq_dup_checkbox,
                                         self.auto_activate_new_valid_primer,
                                         self.set_show_primer_temperature,
                                         ft.Row([self.set_tm_colour_scheme]),
