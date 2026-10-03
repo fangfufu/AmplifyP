@@ -109,10 +109,11 @@ APPIMAGE_ARGS=()
 if [[ -n "${UPDATE_INFORMATION:-}" ]]; then
   APPIMAGE_ARGS+=("-u" "${UPDATE_INFORMATION}")
 fi
-./squashfs-root/AppRun "${APPIMAGE_ARGS[@]}" build/AmplifyP amplifyp-x86_64.AppImage
+APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp${VERSION:+-${VERSION}}-x86_64.AppImage}"
+./squashfs-root/AppRun "${APPIMAGE_ARGS[@]}" build/AmplifyP "${APPIMAGE_NAME}"
 
 # Clean up extracted appimagetool dir and temporary flet build directories
 rm -rf squashfs-root
 rm -rf src/build src/dist
 
-echo "==> Build complete: amplifyp-linux.tar.gz and amplifyp-x86_64.AppImage"
+echo "==> Build complete: amplifyp-linux.tar.gz and ${APPIMAGE_NAME}"

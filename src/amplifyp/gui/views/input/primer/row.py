@@ -92,12 +92,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_drag_update: Callback for updating a drag-selection.
             on_drag_end: Callback for ending a drag-selection.
         """
-        has_err = bool(name_error or seq_error)
+        init_msgs = [m for m in (name_error, seq_error) if m]
+        init_tooltip = "; ".join(init_msgs) if init_msgs else None
         super().__init__(
             data=idx,
             bgcolor=GUIColours.DUPLICATE_BG if is_dup else None,
             padding=0,
-            height=30 if not has_err else None,
+            height=30,
+            tooltip=init_tooltip,
         )
         self.idx = idx
         self.settings = settings
@@ -389,7 +391,8 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         """Update error state for the row.
 
         Field-level error messages are omitted in favour of row background
-        colour highlights and error dialogues. Row height remains at 30px.
+        colour highlights, tooltips, and error dialogues. Row height remains
+        at 30px.
 
         Args:
             err: Error dict with 'name' and 'seq' keys, a string error
@@ -397,6 +400,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         """
         self.name_field.error = None
         self.seq_field.error = None
+        if isinstance(err, dict):
+            msgs = [m for m in (err.get("name"), err.get("seq")) if m]
+            self.tooltip = "; ".join(msgs) if msgs else None
+        else:
+            self.tooltip = err or None
         self.checkbox.disabled = False
 
     def update_index(

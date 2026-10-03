@@ -221,6 +221,20 @@ def test_navigation_manager_validation_blocks_transition() -> None:
         assert mock_ctrl.view_container.content == mock_ctrl.input_view
         mock_ctrl.dimers_view.run_analysis.assert_not_called()
 
+    # 6. on_pcr_click with error outside input_view switches back
+    mock_ctrl.view_container.content = mock_ctrl.settings_view
+    mock_ctrl.input_data.template = "ATGC"
+    mock_ctrl.input_data.primers = [{"name": "", "seq": "ATGC", "active": True}]
+    mock_ctrl.input_view.primer_input.validation_errors = [
+        {"name": "Name cannot be empty", "seq": None}
+    ]
+    with patch(
+        "amplifyp.gui.controllers.navigation.show_error_dialog"
+    ) as mock_err:
+        nav_manager.on_pcr_click(MagicMock())
+        mock_err.assert_called_once()
+        assert mock_ctrl.view_container.content == mock_ctrl.input_view
+
 
 def test_app_header_active_view_highlighting() -> None:
     """Test AppHeader active navigation button highlighting."""

@@ -371,9 +371,13 @@ def test_primer_row_components_and_events() -> None:
 
     # 4. set_error
     row.set_error({"name": "Name error", "seq": "Seq error"})
+    assert row.tooltip == "Name error; Seq error"
     row.set_error("Duplicate primer name")
+    assert row.tooltip == "Duplicate primer name"
     row.set_error("Other error")
+    assert row.tooltip == "Other error"
     row.set_error(None)
+    assert row.tooltip is None
 
     # 5. update_tm
     row.update_tm(settings)
@@ -1185,6 +1189,7 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     assert row_err_init.name_field.error is None
     assert row_err_init.seq_field.error is None
     assert row_err_init.height == 30
+    assert row_err_init.tooltip == "Name err init; Seq err init"
 
     row = view.primer_input.primers_list.controls[0]
     if isinstance(row, PrimerRow):

@@ -232,6 +232,11 @@ class NavigationManager:
         ctrl.update_pcr_button_state(sync=True)
         validation_error = validator()
         if validation_error:
+            if (
+                ctrl.input_view is not None
+                and ctrl.view_container.content != ctrl.input_view
+            ):
+                self.switch_view(e, ctrl.input_view)
             title, message = validation_error
             show_error_dialog(ctrl.page, title, message)
             return

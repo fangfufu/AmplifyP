@@ -86,9 +86,15 @@ jobs:
         run: |
           ./build_linux.sh --install-deps
           mv amplifyp-linux.tar.gz amplifyp-linux-${VERSION}.tar.gz
-          mv amplifyp-x86_64.AppImage amplifyp-${VERSION}-x86_64.AppImage
+          if [[ -f amplifyp-x86_64.AppImage ]]; then
+            mv amplifyp-x86_64.AppImage amplifyp-${VERSION}-x86_64.AppImage
+          fi
           if [[ -f amplifyp-x86_64.AppImage.zsync ]]; then
             mv amplifyp-x86_64.AppImage.zsync amplifyp-${VERSION}-x86_64.AppImage.zsync
+          fi
+          if [[ -f amplifyp-${VERSION}-x86_64.AppImage.zsync ]]; then
+            sed -i "s|^Filename: .*|Filename: amplifyp-${VERSION}-x86_64.AppImage|" amplifyp-${VERSION}-x86_64.AppImage.zsync
+            sed -i "s|^URL: .*|URL: amplifyp-${VERSION}-x86_64.AppImage|" amplifyp-${VERSION}-x86_64.AppImage.zsync
           fi
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
