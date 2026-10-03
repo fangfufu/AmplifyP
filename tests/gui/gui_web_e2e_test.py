@@ -313,6 +313,7 @@ def test_e2e_primer_lifecycle_and_state(
 
     print("Deleting V3 and I3 using delete buttons...")
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
@@ -329,6 +330,7 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
