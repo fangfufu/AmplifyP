@@ -47,8 +47,7 @@ SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 
 PRIMER_INPUT_SEL = (
-    "flt-semantics-host textarea:not([disabled]):not([readonly])"
-    ':not([aria-label*="Enter DNA"])'
+    '[aria-label="Primer List"] textarea:not([disabled]):not([readonly])'
 )
 
 
@@ -700,7 +699,9 @@ def wait_for_ui(
         # Pre-process to boost contrast for CanvasKit-rendered text
         processed = _preprocess_for_ocr(image)
         ocr_data = pytesseract.image_to_data(
-            processed, output_type=pytesseract.Output.DICT
+            processed,
+            output_type=pytesseract.Output.DICT,
+            config="--psm 11",
         )
         words = ocr_data["text"]
         for i, w in enumerate(words):
@@ -1012,7 +1013,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.locator('textarea[aria-label*="Enter DNA"]').first.focus()
+    page.locator('textarea:not([aria-label="Primer List"])').first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new
