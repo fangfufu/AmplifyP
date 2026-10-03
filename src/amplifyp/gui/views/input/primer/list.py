@@ -177,8 +177,14 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         dup_indices = self.primer_input._get_duplicate_indices()
         validation_errors = getattr(self.primer_input, "validation_errors", [])
         for row in self.controls:
-            if isinstance(row, PrimerRow) and row.data is not None:
-                c_idx = row.data
+            if isinstance(row, PrimerRow):
+                c_idx = (
+                    row.idx
+                    if isinstance(getattr(row, "idx", None), int)
+                    else getattr(row, "data", None)
+                )
+                if not isinstance(c_idx, int):
+                    continue
                 is_dup = c_idx in dup_indices
                 is_focused = c_idx in getattr(
                     self.primer_input, "selected_indices", set()

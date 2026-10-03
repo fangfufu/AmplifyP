@@ -681,6 +681,7 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     # Primer row keyboard navigation
     row0 = MagicMock(spec=PrimerRow)
     row0.idx = 0
+    row0.data = 0
     row0.checkbox = MagicMock(value=True)
     row0.name_field = ft.TextField(
         value="Fwd", data={"idx": 0, "field": "name", "cursor_pos": 3}
@@ -695,6 +696,7 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
 
     row1 = MagicMock(spec=PrimerRow)
     row1.idx = 1
+    row1.data = 1
     row1.checkbox = MagicMock(value=True)
     row1.name_field = ft.TextField(
         value="Rev", data={"idx": 1, "field": "name", "cursor_pos": 3}
@@ -988,6 +990,7 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
 
     row0 = MagicMock(spec=PrimerRow)
     row0.idx = 0
+    row0.data = 0
     row0.checkbox = MagicMock(value=True)
 
     async def async_focus() -> None:
@@ -1006,6 +1009,7 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
 
     row1 = MagicMock(spec=PrimerRow)
     row1.idx = 1
+    row1.data = 1
     row1.checkbox = MagicMock(value=True)
     row1.name_field = ft.TextField(
         value="Rev", data={"idx": 1, "field": "name", "cursor_pos": 3}
@@ -1255,6 +1259,7 @@ def test_handle_keyboard_event_comprehensive() -> None:
     # 4. Primer row Tab navigation
     row_0 = MagicMock(spec=PrimerRow)
     row_0.idx = 0
+    row_0.data = 0
     row_0.name_field = ft.TextField(value="P0")
     row_0.seq_field = ft.TextField(value="ATGC")
     row_0.seq_field.focus = MagicMock()
@@ -1264,6 +1269,7 @@ def test_handle_keyboard_event_comprehensive() -> None:
 
     row_1 = MagicMock(spec=PrimerRow)
     row_1.idx = 1
+    row_1.data = 1
     row_1.name_field = ft.TextField(value="P1")
     row_1.seq_field = ft.TextField(value="GCAT")
     row_1.seq_field.focus = MagicMock()
