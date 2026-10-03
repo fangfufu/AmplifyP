@@ -1625,3 +1625,18 @@ def test_reconcile_and_highlight_incomplete_primer() -> None:
     is_valid = view.primer_input.validate_for_run()
     assert is_valid is False
     assert row.bgcolor == GUIColours.ERROR_BG
+
+
+def test_primer_list_update_highlights_non_int_idx() -> None:
+    """Test update_row_highlights skips rows without integer index."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+    invalid_row = MagicMock(spec=PrimerRow)
+    invalid_row.idx = None
+    invalid_row.data = None
+    view.primer_input.primers_list.controls.append(invalid_row)
+    view.primer_input.primers_list.update_row_highlights()
+    invalid_row.update_highlight_and_reorder.assert_not_called()

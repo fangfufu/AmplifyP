@@ -640,6 +640,16 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     assert view.primers_list.controls[1].checkbox.disabled is False
 
 
+def test_primer_input_reset_validation_mode() -> None:
+    """Test reset_validation_mode resets enforce_validation to False."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+    view.primer_input.enforce_validation = True
+    view.primer_input.reset_validation_mode()
+    assert view.primer_input.enforce_validation is False
+
+
 def test_app_views_disabled_on_invalid_selected() -> None:
     """Test PCR/Dimer buttons disabled.
 

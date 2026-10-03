@@ -86,6 +86,7 @@ def test_navigation_manager_flow() -> None:
     mock_ctrl.input_view.primer_input.validation_errors = [
         {"name": None, "seq": None}
     ]
+    mock_ctrl.input_view.primer_input.validate_for_run.return_value = True
 
     # on_pcr_click when run_pcr returns False -> reverts to input_view
     mock_ctrl.pcr_view.run_pcr.return_value = False
@@ -172,6 +173,7 @@ def test_navigation_manager_validation_blocks_transition() -> None:
     # 3. on_pcr_click with invalid active primer (e.g. empty name)
     mock_ctrl.input_data.template = "ATGC"
     mock_ctrl.input_data.primers = [{"name": "", "seq": "ATGC", "active": True}]
+    mock_ctrl.input_view.primer_input.validate_for_run.return_value = False
     mock_ctrl.input_view.primer_input.validation_errors = [
         {"name": "Name cannot be empty", "seq": None}
     ]
@@ -203,8 +205,9 @@ def test_navigation_manager_validation_blocks_transition() -> None:
         assert mock_ctrl.view_container.content == mock_ctrl.input_view
         mock_ctrl.dimers_view.run_analysis.assert_not_called()
 
-    # 5. on_dimers_click with invalid active primer
+    # 5. on_dimers_click with invalid primer (validation_errors fallback)
     mock_ctrl.input_data.primers = [{"name": "P1", "seq": "", "active": True}]
+    mock_ctrl.input_view.primer_input.validate_for_run.return_value = None
     mock_ctrl.input_view.primer_input.validation_errors = [
         {"name": None, "seq": "Sequence cannot be empty"}
     ]
@@ -225,6 +228,7 @@ def test_navigation_manager_validation_blocks_transition() -> None:
     mock_ctrl.view_container.content = mock_ctrl.settings_view
     mock_ctrl.input_data.template = "ATGC"
     mock_ctrl.input_data.primers = [{"name": "", "seq": "ATGC", "active": True}]
+    mock_ctrl.input_view.primer_input.validate_for_run.return_value = False
     mock_ctrl.input_view.primer_input.validation_errors = [
         {"name": "Name cannot be empty", "seq": None}
     ]
@@ -234,6 +238,16 @@ def test_navigation_manager_validation_blocks_transition() -> None:
         nav_manager.on_pcr_click(MagicMock())
         mock_err.assert_called_once()
         assert mock_ctrl.view_container.content == mock_ctrl.input_view
+
+    # 7. on_pcr_click with valid primers resets validation mode
+    mock_ctrl.input_data.template = "ATGC"
+    mock_ctrl.input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": True}
+    ]
+    mock_ctrl.input_view.primer_input.validate_for_run.return_value = True
+    mock_ctrl.pcr_view.run_pcr.return_value = True
+    nav_manager.on_pcr_click(MagicMock())
+    mock_ctrl.input_view.primer_input.reset_validation_mode.assert_called()
 
 
 def test_app_header_active_view_highlighting() -> None:

@@ -1516,6 +1516,12 @@ def test_data_helpers_coverage_additional(tmp_path: Any) -> None:
     load_last_state(mock_ctrl)
     mock_ctrl.input_view.sync_to_state.assert_called()
 
+    # corrupt last state file handles Exception gracefully
+    (tmp_path / "last_state.yaml").write_text(
+        "invalid: yaml: [", encoding="utf-8"
+    )
+    load_last_state(mock_ctrl)
+
 
 def test_system_utils_coverage_additional() -> None:
     """Test _get_sha fallback, get_version missing package, and confirm exit."""
