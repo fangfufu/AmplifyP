@@ -363,16 +363,7 @@ class PrimerActionController:
         primers = self.owner.input_data.primers
         changed = False
 
-        def get_row_height(idx: int) -> float:
-            """Determine the height of a primer row.
-
-            Args:
-                idx: The index of the row.
-
-            Returns:
-                The height in pixels (30.0).
-            """
-            return 30.0
+        row_height = 30.0
 
         # Try to move block down
         while True:
@@ -380,8 +371,7 @@ class PrimerActionController:
             if block_end >= len(primers) - 1:
                 break
 
-            row_below_height = get_row_height(block_end + 1)
-            if self.current_drag_y > row_below_height / 2.0:
+            if self.current_drag_y > row_height / 2.0:
                 target_idx = block_end + 1
                 if target_idx >= len(primers) or self.drag_block[0] >= len(
                     primers
@@ -391,7 +381,7 @@ class PrimerActionController:
                 primers.insert(self.drag_block[0], primers.pop(target_idx))
 
                 self.drag_block = [i + 1 for i in self.drag_block]
-                self.current_drag_y -= row_below_height
+                self.current_drag_y -= row_height
                 changed = True
             else:
                 break
@@ -402,8 +392,7 @@ class PrimerActionController:
             if block_start <= 0 or block_start >= len(primers):
                 break
 
-            row_above_height = get_row_height(block_start - 1)
-            if self.current_drag_y < -row_above_height / 2.0:
+            if self.current_drag_y < -row_height / 2.0:
                 target_idx = block_start - 1
                 if target_idx >= len(primers) or self.drag_block[-1] >= len(
                     primers
@@ -413,7 +402,7 @@ class PrimerActionController:
                 primers.insert(self.drag_block[-1], primers.pop(target_idx))
 
                 self.drag_block = [i - 1 for i in self.drag_block]
-                self.current_drag_y += row_above_height
+                self.current_drag_y += row_height
                 changed = True
             else:
                 break
