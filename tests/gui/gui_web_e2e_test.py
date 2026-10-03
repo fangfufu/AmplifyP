@@ -47,7 +47,8 @@ SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 
 PRIMER_INPUT_SEL = (
-    '[aria-label="Primer List"] textarea:not([disabled]):not([readonly])'
+    'flt-semantics[aria-label="Add Primer Below"] ~ flt-semantics '
+    "textarea:not([disabled])"
 )
 
 
@@ -1015,7 +1016,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.locator('textarea:not([aria-label="Primer List"])').first.focus()
+    page.locator('textarea:not([aria-label*="Add Primer Below"])').first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new

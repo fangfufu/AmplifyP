@@ -47,10 +47,6 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
             expand=True,
             spacing=0,
             padding=0,
-            tooltip=ft.Tooltip(
-                message="Primer List",
-                trigger_mode=ft.TooltipTriggerMode.MANUAL,
-            ),
             scroll=ft.ScrollMode.ALWAYS,
             on_scroll=self._on_scroll,
         )
