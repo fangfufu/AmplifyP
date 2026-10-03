@@ -17,6 +17,7 @@
 
 import io
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -225,7 +226,7 @@ def test_e2e_primer_lifecycle_and_state(
     Steps:
       - Add 2 valid primers.
       - Add 2 invalid primers.
-      - Try and activate invalid primers and make sure they don't get activated.
+      - Toggle invalid primers to verify checkbox activation and deactivation.
       - Save the primer list.
       - Clear the primer list.
       - Load the primer list.
@@ -366,8 +367,7 @@ def test_e2e_primer_lifecycle_and_state(
         .get_by_role("checkbox")
     ).not_to_be_checked(timeout=15000)
 
-    # Try and activate invalid primers (click them) and make sure they
-    # don't get activated
+    # Activate invalid primers (click them) and make sure they can be activated
     name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
         "checkbox"
     ).click(force=True)
@@ -376,7 +376,28 @@ def test_e2e_primer_lifecycle_and_state(
     ).click(force=True)
     time.sleep(1)
 
-    # Ensure they remain unchecked
+    # Ensure they are checked
+    expect(
+        name_inputs.nth(2 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
+    ).to_be_checked(timeout=15000)
+    expect(
+        name_inputs.nth(3 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
+    ).to_be_checked(timeout=15000)
+
+    # Deactivate invalid primers again (click them)
+    name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
+    name_inputs.nth(3 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
+    time.sleep(1)
+
+    # Ensure they are unchecked
     expect(
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
@@ -699,7 +720,8 @@ def wait_for_ui(
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
-    sys.platform != "linux", reason="E2E tests only run on Linux"
+    sys.platform != "linux" or not shutil.which("tesseract"),
+    reason="E2E OCR tests require Linux and tesseract binary",
 )  # type: ignore[untyped-decorator]
 def test_e2e_dimer_alignment(
     page: Any, serve_app: str, tmp_path: Any, e2e_timeout: None
