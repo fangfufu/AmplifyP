@@ -404,7 +404,8 @@ def test_e2e_primer_lifecycle_and_state(
         try:
             check_fn(timeout=5000)
         except AssertionError:
-            checkbox.click(force=True)
+            if checkbox.is_checked() != is_checked:
+                checkbox.click(force=True)
             check_fn(timeout=10000)
         time.sleep(0.5)
 
