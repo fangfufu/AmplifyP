@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.1](https://github.com/fangfufu/AmplifyP/compare/v1.24.0...v1.24.1) (2026-10-04)
+
+
+### Bug Fixes
+
+* **gui:** address review comments on primer deletion ([11031e4](https://github.com/fangfufu/AmplifyP/commit/11031e47239d41da9e904431c07887e7128d7cee))
+* **gui:** debounce primer keyboard navigation ([fb3408a](https://github.com/fangfufu/AmplifyP/commit/fb3408ae38a27b4c6fd8fae3e88253adbccbad30))
+* **gui:** debounce primer keyboard navigation ([2402930](https://github.com/fangfufu/AmplifyP/commit/24029300f765a108383817295ae12b8f34ed2db4))
+* **gui:** retain focus lock during async focus ([d1125e6](https://github.com/fangfufu/AmplifyP/commit/d1125e61444751b07e7fd74076673d338c2ebcf0))
+* **gui:** stabilise primer deletion handling ([a7460d9](https://github.com/fangfufu/AmplifyP/commit/a7460d9da3657ffac8c10744a72f9cce0e310f04))
+
+
+### Code Refactoring
+
+* **gui:** deduplicate logic and boost coverage ([eda78b6](https://github.com/fangfufu/AmplifyP/commit/eda78b6d66f1e768f3a36c65b17e5c80c8199359))
+* **tests:** reduce duplication in util_test.py ([a58a894](https://github.com/fangfufu/AmplifyP/commit/a58a894fe3308ea4d54096df27b668812be4c586))
+
 ## [1.24.0](https://github.com/fangfufu/AmplifyP/compare/v1.23.0...v1.24.0) (2026-10-04)
 
 
