@@ -117,13 +117,76 @@ def test_get_version_and_sha() -> None:
     assert __version__ in version_str
 
 
-@pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_handle_keyboard_event_template_copy() -> None:
-    """Test Ctrl+C copies cleaned template sequence to clipboard."""
-    from unittest.mock import AsyncMock, patch
+def _make_key_event(
+    key: str,
+    ctrl: bool = False,
+    shift: bool = False,
+    alt: bool = False,
+    meta: bool = False,
+) -> ft.KeyboardEvent:
+    """Helper to create a valid ft.KeyboardEvent for testing."""
+    return ft.KeyboardEvent(
+        name="keydown",
+        key=key,
+        shift=shift,
+        ctrl=ctrl,
+        alt=alt,
+        meta=meta,
+        control=None,
+    )
 
-    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
+def _make_mock_primer_row(
+    idx: int = 0,
+    name: str = "P0",
+    seq: str = "ATGC",
+    name_cursor: int = 0,
+    seq_cursor: int = 0,
+) -> MagicMock:
+    """Create a mock PrimerRow with name_field and seq_field for testing."""
+    from amplifyp.gui.views.input.primer.row import PrimerRow
+
+    row = MagicMock(spec=PrimerRow)
+    row.idx = idx
+    row.data = idx
+    row.checkbox = MagicMock(value=True)
+    row.name_field = ft.TextField(
+        value=name,
+        data={"idx": idx, "field": "name", "cursor_pos": name_cursor},
+    )
+    row.name_field.focus = MagicMock()
+    row.name_field.update = MagicMock()
+    row.seq_field = ft.TextField(
+        value=seq,
+        data={"idx": idx, "field": "seq", "cursor_pos": seq_cursor},
+    )
+    row.seq_field.focus = MagicMock()
+    row.seq_field.update = MagicMock()
+    return row
+
+
+def _make_mock_nav_controller(
+    rows: list[MagicMock] | None = None,
+    debounce_interval: float = 0.0,
+) -> MagicMock:
+    """Create a mock controller configured for primer keyboard navigation."""
+    mock_ctrl = MagicMock()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    mock_ctrl._is_navigating_focus = False
+    mock_ctrl._last_keyboard_nav_time = 0.0
+    mock_ctrl._keyboard_nav_debounce_interval = debounce_interval
+    if rows is not None:
+        mock_ctrl.input_view.primer_input.primers_list.controls = rows
+        if rows:
+            mock_ctrl.input_view._currently_focused_control = rows[0].name_field
+    return mock_ctrl
+
+
+def _make_template_copy_controller(
+    template_value: str = "ATGC\nATGC\nATGC",
+) -> tuple[MagicMock, MagicMock]:
+    """Create a mock controller with a focused template sequence field."""
     mock_controller = MagicMock()
     mock_input_view = MagicMock()
     mock_template_input = MagicMock()
@@ -135,15 +198,27 @@ async def test_handle_keyboard_event_template_copy() -> None:
     mock_template_input.template_sequence = mock_template_sequence
     mock_input_view._currently_focused_control = mock_template_sequence
 
-    mock_template_sequence.value = "ATGC\nATGC\nATGC"
+    mock_template_sequence.value = template_value
     mock_template_sequence.selection = None
-
-    mock_event = MagicMock(spec=ft.KeyboardEvent)
-    mock_event.key = "c"
-    mock_event.ctrl = True
-    mock_event.meta = False
-
     mock_controller.page.web = False
+    return mock_controller, mock_template_sequence
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("ctrl_key", "meta_key"),
+    [(True, False), (False, True)],
+)
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_keyboard_event_template_copy(
+    ctrl_key: bool, meta_key: bool
+) -> None:
+    """Test Ctrl+C and Mac Cmd+C copy cleaned template sequence."""
+    from unittest.mock import AsyncMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+
+    mock_controller, _ = _make_template_copy_controller()
+    mock_event = _make_key_event(key="c", ctrl=ctrl_key, meta=meta_key)
 
     captured_task = None
 
@@ -164,73 +239,12 @@ def test_handle_keyboard_event_template_copy_newline_only() -> None:
     """Test Ctrl+C with newline-only template does not write to clipboard."""
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
-    mock_controller = MagicMock()
-    mock_input_view = MagicMock()
-    mock_template_input = MagicMock()
-    mock_template_sequence = MagicMock()
-
-    mock_controller.input_view = mock_input_view
-    mock_controller.view_container.content = mock_input_view
-    mock_input_view.template_input = mock_template_input
-    mock_template_input.template_sequence = mock_template_sequence
-    mock_input_view._currently_focused_control = mock_template_sequence
-
-    mock_template_sequence.value = "\n\n\n"
-    mock_template_sequence.selection = None
-
-    mock_event = MagicMock(spec=ft.KeyboardEvent)
-    mock_event.key = "c"
-    mock_event.ctrl = True
-    mock_event.meta = False
-
-    mock_controller.page.web = False
+    mock_controller, _ = _make_template_copy_controller(template_value="\n\n\n")
+    mock_event = _make_key_event(key="c", ctrl=True)
     mock_controller.page.run_task = MagicMock()
 
     handle_keyboard_event(mock_controller, mock_event)
     mock_controller.page.run_task.assert_not_called()
-
-
-@pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_handle_keyboard_event_template_copy_mac_cmd_c() -> None:
-    """Test Mac Cmd+C (meta=True, ctrl=False) writes to clipboard."""
-    from unittest.mock import AsyncMock, patch
-
-    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
-
-    mock_controller = MagicMock()
-    mock_input_view = MagicMock()
-    mock_template_input = MagicMock()
-    mock_template_sequence = MagicMock()
-
-    mock_controller.input_view = mock_input_view
-    mock_controller.view_container.content = mock_input_view
-    mock_input_view.template_input = mock_template_input
-    mock_template_input.template_sequence = mock_template_sequence
-    mock_input_view._currently_focused_control = mock_template_sequence
-
-    mock_template_sequence.value = "ATGC\nATGC\nATGC"
-    mock_template_sequence.selection = None
-
-    mock_event = MagicMock(spec=ft.KeyboardEvent)
-    mock_event.key = "c"
-    mock_event.ctrl = False
-    mock_event.meta = True
-
-    mock_controller.page.web = False
-
-    captured_task = None
-
-    def capture_run_task(task: Any) -> None:
-        nonlocal captured_task
-        captured_task = task
-
-    mock_controller.page.run_task = capture_run_task
-
-    with patch("flet.Clipboard.set", new_callable=AsyncMock) as mock_set:
-        handle_keyboard_event(mock_controller, mock_event)
-        assert captured_task is not None
-        await captured_task()
-        mock_set.assert_called_once_with("ATGCATGCATGC")
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -389,7 +403,6 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
         on_window_event,
         restore_state_and_auto_close_async,
     )
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
     # 1. Fonts and overlapped sequence views
     assert _resolve_font_family("") == "Roboto Mono"
@@ -679,35 +692,12 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     mock_page.web = False
 
     # Primer row keyboard navigation
-    row0 = MagicMock(spec=PrimerRow)
-    row0.idx = 0
-    row0.data = 0
-    row0.checkbox = MagicMock(value=True)
-    row0.name_field = ft.TextField(
-        value="Fwd", data={"idx": 0, "field": "name", "cursor_pos": 3}
+    row0 = _make_mock_primer_row(
+        idx=0, name="Fwd", seq="ATGC", name_cursor=3, seq_cursor=0
     )
-    row0.name_field.update = MagicMock()
-    row0.name_field.focus = MagicMock()
-    row0.seq_field = ft.TextField(
-        value="ATGC", data={"idx": 0, "field": "seq", "cursor_pos": 0}
+    row1 = _make_mock_primer_row(
+        idx=1, name="Rev", seq="GGCC", name_cursor=3, seq_cursor=0
     )
-    row0.seq_field.update = MagicMock()
-    row0.seq_field.focus = MagicMock()
-
-    row1 = MagicMock(spec=PrimerRow)
-    row1.idx = 1
-    row1.data = 1
-    row1.checkbox = MagicMock(value=True)
-    row1.name_field = ft.TextField(
-        value="Rev", data={"idx": 1, "field": "name", "cursor_pos": 3}
-    )
-    row1.name_field.update = MagicMock()
-    row1.name_field.focus = MagicMock()
-    row1.seq_field = ft.TextField(
-        value="GGCC", data={"idx": 1, "field": "seq", "cursor_pos": 0}
-    )
-    row1.seq_field.update = MagicMock()
-    row1.seq_field.focus = MagicMock()
 
     ctrl.input_view.primer_input.primers_list.controls = [row0, row1]
     ctrl._keyboard_nav_debounce_interval = 0.0
@@ -850,7 +840,6 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
         on_window_event,
         restore_state_and_auto_close_async,
     )
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
     mock_page = MagicMock(spec=ft.Page)
     mock_page.services = []
@@ -989,41 +978,21 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
 
     mock_page.run_task = mock_run_task
 
-    row0 = MagicMock(spec=PrimerRow)
-    row0.idx = 0
-    row0.data = 0
-    row0.checkbox = MagicMock(value=True)
-
     async def async_focus() -> None:
         pass
 
-    row0.name_field = ft.TextField(
-        value="Fwd", data={"idx": 0, "field": "name", "cursor_pos": 3}
+    row0 = _make_mock_primer_row(
+        idx=0, name="Fwd", seq="ATGC", name_cursor=3, seq_cursor=0
     )
-    row0.name_field.update = MagicMock()
-    row0.name_field.focus = MagicMock(side_effect=lambda: async_focus())
-    row0.seq_field = ft.TextField(
-        value="ATGC", data={"idx": 0, "field": "seq", "cursor_pos": 0}
-    )
-    row0.seq_field.update = MagicMock()
-    row0.seq_field.focus = MagicMock(side_effect=lambda: async_focus())
+    row0.name_field.focus.side_effect = lambda: async_focus()
+    row0.seq_field.focus.side_effect = lambda: async_focus()
 
-    row1 = MagicMock(spec=PrimerRow)
-    row1.idx = 1
-    row1.data = 1
-    row1.checkbox = MagicMock(value=True)
-    row1.name_field = ft.TextField(
-        value="Rev", data={"idx": 1, "field": "name", "cursor_pos": 3}
+    row1 = _make_mock_primer_row(
+        idx=1, name="Rev", seq="GGCC", name_cursor=3, seq_cursor=0
     )
-    row1.name_field.update = MagicMock(
-        side_effect=RuntimeError("simulated error")
-    )
-    row1.name_field.focus = MagicMock(side_effect=lambda: async_focus())
-    row1.seq_field = ft.TextField(
-        value="GGCC", data={"idx": 1, "field": "seq", "cursor_pos": 0}
-    )
-    row1.seq_field.update = MagicMock()
-    row1.seq_field.focus = MagicMock(side_effect=lambda: async_focus())
+    row1.name_field.update.side_effect = RuntimeError("simulated error")
+    row1.name_field.focus.side_effect = lambda: async_focus()
+    row1.seq_field.focus.side_effect = lambda: async_focus()
 
     # Restore rows
     ctrl.input_view.primer_input.primers_list.controls = [row0, row1]
@@ -1182,29 +1151,9 @@ def test_copy_text_to_clipboard_run_task_exception() -> None:
     mock_page.run_task.assert_called_once()
 
 
-def _make_key_event(
-    key: str,
-    ctrl: bool = False,
-    shift: bool = False,
-    alt: bool = False,
-    meta: bool = False,
-) -> ft.KeyboardEvent:
-    """Helper to create a valid ft.KeyboardEvent for testing."""
-    return ft.KeyboardEvent(
-        name="keydown",
-        key=key,
-        shift=shift,
-        ctrl=ctrl,
-        alt=alt,
-        meta=meta,
-        control=None,
-    )
-
-
 def test_handle_keyboard_event_comprehensive() -> None:
     """Test handle_keyboard_event navigation, boundaries, and errors."""
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
     # 1. Non-active input view early exit
     mock_ctrl = MagicMock()
@@ -1258,26 +1207,8 @@ def test_handle_keyboard_event_comprehensive() -> None:
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
 
     # 4. Primer row Tab navigation
-    row_0 = MagicMock(spec=PrimerRow)
-    row_0.idx = 0
-    row_0.data = 0
-    row_0.name_field = ft.TextField(value="P0")
-    row_0.seq_field = ft.TextField(value="ATGC")
-    row_0.seq_field.focus = MagicMock()
-    row_0.name_field.focus = MagicMock()
-    row_0.seq_field.update = MagicMock()
-    row_0.name_field.update = MagicMock()
-
-    row_1 = MagicMock(spec=PrimerRow)
-    row_1.idx = 1
-    row_1.data = 1
-    row_1.name_field = ft.TextField(value="P1")
-    row_1.seq_field = ft.TextField(value="GCAT")
-    row_1.seq_field.focus = MagicMock()
-    row_1.name_field.focus = MagicMock()
-    row_1.seq_field.update = MagicMock()
-    row_1.name_field.update = MagicMock()
-
+    row_0 = _make_mock_primer_row(0, "P0", "ATGC")
+    row_1 = _make_mock_primer_row(1, "P1", "GCAT")
     mock_ctrl.input_view.primer_input.primers_list.controls = [row_0, row_1]
     mock_ctrl._keyboard_nav_debounce_interval = 0.0
 
@@ -1602,35 +1533,17 @@ def test_system_utils_coverage_additional() -> None:
 
 def test_handle_keyboard_event_debounce() -> None:
     """Test keyboard navigation rate-limiting drops rapid events."""
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import patch
 
     from amplifyp.gui.utils.gui_helpers import (
         KEYBOARD_NAV_DEBOUNCE_INTERVAL,
         handle_keyboard_event,
     )
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
-    mock_ctrl = MagicMock()
-    mock_ctrl.input_view = MagicMock()
-    mock_ctrl.view_container.content = mock_ctrl.input_view
-    mock_ctrl._is_navigating_focus = False
-    mock_ctrl._last_keyboard_nav_time = 0.0
-    mock_ctrl._keyboard_nav_debounce_interval = KEYBOARD_NAV_DEBOUNCE_INTERVAL
-
-    row_0 = MagicMock(spec=PrimerRow)
-    row_0.idx = 0
-    row_0.name_field = ft.TextField(value="P0")
-    row_0.name_field.data = {"idx": 0, "field": "name"}
-    row_0.seq_field = ft.TextField(value="ATGC")
-    row_0.seq_field.data = {"idx": 0, "field": "seq"}
-    row_0.name_field.focus = MagicMock()
-    row_0.seq_field.focus = MagicMock()
-    row_0.name_field.update = MagicMock()
-    row_0.seq_field.update = MagicMock()
-
-    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
-    mock_ctrl.input_view._currently_focused_control = row_0.name_field
-
+    row_0 = _make_mock_primer_row(0, "P0", "ATGC")
+    mock_ctrl = _make_mock_nav_controller(
+        [row_0], debounce_interval=KEYBOARD_NAV_DEBOUNCE_INTERVAL
+    )
     ev_tab = _make_key_event(key="Tab")
 
     # 1. Initial event at t = 100.0 succeeds
@@ -1655,34 +1568,14 @@ def test_handle_keyboard_event_debounce() -> None:
 
 def test_handle_keyboard_event_reentrancy_lock() -> None:
     """Test re-entrancy lock prevents nested focus transitions."""
-    from unittest.mock import MagicMock
-
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
-    mock_ctrl = MagicMock()
-    mock_ctrl.input_view = MagicMock()
-    mock_ctrl.view_container.content = mock_ctrl.input_view
-    mock_ctrl._last_keyboard_nav_time = 0.0
-    mock_ctrl._keyboard_nav_debounce_interval = 0.0
-
-    row_0 = MagicMock(spec=PrimerRow)
-    row_0.idx = 0
-    row_0.name_field = ft.TextField(value="P0")
-    row_0.name_field.data = {"idx": 0, "field": "name"}
-    row_0.seq_field = ft.TextField(value="ATGC")
-    row_0.seq_field.data = {"idx": 0, "field": "seq"}
-    row_0.name_field.update = MagicMock()
-    row_0.seq_field.update = MagicMock()
-
-    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
-    mock_ctrl.input_view._currently_focused_control = row_0.name_field
-
+    row_0 = _make_mock_primer_row(0, "P0", "ATGC")
+    mock_ctrl = _make_mock_nav_controller([row_0], debounce_interval=0.0)
     ev_tab = _make_key_event(key="Tab")
 
     # 1. When lock is explicitly True, events are immediately dropped
     mock_ctrl._is_navigating_focus = True
-    row_0.seq_field.focus = MagicMock()
     handle_keyboard_event(mock_ctrl, ev_tab)
     row_0.seq_field.focus.assert_not_called()
 
@@ -1694,7 +1587,7 @@ def test_handle_keyboard_event_reentrancy_lock() -> None:
         nonlocal observed_lock_state
         observed_lock_state = mock_ctrl._is_navigating_focus
 
-    row_0.seq_field.focus = MagicMock(side_effect=on_focus)
+    row_0.seq_field.focus.side_effect = on_focus
     handle_keyboard_event(mock_ctrl, ev_tab)
 
     assert observed_lock_state is True
@@ -1704,7 +1597,7 @@ def test_handle_keyboard_event_reentrancy_lock() -> None:
     def on_focus_error() -> None:
         raise RuntimeError("focus error")
 
-    row_0.seq_field.focus = MagicMock(side_effect=on_focus_error)
+    row_0.seq_field.focus.side_effect = on_focus_error
     with pytest.raises(RuntimeError, match="focus error"):
         handle_keyboard_event(mock_ctrl, ev_tab)
 
@@ -1714,38 +1607,20 @@ def test_handle_keyboard_event_reentrancy_lock() -> None:
 def test_handle_keyboard_event_async_focus_lock() -> None:
     """Test that async focus tasks release the re-entrancy lock."""
     import asyncio
-    from unittest.mock import MagicMock
 
     from amplifyp.gui.utils.gui_helpers import (
         focus_async,
         handle_keyboard_event,
     )
-    from amplifyp.gui.views.input.primer.row import PrimerRow
 
-    mock_ctrl = MagicMock()
-    mock_ctrl.input_view = MagicMock()
-    mock_ctrl.view_container.content = mock_ctrl.input_view
-    mock_ctrl._is_navigating_focus = False
-    mock_ctrl._last_keyboard_nav_time = 0.0
-    mock_ctrl._keyboard_nav_debounce_interval = 0.0
-
-    row_0 = MagicMock(spec=PrimerRow)
-    row_0.idx = 0
-    row_0.name_field = ft.TextField(value="P0")
-    row_0.name_field.data = {"idx": 0, "field": "name"}
-    row_0.seq_field = ft.TextField(value="ATGC")
-    row_0.seq_field.data = {"idx": 0, "field": "seq"}
-    row_0.name_field.update = MagicMock()
-    row_0.seq_field.update = MagicMock()
-
-    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
-    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+    row_0 = _make_mock_primer_row(0, "P0", "ATGC")
+    mock_ctrl = _make_mock_nav_controller([row_0], debounce_interval=0.0)
 
     async def sample_focus_coro() -> None:
         pass
 
     coro = sample_focus_coro()
-    row_0.seq_field.focus = MagicMock(return_value=coro)
+    row_0.seq_field.focus.return_value = coro
 
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
     mock_ctrl.page.run_task.assert_called_once_with(focus_async, coro)
