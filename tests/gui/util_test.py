@@ -710,6 +710,7 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     row1.seq_field.focus = MagicMock()
 
     ctrl.input_view.primer_input.primers_list.controls = [row0, row1]
+    ctrl._keyboard_nav_debounce_interval = 0.0
 
     # Tab navigation
     ctrl.input_view._currently_focused_control = row0.name_field
@@ -1278,6 +1279,7 @@ def test_handle_keyboard_event_comprehensive() -> None:
     row_1.name_field.update = MagicMock()
 
     mock_ctrl.input_view.primer_input.primers_list.controls = [row_0, row_1]
+    mock_ctrl._keyboard_nav_debounce_interval = 0.0
 
     # Tab from row 0 name -> row 0 seq
     row_0.name_field.data = {"idx": 0, "field": "name"}
@@ -1596,3 +1598,164 @@ def test_system_utils_coverage_additional() -> None:
     mock_ctrl.page.run_task.assert_called_once_with(
         mock_ctrl.confirm_exit_async
     )
+
+
+def test_handle_keyboard_event_debounce() -> None:
+    """Test keyboard navigation rate-limiting drops rapid events."""
+    from unittest.mock import MagicMock, patch
+
+    from amplifyp.gui.utils.gui_helpers import (
+        KEYBOARD_NAV_DEBOUNCE_INTERVAL,
+        handle_keyboard_event,
+    )
+    from amplifyp.gui.views.input.primer.row import PrimerRow
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    mock_ctrl._is_navigating_focus = False
+    mock_ctrl._last_keyboard_nav_time = 0.0
+    mock_ctrl._keyboard_nav_debounce_interval = KEYBOARD_NAV_DEBOUNCE_INTERVAL
+
+    row_0 = MagicMock(spec=PrimerRow)
+    row_0.idx = 0
+    row_0.name_field = ft.TextField(value="P0")
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    row_0.seq_field = ft.TextField(value="ATGC")
+    row_0.seq_field.data = {"idx": 0, "field": "seq"}
+    row_0.name_field.focus = MagicMock()
+    row_0.seq_field.focus = MagicMock()
+    row_0.name_field.update = MagicMock()
+    row_0.seq_field.update = MagicMock()
+
+    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+
+    ev_tab = _make_key_event(key="Tab")
+
+    # 1. Initial event at t = 100.0 succeeds
+    with patch("time.monotonic", return_value=100.0):
+        handle_keyboard_event(mock_ctrl, ev_tab)
+        row_0.seq_field.focus.assert_called_once()
+        assert mock_ctrl._last_keyboard_nav_time == 100.0
+
+    # 2. Rapid event at t = 100.05 (50ms later < 120ms) is debounced and dropped
+    row_0.seq_field.focus.reset_mock()
+    with patch("time.monotonic", return_value=100.05):
+        handle_keyboard_event(mock_ctrl, ev_tab)
+        row_0.seq_field.focus.assert_not_called()
+        assert mock_ctrl._last_keyboard_nav_time == 100.0
+
+    # 3. Subsequent event at t = 100.20 (> 120ms elapsed) succeeds
+    with patch("time.monotonic", return_value=100.20):
+        handle_keyboard_event(mock_ctrl, ev_tab)
+        row_0.seq_field.focus.assert_called_once()
+        assert mock_ctrl._last_keyboard_nav_time == 100.20
+
+
+def test_handle_keyboard_event_reentrancy_lock() -> None:
+    """Test re-entrancy lock prevents nested focus transitions."""
+    from unittest.mock import MagicMock
+
+    from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
+    from amplifyp.gui.views.input.primer.row import PrimerRow
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    mock_ctrl._last_keyboard_nav_time = 0.0
+    mock_ctrl._keyboard_nav_debounce_interval = 0.0
+
+    row_0 = MagicMock(spec=PrimerRow)
+    row_0.idx = 0
+    row_0.name_field = ft.TextField(value="P0")
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    row_0.seq_field = ft.TextField(value="ATGC")
+    row_0.seq_field.data = {"idx": 0, "field": "seq"}
+    row_0.name_field.update = MagicMock()
+    row_0.seq_field.update = MagicMock()
+
+    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+
+    ev_tab = _make_key_event(key="Tab")
+
+    # 1. When lock is explicitly True, events are immediately dropped
+    mock_ctrl._is_navigating_focus = True
+    row_0.seq_field.focus = MagicMock()
+    handle_keyboard_event(mock_ctrl, ev_tab)
+    row_0.seq_field.focus.assert_not_called()
+
+    # 2. When lock is False, transition proceeds and sets lock during focus()
+    mock_ctrl._is_navigating_focus = False
+    observed_lock_state = None
+
+    def on_focus() -> None:
+        nonlocal observed_lock_state
+        observed_lock_state = mock_ctrl._is_navigating_focus
+
+    row_0.seq_field.focus = MagicMock(side_effect=on_focus)
+    handle_keyboard_event(mock_ctrl, ev_tab)
+
+    assert observed_lock_state is True
+    assert mock_ctrl._is_navigating_focus is False
+
+    # 3. Exception in focus() still resets the lock
+    def on_focus_error() -> None:
+        raise RuntimeError("focus error")
+
+    row_0.seq_field.focus = MagicMock(side_effect=on_focus_error)
+    with pytest.raises(RuntimeError, match="focus error"):
+        handle_keyboard_event(mock_ctrl, ev_tab)
+
+    assert mock_ctrl._is_navigating_focus is False
+
+
+def test_handle_keyboard_event_async_focus_lock() -> None:
+    """Test that async focus tasks release the re-entrancy lock."""
+    import asyncio
+    from unittest.mock import MagicMock
+
+    from amplifyp.gui.utils.gui_helpers import (
+        focus_async,
+        handle_keyboard_event,
+    )
+    from amplifyp.gui.views.input.primer.row import PrimerRow
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.input_view = MagicMock()
+    mock_ctrl.view_container.content = mock_ctrl.input_view
+    mock_ctrl._is_navigating_focus = False
+    mock_ctrl._last_keyboard_nav_time = 0.0
+    mock_ctrl._keyboard_nav_debounce_interval = 0.0
+
+    row_0 = MagicMock(spec=PrimerRow)
+    row_0.idx = 0
+    row_0.name_field = ft.TextField(value="P0")
+    row_0.name_field.data = {"idx": 0, "field": "name"}
+    row_0.seq_field = ft.TextField(value="ATGC")
+    row_0.seq_field.data = {"idx": 0, "field": "seq"}
+    row_0.name_field.update = MagicMock()
+    row_0.seq_field.update = MagicMock()
+
+    mock_ctrl.input_view.primer_input.primers_list.controls = [row_0]
+    mock_ctrl.input_view._currently_focused_control = row_0.name_field
+
+    async def sample_focus_coro() -> None:
+        pass
+
+    coro = sample_focus_coro()
+    row_0.seq_field.focus = MagicMock(return_value=coro)
+
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    mock_ctrl.page.run_task.assert_called_once_with(focus_async, coro)
+    coro.close()
+
+    # Directly run focus_async with controller
+    mock_ctrl._is_navigating_focus = True
+
+    async def sample_coro_2() -> None:
+        pass
+
+    asyncio.run(focus_async(sample_coro_2(), mock_ctrl))
+    assert mock_ctrl._is_navigating_focus is False
