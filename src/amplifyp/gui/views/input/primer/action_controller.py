@@ -47,6 +47,7 @@ class PrimerActionController:
         self.current_drag_y = 0.0
         self._click_a: int | None = None
         self._click_b: int | None = None
+        self._deleting: bool = False
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle single click on the row container.
@@ -190,6 +191,10 @@ class PrimerActionController:
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
         """Delete primers asynchronously to avoid Flet race conditions."""
+        if self._deleting:
+            return
+        self._deleting = True
+
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
         primers_to_delete = {
@@ -197,7 +202,11 @@ class PrimerActionController:
         }
 
         def execute_delete() -> None:
-            self._delete_primers_impl(primers_to_delete, indices_to_delete)
+            """Execute primer deletion and reset deletion state."""
+            try:
+                self._delete_primers_impl(primers_to_delete, indices_to_delete)
+            finally:
+                self._deleting = False
 
         page = None
         try:
@@ -207,6 +216,7 @@ class PrimerActionController:
         if isinstance(page, ft.Page):
 
             async def delayed_delete() -> None:
+                """Wait briefly and execute primer deletion."""
                 import asyncio
 
                 await asyncio.sleep(0.05)
@@ -244,9 +254,9 @@ class PrimerActionController:
     ) -> None:
         """Perform the actual deletion of primers from the input data.
 
-        This method removes the primers identified by their object IDs, updates
-        the focused primer index, and re-indexes the remaining primer rows
-        in the UI.
+        This method removes the primers identified by their object IDs or
+        validated indices, updates the focused primer index, and re-indexes
+        the remaining primer rows in the UI.
         """
         self._click_a = None
         self._click_b = None
@@ -254,13 +264,20 @@ class PrimerActionController:
             return
 
         primers = self.owner.input_data.primers
+        # Match by object identity
         deleted_indices = {
             i for i, p in enumerate(primers) if id(p) in primers_to_delete
         }
-        if not deleted_indices and indices_to_delete:
-            deleted_indices = {
-                i for i in indices_to_delete if 0 <= i < len(primers)
+
+        # Resolve unmatched requested targets
+        if indices_to_delete:
+            unmatched = {
+                i
+                for i in indices_to_delete
+                if i not in deleted_indices and 0 <= i < len(primers)
             }
+            deleted_indices.update(unmatched)
+
         if not deleted_indices:
             return
 

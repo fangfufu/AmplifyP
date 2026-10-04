@@ -1130,6 +1130,22 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     view.primer_input._update_delete_button_disabled_state()
     assert view.primer_input.delete_selected_button.disabled
 
+    # Header delete button enabled when focused_primer_index is valid even
+    # without selection
+    view.primer_input.selected_indices = set()
+    view.primer_input.focused_primer_index = 0
+    view.primer_input._update_header_buttons_state()
+    assert not view.primer_input.primer_header.delete_button.disabled
+
+    # Header delete button disabled when focused_primer_index is invalid or None
+    view.primer_input.focused_primer_index = 99999
+    view.primer_input._update_header_buttons_state()
+    assert view.primer_input.primer_header.delete_button.disabled
+
+    view.primer_input.focused_primer_index = None
+    view.primer_input._update_header_buttons_state()
+    assert view.primer_input.primer_header.delete_button.disabled
+
     # primer_input content reset
     view.primer_input.content = None
     view.primer_input._reposition_info_panel()
@@ -1636,6 +1652,30 @@ async def test_input_components_additional_coverage() -> None:
         await asyncio.gather(*pending_tasks)
         assert len(input_data.primers) == 1
         assert input_data.primers[0]["name"] == "P2_new"
+
+        # Test partial identity matches: one row matched by ID, one re-created
+        input_data.primers = [
+            {"name": "P1", "seq": "ATGC", "active": True},
+            {"name": "P2", "seq": "GGCC", "active": True},
+            {"name": "P3", "seq": "TTAA", "active": True},
+        ]
+        p1 = input_data.primers[0]
+        p2 = input_data.primers[1]
+        # Recreate dict for P2 only
+        p2_synced = {"name": "P2_synced", "seq": "GGCC", "active": True}
+        input_data.primers[1] = p2_synced
+        act = view.primer_input.action_controller
+        act._delete_primers_impl(
+            primers_to_delete={id(p1), id(p2)},
+            indices_to_delete={0, 1},
+        )
+        assert len(input_data.primers) == 1
+        assert input_data.primers[0]["name"] == "P3"
+
+        # Prevent overlapping deletes
+        act._deleting = True
+        act.delete_primers({0})
+        act._deleting = False
 
 
 def test_reconcile_and_highlight_incomplete_primer() -> None:

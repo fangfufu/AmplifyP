@@ -318,6 +318,7 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     def _delete_selected_primer(expected_count: int) -> None:
+        """Delete primer row and verify expected input count."""
         btn = page.locator("[aria-label*='Delete Primer']").first
         if not btn.is_visible():
             row_container = page.locator(
@@ -325,28 +326,31 @@ def test_e2e_primer_lifecycle_and_state(
             ).first
             btn = row_container.locator("[role='button']").nth(1)
         expect(btn).to_be_enabled(timeout=5000)
-        btn.click(force=True)
-        try:
-            btn.dispatch_event("click")
-        except Exception:  # noqa: S110
-            pass
+
+        def _click_and_wait(timeout: int) -> None:
+            """Click delete and fallback only if count persists."""
+            btn.click(force=True)
+            try:
+                expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
+                    expected_count, timeout=timeout
+                )
+            except AssertionError:
+                if page.locator(PRIMER_INPUT_SEL).count() > expected_count:
+                    try:
+                        btn.dispatch_event("click")
+                    except Exception:  # noqa: S110
+                        pass
+                expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
+                    expected_count, timeout=timeout
+                )
 
         try:
-            expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
-                expected_count, timeout=5000
-            )
+            _click_and_wait(5000)
         except AssertionError:
             page.locator(PRIMER_INPUT_SEL).nth(8).focus()
             page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
             time.sleep(0.5)
-            btn.click(force=True)
-            try:
-                btn.dispatch_event("click")
-            except Exception:  # noqa: S110
-                pass
-            expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
-                expected_count, timeout=10000
-            )
+            _click_and_wait(10000)
 
     # Verify V3 deleted: I3 is now at index 4 (global index 8).
     _delete_selected_primer(12)
@@ -395,6 +399,7 @@ def test_e2e_primer_lifecycle_and_state(
     )
 
     def _toggle_checkbox_and_verify(checkbox: Any, *, is_checked: bool) -> None:
+        """Toggle checkbox state and verify with idempotent retry."""
         checkbox.click(force=True)
         check_fn = (
             expect(checkbox).to_be_checked

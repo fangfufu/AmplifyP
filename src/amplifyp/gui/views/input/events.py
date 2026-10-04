@@ -43,6 +43,7 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             input_view.primer_input.selected_indices = {idx}
             input_view.primer_input._update_delete_button_disabled_state()
         input_view.primer_input.focused_primer_index = idx
+        input_view.primer_input._update_header_buttons_state()
 
         # Set touched status in state
         if 0 <= idx < len(input_view.input_data.primers):
