@@ -1285,11 +1285,16 @@ def test_handle_keyboard_event_comprehensive() -> None:
     async def async_tab_focus() -> None:
         pass
 
+    def mock_close_coro(_fn: Any, c: Any, ctrl: Any = None, *_: Any) -> None:
+        c.close()
+        if ctrl is not None:
+            ctrl._is_navigating_focus = False
+
     coro_tab = async_tab_focus()
     row_0.seq_field.focus = MagicMock(return_value=coro_tab)
     row_0.name_field.data = {"idx": 0, "field": "name"}
     mock_ctrl.input_view._currently_focused_control = row_0.name_field
-    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    mock_ctrl.page.run_task = MagicMock(side_effect=mock_close_coro)
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
     mock_ctrl.page.run_task.assert_called_once()
     row_0.seq_field.focus = MagicMock()
@@ -1352,7 +1357,7 @@ def test_handle_keyboard_event_comprehensive() -> None:
 
     coro_arr = async_arr_focus()
     row_0.seq_field.focus = MagicMock(return_value=coro_arr)
-    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    mock_ctrl.page.run_task = MagicMock(side_effect=mock_close_coro)
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Right"))
     mock_ctrl.page.run_task.assert_called_once()
     row_0.seq_field.focus = MagicMock()
@@ -1396,7 +1401,7 @@ def test_handle_keyboard_event_comprehensive() -> None:
     coro = async_focus()
     mock_ctrl.input_view._currently_focused_control = row_0.name_field
     row_1.name_field.focus = MagicMock(return_value=coro)
-    mock_ctrl.page.run_task = MagicMock(side_effect=lambda fn, c: c.close())
+    mock_ctrl.page.run_task = MagicMock(side_effect=mock_close_coro)
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Arrow Down"))
     mock_ctrl.page.run_task.assert_called_once()
 
@@ -1605,7 +1610,7 @@ def test_handle_keyboard_event_reentrancy_lock() -> None:
 
 
 def test_handle_keyboard_event_async_focus_lock() -> None:
-    """Test that async focus tasks release the re-entrancy lock."""
+    """Test that async focus tasks keep the lock pending until completion."""
     import asyncio
 
     from amplifyp.gui.utils.gui_helpers import (
@@ -1622,15 +1627,35 @@ def test_handle_keyboard_event_async_focus_lock() -> None:
     coro = sample_focus_coro()
     row_0.seq_field.focus.return_value = coro
 
+    # Dispatch async focus via keyboard event
     handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
-    mock_ctrl.page.run_task.assert_called_once_with(focus_async, coro)
-    coro.close()
+    mock_ctrl.page.run_task.assert_called_once_with(
+        focus_async, coro, mock_ctrl
+    )
 
-    # Directly run focus_async with controller
-    mock_ctrl._is_navigating_focus = True
+    # 1. Lock remains set while the coroutine focus task is pending
+    assert mock_ctrl._is_navigating_focus is True
 
-    async def sample_coro_2() -> None:
-        pass
+    # Re-entrant events while pending must be dropped
+    row_0.seq_field.focus.reset_mock()
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    row_0.seq_field.focus.assert_not_called()
 
-    asyncio.run(focus_async(sample_coro_2(), mock_ctrl))
+    # 2. Lock clears once focus_async completes
+    asyncio.run(focus_async(coro, mock_ctrl))
+    assert mock_ctrl._is_navigating_focus is False
+
+    # 3. Failed scheduling clears the lock in the dispatcher
+    coro_failed = sample_focus_coro()
+    row_0.seq_field.focus.return_value = coro_failed
+    mock_ctrl.page.run_task.side_effect = RuntimeError("Scheduling failed")
+    with pytest.raises(RuntimeError, match="Scheduling failed"):
+        handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
+    coro_failed.close()
+    assert mock_ctrl._is_navigating_focus is False
+
+    # 4. Synchronous focus clears the lock in the dispatcher
+    row_0.seq_field.focus.side_effect = None
+    row_0.seq_field.focus.return_value = None
+    handle_keyboard_event(mock_ctrl, _make_key_event(key="Tab"))
     assert mock_ctrl._is_navigating_focus is False

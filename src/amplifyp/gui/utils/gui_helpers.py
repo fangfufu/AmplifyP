@@ -249,9 +249,12 @@ def _dispatch_field_focus(controller: Any, target_field: ft.TextField) -> None:
             controller.input_view._skip_seq_focus_reset = True
         res = target_field.focus()
         if asyncio.iscoroutine(res):
-            controller.page.run_task(focus_async, res)
-    finally:
+            controller.page.run_task(focus_async, res, controller)
+        else:
+            controller._is_navigating_focus = False
+    except Exception:
         controller._is_navigating_focus = False
+        raise
 
 
 def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
