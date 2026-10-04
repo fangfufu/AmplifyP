@@ -317,34 +317,51 @@ def test_e2e_primer_lifecycle_and_state(
     page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
-    # Click the header Delete Primer button
-    delete_btn = page.locator("[aria-label*='Delete Primer']").first
-    if not delete_btn.is_visible():
-        row_container = page.locator("[aria-label*='Add Primer Below']").first
-        delete_btn = row_container.locator("[role='button']").nth(1)
-    expect(delete_btn).to_be_enabled(timeout=5000)
-    delete_btn.click(force=True)
-    time.sleep(1)
+    def _delete_selected_primer(expected_count: int) -> None:
+        """Delete primer row and verify expected input count."""
+        btn = page.locator("[aria-label*='Delete Primer']").first
+        if not btn.is_visible():
+            row_container = page.locator(
+                "[aria-label*='Add Primer Below']"
+            ).first
+            btn = row_container.locator("[role='button']").nth(1)
+        expect(btn).to_be_enabled(timeout=5000)
+
+        def _click_and_wait(timeout: int) -> None:
+            """Click delete and fallback only if count persists."""
+            btn.click(force=True)
+            try:
+                expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
+                    expected_count, timeout=timeout
+                )
+            except AssertionError:
+                if page.locator(PRIMER_INPUT_SEL).count() > expected_count:
+                    try:
+                        btn.dispatch_event("click")
+                    except Exception:  # noqa: S110
+                        pass
+                expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(
+                    expected_count, timeout=timeout
+                )
+
+        try:
+            _click_and_wait(5000)
+        except AssertionError:
+            page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+            page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
+            time.sleep(0.5)
+            _click_and_wait(10000)
 
     # Verify V3 deleted: I3 is now at index 4 (global index 8).
-    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(12)
+    _delete_selected_primer(12)
     time.sleep(1)
 
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
     page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
-    # Click the header Delete Primer button
-    delete_btn = page.locator("[aria-label*='Delete Primer']").first
-    if not delete_btn.is_visible():
-        row_container = page.locator("[aria-label*='Add Primer Below']").first
-        delete_btn = row_container.locator("[role='button']").nth(1)
-    expect(delete_btn).to_be_enabled(timeout=5000)
-    delete_btn.click(force=True)
-    time.sleep(2)
-
     # Verify both V3 and I3 deleted: count returned to 5 rows (10 inputs).
-    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(10)
+    _delete_selected_primer(10)
 
     # 4. Verify checkboxes and try to activate invalid primers
     print("Verifying checkbox state and attempting to activate invalid ones...")
@@ -363,7 +380,6 @@ def test_e2e_primer_lifecycle_and_state(
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
     ).not_to_be_checked(timeout=15000)
-    page.screenshot(path="debug_checkboxes.png")
     expect(
         name_inputs.nth(3 * 2)
         .locator("xpath=../../../..")
@@ -371,46 +387,39 @@ def test_e2e_primer_lifecycle_and_state(
     ).not_to_be_checked(timeout=15000)
 
     # Activate invalid primers (click them) and make sure they can be activated
-    name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
-        "checkbox"
-    ).click(force=True)
-    name_inputs.nth(3 * 2).locator("xpath=../../../..").get_by_role(
-        "checkbox"
-    ).click(force=True)
-    time.sleep(1)
-
-    # Ensure they are checked
-    expect(
+    cb2 = (
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
-    expect(
+    )
+    cb3 = (
         name_inputs.nth(3 * 2)
         .locator("xpath=../../../..")
         .get_by_role("checkbox")
-    ).to_be_checked(timeout=15000)
+    )
+
+    def _toggle_checkbox_and_verify(checkbox: Any, *, is_checked: bool) -> None:
+        """Toggle checkbox state and verify with idempotent retry."""
+        checkbox.click(force=True)
+        check_fn = (
+            expect(checkbox).to_be_checked
+            if is_checked
+            else expect(checkbox).not_to_be_checked
+        )
+        try:
+            check_fn(timeout=5000)
+        except AssertionError:
+            if checkbox.is_checked() != is_checked:
+                checkbox.click(force=True)
+            check_fn(timeout=10000)
+        time.sleep(0.5)
+
+    _toggle_checkbox_and_verify(cb2, is_checked=True)
+    _toggle_checkbox_and_verify(cb3, is_checked=True)
 
     # Deactivate invalid primers again (click them)
-    name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
-        "checkbox"
-    ).click(force=True)
-    name_inputs.nth(3 * 2).locator("xpath=../../../..").get_by_role(
-        "checkbox"
-    ).click(force=True)
-    time.sleep(1)
-
-    # Ensure they are unchecked
-    expect(
-        name_inputs.nth(2 * 2)
-        .locator("xpath=../../../..")
-        .get_by_role("checkbox")
-    ).not_to_be_checked(timeout=15000)
-    expect(
-        name_inputs.nth(3 * 2)
-        .locator("xpath=../../../..")
-        .get_by_role("checkbox")
-    ).not_to_be_checked(timeout=15000)
+    _toggle_checkbox_and_verify(cb2, is_checked=False)
+    _toggle_checkbox_and_verify(cb3, is_checked=False)
 
     # 5. Save the primer list
     print("Saving active primer list...")

@@ -1086,7 +1086,16 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     act.move_primers(set(), -1)
     act.reverse_complement_primers(set())
     act._delete_primers_impl(set())
+    act._delete_primers_impl(set(), set())
     act._delete_primers_impl({9999})
+
+    # _delete_primers_impl fallback to indices_to_delete when IDs do not match
+    initial_primer_count = len(input_data.primers)
+    act._delete_primers_impl({999999}, indices_to_delete={0})
+    assert len(input_data.primers) == initial_primer_count - 1
+
+    # _delete_primers_impl with invalid indices_to_delete fallback
+    act._delete_primers_impl({999999}, indices_to_delete={99999})
 
     # drag start non-contiguous block scan
     view.primer_input.selected_indices = {0, 2}
@@ -1100,6 +1109,42 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
 
     view.primer_input.focused_primer_index = None
     act.header_add_click(None)
+
+    # header_delete_click when selected_indices set vs focused vs neither
+    view.primer_input.selected_indices = {0}
+    act.header_delete_click(None)
+
+    view.primer_input.selected_indices = set()
+    view.primer_input.focused_primer_index = 0
+    act.header_delete_click(None)
+
+    view.primer_input.focused_primer_index = None
+    act.header_delete_click(None)
+
+    # _update_delete_button_disabled_state updates header buttons
+    view.primer_input.selected_indices = {0}
+    view.primer_input._update_delete_button_disabled_state()
+    assert not view.primer_input.delete_selected_button.disabled
+
+    view.primer_input.selected_indices = set()
+    view.primer_input._update_delete_button_disabled_state()
+    assert view.primer_input.delete_selected_button.disabled
+
+    # Header delete button enabled when focused_primer_index is valid even
+    # without selection
+    view.primer_input.selected_indices = set()
+    view.primer_input.focused_primer_index = 0
+    view.primer_input._update_header_buttons_state()
+    assert not view.primer_input.primer_header.delete_button.disabled
+
+    # Header delete button disabled when focused_primer_index is invalid or None
+    view.primer_input.focused_primer_index = 99999
+    view.primer_input._update_header_buttons_state()
+    assert view.primer_input.primer_header.delete_button.disabled
+
+    view.primer_input.focused_primer_index = None
+    view.primer_input._update_header_buttons_state()
+    assert view.primer_input.primer_header.delete_button.disabled
 
     # primer_input content reset
     view.primer_input.content = None
@@ -1590,6 +1635,47 @@ async def test_input_components_additional_coverage() -> None:
         await asyncio.gather(*pending_tasks)
         assert len(input_data.primers) == 1
         assert input_data.primers[0]["name"] == "P2"
+
+        # Test delayed delete where primer dict IDs are recreated
+        input_data.primers = [
+            {"name": "P1", "seq": "ATGC", "active": True},
+            {"name": "P2", "seq": "GGCC", "active": True},
+        ]
+        pending_tasks.clear()
+        view.primer_input.action_controller.delete_primers({0})
+        # Simulate state re-sync recreating dictionaries with new IDs
+        input_data.primers = [
+            {"name": "P1_new", "seq": "ATGC", "active": True},
+            {"name": "P2_new", "seq": "GGCC", "active": True},
+        ]
+        assert len(pending_tasks) == 1
+        await asyncio.gather(*pending_tasks)
+        assert len(input_data.primers) == 1
+        assert input_data.primers[0]["name"] == "P2_new"
+
+        # Test partial identity matches: one row matched by ID, one re-created
+        input_data.primers = [
+            {"name": "P1", "seq": "ATGC", "active": True},
+            {"name": "P2", "seq": "GGCC", "active": True},
+            {"name": "P3", "seq": "TTAA", "active": True},
+        ]
+        p1 = input_data.primers[0]
+        p2 = input_data.primers[1]
+        # Recreate dict for P2 only
+        p2_synced = {"name": "P2_synced", "seq": "GGCC", "active": True}
+        input_data.primers[1] = p2_synced
+        act = view.primer_input.action_controller
+        act._delete_primers_impl(
+            primers_to_delete={id(p1), id(p2)},
+            indices_to_delete={0, 1},
+        )
+        assert len(input_data.primers) == 1
+        assert input_data.primers[0]["name"] == "P3"
+
+        # Prevent overlapping deletes
+        act._deleting = True
+        act.delete_primers({0})
+        act._deleting = False
 
 
 def test_reconcile_and_highlight_incomplete_primer() -> None:

@@ -47,6 +47,7 @@ class PrimerActionController:
         self.current_drag_y = 0.0
         self._click_a: int | None = None
         self._click_b: int | None = None
+        self._deleting: bool = False
 
     def handle_row_click(self, idx: int, name_edit: ft.TextField) -> None:
         """Handle single click on the row container.
@@ -190,11 +191,22 @@ class PrimerActionController:
 
     def delete_primers(self, indices_to_delete: set[int]) -> None:
         """Delete primers asynchronously to avoid Flet race conditions."""
+        if self._deleting:
+            return
+        self._deleting = True
+
         self.owner.sync_to_state(rebuild_if_needed=False)
         primers = self.owner.input_data.primers
         primers_to_delete = {
             id(primers[i]) for i in indices_to_delete if 0 <= i < len(primers)
         }
+
+        def execute_delete() -> None:
+            """Execute primer deletion and reset deletion state."""
+            try:
+                self._delete_primers_impl(primers_to_delete, indices_to_delete)
+            finally:
+                self._deleting = False
 
         page = None
         try:
@@ -204,14 +216,15 @@ class PrimerActionController:
         if isinstance(page, ft.Page):
 
             async def delayed_delete() -> None:
+                """Wait briefly and execute primer deletion."""
                 import asyncio
 
                 await asyncio.sleep(0.05)
-                self._delete_primers_impl(primers_to_delete)
+                execute_delete()
 
             page.run_task(delayed_delete)
         else:
-            self._delete_primers_impl(primers_to_delete)
+            execute_delete()
 
     def reverse_complement_primers(self, indices: set[int]) -> None:
         """Reverse complement sequence of highlighted primers at indices.
@@ -234,27 +247,44 @@ class PrimerActionController:
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
 
-    def _delete_primers_impl(self, primers_to_delete: set[int]) -> None:
+    def _delete_primers_impl(
+        self,
+        primers_to_delete: set[int],
+        indices_to_delete: set[int] | None = None,
+    ) -> None:
         """Perform the actual deletion of primers from the input data.
 
-        This method removes the primers identified by their object IDs, updates
-        the focused primer index, and re-indexes the remaining primer rows
-        in the UI.
+        This method removes the primers identified by their object IDs or
+        validated indices, updates the focused primer index, and re-indexes
+        the remaining primer rows in the UI.
         """
         self._click_a = None
         self._click_b = None
-        if not primers_to_delete:
+        if not primers_to_delete and not indices_to_delete:
             return
 
         primers = self.owner.input_data.primers
+        # Match by object identity
         deleted_indices = {
             i for i, p in enumerate(primers) if id(p) in primers_to_delete
         }
+
+        # Resolve unmatched requested targets
+        if indices_to_delete:
+            unmatched = {
+                i
+                for i in indices_to_delete
+                if i not in deleted_indices and 0 <= i < len(primers)
+            }
+            deleted_indices.update(unmatched)
+
         if not deleted_indices:
             return
 
         # Keep only primers NOT in the deleted set
-        new_primers = [p for p in primers if id(p) not in primers_to_delete]
+        new_primers = [
+            p for i, p in enumerate(primers) if i not in deleted_indices
+        ]
         if not new_primers:
             new_primers = [{"name": "", "seq": "", "active": False}]
         self.owner.input_data.primers = new_primers
@@ -442,8 +472,19 @@ class PrimerActionController:
 
     def header_delete_click(self, _e: ft.Event | None) -> None:
         """Handle header Delete button click."""
+        target_indices: set[int] = set()
         if self.owner.selected_indices:
-            self.delete_primers(self.owner.selected_indices.copy())
+            target_indices = self.owner.selected_indices.copy()
+        elif (
+            self.owner.focused_primer_index is not None
+            and 0
+            <= self.owner.focused_primer_index
+            < len(self.owner.input_data.primers)
+        ):
+            target_indices = {self.owner.focused_primer_index}
+
+        if target_indices:
+            self.delete_primers(target_indices)
             self.owner._update_header_buttons_state()
 
     def header_up_click(self, _e: ft.Event | None) -> None:
