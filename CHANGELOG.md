@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0](https://github.com/fangfufu/AmplifyP/compare/v1.23.0...v1.24.0) (2026-10-04)
+
+
+### Features
+
+* **gui:** allow ticking incomplete primers ([fda8f2b](https://github.com/fangfufu/AmplifyP/commit/fda8f2bc09003d26d328f7edb56fe182ff38c426))
+* **gui:** defer empty and duplicate primer checks ([5b88057](https://github.com/fangfufu/AmplifyP/commit/5b88057f4c2bf10d044a2cacea8c62241127efe8))
+
+
+### Bug Fixes
+
+* address PR review feedback ([af71965](https://github.com/fangfufu/AmplifyP/commit/af71965ef2c44d293d81316997ad8aec9144c507))
+* **gui:** remove distracting primer list tooltip ([40e0528](https://github.com/fangfufu/AmplifyP/commit/40e0528e021bbcd06c1fdbc22ac4f16931481e27))
+* **gui:** remove primer list tooltip ([5dc7ae8](https://github.com/fangfufu/AmplifyP/commit/5dc7ae893deae473c2842a93a93e3574b74528f5))
+* **gui:** safely resolve primer row index in list ([74ad844](https://github.com/fangfufu/AmplifyP/commit/74ad84418b3c540da18afcc1bcbc10463b384241))
+
+
+### Code Refactoring
+
+* **gui:** deduplicate navigation logic ([e9e43f4](https://github.com/fangfufu/AmplifyP/commit/e9e43f40b8dabee135e0936d6edcb2404a75b4cc))
+* **gui:** remove inactive duplicate settings ([7d3a78b](https://github.com/fangfufu/AmplifyP/commit/7d3a78b5f24413a43ae914e9379019ef66edfb60))
+* **gui:** replace get_row_height function ([03a7870](https://github.com/fangfufu/AmplifyP/commit/03a7870ebbe805ff77940140d8762f5dafb54252))
+
 ## [1.23.0](https://github.com/fangfufu/AmplifyP/compare/v1.22.0...v1.23.0) (2026-09-29)
 
 
