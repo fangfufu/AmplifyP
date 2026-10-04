@@ -196,6 +196,9 @@ class PrimerActionController:
             id(primers[i]) for i in indices_to_delete if 0 <= i < len(primers)
         }
 
+        def execute_delete() -> None:
+            self._delete_primers_impl(primers_to_delete, indices_to_delete)
+
         page = None
         try:
             page = self.owner.page
@@ -207,11 +210,11 @@ class PrimerActionController:
                 import asyncio
 
                 await asyncio.sleep(0.05)
-                self._delete_primers_impl(primers_to_delete, indices_to_delete)
+                execute_delete()
 
             page.run_task(delayed_delete)
         else:
-            self._delete_primers_impl(primers_to_delete, indices_to_delete)
+            execute_delete()
 
     def reverse_complement_primers(self, indices: set[int]) -> None:
         """Reverse complement sequence of highlighted primers at indices.
@@ -452,16 +455,19 @@ class PrimerActionController:
 
     def header_delete_click(self, _e: ft.Event | None) -> None:
         """Handle header Delete button click."""
+        target_indices: set[int] = set()
         if self.owner.selected_indices:
-            self.delete_primers(self.owner.selected_indices.copy())
-            self.owner._update_header_buttons_state()
+            target_indices = self.owner.selected_indices.copy()
         elif (
             self.owner.focused_primer_index is not None
             and 0
             <= self.owner.focused_primer_index
             < len(self.owner.input_data.primers)
         ):
-            self.delete_primers({self.owner.focused_primer_index})
+            target_indices = {self.owner.focused_primer_index}
+
+        if target_indices:
+            self.delete_primers(target_indices)
             self.owner._update_header_buttons_state()
 
     def header_up_click(self, _e: ft.Event | None) -> None:
