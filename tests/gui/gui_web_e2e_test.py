@@ -17,6 +17,7 @@
 
 import io
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -46,7 +47,8 @@ SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 
 PRIMER_INPUT_SEL = (
-    '[aria-label="Primer List"] textarea:not([disabled]):not([readonly])'
+    'flt-semantics[aria-label="Add Primer Below"] ~ flt-semantics '
+    "textarea:not([disabled])"
 )
 
 
@@ -225,7 +227,7 @@ def test_e2e_primer_lifecycle_and_state(
     Steps:
       - Add 2 valid primers.
       - Add 2 invalid primers.
-      - Try and activate invalid primers and make sure they don't get activated.
+      - Toggle invalid primers to verify checkbox activation and deactivation.
       - Save the primer list.
       - Clear the primer list.
       - Load the primer list.
@@ -312,6 +314,7 @@ def test_e2e_primer_lifecycle_and_state(
 
     print("Deleting V3 and I3 using delete buttons...")
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
@@ -328,6 +331,7 @@ def test_e2e_primer_lifecycle_and_state(
     time.sleep(1)
 
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
+    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Click the header Delete Primer button
@@ -366,8 +370,7 @@ def test_e2e_primer_lifecycle_and_state(
         .get_by_role("checkbox")
     ).not_to_be_checked(timeout=15000)
 
-    # Try and activate invalid primers (click them) and make sure they
-    # don't get activated
+    # Activate invalid primers (click them) and make sure they can be activated
     name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
         "checkbox"
     ).click(force=True)
@@ -376,7 +379,28 @@ def test_e2e_primer_lifecycle_and_state(
     ).click(force=True)
     time.sleep(1)
 
-    # Ensure they remain unchecked
+    # Ensure they are checked
+    expect(
+        name_inputs.nth(2 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
+    ).to_be_checked(timeout=15000)
+    expect(
+        name_inputs.nth(3 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
+    ).to_be_checked(timeout=15000)
+
+    # Deactivate invalid primers again (click them)
+    name_inputs.nth(2 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
+    name_inputs.nth(3 * 2).locator("xpath=../../../..").get_by_role(
+        "checkbox"
+    ).click(force=True)
+    time.sleep(1)
+
+    # Ensure they are unchecked
     expect(
         name_inputs.nth(2 * 2)
         .locator("xpath=../../../..")
@@ -678,7 +702,9 @@ def wait_for_ui(
         # Pre-process to boost contrast for CanvasKit-rendered text
         processed = _preprocess_for_ocr(image)
         ocr_data = pytesseract.image_to_data(
-            processed, output_type=pytesseract.Output.DICT
+            processed,
+            output_type=pytesseract.Output.DICT,
+            config="--psm 11",
         )
         words = ocr_data["text"]
         for i, w in enumerate(words):
@@ -699,7 +725,8 @@ def wait_for_ui(
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
-    sys.platform != "linux", reason="E2E tests only run on Linux"
+    sys.platform != "linux" or not shutil.which("tesseract"),
+    reason="E2E OCR tests require Linux and tesseract binary",
 )  # type: ignore[untyped-decorator]
 def test_e2e_dimer_alignment(
     page: Any, serve_app: str, tmp_path: Any, e2e_timeout: None
@@ -989,7 +1016,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.locator('textarea:not([aria-label="Primer List"])').first.focus()
+    page.locator('textarea:not([aria-label*="Add Primer Below"])').first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new

@@ -15,18 +15,20 @@
 
 """Navigation controller for view routing and header orchestration."""
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.utils.gui_helpers import show_error_dialog
 
 
 class NavigationManager:
     """Manages view switching, header setup, and resize event routing."""
 
     def __init__(self, controller: Any) -> None:
-        """Initialize NavigationManager with a reference to the controller."""
+        """Initialise NavigationManager with a reference to the controller."""
         self.controller = controller
 
     def setup_navigation_controls(self) -> None:
@@ -139,24 +141,133 @@ class NavigationManager:
 
         ctrl.page.update()
 
-    def on_pcr_click(self, e: ft.ControlEvent) -> None:
-        """Handle PCR click: switch view then run PCR.
+    def _validate_primers_for_action(
+        self, action_name: str
+    ) -> tuple[str, str] | None:
+        """Validate active primers before navigating to an analysis view.
 
-        The view is switched first so the diagram canvas renders
-        while the PCR view is the active content.  This avoids
-        Flet's diff algorithm marking canvas shapes as 'already
-        sent' before the view becomes visible.
+        Args:
+            action_name: The action description for the error message
+                (e.g., 'PCR' or 'primer dimer analysis').
+
+        Returns:
+            A tuple of (title, message) if validation fails, or None if valid.
+        """
+        ctrl = self.controller
+        active_primers = [
+            p for p in ctrl.input_data.primers if p.get("active", False)
+        ]
+        if not active_primers:
+            return (
+                "Primers Required",
+                f"Please select at least one primer before running "
+                f"{action_name}.",
+            )
+
+        primers_valid = True
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            res = ctrl.input_view.primer_input.validate_for_run()
+            if isinstance(res, bool):
+                primers_valid = res
+            elif hasattr(ctrl.input_view.primer_input, "validation_errors"):
+                val_errs = ctrl.input_view.primer_input.validation_errors
+                for idx, p in enumerate(ctrl.input_data.primers):
+                    if p.get("active", False) and idx < len(val_errs):
+                        err = val_errs[idx]
+                        if err and (err.get("name") or err.get("seq")):
+                            primers_valid = False
+                            break
+
+        if not primers_valid:
+            return (
+                "Invalid Primers",
+                "One or more selected primers are invalid, have "
+                "empty names/sequences, or have duplicate "
+                "names/sequences.",
+            )
+        return None
+
+    def _validate_for_pcr(self) -> tuple[str, str] | None:
+        """Validate state before navigating to the PCR view.
+
+        Returns:
+            A tuple of (title, message) if validation fails, or None if valid.
+        """
+        ctrl = self.controller
+        has_template = bool(ctrl.input_data.template.strip())
+        if not has_template:
+            return (
+                "Template Required",
+                "Please enter a DNA template in the Input view before "
+                "running PCR.",
+            )
+        return self._validate_primers_for_action("PCR")
+
+    def _validate_for_dimers(self) -> tuple[str, str] | None:
+        """Validate state before navigating to the Primer Dimers view.
+
+        Returns:
+            A tuple of (title, message) if validation fails, or None if valid.
+        """
+        return self._validate_primers_for_action("primer dimer analysis")
+
+    def _handle_analysis_click(
+        self,
+        e: ft.ControlEvent,
+        validator: Callable[[], tuple[str, str] | None],
+        target_view: ft.Control,
+        run_action: Callable[[], bool],
+    ) -> None:
+        """Validate input, switch view, and run analysis.
+
+        Args:
+            e: The event that triggered the click.
+            validator: Validation callback returning (title, message) or None.
+            target_view: The view to transition to.
+            run_action: The analysis callback to execute.
         """
         ctrl = self.controller
         ctrl.update_pcr_button_state(sync=True)
-        self.switch_view(e, ctrl.pcr_view)
-        if not ctrl.pcr_view.run_pcr():
+        validation_error = validator()
+        if validation_error:
+            if (
+                ctrl.input_view is not None
+                and ctrl.view_container.content != ctrl.input_view
+            ):
+                self.switch_view(e, ctrl.input_view)
+            title, message = validation_error
+            show_error_dialog(ctrl.page, title, message)
+            return
+
+        if ctrl.input_view is not None and hasattr(
+            ctrl.input_view, "primer_input"
+        ):
+            ctrl.input_view.primer_input.reset_validation_mode()
+
+        self.switch_view(e, target_view)
+        if not run_action():
             self.switch_view(e, ctrl.input_view)
 
+    def on_pcr_click(self, e: ft.ControlEvent) -> None:
+        """Handle PCR click: validate input, switch view, then run PCR.
+
+        The view is switched only if validation passes, ensuring canvas
+        shapes render while the PCR view is active.
+        """
+        self._handle_analysis_click(
+            e=e,
+            validator=self._validate_for_pcr,
+            target_view=self.controller.pcr_view,
+            run_action=self.controller.pcr_view.run_pcr,
+        )
+
     def on_dimers_click(self, e: ft.ControlEvent) -> None:
-        """Handle dimers click: switch view then run analysis."""
-        ctrl = self.controller
-        ctrl.update_pcr_button_state(sync=True)
-        self.switch_view(e, ctrl.dimers_view)
-        if not ctrl.dimers_view.run_analysis():
-            self.switch_view(e, ctrl.input_view)
+        """Handle dimers click: validate, switch view, and run analysis."""
+        self._handle_analysis_click(
+            e=e,
+            validator=self._validate_for_dimers,
+            target_view=self.controller.dimers_view,
+            run_action=self.controller.dimers_view.run_analysis,
+        )

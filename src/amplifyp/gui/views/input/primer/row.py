@@ -92,12 +92,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             on_drag_update: Callback for updating a drag-selection.
             on_drag_end: Callback for ending a drag-selection.
         """
-        has_err = bool(name_error or seq_error)
+        init_msgs = [m for m in (name_error, seq_error) if m]
+        init_tooltip = "; ".join(init_msgs) if init_msgs else None
         super().__init__(
             data=idx,
             bgcolor=GUIColours.DUPLICATE_BG if is_dup else None,
             padding=0,
-            height=30 if not has_err else None,
+            height=30,
+            tooltip=init_tooltip,
         )
         self.idx = idx
         self.settings = settings
@@ -148,13 +150,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             alignment=ft.Alignment(1, 0),
             visible=show_temp,
         )
-        has_err = bool(name_error or seq_error)
-
         self.tm_divider = ft.Container(
             width=4,
             bgcolor=GUIColours.DIVIDER_GREY,
             margin=0,
-            height=30 if not has_err else 42,
+            height=30,
             visible=show_temp,
         )
 
@@ -192,7 +192,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 alignment=ft.Alignment(0, 0),
                 width=25,
                 padding=0,
-                height=30 if not has_err else 42,
+                height=30,
             ),
         )
 
@@ -200,7 +200,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=name,
             dense=True,
             content_padding=ft.Padding(5, 0, 0, 0),
-            height=30 if not name_error else 42,
+            height=30,
             border=ft.InputBorder.NONE,
             multiline=True,
             fit_parent_size=True,
@@ -213,12 +213,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.name_container = ft.Container(
             content=self.name_field,
             width=1000,
-            height=30 if not name_error else 42,
+            height=30,
         )
         self.name_scroll = ft.ListView(
             horizontal=True,
             width=name_column_width,
-            height=30 if not name_error else 42,
+            height=30,
             controls=[self.name_container],
         )
 
@@ -226,7 +226,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             value=seq,
             dense=True,
             content_padding=ft.Padding(5, 0, 5, 0),
-            height=30 if not seq_error else 42,
+            height=30,
             border=ft.InputBorder.NONE,
             text_style=ft.TextStyle(font_family=font_family),
             multiline=True,
@@ -241,22 +241,17 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self.seq_container = ft.Container(
             content=self.seq_field,
             width=5000,
-            height=30 if not seq_error else 42,
+            height=30,
         )
         self.seq_scroll = ft.ListView(
             horizontal=True,
             expand=True,
-            height=30 if not seq_error else 42,
+            height=30,
             controls=[self.seq_container],
         )
 
         self.name_field.on_selection_change = self._on_selection_change
         self.seq_field.on_selection_change = self._on_selection_change
-
-        if name_error:
-            self.name_field.error = name_error
-        if seq_error:
-            self.seq_field.error = seq_error
 
         self.name_field.on_blur = self._on_blur
         self.seq_field.on_blur = self._on_blur
@@ -268,7 +263,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 width=4,
                 bgcolor=GUIColours.DIVIDER_GREY,
                 margin=0,
-                height=30 if not has_err else 42,
+                height=30,
             ),
             mouse_cursor=ft.MouseCursor.RESIZE_LEFT_RIGHT,
         )
@@ -277,7 +272,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             width=4,
             bgcolor=GUIColours.DIVIDER_GREY,
             margin=0,
-            height=30 if not has_err else 42,
+            height=30,
         )
 
         row_body = [
@@ -307,6 +302,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
+        self.height = 30
 
     def _on_selection_change(self, e: ft.Event) -> None:
         """Handle selection change for name or seq field."""
@@ -372,63 +368,43 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._handle_field_blur(e)
 
     def update_highlight_and_reorder(
-        self, is_focused: bool, is_dup: bool
+        self, is_focused: bool, is_dup: bool, is_error: bool = False
     ) -> None:
         """Update the background colour.
 
         Args:
             is_focused: Whether this row is currently focused.
             is_dup: Whether this primer is a duplicate.
+            is_error: Whether this primer has a validation error.
         """
-        if is_dup and is_focused:
-            self.bgcolor = GUIColours.FOCUSED_DUPLICATE_BG
-        elif is_dup:
-            self.bgcolor = GUIColours.DUPLICATE_BG
+        has_issue = is_dup or is_error
+        if has_issue and is_focused:
+            self.bgcolor = GUIColours.FOCUSED_ERROR_BG
+        elif has_issue:
+            self.bgcolor = GUIColours.ERROR_BG
         elif is_focused:
             self.bgcolor = GUIColours.SELECTED_ROW_BG
         else:
             self.bgcolor = None
 
     def set_error(self, err: dict[str, str | None] | str | None) -> None:
-        """Set or clear the error message.
+        """Update error state for the row.
 
-        Also adjusts the sequence field, name field and container height.
+        Field-level error messages are omitted in favour of row background
+        colour highlights, tooltips, and error dialogues. Row height remains
+        at 30px.
 
         Args:
             err: Error dict with 'name' and 'seq' keys, a string error
                 message, or None to clear errors.
         """
+        self.name_field.error = None
+        self.seq_field.error = None
         if isinstance(err, dict):
-            name_error = err.get("name")
-            seq_error = err.get("seq")
+            msgs = [m for m in (err.get("name"), err.get("seq")) if m]
+            self.tooltip = "; ".join(msgs) if msgs else None
         else:
-            # Compatibility: if string or None is passed
-            if err == "Duplicate primer name":
-                name_error = err
-                seq_error = None
-            else:
-                name_error = None
-                seq_error = err
-
-        self.name_field.error = name_error
-        self.name_field.height = 30 if not name_error else 42
-        self.name_container.height = 30 if not name_error else 42
-        self.name_scroll.height = 30 if not name_error else 42
-        self.seq_field.error = seq_error
-        self.seq_field.height = 30 if not seq_error else 42
-        self.seq_container.height = 30 if not seq_error else 42
-        self.seq_scroll.height = 30 if not seq_error else 42
-
-        has_err = bool(name_error or seq_error)
-        self.height = 30 if not has_err else None
-
-        self.tm_divider.height = 30 if not has_err else 42
-        if (divider_content := self.divider.content) is not None:
-            divider_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-        self.active_divider.height = 30 if not has_err else 42
-        if (drag_content := self.drag_handle.content) is not None:
-            drag_content.height = 30 if not has_err else 42  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-
+            self.tooltip = err or None
         self.checkbox.disabled = False
 
     def update_index(

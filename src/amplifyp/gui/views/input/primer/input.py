@@ -76,6 +76,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.focused_primer_index: int | None = None
         self.selected_indices: set[int] = set()
         self.validation_errors: list[dict[str, str | None]] = []
+        self.enforce_validation: bool = False
         self._prev_header_checkbox_value: bool | None = None
         self._visible_rows_cache: list[PrimerRow] | None = None
 
@@ -195,7 +196,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 self.primer_title_row,
                 self.primer_info_panel,
                 self.primer_list_container,
-                self.error_banner,
             ],
             expand=True,
             spacing=5,
@@ -214,14 +214,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 self.primer_title_row,
                 self.primer_info_panel,
                 self.primer_list_container,
-                self.error_banner,
             ]
         else:
             new_controls = [
                 self.primer_title_row,
                 self.primer_list_container,
                 self.primer_info_panel,
-                self.error_banner,
             ]
 
         if isinstance(self.content, ft.Column):
@@ -364,23 +362,56 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def _update_header_checkbox_state(self) -> None:
         """Update the header checkbox to reflect the current primer states."""
         primers = self.input_data.primers
-        non_empty = [
+        target_primers = [
             p
             for p in primers
-            if str(p.get("name", "")).strip()
+            if p.get("active", False)
+            or str(p.get("name", "")).strip()
             or clean_sequence(str(p.get("seq", ""))).strip()
         ]
-        if not non_empty:
+        if not target_primers:
             self.all_primers_checkbox.value = None
-        elif all(p.get("active", True) for p in non_empty):
+        elif all(p.get("active", True) for p in target_primers):
             self.all_primers_checkbox.value = True
-        elif all(not p.get("active", True) for p in non_empty):
+        elif all(not p.get("active", True) for p in target_primers):
             self.all_primers_checkbox.value = False
         else:
             self.all_primers_checkbox.value = None
         self._prev_header_checkbox_value = self.all_primers_checkbox.value
         if self.app_page:
             self.app_page.update()
+
+    def validate_for_run(self) -> bool:
+        """Enforce validation on active primers for running PCR/dimer analysis.
+
+        Returns True if all active primers are valid, False otherwise.
+        Highlights problematic rows in red when errors exist.
+        """
+        self.enforce_validation = True
+        from .validation import validate_primers
+
+        self.validation_errors = validate_primers(
+            self.input_data.primers,
+            check_empty=True,
+            check_duplicates=True,
+        )
+        for idx, row in enumerate(self.primers_list.controls):
+            if isinstance(row, PrimerRow) and idx < len(self.validation_errors):
+                row.set_error(self.validation_errors[idx])
+        self._update_row_highlights()
+        if self.app_page:
+            self.app_page.update()
+
+        for idx, p in enumerate(self.input_data.primers):
+            if p.get("active", False) and idx < len(self.validation_errors):
+                err = self.validation_errors[idx]
+                if err and (err.get("name") or err.get("seq")):
+                    return False
+        return True
+
+    def reset_validation_mode(self) -> None:
+        """Reset validation enforcement mode back to drafting mode."""
+        self.enforce_validation = False
 
     def _get_duplicate_indices(self) -> set[int]:
         """Find indices of primers with duplicate names or sequences."""

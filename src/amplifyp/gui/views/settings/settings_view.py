@@ -403,8 +403,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "dark_mode": "system",
             "improved_visualisation": True,
             "show_primer_temperature": False,
-            "ignore_inactive_name_dup_warn": True,
-            "ignore_inactive_seq_dup_warn": True,
             "tm_colour_scheme": "None",
             "designer_2d_colour_scheme": "Blue-Orange",
             "designer_2d_show_rev_fwd": False,

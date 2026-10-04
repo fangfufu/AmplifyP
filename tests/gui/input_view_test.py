@@ -24,6 +24,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import flet as ft
 import pytest
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.input import InputView
@@ -99,11 +100,7 @@ def test_input_view_duplicate_warning() -> None:
         {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
     ]
 
-    settings = GUISettings()
-    settings["ignore_inactive_name_dup_warn"] = False
-    settings["ignore_inactive_seq_dup_warn"] = False
-
-    view = InputView(mock_page, input_data, settings=settings)
+    view = InputView(mock_page, input_data)
 
     # Verify no duplicate highlights initially
     assert view.primers_list.controls[0].bgcolor is None
@@ -114,17 +111,24 @@ def test_input_view_duplicate_warning() -> None:
     second_row.name_field.value = "P1"
     view.sync_to_state()
 
-    # Both rows should have colour warning set to RED_50
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+    # While drafting, duplicate warnings are not shown dynamically
+    assert view.primers_list.controls[0].bgcolor is None
+    assert view.primers_list.controls[1].bgcolor is None
+
+    # When validation is enforced (e.g. PCR / Dimers click)
+    view.primer_input.validate_for_run()
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
     # Resolve duplicate name, introduce duplicate sequence (case-insensitive)
     second_row.name_field.value = "P2"
     second_row.seq_field.value = "gcatgcatgc"
     view.sync_to_state()
 
-    assert view.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view.primers_list.controls[1].bgcolor == ft.Colors.RED_50
+    # Re-validate for run
+    view.primer_input.validate_for_run()
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
 
 def test_input_view_activation_validation() -> None:
@@ -150,18 +154,28 @@ def test_input_view_activation_validation() -> None:
     checkbox.value = True
     view.sync_to_state(rebuild_if_needed=False)
 
-    # Validation errors populated and checkbox value reverted to False
-    assert name_field.error == "Name cannot be empty"
-    assert seq_field.error == "Sequence cannot be empty"
+    # In drafting mode, errors are not shown and row is not highlighted
+    assert name_field.error is None
+    assert seq_field.error is None
     assert checkbox.disabled is False
-    assert checkbox.value is False
+    assert checkbox.value is True
+    assert row.bgcolor is None
 
-    # Simulate typing or changing focus to deactivate the error state
+    # When validate_for_run is invoked, row is highlighted in red
+    is_valid = view.primer_input.validate_for_run()
+    assert is_valid is False
+    assert row.bgcolor == GUIColours.ERROR_BG
+    assert name_field.error is None
+    assert seq_field.error is None
+
+    # Deactivate the checkbox
+    checkbox.value = False
     view.sync_to_state(rebuild_if_needed=False)
 
     # Empty validation errors should be cleared when syncing inactive state
     assert name_field.error is None
     assert seq_field.error is None
+    assert row.bgcolor is None
 
     # Fill name and sequence and check the box
     checkbox.value = True
@@ -297,9 +311,9 @@ def test_input_view_sequence_validation() -> None:
     container = view.primers_list.controls[0]
     seq_field = container.seq_field
 
-    assert seq_field.error is not None
-    assert "contains invalid characters" in seq_field.error
-    assert container.height is None  # Row container expanded/autosized
+    assert seq_field.error is None
+    assert container.height == 30
+    assert container.bgcolor == GUIColours.ERROR_BG
 
     # Fix the sequence
     seq_field.value = "GCATGCATGC"
@@ -310,6 +324,7 @@ def test_input_view_sequence_validation() -> None:
 
     assert seq_field.error is None
     assert container.height == 30
+    assert container.bgcolor is None
 
 
 def test_input_view_row_highlighting() -> None:
@@ -553,71 +568,30 @@ def test_input_view_block_invalid_primer() -> None:
     assert checkbox.disabled is False
 
 
-def test_input_view_ignore_inactive_dup_warn() -> None:
-    """Test ignore_inactive_dup_warn suppresses inactive primer duplicates."""
+def test_input_view_inactive_primers_ignored_for_duplicates() -> None:
+    """Test inactive primers do not trigger duplicate warnings on active
+    primers."""
     mock_page = MagicMock(spec=ft.Page)
     input_data = GUIInput()
     input_data.primers = [
         {"name": "P1", "seq": "GCATGCATGC", "active": True},
         {"name": "P1", "seq": "AAAAAAAAAA", "active": False},
+        {"name": "P2", "seq": "TTTTTTTTTT", "active": True},
+        {"name": "P3", "seq": "tttttttttt", "active": False},
     ]
 
-    settings = GUISettings()
-    settings["ignore_inactive_name_dup_warn"] = True
-    settings["ignore_inactive_seq_dup_warn"] = True
-
-    view = InputView(mock_page, input_data, settings=settings)
+    view = InputView(mock_page, input_data)
     view.update_ui()
+    is_valid = view.primer_input.validate_for_run()
 
-    # With ignore_inactive_name_dup_warn=True, the inactive P1 should not
-    # conflict with the active P1 - no duplicate warning
-    assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
-    assert view.primer_input.validation_errors[1] == {"name": None, "seq": None}
-    assert view.primers_list.controls[0].bgcolor is None
-    assert view.primers_list.controls[1].bgcolor is None
-
-    # Now test with ignore_inactive_name_dup_warn=False - should show duplicate
-    settings["ignore_inactive_name_dup_warn"] = False
-    view2 = InputView(mock_page, input_data, settings=settings)
-    view2.update_ui()
-
-    # Both primers should have duplicate name error
-    assert view2.primer_input.validation_errors[0] == {
-        "name": "Duplicate primer name",
-        "seq": None,
-    }
-    assert view2.primer_input.validation_errors[1] == {
-        "name": "Duplicate primer name",
-        "seq": None,
-    }
-    assert view2.primers_list.controls[0].bgcolor == ft.Colors.RED_50
-    assert view2.primers_list.controls[1].bgcolor == ft.Colors.RED_50
-
-    # Test sequence duplicates with ignore_inactive_seq_dup_warn=True
-    input_data2 = GUIInput()
-    input_data2.primers = [
-        {"name": "P1", "seq": "GCATGCATGC", "active": True},
-        {"name": "P2", "seq": "gcatgcatgc", "active": False},
-    ]
-
-    settings2 = GUISettings()
-    settings2["ignore_inactive_name_dup_warn"] = True
-    settings2["ignore_inactive_seq_dup_warn"] = True
-
-    view3 = InputView(mock_page, input_data2, settings=settings2)
-    view3.update_ui()
-
-    # With ignore_inactive_seq_dup_warn=True, no duplicate sequence error
-    assert view3.primer_input.validation_errors[0] == {
-        "name": None,
-        "seq": None,
-    }
-    assert view3.primer_input.validation_errors[1] == {
-        "name": None,
-        "seq": None,
-    }
-    assert view3.primers_list.controls[0].bgcolor is None
-    assert view3.primers_list.controls[1].bgcolor is None
+    # Active primers are valid; inactive duplicates are ignored
+    assert is_valid is True
+    for idx in range(len(input_data.primers)):
+        assert view.primer_input.validation_errors[idx] == {
+            "name": None,
+            "seq": None,
+        }
+        assert view.primers_list.controls[idx].bgcolor is None
 
 
 def test_input_view_duplicate_validation_and_enabling() -> None:
@@ -629,11 +603,7 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
         {"name": "P2", "seq": "AAAAAAAAAA", "active": True},
     ]
 
-    settings = GUISettings()
-    settings["ignore_inactive_name_dup_warn"] = False
-    settings["ignore_inactive_seq_dup_warn"] = False
-
-    view = InputView(mock_page, input_data, settings=settings)
+    view = InputView(mock_page, input_data)
     view.update_ui()
 
     # Verify initially valid and active
@@ -646,7 +616,12 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
     view.primers_list.controls[1].name_field.value = "P1"
     view.sync_to_state()
 
-    # Check both are marked as invalid with "Duplicate primer name"
+    # While drafting, duplicate errors are not shown dynamically
+    assert view.primer_input.validation_errors[0] == {"name": None, "seq": None}
+    assert view.primers_list.controls[0].bgcolor is None
+
+    # When validate_for_run is called
+    view.primer_input.validate_for_run()
     assert view.primer_input.validation_errors[0] == {
         "name": "Duplicate primer name",
         "seq": None,
@@ -655,12 +630,24 @@ def test_input_view_duplicate_validation_and_enabling() -> None:
         "name": "Duplicate primer name",
         "seq": None,
     }
+    assert view.primers_list.controls[0].bgcolor == GUIColours.ERROR_BG
+    assert view.primers_list.controls[1].bgcolor == GUIColours.ERROR_BG
 
     # Checkboxes must NOT be disabled, and active status should remain True
     assert input_data.primers[0]["active"] is True
     assert input_data.primers[1]["active"] is True
     assert view.primers_list.controls[0].checkbox.disabled is False
     assert view.primers_list.controls[1].checkbox.disabled is False
+
+
+def test_primer_input_reset_validation_mode() -> None:
+    """Test reset_validation_mode resets enforce_validation to False."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+    view.primer_input.enforce_validation = True
+    view.primer_input.reset_validation_mode()
+    assert view.primer_input.enforce_validation is False
 
 
 def test_app_views_disabled_on_invalid_selected() -> None:
@@ -752,10 +739,6 @@ def test_app_views_disabled_on_invalid_selected() -> None:
 
     # Define the update function like in app.py
     def update_pcr_button_state() -> None:
-        has_template = bool(input_data.template.strip())
-        active_primers = input_data.get_active_primers()
-        has_enough_primers = len(active_primers) >= 1
-
         has_invalid_selected = False
         for idx, p in enumerate(input_data.primers):
             if p.get("active", False):
@@ -768,22 +751,16 @@ def test_app_views_disabled_on_invalid_selected() -> None:
         if hasattr(view.primer_input, "error_banner"):
             view.primer_input.error_banner.visible = has_invalid_selected
 
-        pcr_is_enabled = (
-            has_template and has_enough_primers and not has_invalid_selected
-        )
-
+        # Buttons remain enabled
         if pcr_button_ref.current:
-            pcr_button_ref.current.disabled = not pcr_is_enabled
+            pcr_button_ref.current.disabled = False
         if dimers_button_ref.current:
-            dimers_button_ref.current.disabled = (
-                len(active_primers) < 1
-            ) or has_invalid_selected
+            dimers_button_ref.current.disabled = False
 
     # Verify initially enabled (valid primers)
     update_pcr_button_state()
     assert pcr_btn.disabled is False
     assert dimers_btn.disabled is False
-    assert view.primer_input.error_banner.visible is False
 
     # Make P1 invalid but keep it active
     view.primer_input.primers_list.controls[0].seq_field.value = "GCATGCATGX"
@@ -792,10 +769,13 @@ def test_app_views_disabled_on_invalid_selected() -> None:
     # Run status update
     update_pcr_button_state()
 
-    # Buttons should now be disabled and error banner should be visible
-    assert pcr_btn.disabled is True
-    assert dimers_btn.disabled is True
-    assert view.primer_input.error_banner.visible is True
+    # Buttons remain clickable and problematic row is highlighted
+    assert pcr_btn.disabled is False
+    assert dimers_btn.disabled is False
+    assert (
+        view.primer_input.primers_list.controls[0].bgcolor
+        == GUIColours.ERROR_BG
+    )
 
 
 def test_header_checkbox_state() -> None:
