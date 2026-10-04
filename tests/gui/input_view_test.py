@@ -1403,6 +1403,7 @@ def test_primer_row_keyboard_navigation() -> None:
 
     controller = GUIController(mock_page)
     controller.initialise()
+    controller._keyboard_nav_debounce_interval = 0.0
 
     # Switch to input view
     controller.view_container.content = controller.input_view
