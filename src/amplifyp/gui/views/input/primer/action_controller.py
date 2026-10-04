@@ -207,11 +207,11 @@ class PrimerActionController:
                 import asyncio
 
                 await asyncio.sleep(0.05)
-                self._delete_primers_impl(primers_to_delete)
+                self._delete_primers_impl(primers_to_delete, indices_to_delete)
 
             page.run_task(delayed_delete)
         else:
-            self._delete_primers_impl(primers_to_delete)
+            self._delete_primers_impl(primers_to_delete, indices_to_delete)
 
     def reverse_complement_primers(self, indices: set[int]) -> None:
         """Reverse complement sequence of highlighted primers at indices.
@@ -234,7 +234,11 @@ class PrimerActionController:
         if self.owner.on_change_handler is not None:
             self.owner.on_change_handler(None)
 
-    def _delete_primers_impl(self, primers_to_delete: set[int]) -> None:
+    def _delete_primers_impl(
+        self,
+        primers_to_delete: set[int],
+        indices_to_delete: set[int] | None = None,
+    ) -> None:
         """Perform the actual deletion of primers from the input data.
 
         This method removes the primers identified by their object IDs, updates
@@ -243,18 +247,24 @@ class PrimerActionController:
         """
         self._click_a = None
         self._click_b = None
-        if not primers_to_delete:
+        if not primers_to_delete and not indices_to_delete:
             return
 
         primers = self.owner.input_data.primers
         deleted_indices = {
             i for i, p in enumerate(primers) if id(p) in primers_to_delete
         }
+        if not deleted_indices and indices_to_delete:
+            deleted_indices = {
+                i for i in indices_to_delete if 0 <= i < len(primers)
+            }
         if not deleted_indices:
             return
 
         # Keep only primers NOT in the deleted set
-        new_primers = [p for p in primers if id(p) not in primers_to_delete]
+        new_primers = [
+            p for i, p in enumerate(primers) if i not in deleted_indices
+        ]
         if not new_primers:
             new_primers = [{"name": "", "seq": "", "active": False}]
         self.owner.input_data.primers = new_primers
@@ -444,6 +454,14 @@ class PrimerActionController:
         """Handle header Delete button click."""
         if self.owner.selected_indices:
             self.delete_primers(self.owner.selected_indices.copy())
+            self.owner._update_header_buttons_state()
+        elif (
+            self.owner.focused_primer_index is not None
+            and 0
+            <= self.owner.focused_primer_index
+            < len(self.owner.input_data.primers)
+        ):
+            self.delete_primers({self.owner.focused_primer_index})
             self.owner._update_header_buttons_state()
 
     def header_up_click(self, _e: ft.Event | None) -> None:

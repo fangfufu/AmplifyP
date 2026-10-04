@@ -317,6 +317,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         is_disabled = not self.selected_indices
         self.delete_selected_button.disabled = is_disabled
         self.reverse_complement_button.disabled = is_disabled
+        self._update_header_buttons_state()
 
     def _reverse_complement_selected_click(self, _e: ft.Event | None) -> None:
         """Reverse complement highlighted primers."""
