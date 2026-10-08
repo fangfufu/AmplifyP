@@ -25,6 +25,12 @@ jobs:
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_MSG: |-
+            Upgrade pyproject.toml and src/requirements.txt dependencies
+            to their latest versions.
+          PR_BODY: |-
+            This PR automatically updates the versions of configured
+            dependencies in `pyproject.toml` and `src/requirements.txt`.
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email \
@@ -35,8 +41,6 @@ jobs:
             git checkout -b dependency-autoupdate
             git add pyproject.toml src/requirements.txt
 
-            COMMIT_MSG="Upgrade pyproject.toml and src/requirements.txt "
-            COMMIT_MSG="${COMMIT_MSG}dependencies to their latest versions."
             git commit \
               -m "chore(deps): upgrade project dependencies" \
               -m "${COMMIT_MSG}"
@@ -48,9 +52,6 @@ jobs:
               grep -q '"number"'; then
               echo "Pull request already exists."
             else
-              PR_BODY="This PR automatically updates the versions of "
-              PR_BODY="${PR_BODY}configured dependencies in \`pyproject.toml\` "
-              PR_BODY="${PR_BODY}and \`src/requirements.txt\`."
               gh pr create \
                 --title "chore(deps): upgrade project dependencies" \
                 --body "${PR_BODY}" \

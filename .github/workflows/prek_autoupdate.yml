@@ -28,6 +28,9 @@ jobs:
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: |-
+            This PR automatically updates the versions of configured
+            `prek` hooks in `prek.toml`.
         run: |
           git config --global user.name "github-actions[bot]"
           BOT_EMAIL="github-actions[bot]@users.noreply.github.com"
@@ -43,8 +46,6 @@ jobs:
               --base dev --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
-              PR_BODY="This PR automatically updates the versions of "
-              PR_BODY="${PR_BODY}configured \`prek\` hooks in \`prek.toml\`."
               gh pr create \
                 --title "chore: update prek hooks" \
                 --body "${PR_BODY}" \
