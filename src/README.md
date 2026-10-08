@@ -37,7 +37,6 @@ AmplifyP/
 ├── scripts/                    # Development and maintenance scripts
 │   ├── gen_git_sha.py          # Generates the git SHA module for frozen builds
 │   ├── setup_linux.sh          # Linux virtual environment and system dependency setup
-│   ├── update_dependencies.py  # Bumps pinned dependency versions
 │   └── update_screenshots.py   # Regenerates the GUI manual screenshots
 ├── src/
 │   ├── README.md               # This document (Development Guide)

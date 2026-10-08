@@ -5,3 +5,25 @@ updates:
     schedule:
       interval: weekly
     target-branch: dev
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: dev
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+  - package-ecosystem: pip
+    directory: /src
+    schedule:
+      interval: weekly
+    target-branch: dev
+    groups:
+      web-dependencies:
+        patterns:
+          - "*"
