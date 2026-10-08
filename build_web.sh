@@ -25,7 +25,7 @@ echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 
 echo "==> Building static site..."
-flet publish "${SCRIPT_DIR}/src/main.py" \
+flet publish "${SCRIPT_DIR}" \
   --distpath "${DIST_DIR}" \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \

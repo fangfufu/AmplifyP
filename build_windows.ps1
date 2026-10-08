@@ -39,7 +39,7 @@ try {
     Write-Host "==> Building Flet Windows binary..."
     if (Test-Path "build\windows") { Remove-Item -Recurse -Force "build\windows" }
     if (Test-Path "build\AmplifyP") { Remove-Item -Recurse -Force "build\AmplifyP" }
-    flet build windows src -o build/windows --project AmplifyP --build-version $version --yes
+    flet build windows . -o build/windows --project AmplifyP --build-version $version --yes
     if ($LASTEXITCODE -ne 0) { throw "flet build failed with exit code $LASTEXITCODE" }
 
     Write-Host "==> Moving build artefacts..."

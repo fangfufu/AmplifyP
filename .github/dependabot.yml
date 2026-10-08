@@ -18,12 +18,3 @@ updates:
       python-dependencies:
         patterns:
           - "*"
-  - package-ecosystem: pip
-    directory: /src
-    schedule:
-      interval: weekly
-    target-branch: dev
-    groups:
-      web-dependencies:
-        patterns:
-          - "*"

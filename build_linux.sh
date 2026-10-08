@@ -60,7 +60,7 @@ python scripts/gen_git_sha.py
 
 echo "==> Building Flet Linux binary..."
 rm -rf build/linux build/AmplifyP
-flet build linux src -o build/linux --project AmplifyP --yes
+flet build linux . -o build/linux --project AmplifyP --yes
 
 echo "==> Moving build artefacts..."
 mv build/linux build/AmplifyP
