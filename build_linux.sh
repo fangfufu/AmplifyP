@@ -37,6 +37,16 @@ if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
   source .venv/bin/activate
 fi
 
+if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+  echo "Error: Virtual environment (.venv) not found or not active." >&2
+  exit 1
+fi
+
+if [[ ! -x "${VIRTUAL_ENV}/bin/flet" ]]; then
+  echo "==> Installing project dependencies into virtual environment..."
+  pip install -e ".[dev]"
+fi
+
 INSTALL_DEPS=false
 for arg in "$@"; do
   if [[ "$arg" = "--install-deps" ]]; then
@@ -60,7 +70,7 @@ python scripts/gen_git_sha.py
 
 echo "==> Building Flet Linux binary..."
 rm -rf build/linux build/AmplifyP
-flet build linux . -o build/linux --project AmplifyP --yes
+"${VIRTUAL_ENV}/bin/flet" build linux . -o build/linux --project AmplifyP --yes
 
 echo "==> Moving build artefacts..."
 mv build/linux build/AmplifyP

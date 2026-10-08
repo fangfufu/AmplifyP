@@ -16,6 +16,23 @@ if [[ "${CI:-}" = "true" ]]; then
   export FLET_CLI_NO_RICH_OUTPUT=1
 fi
 
+# Source the virtual environment if it exists and is not already sourced
+if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
+  echo "==> Sourcing virtual environment..."
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+fi
+
+if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+  echo "Error: Virtual environment (.venv) not found or not active." >&2
+  exit 1
+fi
+
+if [[ ! -x "${VIRTUAL_ENV}/bin/flet" ]]; then
+  echo "==> Installing project dependencies into virtual environment..."
+  pip install -e ".[dev]"
+fi
+
 echo "==> Clearing Python bytecode cache..."
 find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
 
@@ -25,7 +42,7 @@ echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 
 echo "==> Building static site..."
-flet publish "${SCRIPT_DIR}" \
+"${VIRTUAL_ENV}/bin/flet" publish "${SCRIPT_DIR}" \
   --distpath "${DIST_DIR}" \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \
