@@ -10,7 +10,7 @@ ci = {
 for more information, see https://pre-commit.ci
 """,
     autofix_prs = true,
-    autoupdate_branch = "",
+    autoupdate_branch = "dev",
     autoupdate_commit_msg = "[pre-commit.ci] pre-commit autoupdate",
     autoupdate_schedule = "weekly"
   }
@@ -40,7 +40,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/astral-sh/ruff-pre-commit"
-rev = "v0.16.4"
+rev = "v0.16.10"
 hooks = [
   { id = "ruff-format" },
   {
@@ -51,7 +51,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/crate-ci/typos"
-rev = "v1.49.0"
+rev = "v1.51.1"
 hooks = [
   { id = "typos", exclude = "^CHANGELOG\\.md$" }
 ]
@@ -65,7 +65,7 @@ hooks = [
 
 [[repos]]
 repo = "https://github.com/pre-commit/mirrors-mypy"
-rev = "v2.3.1"
+rev = "v2.4.0"
 hooks = [
   {
     id = "mypy",
@@ -97,6 +97,17 @@ hooks = [
     entry = "pytest",
     language = "system",
     pass_filenames = false
+  }
+]
+
+[[repos]]
+repo = "https://github.com/adrienverge/yamllint"
+rev = "v1.38.0"
+hooks = [
+  {
+    id = "yamllint",
+    args = ["-s"],
+    exclude = "^tests/examples/save_states/"
   }
 ]
 

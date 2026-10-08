@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: dev
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -20,15 +22,19 @@ jobs:
       - name: Install prek
         run: |
           pip install prek
-      - name: Run prek auto-update
+      - name: Run prek update
         run: |
-          prek auto-update
+          prek update
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: |-
+            This PR automatically updates the versions of configured
+            `prek` hooks in `prek.toml`.
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          BOT_EMAIL="github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "${BOT_EMAIL}"
 
           if [ -n "$(git status --porcelain prek.toml)" ]; then
             git checkout -b prek-autoupdate
@@ -36,13 +42,14 @@ jobs:
             git commit -m "chore: update prek hooks"
             git push origin prek-autoupdate --force
 
-            if gh pr list --head prek-autoupdate --state open --json number | grep -q '"number"'; then
+            if gh pr list --head prek-autoupdate \
+              --base dev --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
               gh pr create \
                 --title "chore: update prek hooks" \
-                --body "This PR automatically updates the versions of configured \`prek\` hooks in \`prek.toml\`." \
-                --base stable \
+                --body "${PR_BODY}" \
+                --base dev \
                 --head prek-autoupdate
             fi
           else

@@ -32,7 +32,8 @@ optional-dependencies.dev = [
   "pytest-testmon==2.2.0",
   "pytest-playwright==0.9.0",
   "pyright==1.1.414",
-  "prek==0.5.4",
+  "prek==0.5.5",
+  "flet-cli==1.0.3",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright==0.9.0",
@@ -115,6 +116,20 @@ include = [
   "README.md",
   "LICENSE",
 ]
+artifacts = [
+  "src/amplifyp/gui/git_sha.py",
+]
+
+[tool.hatch.build.targets.wheel]
+artifacts = [
+  "src/amplifyp/gui/git_sha.py",
+]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/assets" = "amplifyp/assets"
+
+[tool.flet.app]
+path = "src"
+
+[tool.flet.flutter.pubspec.dependency_overrides]
+jni = "1.1.0"

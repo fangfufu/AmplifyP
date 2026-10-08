@@ -37,6 +37,18 @@ if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
   source .venv/bin/activate
 fi
 
+FLET_BIN="flet"
+if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+  if [[ ! -x "${VIRTUAL_ENV}/bin/flet" ]]; then
+    echo "==> Installing project dependencies into virtual environment..."
+    pip install -e ".[dev]"
+  fi
+  FLET_BIN="${VIRTUAL_ENV}/bin/flet"
+elif ! command -v flet >/dev/null 2>&1; then
+  echo "Error: 'flet' command not found. Please activate a virtual environment or install dependencies." >&2
+  exit 1
+fi
+
 INSTALL_DEPS=false
 for arg in "$@"; do
   if [[ "$arg" = "--install-deps" ]]; then
@@ -60,7 +72,7 @@ python scripts/gen_git_sha.py
 
 echo "==> Building Flet Linux binary..."
 rm -rf build/linux build/AmplifyP
-flet build linux src -o build/linux --project AmplifyP --yes
+"${FLET_BIN}" build linux . -o build/linux --project AmplifyP --yes
 
 echo "==> Moving build artefacts..."
 mv build/linux build/AmplifyP
@@ -115,5 +127,6 @@ APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp${VERSION:+-${VERSION}}-x86_64.AppImage}
 # Clean up extracted appimagetool dir and temporary flet build directories
 rm -rf squashfs-root
 rm -rf src/build src/dist
+rm -f src/amplifyp/gui/git_sha.py
 
 echo "==> Build complete: amplifyp-linux.tar.gz and ${APPIMAGE_NAME}"
