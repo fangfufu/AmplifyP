@@ -7,3 +7,4 @@ rules:
     level: error
     allow-non-breakable-words: false
     allow-non-breakable-inline-mappings: false
+  new-lines: disable
