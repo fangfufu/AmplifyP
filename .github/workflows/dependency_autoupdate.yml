@@ -44,7 +44,8 @@ jobs:
             git push origin dependency-autoupdate --force
 
             if gh pr list --head dependency-autoupdate \
-              --base stable --state open --json number | grep -q '"number"'; then
+              --base stable --state open --json number |
+              grep -q '"number"'; then
               echo "Pull request already exists."
             else
               PR_BODY="This PR automatically updates the versions of "

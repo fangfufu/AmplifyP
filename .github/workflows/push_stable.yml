@@ -37,7 +37,8 @@ jobs:
     if: |-
       always() &&
       (needs.release-please.outputs.release_created == 'true' ||
-      (github.event_name == 'workflow_dispatch' && inputs.build_binaries == true))
+      (github.event_name == 'workflow_dispatch' &&
+      inputs.build_binaries == true))
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -97,19 +98,25 @@ jobs:
       - name: Build Flet Linux binary
         if: runner.os == 'Linux'
         env:
-          UPDATE_INFORMATION: "gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|amplifyp-*-x86_64.AppImage.zsync"
+          REPO_OWNER: ${{ github.repository_owner }}
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
+          PATTERN="amplifyp-*-x86_64.AppImage.zsync"
+          UPDATE_INFO="gh-releases-zsync|${REPO_OWNER}|${REPO_NAME}|latest"
+          export UPDATE_INFORMATION="${UPDATE_INFO}|${PATTERN}"
           ./build_linux.sh --install-deps
-          mv amplifyp-linux.tar.gz amplifyp-linux-${VERSION}.tar.gz
+          APPIMAGE="amplifyp-${VERSION}-x86_64.AppImage"
+          APPIMAGE_ZSYNC="${APPIMAGE}.zsync"
+          mv amplifyp-linux.tar.gz "amplifyp-linux-${VERSION}.tar.gz"
           if [[ -f amplifyp-x86_64.AppImage ]]; then
-            mv amplifyp-x86_64.AppImage amplifyp-${VERSION}-x86_64.AppImage
+            mv amplifyp-x86_64.AppImage "${APPIMAGE}"
           fi
           if [[ -f amplifyp-x86_64.AppImage.zsync ]]; then
-            mv amplifyp-x86_64.AppImage.zsync amplifyp-${VERSION}-x86_64.AppImage.zsync
+            mv amplifyp-x86_64.AppImage.zsync "${APPIMAGE_ZSYNC}"
           fi
-          if [[ -f amplifyp-${VERSION}-x86_64.AppImage.zsync ]]; then
-            sed -i "s|^Filename: .*|Filename: amplifyp-${VERSION}-x86_64.AppImage|" amplifyp-${VERSION}-x86_64.AppImage.zsync
-            sed -i "s|^URL: .*|URL: amplifyp-${VERSION}-x86_64.AppImage|" amplifyp-${VERSION}-x86_64.AppImage.zsync
+          if [[ -f "${APPIMAGE_ZSYNC}" ]]; then
+            sed -i "s|^Filename: .*|Filename: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
+            sed -i "s|^URL: .*|URL: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
           fi
       - name: Build Flet macOS binary
         if: runner.os == 'macOS'
@@ -150,7 +157,8 @@ jobs:
     if: |-
       always() &&
       (needs.release-please.outputs.release_created == 'true' ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish_target != 'skip'))
+      (github.event_name == 'workflow_dispatch' &&
+      inputs.publish_target != 'skip'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -233,18 +241,19 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v5
         with:
-          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+          artifact_name: >-
+            github-pages-${{ github.run_id }}-${{ github.run_attempt }}
   publish-pypi:
     name: Publish to PyPI
     needs: [release-please, build-pypi-dist]
     if: |-
       always() &&
       (needs.release-please.outputs.release_created == 'true' ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish_target != 'skip'))
+      (github.event_name == 'workflow_dispatch' &&
+      inputs.publish_target != 'skip'))
     runs-on: ubuntu-latest
     environment:
-      name: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi') && 'testpypi' || 'pypi' }}
-      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi') && 'https://test.pypi.org/p/amplifyp' || 'https://pypi.org/p/amplifyp' }}
+      name: ${{ inputs.publish_target == 'testpypi' && 'testpypi' || 'pypi' }}
     permissions:
       id-token: write
     steps:
@@ -254,13 +263,17 @@ jobs:
           name: amplifyp-dist
           path: dist/
       - name: Publish to TestPyPI
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi'
+        if: |-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_target == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
       - name: Publish to PyPI
-        if: github.event_name == 'push' || inputs.publish_target == 'pypi'
+        if: |-
+          github.event_name == 'push' ||
+          inputs.publish_target == 'pypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true

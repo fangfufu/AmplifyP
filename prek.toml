@@ -97,6 +97,14 @@ hooks = [
     entry = "pytest",
     language = "system",
     pass_filenames = false
+  },
+  {
+    id = "check-yaml-line-length",
+    name = "check yaml line length",
+    entry = "python scripts/check_yaml_line_length.py",
+    language = "python",
+    types = ["yaml"],
+    exclude = "^tests/examples/save_states/"
   }
 ]
 

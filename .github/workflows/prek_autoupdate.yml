@@ -28,7 +28,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          BOT_EMAIL="github-actions[bot]@users.noreply.github.com"
+          git config --global user.email "${BOT_EMAIL}"
 
           if [ -n "$(git status --porcelain prek.toml)" ]; then
             git checkout -b prek-autoupdate
@@ -36,12 +37,15 @@ jobs:
             git commit -m "chore: update prek hooks"
             git push origin prek-autoupdate --force
 
-            if gh pr list --head prek-autoupdate --state open --json number | grep -q '"number"'; then
+            if gh pr list --head prek-autoupdate \
+              --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
+              PR_BODY="This PR automatically updates the versions of "
+              PR_BODY="${PR_BODY}configured \`prek\` hooks in \`prek.toml\`."
               gh pr create \
                 --title "chore: update prek hooks" \
-                --body "This PR automatically updates the versions of configured \`prek\` hooks in \`prek.toml\`." \
+                --body "${PR_BODY}" \
                 --base stable \
                 --head prek-autoupdate
             fi
