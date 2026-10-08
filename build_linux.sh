@@ -115,5 +115,6 @@ APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp${VERSION:+-${VERSION}}-x86_64.AppImage}
 # Clean up extracted appimagetool dir and temporary flet build directories
 rm -rf squashfs-root
 rm -rf src/build src/dist
+rm -f src/amplifyp/gui/git_sha.py
 
 echo "==> Build complete: amplifyp-linux.tar.gz and ${APPIMAGE_NAME}"

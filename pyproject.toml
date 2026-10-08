@@ -33,6 +33,7 @@ optional-dependencies.dev = [
   "pytest-playwright==0.9.0",
   "pyright==1.1.414",
   "prek==0.5.4",
+  "flet-cli==1.0.3",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright==0.9.0",
@@ -129,3 +130,6 @@ artifacts = [
 
 [tool.flet.app]
 path = "src"
+
+[tool.flet.flutter.pubspec.dependency_overrides]
+jni = "1.1.0"

@@ -1484,6 +1484,7 @@ def test_system_utils_coverage_additional() -> None:
         )()
 
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("builtins.open", side_effect=fake_open),
         patch("os.path.exists", side_effect=fake_exists),
@@ -1495,6 +1496,7 @@ def test_system_utils_coverage_additional() -> None:
 
     # 2. _get_sha reading detached SHA directly in HEAD
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("builtins.open", mock_open(read_data="9876543210fedcba\n")),
         patch("os.path.exists", return_value=True),
@@ -1507,6 +1509,7 @@ def test_system_utils_coverage_additional() -> None:
         return ".git-sha" in str(path)
 
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("builtins.open", mock_open(read_data="distsha123\n")),
         patch("os.path.exists", side_effect=fake_exists_dist),
@@ -1516,6 +1519,7 @@ def test_system_utils_coverage_additional() -> None:
 
     # 4. _get_sha complete fallback to unknown
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("os.path.exists", return_value=False),
     ):
@@ -1991,6 +1995,7 @@ def test_system_utils_sha_and_version_fallbacks() -> None:
         return orig_open(path, *args, **kwargs)
 
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("builtins.open", side_effect=fail_git_open),
         patch("os.path.exists", return_value=True),
@@ -2008,6 +2013,7 @@ def test_system_utils_sha_and_version_fallbacks() -> None:
         return ".git-sha" in str(path)
 
     with (
+        patch.dict("sys.modules", {"amplifyp.gui.git_sha": None}),
         patch("subprocess.run", side_effect=subprocess.SubprocessError),
         patch("builtins.open", side_effect=fail_dist_sha_open),
         patch("os.path.exists", side_effect=dist_exists_only),
