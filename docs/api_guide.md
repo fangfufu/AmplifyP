@@ -7,6 +7,14 @@ The `amplifyp` library provides a fully typed, high-performance API to run
 Polymerase Chain Reaction (PCR) simulations, analyse potential primer dimer
 risks, and compute thermodynamic melting properties of DNA.
 
+## Installation
+
+Install AmplifyP from PyPI using `pip`:
+
+```bash
+pip install amplifyp
+```
+
 ## 1. Defining DNA and Primers
 
 The core of the library revolves around the `DNA` and `Primer` classes located

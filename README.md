@@ -43,20 +43,46 @@ accessed programmatically.
   </tr>
 </table>
 
-AmplifyP is available on Linux, Windows and macOS, as well as a web application.
+AmplifyP is available on Linux, Windows and macOS, as well as a web application
+and as a package on PyPI.
 
 ## Quick start
 
 ### Web version
 
 The easiest way to run AmplifyP is to use the web version. The current stable
-version of AmplifyP is deployed as a static GitHub PAges site:
+version of AmplifyP is deployed as a static GitHub Pages site:
 
 - **[AmplifyP Web Version](https://fangfufu.github.io/AmplifyP/)**
 
+### PyPI package
+
+AmplifyP is available on PyPI as
+[`amplifyp`](https://pypi.org/project/amplifyp/):
+
+- **[AmplifyP on PyPI](https://pypi.org/project/amplifyp/)**
+
+To install AmplifyP with `pipx`:
+
+```bash
+pipx install amplifyp
+```
+
+To launch the desktop version, run:
+
+```bash
+amplifyp
+```
+
+To launch the web version in a browser, run:
+
+```bash
+amplifyp --web
+```
+
 ### Binary releases
 
-The binary releases of AmplifyP is available at the GitHub release page:
+The binary releases of AmplifyP are available at the GitHub releases page:
 
 - **[AmplifyP Binary Releases](https://github.com/fangfufu/AmplifyP/releases)**
 
@@ -170,8 +196,9 @@ If you want to do development on AmplifyP, please refer to the
 
 It is possible to perform PCR simulation by directly calling AmplifyP's API,
 bypassing the GUI. If you have a lot of primers and/or a lot of templates, you
-may wish to write a script of a program go through them, rather than having to
-click through the GUI. Below is some example code.
+may wish to write a script or a program to go through them, rather than having
+to click through the GUI. Install the package with `pip install amplifyp` to get
+started. Below is some example code.
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType
