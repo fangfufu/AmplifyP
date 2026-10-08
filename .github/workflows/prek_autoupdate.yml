@@ -22,9 +22,9 @@ jobs:
       - name: Install prek
         run: |
           pip install prek
-      - name: Run prek auto-update
+      - name: Run prek update
         run: |
-          prek auto-update
+          prek update
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
