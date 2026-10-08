@@ -12,26 +12,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Entry point for python -m amplifyp."""
 
-"""AmplifyP - A Python package for simulating DNA amplification (PCR).
+import sys
+import traceback
 
-This package provides tools to simulate Polymerase Chain Reaction (PCR)
-experiments. It includes classes for handling DNA sequences, primers,
-replication configurations, and calculating binding statistics such as
-primability and stability.
-"""
+from amplifyp.main import cli
 
-__version__ = "1.24.1"
-
-from .amplicon import Amplicon
-from .dna import DNA, DNAType, Primer
-from .pcr import PCR
-
-__all__ = [
-    "DNA",
-    "PCR",
-    "Amplicon",
-    "DNAType",
-    "Primer",
-    "__version__",
-]
+if __name__ == "__main__":  # pragma: no cover
+    try:
+        cli()
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)

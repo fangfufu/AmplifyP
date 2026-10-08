@@ -14,14 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Main Flet application entry point."""
 
-import argparse
-import logging
-import os
 import sys
 import traceback
 
 import flet as ft
 
+from amplifyp import main as _impl
 from amplifyp.gui import main as app_main
 
 state_file: str | None = None
@@ -31,104 +29,41 @@ screenshots_dir: str | None = None
 window_width: int | None = None
 window_height: int | None = None
 
+__all__ = [
+    "app_main",
+    "auto_close",
+    "cli",
+    "export_screenshots",
+    "main",
+    "screenshots_dir",
+    "state_file",
+    "window_height",
+    "window_width",
+]
+
 
 def main(page: ft.Page) -> None:
     """Flet entry point - delegates to amplifyp.gui."""
-    try:
-        app_main(
-            page,
-            state_file=state_file,
-            auto_close=auto_close,
-            export_screenshots=export_screenshots,
-            screenshots_dir=screenshots_dir,
-            window_width=window_width,
-            window_height=window_height,
-        )
-    except Exception:
-        logging.getLogger(__name__).exception("Unhandled exception in main")
-        raise
+    _impl.state_file = state_file
+    _impl.auto_close = auto_close
+    _impl.export_screenshots = export_screenshots
+    _impl.screenshots_dir = screenshots_dir
+    _impl.window_width = window_width
+    _impl.window_height = window_height
+    _impl.main(page)
 
 
 def cli(args_list: list[str] | None = None) -> None:
     """CLI entry point for argparse and running the Flet app."""
     global state_file, auto_close, export_screenshots, screenshots_dir
     global window_width, window_height
-    parser = argparse.ArgumentParser(
-        description="AmplifyP - Primer design and PCR simulation tool"
-    )
-    parser.add_argument(
-        "-f",
-        "--state",
-        type=str,
-        help="Path to a YAML state file to load on startup",
-    )
-    parser.add_argument(
-        "--auto-close",
-        action="store_true",
-        help="Auto-quit after rendering completes (requires --state)",
-    )
-    parser.add_argument(
-        "-s",
-        "--screenshots",
-        action="store_true",
-        help="Save PNG screenshots of views (requires --state)",
-    )
-    parser.add_argument(
-        "--screenshots-dir",
-        type=str,
-        help="Target directory for saved PNG screenshots",
-    )
-    parser.add_argument(
-        "--window-width",
-        type=int,
-        help="Set application window width in pixels",
-    )
-    parser.add_argument(
-        "--window-height",
-        type=int,
-        help="Set application window height in pixels",
-    )
-    parser.add_argument(
-        "--web",
-        action="store_true",
-        help="Launch in web browser mode",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=34521,
-        help="Port number for web browser mode (default: 34521)",
-    )
-    parsed_args = parser.parse_args(args_list)
-    if parsed_args.auto_close and not parsed_args.state:
-        parser.error("--auto-close requires --state")
-    if parsed_args.screenshots and not parsed_args.state:
-        parser.error("--screenshots requires --state")
-    state_file = parsed_args.state
-    auto_close = parsed_args.auto_close
-    export_screenshots = parsed_args.screenshots
-    screenshots_dir = parsed_args.screenshots_dir
-    window_width = parsed_args.window_width
-    window_height = parsed_args.window_height
-
-    assets_dir = os.path.join(os.path.dirname(__file__), "assets")
-
-    if sys.platform == "emscripten" or "pyodide" in sys.modules:
-        view_mode = None
-        port_number = 0
-    else:
-        view_mode = (
-            ft.AppView.WEB_BROWSER if parsed_args.web else ft.AppView.FLET_APP
-        )
-        port_number = parsed_args.port if parsed_args.web else 0
-
-    ft.run(  # pyright: ignore[reportUnknownMemberType]
-        main,
-        upload_dir="uploads",
-        assets_dir=assets_dir,
-        view=view_mode,
-        port=port_number,
-    )
+    _impl.cli(args_list)
+    state_file = _impl.state_file
+    auto_close = _impl.auto_close
+    export_screenshots = _impl.export_screenshots
+    screenshots_dir = _impl.screenshots_dir
+    window_width = _impl.window_width
+    window_height = _impl.window_height
 
 
 if __name__ == "__main__":  # pragma: no cover
