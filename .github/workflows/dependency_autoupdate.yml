@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          ref: stable
+          ref: dev
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -44,7 +44,7 @@ jobs:
             git push origin dependency-autoupdate --force
 
             if gh pr list --head dependency-autoupdate \
-              --base stable --state open --json number |
+              --base dev --state open --json number |
               grep -q '"number"'; then
               echo "Pull request already exists."
             else
@@ -54,7 +54,7 @@ jobs:
               gh pr create \
                 --title "chore(deps): upgrade project dependencies" \
                 --body "${PR_BODY}" \
-                --base stable \
+                --base dev \
                 --head dependency-autoupdate
             fi
           else

@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: dev
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -38,7 +40,7 @@ jobs:
             git push origin prek-autoupdate --force
 
             if gh pr list --head prek-autoupdate \
-              --state open --json number | grep -q '"number"'; then
+              --base dev --state open --json number | grep -q '"number"'; then
               echo "Pull request already exists."
             else
               PR_BODY="This PR automatically updates the versions of "
@@ -46,7 +48,7 @@ jobs:
               gh pr create \
                 --title "chore: update prek hooks" \
                 --body "${PR_BODY}" \
-                --base stable \
+                --base dev \
                 --head prek-autoupdate
             fi
           else
