@@ -173,6 +173,8 @@ jobs:
           python-version: '3.12'
       - name: Install build
         run: pip install build
+      - name: Generate Git SHA
+        run: python scripts/gen_git_sha.py
       - name: Build sdist and wheel
         run: python -m build
       - name: Upload dist artifacts
