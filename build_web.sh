@@ -23,14 +23,16 @@ if [[ -z "${VIRTUAL_ENV:-}" ]] && [[ -d ".venv" ]]; then
   source .venv/bin/activate
 fi
 
-if [[ -z "${VIRTUAL_ENV:-}" ]]; then
-  echo "Error: Virtual environment (.venv) not found or not active." >&2
+FLET_BIN="flet"
+if [[ -n "${VIRTUAL_ENV:-}" ]]; then
+  if [[ ! -x "${VIRTUAL_ENV}/bin/flet" ]]; then
+    echo "==> Installing project dependencies into virtual environment..."
+    pip install -e ".[dev]"
+  fi
+  FLET_BIN="${VIRTUAL_ENV}/bin/flet"
+elif ! command -v flet >/dev/null 2>&1; then
+  echo "Error: 'flet' command not found. Please activate a virtual environment or install dependencies." >&2
   exit 1
-fi
-
-if [[ ! -x "${VIRTUAL_ENV}/bin/flet" ]]; then
-  echo "==> Installing project dependencies into virtual environment..."
-  pip install -e ".[dev]"
 fi
 
 echo "==> Clearing Python bytecode cache..."
@@ -42,7 +44,7 @@ echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
 
 echo "==> Building static site..."
-"${VIRTUAL_ENV}/bin/flet" publish "${SCRIPT_DIR}" \
+"${FLET_BIN}" publish "${SCRIPT_DIR}" \
   --distpath "${DIST_DIR}" \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \
