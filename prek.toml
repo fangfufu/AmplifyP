@@ -97,13 +97,16 @@ hooks = [
     entry = "pytest",
     language = "system",
     pass_filenames = false
-  },
+  }
+]
+
+[[repos]]
+repo = "https://github.com/adrienverge/yamllint"
+rev = "v1.35.1"
+hooks = [
   {
-    id = "check-yaml-line-length",
-    name = "check yaml line length",
-    entry = "python scripts/check_yaml_line_length.py",
-    language = "python",
-    types = ["yaml"],
+    id = "yamllint",
+    args = ["-s"],
     exclude = "^tests/examples/save_states/"
   }
 ]
