@@ -46,6 +46,10 @@ author = [
   { name = "Fufu Fang", email = "fangfufu2003@gmail.com" },
 ]
 
+[project.scripts]
+amplifyp = "amplifyp.main:cli"
+
+
 [tool.ruff]
 target-version = "py312"
 exclude = ["resources"]
@@ -104,3 +108,13 @@ reportAttributeAccessIssue = "error"
 reportArgumentType = "error"
 reportCallIssue = "error"
 reportMissingImports = "error"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "README.md",
+  "LICENSE",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/assets" = "amplifyp/assets"

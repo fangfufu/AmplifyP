@@ -3,6 +3,21 @@ on:
   push:
     branches: [stable]
   workflow_dispatch:
+    inputs:
+      publish_target:
+        description: 'PyPI publish target'
+        required: true
+        type: choice
+        default: 'testpypi'
+        options:
+          - 'testpypi'
+          - 'pypi'
+          - 'skip'
+      build_binaries:
+        description: 'Build OS binaries (Linux/macOS/Windows)?'
+        required: true
+        type: boolean
+        default: false
 jobs:
   release-please:
     if: github.event_name == 'push'
@@ -22,7 +37,7 @@ jobs:
     if: |-
       always() &&
       (needs.release-please.outputs.release_created == 'true' ||
-      github.event_name == 'workflow_dispatch')
+      (github.event_name == 'workflow_dispatch' && inputs.build_binaries == true))
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -129,9 +144,37 @@ jobs:
             amplifyp-windows-*.zip
             amplifyp-windows-setup-*.exe
           if-no-files-found: ignore
+  build-pypi-dist:
+    name: Build PyPI distribution
+    needs: [release-please]
+    if: |-
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_target != 'skip'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Install build
+        run: pip install build
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: amplifyp-dist
+          path: dist/
   upload-assets:
     name: Upload Assets to GitHub Release
-    needs: [release-please, build]
+    needs: [release-please, build, build-pypi-dist]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
@@ -154,7 +197,8 @@ jobs:
             amplifyp-macos-*.dmg \
             amplifyp-windows-*.zip \
             amplifyp-windows-setup-*.exe \
-            amplifyp-web.tar.gz
+            amplifyp-web.tar.gz \
+            amplifyp-*.whl
   deploy:
     name: Deploy to GitHub Pages
     needs: [release-please, build]
@@ -190,3 +234,33 @@ jobs:
         uses: actions/deploy-pages@v5
         with:
           artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [release-please, build-pypi-dist]
+    if: |-
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish_target != 'skip'))
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi') && 'testpypi' || 'pypi' }}
+      url: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi') && 'https://test.pypi.org/p/amplifyp' || 'https://pypi.org/p/amplifyp' }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: amplifyp-dist
+          path: dist/
+      - name: Publish to TestPyPI
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_target == 'testpypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+      - name: Publish to PyPI
+        if: github.event_name == 'push' || inputs.publish_target == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
