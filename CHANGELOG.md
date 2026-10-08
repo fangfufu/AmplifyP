@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0](https://github.com/fangfufu/AmplifyP/compare/v1.24.1...v1.25.0) (2026-10-08)
+
+
+### Features
+
+* add CLI entrypoint and library exports ([281f8d3](https://github.com/fangfufu/AmplifyP/commit/281f8d30c3f01991128ee1dc032fab3f849483c2))
+
+
+### Bug Fixes
+
+* **build:** enforce venv flet in build scripts ([1529311](https://github.com/fangfufu/AmplifyP/commit/1529311b638cfef5f045f93ad847764a2d602c7c))
+* **build:** fall back to PATH flet binary ([ff4021a](https://github.com/fangfufu/AmplifyP/commit/ff4021a941cef6591066bcdaa5dc25b612ac29ae))
+* **build:** resolve blank screen in Linux desktop ([831f780](https://github.com/fangfufu/AmplifyP/commit/831f78032c98eee1ab4aa71ed0c964bfa3298e24))
+
 ## [1.24.1](https://github.com/fangfufu/AmplifyP/compare/v1.24.0...v1.24.1) (2026-10-04)
 
 
