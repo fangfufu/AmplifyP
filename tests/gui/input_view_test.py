@@ -999,23 +999,21 @@ def test_input_view_focus_preservation_transition() -> None:
     p1_name_field.data = 0
     view._handle_field_blur(mock_blur_event_p1)
 
-    # Verify that the debouncer was NOT scheduled/triggered (timer is None)
+    # Verify stop_editing was NOT triggered while focus remains within input
     assert not stop_editing_called
-    assert view._focus_debouncer._timer is None
     assert view._currently_focused_control == p2_name_field
 
-    # Scenario 2: Blur event on P1 occurs, then Focus event on P2 occurs
+    # Scenario 2: Blur event on P1 occurs when nothing else is focused
     view._currently_focused_control = p1_name_field
     # Blur event on P1
     view._handle_field_blur(mock_blur_event_p1)
-    # The debouncer should be scheduled (timer is not None)
+    # Stop editing is called immediately on blur
     assert view._currently_focused_control is None
-    assert view._focus_debouncer._timer is not None
+    assert stop_editing_called
 
-    # Focus event on P2 immediately cancels the debouncer (timer becomes None)
+    # Focus event on P2 updates currently focused control
     view._handle_field_focus(mock_focus_event_p2)
     assert view._currently_focused_control == p2_name_field
-    assert view._focus_debouncer._timer is None
 
 
 def test_delete_button_disabled_state() -> None:
@@ -1403,7 +1401,6 @@ def test_primer_row_keyboard_navigation() -> None:
 
     controller = GUIController(mock_page)
     controller.initialise()
-    controller._keyboard_nav_debounce_interval = 0.0
 
     # Switch to input view
     controller.view_container.content = controller.input_view

@@ -23,8 +23,49 @@ from amplifyp.gui.views.input.primer.row import PrimerRow
 
 
 def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
-    """Handle focus on input fields to cancel auto-trigger timer."""
-    input_view._focus_debouncer.cancel()
+    """Handle focus on input fields."""
+    curr_ctrl = input_view._currently_focused_control
+    curr_data = getattr(curr_ctrl, "data", None) if curr_ctrl else None
+    new_data = getattr(getattr(e, "control", None), "data", None)
+    curr_idx = (
+        curr_data["idx"]
+        if isinstance(curr_data, dict) and "idx" in curr_data
+        else curr_data
+    )
+    new_idx = (
+        new_data["idx"]
+        if isinstance(new_data, dict) and "idx" in new_data
+        else new_data
+    )
+    curr_field = (
+        curr_data["field"]
+        if isinstance(curr_data, dict) and "field" in curr_data
+        else None
+    )
+    new_field = (
+        new_data["field"]
+        if isinstance(new_data, dict) and "field" in new_data
+        else None
+    )
+
+    focused_idx = getattr(
+        getattr(input_view, "primer_input", None), "focused_primer_index", None
+    )
+
+    if (
+        curr_ctrl is not None
+        and curr_ctrl == e.control
+        and curr_idx == new_idx
+        and curr_field == new_field
+        and focused_idx == new_idx
+    ):
+        return
+
+    input_view._currently_focused_control = cast(ft.Control, e.control)
+    if hasattr(input_view, "primer_input"):
+        input_view.primer_input._currently_focused_control = cast(
+            ft.Control, e.control
+        )
 
     if e.control.data is not None:
         idx = (
@@ -60,12 +101,8 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 ):
 
                     async def set_seq_cursor() -> None:
-                        """Reset cursor to start of the text field.
-
-                        This prevents losing focus when re-focusing.
-                        """
+                        """Reset cursor to start of the text field."""
                         try:
-                            await e.control.focus()
                             e.control.selection = ft.TextSelection(
                                 base_offset=0, extent_offset=0
                             )
@@ -80,11 +117,10 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
         input_view.primer_input._update_primer_info_panel()
         if input_view.app_page:
             input_view.app_page.update()
-    input_view._currently_focused_control = cast(ft.Control, e.control)
 
 
 def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
-    """Handle blur on input fields to trigger results page after a delay."""
+    """Handle blur on input fields to trigger results update."""
     if (
         input_view._currently_focused_control is not None
         and input_view._currently_focused_control != e.control
@@ -93,6 +129,8 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
         return
 
     input_view._currently_focused_control = None
+    if hasattr(input_view, "primer_input"):
+        input_view.primer_input._currently_focused_control = None
 
     input_view.sync_to_state(rebuild_if_needed=False)
     if e.control == input_view.template_sequence:
@@ -115,27 +153,12 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             )
             input_view.app_page.update()
 
-    def timer_callback() -> None:
-        """Execute the on-stop-editing callback after a short delay.
-
-        This is triggered by a debouncer to handle cases where the user stops
-        interacting with an input field.
-        """
-        try:
-            page = input_view.page
-        except RuntimeError:
-            return
-        if not page:
-            return
-        if input_view.on_stop_editing_callback:
-            input_view.on_stop_editing_callback(None)
-
-    input_view._focus_debouncer.trigger(timer_callback)
+    if input_view.on_stop_editing_callback:
+        input_view.on_stop_editing_callback(None)
 
 
 def handle_field_submit(input_view: Any, e: ft.Event[ft.TextField]) -> None:
     """Handle submission (Enter key) to immediately trigger results."""
-    input_view._focus_debouncer.cancel()
     input_view.sync_to_state()
     if e.control == input_view.template_sequence:
         input_view._adjust_template_wrap(update_first=True)

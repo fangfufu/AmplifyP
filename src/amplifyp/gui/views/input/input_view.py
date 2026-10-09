@@ -27,7 +27,6 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
-from amplifyp.gui.utils.gui_helpers import Debouncer
 
 from .primer.input import PrimerInput
 from .template.input import TemplateInput
@@ -63,7 +62,6 @@ class InputView(ft.Row):  # type: ignore[misc]
         self.settings = settings if settings is not None else GUISettings()
         self.on_change = on_change
         self.on_stop_editing_callback = on_stop_editing
-        self._focus_debouncer = Debouncer(delay_seconds=0.15)
         self._currently_focused_control: ft.Control | None = None
 
         self.template_input = TemplateInput(

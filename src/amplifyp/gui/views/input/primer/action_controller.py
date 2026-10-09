@@ -63,6 +63,18 @@ class PrimerActionController:
         self._click_a = None
         self._click_b = None
 
+        focused_ctrl = getattr(owner, "_currently_focused_control", None)
+        focused_data = (
+            getattr(focused_ctrl, "data", None) if focused_ctrl else None
+        )
+        if isinstance(focused_data, dict) and focused_data.get("idx") == idx:
+            owner.selected_indices.add(idx)
+            owner.focused_primer_index = idx
+            owner._update_row_highlights()
+            owner._update_primer_info_panel()
+            owner._update_delete_button_disabled_state()
+            return
+
         if idx in owner.selected_indices:
             owner.selected_indices.discard(idx)
             if owner.focused_primer_index == idx:
@@ -303,6 +315,24 @@ class PrimerActionController:
             new_focus = min(min_deleted, new_len - 1)
             self.owner.focused_primer_index = new_focus
             self.owner.selected_indices = {new_focus}
+
+        # Clear focused control reference if it belonged to a deleted row
+        focused_ctrl = getattr(self.owner, "_currently_focused_control", None)
+        if focused_ctrl and isinstance(
+            getattr(focused_ctrl, "data", None), dict
+        ):
+            if focused_ctrl.data.get("idx") in deleted_indices:
+                self.owner._currently_focused_control = None
+        parent_view = getattr(self.owner.on_change_handler, "__self__", None)
+        if parent_view and hasattr(parent_view, "_currently_focused_control"):
+            parent_focused = getattr(
+                parent_view, "_currently_focused_control", None
+            )
+            if parent_focused and isinstance(
+                getattr(parent_focused, "data", None), dict
+            ):
+                if parent_focused.data.get("idx") in deleted_indices:
+                    parent_view._currently_focused_control = None
 
         # Filter the controls list
         remaining_controls = []

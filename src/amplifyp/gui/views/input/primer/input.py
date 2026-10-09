@@ -79,6 +79,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.enforce_validation: bool = False
         self._prev_header_checkbox_value: bool | None = None
         self._visible_rows_cache: list[PrimerRow] | None = None
+        self._currently_focused_control: ft.Control | None = None
 
         font_family = self.settings.get("font_family", "Roboto Mono")
         self.name_column_width = 150.0
@@ -203,7 +204,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         self._reposition_info_panel()
 
-    def _reposition_info_panel(self) -> None:
+    def _reposition_info_panel(self, update: bool = True) -> None:
         """Reposition the primer info panel based on the current setting."""
         position = str(
             self.settings.get("primer_info_panel_position", "bottom")
@@ -230,10 +231,11 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 expand=True,
                 spacing=5,
             )
-        try:
-            self.update()
-        except RuntimeError:
-            pass
+        if update:
+            try:
+                self.update()
+            except RuntimeError:
+                pass
 
     def reposition_info_panel(self) -> None:
         """Public method to reposition the info panel."""
@@ -292,7 +294,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header = self.primer_header.header_row
         self.primers_header_container = self.primer_header
 
-        self._reposition_info_panel()
+        self._reposition_info_panel(update=False)
         self._update_primer_info_panel()
 
         inner_column = cast(ft.Column, self.primer_list_container.content)

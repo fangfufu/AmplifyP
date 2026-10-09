@@ -721,7 +721,7 @@ async def test_all_subcomponent_edge_cases() -> None:
     # Reset currently focused control before blur test
     view._currently_focused_control = view.template_sequence
 
-    # Blur debouncer timer trigger
+    # Blur stop editing trigger
     on_stop_called = False
 
     def on_stop(e: Any) -> None:
@@ -733,9 +733,8 @@ async def test_all_subcomponent_edge_cases() -> None:
     handle_field_blur(
         view, MagicMock(control=view.template_sequence, page=page)
     )
-    await asyncio.sleep(0.2)
 
-    assert on_stop_called or view._focus_debouncer is not None
+    assert on_stop_called
 
     # Submit on template sequence
     tmpl_ev = MagicMock(control=view.template_sequence)
@@ -1293,36 +1292,13 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
 
         update_line_numbers(tmpl, update=True, gutter_only=False)
 
-    # 15. events.py focus and blur timer callback direct execution
-    def throw_no_page(self: Any) -> None:
-        raise RuntimeError("No page")
-
-    with patch.object(
-        InputView,
-        "page",
-        new=property(throw_no_page),
-    ):
-        fld_seq = ft.TextField()
-        fld_seq.data = {"idx": 0, "field": "seq"}
-        ev_focus_err = MagicMock(control=fld_seq, page=None)
-        handle_field_focus(view, ev_focus_err)
-
-    # Blur timer_callback execution with page None and page present
+    # 15. events.py focus and blur stop editing execution
     view._currently_focused_control = None
-    with patch.object(
-        view._focus_debouncer, "trigger", side_effect=lambda cb: cb()
-    ):
-        with patch.object(InputView, "page", new=property(lambda self: None)):
-            handle_field_blur(
-                view, MagicMock(control=view.template_sequence, page=None)
-            )
-
-        with patch.object(InputView, "page", new=property(lambda self: page)):
-            view.on_stop_editing_callback = MagicMock()
-            handle_field_blur(
-                view, MagicMock(control=view.template_sequence, page=page)
-            )
-            view.on_stop_editing_callback.assert_called_once()
+    view.on_stop_editing_callback = MagicMock()
+    handle_field_blur(
+        view, MagicMock(control=view.template_sequence, page=page)
+    )
+    view.on_stop_editing_callback.assert_called_once()
 
     # 16. primer/clipboard.py line 68
     from amplifyp.gui.views.input.primer.clipboard import (
@@ -1726,3 +1702,92 @@ def test_primer_list_update_highlights_non_int_idx() -> None:
     view.primer_input.primers_list.controls.append(invalid_row)
     view.primer_input.primers_list.update_row_highlights()
     invalid_row.update_highlight_and_reorder.assert_not_called()
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_handle_field_focus_no_echo_loop() -> None:
+    """Test sequence focus cursor reset avoids redundant focus call and loop."""
+    mock_page = MagicMock(spec=ft.Page)
+    tasks: list[Any] = []
+    mock_page.run_task = lambda t: tasks.append(t())
+
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    txt_fld = view.primers_list.controls[0].seq_field
+    txt_fld.focus = MagicMock()
+    txt_fld.update = MagicMock()
+
+    ev = MagicMock(control=txt_fld, page=mock_page)
+
+    # First focus event schedules cursor reset task
+    handle_field_focus(view, ev)
+    assert len(tasks) == 1
+    await tasks[0]
+
+    # Verify focus() was NOT called inside set_seq_cursor (prevents loop)
+    txt_fld.focus.assert_not_called()
+    assert txt_fld.selection.base_offset == 0
+    assert txt_fld.selection.extent_offset == 0
+    txt_fld.update.assert_called_once()
+
+    # Second identical focus event (echo) is dropped immediately
+    handle_field_focus(view, ev)
+    assert len(tasks) == 1  # No new task scheduled
+
+
+def test_handle_row_click_preserves_active_field_focus() -> None:
+    """Test row click does not deselect or steal focus when field is active."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row = view.primers_list.controls[0]
+    act = view.primer_input.action_controller
+
+    # Focus on seq_field
+    ev = MagicMock(control=row.seq_field, page=mock_page)
+    handle_field_focus(view, ev)
+    assert view.primer_input.selected_indices == {0}
+    assert view.primer_input.focused_primer_index == 0
+
+    # Row click on the same row while seq_field is active should NOT toggle off
+    row.name_field.focus = MagicMock()
+    act.handle_row_click(0, row.name_field)
+
+    assert view.primer_input.selected_indices == {0}
+    assert view.primer_input.focused_primer_index == 0
+    row.name_field.focus.assert_not_called()
+
+
+def test_delete_primers_clears_focused_control_reference() -> None:
+    """Test deleting active primer clears stale _currently_focused_control."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P1", "seq": "ATGC", "active": True},
+        {"name": "P2", "seq": "CGTA", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row_0 = view.primers_list.controls[0]
+    ev = MagicMock(control=row_0.name_field, page=mock_page)
+    handle_field_focus(view, ev)
+
+    assert view._currently_focused_control is row_0.name_field
+    assert view.primer_input._currently_focused_control is row_0.name_field
+
+    # Delete row 0
+    act = view.primer_input.action_controller
+    act._delete_primers_impl(
+        primers_to_delete={id(input_data.primers[0])},
+        indices_to_delete={0},
+    )
+
+    assert view._currently_focused_control is None
+    assert view.primer_input._currently_focused_control is None

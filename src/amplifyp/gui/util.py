@@ -29,7 +29,6 @@ from amplifyp.gui.utils.data_helpers import (
 )
 from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
-    Debouncer,
     NotificationHelper,
     initialise_score_fields,
     show_error_dialog,
@@ -67,7 +66,6 @@ def serialise_state(state: dict[str, object]) -> str:
 
 __all__ = [
     "BorderedCheckbox",
-    "Debouncer",
     "NotificationHelper",
     "_read_file",
     "_resolve_font_family",
