@@ -26,7 +26,7 @@ their factory defaults.
 Configures template auto-loading on startup, software update checks, and
 settings backup file operations.
 
-- **Autosave / Reload**:
+- **Autosave**:
   - **Automatically reload last template and primers on startup**: Bordered
     checkbox (default: checked). When enabled, automatically saves the active
     session state and restores the last opened sequence and primer list upon
@@ -109,7 +109,7 @@ primer melting temperatures ($T_m$).
 Configures pairwise nucleotide scoring weights, primability, stability
 thresholds, and compatibility modes for PCR replication calculations.
 
-- **Base Pair Weights Matrix**:
+- **Base Pair Weights**:
   - A $15 \\times 4$ interactive table of pairwise weights for primer
     nucleotides (`A`, `T`, `C`, `G`, IUPAC degenerate codes `R`, `Y`, `S`, `W`,
     `K`, `M`, `B`, `D`, `H`, `V`, `N`) vs template nucleotides (`A`, `T`, `C`,
@@ -135,7 +135,7 @@ thresholds, and compatibility modes for PCR replication calculations.
 Configures scoring and thresholds for evaluating primer self-dimers and
 cross-dimers in the Primer Dimers View and info panels.
 
-- **Primer Dimer Weights Matrix**:
+- **Primer Dimer Weights**:
   - A $15 \\times 15$ interactive table defining pairwise scoring weights for
     all primer base vs primer base interactions (including IUPAC ambiguous
     bases).
@@ -183,7 +183,9 @@ file rotation parameters.
 - **Flet Log Level**: Dropdown setting log level threshold for the underlying UI
   framework (`INFO` [default], `WARNING`, `ERROR`, `CRITICAL`).
 - **File Logging**: Bordered checkbox (default: checked on desktop platforms,
-  hidden/disabled on web). Enables writing log messages to a disk file.
+  hidden on web, where *"File logging is not available in web mode."* is shown
+  instead). Enables writing log messages to a disk file. The log rotation
+  controls below are hidden while file logging is disabled.
 - **Log File Path**: Dropdown selector with options:
   - `(Default)`: Writes to OS-specific application log directory (e.g.
     `~/.config/amplifyp/app.log` or `%APPDATA%\AmplifyP\app.log`).

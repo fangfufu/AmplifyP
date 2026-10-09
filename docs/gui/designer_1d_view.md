@@ -33,9 +33,9 @@ constraints, and dimer filtering parameters. Truncation always proceeds in the
 forward direction, removing bases from the 3' end and maintaining the 5'
 terminus:
 
-- **Candidate Primer Sequence**: Enter the nucleotide sequence to analyse. Raw
-  sequence input is automatically cleaned to filter out non-nucleotide
-  characters. Must contain at least one valid base.
+- **Candidate Primer Sequence**: Enter the nucleotide sequence to analyse.
+  Whitespace characters are removed automatically; the sequence must contain at
+  least one valid base.
 - **Length (nt)**: Read-only counter next to the sequence field showing the
   cleaned sequence length in nucleotides. Updates as you type.
 - **Min Length (nt)**: Minimum primer length. Required field (no default); leave
@@ -59,7 +59,8 @@ terminus:
   also be executed by pressing Enter inside any input field.
 - **Save / Load / Clear All Parameters**:
   - **Save Button**: Saves the current form parameters (including sequence
-    filter and max binding sites) to a YAML file using a file save dialog.
+    filter and max binding sites) to a YAML file using a file save dialog
+    (default file name `designer_1d_parameters.yaml`).
   - **Load Button**: Opens a file picker dialog to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
@@ -70,13 +71,17 @@ terminus:
 
 The bottom-left panel displays all candidate primer lengths generated during
 truncation analysis in a vertical scrollable list. While an analysis is running,
-the list is replaced by a determinate **progress bar** labelled *"Analysing
-primer truncations…"* that fills as each truncation length is evaluated.
+the list is replaced by a determinate **progress bar** with a tick counter
+(`0 / {total}` → `{done} / {total} ({pct}%)`) that fills as each truncation
+length is evaluated.
 
-- **Progress & Abort**: During analysis, the **Analyse** button changes to an
-  **Abort** button ("Stop analysis and keep results so far"). Clicking **Abort**
-  cancels the running analysis and keeps the primers analysed so far, showing a
-  notification: *"Analysis aborted — showing primers analysed so far."*
+- **Progress & Abort**: The progress bar carries a tick counter label that
+  updates from `0 / {total}` to `{done} / {total} ({pct}%)`, with the hint line
+  *"Analysing primer truncations…"* alongside it. During analysis, the
+  **Analyse** button changes to an **Abort** button ("Stop analysis and keep
+  results so far"). Clicking **Abort** cancels the running analysis and keeps
+  the primers analysed so far, showing a notification: *"Analysis aborted —
+  showing primers analysed so far."*
 - **Ordering**: Candidate primers are listed from shortest to longest.
 - **Primer Item Cards**: Each card represents a candidate primer step:
   - **Length Header**: Displays primer length in nucleotides (e.g. `20 nt`).
@@ -86,7 +91,9 @@ primer truncations…"* that fills as each truncation length is evaluated.
     (`Overlap: {length} bp`), and optionally **Binding Sites**
     (`Sites: {count}`) when "Check against template" is enabled.
   - **PCR Button**: A dedicated button on each card to run the PCR simulation
-    using the template DNA sequence and this candidate primer directly.
+    using the template DNA sequence and this candidate primer directly (added to
+    the PCR view as *"1D Primer ({length} nt)"*). If no template sequence is
+    present, a *"Template Required"* dialog is shown instead.
 - **Interactive Selection**: Clicking anywhere on a primer item card selects
   that primer step and opens or brings to top its detailed self-dimer card in
   the right-hand panel.
@@ -125,7 +132,7 @@ vertical scrollable list:
     creates a dismissible card positioned at the top of the cards list.
   - If a card for that specific primer step already exists in the list, it is
     automatically raised to the top of the stack.
-- **Card Contents**:
+  - **Card Contents**:
   - **Card Header**: Displays title `Self-dimer ({length} nt)` alongside a
     close/dismiss button and a **Run PCR** button to simulate PCR using the
     template with this primer.
@@ -134,18 +141,20 @@ vertical scrollable list:
     - **Overlap**: `Overlap: {overlap} bp`
     - **Binding Sites**: `Sites: {count}` (if "Check against template" is
       enabled)
-    - **Melting Temperature ($T_m$)**: `Tm: {value}°C` calculated using
+    - **Melting Temperature ($T_m$)**: `Tm: {value:.1f}°C` calculated using
       configured thermodynamic settings (shown as `Tm: N/A` when it cannot be
-      calculated).
-    - **% AT Content**: `% AT: {percentage}%`.
+      calculated). Shown only when the **Show melting temperature (Tm) on
+      cards** setting is enabled (default on).
+    - **% AT Content**: `% AT: {percentage:.1f}%`. Shown only when the **Show %
+      AT on cards** setting is enabled (default off).
   - **Antiparallel Alignment Diagram**: Rendered in a monospace font displaying
-    a 5-line structural alignment diagram:
-    1. Top primer name
-    2. Top sequence ($5' \\to 3'$)
-    3. Bond interaction line (`|` for strong matches $\\ge 10.0$, `:` for weak
-       matches $0.0 \\le \\text{score} < 10.0$, space for mismatches)
-    4. Bottom sequence ($3' \\to 5'$)
-    5. Bottom primer name
+    a 3-line structural alignment diagram (primer name lines are omitted on 1D
+    cards):
+    1. Top sequence ($5' \\to 3'$)
+    2. Bond interaction line (`|` for strong matches with score $\\ge 10.0$, `:`
+       for weak matches with $0.0 \\le \\text{score} < 10.0$, space for
+       repulsive interactions with $\\text{score} < 0.0$)
+    3. Bottom sequence ($3' \\to 5'$)
 - **Individual Dismissal**: Clicking the close button on an individual card
   removes it from the panel.
 

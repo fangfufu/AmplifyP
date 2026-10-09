@@ -5,8 +5,8 @@ interface (GUI) of **AmplifyP**.
 
 AmplifyP is a cross-platform application for simulating polymerase chain
 reactions (PCR), predicting amplicons, evaluating primer dimers, and designing
-candidate primers. It is a modern Python rewrite of William Engels's
-**Amplify4** Mac program, supporting Linux, Windows, macOS, and web browsers.
+candidate primers. It is a modern Python rewrite of the **Amplify 4** Mac
+program by William Engels, supporting Linux, Windows, macOS, and web browsers.
 
 <table>
   <tr>
@@ -39,16 +39,23 @@ Every view shares a common header bar at the top of the window:
 
 - **Application Title & Version**: Displays the **AmplifyP** name alongside the
   current application version in dimmed text. When a newer release is detected,
-  the version text turns a prominent colour, shows an update notice, and becomes
-  clickable to open the GitHub releases page.
+  the version text changes to `{current} (Update {new} available!)`, turns a
+  prominent colour, and becomes clickable to open the GitHub releases page.
 - **View Navigation Buttons**: `Input`, `PCR`, `Primer Dimers`, `Designer 1D`,
   `Designer 2D`, `Settings`, and `About`. The button for the currently active
   view is highlighted with filled primary styling, while inactive view buttons
   use a subdued secondary container tonal styling. The **PCR** and **Primer
-  Dimers** buttons are disabled until a valid template with at least one active
-  primer is present.
+  Dimers** buttons are always enabled; clicking them validates the input first
+  and shows a dialog if the requirements are not met:
+  - **PCR** requires a non-empty template sequence and at least one active,
+    valid primer (*"Template Required"* / *"Primers Required"* / *"Invalid
+    Primers"* dialogs).
+  - **Primer Dimers** requires at least one active, valid primer; no template
+    sequence is needed.
 - **Action Buttons**: `Clear all`, `Save all`, and `Load all` rendered as
   outlined buttons, separated from the navigation buttons by a vertical divider.
+  These buttons and the divider are only visible while the **Input** view is
+  active.
   - **Clear all**: Prompts for confirmation, then clears the template sequence
     and the primer list.
   - **Save all**: Exports the current template sequence and primer list to a
