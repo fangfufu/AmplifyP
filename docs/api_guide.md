@@ -353,3 +353,50 @@ print(f"Forward primer sequence: {best_step.fwd_fwd.primer_1.seq}")
 print(f"Reverse primer sequence: {best_step.rev_rev.primer_1.seq}")
 print(f"Cross-dimer quality (Fwd x Rev): {best_step.fwd_rev.quality:.2f}")
 ```
+
+## 8. Error Handling
+
+The `amplifyp.errors` module defines the exception hierarchy used across the
+library. Every exception derives from `AmplifyPError`, and most additionally
+subclass a built-in exception (usually `ValueError`), so they can be caught
+either way.
+
+Key exceptions:
+
+- **`InvalidDNASequenceError`** — a sequence contains characters invalid for its
+  `DNAType`. Exposes `invalid_chars` (the offending characters).
+- **`InvalidDNATypeError`** — an invalid `DNAType` was supplied to `DNA`.
+- **`DuplicatedNameError`** / **`DuplicatedSequenceError`** — raised by
+  `PCR.add_primer` when a primer with the same name (or sequence) is already in
+  the reaction.
+- **`PrimerNotFoundError`** — raised by `PCR.remove_primer` for a primer that
+  was never added.
+- **`DuplicateRepliconfError`** / **`TemplateMismatchError`** — raised by
+  `AmpliconGenerator.add_repliconf` for duplicate configurations or
+  configurations built on a different template.
+- **`ReplicationOriginLengthError`** — raised by `ReplicationOrigin` when the
+  target and primer lengths do not match.
+- **`InsufficientThermodynamicDataError`** — raised by
+  `calculate_tm_santalucia_1998_owczarzy_2008` when the sequence contains
+  non-standard or degenerate bases for which nearest-neighbour parameters are
+  not available.
+
+```python
+from amplifyp.dna import DNA, Primer, DNAType
+from amplifyp.errors import DuplicatedNameError, InvalidDNASequenceError
+from amplifyp.pcr import PCR
+
+template = DNA("ACGTACGTACGT", DNAType.LINEAR, name="Template")
+pcr = PCR(template)
+pcr.add_primer(Primer("ACGT", name="P1"))
+
+try:
+    pcr.add_primer(Primer("TGCA", name="P1"))
+except DuplicatedNameError:
+    print("A primer named 'P1' is already in the reaction.")
+
+try:
+    DNA("ACGNZ", DNAType.LINEAR, name="BadSequence")
+except InvalidDNASequenceError as e:
+    print(f"Invalid characters: {', '.join(sorted(e.invalid_chars))}")
+```

@@ -39,15 +39,17 @@ AmplifyP/
 │   ├── setup_linux.sh          # Linux virtual environment and system dependency setup
 │   └── update_screenshots.py   # Regenerates the GUI manual screenshots
 ├── src/
-│   ├── README.md               # This document (Development Guide)
 │   ├── main.py                 # Flet GUI application command-line entry point
+│   ├── README.md               # This document (Development Guide)
 │   └── amplifyp/               # Core Python library
 │       ├── __init__.py         # Package entry and version definition
+│       ├── __main__.py         # `python -m amplifyp` entry point
 │       ├── amplicon.py         # Amplicon prediction and product sequence generation
 │       ├── dimer.py            # Primer self-dimer and cross-dimer analysis
 │       ├── dir_idx.py          # Directional index calculation utilities
 │       ├── dna.py              # DNA and Primer classes, IUB/IUPAC codes
 │       ├── errors.py           # Custom exception types
+│       ├── main.py             # CLI entry point (`amplifyp`) and Flet app runner
 │       ├── melting.py          # Thermodynamic melting temperature calculations (Tm)
 │       ├── origin.py           # Origin matching, stability/primability scoring algorithms
 │       ├── pcr.py              # PCR reaction simulation engine
@@ -155,6 +157,7 @@ This runs:
 - **`pre-commit-hooks`** housekeeping checks (YAML validation, trailing
   whitespace, end-of-file newlines, JSON formatting, and more).
 - **`yamlfmt`** for formatting configuration YAML files.
+- **`yamllint`** for YAML linting.
 - **`ruff`** for linting (`ruff-check`) and code formatting (`ruff-format`).
 - **`typos`** for identifying spelling errors.
 - **`vulture`** for detecting unused code.

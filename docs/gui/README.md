@@ -69,8 +69,8 @@ The user manual is divided into dedicated guides for each view in the interface:
    amplicons, and detailed breakdown cards.
 3. **[Primer Dimers View](primer_dimer_view.md)**: Analyse potential
    self-dimerization and cross-dimerization risks across active primers, inspect
-   base-pairing alignment structures, evaluate free energy stability ($\\Delta
-   G$), and filter or sort candidate dimer pairs.
+   base-pairing alignment structures, and review the highest-scoring candidate
+   dimer pairs.
 4. **[Designer 1D View](designer_1d_view.md)**: Perform single-sequence 1D
    primer truncation analysis across a template sequence to evaluate binding
    quality scores at varying lengths, identify optimal primer lengths, and
@@ -80,7 +80,7 @@ The user manual is divided into dedicated guides for each view in the interface:
    combinations to maximise amplicon yield while minimising dimer risks.
 6. **[Settings & Preferences](settings_view.md)**: Customise algorithm cutoffs,
    thermodynamic parameters ($T_m$ calculation methods, salt concentrations,
-   annealing temperatures), application themes, and operational preferences.
+   reagent concentrations), application themes, and operational preferences.
 7. **[About View](about_view.md)**: Displays the application name, version,
    repository link, commit identifier, licence, and attributions.
 

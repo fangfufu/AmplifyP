@@ -22,8 +22,8 @@ reactions.
   - **Quality Score**: Each base pair interaction in the overlapping region is
     scored using a pairwise nucleotide weighting matrix (default settings based
     on Amplify4).
-  - **Minimum Overlap**: Only alignments meeting or exceeding the minimum
-    overlap length (default: 3 bp) are retained.
+  - **Minimum Overlap**: Only alignments with an overlap strictly greater than
+    the minimum overlap setting (default: 3 bp) are retained.
   - **Quality Threshold**: Only dimers with a total quality score exceeding the
     minimum threshold (default: 60.0) are reported.
   - Both filtering parameters can be customised in [Settings](settings_view.md).
