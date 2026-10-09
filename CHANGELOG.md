@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.1](https://github.com/fangfufu/AmplifyP/compare/v1.25.0...v1.25.1) (2026-10-09)
+
+
+### Bug Fixes
+
+* **gui:** resolve focus loop in primer list ([a52c998](https://github.com/fangfufu/AmplifyP/commit/a52c9983a6d2943f7879f27ecf330e146bd7343c))
+
+
+### Code Refactoring
+
+* **gui:** remove debounce logic ([1eaa30a](https://github.com/fangfufu/AmplifyP/commit/1eaa30a7b18a1f87025eb8cabac58c5f1f6556a3))
+
 ## [1.25.0](https://github.com/fangfufu/AmplifyP/compare/v1.24.1...v1.25.0) (2026-10-08)
 
 
