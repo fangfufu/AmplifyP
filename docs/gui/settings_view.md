@@ -2,10 +2,11 @@
 
 The **Settings & Preferences View** provides comprehensive options for
 customising algorithm parameters, visual appearance, primer list behavior,
-melting temperature ($T_m$) calculations, primer dimer threshold scoring, 2D
-designer colour mapping, logging diagnostics, and local setting persistence.
+melting temperature ($T_m$) calculations, primer dimer threshold scoring,
+designer view display options, logging diagnostics, and local setting
+persistence.
 
-Settings are organised into eight collapsible expansion tiles:
+Settings are organised into nine collapsible expansion tiles:
 
 1. **General**
 2. **Appearance**
@@ -13,8 +14,9 @@ Settings are organised into eight collapsible expansion tiles:
 4. **Primer Melting Temperature (Tm)**
 5. **PCR**
 6. **Primer Dimer**
-7. **Designer 2D**
-8. **Diagnostics**
+7. **Designer 1D**
+8. **Designer 2D**
+9. **Diagnostics**
 
 A **Reset to Default** button at the bottom restores all configuration values to
 their factory defaults.
@@ -62,20 +64,14 @@ the UI.
 
 ## 3. Primer List
 
-Controls table layout, duplicate warnings, temperature displays, and automatic
-activation behavior within the [Input View](input_view.md) primer list.
+Controls table layout, temperature displays, and automatic activation behavior
+within the [Input View](input_view.md) primer list.
 
 - **Primer Info Panel Position**: Dropdown selecting whether the primer details
   card is docked at the `Top` or `Bottom` [default] of the primer list panel.
 - **Fixed height primer info box**: Bordered checkbox (default: unchecked).
   Enforces a fixed height for the primer info panel to prevent layout shifting
   during primer selection.
-- **Ignore inactive primers when checking for duplicate names**: Bordered
-  checkbox (default: checked). Excludes inactive/deselected primers from
-  triggering duplicate name warnings.
-- **Ignore inactive primers when checking for duplicate sequences**: Bordered
-  checkbox (default: checked). Excludes inactive/deselected primers from
-  triggering duplicate sequence warnings.
 - **Auto-activate new valid primer**: Bordered checkbox (default: unchecked).
   Automatically checks the active checkbox for newly added primers once valid
   sequences are entered.
@@ -130,6 +126,9 @@ thresholds, and compatibility modes for PCR replication calculations.
   - **Improved Primer Binding Site Visualisation**: Bordered checkbox (default:
     checked). Enables enhanced visual match diagrams and bond strength symbols
     in PCR view cards.
+  - **Amplicon vertical ranking**: Dropdown controlling the vertical ordering of
+    amplicon fragment bars in the PCR View diagram (`Position, then length`
+    [default], `Quality score`, `Position, then quality`).
 
 ## 6. Primer Dimer
 
@@ -148,7 +147,17 @@ cross-dimers in the Primer Dimers View and info panels.
     interaction to be reported in the [Primer Dimers View](primer_dimer_view.md)
     (default: `60.0`).
 
-## 7. Designer 2D
+## 7. Designer 1D
+
+Configures display options for the self-dimer cards in the
+[Designer 1D View](designer_1d_view.md).
+
+- **Show melting temperature (Tm) on cards**: Bordered checkbox (default:
+  checked). Displays a $T_m$ badge on each self-dimer card header.
+- **Show % AT on cards**: Bordered checkbox (default: unchecked). Displays a %
+  AT content badge on each self-dimer card header.
+
+## 8. Designer 2D
 
 Configures display options for pair-wise 2D primer truncation analysis in
 Designer 2D View.
@@ -162,7 +171,7 @@ Designer 2D View.
   cross-dimer alignment (reverse primer 3' end against the forward primer) in
   addition to the three default dimer alignments.
 
-## 8. Diagnostics
+## 9. Diagnostics
 
 Configures application logging, log file output, log level thresholds, and log
 file rotation parameters.

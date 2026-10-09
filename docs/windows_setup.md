@@ -163,10 +163,16 @@ prek run --all-files
 
 This runs:
 
+- **`pre-commit-hooks`** housekeeping checks (YAML validation, trailing
+  whitespace, end-of-file newlines, JSON formatting, and more).
+- **`yamlfmt`** for formatting configuration YAML files.
+- **`yamllint`** for YAML linting.
 - **`ruff`** for linting and code formatting checks.
 - **`mypy`** for strict static type-checking.
+- **`pyright`** for additional static type-checking.
+- **`pytest`** for the fast test suite (E2E and CI-only tests are excluded via
+  the default markers).
 - **`vulture`** for detecting unused code.
-- **`yamlfmt`** for formatting configuration YAML files.
 - **`typos`** for identifying spelling errors.
 - **`mdformat`** for consistent markdown formatting.
 
@@ -191,8 +197,8 @@ behaviour:
 # Ensure playwright browser binaries are installed
 playwright install
 
-# Run the slow E2E tests
-pytest --run-slow -m e2e
+# Run the E2E tests
+pytest -m e2e
 ```
 
 ## 7. Packaging and Building (Windows Releases)
