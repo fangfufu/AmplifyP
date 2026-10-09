@@ -1,7 +1,8 @@
 # AmplifyP GUI — About View
 
 The **About View** displays static information about the running AmplifyP
-application. It is read-only and requires no user interaction.
+application. It is read-only; the only interactions are selecting the version
+and commit texts for copying and following the hyperlinks.
 
 ## Contents
 
@@ -14,11 +15,13 @@ application. It is read-only and requires no user interaction.
   (`github.com/fangfufu/AmplifyP`).
 - **Full Git SHA**: The full git commit identifier of the source revision the
   application was built from, selectable for copying.
-- **Licence**: A hyperlink to the **GNU General Public License v3.0 (GPL-3.0)**
-  under which AmplifyP is licensed.
-- **Attribution**: Credits the underlying scientific lineage — **Amplify**
-  software by William Engels — and the **Roboto Mono** font, licenced under the
-  SIL Open Font License, Version 1.1.
+- **Licence**: A hyperlink labelled **GNU General Public License v3.0
+  (GPL-3.0)** pointing to the project's `LICENSE` file
+  (`github.com/fangfufu/AmplifyP/blob/stable/LICENSE`).
+- **Attribution**: Credits the underlying scientific lineage — **Amplify 4**
+  software by William Engels ("This project is based on the original software by
+  William Engels") — and the **Roboto Mono Font**, licenced under the SIL Open
+  Font License, Version 1.1 (Copyright 2015 The Roboto Mono Project Authors).
 
 ______________________________________________________________________
 

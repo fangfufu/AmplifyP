@@ -17,11 +17,12 @@ target DNA template sequence.
 
 - **Sequence Input & Auto-Cleaning**:
   - Multiline monospace text field for entering or editing sequence data.
-  - Automatic filtering: Non-biological characters (spaces, numbers, line
-    breaks, punctuation) are automatically cleaned out. Valid base characters
-    include standard nucleotides (`A`, `T`, `C`, `G`, `U`) and IUPAC
-    degenerate/ambiguous bases (`R`, `Y`, `S`, `W`, `K`, `M`, `B`, `D`, `H`,
-    `V`, `N`).
+  - Automatic filtering: Whitespace characters (spaces, tabs, line breaks, and
+    literal `\n` / `\t` / `\r` escape sequences) are stripped automatically.
+    Valid base characters include standard nucleotides (`A`, `T`, `C`, `G`, `U`)
+    and IUPAC degenerate/ambiguous bases (`R`, `Y`, `S`, `W`, `K`, `M`, `B`,
+    `D`, `H`, `V`, `N`). Any other character (e.g. numbers or punctuation) is
+    left in place and flagged by validation.
 - **Dynamic Line Number Gutter**:
   - The left-hand gutter displays the starting base index for each row.
   - Line numbers update dynamically as sequence text or wrapping length changes.
@@ -55,8 +56,8 @@ target DNA template sequence.
   - **Load**: Opens a file picker to import a template sequence from a plain
     text file (`.txt`).
   - **Save**: Saves the current template sequence to a plain text file (`.txt`).
-  - **Copy**: Copies the template sequence to the system clipboard without
-    linebreaks (cleaned of non-nucleotide characters).
+  - **Copy**: Copies the selected bases (or the whole template when nothing is
+    selected) to the system clipboard without linebreaks (whitespace removed).
   - **Clear**: Clears the template sequence text field.
   - **Copy Shortcut**: While the template sequence field is focused, pressing
     **Ctrl+C** (or **Cmd+C** on macOS) copies the selected bases — or the whole
@@ -82,8 +83,7 @@ checking.
 
 The table comprises the following columns:
 
-- **Drag Handle**: Visual drag icon (`⋮⋮`) for live drag-and-drop row
-  reordering.
+- **Drag Handle**: Drag icon for live drag-and-drop row reordering.
 - **Active Checkbox**: Checkbox to include or exclude individual primers from
   simulation.
   - **Header Checkbox**: Tri-state checkbox in the table header to toggle all
@@ -91,7 +91,7 @@ The table comprises the following columns:
 - **Name Column**: Multiline editable text field for primer identification. The
   column width can be resized by dragging the vertical divider in the header.
 - **Sequence Column**: Monospace text field for primer sequence entry ($5' \\to
-  3'$). Sequences are automatically cleaned and validated.
+  3'$). Whitespace is automatically cleaned and the sequence is validated.
 - **Melting Temperature ($T_m$) Column** *(Optional)*:
   - Enabled when the **Show primer temperature column** option is enabled in
     Settings.
@@ -100,20 +100,31 @@ The table comprises the following columns:
 
 ### Row Selection & Reordering
 
-- **Single-Click Selection**: Click any row to highlight it and focus its name
-  field.
-- **Double-Click Range Selection**: Double-click a row to set an anchor, then
-  double-click a second row to highlight the range of primers between them.
-- **Live Drag-and-Drop**: Click and drag the drag handle (`⋮⋮`) to move single
-  rows or contiguous highlighted blocks up or down in real time.
+- **Single-Click Selection**: Click a row to select it and focus its name field.
+  Clicking an already-selected row deselects it and clears the focus.
+- **Double-Click Range Selection**: Double-click a row to toggle its selection
+  and set an anchor, then double-click a second row to toggle the selection
+  state of the rows between them (anchor row excluded, second row included).
+- **Live Drag-and-Drop**: Click and drag the drag handle to move single rows or
+  contiguous highlighted blocks up or down in real time.
 - **Header Reordering Controls**:
-  - **Add Primer (+)**: Inserts a new empty primer row below the currently
-    selected or focused row.
-  - **Delete Primer (-)**: Deletes all currently highlighted primer rows.
-  - **Move Up (↑)** / **Move Down (↓)**: Moves selected primer row(s) up or down
-    by one position.
-- **Auto-Append Row**: Entering a valid sequence into the final row
-  automatically appends a new empty row to the list.
+  - **Add Primer** (add-circle icon, tooltip *"Add Primer Below"*): Inserts a
+    new empty primer row below the currently selected or focused row.
+  - **Delete Primer** (trash icon, tooltip *"Delete Primer"*): Deletes all
+    currently highlighted primer rows.
+  - **Move Up** (up-arrow icon) / **Move Down** (down-arrow icon): Moves
+    selected primer row(s) up or down by one position.
+- **Auto-Append Row**: Once the final row has both a non-empty name and a valid
+  sequence (no validation errors), a new empty row is appended automatically.
+- **Keyboard Navigation**:
+  - **Tab / Shift+Tab**: Move between the name and sequence fields, and across
+    primer rows.
+  - **Arrow Right / Arrow Left**: At a field boundary, jump between the name and
+    sequence fields of the focused row.
+  - **Arrow Up / Arrow Down**: Navigate between primer rows.
+  - **Enter**: Immediately triggers the current results update.
+  - **Ctrl+V / Cmd+V**: Pasting TSV, CSV, or raw sequence lines directly into a
+    name or sequence field inserts the primers starting at that row.
 
 ### Toolbar Actions
 
@@ -126,6 +137,7 @@ Located at the top of the Primer List Panel:
   clipboard in TSV format (`Name\tSequence`).
 - **Paste**: Pastes primers from the system clipboard starting at the selected
   row position or end of the list. Supports TSV, CSV, or raw sequence lines.
+  Pasted and imported primers are inserted as **inactive**.
 - **Rev Comp**: Calculates and replaces the sequence of all highlighted primers
   with their reverse complement sequence.
 - **Delete**: Deletes highlighted primers.
@@ -134,28 +146,44 @@ Located at the top of the Primer List Panel:
 ### Primer Information & Analysis Panel
 
 Clicking or focusing a primer displays a detailed analysis card (positionable at
-the top or bottom of the list via Settings):
+the top or bottom of the list via Settings). The panel is only shown while the
+focused primer has a non-empty cleaned sequence, and can be hidden with the
+close button in its header (which also clears the row focus). Two additional
+Settings options affect it:
 
-- **Header & Sequence**: Displays primer name, length in base pairs, and full
-  sequence ($5' \\to 3'$).
-- **Melting Temperature**: Displays exact $T_m$ (°C).
+- **Auto-activate new valid primer** (default off): Newly added primers are
+  automatically ticked active once a valid sequence is entered.
+- **Fixed height primer info box** (default off): Locks the panel to a fixed
+  height so it remains visible with a *"Primer: -"* placeholder instead of
+  collapsing when no primer is focused.
+
+Panel contents:
+
+- **Header & Sequence**: Displays primer name, length in nucleotides (`nt`), and
+  full sequence ($5' \\to 3'$).
+- **Melting Temperature**: Displays $T_m$ as `Tm = {value:.2f}°C`, or `Tm = N/A`
+  when it cannot be calculated.
 - **Base Composition**: Displays the overall AT percentage (e.g. `45.0% AT`).
 - **Degeneracy & Redundancy**: Displays redundant IUPAC base count and
   calculated redundancy fold.
-- **Self-Dimer Analysis**: Performs real-time self-dimer prediction. If
-  self-dimer binding exceeds threshold settings, an interactive visual dimer
-  alignment card is rendered within the info panel.
+- **Self-Dimer Analysis**: Performs real-time self-dimer prediction. A visual
+  dimer alignment card is rendered within the info panel when the dimer's
+  overlap exceeds the minimum overlap setting and its quality score exceeds the
+  threshold setting.
 
 ### Validation & Error Warnings
 
-- Real-time validation flags illegal base characters, missing required fields
-  (for active primers), duplicate primer names, and duplicate primer sequences.
-- Cells with errors display explicit red error messages.
-- **Error Banner**: If active primers contain invalid format or duplicate
-  entries, a prominent red warning banner is displayed at the bottom of the
-  panel:
-  > *"PCR and Primer Dimer views are disabled because one or more selected
-  > primers are invalid, or have duplicated names/sequences."*
+- While editing, sequence-format validation runs in real time and flags illegal
+  base characters. Empty name/sequence and duplicate name/sequence checks run
+  when you attempt to open the PCR or Primer Dimer views.
+- Rows with errors are highlighted with a coloured row background, and a tooltip
+  on the row describes the problem (e.g. *"The DNA sequence contains invalid
+  characters: ..."*, *"Duplicate primer name"*, *"Duplicate primer sequence"*,
+  *"Name cannot be empty"*, *"Sequence cannot be empty"*).
+- **Run Validation Dialogues**: Attempting to open the PCR or Primer Dimer views
+  while active primers are invalid shows a dialog instead of switching views:
+  > *"Invalid Primers — One or more selected primers are invalid, have empty
+  > names/sequences, or have duplicate names/sequences."*
 
 ## Layout & Panel Resizing
 

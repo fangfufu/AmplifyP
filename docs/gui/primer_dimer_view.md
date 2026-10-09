@@ -16,8 +16,8 @@ reactions.
   self-dimer pairs).
 - **Antiparallel 3' Alignment**: For each primer pair, the 3' end of the shorter
   primer is aligned against all candidate positions along the longer primer. If
-  both primers are of equal length and distinct, both directional orientations
-  are evaluated and the higher-scoring alignment is selected.
+  both primers are of equal length and have distinct sequences, both directional
+  orientations are evaluated and the higher-scoring alignment is selected.
 - **Scoring & Filtering Criteria**:
   - **Quality Score**: Each base pair interaction in the overlapping region is
     scored using a pairwise nucleotide weighting matrix (default settings based
@@ -26,10 +26,11 @@ reactions.
     the minimum overlap setting (default: 3 bp) are retained.
   - **Quality Threshold**: Only dimers with a total quality score exceeding the
     minimum threshold (default: 60.0) are reported.
-  - Both filtering parameters can be customised in [Settings](settings_view.md).
-- **Automatic Result Caching**: Analysis results are cached automatically based
-  on active primer sequences and dimer settings. Re-analysis is triggered only
-  when primer data or dimer settings are modified.
+  - Both filtering parameters, as well as the pairwise weights matrix, can be
+    customised in [Settings](settings_view.md).
+- **Automatic Result Caching**: Analysis results are cached in memory and reused
+  while the input state (template and primers) and the GUI settings remain
+  unchanged. Any change to them triggers a re-analysis.
 - **Sorting**: Identified primer dimers are sorted in descending order of
   quality score, presenting the highest-risk interactions at the top of the
   list.
@@ -46,8 +47,8 @@ reactions.
   strongest binding dimers. If more than 100 dimers are detected, a red warning
   notification is displayed at the top of the list:
   > [!WARNING]
-  > *X primer dimers detected. Only the top 100 strongest binding dimers are
-  > displayed to prevent UI freeze.*
+  > *Warning: X primer dimers detected. Only the top 100 strongest binding
+  > dimers are displayed to prevent UI freeze.*
 
 ## Primer Dimer Alignment Cards
 
@@ -65,7 +66,11 @@ summary header and an antiparallel sequence alignment diagram:
     badge.
 - **Visual Alignment Diagram**:
   - Rendered in a monospace font (`Roboto Mono` or configured font family)
-    inside a bordered container with horizontal scrolling support.
+    inside a bordered container with horizontal scrolling support. The diagram
+    text is selectable, and the binding interface line is colour-coded in the
+    forward-primer colour.
+  - The 5'/3' end labels follow the **5'/3' Sequence Separator** setting
+    (default `5' ... 3'`, or `5'-...-3'` when set to dash).
   - Displays a 5-line visually aligned stack:
     1. **Top Primer Name**: Name of the longer primer rendered in bold purple.
     2. **Top Sequence ($5' \\to 3'$)**: Sequence of the longer primer displayed
@@ -82,6 +87,11 @@ summary header and an antiparallel sequence alignment diagram:
        horizontally indented to match its alignment position.
     5. **Bottom Primer Name**: Name of the shorter primer rendered in bold
        purple, right-padded under its 5' end.
+
+## Error Handling
+
+If the dimer analysis fails, a red error text with the traceback is rendered in
+the results panel and an error dialog opens.
 
 ______________________________________________________________________
 
