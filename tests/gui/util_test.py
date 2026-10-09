@@ -167,15 +167,12 @@ def _make_mock_primer_row(
 
 def _make_mock_nav_controller(
     rows: list[MagicMock] | None = None,
-    debounce_interval: float = 0.0,
 ) -> MagicMock:
     """Create a mock controller configured for primer keyboard navigation."""
     mock_ctrl = MagicMock()
     mock_ctrl.input_view = MagicMock()
     mock_ctrl.view_container.content = mock_ctrl.input_view
     mock_ctrl._is_navigating_focus = False
-    mock_ctrl._last_keyboard_nav_time = 0.0
-    mock_ctrl._keyboard_nav_debounce_interval = debounce_interval
     if rows is not None:
         mock_ctrl.input_view.primer_input.primers_list.controls = rows
         if rows:
@@ -387,7 +384,6 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     )
     from amplifyp.gui.utils.gui_helpers import (
         BorderedCheckbox,
-        Debouncer,
         handle_keyboard_event,
         initialise_score_fields,
     )
@@ -429,24 +425,6 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     _ = create_overlapped_sequence_view(
         "TOP", "MID", "B1\nB2\nB3", is_dimer=False
     )
-
-    # 2. Debouncer and UI widgets
-    debouncer = Debouncer(delay_seconds=0.01)
-    triggered = False
-
-    def on_debounced() -> None:
-        nonlocal triggered
-        triggered = True
-
-    debouncer.trigger(on_debounced)
-    debouncer.cancel()
-
-    with patch(
-        "threading.Timer.start", side_effect=RuntimeError("Thread error")
-    ):
-        debouncer.trigger(on_debounced)
-        assert triggered is True
-
     checkbox = BorderedCheckbox(label="Option", value=False)
     assert checkbox.label == "Option"
     checkbox.label = "New Option"
@@ -700,7 +678,6 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     )
 
     ctrl.input_view.primer_input.primers_list.controls = [row0, row1]
-    ctrl._keyboard_nav_debounce_interval = 0.0
 
     # Tab navigation
     ctrl.input_view._currently_focused_control = row0.name_field
@@ -1112,34 +1089,6 @@ async def test_data_helpers_and_system_utilities_extra() -> None:
         await restore_state_and_auto_close_async(ctrl)
 
 
-def test_debounced_callback_start_runtime_error() -> None:
-    """Test Debouncer fallback when Timer.start raises RuntimeError."""
-    from unittest.mock import patch
-
-    from amplifyp.gui.utils.gui_helpers import Debouncer
-
-    called = False
-
-    def on_cb() -> None:
-        nonlocal called
-        called = True
-
-    debounced = Debouncer(delay_seconds=0.1)
-    with patch(
-        "threading.Timer.start", side_effect=RuntimeError("Thread fail")
-    ):
-        debounced.trigger(on_cb)
-        assert called is True
-        assert debounced._timer is None
-
-    # Test cancel
-    mock_timer = MagicMock()
-    debounced._timer = mock_timer
-    debounced.cancel()
-    mock_timer.cancel.assert_called_once()
-    assert debounced._timer is None
-
-
 def test_copy_text_to_clipboard_run_task_exception() -> None:
     """Test copy_text_to_clipboard handles run_task exceptions gracefully."""
     from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
@@ -1210,7 +1159,6 @@ def test_handle_keyboard_event_comprehensive() -> None:
     row_0 = _make_mock_primer_row(0, "P0", "ATGC")
     row_1 = _make_mock_primer_row(1, "P1", "GCAT")
     mock_ctrl.input_view.primer_input.primers_list.controls = [row_0, row_1]
-    mock_ctrl._keyboard_nav_debounce_interval = 0.0
 
     # Tab from row 0 name -> row 0 seq
     row_0.name_field.data = {"idx": 0, "field": "name"}
@@ -1540,47 +1488,12 @@ def test_system_utils_coverage_additional() -> None:
     )
 
 
-def test_handle_keyboard_event_debounce() -> None:
-    """Test keyboard navigation rate-limiting drops rapid events."""
-    from unittest.mock import patch
-
-    from amplifyp.gui.utils.gui_helpers import (
-        KEYBOARD_NAV_DEBOUNCE_INTERVAL,
-        handle_keyboard_event,
-    )
-
-    row_0 = _make_mock_primer_row(0, "P0", "ATGC")
-    mock_ctrl = _make_mock_nav_controller(
-        [row_0], debounce_interval=KEYBOARD_NAV_DEBOUNCE_INTERVAL
-    )
-    ev_tab = _make_key_event(key="Tab")
-
-    # 1. Initial event at t = 100.0 succeeds
-    with patch("time.monotonic", return_value=100.0):
-        handle_keyboard_event(mock_ctrl, ev_tab)
-        row_0.seq_field.focus.assert_called_once()
-        assert mock_ctrl._last_keyboard_nav_time == 100.0
-
-    # 2. Rapid event at t = 100.05 (50ms later < 120ms) is debounced and dropped
-    row_0.seq_field.focus.reset_mock()
-    with patch("time.monotonic", return_value=100.05):
-        handle_keyboard_event(mock_ctrl, ev_tab)
-        row_0.seq_field.focus.assert_not_called()
-        assert mock_ctrl._last_keyboard_nav_time == 100.0
-
-    # 3. Subsequent event at t = 100.20 (> 120ms elapsed) succeeds
-    with patch("time.monotonic", return_value=100.20):
-        handle_keyboard_event(mock_ctrl, ev_tab)
-        row_0.seq_field.focus.assert_called_once()
-        assert mock_ctrl._last_keyboard_nav_time == 100.20
-
-
 def test_handle_keyboard_event_reentrancy_lock() -> None:
     """Test re-entrancy lock prevents nested focus transitions."""
     from amplifyp.gui.utils.gui_helpers import handle_keyboard_event
 
     row_0 = _make_mock_primer_row(0, "P0", "ATGC")
-    mock_ctrl = _make_mock_nav_controller([row_0], debounce_interval=0.0)
+    mock_ctrl = _make_mock_nav_controller([row_0])
     ev_tab = _make_key_event(key="Tab")
 
     # 1. When lock is explicitly True, events are immediately dropped
@@ -1623,7 +1536,7 @@ def test_handle_keyboard_event_async_focus_lock() -> None:
     )
 
     row_0 = _make_mock_primer_row(0, "P0", "ATGC")
-    mock_ctrl = _make_mock_nav_controller([row_0], debounce_interval=0.0)
+    mock_ctrl = _make_mock_nav_controller([row_0])
 
     async def sample_focus_coro() -> None:
         pass
@@ -1671,7 +1584,7 @@ def test_handle_keyboard_event_field_update_runtime_error() -> None:
 
     row_0 = _make_mock_primer_row(0, "P0", "ATGC")
     row_1 = _make_mock_primer_row(1, "P1", "CGTA")
-    mock_ctrl = _make_mock_nav_controller([row_0, row_1], debounce_interval=0.0)
+    mock_ctrl = _make_mock_nav_controller([row_0, row_1])
 
     # 1. Shift+Tab on seq field: target is row_0.name_field
     row_0.seq_field.data = {"idx": 0, "field": "seq"}

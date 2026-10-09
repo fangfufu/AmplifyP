@@ -23,9 +23,7 @@ from amplifyp.gui.views.input.primer.row import PrimerRow
 
 
 def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
-    """Handle focus on input fields to cancel auto-trigger timer."""
-    input_view._focus_debouncer.cancel()
-
+    """Handle focus on input fields."""
     curr_ctrl = input_view._currently_focused_control
     curr_data = getattr(curr_ctrl, "data", None) if curr_ctrl else None
     new_data = getattr(getattr(e, "control", None), "data", None)
@@ -122,7 +120,7 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
 
 
 def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
-    """Handle blur on input fields to trigger results page after a delay."""
+    """Handle blur on input fields to trigger results update."""
     if (
         input_view._currently_focused_control is not None
         and input_view._currently_focused_control != e.control
@@ -155,27 +153,12 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             )
             input_view.app_page.update()
 
-    def timer_callback() -> None:
-        """Execute the on-stop-editing callback after a short delay.
-
-        This is triggered by a debouncer to handle cases where the user stops
-        interacting with an input field.
-        """
-        try:
-            page = input_view.page
-        except RuntimeError:
-            return
-        if not page:
-            return
-        if input_view.on_stop_editing_callback:
-            input_view.on_stop_editing_callback(None)
-
-    input_view._focus_debouncer.trigger(timer_callback)
+    if input_view.on_stop_editing_callback:
+        input_view.on_stop_editing_callback(None)
 
 
 def handle_field_submit(input_view: Any, e: ft.Event[ft.TextField]) -> None:
     """Handle submission (Enter key) to immediately trigger results."""
-    input_view._focus_debouncer.cancel()
     input_view.sync_to_state()
     if e.control == input_view.template_sequence:
         input_view._adjust_template_wrap(update_first=True)

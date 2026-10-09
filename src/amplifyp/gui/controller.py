@@ -29,10 +29,7 @@ from amplifyp.gui.controllers import (
 )
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.gui_helpers import (
-    KEYBOARD_NAV_DEBOUNCE_INTERVAL,
-    NotificationHelper,
-)
+from amplifyp.gui.utils.gui_helpers import NotificationHelper
 from amplifyp.gui.views import (
     AboutView,
     Designer2DView,
@@ -86,10 +83,6 @@ class GUIController:
         self._confirm_dialog = None
         self._clear_dialog = None
         self._is_navigating_focus: bool = False
-        self._last_keyboard_nav_time: float = 0.0
-        self._keyboard_nav_debounce_interval: float = (
-            KEYBOARD_NAV_DEBOUNCE_INTERVAL
-        )
 
         # Refs for buttons
         self.pcr_button_ref = ft.Ref[ft.FilledButton]()

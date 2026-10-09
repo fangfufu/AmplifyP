@@ -19,8 +19,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import threading
-import time
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -62,33 +60,6 @@ def show_error_dialog(page: ft.Page, title: str, message: str) -> None:
     page.overlay.append(dialog)
     dialog.open = True
     page.update()
-
-
-class Debouncer:
-    """A thread-based debounce helper for delaying UI actions."""
-
-    def __init__(self, delay_seconds: float = 0.15) -> None:
-        """Initialize the Debouncer."""
-        self.delay_seconds = delay_seconds
-        self._timer: threading.Timer | None = None
-
-    def trigger(self, callback: Callable[[], None]) -> None:
-        """Trigger the callback after the specified delay."""
-        self.cancel()
-
-        self._timer = threading.Timer(self.delay_seconds, callback)
-        self._timer.daemon = True
-        try:
-            self._timer.start()
-        except RuntimeError:
-            self._timer = None
-            callback()
-
-    def cancel(self) -> None:
-        """Cancel any pending callback execution."""
-        if self._timer is not None:
-            self._timer.cancel()
-            self._timer = None
 
 
 def initialise_score_fields(
@@ -231,18 +202,13 @@ def copy_text_to_clipboard(page: ft.Page | None, text: str) -> None:
 # ==============================================================================
 
 
-KEYBOARD_NAV_DEBOUNCE_INTERVAL: float = 0.12
-"""Minimum interval in seconds between programmatic focus transitions."""
-
-
 def _dispatch_field_focus(controller: Any, target_field: ft.TextField) -> None:
-    """Focus target field with re-entrancy lock and debounce timestamp update.
+    """Focus target field with re-entrancy lock.
 
     Args:
         controller: The application controller instance.
         target_field: The text field to receive focus.
     """
-    controller._last_keyboard_nav_time = time.monotonic()
     controller._is_navigating_focus = True
     try:
         if hasattr(controller, "input_view") and controller.input_view:
@@ -312,23 +278,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
     if e.key == "Enter":
         if hasattr(controller, "input_view") and controller.input_view:
             controller.input_view._enter_key_pressed = True
-
-    if e.key in ("Tab", "Arrow Left", "Arrow Right", "Arrow Up", "Arrow Down"):
-        now = time.monotonic()
-        raw_last = getattr(controller, "_last_keyboard_nav_time", 0.0)
-        last_time = raw_last if isinstance(raw_last, (int, float)) else 0.0
-        raw_interval = getattr(
-            controller,
-            "_keyboard_nav_debounce_interval",
-            KEYBOARD_NAV_DEBOUNCE_INTERVAL,
-        )
-        interval = (
-            raw_interval
-            if isinstance(raw_interval, (int, float))
-            else KEYBOARD_NAV_DEBOUNCE_INTERVAL
-        )
-        if now - last_time < interval:
-            return
 
     target_field: ft.TextField | None = None
 
