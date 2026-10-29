@@ -94,13 +94,24 @@ class NotificationHelper:
     def __init__(self, page: ft.Page) -> None:
         """Initialize the NotificationHelper."""
         self.page = page
-        self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
-        self.page.overlay.append(self._snack_bar)
+        self._snack_bar: ft.SnackBar | None = None
 
     def show_message(self, message: str) -> None:
         """Show a message to the user via a SnackBar."""
-        self._snack_bar.content = ft.Text(message)
-        self._snack_bar.open = True
+
+        def on_dismiss(e: ft.Event[ft.Control]) -> None:
+            """Remove the snack bar from the page overlay when dismissed."""
+            if snack_bar in self.page.overlay:
+                self.page.overlay.remove(snack_bar)
+                self.page.update()
+
+        snack_bar = ft.SnackBar(
+            ft.Text(message),
+            open=True,
+            on_dismiss=on_dismiss,  # pyright: ignore[reportArgumentType]
+        )
+        self._snack_bar = snack_bar
+        self.page.overlay.append(snack_bar)
         self.page.update()
 
 
