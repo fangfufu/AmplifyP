@@ -70,6 +70,38 @@ def test_show_error_dialog() -> None:
     assert dialog not in mock_page.overlay
 
 
+def test_notification_helper_repeated_messages() -> None:
+    """Test NotificationHelper creates fresh SnackBars and cleans up overlay."""
+    from amplifyp.gui.utils.gui_helpers import NotificationHelper
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.overlay = []
+
+    helper = NotificationHelper(mock_page)
+    assert len(mock_page.overlay) == 0
+
+    helper.show_message("Copied to clipboard!")
+    assert len(mock_page.overlay) == 1
+    first_snack = mock_page.overlay[0]
+    assert isinstance(first_snack, ft.SnackBar)
+    assert first_snack.open is True
+    assert isinstance(first_snack.content, ft.Text)
+    assert first_snack.content.value == "Copied to clipboard!"
+
+    # Simulate dismissal of the first snack bar
+    first_snack.on_dismiss(MagicMock())
+    assert first_snack not in mock_page.overlay
+
+    # Calling show_message again creates a new SnackBar instance so Flet's
+    # internal _dismissed flag on the old control does not block display
+    helper.show_message("Copied to clipboard!")
+    assert len(mock_page.overlay) == 1
+    second_snack = mock_page.overlay[0]
+    assert isinstance(second_snack, ft.SnackBar)
+    assert second_snack is not first_snack
+    assert second_snack.open is True
+
+
 def test_bordered_checkbox() -> None:
     """Test BorderedCheckbox value and label properties."""
     from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
