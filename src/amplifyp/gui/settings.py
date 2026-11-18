@@ -535,20 +535,23 @@ class GUISettings:
     def load_from_local(self, page: ft.Page) -> None:
         """Load settings from local storage.
 
-        On web platforms, uses page.client_storage.
+        On web platforms, uses ft.SharedPreferences via page.run_task.
         On desktop platforms, reads from OS-specific YAML file.
         """
         if getattr(page, "web", False):
-            storage = getattr(page, "client_storage", None)
-            if storage is not None:
-                # Web browser path
-                settings_dict = {}
-                for k in self._settings.keys():
-                    storage_key = f"amplifyp.settings.{k}"
-                    if storage.contains_key(storage_key):
-                        settings_dict[k] = storage.get(storage_key)
-                if settings_dict:
-                    self.from_dict(settings_dict)
+            if hasattr(page, "run_task"):
+
+                async def _load_web() -> None:
+                    prefs = ft.SharedPreferences()
+                    settings_dict = {}
+                    for k in self._settings:
+                        storage_key = f"amplifyp.settings.{k}"
+                        if await prefs.contains_key(storage_key):
+                            settings_dict[k] = await prefs.get(storage_key)
+                    if settings_dict:
+                        self.from_dict(settings_dict)
+
+                page.run_task(_load_web)
             return
 
         # Desktop path
@@ -567,16 +570,19 @@ class GUISettings:
     def save_to_local(self, page: ft.Page) -> None:
         """Save settings to local storage.
 
-        On web platforms, uses page.client_storage.
+        On web platforms, uses ft.SharedPreferences via page.run_task.
         On desktop platforms, writes to OS-specific YAML file.
         """
         if getattr(page, "web", False):
-            storage = getattr(page, "client_storage", None)
-            if storage is not None:
-                # Web browser path
-                for k, v in self._settings.items():
-                    storage_key = f"amplifyp.settings.{k}"
-                    storage.set(storage_key, v)
+            if hasattr(page, "run_task"):
+
+                async def _save_web() -> None:
+                    prefs = ft.SharedPreferences()
+                    for k, v in self._settings.items():
+                        storage_key = f"amplifyp.settings.{k}"
+                        await prefs.set(storage_key, v)
+
+                page.run_task(_save_web)
             return
 
         # Desktop path

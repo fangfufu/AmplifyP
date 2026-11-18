@@ -166,40 +166,45 @@ def test_web_save_and_load_client_storage() -> None:
     settings["primability_cutoff"] = "0.85"
     settings["dark_mode"] = "system"
 
+    import asyncio
+
     mock_page = MagicMock()
     mock_page.web = True
-    mock_page.client_storage = MagicMock()
+    mock_page.run_task = MagicMock(side_effect=lambda fn: asyncio.run(fn()))
 
-    # Set up client storage mock
-    mock_storage = {}
+    # Set up SharedPreferences mock
+    mock_storage: dict[str, Any] = {}
 
-    def mock_set(key: str, value: Any) -> None:
+    async def mock_set(key: str, value: Any) -> bool:
         mock_storage[key] = value
+        return True
 
-    def mock_get(key: str) -> Any:
+    async def mock_get(key: str) -> Any:
         return mock_storage.get(key)
 
-    def mock_contains(key: str) -> bool:
+    async def mock_contains(key: str) -> bool:
         return key in mock_storage
 
-    mock_page.client_storage.set = MagicMock(side_effect=mock_set)
-    mock_page.client_storage.get = MagicMock(side_effect=mock_get)
-    mock_page.client_storage.contains_key = MagicMock(side_effect=mock_contains)
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=mock_set)
+    mock_prefs.get = MagicMock(side_effect=mock_get)
+    mock_prefs.contains_key = MagicMock(side_effect=mock_contains)
 
-    # Test Save
-    settings.save_to_local(mock_page)
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        # Test Save
+        settings.save_to_local(mock_page)
 
-    # Assert key exists in client storage with prefix
-    assert "amplifyp.settings.primability_cutoff" in mock_storage
-    assert mock_storage["amplifyp.settings.primability_cutoff"] == "0.85"
-    assert mock_storage["amplifyp.settings.dark_mode"] == "system"
+        # Assert key exists in storage with prefix
+        assert "amplifyp.settings.primability_cutoff" in mock_storage
+        assert mock_storage["amplifyp.settings.primability_cutoff"] == "0.85"
+        assert mock_storage["amplifyp.settings.dark_mode"] == "system"
 
-    # Test Load
-    new_settings = GUISettings()
-    new_settings.load_from_local(mock_page)
+        # Test Load
+        new_settings = GUISettings()
+        new_settings.load_from_local(mock_page)
 
-    assert new_settings["primability_cutoff"] == "0.85"
-    assert new_settings["dark_mode"] == "system"
+        assert new_settings["primability_cutoff"] == "0.85"
+        assert new_settings["dark_mode"] == "system"
 
 
 def test_dark_mode_system_coercion() -> None:
