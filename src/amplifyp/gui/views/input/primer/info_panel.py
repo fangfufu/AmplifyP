@@ -92,6 +92,18 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
         self.info_dimer_card_container = ft.Container(visible=False)
 
+        self.info_body_column = ft.Column(
+            [
+                self.info_seq_text,
+                self.info_tm_text,
+                self.info_pairs_text,
+                self.info_redundancy_text,
+                self.info_dimer_text,
+                self.info_dimer_card_container,
+            ],
+            spacing=1,
+        )
+
         self.content = ft.Container(
             padding=ft.Padding(10, 2, 10, 0),
             content=ft.Column(
@@ -103,22 +115,25 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                         ],
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     ),
-                    ft.Column(
-                        [
-                            self.info_seq_text,
-                            self.info_tm_text,
-                            self.info_pairs_text,
-                            self.info_redundancy_text,
-                            self.info_dimer_text,
-                            self.info_dimer_card_container,
-                        ],
-                        spacing=1,
-                    ),
+                    self.info_body_column,
                 ],
                 spacing=2,
             ),
         )
         self.visible = False
+
+    def _apply_height_mode(self, fixed_height_enabled: bool) -> None:
+        """Configure height and body scrolling based on fixed-height mode."""
+        if fixed_height_enabled:
+            self.height = int(
+                self.settings.get("primer_info_panel_height", 260) or 260
+            )
+            self.info_body_column.scroll = ft.ScrollMode.AUTO
+            self.info_body_column.expand = True
+        else:
+            self.height = None
+            self.info_body_column.scroll = None
+            self.info_body_column.expand = False
 
     def _on_close_click(self, e: ft.Event) -> None:
         """Handle close button click."""
@@ -151,11 +166,11 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_text.visible = False
                 self.info_dimer_card_container.content = None
                 self.info_dimer_card_container.visible = False
-                self.height = 260
+                self._apply_height_mode(True)
                 self.visible = True
             else:
                 self.visible = False
-                self.height = None
+                self._apply_height_mode(False)
             on_update_highlights()
             self._update_safe()
             return
@@ -164,7 +179,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
                 self.visible = False
-                self.height = None
+                self._apply_height_mode(False)
                 self._update_safe()
                 return
 
@@ -176,7 +191,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             if not seq_val:
                 self.visible = False
-                self.height = None
+                self._apply_height_mode(False)
                 self._update_safe()
                 return
 
@@ -237,16 +252,15 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self.info_dimer_card_container.content = None
                 self.info_dimer_card_container.visible = False
 
-            if self.settings.get("primer_info_panel_fixed_height", False):
-                self.height = 260
-            else:
-                self.height = None
+            self._apply_height_mode(
+                bool(self.settings.get("primer_info_panel_fixed_height", False))
+            )
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
             self.visible = False
-            self.height = None
+            self._apply_height_mode(False)
             self.info_dimer_card_container.visible = False
             self.info_dimer_card_container.content = None
 

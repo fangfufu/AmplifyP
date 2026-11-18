@@ -120,6 +120,60 @@ class PrimerLayoutManager:
                 row.name_scroll.width = self.owner.name_column_width
         self.owner.primers_list.update()
 
+    def on_info_panel_divider_pan(self, e: ft.DragUpdateEvent) -> None:
+        """Handle dragging the horizontal divider to resize the info panel."""
+        delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
+        position = str(
+            self.owner.settings.get("primer_info_panel_position", "bottom")
+        ).lower()
+        default_height = (
+            260.0
+            if self.owner.primer_info_panel.info_dimer_card_container.visible
+            else 120.0
+        )
+        current_height = float(
+            self.owner.primer_info_panel.height
+            or (
+                self.owner.settings.get("primer_info_panel_height", 260)
+                if self.owner.settings.get(
+                    "primer_info_panel_fixed_height", False
+                )
+                else default_height
+            )
+            or default_height
+        )
+        if position == "top":
+            new_height = current_height + delta_y
+        else:
+            new_height = current_height - delta_y
+
+        page_height = (
+            float(self.owner.app_page.height)
+            if (self.owner.app_page and self.owner.app_page.height)
+            else 800.0
+        )
+        max_height = max(120.0, page_height - 200.0)
+        clamped_height = int(max(80.0, min(max_height, new_height)))
+        self.owner.primer_info_panel.height = clamped_height
+        self.owner.primer_info_panel.info_body_column.scroll = (
+            ft.ScrollMode.AUTO
+        )
+        self.owner.primer_info_panel.info_body_column.expand = True
+        if self.owner.settings.get("primer_info_panel_fixed_height", False):
+            self.owner.settings["primer_info_panel_height"] = clamped_height
+        try:
+            if self.owner.primer_info_panel.page:
+                self.owner.primer_info_panel.update()
+        except RuntimeError:
+            pass
+
+    def on_info_panel_divider_pan_end(self, _e: ft.DragEndEvent) -> None:
+        """Handle finishing the drag of the horizontal info panel divider."""
+        if self.owner.app_page and self.owner.settings.get(
+            "primer_info_panel_fixed_height", False
+        ):
+            self.owner.settings.save_to_local(self.owner.app_page)
+
     def adjust_name_column_width(
         self, new_panel_width: float, during_drag: bool = False
     ) -> None:

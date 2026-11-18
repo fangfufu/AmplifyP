@@ -114,6 +114,7 @@ class GUISettings:
             "template_bases_per_line": "Auto",
             "primer_info_panel_position": "bottom",
             "primer_info_panel_fixed_height": False,
+            "primer_info_panel_height": 260,
             "auto_activate_new_valid_primer": False,
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
