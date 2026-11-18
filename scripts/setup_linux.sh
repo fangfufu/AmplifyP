@@ -74,7 +74,7 @@ ok "Python $($PYTHON_CMD --version 2>&1)"
 # 3. Virtual environment
 VENV_EXISTS=false
 if [[ "$SKIP_VENV" = false ]]; then
-  if [[ -d ".venv" ]]; then
+  if [[ -f ".venv/bin/activate" ]]; then
     VENV_EXISTS=true
     log "Virtual environment already exists at .venv, updating..."
     "$PYTHON_CMD" -m venv --upgrade .venv
@@ -94,7 +94,6 @@ else
     echo "Error: --skip-venv specified but no VIRTUAL_ENV set. Activate a venv first." >&2
     exit 1
   fi
-  VENV_EXISTS=true
   log "Using existing virtual environment: ${VIRTUAL_ENV}"
 fi
 

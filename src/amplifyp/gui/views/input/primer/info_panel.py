@@ -125,9 +125,20 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     def _apply_height_mode(self, fixed_height_enabled: bool) -> None:
         """Configure height and body scrolling based on fixed-height mode."""
         if fixed_height_enabled:
-            self.height = int(
+            saved_height = float(
                 self.settings.get("primer_info_panel_height", 260) or 260
             )
+            page_height: float | None = None
+            try:
+                if self.page and self.page.height:
+                    page_height = float(self.page.height)
+            except RuntimeError:
+                pass
+            if page_height is not None:
+                max_height = max(120.0, page_height - 200.0)
+                self.height = max(80.0, min(max_height, saved_height))
+            else:
+                self.height = saved_height
             self.info_body_column.scroll = ft.ScrollMode.AUTO
             self.info_body_column.expand = True
         else:

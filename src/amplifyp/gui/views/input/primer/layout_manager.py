@@ -123,6 +123,8 @@ class PrimerLayoutManager:
     def on_info_panel_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the horizontal divider to resize the info panel."""
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
+        if delta_y == 0.0:
+            return
         position = str(
             self.owner.settings.get("primer_info_panel_position", "bottom")
         ).lower()
@@ -153,14 +155,16 @@ class PrimerLayoutManager:
             else 800.0
         )
         max_height = max(120.0, page_height - 200.0)
-        clamped_height = int(max(80.0, min(max_height, new_height)))
+        clamped_height = max(80.0, min(max_height, new_height))
         self.owner.primer_info_panel.height = clamped_height
         self.owner.primer_info_panel.info_body_column.scroll = (
             ft.ScrollMode.AUTO
         )
         self.owner.primer_info_panel.info_body_column.expand = True
         if self.owner.settings.get("primer_info_panel_fixed_height", False):
-            self.owner.settings["primer_info_panel_height"] = clamped_height
+            self.owner.settings["primer_info_panel_height"] = round(
+                clamped_height
+            )
         try:
             if self.owner.primer_info_panel.page:
                 self.owner.primer_info_panel.update()

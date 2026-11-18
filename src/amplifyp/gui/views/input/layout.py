@@ -68,6 +68,8 @@ def handle_resize(input_view: Any, _e: ft.PageResizeEvent) -> None:
         input_view.primer_input.layout_manager.adjust_name_column_width(
             panel_width
         )
+        if input_view.settings.get("primer_info_panel_fixed_height", False):
+            input_view.primer_input.primer_info_panel._apply_height_mode(True)
         input_view._adjust_template_wrap(update_first=False)
         input_view.update()
 

@@ -495,7 +495,7 @@ class GUISettings:
                 elif isinstance(self._settings[k], int):
                     try:
                         self._settings[k] = int(v)
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, OverflowError):
                         pass
                 elif isinstance(self._settings[k], float):
                     try:
