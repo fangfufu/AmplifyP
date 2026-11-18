@@ -1791,3 +1791,100 @@ def test_delete_primers_clears_focused_control_reference() -> None:
 
     assert view._currently_focused_control is None
     assert view.primer_input._currently_focused_control is None
+
+
+def test_primer_info_panel_divider_resizing() -> None:
+    """Test dragging the horizontal divider to resize the primer info panel."""
+    view, page, _input_data, settings = _setup_test_view()
+    primer_input = view.primer_input
+    mgr = primer_input.layout_manager
+
+    # Verify property delegate on InputView
+    assert view.primer_info_divider is primer_input.primer_info_divider
+    assert view.primer_info_divider.visible is False
+
+    # Focus primer 0 so info panel and divider become visible
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_divider.visible is True
+    assert primer_input.primer_info_panel.height is None
+
+    # Test bottom position with fixed height unticked (default False):
+    # dragging up -> negative delta_y increases height from default_height (120)
+    settings["primer_info_panel_position"] = "bottom"
+    ev_up = MagicMock(spec=ft.DragUpdateEvent)
+    ev_up.local_delta = MagicMock(y=-40.0)
+    mgr.on_info_panel_divider_pan(ev_up)
+    assert primer_input.primer_info_panel.height == 160
+    assert settings["primer_info_panel_fixed_height"] is False
+    assert settings["primer_info_panel_height"] == 260
+
+    # Selecting another primer when fixed height is unticked automatically
+    # resets height to None (auto-sizing)
+    primer_input.focused_primer_index = 1
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.height is None
+    assert primer_input.primer_info_panel.info_body_column.scroll is None
+    assert primer_input.primer_info_panel.info_body_column.expand is False
+
+    # Enable fixed height for persistent drag tests
+    settings["primer_info_panel_fixed_height"] = True
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.height == 260
+
+    mgr.on_info_panel_divider_pan(ev_up)
+    assert primer_input.primer_info_panel.height == 300
+    assert settings["primer_info_panel_height"] == 300
+
+    # Test top position (dragging down -> positive delta_y increases height)
+    settings["primer_info_panel_position"] = "top"
+    ev_down = MagicMock(spec=ft.DragUpdateEvent)
+    ev_down.local_delta = MagicMock(y=20.0)
+    with patch(
+        "amplifyp.gui.views.input.primer.info_panel.PrimerInfoPanel.page",
+        new=property(lambda self: page),
+    ):
+        primer_input.primer_info_panel.update = MagicMock()
+        mgr.on_info_panel_divider_pan(ev_down)
+        assert primer_input.primer_info_panel.height == 320
+        assert settings["primer_info_panel_height"] == 320
+        primer_input.primer_info_panel.update.assert_called_once()
+
+    # Test runtime error handling when updating info panel during drag
+    with patch(
+        "amplifyp.gui.views.input.primer.info_panel.PrimerInfoPanel.page",
+        new=property(lambda self: page),
+    ):
+        primer_input.primer_info_panel.update = MagicMock(
+            side_effect=RuntimeError("detached")
+        )
+        mgr.on_info_panel_divider_pan(ev_down)
+
+    # Test pan end saves to local settings
+    with patch.object(settings, "save_to_local") as mock_save:
+        mgr.on_info_panel_divider_pan_end(MagicMock(spec=ft.DragEndEvent))
+        mock_save.assert_called_once_with(page)
+
+    # Test divider update when attached to page during _update_primer_info_panel
+    # and on_dismiss
+    with patch.object(
+        ft.GestureDetector, "page", new=property(lambda self: page)
+    ):
+        primer_input.primer_info_divider.update = MagicMock()
+        primer_input._update_primer_info_panel()
+        primer_input.primer_info_divider.update.assert_called_once()
+
+        # Dismiss via close button
+        primer_input.primer_info_divider.update.reset_mock()
+        primer_input.primer_info_panel._on_close_click(MagicMock())
+        assert primer_input.primer_info_divider.visible is False
+        primer_input.primer_info_divider.update.assert_called_once()
+
+        # RuntimeError handling in _update_primer_info_panel and on_dismiss
+        primer_input.primer_info_divider.update = MagicMock(
+            side_effect=RuntimeError("detached")
+        )
+        primer_input.focused_primer_index = 0
+        primer_input._update_primer_info_panel()
+        primer_input.primer_info_panel._on_close_click(MagicMock())

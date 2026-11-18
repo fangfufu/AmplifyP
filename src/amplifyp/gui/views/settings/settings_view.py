@@ -418,6 +418,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "auto_reload_on_startup": True,
             "primer_info_panel_position": "bottom",
             "primer_info_panel_fixed_height": False,
+            "primer_info_panel_height": 260,
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
