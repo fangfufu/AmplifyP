@@ -121,6 +121,8 @@ class NavigationManager:
         if view == ctrl.input_view and ctrl.input_view_dirty:
             ctrl.input_view.update_ui()
             ctrl.input_view_dirty = False
+        elif view == ctrl.settings_view and ctrl.settings_view is not None:
+            ctrl.settings_view.update_ui()
 
         ctrl.view_container.content = view
         is_input = view == ctrl.input_view

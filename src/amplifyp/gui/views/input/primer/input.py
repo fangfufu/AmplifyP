@@ -155,6 +155,18 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primer_info_panel = PrimerInfoPanel(
             settings=self.settings, font_family=font_family
         )
+        self.primer_info_divider = ft.GestureDetector(
+            on_pan_update=self.layout_manager.on_info_panel_divider_pan,
+            on_pan_end=self.layout_manager.on_info_panel_divider_pan_end,
+            content=ft.Container(
+                height=5,
+                bgcolor=GUIColours.DIVIDER_GREY,
+                border_radius=5,
+                margin=ft.Margin.symmetric(vertical=2),
+            ),
+            mouse_cursor=ft.MouseCursor.RESIZE_UP_DOWN,
+            visible=False,
+        )
 
         # Primer List Container
         self.primer_list_container = ft.Container(
@@ -196,6 +208,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             [
                 self.primer_title_row,
                 self.primer_info_panel,
+                self.primer_info_divider,
                 self.primer_list_container,
             ],
             expand=True,
@@ -214,12 +227,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             new_controls: list[ft.Control] = [
                 self.primer_title_row,
                 self.primer_info_panel,
+                self.primer_info_divider,
                 self.primer_list_container,
             ]
         else:
             new_controls = [
                 self.primer_title_row,
                 self.primer_list_container,
+                self.primer_info_divider,
                 self.primer_info_panel,
             ]
 
@@ -431,6 +446,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         def on_dismiss() -> None:
             """Clear focus when the primer info panel is dismissed."""
             self.focused_primer_index = None
+            self.primer_info_divider.visible = self.primer_info_panel.visible
+            try:
+                if self.primer_info_divider.page:
+                    self.primer_info_divider.update()
+            except RuntimeError:
+                pass
             self._update_row_highlights()
             if self.app_page:
                 self.app_page.update()
@@ -442,6 +463,12 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_update_highlights=self._update_row_highlights,
             on_dismiss=on_dismiss,
         )
+        self.primer_info_divider.visible = self.primer_info_panel.visible
+        try:
+            if self.primer_info_divider.page:
+                self.primer_info_divider.update()
+        except RuntimeError:
+            pass
 
     async def _load_primers_click(self, e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file."""

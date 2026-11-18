@@ -192,6 +192,12 @@ Panel contents:
 - **Column Resizing**: Drag the vertical divider between the Name and Sequence
   header columns to resize column proportions. Column ratios scale
   proportionally on window resize.
+- **Primer Info Panel Resizing**: When the primer information panel is visible,
+  drag the horizontal divider bar between the primer list and the info panel to
+  adjust its height. When **Fixed height primer info box** is ticked in
+  Settings, the chosen height is persisted across primer selections and
+  sessions; when unticked, selecting another primer automatically resizes the
+  panel to fit its contents.
 
 ______________________________________________________________________
 
