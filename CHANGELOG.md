@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.3](https://github.com/fangfufu/AmplifyP/compare/v1.26.2...v1.26.3) (2026-11-19)
+
+
+### Bug Fixes
+
+* **linux:** use rDNS ID for AppStream validation ([537f8fd](https://github.com/fangfufu/AmplifyP/commit/537f8fdd69822e72c4be26a5907adc12ac9b120e))
+
 ## [1.26.2](https://github.com/fangfufu/AmplifyP/compare/v1.26.1...v1.26.2) (2026-11-19)
 
 
