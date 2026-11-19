@@ -64,7 +64,7 @@ if [[ "$INSTALL_DEPS" = true ]]; then
     libgtk-3-dev libsecret-1-0 libsecret-1-dev libunwind-dev \
     libasound2-dev libgstreamer1.0-dev \
     libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev \
-    libmpv-dev mpv wget
+    libmpv-dev mpv wget appstream
 fi
 
 echo "==> Generating Git SHA..."
@@ -87,6 +87,42 @@ Exec=AmplifyP %U
 Icon=AmplifyP
 Categories=Science;Education;
 Terminal=false
+EOF
+
+echo "==> Creating AppStream metadata..."
+APP_VERSION="${VERSION:-$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")}"
+RELEASE_DATE="$(date -u +%Y-%m-%d)"
+mkdir -p build/AmplifyP/usr/share/metainfo
+cat << EOF > build/AmplifyP/usr/share/metainfo/AmplifyP.appdata.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.fangfufu.amplifyp</id>
+  <metadata_license>FSFAP</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>AmplifyP</name>
+  <summary>Simulate PCR and predict DNA amplification products</summary>
+  <description>
+    <p>
+      AmplifyP is an open-source cross-platform program for simulating and
+      testing polymerase chain reactions (PCRs). It can be used as a tool for
+      designing primers by evaluating candidates, planning experiments, and
+      teaching students about PCR.
+    </p>
+    <p>
+      Supply the DNA sequences of one or more primers along with a target DNA
+      sequence, and AmplifyP generates a map of the expected outcome, sequences
+      of likely amplified fragments, and warnings about potential primer dimers.
+    </p>
+  </description>
+  <launchable type="desktop-id">AmplifyP.desktop</launchable>
+  <url type="homepage">https://github.com/fangfufu/AmplifyP</url>
+  <url type="bugtracker">https://github.com/fangfufu/AmplifyP/issues</url>
+  <developer_name>Fufu Fang</developer_name>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="${APP_VERSION}" date="${RELEASE_DATE}" />
+  </releases>
+</component>
 EOF
 
 echo "==> Copying icons..."
