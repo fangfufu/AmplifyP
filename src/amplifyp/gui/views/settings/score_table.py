@@ -139,7 +139,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                 field = self.settings_map[key]
 
                 # Style TextField to match the borderless style in primer table
-                field.border = ft.InputBorder.NONE
+                field.border = ft.NoInputBorder()
                 field.width = col_width
                 field.height = 30
                 field.content_padding = 0
