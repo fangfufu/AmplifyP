@@ -136,7 +136,12 @@ def main(
     if getattr(page, "web", False) and hasattr(page, "run_task"):
 
         async def _start_web() -> None:
-            await gui_settings.load_from_local_async(page)
+            try:
+                await gui_settings.load_from_local_async(page)
+            except (RuntimeError, OSError, ValueError) as exc:
+                logger.warning(
+                    "Failed to load web preferences, using defaults: %s", exc
+                )
             _initialise_app(load_settings_in_controller=False)
 
         page.run_task(_start_web)
