@@ -130,6 +130,3 @@ artifacts = [
 
 [tool.flet.app]
 path = "src"
-
-[tool.flet.flutter.pubspec.dependency_overrides]
-jni = "1.1.0"
