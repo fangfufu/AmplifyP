@@ -312,6 +312,57 @@ async def test_web_startup_awaits_preferences_before_init() -> None:
         assert passed_settings["dark_mode"] is True
 
 
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_web_startup_recovers_from_preference_error(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test web startup logs preference errors and continues with defaults."""
+    import asyncio
+    import logging
+
+    from amplifyp.gui.app import main as app_main
+
+    mock_page = MagicMock()
+    mock_page.web = True
+    tasks: list[asyncio.Task[Any]] = []
+
+    def _run_task(fn: Any, *a: Any, **kw: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*a, **kw))
+        tasks.append(t)
+        return t
+
+    mock_page.run_task = MagicMock(side_effect=_run_task)
+
+    events: list[str] = []
+
+    async def failing_contains(key: str) -> bool:
+        raise RuntimeError("client storage unavailable")
+
+    mock_prefs = MagicMock()
+    mock_prefs.contains_key = MagicMock(side_effect=failing_contains)
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.initialise = MagicMock(
+        side_effect=lambda **kw: events.append(f"ctrl_init:{kw}")
+    )
+
+    with (
+        caplog.at_level(logging.WARNING, logger="amplifyp.gui.app"),
+        patch("flet.SharedPreferences", return_value=mock_prefs),
+        patch(
+            "amplifyp.gui.app.initialise_logging",
+            side_effect=lambda **kw: events.append("logging"),
+        ),
+        patch("amplifyp.gui.app.GUIController", return_value=mock_ctrl) as cls,
+    ):
+        app_main(mock_page)
+        await asyncio.gather(*tasks)
+        assert events == ["logging", "ctrl_init:{'load_settings': False}"]
+        passed_settings = cls.call_args.kwargs["settings"]
+        assert passed_settings["dark_mode"] == "system"
+        assert "Failed to load web preferences, using defaults" in caplog.text
+
+
 def test_info_panel_overflow_height_fallback() -> None:
     """Test that huge saved primer_info_panel_height falls back to 260."""
     from amplifyp.gui.views.input.primer.info_panel import PrimerInfoPanel
