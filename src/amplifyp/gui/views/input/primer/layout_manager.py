@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, cast
 
 import flet as ft
@@ -123,7 +124,7 @@ class PrimerLayoutManager:
     def on_info_panel_divider_pan(self, e: ft.DragUpdateEvent) -> None:
         """Handle dragging the horizontal divider to resize the info panel."""
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
-        if delta_y == 0.0:
+        if math.isclose(delta_y, 0.0, abs_tol=1e-9):
             return
         position = str(
             self.owner.settings.get("primer_info_panel_position", "bottom")
