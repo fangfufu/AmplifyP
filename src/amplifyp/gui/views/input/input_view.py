@@ -163,6 +163,11 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.primer_input.primer_info_panel
 
     @property
+    def primer_info_divider(self) -> ft.GestureDetector:
+        """Get the primer info panel drag divider."""
+        return self.primer_input.primer_info_divider
+
+    @property
     def info_header(self) -> ft.Container:
         """Get the primer info header container."""
         return self.primer_input.info_header

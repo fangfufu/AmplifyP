@@ -1677,3 +1677,30 @@ def test_multiline_paste_into_empty_field() -> None:
     assert len(input_data.primers) == 2
     assert input_data.primers[0]["name"] == "PrimerA"
     assert input_data.primers[1]["name"] == "PrimerB"
+
+
+def test_handle_field_focus_detached_page() -> None:
+    """Test handle_field_focus handles RuntimeError when view has no page."""
+    from amplifyp.gui.views.input.events import handle_field_focus
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row0 = view.primers_list.controls[0]
+    mock_event = MagicMock(spec=ft.ControlEvent)
+    mock_event.control = row0.seq_field
+    mock_event.page = None
+
+    with patch.object(
+        InputView,
+        "page",
+        new=property(
+            lambda _self: (_ for _ in ()).throw(RuntimeError("detached"))
+        ),
+    ):
+        handle_field_focus(view, mock_event)
+
+    assert input_data.primers[0]["seq_touched"] is True

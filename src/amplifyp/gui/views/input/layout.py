@@ -68,6 +68,16 @@ def handle_resize(input_view: Any, _e: ft.PageResizeEvent) -> None:
         input_view.primer_input.layout_manager.adjust_name_column_width(
             panel_width
         )
+        info_panel = input_view.primer_input.primer_info_panel
+        if input_view.settings.get("primer_info_panel_fixed_height", False):
+            info_panel._apply_height_mode(True)
+        elif info_panel.height is not None:
+            page_height = input_view.app_page.height
+            if isinstance(page_height, (int, float)) and page_height > 0:
+                max_height = max(120.0, float(page_height) - 200.0)
+                info_panel.height = max(
+                    80.0, min(max_height, float(info_panel.height))
+                )
         input_view._adjust_template_wrap(update_first=False)
         input_view.update()
 

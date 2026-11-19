@@ -313,8 +313,11 @@ def test_e2e_primer_lifecycle_and_state(
     ).to_be_enabled(timeout=15000)
 
     print("Deleting V3 and I3 using delete buttons...")
+    # Use DOM .focus() without .click(force=True): focusing V3 opens the
+    # PrimerInfoPanel at the bottom and shrinks the primer ListView, which
+    # causes a subsequent forced click to land on a different row (e.g. I2)
+    # or on the info panel itself.
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     def _delete_selected_primer(expected_count: int) -> None:
@@ -348,16 +351,19 @@ def test_e2e_primer_lifecycle_and_state(
             _click_and_wait(5000)
         except AssertionError:
             page.locator(PRIMER_INPUT_SEL).nth(8).focus()
-            page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
             time.sleep(0.5)
             _click_and_wait(10000)
 
     # Verify V3 deleted: I3 is now at index 4 (global index 8).
     _delete_selected_primer(12)
     time.sleep(1)
+    expect(
+        name_inputs.nth(4 * 2)
+        .locator("xpath=../../../..")
+        .get_by_role("checkbox")
+    ).not_to_be_checked(timeout=15000)
 
     page.locator(PRIMER_INPUT_SEL).nth(8).focus()
-    page.locator(PRIMER_INPUT_SEL).nth(8).click(force=True)
     time.sleep(1)
 
     # Verify both V3 and I3 deleted: count returned to 5 rows (10 inputs).

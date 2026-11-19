@@ -201,3 +201,33 @@ def test_cli_emscripten_platform(monkeypatch: pytest.MonkeyPatch) -> None:
     kwargs = mock_run.call_args.kwargs
     assert kwargs["view"] is None
     assert kwargs["port"] == 0
+
+
+def test_dunder_main_imports() -> None:
+    """Test that amplifyp.__main__ imports the CLI entry point."""
+    import amplifyp.__main__ as dunder_main
+    from amplifyp.main import cli
+
+    assert getattr(dunder_main, "cli", None) is cli
+
+
+def test_get_assets_dir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: object
+) -> None:
+    """Test get_assets_dir prefers package assets then falls back."""
+    from pathlib import Path
+
+    import amplifyp.main as amplifyp_main
+
+    base = Path(str(tmp_path))
+    fake_main = base / "amplifyp" / "main.py"
+    fake_main.parent.mkdir(parents=True)
+    monkeypatch.setattr(amplifyp_main, "__file__", str(fake_main))
+
+    # Neither package nor repo assets exists -> falls back to package_assets
+    expected_pkg = str(base / "amplifyp" / "assets")
+    assert amplifyp_main.get_assets_dir() == expected_pkg
+
+    # Package assets directory exists -> returns package_assets
+    (base / "amplifyp" / "assets").mkdir()
+    assert amplifyp_main.get_assets_dir() == expected_pkg

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import deque
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
@@ -94,13 +95,37 @@ class NotificationHelper:
     def __init__(self, page: ft.Page) -> None:
         """Initialize the NotificationHelper."""
         self.page = page
-        self._snack_bar = ft.SnackBar(ft.Text(""), open=False)
-        self.page.overlay.append(self._snack_bar)
+        self._snack_bar: ft.SnackBar | None = None
+        self._queue: deque[str] = deque()
 
     def show_message(self, message: str) -> None:
-        """Show a message to the user via a SnackBar."""
-        self._snack_bar.content = ft.Text(message)
-        self._snack_bar.open = True
+        """Show a message via a SnackBar, queueing if one is active."""
+        if self._snack_bar is not None:
+            self._queue.append(message)
+            return
+        self._display_message(message)
+
+    def _display_message(self, message: str) -> None:
+        """Create and display a SnackBar for the given message."""
+
+        def on_dismiss(e: ft.Event[ft.Control]) -> None:
+            """Remove the snack bar from overlay and show next queued."""
+            if snack_bar in self.page.overlay:
+                self.page.overlay.remove(snack_bar)
+            if self._snack_bar is snack_bar:
+                self._snack_bar = None
+            if self._queue:
+                self._display_message(self._queue.popleft())
+            else:
+                self.page.update()
+
+        snack_bar = ft.SnackBar(
+            ft.Text(message),
+            open=True,
+            on_dismiss=on_dismiss,  # pyright: ignore[reportArgumentType]
+        )
+        self._snack_bar = snack_bar
+        self.page.overlay.append(snack_bar)
         self.page.update()
 
 

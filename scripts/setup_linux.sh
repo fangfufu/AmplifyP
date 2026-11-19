@@ -72,11 +72,15 @@ fi
 ok "Python $($PYTHON_CMD --version 2>&1)"
 
 # 3. Virtual environment
+VENV_EXISTS=false
 if [[ "$SKIP_VENV" = false ]]; then
-  if [[ -d ".venv" ]]; then
-    log "Virtual environment already exists at .venv"
+  if [[ -f ".venv/bin/activate" ]]; then
+    VENV_EXISTS=true
+    log "Virtual environment already exists at .venv, updating..."
+    "$PYTHON_CMD" -m venv --upgrade .venv
+    ok "Virtual environment base updated"
   else
-    log "Creating virtual environment at .venv..."
+    log "Initialising virtual environment at .venv..."
     "$PYTHON_CMD" -m venv .venv
     ok "Virtual environment created"
   fi
@@ -98,10 +102,16 @@ log "Upgrading pip..."
 pip install --upgrade pip -q
 ok "pip $(pip --version)"
 
-# 5. Install package in editable mode
-log "Installing AmplifyP in editable mode with dev and e2e dependencies..."
-pip install -e ".[dev,e2e]" -q
-ok "Package installed"
+# 5. Install or update package in editable mode
+if [[ "$VENV_EXISTS" = true ]]; then
+  log "Updating AmplifyP and dependencies in editable mode (with dev and e2e)..."
+  pip install --upgrade --upgrade-strategy eager -e ".[dev,e2e]" -q
+  ok "Package and dependencies updated"
+else
+  log "Installing AmplifyP in editable mode with dev and e2e dependencies..."
+  pip install -e ".[dev,e2e]" -q
+  ok "Package installed"
+fi
 
 # 6. Playwright browsers
 log "Installing Playwright browser binaries..."
