@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.0](https://github.com/fangfufu/AmplifyP/compare/v1.25.1...v1.26.0) (2026-11-19)
+
+
+### Features
+
+* **gui:** add drag handle to resize primer info ([20b990b](https://github.com/fangfufu/AmplifyP/commit/20b990b807510a3083ed5dbe9f5dc3d023eb9229))
+* **gui:** add drag handle to resize primer info ([0317d14](https://github.com/fangfufu/AmplifyP/commit/0317d147f067a567865105c24b829eba5f29aebd))
+
+
+### Bug Fixes
+
+* **gui:** address PR [#395](https://github.com/fangfufu/AmplifyP/issues/395) review comments ([7fcf32b](https://github.com/fangfufu/AmplifyP/commit/7fcf32b65b03e93c75f1a063ee3446574ae0c10b))
+* **gui:** avoid float equality check in pan ([eaa8a33](https://github.com/fangfufu/AmplifyP/commit/eaa8a33fdaf269fa051f1b159e661e762b302856))
+* **gui:** create fresh SnackBar per notification ([280e8e8](https://github.com/fangfufu/AmplifyP/commit/280e8e81d1f598bd986572583bce084713e6aee5))
+* **gui:** create fresh SnackBar per notification ([e017226](https://github.com/fangfufu/AmplifyP/commit/e0172263fb57a00d4c13fad27f42208f1a816204))
+* **gui:** migrate web settings storage to SharedPreferences ([49482ad](https://github.com/fangfufu/AmplifyP/commit/49482adf8cf1541ec976133a11c6f713b8172525))
+* **gui:** replace deprecated InputBorder.NONE ([44a7e38](https://github.com/fangfufu/AmplifyP/commit/44a7e38ee6ff497feae6a0632b532b3cba90ab9d))
+* **scripts:** guard .venv upgrade and eager pip strategy ([bc0665a](https://github.com/fangfufu/AmplifyP/commit/bc0665ad407e23030cfa2ee2f37d0a5a62d601a3))
+
 ## [1.25.1](https://github.com/fangfufu/AmplifyP/compare/v1.25.0...v1.25.1) (2026-10-09)
 
 
