@@ -56,6 +56,7 @@ class GUIController:
         screenshots_dir: str | Path | None = None,
         window_width: int | None = None,
         window_height: int | None = None,
+        settings: GUISettings | None = None,
     ) -> None:
         """Initialize the GUIController.
 
@@ -67,6 +68,7 @@ class GUIController:
             screenshots_dir: Target directory for saved PNG screenshots.
             window_width: Optional application window width in pixels.
             window_height: Optional application window height in pixels.
+            settings: Optional pre-loaded GUISettings instance.
         """
         self.page = page
         self.state_file = state_file
@@ -78,7 +80,7 @@ class GUIController:
         self.window_width = window_width
         self.window_height = window_height
         self.input_data = GUIInput()
-        self.settings = GUISettings()
+        self.settings = settings if settings is not None else GUISettings()
         self.filepicker_open = False
         self._confirm_dialog = None
         self._clear_dialog = None
@@ -116,11 +118,12 @@ class GUIController:
         self._nav_manager = NavigationManager(self)
         self._update_manager = UpdateManager(self)
 
-    def initialise(self) -> None:
+    def initialise(self, load_settings: bool = True) -> None:
         """Configure page setup, window events, views, and custom layout."""
         self._configure_page_and_window()
 
-        self.settings.load_from_local(self.page)
+        if load_settings:
+            self.settings.load_from_local(self.page)
         self.page.on_platform_brightness_change = (
             self._theme_manager.on_platform_brightness_change
         )

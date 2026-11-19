@@ -176,7 +176,9 @@ class PrimerLayoutManager:
         if self.owner.app_page and self.owner.settings.get(
             "primer_info_panel_fixed_height", False
         ):
-            self.owner.settings.save_to_local(self.owner.app_page)
+            self.owner.settings.save_to_local(
+                self.owner.app_page, keys=("primer_info_panel_height",)
+            )
 
     def adjust_name_column_width(
         self, new_panel_width: float, during_drag: bool = False

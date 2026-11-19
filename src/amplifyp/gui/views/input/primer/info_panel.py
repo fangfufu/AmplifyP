@@ -125,9 +125,13 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     def _apply_height_mode(self, fixed_height_enabled: bool) -> None:
         """Configure height and body scrolling based on fixed-height mode."""
         if fixed_height_enabled:
-            saved_height = float(
+            raw_height = (
                 self.settings.get("primer_info_panel_height", 260) or 260
             )
+            try:
+                saved_height = float(raw_height)
+            except (OverflowError, TypeError, ValueError):
+                saved_height = 260.0
             page_height: float | None = None
             try:
                 if self.page and self.page.height:

@@ -1864,7 +1864,9 @@ def test_primer_info_panel_divider_resizing() -> None:
     # Test pan end saves to local settings
     with patch.object(settings, "save_to_local") as mock_save:
         mgr.on_info_panel_divider_pan_end(MagicMock(spec=ft.DragEndEvent))
-        mock_save.assert_called_once_with(page)
+        mock_save.assert_called_once_with(
+            page, keys=("primer_info_panel_height",)
+        )
 
     # Test divider update when attached to page during _update_primer_info_panel
     # and on_dismiss

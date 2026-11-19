@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import MagicMock, mock_open, patch
 
 import flet as ft
+import pytest
 import yaml
 
 from amplifyp.gui.settings import GUISettings
@@ -164,13 +165,15 @@ def test_web_save_and_load_client_storage() -> None:
     """Test saving and loading settings on web using page.client_storage."""
     settings = GUISettings()
     settings["primability_cutoff"] = "0.85"
-    settings["dark_mode"] = "system"
+    settings["dark_mode"] = True
 
     import asyncio
 
     mock_page = MagicMock()
     mock_page.web = True
-    mock_page.run_task = MagicMock(side_effect=lambda fn: asyncio.run(fn()))
+    mock_page.run_task = MagicMock(
+        side_effect=lambda fn, *args, **kwargs: asyncio.run(fn(*args, **kwargs))
+    )
 
     # Set up SharedPreferences mock
     mock_storage: dict[str, Any] = {}
@@ -197,14 +200,14 @@ def test_web_save_and_load_client_storage() -> None:
         # Assert key exists in storage with prefix
         assert "amplifyp.settings.primability_cutoff" in mock_storage
         assert mock_storage["amplifyp.settings.primability_cutoff"] == "0.85"
-        assert mock_storage["amplifyp.settings.dark_mode"] == "system"
+        assert mock_storage["amplifyp.settings.dark_mode"] is True
 
         # Test Load
         new_settings = GUISettings()
         new_settings.load_from_local(mock_page)
 
         assert new_settings["primability_cutoff"] == "0.85"
-        assert new_settings["dark_mode"] == "system"
+        assert new_settings["dark_mode"] is True
 
 
 def test_dark_mode_system_coercion() -> None:
@@ -214,6 +217,131 @@ def test_dark_mode_system_coercion() -> None:
     assert settings.get("dark_mode") is False
     settings["dark_mode"] = "system"
     assert settings.get("dark_mode") == "system"
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_web_save_snapshot_and_key_filtering() -> None:
+    """Test that web saves snapshot values at call time and filter keys."""
+    import asyncio
+
+    settings = GUISettings()
+    settings["primer_info_panel_height"] = 420
+
+    mock_page = MagicMock()
+    mock_page.web = True
+    tasks: list[asyncio.Task[Any]] = []
+
+    def _run_task(fn: Any, *args: Any, **kwargs: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*args, **kwargs))
+        tasks.append(t)
+        return t
+
+    mock_page.run_task = MagicMock(side_effect=_run_task)
+
+    mock_storage: dict[str, Any] = {}
+
+    async def slow_set(key: str, value: Any) -> bool:
+        await asyncio.sleep(0.01)
+        mock_storage[key] = value
+        return True
+
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=slow_set)
+
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        t1 = settings.save_to_local(
+            mock_page, keys=("primer_info_panel_height",)
+        )
+        # Mutate live settings after scheduling; snapshot must keep 420
+        settings["primer_info_panel_height"] = 480
+        await t1
+        assert mock_storage == {
+            "amplifyp.settings.primer_info_panel_height": 420
+        }
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_web_startup_awaits_preferences_before_init() -> None:
+    """Test web startup awaits preferences before logging and controller."""
+    import asyncio
+
+    from amplifyp.gui.app import main as app_main
+
+    mock_page = MagicMock()
+    mock_page.web = True
+    tasks: list[asyncio.Task[Any]] = []
+
+    def _run_task(fn: Any, *a: Any, **kw: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*a, **kw))
+        tasks.append(t)
+        return t
+
+    mock_page.run_task = MagicMock(side_effect=_run_task)
+
+    events: list[str] = []
+
+    async def delayed_contains(key: str) -> bool:
+        await asyncio.sleep(0.01)
+        return key == "amplifyp.settings.dark_mode"
+
+    async def delayed_get(key: str) -> Any:
+        return True
+
+    mock_prefs = MagicMock()
+    mock_prefs.contains_key = MagicMock(side_effect=delayed_contains)
+    mock_prefs.get = MagicMock(side_effect=delayed_get)
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.initialise = MagicMock(
+        side_effect=lambda **kw: events.append(f"ctrl_init:{kw}")
+    )
+
+    with (
+        patch("flet.SharedPreferences", return_value=mock_prefs),
+        patch(
+            "amplifyp.gui.app.initialise_logging",
+            side_effect=lambda **kw: events.append("logging"),
+        ),
+        patch("amplifyp.gui.app.GUIController", return_value=mock_ctrl) as cls,
+    ):
+        app_main(mock_page)
+        assert events == []
+        await asyncio.gather(*tasks)
+        assert events == ["logging", "ctrl_init:{'load_settings': False}"]
+        passed_settings = cls.call_args.kwargs["settings"]
+        assert passed_settings["dark_mode"] is True
+
+
+def test_info_panel_overflow_height_fallback() -> None:
+    """Test that huge saved primer_info_panel_height falls back to 260."""
+    from amplifyp.gui.views.input.primer.info_panel import PrimerInfoPanel
+
+    settings = GUISettings()
+    settings._settings["primer_info_panel_height"] = 10**400
+    panel = PrimerInfoPanel(settings, "monospace")
+    panel._apply_height_mode(True)
+    assert panel.height == 260.0
+
+
+def test_handle_resize_clamps_temporary_drag_height() -> None:
+    """Test handle_resize clamps temporary drag height in auto mode."""
+    from amplifyp.gui.views.input.layout import handle_resize
+
+    mock_view = MagicMock()
+    mock_view.app_page.width = 800
+    mock_view.app_page.height = 600
+    mock_view.right_fraction = 0.5
+    mock_view.settings.get = MagicMock(return_value=False)
+
+    # Temporary drag height 700 should be clamped to 600 - 200 = 400
+    mock_view.primer_input.primer_info_panel.height = 700.0
+    handle_resize(mock_view, MagicMock())
+    assert mock_view.primer_input.primer_info_panel.height == 400.0
+
+    # Content-sized mode (height=None) should stay None
+    mock_view.primer_input.primer_info_panel.height = None
+    handle_resize(mock_view, MagicMock())
+    assert mock_view.primer_input.primer_info_panel.height is None
 
 
 def test_gui_settings_edge_cases_and_coercions() -> None:

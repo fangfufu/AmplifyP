@@ -26,12 +26,25 @@ import pytest
 async def test_web_state_save_load() -> None:
     """Test saving and loading state using native FilePicker on Web."""
     # Import main inside the test
+    import asyncio
+
     from amplifyp.gui.views import InputView
     from main import main
 
     mock_page = MagicMock(spec=ft.Page)
     mock_page.web = True
     mock_page.window = MagicMock()
+    tasks: list[asyncio.Task[Any]] = []
+
+    def _run_task(fn: Any, *a: Any, **kw: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*a, **kw))
+        tasks.append(t)
+        return t
+
+    mock_page.run_task = MagicMock(side_effect=_run_task)
+
+    mock_prefs = MagicMock()
+    mock_prefs.contains_key = AsyncMock(return_value=False)
 
     # Mock FilePicker class
     mock_file_picker_instance = MagicMock(spec=ft.FilePicker)
@@ -39,11 +52,16 @@ async def test_web_state_save_load() -> None:
         return_value="amplify_gui_state.yaml"
     )
 
-    with patch(
-        "amplifyp.gui.app.ft.FilePicker", return_value=mock_file_picker_instance
+    with (
+        patch(
+            "amplifyp.gui.app.ft.FilePicker",
+            return_value=mock_file_picker_instance,
+        ),
+        patch("flet.SharedPreferences", return_value=mock_prefs),
     ):
         # Run main logic
         main(mock_page)
+        await asyncio.gather(*tasks)
 
         # Extract the container added to the page
         assert mock_page.add.called

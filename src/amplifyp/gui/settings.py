@@ -532,6 +532,17 @@ class GUISettings:
         """
         return get_settings_yaml_path()
 
+    async def load_from_local_async(self, page: ft.Page) -> None:
+        """Asynchronously load settings from web SharedPreferences."""
+        prefs = ft.SharedPreferences()
+        settings_dict = {}
+        for k in self._settings:
+            storage_key = f"amplifyp.settings.{k}"
+            if await prefs.contains_key(storage_key):
+                settings_dict[k] = await prefs.get(storage_key)
+        if settings_dict:
+            self.from_dict(settings_dict)
+
     def load_from_local(self, page: ft.Page) -> None:
         """Load settings from local storage.
 
@@ -540,18 +551,7 @@ class GUISettings:
         """
         if getattr(page, "web", False):
             if hasattr(page, "run_task"):
-
-                async def _load_web() -> None:
-                    prefs = ft.SharedPreferences()
-                    settings_dict = {}
-                    for k in self._settings:
-                        storage_key = f"amplifyp.settings.{k}"
-                        if await prefs.contains_key(storage_key):
-                            settings_dict[k] = await prefs.get(storage_key)
-                    if settings_dict:
-                        self.from_dict(settings_dict)
-
-                page.run_task(_load_web)
+                page.run_task(self.load_from_local_async, page)
             return
 
         # Desktop path
@@ -567,7 +567,9 @@ class GUISettings:
                     "Error loading settings from %s: %s", config_path, e
                 )
 
-    def save_to_local(self, page: ft.Page) -> None:
+    def save_to_local(
+        self, page: ft.Page, keys: tuple[str, ...] | list[str] | None = None
+    ) -> Any:
         """Save settings to local storage.
 
         On web platforms, uses ft.SharedPreferences via page.run_task.
@@ -575,15 +577,33 @@ class GUISettings:
         """
         if getattr(page, "web", False):
             if hasattr(page, "run_task"):
+                target_keys = (
+                    keys if keys is not None else tuple(self._settings.keys())
+                )
+                snapshot = {
+                    k: self._settings[k]
+                    for k in target_keys
+                    if k in self._settings
+                }
+                prev_task = getattr(self, "_web_save_task", None)
 
                 async def _save_web() -> None:
+                    if prev_task is not None and (
+                        not hasattr(prev_task, "done") or not prev_task.done()
+                    ):
+                        try:
+                            await prev_task
+                        except Exception as e:
+                            logger.debug("Previous web save failed: %s", e)
                     prefs = ft.SharedPreferences()
-                    for k, v in self._settings.items():
+                    for k, v in snapshot.items():
                         storage_key = f"amplifyp.settings.{k}"
                         await prefs.set(storage_key, v)
 
-                page.run_task(_save_web)
-            return
+                task = page.run_task(_save_web)
+                self._web_save_task = task
+                return task
+            return None
 
         # Desktop path
         config_path = self._get_config_path()

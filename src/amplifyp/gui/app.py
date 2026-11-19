@@ -106,28 +106,41 @@ def main(
         window_height: Optional application window height in pixels.
     """
     gui_settings = GUISettings()
-    gui_settings.load_from_local(page)
 
-    initialise_logging(
-        is_web=page.web,
-        log_level_amplifyp=gui_settings.get("log_level_amplifyp", "DEBUG"),
-        log_level_flet=gui_settings.get("log_level_flet", "INFO"),
-        log_console_enabled=gui_settings.get("log_console_enabled", True),
-        log_file_enabled=gui_settings.get("log_file_enabled", not page.web),
-        log_file_path=gui_settings.get("log_file_path", "(Default)"),
-        log_rotation_enabled=gui_settings.get("log_rotation_enabled", True),
-        log_rotation_max_bytes=gui_settings.get(
-            "log_rotation_max_bytes", 5242880
-        ),
-    )
-    logger.info("Starting AmplifyP GUI application")
-    controller = GUIController(
-        page,
-        state_file=state_file,
-        auto_close=auto_close,
-        export_screenshots=export_screenshots,
-        screenshots_dir=screenshots_dir,
-        window_width=window_width,
-        window_height=window_height,
-    )
-    controller.initialise()
+    def _initialise_app(load_settings_in_controller: bool) -> None:
+        initialise_logging(
+            is_web=page.web,
+            log_level_amplifyp=gui_settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_flet=gui_settings.get("log_level_flet", "INFO"),
+            log_console_enabled=gui_settings.get("log_console_enabled", True),
+            log_file_enabled=gui_settings.get("log_file_enabled", not page.web),
+            log_file_path=gui_settings.get("log_file_path", "(Default)"),
+            log_rotation_enabled=gui_settings.get("log_rotation_enabled", True),
+            log_rotation_max_bytes=gui_settings.get(
+                "log_rotation_max_bytes", 5242880
+            ),
+        )
+        logger.info("Starting AmplifyP GUI application")
+        controller = GUIController(
+            page,
+            state_file=state_file,
+            auto_close=auto_close,
+            export_screenshots=export_screenshots,
+            screenshots_dir=screenshots_dir,
+            window_width=window_width,
+            window_height=window_height,
+            settings=gui_settings,
+        )
+        controller.initialise(load_settings=load_settings_in_controller)
+
+    if getattr(page, "web", False) and hasattr(page, "run_task"):
+
+        async def _start_web() -> None:
+            await gui_settings.load_from_local_async(page)
+            _initialise_app(load_settings_in_controller=False)
+
+        page.run_task(_start_web)
+        return
+
+    gui_settings.load_from_local(page)
+    _initialise_app(load_settings_in_controller=True)
