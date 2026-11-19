@@ -15,8 +15,11 @@
 
 """Tests for GUI settings persistence on Desktop and Web platforms."""
 
+import asyncio
+import logging
 from pathlib import Path
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock, mock_open, patch
 
 import flet as ft
@@ -26,52 +29,158 @@ import yaml
 from amplifyp.gui.settings import GUISettings
 
 
-def test_get_config_path() -> None:
+def _make_desktop_page() -> MagicMock:
+    """Create a mock desktop Flet page."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    return mock_page
+
+
+def _load_desktop_yaml(settings: GUISettings, yaml_content: str) -> None:
+    """Load YAML content into settings using a mocked local config file."""
+    mock_page = _make_desktop_page()
+    mock_path = MagicMock(spec=Path)
+    mock_path.exists.return_value = True
+    m_open = mock_open(read_data=yaml_content)
+
+    with (
+        patch.object(settings, "_get_config_path", return_value=mock_path),
+        patch("builtins.open", m_open),
+    ):
+        settings.load_from_local(mock_page)
+
+
+def _make_web_page(
+    *, sync: bool = False
+) -> tuple[MagicMock, list[asyncio.Task[Any]]]:
+    """Create a mock web Flet page and a list collecting scheduled tasks."""
+    mock_page = MagicMock()
+    mock_page.web = True
+    tasks: list[asyncio.Task[Any]] = []
+
+    if sync:
+        mock_page.run_task = MagicMock(
+            side_effect=lambda fn, *args, **kwargs: asyncio.run(
+                fn(*args, **kwargs)
+            )
+        )
+    else:
+
+        def _run_task(fn: Any, *args: Any, **kwargs: Any) -> asyncio.Task[Any]:
+            task = asyncio.create_task(fn(*args, **kwargs))
+            tasks.append(task)
+            return task
+
+        mock_page.run_task = MagicMock(side_effect=_run_task)
+
+    return mock_page, tasks
+
+
+def _make_mock_prefs(
+    storage: dict[str, Any] | None = None,
+    *,
+    set_delay: float = 0.0,
+) -> tuple[MagicMock, dict[str, Any]]:
+    """Create a mock SharedPreferences backed by an in-memory dict."""
+    mock_storage: dict[str, Any] = {} if storage is None else storage
+
+    async def mock_set(key: str, value: Any) -> bool:
+        if set_delay > 0:
+            await asyncio.sleep(set_delay)
+        mock_storage[key] = value
+        return True
+
+    async def mock_get(key: str) -> Any:
+        return mock_storage.get(key)
+
+    async def mock_contains(key: str) -> bool:
+        return key in mock_storage
+
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=mock_set)
+    mock_prefs.get = MagicMock(side_effect=mock_get)
+    mock_prefs.contains_key = MagicMock(side_effect=mock_contains)
+    return mock_prefs, mock_storage
+
+
+async def _run_web_startup(
+    mock_prefs: MagicMock,
+) -> tuple[list[str], list[str], GUISettings]:
+    """Run app_main on a mock web page and return events and settings."""
+    from amplifyp.gui.app import main as app_main
+
+    mock_page, tasks = _make_web_page()
+    events: list[str] = []
+
+    mock_ctrl = MagicMock()
+    mock_ctrl.initialise = MagicMock(
+        side_effect=lambda **kw: events.append(f"ctrl_init:{kw}")
+    )
+
+    with (
+        patch("flet.SharedPreferences", return_value=mock_prefs),
+        patch(
+            "amplifyp.gui.app.initialise_logging",
+            side_effect=lambda **kw: events.append("logging"),
+        ),
+        patch("amplifyp.gui.app.GUIController", return_value=mock_ctrl) as cls,
+    ):
+        app_main(mock_page)
+        events_before_gather = list(events)
+        await asyncio.gather(*tasks)
+        passed_settings: GUISettings = cls.call_args.kwargs["settings"]
+
+    return events_before_gather, events, passed_settings
+
+
+@pytest.mark.parametrize(  # type: ignore[untyped-decorator]
+    ("platform", "env", "expected_substrings", "expected_posix"),
+    [
+        (
+            "win32",
+            {"APPDATA": r"C:\Users\test\AppData\Roaming"},
+            ("AppData", "AmplifyP"),
+            None,
+        ),
+        ("win32", {}, ("Roaming", "AmplifyP"), None),
+        (
+            "darwin",
+            {"HOME": "/Users/test"},
+            (),
+            "/Users/test/Library/Application Support/AmplifyP/settings.yaml",
+        ),
+        (
+            "linux",
+            {"XDG_CONFIG_HOME": "/custom/config"},
+            (),
+            "/custom/config/amplifyp/settings.yaml",
+        ),
+        (
+            "linux",
+            {"HOME": "/home/test"},
+            (),
+            "/home/test/.config/amplifyp/settings.yaml",
+        ),
+    ],
+)
+def test_get_config_path(
+    platform: str,
+    env: dict[str, str],
+    expected_substrings: tuple[str, ...],
+    expected_posix: str | None,
+) -> None:
     """Test that OS-specific config paths are resolved correctly."""
     settings = GUISettings()
-
-    # Test Windows
     with (
-        patch("sys.platform", "win32"),
-        patch.dict(
-            "os.environ",
-            {"APPDATA": "C:\\Users\\test\\AppData\\Roaming"},
-            clear=True,
-        ),
+        patch("sys.platform", platform),
+        patch.dict("os.environ", env, clear=True),
     ):
         path = settings._get_config_path()
-        assert "AppData" in str(path)
-        assert "AmplifyP" in str(path)
         assert path.name == "settings.yaml"
-
-    # Test macOS
-    with (
-        patch("sys.platform", "darwin"),
-        patch.dict("os.environ", {"HOME": "/Users/test"}, clear=True),
-    ):
-        path = settings._get_config_path()
-        assert (
-            path.as_posix()
-            == "/Users/test/Library/Application Support/AmplifyP/settings.yaml"
-        )
-
-    # Test Linux with XDG_CONFIG_HOME
-    with (
-        patch("sys.platform", "linux"),
-        patch.dict(
-            "os.environ", {"XDG_CONFIG_HOME": "/custom/config"}, clear=True
-        ),
-    ):
-        path = settings._get_config_path()
-        assert path.as_posix() == "/custom/config/amplifyp/settings.yaml"
-
-    # Test Linux without XDG_CONFIG_HOME
-    with (
-        patch("sys.platform", "linux"),
-        patch.dict("os.environ", {"HOME": "/home/test"}, clear=True),
-    ):
-        path = settings._get_config_path()
-        assert path.as_posix() == "/home/test/.config/amplifyp/settings.yaml"
+        for substring in expected_substrings:
+            assert substring in str(path)
+        if expected_posix is not None:
+            assert path.as_posix() == expected_posix
 
 
 def test_desktop_save_to_local() -> None:
@@ -79,9 +188,7 @@ def test_desktop_save_to_local() -> None:
     settings = GUISettings()
     settings["primability_cutoff"] = "0.75"
 
-    mock_page = MagicMock(spec=ft.Page)
-    mock_page.web = False
-
+    mock_page = _make_desktop_page()
     mock_path = MagicMock(spec=Path)
     mock_path.parent = MagicMock()
 
@@ -117,20 +224,7 @@ def test_desktop_save_to_local() -> None:
 def test_desktop_load_from_local() -> None:
     """Test loading settings from local YAML file on desktop."""
     settings = GUISettings()
-    mock_page = MagicMock(spec=ft.Page)
-    mock_page.web = False
-
-    mock_path = MagicMock(spec=Path)
-    mock_path.exists.return_value = True
-
-    yaml_content = "primability_cutoff: '0.65'\ndark_mode: true"
-    m_open = mock_open(read_data=yaml_content)
-
-    with (
-        patch.object(settings, "_get_config_path", return_value=mock_path),
-        patch("builtins.open", m_open),
-    ):
-        settings.load_from_local(mock_page)
+    _load_desktop_yaml(settings, "primability_cutoff: '0.65'\ndark_mode: true")
 
     assert settings["primability_cutoff"] == "0.65"
     assert settings["dark_mode"] is True
@@ -141,21 +235,8 @@ def test_desktop_load_from_local_corrupted() -> None:
     settings = GUISettings()
     settings["primability_cutoff"] = "0.99"
 
-    mock_page = MagicMock(spec=ft.Page)
-    mock_page.web = False
-
-    mock_path = MagicMock(spec=Path)
-    mock_path.exists.return_value = True
-
-    # Invalid YAML syntax
-    m_open = mock_open(read_data="{invalid: yaml:")
-
-    with (
-        patch.object(settings, "_get_config_path", return_value=mock_path),
-        patch("builtins.open", m_open),
-    ):
-        # Should not raise exception
-        settings.load_from_local(mock_page)
+    # Invalid YAML syntax; should not raise exception
+    _load_desktop_yaml(settings, "{invalid: yaml:")
 
     # Since it failed, the settings should still be whatever they were
     assert settings["primability_cutoff"] == "0.99"
@@ -167,31 +248,8 @@ def test_web_save_and_load_client_storage() -> None:
     settings["primability_cutoff"] = "0.85"
     settings["dark_mode"] = True
 
-    import asyncio
-
-    mock_page = MagicMock()
-    mock_page.web = True
-    mock_page.run_task = MagicMock(
-        side_effect=lambda fn, *args, **kwargs: asyncio.run(fn(*args, **kwargs))
-    )
-
-    # Set up SharedPreferences mock
-    mock_storage: dict[str, Any] = {}
-
-    async def mock_set(key: str, value: Any) -> bool:
-        mock_storage[key] = value
-        return True
-
-    async def mock_get(key: str) -> Any:
-        return mock_storage.get(key)
-
-    async def mock_contains(key: str) -> bool:
-        return key in mock_storage
-
-    mock_prefs = MagicMock()
-    mock_prefs.set = MagicMock(side_effect=mock_set)
-    mock_prefs.get = MagicMock(side_effect=mock_get)
-    mock_prefs.contains_key = MagicMock(side_effect=mock_contains)
+    mock_page, _ = _make_web_page(sync=True)
+    mock_prefs, mock_storage = _make_mock_prefs()
 
     with patch("flet.SharedPreferences", return_value=mock_prefs):
         # Test Save
@@ -222,31 +280,11 @@ def test_dark_mode_system_coercion() -> None:
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_save_snapshot_and_key_filtering() -> None:
     """Test that web saves snapshot values at call time and filter keys."""
-    import asyncio
-
     settings = GUISettings()
     settings["primer_info_panel_height"] = 420
 
-    mock_page = MagicMock()
-    mock_page.web = True
-    tasks: list[asyncio.Task[Any]] = []
-
-    def _run_task(fn: Any, *args: Any, **kwargs: Any) -> asyncio.Task[Any]:
-        t = asyncio.create_task(fn(*args, **kwargs))
-        tasks.append(t)
-        return t
-
-    mock_page.run_task = MagicMock(side_effect=_run_task)
-
-    mock_storage: dict[str, Any] = {}
-
-    async def slow_set(key: str, value: Any) -> bool:
-        await asyncio.sleep(0.01)
-        mock_storage[key] = value
-        return True
-
-    mock_prefs = MagicMock()
-    mock_prefs.set = MagicMock(side_effect=slow_set)
+    mock_page, _ = _make_web_page()
+    mock_prefs, mock_storage = _make_mock_prefs(set_delay=0.01)
 
     with patch("flet.SharedPreferences", return_value=mock_prefs):
         t1 = settings.save_to_local(
@@ -263,22 +301,6 @@ async def test_web_save_snapshot_and_key_filtering() -> None:
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_startup_awaits_preferences_before_init() -> None:
     """Test web startup awaits preferences before logging and controller."""
-    import asyncio
-
-    from amplifyp.gui.app import main as app_main
-
-    mock_page = MagicMock()
-    mock_page.web = True
-    tasks: list[asyncio.Task[Any]] = []
-
-    def _run_task(fn: Any, *a: Any, **kw: Any) -> asyncio.Task[Any]:
-        t = asyncio.create_task(fn(*a, **kw))
-        tasks.append(t)
-        return t
-
-    mock_page.run_task = MagicMock(side_effect=_run_task)
-
-    events: list[str] = []
 
     async def delayed_contains(key: str) -> bool:
         await asyncio.sleep(0.01)
@@ -291,25 +313,12 @@ async def test_web_startup_awaits_preferences_before_init() -> None:
     mock_prefs.contains_key = MagicMock(side_effect=delayed_contains)
     mock_prefs.get = MagicMock(side_effect=delayed_get)
 
-    mock_ctrl = MagicMock()
-    mock_ctrl.initialise = MagicMock(
-        side_effect=lambda **kw: events.append(f"ctrl_init:{kw}")
+    events_before_gather, events, passed_settings = await _run_web_startup(
+        mock_prefs
     )
-
-    with (
-        patch("flet.SharedPreferences", return_value=mock_prefs),
-        patch(
-            "amplifyp.gui.app.initialise_logging",
-            side_effect=lambda **kw: events.append("logging"),
-        ),
-        patch("amplifyp.gui.app.GUIController", return_value=mock_ctrl) as cls,
-    ):
-        app_main(mock_page)
-        assert events == []
-        await asyncio.gather(*tasks)
-        assert events == ["logging", "ctrl_init:{'load_settings': False}"]
-        passed_settings = cls.call_args.kwargs["settings"]
-        assert passed_settings["dark_mode"] is True
+    assert events_before_gather == []
+    assert events == ["logging", "ctrl_init:{'load_settings': False}"]
+    assert passed_settings["dark_mode"] is True
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -317,23 +326,6 @@ async def test_web_startup_recovers_from_preference_error(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test web startup logs preference errors and continues with defaults."""
-    import asyncio
-    import logging
-
-    from amplifyp.gui.app import main as app_main
-
-    mock_page = MagicMock()
-    mock_page.web = True
-    tasks: list[asyncio.Task[Any]] = []
-
-    def _run_task(fn: Any, *a: Any, **kw: Any) -> asyncio.Task[Any]:
-        t = asyncio.create_task(fn(*a, **kw))
-        tasks.append(t)
-        return t
-
-    mock_page.run_task = MagicMock(side_effect=_run_task)
-
-    events: list[str] = []
 
     async def failing_contains(key: str) -> bool:
         raise RuntimeError("client storage unavailable")
@@ -341,26 +333,12 @@ async def test_web_startup_recovers_from_preference_error(
     mock_prefs = MagicMock()
     mock_prefs.contains_key = MagicMock(side_effect=failing_contains)
 
-    mock_ctrl = MagicMock()
-    mock_ctrl.initialise = MagicMock(
-        side_effect=lambda **kw: events.append(f"ctrl_init:{kw}")
-    )
+    with caplog.at_level(logging.WARNING, logger="amplifyp.gui.app"):
+        _, events, passed_settings = await _run_web_startup(mock_prefs)
 
-    with (
-        caplog.at_level(logging.WARNING, logger="amplifyp.gui.app"),
-        patch("flet.SharedPreferences", return_value=mock_prefs),
-        patch(
-            "amplifyp.gui.app.initialise_logging",
-            side_effect=lambda **kw: events.append("logging"),
-        ),
-        patch("amplifyp.gui.app.GUIController", return_value=mock_ctrl) as cls,
-    ):
-        app_main(mock_page)
-        await asyncio.gather(*tasks)
-        assert events == ["logging", "ctrl_init:{'load_settings': False}"]
-        passed_settings = cls.call_args.kwargs["settings"]
-        assert passed_settings["dark_mode"] == "system"
-        assert "Failed to load web preferences, using defaults" in caplog.text
+    assert events == ["logging", "ctrl_init:{'load_settings': False}"]
+    assert passed_settings["dark_mode"] == "system"
+    assert "Failed to load web preferences, using defaults" in caplog.text
 
 
 def test_info_panel_overflow_height_fallback() -> None:
@@ -404,8 +382,6 @@ def test_handle_resize_clamps_temporary_drag_height() -> None:
 
 def test_gui_settings_edge_cases_and_coercions() -> None:
     """Test GUISettings coercions, views, error fallbacks, and storage."""
-    from typing import Any, cast
-
     from amplifyp.dna import Primer
     from amplifyp.gui.colours import GUIColours
 
@@ -478,21 +454,14 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
     _ = s.get_tm_settings()
 
     # 5. _safe_float and _safe_int fallback handlers
-    assert s._safe_float("missing_key", 9.9) == 9.9
-    s._settings["primability_cutoff"] = None
-    assert s._safe_float("primability_cutoff", 9.9) == 9.9
-    s._settings["primability_cutoff"] = "invalid"
-    assert s._safe_float("primability_cutoff", 9.9) == 9.9
-    s._settings["primability_cutoff"] = ""
-    assert s._safe_float("primability_cutoff", 9.9) == 9.9
-
-    assert s._safe_int("missing_key", 5) == 5
-    s._settings["log_rotation_max_bytes"] = None
-    assert s._safe_int("log_rotation_max_bytes", 5) == 5
-    s._settings["log_rotation_max_bytes"] = "invalid"
-    assert s._safe_int("log_rotation_max_bytes", 5) == 5
-    s._settings["log_rotation_max_bytes"] = ""
-    assert s._safe_int("log_rotation_max_bytes", 5) == 5
+    for method, key, default in (
+        (s._safe_float, "primability_cutoff", 9.9),
+        (s._safe_int, "log_rotation_max_bytes", 5),
+    ):
+        assert method("missing_key", default) == default
+        for bad_val in (None, "invalid", ""):
+            s._settings[key] = bad_val
+            assert method(key, default) == default
 
     # 6. calculate_primer_tm with Lander method and SantaLucia fallback
     s["tm_method"] = "Lander / Amplify 4"
@@ -527,24 +496,8 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
         }
     )
 
-    # 8. _get_config_path on Windows with and without APPDATA
-    with (
-        patch("sys.platform", "win32"),
-        patch.dict("os.environ", {"APPDATA": r"C:\AppData"}, clear=True),
-    ):
-        path = s._get_config_path()
-        assert str(path).startswith(r"C:\AppData")
-
-    with (
-        patch("sys.platform", "win32"),
-        patch.dict("os.environ", {}, clear=True),
-    ):
-        path = s._get_config_path()
-        assert "Roaming" in str(path)
-
-    # 9. Local storage exception handling on desktop
-    mock_page = MagicMock(spec=ft.Page)
-    mock_page.web = False
+    # 8. Local storage exception handling on desktop
+    mock_page = _make_desktop_page()
     with patch.object(Path, "mkdir", side_effect=OSError("save error")):
         s.save_to_local(mock_page)
 
@@ -557,29 +510,23 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
 
 def test_sequence_separator_synchronisation() -> None:
     """Test sequence separator bidirectional synchronisation."""
-    # 1. Initialise with sequence_separator
-    settings_a = GUISettings({"sequence_separator": " "})
-    assert settings_a["dimer_sequence_separator"] == " "
-    assert settings_a["sequence_separator"] == " "
+    for key, sep in (
+        ("sequence_separator", " "),
+        ("dimer_sequence_separator", "-"),
+    ):
+        settings = GUISettings({key: sep})
+        assert settings["sequence_separator"] == sep
+        assert settings["dimer_sequence_separator"] == sep
 
-    # 2. Initialise with legacy dimer_sequence_separator
-    settings_b = GUISettings({"dimer_sequence_separator": "-"})
-    assert settings_b["sequence_separator"] == "-"
-    assert settings_b["dimer_sequence_separator"] == "-"
-
-    # 3. from_dict with legacy dimer_sequence_separator
-    settings_c = GUISettings()
-    settings_c.from_dict({"dimer_sequence_separator": " / "})
-    assert settings_c["sequence_separator"] == " / "
-    assert settings_c["dimer_sequence_separator"] == " / "
+    settings_from_dict = GUISettings()
+    settings_from_dict.from_dict({"dimer_sequence_separator": " / "})
+    assert settings_from_dict["sequence_separator"] == " / "
+    assert settings_from_dict["dimer_sequence_separator"] == " / "
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
     """Test web save awaits failing prev task and handles missing run_task."""
-    import asyncio
-    from types import SimpleNamespace
-
     settings = GUISettings()
     page_without_run_task = SimpleNamespace(web=True)
     assert settings.save_to_local(page_without_run_task) is None
@@ -590,18 +537,8 @@ async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
 
     settings._web_save_task = asyncio.create_task(failing_prev())
 
-    mock_page = MagicMock()
-    mock_page.web = True
-    mock_page.run_task = MagicMock(
-        side_effect=lambda fn, *a, **kw: asyncio.create_task(fn(*a, **kw))
-    )
-    mock_storage: dict[str, Any] = {}
-
-    async def fake_set(key: str, val: Any) -> None:
-        mock_storage[key] = val
-
-    mock_prefs = MagicMock()
-    mock_prefs.set = MagicMock(side_effect=fake_set)
+    mock_page, _ = _make_web_page()
+    mock_prefs, mock_storage = _make_mock_prefs()
 
     settings["dark_mode"] = True
     with patch("flet.SharedPreferences", return_value=mock_prefs):
