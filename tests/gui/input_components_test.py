@@ -1810,6 +1810,12 @@ def test_primer_info_panel_divider_resizing() -> None:
     assert primer_input.primer_info_divider.visible is True
     assert primer_input.primer_info_panel.height is None
 
+    # Zero delta_y should return early without modifying height
+    ev_zero = MagicMock(spec=ft.DragUpdateEvent)
+    ev_zero.local_delta = MagicMock(y=0.0)
+    mgr.on_info_panel_divider_pan(ev_zero)
+    assert primer_input.primer_info_panel.height is None
+
     # Test bottom position with fixed height unticked (default False):
     # dragging up -> negative delta_y increases height from default_height (120)
     settings["primer_info_panel_position"] = "bottom"

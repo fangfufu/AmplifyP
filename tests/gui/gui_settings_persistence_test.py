@@ -343,6 +343,13 @@ def test_handle_resize_clamps_temporary_drag_height() -> None:
     handle_resize(mock_view, MagicMock())
     assert mock_view.primer_input.primer_info_panel.height is None
 
+    # Fixed-height mode applies height mode on resize
+    mock_view.settings.get = MagicMock(return_value=True)
+    handle_resize(mock_view, MagicMock())
+    mock_view.primer_input.primer_info_panel._apply_height_mode.assert_called_once_with(
+        True
+    )
+
 
 def test_gui_settings_edge_cases_and_coercions() -> None:
     """Test GUISettings coercions, views, error fallbacks, and storage."""
@@ -514,3 +521,41 @@ def test_sequence_separator_synchronisation() -> None:
     settings_c.from_dict({"dimer_sequence_separator": " / "})
     assert settings_c["sequence_separator"] == " / "
     assert settings_c["dimer_sequence_separator"] == " / "
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
+    """Test web save awaits failing prev task and handles missing run_task."""
+    import asyncio
+    from types import SimpleNamespace
+
+    settings = GUISettings()
+    page_without_run_task = SimpleNamespace(web=True)
+    assert settings.save_to_local(page_without_run_task) is None
+
+    async def failing_prev() -> None:
+        await asyncio.sleep(0)
+        raise RuntimeError("previous web save failed")
+
+    settings._web_save_task = asyncio.create_task(failing_prev())
+
+    mock_page = MagicMock()
+    mock_page.web = True
+    mock_page.run_task = MagicMock(
+        side_effect=lambda fn, *a, **kw: asyncio.create_task(fn(*a, **kw))
+    )
+    mock_storage: dict[str, Any] = {}
+
+    async def fake_set(key: str, val: Any) -> None:
+        mock_storage[key] = val
+
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=fake_set)
+
+    settings["dark_mode"] = True
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        task = settings.save_to_local(mock_page, keys=("dark_mode",))
+        assert task is not None
+        await task
+
+    assert mock_storage == {"amplifyp.settings.dark_mode": True}

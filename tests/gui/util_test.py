@@ -101,6 +101,17 @@ def test_notification_helper_repeated_messages() -> None:
     assert second_snack is not first_snack
     assert second_snack.open is True
 
+    # Queueing a third message while second_snack is active, then dismissing
+    # second_snack displays the queued message
+    helper.show_message("Queued message")
+    assert len(mock_page.overlay) == 1
+    second_snack.on_dismiss(MagicMock())
+    assert len(mock_page.overlay) == 1
+    third_snack = mock_page.overlay[0]
+    assert isinstance(third_snack, ft.SnackBar)
+    assert isinstance(third_snack.content, ft.Text)
+    assert third_snack.content.value == "Queued message"
+
 
 def test_bordered_checkbox() -> None:
     """Test BorderedCheckbox value and label properties."""
