@@ -78,22 +78,24 @@ echo "==> Moving build artefacts..."
 mv build/linux build/AmplifyP
 
 echo "==> Creating .desktop file..."
-cat << 'EOF' | sed 's/^ *//' > build/AmplifyP/AmplifyP.desktop
+mkdir -p build/AmplifyP/usr/share/applications
+cat << 'EOF' | sed 's/^ *//' > build/AmplifyP/io.github.fangfufu.amplifyp.desktop
 [Desktop Entry]
 Type=Application
 Name=AmplifyP
 Comment=Simulate Polymerase Chain Reaction (PCR) and predict DNA amplification products.
 Exec=AmplifyP %U
 Icon=AmplifyP
-Categories=Science;Education;
+Categories=Science;
 Terminal=false
 EOF
+cp build/AmplifyP/io.github.fangfufu.amplifyp.desktop build/AmplifyP/usr/share/applications/io.github.fangfufu.amplifyp.desktop
 
 echo "==> Creating AppStream metadata..."
 APP_VERSION="${VERSION:-$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")}"
 RELEASE_DATE="$(date -u +%Y-%m-%d)"
 mkdir -p build/AmplifyP/usr/share/metainfo
-cat << EOF > build/AmplifyP/usr/share/metainfo/AmplifyP.appdata.xml
+cat << EOF > build/AmplifyP/usr/share/metainfo/io.github.fangfufu.amplifyp.appdata.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>io.github.fangfufu.amplifyp</id>
@@ -114,7 +116,7 @@ cat << EOF > build/AmplifyP/usr/share/metainfo/AmplifyP.appdata.xml
       of likely amplified fragments, and warnings about potential primer dimers.
     </p>
   </description>
-  <launchable type="desktop-id">AmplifyP.desktop</launchable>
+  <launchable type="desktop-id">io.github.fangfufu.amplifyp.desktop</launchable>
   <url type="homepage">https://github.com/fangfufu/AmplifyP</url>
   <url type="bugtracker">https://github.com/fangfufu/AmplifyP/issues</url>
   <developer_name>Fufu Fang</developer_name>
