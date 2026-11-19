@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.26.1](https://github.com/fangfufu/AmplifyP/compare/v1.26.0...v1.26.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* **build:** remove obsolete jni 1.1.0 override ([7e14989](https://github.com/fangfufu/AmplifyP/commit/7e1498927693f40350d85b53eaeef3ced8e2c03a))
+
 ## [1.26.0](https://github.com/fangfufu/AmplifyP/compare/v1.25.1...v1.26.0) (2026-11-19)
 
 
