@@ -547,7 +547,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                     ),
                     ft.Container(
                         content=ft.Text(
-                            f"Quality: {round(origin.quality)}",
+                            f"Quality: {origin.quality:.3f}",
                             weight=ft.FontWeight.BOLD,
                             color=GUIColours.DIAGRAM_BLACK,
                             size=font_size_small,
