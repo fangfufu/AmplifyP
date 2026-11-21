@@ -161,12 +161,12 @@ To run AmplifyP from the source repository, you need to follow these steps:
 
 2. Set up the virtual environment:
 
-   **Debian GNU/Linux**: This was verified under Debian GNU/Linux 13 (trixie), I
-   make no guarantee that it works in other Debian derived distributions.
-
 > [!NOTE]
 > Note that this also sets up your machine for developing AmplifyP. If you don't
 > want that, follow the \*nix instructions.
+
+> [!WARNING]
+> `--system-deps` only works on Debian 13 (trixie).
 
 ```bash
 ./scripts/setup_linux.sh --system-deps
