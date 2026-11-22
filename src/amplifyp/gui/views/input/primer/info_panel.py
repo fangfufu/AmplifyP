@@ -69,17 +69,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
-        self.info_tm_text = ft.Text(
-            "",
-            size=self.settings.get("font_size_body", 13),
-            selectable=True,
-        )
-        self.info_pairs_text = ft.Text(
-            "",
-            size=self.settings.get("font_size_body", 13),
-            selectable=True,
-        )
-        self.info_redundancy_text = ft.Text(
+        self.info_stats_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
             selectable=True,
@@ -95,9 +85,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.info_body_column = ft.Column(
             [
                 self.info_seq_text,
-                self.info_tm_text,
-                self.info_pairs_text,
-                self.info_redundancy_text,
+                self.info_stats_text,
                 self.info_dimer_text,
                 self.info_dimer_card_container,
             ],
@@ -174,9 +162,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             ):
                 self.info_header_text.value = "Primer: -"
                 self.info_seq_text.value = ""
-                self.info_tm_text.value = ""
-                self.info_pairs_text.value = ""
-                self.info_redundancy_text.value = ""
+                self.info_stats_text.value = ""
                 self.info_dimer_text.value = ""
                 self.info_dimer_text.visible = False
                 self.info_dimer_card_container.content = None
@@ -225,21 +211,21 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             try:
                 tm = self.settings.calculate_primer_tm(primer_obj)
-                self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+                tm_str = f"Tm = {tm:.2f}°C"
             except (KeyError, ValueError):
-                self.info_tm_text.value = "Tm = N/A"
+                tm_str = "Tm = N/A"
 
-            self.info_pairs_text.value = (
-                f"{primer_obj.ratio_at() * 100:.1f}% AT"
-            )
+            at_str = f"{primer_obj.ratio_at() * 100:.1f}% AT"
 
             if primer_obj.redundant_base_count == 0:
-                self.info_redundancy_text.value = "No redundant bases."
+                redundancy_str = "No redundant bases."
             else:
-                self.info_redundancy_text.value = (
+                redundancy_str = (
                     f"{primer_obj.redundant_base_count} redundant bases "
                     f"(redundancy fold = {primer_obj.redundancy_fold})."
                 )
+
+            self.info_stats_text.value = f"{tm_str}, {at_str}, {redundancy_str}"
 
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)

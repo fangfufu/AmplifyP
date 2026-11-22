@@ -251,9 +251,10 @@ def test_input_view_primer_info_panel() -> None:
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P1"
     assert view.info_seq_text.value == "20 nt:   AAAAAAAAAAAAAAAAAAAA"
-    assert "Tm =" in view.info_tm_text.value
-    assert "100.0% AT" in view.info_pairs_text.value
-    assert view.info_redundancy_text.value == "No redundant bases."
+    assert "Tm =" in view.info_stats_text.value
+    assert "100.0% AT" in view.info_stats_text.value
+    assert "No redundant bases." in view.info_stats_text.value
+    assert ", " in view.info_stats_text.value
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on second primer (index 1) which has redundant bases
@@ -263,8 +264,8 @@ def test_input_view_primer_info_panel() -> None:
     assert view.focused_primer_index == 1
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P2"
-    assert "2 redundant bases" in view.info_redundancy_text.value
-    assert "redundancy fold = 4" in view.info_redundancy_text.value
+    assert "2 redundant bases" in view.info_stats_text.value
+    assert "redundancy fold = 4" in view.info_stats_text.value
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on third primer (index 2) which has a self-dimer

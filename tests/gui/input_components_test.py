@@ -695,9 +695,7 @@ async def test_all_subcomponent_edge_cases() -> None:
     assert view.primer_info_panel is not None
     assert view.info_header is not None
     assert view.info_seq_text is not None
-    assert view.info_tm_text is not None
-    assert view.info_pairs_text is not None
-    assert view.info_redundancy_text is not None
+    assert view.info_stats_text is not None
     assert view.info_dimer_text is not None
 
     view.validation_errors = [{"name": "Err", "seq": None}]

@@ -438,6 +438,20 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
                 )
 
+        from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
+
+        reset_dict["match_weight_default"] = str(
+            DEFAULT_MATCH_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_MATCH_WEIGHTS.overrides.items():
+            reset_dict[f"match_weight_{idx}"] = str(val)
+
+        reset_dict["run_weight_default"] = str(
+            DEFAULT_RUN_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_RUN_WEIGHTS.overrides.items():
+            reset_dict[f"run_weight_{idx}"] = str(val)
+
         self.settings.from_dict(reset_dict)
         self.update_ui()
         self.settings.save_to_local(self.app_page)

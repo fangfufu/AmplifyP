@@ -267,19 +267,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         return self.primer_info_panel.info_seq_text
 
     @property
-    def info_tm_text(self) -> ft.Text:
-        """Get the primer info Tm text control."""
-        return self.primer_info_panel.info_tm_text
-
-    @property
-    def info_pairs_text(self) -> ft.Text:
-        """Get the primer info AT/GC pairs text control."""
-        return self.primer_info_panel.info_pairs_text
-
-    @property
-    def info_redundancy_text(self) -> ft.Text:
-        """Get the primer info redundancy text control."""
-        return self.primer_info_panel.info_redundancy_text
+    def info_stats_text(self) -> ft.Text:
+        """Get the primer info stats text control."""
+        return self.primer_info_panel.info_stats_text
 
     @property
     def info_dimer_text(self) -> ft.Text:
