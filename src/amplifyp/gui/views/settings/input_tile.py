@@ -50,7 +50,7 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option(key="top", text="Top"),
                 ft.dropdown.Option(key="bottom", text="Bottom"),
             ],
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -59,16 +59,19 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Fixed height primer info box",
             on_change=self.on_change_handler,
         )
+        self.fixed_height_primer_info_checkbox.expand = True
 
         self.set_show_primer_temperature = BorderedCheckbox(
             label="Show primer temperature column",
             on_change=self.on_change_handler,
         )
+        self.set_show_primer_temperature.expand = True
 
         self.auto_activate_new_valid_primer = BorderedCheckbox(
             label="Auto-activate new valid primer",
             on_change=self.on_change_handler,
         )
+        self.auto_activate_new_valid_primer.expand = True
 
         self.set_tm_colour_scheme = ft.Dropdown(
             label="Primer temperature colour scheme",
@@ -100,30 +103,35 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_tm_dna_conc = ft.TextField(
             label="DNA Conc (nM)",
             value="50.0",
+            expand=True,
             on_change=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dnap_conc = ft.TextField(
             label="DNA Pol Conc",
             value="0.0",
+            expand=True,
             on_change=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_tm_mono_salt = ft.TextField(
             label="Monovalent Salt Conc (mM)",
             value="50.0",
+            expand=True,
             on_change=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_tm_div_salt = ft.TextField(
             label="Divalent Salt Conc (mM)",
             value="1.5",
+            expand=True,
             on_change=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_tm_dNTP_conc = ft.TextField(
             label="dNTP Conc (mM)",
             value="0.0",
+            expand=True,
             on_change=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -163,11 +171,27 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
                                             weight=ft.FontWeight.BOLD,
                                             size=font_size_default + 2,
                                         ),
-                                        self.set_primer_info_panel_position,
-                                        self.fixed_height_primer_info_checkbox,
-                                        self.auto_activate_new_valid_primer,
-                                        self.set_show_primer_temperature,
-                                        ft.Row([self.set_tm_colour_scheme]),
+                                        ft.Row(
+                                            [
+                                                self.set_primer_info_panel_position,
+                                                self.fixed_height_primer_info_checkbox,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.auto_activate_new_valid_primer,
+                                                self.set_show_primer_temperature,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_tm_colour_scheme,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
                                         ft.Divider(),
                                         ft.Text(
                                             "Primer Melting Temperature (Tm)",
@@ -175,11 +199,27 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
                                             size=font_size_default + 2,
                                         ),
                                         ft.Row([self.set_tm_method]),
-                                        self.set_tm_dna_conc,
-                                        self.set_tm_dnap_conc,
-                                        self.set_tm_mono_salt,
-                                        self.set_tm_div_salt,
-                                        self.set_tm_dNTP_conc,
+                                        ft.Row(
+                                            [
+                                                self.set_tm_dna_conc,
+                                                self.set_tm_dnap_conc,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_tm_mono_salt,
+                                                self.set_tm_div_salt,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_tm_dNTP_conc,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
