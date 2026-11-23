@@ -27,6 +27,7 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.gui_helpers import initialise_score_fields
 from amplifyp.gui.views.settings.score_table import ScoreTable
+from amplifyp.settings import DEFAULT_PRIMER_DIMER_WEIGHTS
 
 
 class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -85,6 +86,8 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
+            default_weights=DEFAULT_PRIMER_DIMER_WEIGHTS,
+            on_change_handler=self.on_change_handler,
         )
 
         super().__init__(

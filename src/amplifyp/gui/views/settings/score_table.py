@@ -17,11 +17,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.settings import BasePairWeightsTbl
 
 
 class ScoreTable(ft.Column):  # type: ignore[misc]
@@ -41,6 +43,8 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_table_header: int,
         width: int | None = None,
         scrollable: bool = True,
+        default_weights: BasePairWeightsTbl | None = None,
+        on_change_handler: Callable[[ft.Event | None], None] | None = None,
     ) -> None:
         """Initialise the ScoreTable."""
         self.label = label
@@ -53,6 +57,8 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         self.font_size_default = font_size_default
         self.font_size_micro = font_size_micro
         self.font_size_table_header = font_size_table_header
+        self.default_weights = default_weights
+        self.on_change_handler = on_change_handler
 
         # Diagonal line canvas header
         header_stack = ft.Stack(
@@ -189,15 +195,47 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             else table_container
         )
 
+        controls: list[ft.Control] = [
+            ft.Text(
+                self.label,
+                weight=ft.FontWeight.BOLD,
+                size=self.font_size_default,
+            ),
+            table_control,
+        ]
+        self.reset_button: ft.TextButton | None = None
+        if self.default_weights is not None:
+            self.reset_button = ft.TextButton(
+                "Reset",
+                icon=ft.Icons.RESTORE,
+                on_click=self._on_reset_click,
+            )
+            controls.append(
+                ft.Row(
+                    [self.reset_button],
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    tight=True,
+                )
+            )
+
         super().__init__(
-            [
-                ft.Text(
-                    self.label,
-                    weight=ft.FontWeight.BOLD,
-                    size=self.font_size_default,
-                ),
-                table_control,
-            ],
+            controls,
             spacing=10,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
+
+    def _on_reset_click(self, _e: ft.Event | None) -> None:
+        """Reset this table's entries to their default values."""
+        if self.default_weights is None:
+            return
+        for r_char in self.row_headers:
+            for c_char in self.col_headers:
+                key = f"{self.prefix}_{r_char}_{c_char}"
+                if key in self.settings_map:
+                    self.settings_map[key].value = str(
+                        self.default_weights[r_char, c_char]
+                    )
+        if self.on_change_handler is not None:
+            self.on_change_handler(None)
+        if self.page:
+            self.update()

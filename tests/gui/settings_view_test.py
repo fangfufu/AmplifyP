@@ -510,3 +510,44 @@ def test_weights_cells_centred_alignment() -> None:
                         container.content.text_vertical_align
                         == ft.VerticalAlignment.CENTER
                     )
+
+
+def test_dimer_weights_reset_button() -> None:
+    """Test that the primer dimer weights reset button restores defaults."""
+    from amplifyp.settings import DEFAULT_PRIMER_DIMER_WEIGHTS
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+    )
+
+    reset_button = view.dimer_tile.score_table.reset_button
+    assert isinstance(reset_button, ft.TextButton)
+    assert reset_button.content == "Reset"
+
+    # Modify a primer dimer weight and sync
+    view.settings_map["pd_score_A_T"].value = "99"
+    view.sync_to_state()
+    assert settings["pd_score_A_T"] == "99"
+
+    # Click the reset button (detached from a live Flet Page in unit test)
+    mock_on_change.reset_mock()
+    with patch.object(
+        type(view.dimer_tile.score_table),
+        "page",
+        new_callable=lambda: property(lambda _self: None),
+    ):
+        view.dimer_tile.score_table._on_reset_click(None)
+
+    assert view.settings_map["pd_score_A_T"].value == str(
+        DEFAULT_PRIMER_DIMER_WEIGHTS["A", "T"]
+    )
+    assert settings["pd_score_A_T"] == str(
+        DEFAULT_PRIMER_DIMER_WEIGHTS["A", "T"]
+    )
+    assert mock_on_change.called
