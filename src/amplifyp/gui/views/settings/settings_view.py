@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 if TYPE_CHECKING:
@@ -145,7 +146,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
-        self.controls = [
+        no_border = ft.RoundedRectangleBorder(side=ft.BorderSide.none())
+        tiles: list[ft.ExpansionTile] = [
             self.general_tile,
             self.appearance_tile,
             self.primer_list_tile,
@@ -155,9 +157,22 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             self.designer_1d_tile,
             self.designer_2d_tile,
             self.diagnostics_tile,
-            ft.Divider(),
-            self._build_reset_button(),
         ]
+        self.controls = []
+        for index, tile in enumerate(tiles):
+            tile.shape = no_border
+            tile.collapsed_shape = no_border
+            self.controls.append(tile)
+            if index < len(tiles) - 1:
+                self.controls.append(
+                    ft.Divider(height=1, color=GUIColours.OUTLINE)
+                )
+        self.controls.extend(
+            [
+                ft.Divider(height=1, color=GUIColours.OUTLINE),
+                self._build_reset_button(),
+            ]
+        )
 
         # Sync initial UI state
         self.update_ui()

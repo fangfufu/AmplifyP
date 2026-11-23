@@ -49,7 +49,8 @@ def test_settings_view_properties_and_methods() -> None:
     assert hasattr(view, "appearance_tile")
     assert hasattr(view, "general_tile")
     assert view.controls[0] == view.general_tile
-    assert view.controls[1] == view.appearance_tile
+    assert isinstance(view.controls[1], ft.Divider)
+    assert view.controls[2] == view.appearance_tile
 
     assert view.general_tile.title.value == "General"
     assert view.appearance_tile.title.value == "Appearance"
