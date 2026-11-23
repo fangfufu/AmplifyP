@@ -30,7 +30,7 @@ from amplifyp.gui.controllers.theme import ThemeManager
 from amplifyp.gui.controllers.updater import UpdateManager
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
+from amplifyp.gui.views.settings.input_tile import InputTile
 
 
 def test_navigation_manager_flow() -> None:
@@ -506,21 +506,21 @@ async def test_gui_controller_methods_and_delegations() -> None:
     controller.view_container.content = controller.dimers_view
     controller.on_settings_change()
 
-    # Primer list tile reposition branch in settings change
+    # Input tile reposition branch in settings change
     mock_ev = MagicMock()
-    controller.settings_view.primer_list_tile = MagicMock(spec=PrimerListTile)
+    controller.settings_view.input_tile = MagicMock(spec=InputTile)
     pos_ctrl = MagicMock()
-    set_pos = controller.settings_view.primer_list_tile
+    set_pos = controller.settings_view.input_tile
     set_pos.set_primer_info_panel_position = pos_ctrl
     mock_ev.control = pos_ctrl
 
     controller.view_container.content = controller.input_view
     controller.on_settings_change(mock_ev)
 
-    # Exception safety branch when checking primer list tile
+    # Exception safety branch when checking input tile
     class BadSettingsView:
         @property
-        def primer_list_tile(self) -> None:
+        def input_tile(self) -> None:
             raise RuntimeError("tile lookup failed")
 
     controller.settings_view = BadSettingsView()  # type: ignore[assignment]

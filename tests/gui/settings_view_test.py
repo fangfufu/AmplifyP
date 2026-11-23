@@ -25,9 +25,9 @@ import yaml
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings import SettingsView
-from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
+from amplifyp.gui.views.settings.input_tile import InputTile
 
 
 def test_settings_view_properties_and_methods() -> None:
@@ -46,16 +46,14 @@ def test_settings_view_properties_and_methods() -> None:
     )
 
     # 1. Properties and tile order
-    assert hasattr(view, "appearance_tile")
     assert hasattr(view, "general_tile")
+    assert hasattr(view, "input_tile")
     assert view.controls[0] == view.general_tile
     assert isinstance(view.controls[1], ft.Divider)
-    assert view.controls[2] == view.appearance_tile
+    assert view.controls[2] == view.input_tile
 
     assert view.general_tile.title.value == "General"
-    assert view.appearance_tile.title.value == "Appearance"
-    assert view.primer_list_tile.title.value == "Primer List"
-    assert view.tm_tile.title.value == "Primer Melting Temperature (Tm)"
+    assert view.input_tile.title.value == "Input"
     assert view.replication_tile.title.value == "PCR"
     assert view.dimer_tile.title.value == "Primer Dimer"
     assert view.designer_2d_tile.title.value == "Designer 2D"
@@ -397,46 +395,12 @@ def test_general_tile_all_branches() -> None:
         tile.update_colour_scheme_dropdown()
         assert tile.set_colour_scheme.value == scheme_val
 
-
-def test_appearance_tile_all_branches() -> None:
-    """Test all branches of AppearanceTile."""
-    mock_on_change = MagicMock()
-    settings = GUISettings()
-    tile = AppearanceTile(
-        settings=settings,
-        settings_map={},
-        on_change_handler=mock_on_change,
-        header_size=18,
-        font_size_default=14,
-    )
-
-    # 1. Properties
+    # 9. GeneralTile appearance controls and update_ui
     assert tile.set_font_family is not None
     assert tile.set_colour_scheme is not None
     assert tile.set_colour_deficient is not None
     assert tile.set_dimer_sequence_separator is not None
     assert tile.set_sequence_separator is not None
-    assert tile.set_dimer_sequence_separator.value == "Space (' ')"
-
-    # 2. Colour scheme dropdown and syncing (all 6 branches)
-    schemes = [
-        ("Dark", True, False),
-        ("Dark (Colour Deficient Friendly)", True, True),
-        ("Light (Colour Deficient Friendly)", False, True),
-        ("System", "system", False),
-        ("System (Colour Deficient Friendly)", "system", True),
-        ("Light", False, False),
-    ]
-    for scheme_val, expected_dark, expected_def in schemes:
-        tile.set_colour_scheme.value = scheme_val
-        tile._on_colour_scheme_change(MagicMock())
-        assert settings["dark_mode"] == expected_dark
-        assert settings["colour_deficient"] == expected_def
-        tile.update_colour_scheme_dropdown()
-        assert tile.set_colour_scheme.value == scheme_val
-        assert mock_on_change.called
-
-    # 3. update_ui
     settings["sequence_separator"] = "Dash ('-')"
     settings["dark_mode"] = True
     settings["colour_deficient"] = False
@@ -445,50 +409,33 @@ def test_appearance_tile_all_branches() -> None:
     assert tile.set_colour_scheme.value == "Dark"
 
 
-def test_general_tile_appearance_compatibility_accessors() -> None:
-    """Test backward compatibility properties and methods on GeneralTile."""
+def test_input_tile_all_branches() -> None:
+    """Test all controls and properties of InputTile."""
     mock_on_change = MagicMock()
-    mock_page = MagicMock(spec=ft.Page)
     settings = GUISettings()
     settings_map: dict[str, Any] = {}
-    appearance_tile = AppearanceTile(
+    tile = InputTile(
         settings=settings,
         settings_map=settings_map,
         on_change_handler=mock_on_change,
         header_size=18,
         font_size_default=14,
     )
-    general_tile = GeneralTile(
-        page=mock_page,
-        settings=settings,
-        settings_map=settings_map,
-        on_change_handler=mock_on_change,
-        appearance_tile=appearance_tile,
-        header_size=18,
-        font_size_default=14,
-        sync_to_state_callback=MagicMock(),
-        update_ui_callback=MagicMock(),
-    )
 
-    assert general_tile.set_font_family is appearance_tile.set_font_family
-    assert general_tile.set_colour_scheme is appearance_tile.set_colour_scheme
-    assert (
-        general_tile.set_dimer_sequence_separator
-        is appearance_tile.set_dimer_sequence_separator
-    )
-    assert (
-        general_tile.set_sequence_separator
-        is appearance_tile.set_sequence_separator
-    )
-    assert (
-        general_tile.set_colour_deficient
-        is appearance_tile.set_colour_deficient
-    )
-
-    general_tile.sync_colour_scheme_to_settings()
-    general_tile.update_colour_scheme_dropdown()
-    mock_event = MagicMock(spec=ft.ControlEvent)
-    general_tile._on_colour_scheme_change(mock_event)
+    assert tile.title.value == "Input"
+    assert tile.set_primer_info_panel_position is not None
+    assert tile.fixed_height_primer_info_checkbox is not None
+    assert tile.set_show_primer_temperature is not None
+    assert tile.auto_activate_new_valid_primer is not None
+    assert tile.set_tm_colour_scheme is not None
+    assert tile.set_tm_dna_conc is not None
+    assert tile.set_tm_dnap_conc is not None
+    assert tile.set_tm_mono_salt is not None
+    assert tile.set_tm_div_salt is not None
+    assert tile.set_tm_dNTP_conc is not None
+    assert tile.set_tm_method is not None
+    assert "primer_info_panel_position" in settings_map
+    assert "tm_dna_conc" in settings_map
 
 
 def test_designer_1d_tile_settings() -> None:

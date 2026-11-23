@@ -255,12 +255,10 @@ def test_e2e_primer_lifecycle_and_state(
     page.get_by_role("button", name="General").filter(
         visible=True
     ).first.wait_for(state="visible", timeout=15000)
-    primer_list_settings_btn = page.get_by_role(
-        "button", name="Primer List"
-    ).first
-    primer_list_settings_btn.wait_for(state="attached", timeout=15000)
-    primer_list_settings_btn.scroll_into_view_if_needed()
-    primer_list_settings_btn.click()
+    input_settings_btn = page.get_by_role("button", name="Input").last
+    input_settings_btn.wait_for(state="attached", timeout=15000)
+    input_settings_btn.scroll_into_view_if_needed()
+    input_settings_btn.click()
     time.sleep(1)
     auto_activate_cb = page.get_by_role(
         "checkbox", name="Auto-activate new valid primer"

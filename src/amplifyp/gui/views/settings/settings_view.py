@@ -28,15 +28,13 @@ from amplifyp.gui.settings import GUISettings
 if TYPE_CHECKING:
     from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 from amplifyp.gui.logger import reconfigure_logging
-from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.designer_1d_tile import Designer1DTile
 from amplifyp.gui.views.settings.designer_2d_tile import Designer2DTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
-from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
+from amplifyp.gui.views.settings.input_tile import InputTile
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
-from amplifyp.gui.views.settings.tm_tile import TmTile
 from amplifyp.settings import ReplicationSettings
 
 
@@ -69,14 +67,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         font_size_table_header = self.settings.get("font_size_table_header", 15)
 
         # Initialise sub-control tiles
-        self.appearance_tile = AppearanceTile(
-            settings=self.settings,
-            settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            header_size=header_size,
-            font_size_default=font_size_default,
-        )
-
         self.general_tile = GeneralTile(
             page=self.app_page,
             settings=self.settings,
@@ -87,7 +77,14 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             sync_to_state_callback=self.sync_to_state,
             update_ui_callback=self.update_ui,
             on_update_found=self.on_update_found,
-            appearance_tile=self.appearance_tile,
+        )
+
+        self.input_tile = InputTile(
+            settings=self.settings,
+            settings_map=self.settings_map,
+            on_change_handler=self._on_change_handler,
+            header_size=header_size,
+            font_size_default=font_size_default,
         )
 
         self.replication_tile = ReplicationTile(
@@ -98,13 +95,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
-        )
-
-        self.tm_tile = TmTile(
-            settings=self.settings,
-            settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-            header_size=header_size,
         )
 
         self.dimer_tile = DimerTile(
@@ -131,13 +121,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             header_size=header_size,
         )
 
-        self.primer_list_tile = PrimerListTile(
-            settings=self.settings,
-            settings_map=self.settings_map,
-            on_change_handler=self._on_change_handler,
-            header_size=header_size,
-        )
-
         self.diagnostics_tile = DiagnosticsTile(
             page=self.app_page,
             settings=self.settings,
@@ -149,9 +132,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         no_border = ft.RoundedRectangleBorder(side=ft.BorderSide.none())
         tiles: list[ft.ExpansionTile] = [
             self.general_tile,
-            self.appearance_tile,
-            self.primer_list_tile,
-            self.tm_tile,
+            self.input_tile,
             self.replication_tile,
             self.dimer_tile,
             self.designer_1d_tile,
@@ -196,32 +177,32 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_tm_dna_conc(self) -> ft.TextField:
         """Get the DNA conc text field."""
-        return self.tm_tile.set_tm_dna_conc
+        return self.input_tile.set_tm_dna_conc
 
     @property
     def set_tm_dnap_conc(self) -> ft.TextField:
         """Get the DNA Pol conc text field."""
-        return self.tm_tile.set_tm_dnap_conc
+        return self.input_tile.set_tm_dnap_conc
 
     @property
     def set_tm_mono_salt(self) -> ft.TextField:
         """Get the monovalent salt conc text field."""
-        return self.tm_tile.set_tm_mono_salt
+        return self.input_tile.set_tm_mono_salt
 
     @property
     def set_tm_div_salt(self) -> ft.TextField:
         """Get the divalent salt conc text field."""
-        return self.tm_tile.set_tm_div_salt
+        return self.input_tile.set_tm_div_salt
 
     @property
     def set_tm_dNTP_conc(self) -> ft.TextField:
         """Get the dNTP conc text field."""
-        return self.tm_tile.set_tm_dNTP_conc
+        return self.input_tile.set_tm_dNTP_conc
 
     @property
     def set_tm_method(self) -> ft.Dropdown:
         """Get the Tm method calculation dropdown."""
-        return self.tm_tile.set_tm_method
+        return self.input_tile.set_tm_method
 
     @property
     def set_pd_min_overlap(self) -> ft.TextField:
@@ -236,27 +217,27 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_font_family(self) -> ft.Dropdown:
         """Get the font family dropdown."""
-        return self.appearance_tile.set_font_family
+        return self.general_tile.set_font_family
 
     @property
     def set_colour_scheme(self) -> ft.Dropdown:
         """Get the colour scheme dropdown."""
-        return self.appearance_tile.set_colour_scheme
+        return self.general_tile.set_colour_scheme
 
     @property
     def set_dimer_sequence_separator(self) -> ft.Dropdown:
         """Get the dimer sequence separator dropdown."""
-        return self.appearance_tile.set_dimer_sequence_separator
+        return self.general_tile.set_dimer_sequence_separator
 
     @property
     def set_sequence_separator(self) -> ft.Dropdown:
         """Get the 5'/3' sequence separator dropdown."""
-        return self.appearance_tile.set_sequence_separator
+        return self.general_tile.set_sequence_separator
 
     @property
     def set_colour_deficient(self) -> ft.Checkbox:
         """Get the colour deficient mode checkbox."""
-        return self.appearance_tile.set_colour_deficient
+        return self.general_tile.set_colour_deficient
 
     @property
     def set_improved_visualisation(self) -> ft.Checkbox | BorderedCheckbox:
@@ -266,12 +247,12 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_show_primer_temperature(self) -> ft.Checkbox | BorderedCheckbox:
         """Get the show primer temperature checkbox."""
-        return self.primer_list_tile.set_show_primer_temperature
+        return self.input_tile.set_show_primer_temperature
 
     @property
     def set_tm_colour_scheme(self) -> ft.Dropdown:
         """Get the Tm colour scheme dropdown."""
-        return self.primer_list_tile.set_tm_colour_scheme
+        return self.input_tile.set_tm_colour_scheme
 
     @property
     def set_designer_2d_colour_scheme(self) -> ft.Dropdown:
@@ -296,17 +277,17 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     @property
     def set_primer_info_panel_position(self) -> ft.Dropdown:
         """Get the primer info panel position dropdown."""
-        return self.primer_list_tile.set_primer_info_panel_position
+        return self.input_tile.set_primer_info_panel_position
 
     @property
     def set_primer_info_panel_fixed_height(self) -> BorderedCheckbox:
         """Get the primer info panel fixed height checkbox."""
-        return self.primer_list_tile.fixed_height_primer_info_checkbox
+        return self.input_tile.fixed_height_primer_info_checkbox
 
     @property
     def set_auto_activate_new_valid_primer(self) -> BorderedCheckbox:
         """Get the auto activate new valid primer checkbox."""
-        return self.primer_list_tile.auto_activate_new_valid_primer
+        return self.input_tile.auto_activate_new_valid_primer
 
     def _build_reset_button(self) -> ft.Row:
         """Build the Reset button Row."""
@@ -334,7 +315,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings[k] = 5242880
             else:
                 self.settings[k] = v.value
-        self.appearance_tile.sync_colour_scheme_to_settings()
+        self.general_tile.sync_colour_scheme_to_settings()
 
     def _reconfigure_logging(self) -> None:
         """Reconfigure logging based on current settings."""
@@ -365,7 +346,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
-        self.appearance_tile.update_ui()
         self.general_tile.update_ui()
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()

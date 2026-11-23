@@ -37,7 +37,6 @@ from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
     NotificationHelper,
 )
-from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,6 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         sync_to_state_callback: Callable[[], None],
         update_ui_callback: Callable[[], None],
         on_update_found: Callable[[str], None] | None = None,
-        appearance_tile: AppearanceTile | None = None,
     ) -> None:
         """Initialise the GeneralTile."""
         self.app_page = page
@@ -69,16 +67,60 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
 
-        if appearance_tile is None:
-            self.appearance_tile = AppearanceTile(
-                settings=self.settings,
-                settings_map=self.settings_map,
-                on_change_handler=self.on_change_handler,
-                header_size=header_size,
-                font_size_default=font_size_default,
-            )
-        else:
-            self.appearance_tile = appearance_tile
+        # --- Appearance settings ---
+        self.set_font_family = ft.Dropdown(
+            label="Font Family",
+            options=[
+                ft.dropdown.Option("Roboto Mono"),
+                ft.dropdown.Option("Courier New"),
+                ft.dropdown.Option("Consolas"),
+                ft.dropdown.Option("monospace"),
+            ],
+            width=700,
+            on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+
+        self.set_colour_scheme = ft.Dropdown(
+            label="Colour Scheme",
+            options=[
+                ft.dropdown.Option("Light"),
+                ft.dropdown.Option("Dark"),
+                ft.dropdown.Option("Light (Colour Deficient Friendly)"),
+                ft.dropdown.Option("Dark (Colour Deficient Friendly)"),
+                ft.dropdown.Option("System"),
+                ft.dropdown.Option("System (Colour Deficient Friendly)"),
+            ],
+            width=700,
+            on_select=self._on_colour_scheme_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+        self.set_dimer_sequence_separator = ft.Dropdown(
+            label="5'/3' Sequence Separator",
+            options=[
+                ft.dropdown.Option("Space (' ')"),
+                ft.dropdown.Option("Dash ('-')"),
+            ],
+            value=self.settings.get(
+                "sequence_separator",
+                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            ),
+            width=700,
+            on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+        self.set_sequence_separator = self.set_dimer_sequence_separator
+
+        self._dummy_colour_deficient = ft.Checkbox(visible=False)
+
+        self.settings_map["font_family"] = self.set_font_family
+        self.settings_map["colour_deficient"] = self._dummy_colour_deficient
+        self.settings_map["dimer_sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
+        self.settings_map["sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
 
         # --- General settings ---
         self.auto_reload_checkbox = BorderedCheckbox(
@@ -144,6 +186,16 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Text(
+                                            "Appearance",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        self.set_font_family,
+                                        self.set_colour_scheme,
+                                        self.set_dimer_sequence_separator,
+                                        self._dummy_colour_deficient,
+                                        ft.Divider(),
                                         ft.Text(
                                             "Autosave",
                                             weight=ft.FontWeight.BOLD,
@@ -346,40 +398,88 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_version_checking_frequency.value = self.settings.get(
             "version_checking_frequency", "Once per Month"
         )
-
-    @property
-    def set_font_family(self) -> ft.Dropdown:
-        """Get the font family dropdown for backwards compatibility."""
-        return self.appearance_tile.set_font_family
-
-    @property
-    def set_colour_scheme(self) -> ft.Dropdown:
-        """Get the colour scheme dropdown for backwards compatibility."""
-        return self.appearance_tile.set_colour_scheme
-
-    @property
-    def set_dimer_sequence_separator(self) -> ft.Dropdown:
-        """Get the dimer sequence separator for backwards compatibility."""
-        return self.appearance_tile.set_dimer_sequence_separator
-
-    @property
-    def set_sequence_separator(self) -> ft.Dropdown:
-        """Get the 5'/3' sequence separator for backwards compatibility."""
-        return self.appearance_tile.set_sequence_separator
+        self.set_dimer_sequence_separator.value = self.settings.get(
+            "sequence_separator",
+            self.settings.get("dimer_sequence_separator", "Space (' ')"),
+        )
+        self.update_colour_scheme_dropdown()
 
     @property
     def set_colour_deficient(self) -> ft.Checkbox:
         """Get colour deficient checkbox for backwards compatibility."""
-        return self.appearance_tile.set_colour_deficient
+        return self._dummy_colour_deficient
 
     def _on_colour_scheme_change(self, e: ft.ControlEvent) -> None:
-        """Forward colour scheme change to appearance tile."""
-        self.appearance_tile._on_colour_scheme_change(e)
+        """Handle colour scheme dropdown change.
+
+        Syncs the selected colour scheme to settings and triggers the
+        change handler.
+
+        Args:
+            e: The Flet control event triggered by the dropdown change.
+        """
+        self.sync_colour_scheme_to_settings()
+        self.on_change_handler(e)
 
     def update_colour_scheme_dropdown(self) -> None:
-        """Forward colour scheme dropdown update to appearance tile."""
-        self.appearance_tile.update_colour_scheme_dropdown()
+        """Update the colour scheme dropdown value based on settings.
+
+        Reads the current dark_mode and colour_deficient settings and
+        sets the dropdown to the matching display option.
+        """
+        dark = self.settings.get("dark_mode", False)
+        deficient = bool(self.settings.get("colour_deficient", False))
+        if str(dark).lower() == "system":
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "System (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "System"
+        elif bool(dark):
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Dark (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Dark"
+        else:
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Light (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Light"
 
     def sync_colour_scheme_to_settings(self) -> None:
-        """Forward colour scheme sync to appearance tile."""
-        self.appearance_tile.sync_colour_scheme_to_settings()
+        """Sync the colour scheme dropdown selection back to settings.
+
+        Parses the dropdown value and updates dark_mode and
+        colour_deficient settings accordingly, including the hidden
+        checkbox state.
+        """
+        val = self.set_colour_scheme.value
+        if val == "Dark":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "Dark (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "Light (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "System":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "System (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        else:  # Light
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
