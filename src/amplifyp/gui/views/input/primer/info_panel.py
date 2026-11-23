@@ -145,6 +145,27 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
 
+    def _show_empty_or_hide(self) -> None:
+        """Show an empty placeholder in fixed-height mode, or hide the panel."""
+        if (
+            self.settings.get("primer_info_panel_fixed_height", False)
+            and not self._manually_hidden
+        ):
+            self.info_header_text.value = "Primer: -"
+            self.info_seq_text.value = ""
+            self.info_stats_text.value = ""
+            self.info_dimer_text.value = ""
+            self.info_dimer_text.visible = False
+            self.info_dimer_card_container.content = None
+            self.info_dimer_card_container.visible = False
+            self._apply_height_mode(True)
+            self.visible = True
+        else:
+            self.visible = False
+            self._apply_height_mode(False)
+            self.info_dimer_card_container.visible = False
+            self.info_dimer_card_container.content = None
+
     def update_panel(
         self,
         focused_idx: int | None,
@@ -156,22 +177,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         """Update the primer information panel based on the focused primer."""
         self._on_dismiss_callback = on_dismiss
         if focused_idx is None:
-            if (
-                self.settings.get("primer_info_panel_fixed_height", False)
-                and not self._manually_hidden
-            ):
-                self.info_header_text.value = "Primer: -"
-                self.info_seq_text.value = ""
-                self.info_stats_text.value = ""
-                self.info_dimer_text.value = ""
-                self.info_dimer_text.visible = False
-                self.info_dimer_card_container.content = None
-                self.info_dimer_card_container.visible = False
-                self._apply_height_mode(True)
-                self.visible = True
-            else:
-                self.visible = False
-                self._apply_height_mode(False)
+            self._show_empty_or_hide()
             on_update_highlights()
             self._update_safe()
             return
@@ -179,8 +185,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         try:
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
-                self.visible = False
-                self._apply_height_mode(False)
+                self._show_empty_or_hide()
                 self._update_safe()
                 return
 
@@ -191,8 +196,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             seq_val = clean_sequence(p_data.get("seq", ""))
 
             if not seq_val:
-                self.visible = False
-                self._apply_height_mode(False)
+                self._show_empty_or_hide()
                 self._update_safe()
                 return
 
@@ -260,10 +264,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
-            self.visible = False
-            self._apply_height_mode(False)
-            self.info_dimer_card_container.visible = False
-            self.info_dimer_card_container.content = None
+            self._show_empty_or_hide()
 
         self._update_safe()
 

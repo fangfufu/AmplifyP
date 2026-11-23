@@ -1894,3 +1894,34 @@ def test_primer_info_panel_divider_resizing() -> None:
         primer_input.focused_primer_index = 0
         primer_input._update_primer_info_panel()
         primer_input.primer_info_panel._on_close_click(MagicMock())
+
+
+def test_primer_info_panel_persistent_fixed_height() -> None:
+    """Test that primer info panel stays visible in fixed-height mode."""
+    page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings["primer_info_panel_fixed_height"] = True
+    input_data = GUIInput()
+    input_data.primers = [{"name": "Empty", "seq": "", "active": True}]
+    view = InputView(page, input_data, settings, None)
+    primer_input = view.primer_input
+
+    # 1. No focused primer -> visible placeholder
+    primer_input.focused_primer_index = None
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.info_seq_text.value == ""
+
+    # 2. Focused primer with empty sequence -> still visible placeholder
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.info_seq_text.value == ""
+
+    # 3. Focused primer index out of range -> still visible placeholder
+    primer_input.focused_primer_index = 5
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
