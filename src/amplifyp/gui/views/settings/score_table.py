@@ -39,7 +39,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_micro: int,
         font_size_table_header: int,
-        width: int = 810,
+        width: int | None = None,
     ) -> None:
         """Initialise the ScoreTable."""
         self.label = label
@@ -99,10 +99,9 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             height=36,
         )
 
+        col_width = 30
         columns = [ft.DataColumn(label=header_stack)]
-        for i, c_char in enumerate(self.col_headers):
-            is_last = i == len(self.col_headers) - 1
-            col_width = 48 if is_last else 38
+        for c_char in self.col_headers:
             columns.append(
                 ft.DataColumn(
                     label=ft.Container(
@@ -132,9 +131,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     )
                 )
             ]
-            for i, c_char in enumerate(self.col_headers):
-                is_last = i == len(self.col_headers) - 1
-                col_width = 48 if is_last else 38
+            for c_char in self.col_headers:
                 key = f"{self.prefix}_{r_char}_{c_char}"
                 field = self.settings_map[key]
 
@@ -160,8 +157,8 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             border=ft.Border.all(1, GUIColours.TRANSPARENT),
             vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
             horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            column_spacing=10,
-            horizontal_margin=10,
+            column_spacing=4,
+            horizontal_margin=4,
             heading_row_color=GUIColours.INFO_HEADER_BG,
             heading_row_height=40,
             data_row_min_height=36,
