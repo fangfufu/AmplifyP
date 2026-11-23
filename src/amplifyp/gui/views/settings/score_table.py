@@ -141,6 +141,9 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                 field.width = col_width
                 field.height = 30
                 field.content_padding = 0
+                field.dense = True
+                field.text_align = ft.TextAlign.CENTER
+                field.text_vertical_align = ft.VerticalAlignment.CENTER
 
                 cells.append(
                     ft.DataCell(

@@ -158,8 +158,10 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
             width=65,
             height=30,
             content_padding=0,
+            dense=True,
             border=ft.NoInputBorder(),
             text_align=ft.TextAlign.CENTER,
+            text_vertical_align=ft.VerticalAlignment.CENTER,
             text_size=self.font_size_default,
             on_change=self.on_change_handler,
         )

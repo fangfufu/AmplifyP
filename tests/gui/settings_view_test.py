@@ -482,3 +482,31 @@ def test_pcr_primer_label_orientation_settings() -> None:
     view.set_pcr_primer_label_orientation.value = "Vertical"
     view.sync_to_state()
     assert settings["pcr_primer_label_orientation"] == "Vertical"
+
+
+def test_weights_cells_centred_alignment() -> None:
+    """Test that all weights cells in SettingsView are centred."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    tables = [
+        view.replication_tile.score_table.table,
+        view.replication_tile.match_weight_table.table,
+        view.replication_tile.run_weight_table.table,
+        view.dimer_tile.score_table.table,
+    ]
+    for table in tables:
+        for row in table.rows:
+            for cell in row.cells:
+                container = cell.content
+                assert isinstance(container, ft.Container)
+                assert container.alignment == ft.Alignment(0, 0)
+                if isinstance(container.content, ft.TextField):
+                    assert container.content.dense is True
+                    assert container.content.text_align == ft.TextAlign.CENTER
+                    assert (
+                        container.content.text_vertical_align
+                        == ft.VerticalAlignment.CENTER
+                    )
