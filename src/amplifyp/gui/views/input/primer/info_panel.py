@@ -93,7 +93,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
 
         self.content = ft.Container(
-            padding=ft.Padding(10, 2, 10, 0),
+            padding=ft.Padding(10, 2, 10, 2),
             content=ft.Column(
                 [
                     ft.Row(
