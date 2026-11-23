@@ -478,7 +478,10 @@ def test_pcr_primer_label_orientation_settings() -> None:
     assert view.set_pcr_primer_label_orientation.value == "Horizontal"
     assert [
         opt.key for opt in view.set_pcr_primer_label_orientation.options
-    ] == ["Horizontal", "Vertical"]
+    ] == ["Horizontal", "45°", "Vertical"]
+    view.set_pcr_primer_label_orientation.value = "45°"
+    view.sync_to_state()
+    assert settings["pcr_primer_label_orientation"] == "45°"
     view.set_pcr_primer_label_orientation.value = "Vertical"
     view.sync_to_state()
     assert settings["pcr_primer_label_orientation"] == "Vertical"

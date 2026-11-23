@@ -23,10 +23,12 @@ PCR amplicons on an interactive canvas.
 - **Primer Match Indicators**:
   - **Forward Primers**: Rendered in **blue** floating above the baseline as
     right-pointing triangles (indicating $5'$ to $3'$ forward synthesis),
-    accompanied by connector lines and vertically rotated primer name labels.
+    accompanied by connector lines and primer name labels (horizontal, 45°, or
+    vertical).
   - **Reverse Primers**: Rendered in **red** floating below the baseline as
     left-pointing triangles (indicating $5'$ to $3'$ reverse synthesis),
-    accompanied by connector lines and vertically rotated primer name labels.
+    accompanied by connector lines and primer name labels (horizontal, 45°, or
+    vertical).
   - **Match Strength Scaling**: Triangle sizes scale dynamically between 7.0 and
     16.0 pixels proportional to primer binding match quality.
   - **Overlap De-collision**: Closely spaced primer binding sites automatically

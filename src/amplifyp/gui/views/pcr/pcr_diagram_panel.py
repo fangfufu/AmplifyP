@@ -467,8 +467,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             h_margin: Horizontal margin in pixels.
             v_target: Vertical position of the baseline.
             c_width: Total canvas width in pixels.
-            label_orientation: Primer label orientation ('Horizontal' or
-                'Vertical').
+            label_orientation: Primer label orientation ('Horizontal', '45°',
+                or 'Vertical').
             font_size_primer: Font size in pixels for primer labels.
         """
         fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
@@ -480,7 +480,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
 
         fwd_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
         rev_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
-        if label_orientation != "Vertical":
+        if label_orientation == "Horizontal":
             fwd_label_layout, _ = (
                 PCRLayoutSolver.calculate_horizontal_label_layout(
                     fwd_bindings,

@@ -102,6 +102,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             ),
             options=[
                 ft.dropdown.Option("Horizontal"),
+                ft.dropdown.Option("45°"),
                 ft.dropdown.Option("Vertical"),
             ],
             expand=True,

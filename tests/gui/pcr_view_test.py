@@ -15,10 +15,12 @@
 
 """Tests for PCR View and primer binding site context map popups."""
 
+import math
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import flet as ft
+import pytest
 
 from amplifyp.dna import DNA, DNADirection, Primer
 from amplifyp.gui.colours import GUIColours
@@ -1119,6 +1121,43 @@ def test_pcr_view_primer_label_orientation() -> None:
     assert rev_lbl.left + rev_lbl.content.width < 780.0
     assert rev_lbl.content.text_align == ft.TextAlign.RIGHT
 
+    # Switch to 45° orientation
+    view.settings["pcr_primer_label_orientation"] = "45°"
+    view.run_pcr()
+
+    diag_height = view.diagram_panel.diagram_canvas.height
+    diag_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(diag_labels) == 2
+    diag_fwd = next(
+        lbl
+        for lbl in diag_labels
+        if lbl.content.value == "very_long_forward_primer_name"
+    )
+    diag_rev = next(
+        lbl
+        for lbl in diag_labels
+        if lbl.content.value == "very_long_reverse_primer_name"
+    )
+    assert (
+        diag_fwd.rotate is not None
+        and diag_fwd.rotate.angle == pytest.approx(-math.pi / 4)
+        and diag_fwd.rotate.alignment == ft.Alignment(-1, 0)
+    )
+    assert (
+        diag_rev.rotate is not None
+        and diag_rev.rotate.angle == pytest.approx(-math.pi / 4)
+        and diag_rev.rotate.alignment == ft.Alignment(1, 0)
+    )
+    assert diag_rev.left + diag_rev.content.width < 780.0
+    assert diag_rev.content.text_align == ft.TextAlign.RIGHT
+
     # Switch to Vertical orientation
     view.settings["pcr_primer_label_orientation"] = "Vertical"
     view.run_pcr()
@@ -1134,7 +1173,7 @@ def test_pcr_view_primer_label_orientation() -> None:
     ]
     assert len(vert_labels) == 2
     assert all(lbl.rotate is not None for lbl in vert_labels)
-    assert horiz_height < vert_height
+    assert horiz_height < diag_height < vert_height
 
 
 def test_horizontal_label_layout_row_stacking_and_clamping() -> None:

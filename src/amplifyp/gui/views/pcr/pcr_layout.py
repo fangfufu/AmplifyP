@@ -15,6 +15,7 @@
 
 """Coordinate transformation and layout solver helper for the PCRView."""
 
+import math
 from typing import TYPE_CHECKING
 
 from amplifyp.pcr import PCR
@@ -299,8 +300,8 @@ class PCRLayoutSolver:
             fwd_bindings: Forward primer binding data dict.
             rev_bindings: Reverse primer binding data dict.
             page_width: Current page width in pixels, or None.
-            label_orientation: Primer label orientation ('Horizontal' or
-                'Vertical').
+            label_orientation: Primer label orientation ('Horizontal', '45°',
+                or 'Vertical').
             font_size_primer: Font size in pixels for primer labels.
 
         Returns:
@@ -312,7 +313,7 @@ class PCRLayoutSolver:
         c_width = max(600.0, page_width - 80.0) if page_width else 800.0
         t_width = c_width - (2.0 * h_margin)
 
-        if label_orientation == "Vertical":
+        if label_orientation in ("Vertical", "45°"):
             max_fwd_len = max(
                 (len(name) for name, _, _, _ in fwd_bindings.values()),
                 default=0,
@@ -322,8 +323,13 @@ class PCRLayoutSolver:
                 default=0,
             )
 
-            fwd_px = max_fwd_len * 8.0
-            rev_px = max_rev_len * 8.0
+            scale = (
+                1.0
+                if label_orientation == "Vertical"
+                else math.sin(math.pi / 4)
+            )
+            fwd_px = max_fwd_len * 8.0 * scale
+            rev_px = max_rev_len * 8.0 * scale
 
             v_target = max(100.0, 66.0 + fwd_px)
             v_frag_start = v_target + 70.0 + rev_px

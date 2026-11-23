@@ -15,6 +15,7 @@
 
 """Primer drawing class and context card helpers for the PCRView."""
 
+import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -100,7 +101,7 @@ class DrawnPrimer:
         self.direction = var.direction
 
     def _add_label(self, stack: ft.Stack, x_render: float) -> None:
-        """Add either a horizontal or vertical primer name label to stack."""
+        """Add a horizontal, 45-degree, or vertical primer label to stack."""
         orientation = str(
             self.settings.get("pcr_primer_label_orientation", "Horizontal")
         )
@@ -108,26 +109,50 @@ class DrawnPrimer:
         is_fwd = self.direction == DNADirection.FWD
         colour = GUIColours.FWD_PRIMER if is_fwd else GUIColours.REV_LABEL
 
-        if orientation == "Vertical":
+        if orientation in ("Vertical", "45°"):
             top = (
                 self.v_target - 25 - self.S - 13
                 if is_fwd
                 else self.v_target + 25 + self.S - 3
             )
-            angle = -1.5708 if is_fwd else 1.5708
+            if orientation == "45°" and not is_fwd:
+                width = (
+                    self.label_width
+                    if self.label_width is not None
+                    else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
+                )
+                left = x_render - width
+                angle = -math.pi / 4
+                alignment = ft.Alignment(1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                    width=width,
+                    text_align=ft.TextAlign.RIGHT,
+                )
+            else:
+                left = x_render
+                angle_mag = (
+                    math.pi / 2 if orientation == "Vertical" else math.pi / 4
+                )
+                angle = -angle_mag if is_fwd else angle_mag
+                alignment = ft.Alignment(-1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                )
             stack.controls.append(
                 ft.GestureDetector(
                     mouse_cursor=ft.MouseCursor.CLICK,
                     on_tap=lambda _: self.on_click(),
-                    content=ft.Text(
-                        self.name,
-                        color=colour,
-                        size=font_size,
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    left=x_render,
+                    content=text_control,
+                    left=left,
                     top=top,
-                    rotate=ft.Rotate(angle, alignment=ft.Alignment(-1, 0)),
+                    rotate=ft.Rotate(angle, alignment=alignment),
                 )
             )
             return
@@ -208,7 +233,7 @@ class DrawnPrimer:
         font_size = int(self.settings.get("font_size_map_primer", 13))
         row_height = font_size + 5.0
         row_offset = (
-            self.label_row * row_height if orientation != "Vertical" else 0.0
+            self.label_row * row_height if orientation == "Horizontal" else 0.0
         )
 
         if self.direction == DNADirection.FWD:
