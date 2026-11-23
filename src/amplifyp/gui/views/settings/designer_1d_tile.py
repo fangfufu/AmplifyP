@@ -46,12 +46,14 @@ class Designer1DTile(ft.ExpansionTile):  # type: ignore[misc]
             value=self.settings.get("designer_1d_show_tm", True),
             on_change=self.on_change_handler,
         )
+        self.show_tm_checkbox.expand = True
 
         self.show_pct_at_checkbox = BorderedCheckbox(
             label="Show % AT on cards",
             value=self.settings.get("designer_1d_show_pct_at", False),
             on_change=self.on_change_handler,
         )
+        self.show_pct_at_checkbox.expand = True
 
         self.settings_map["designer_1d_show_tm"] = self.show_tm_checkbox
         self.settings_map["designer_1d_show_pct_at"] = self.show_pct_at_checkbox
@@ -72,8 +74,13 @@ class Designer1DTile(ft.ExpansionTile):  # type: ignore[misc]
                                     ft.Container(
                                         content=ft.Column(
                                             [
-                                                self.show_tm_checkbox,
-                                                self.show_pct_at_checkbox,
+                                                ft.Row(
+                                                    [
+                                                        self.show_tm_checkbox,
+                                                        self.show_pct_at_checkbox,
+                                                    ],
+                                                    spacing=15,
+                                                ),
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,

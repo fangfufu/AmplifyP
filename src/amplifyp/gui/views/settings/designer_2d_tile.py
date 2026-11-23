@@ -60,6 +60,7 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Show Reverse-Forward cross-dimer",
             on_change=self.on_change_handler,
         )
+        self.show_rev_fwd_checkbox.expand = True
 
         self.settings_map["designer_2d_colour_scheme"] = (
             self.set_designer_2d_colour_scheme
@@ -86,10 +87,11 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
                                             [
                                                 ft.Row(
                                                     [
-                                                        self.set_designer_2d_colour_scheme
-                                                    ]
+                                                        self.set_designer_2d_colour_scheme,
+                                                        self.show_rev_fwd_checkbox,
+                                                    ],
+                                                    spacing=15,
                                                 ),
-                                                self.show_rev_fwd_checkbox,
                                             ],
                                             spacing=15,
                                             horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
