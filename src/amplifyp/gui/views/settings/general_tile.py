@@ -76,7 +76,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Consolas"),
                 ft.dropdown.Option("monospace"),
             ],
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -91,7 +91,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("System"),
                 ft.dropdown.Option("System (Colour Deficient Friendly)"),
             ],
-            width=700,
+            expand=True,
             on_select=self._on_colour_scheme_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -105,7 +105,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 "sequence_separator",
                 self.settings.get("dimer_sequence_separator", "Space (' ')"),
             ),
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -191,9 +191,20 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                             weight=ft.FontWeight.BOLD,
                                             size=font_size_default + 2,
                                         ),
-                                        self.set_font_family,
-                                        self.set_colour_scheme,
-                                        self.set_dimer_sequence_separator,
+                                        ft.Row(
+                                            [
+                                                self.set_font_family,
+                                                self.set_colour_scheme,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_dimer_sequence_separator,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
                                         self._dummy_colour_deficient,
                                         ft.Divider(),
                                         ft.Text(
