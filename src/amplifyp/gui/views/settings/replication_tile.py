@@ -119,6 +119,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
+            scrollable=False,
         )
 
         self.match_weight_table = LengthwiseWeightTable(
@@ -154,16 +155,17 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Column(
                         [
-                            self.score_table,
-                            ft.Container(height=10),
                             ft.Row(
                                 [
+                                    self.score_table,
                                     self.match_weight_table,
                                     self.run_weight_table,
                                 ],
+                                wrap=True,
                                 alignment=ft.MainAxisAlignment.CENTER,
                                 vertical_alignment=ft.CrossAxisAlignment.START,
                                 spacing=30,
+                                run_spacing=20,
                             ),
                             ft.Container(height=10),
                             ft.Container(

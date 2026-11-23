@@ -40,6 +40,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_micro: int,
         font_size_table_header: int,
         width: int | None = None,
+        scrollable: bool = True,
     ) -> None:
         """Initialise the ScoreTable."""
         self.label = label
@@ -167,6 +168,24 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             rows=rows,
         )
 
+        table_container = ft.Container(
+            content=self.table,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=0,
+            width=width,
+        )
+        table_control: ft.Control = (
+            ft.Row(
+                [table_container],
+                scroll=ft.ScrollMode.ALWAYS,
+                alignment=ft.MainAxisAlignment.CENTER,
+                tight=True,
+            )
+            if scrollable
+            else table_container
+        )
+
         super().__init__(
             [
                 ft.Text(
@@ -174,19 +193,7 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
                     weight=ft.FontWeight.BOLD,
                     size=self.font_size_default,
                 ),
-                ft.Row(
-                    [
-                        ft.Container(
-                            content=self.table,
-                            border=ft.Border.all(1, GUIColours.OUTLINE),
-                            border_radius=5,
-                            padding=0,
-                            width=width,
-                        )
-                    ],
-                    scroll=ft.ScrollMode.ALWAYS,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                ),
+                table_control,
             ],
             spacing=10,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,

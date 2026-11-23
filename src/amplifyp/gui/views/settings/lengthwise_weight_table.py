@@ -144,6 +144,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                     spacing=4,
+                    tight=True,
                 ),
             ],
             spacing=8,
