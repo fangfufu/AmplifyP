@@ -22,11 +22,11 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.views.settings.weight_table_base import WeightTableBase
 from amplifyp.settings import LengthWiseWeightTbl
 
 
-class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
+class LengthwiseWeightTable(WeightTableBase):
     """A Flet component displaying a vertical table of lengthwise weights."""
 
     def __init__(
@@ -41,13 +41,15 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         default_weights: LengthWiseWeightTbl,
     ) -> None:
         """Initialise the LengthwiseWeightTable."""
-        self.label = label
+        super().__init__(
+            label=label,
+            prefix=prefix,
+            settings_map=settings_map,
+            font_size_default=font_size_default,
+            font_size_table_header=font_size_table_header,
+            on_change_handler=on_change_handler,
+        )
         self.indices = sorted(indices)
-        self.prefix = prefix
-        self.settings_map = settings_map
-        self.on_change_handler = on_change_handler
-        self.font_size_default = font_size_default
-        self.font_size_table_header = font_size_table_header
         self.default_weights = default_weights
 
         for idx in self.indices:
@@ -77,117 +79,46 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
             width=24,
             height=24,
         )
-        self.reset_button = ft.TextButton(
-            "Reset",
-            icon=ft.Icons.RESTORE,
-            on_click=self._on_reset_click,
-        )
+        self.reset_button = self._create_reset_button(self._on_reset_click)
 
         columns = [
-            ft.DataColumn(
-                label=ft.Container(
-                    content=ft.Text(
-                        "Length",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.font_size_table_header,
-                    ),
-                    width=60,
-                    alignment=ft.Alignment(0, 0),
-                )
-            ),
-            ft.DataColumn(
-                label=ft.Container(
-                    content=ft.Text(
-                        "Weight",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.font_size_table_header,
-                    ),
-                    width=65,
-                    alignment=ft.Alignment(0, 0),
-                )
-            ),
+            ft.DataColumn(label=self._build_header_label("Length", width=60)),
+            ft.DataColumn(label=self._build_header_label("Weight", width=65)),
         ]
 
-        self.table = ft.DataTable(
-            border=ft.Border.all(1, GUIColours.TRANSPARENT),
-            vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            column_spacing=10,
-            horizontal_margin=10,
-            heading_row_color=GUIColours.INFO_HEADER_BG,
-            heading_row_height=40,
-            data_row_min_height=36,
-            data_row_max_height=36,
+        self.table = self._create_data_table(
             columns=columns,
             rows=[],
+            column_spacing=10,
+            horizontal_margin=10,
         )
         self._rebuild_rows()
 
-        super().__init__(
-            controls=[
-                ft.Text(
-                    self.label,
-                    weight=ft.FontWeight.BOLD,
-                    size=self.font_size_default,
-                ),
-                ft.Container(
-                    content=self.table,
-                    border=ft.Border.all(1, GUIColours.OUTLINE),
-                    border_radius=5,
-                    padding=0,
-                ),
-                ft.Row(
-                    [
-                        self.add_button,
-                        self.remove_button,
-                        self.reset_button,
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=4,
-                    tight=True,
-                ),
+        self._init_column(
+            table_control=self._create_table_container(self.table),
+            action_controls=[
+                self.add_button,
+                self.remove_button,
+                self.reset_button,
             ],
             spacing=8,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def _create_field(self, value: str) -> ft.TextField:
         """Create a borderless TextField matching ScoreTable styling."""
-        return ft.TextField(
+        field = ft.TextField(
             value=value,
-            width=65,
-            height=30,
-            content_padding=0,
-            dense=True,
-            border=ft.NoInputBorder(),
-            text_align=ft.TextAlign.CENTER,
-            text_vertical_align=ft.VerticalAlignment.CENTER,
             text_size=self.font_size_default,
             on_change=self.on_change_handler,
         )
+        return self._style_field(field, width=65)
 
     def _make_row(self, row_label: str, field: ft.TextField) -> ft.DataRow:
         """Create a DataRow with a centred label and weight field."""
         return ft.DataRow(
             cells=[
-                ft.DataCell(
-                    ft.Container(
-                        content=ft.Text(
-                            row_label,
-                            weight=ft.FontWeight.BOLD,
-                            size=self.font_size_table_header,
-                        ),
-                        width=60,
-                        alignment=ft.Alignment(0, 0),
-                    )
-                ),
-                ft.DataCell(
-                    ft.Container(
-                        content=field,
-                        width=65,
-                        alignment=ft.Alignment(0, 0),
-                    )
-                ),
+                ft.DataCell(self._build_header_label(row_label, width=60)),
+                ft.DataCell(self._wrap_centred(field, width=65)),
             ]
         )
 
@@ -215,9 +146,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         )
         self.indices.append(next_idx)
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()
 
     def _on_remove_click(self, _e: ft.Event | None) -> None:
         """Remove the last length entry, always keeping Default."""
@@ -226,9 +155,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         last_idx = self.indices.pop()
         self.settings_map.pop(f"{self.prefix}_{last_idx}", None)
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()
 
     def _on_reset_click(self, _e: ft.Event | None) -> None:
         """Reset this table's entries to their default values."""
@@ -246,6 +173,4 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
             self.default_weights.default_weight
         )
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()
