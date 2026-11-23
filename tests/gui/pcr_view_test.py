@@ -15,6 +15,7 @@
 
 """Tests for PCR View and primer binding site context map popups."""
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import flet as ft
@@ -1060,3 +1061,184 @@ def test_sort_amplicons() -> None:
     # 3. Position, then quality
     res_pos_q = sort_amplicons(amps, "Position, then quality")
     assert res_pos_q == [amp3, amp2, amp1]
+
+
+def test_pcr_view_primer_label_orientation() -> None:
+    """Test horizontal (compact) and vertical primer label orientations."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # Long primer names to verify vertical vs horizontal compactness
+    input_data.primers = [
+        {
+            "name": "very_long_forward_primer_name",
+            "seq": "TTCCACTGCGAATCATTAAA",
+            "active": True,
+        },
+        {
+            "name": "very_long_reverse_primer_name",
+            "seq": "GTGCAGCCTTGGTGAAAACT",
+            "active": True,
+        },
+    ]
+
+    view = PCRView(mock_page, input_data)
+    assert view.settings["pcr_primer_label_orientation"] == "Horizontal"
+    view.run_pcr()
+
+    horiz_height = view.diagram_panel.diagram_canvas.height
+    horiz_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(horiz_labels) == 2
+    assert all(lbl.rotate is None for lbl in horiz_labels)
+    fwd_lbl = next(
+        lbl
+        for lbl in horiz_labels
+        if lbl.content.value == "very_long_forward_primer_name"
+    )
+    rev_lbl = next(
+        lbl
+        for lbl in horiz_labels
+        if lbl.content.value == "very_long_reverse_primer_name"
+    )
+    # Forward primer is at start (left ~ 20), so label is to its right
+    assert fwd_lbl.left > 20.0
+    # Reverse primer is at end (right ~ 780), so label is to its left
+    assert rev_lbl.left + rev_lbl.content.width < 780.0
+    assert rev_lbl.content.text_align == ft.TextAlign.RIGHT
+
+    # Switch to Vertical orientation
+    view.settings["pcr_primer_label_orientation"] = "Vertical"
+    view.run_pcr()
+
+    vert_height = view.diagram_panel.diagram_canvas.height
+    vert_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(vert_labels) == 2
+    assert all(lbl.rotate is not None for lbl in vert_labels)
+    assert horiz_height < vert_height
+
+
+def test_horizontal_label_layout_row_stacking_and_clamping() -> None:
+    """Test horizontal label layout stacks overlapping labels into rows."""
+    from amplifyp.gui.views.pcr.pcr_layout import PCRLayoutSolver
+
+    mock_conf = MagicMock()
+    mock_var = MagicMock()
+    bindings: dict[tuple[int, str], tuple[str, float, Any, Any]] = {
+        (0, "long_primer_alpha"): (
+            "long_primer_alpha",
+            16.0,
+            mock_conf,
+            mock_var,
+        ),
+        (5, "long_primer_beta"): (
+            "long_primer_beta",
+            16.0,
+            mock_conf,
+            mock_var,
+        ),
+        (500, "edge_primer"): ("edge_primer", 16.0, mock_conf, mock_var),
+    }
+    shifted_x = {
+        (0, "long_primer_alpha"): 20.0,
+        (5, "long_primer_beta"): 44.0,
+        (500, "edge_primer"): 780.0,
+    }
+
+    layout, num_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings, shifted_x, c_width=800.0, font_size=13, is_fwd=True
+    )
+
+    assert num_rows == 2
+    left_a, row_a, _width_a = layout[(0, "long_primer_alpha")]
+    _left_b, row_b, _width_b = layout[(5, "long_primer_beta")]
+    left_edge, row_edge, width_edge = layout[(500, "edge_primer")]
+
+    assert row_a == 1
+    assert row_b == 0
+    assert row_edge == 0
+    assert left_a >= 20.0 + 8.0 + 4.0
+    assert left_edge + width_edge <= 800.0 - 4.0 + 1e-6
+
+    # Reverse primers: left-hand primer goes in row 0 (closer to baseline),
+    # right-hand primer goes in row 1 (further from baseline) so connector
+    # lines do not cross labels.
+    rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]] = {
+        (200, "rev_alpha"): ("rev_alpha", 16.0, mock_conf, mock_var),
+        (224, "rev_beta"): ("rev_beta", 16.0, mock_conf, mock_var),
+    }
+    rev_shifted = {
+        (200, "rev_alpha"): 200.0,
+        (224, "rev_beta"): 224.0,
+    }
+    rev_layout, rev_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
+        rev_bindings, rev_shifted, c_width=800.0, font_size=13, is_fwd=False
+    )
+    assert rev_rows == 2
+    _, rev_row_alpha, _ = rev_layout[(200, "rev_alpha")]
+    _, rev_row_beta, _ = rev_layout[(224, "rev_beta")]
+    assert rev_row_alpha == 0
+    assert rev_row_beta == 1
+
+
+def test_drawn_primer_triangle_and_label_same_line_when_stacked() -> None:
+    """Test that stacked horizontal primers keep triangle and label aligned."""
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+    settings["pcr_primer_label_orientation"] = "Horizontal"
+    mock_conf = MagicMock()
+    mock_var = MagicMock()
+    mock_var.direction = DNADirection.FWD
+
+    canvas = MagicMock()
+    canvas.shapes = []
+    stack = MagicMock()
+    stack.controls = []
+
+    drawn = DrawnPrimer(
+        name="stacked_fwd",
+        index=0,
+        conf=mock_conf,
+        var=mock_var,
+        S=16.0,
+        target_length=100,
+        t_width=760.0,
+        h_margin=20.0,
+        v_target=118.0,
+        settings=settings,
+        on_click=lambda: None,
+        label_left=32.0,
+        label_row=1,
+    )
+    drawn.draw(canvas, stack)
+
+    # Triangle is the second shape (index 1); its tip y is at tri_mid:
+    # v_target (118) - 25 - row_offset (18) - S/2 (8) = 67.0
+    tri_path = canvas.shapes[1]
+    tri_mid_y = tri_path.elements[0].y
+    assert tri_mid_y == 67.0
+
+    # Label is the first stack control; vertically centred on tri_mid_y
+    label_ctrl = stack.controls[0]
+    assert label_ctrl.top == 67.0 - (13 + 3.0) / 2.0

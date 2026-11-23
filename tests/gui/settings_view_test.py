@@ -108,14 +108,17 @@ def test_settings_view_properties_and_methods() -> None:
     settings["designer_1d_show_tm"] = False
     settings["designer_1d_show_pct_at"] = True
     settings["pcr_amplicon_ranking"] = "Quality score"
+    settings["pcr_primer_label_orientation"] = "Vertical"
     view._on_reset_handler(mock_event)
     assert mock_on_reset.called
     assert settings["designer_1d_show_tm"] is True
     assert settings["designer_1d_show_pct_at"] is False
     assert settings["pcr_amplicon_ranking"] == "Position, then length"
+    assert settings["pcr_primer_label_orientation"] == "Horizontal"
     assert view.set_designer_1d_show_tm.value is True
     assert view.set_designer_1d_show_pct_at.value is False
     assert view.set_pcr_amplicon_ranking.value == "Position, then length"
+    assert view.set_pcr_primer_label_orientation.value == "Horizontal"
 
     # 5. get_replication_settings, get_state, set_state
     repl_settings = view.get_replication_settings()
@@ -517,3 +520,18 @@ def test_pcr_amplicon_ranking_settings() -> None:
     view.set_pcr_amplicon_ranking.value = "Quality score"
     view.sync_to_state()
     assert settings["pcr_amplicon_ranking"] == "Quality score"
+
+
+def test_pcr_primer_label_orientation_settings() -> None:
+    """Test origin map primer label orientation dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert view.set_pcr_primer_label_orientation.value == "Horizontal"
+    assert [
+        opt.key for opt in view.set_pcr_primer_label_orientation.options
+    ] == ["Horizontal", "Vertical"]
+    view.set_pcr_primer_label_orientation.value = "Vertical"
+    view.sync_to_state()
+    assert settings["pcr_primer_label_orientation"] == "Vertical"

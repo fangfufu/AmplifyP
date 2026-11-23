@@ -437,6 +437,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
+            "pcr_primer_label_orientation": "Horizontal",
         }
 
         for r_char in Nucleotides.PRIMER:
@@ -505,3 +506,8 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_pcr_amplicon_ranking(self) -> ft.Dropdown:
         """Get the amplicon vertical ranking dropdown."""
         return self.replication_tile.set_amplicon_ranking
+
+    @property
+    def set_pcr_primer_label_orientation(self) -> ft.Dropdown:
+        """Get the origin map primer label orientation dropdown."""
+        return self.replication_tile.set_primer_label_orientation

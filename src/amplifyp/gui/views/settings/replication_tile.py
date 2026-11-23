@@ -90,12 +90,28 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             text_size=font_size_default,
             border_color=GUIColours.OUTLINE,
         )
+        self.set_primer_label_orientation = ft.Dropdown(
+            label="Origin map primer label orientation",
+            value=self.settings.get(
+                "pcr_primer_label_orientation", "Horizontal"
+            ),
+            options=[
+                ft.dropdown.Option("Horizontal"),
+                ft.dropdown.Option("Vertical"),
+            ],
+            on_select=on_change_handler,
+            text_size=font_size_default,
+            border_color=GUIColours.OUTLINE,
+        )
 
         settings_map["primability_cutoff"] = self.set_primability_cutoff
         settings_map["stability_cutoff"] = self.set_stability_cutoff
         settings_map["amp4_compat"] = self.set_amp4_compat
         settings_map["improved_visualisation"] = self.set_improved_visualisation
         settings_map["pcr_amplicon_ranking"] = self.set_amplicon_ranking
+        settings_map["pcr_primer_label_orientation"] = (
+            self.set_primer_label_orientation
+        )
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
@@ -184,6 +200,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                         self.set_amp4_compat,
                                         self.set_improved_visualisation,
                                         self.set_amplicon_ranking,
+                                        self.set_primer_label_orientation,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,

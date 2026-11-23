@@ -210,6 +210,11 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container.visible = True
         self.divider.visible = True
 
+        label_orientation = str(
+            self.settings.get("pcr_primer_label_orientation", "Horizontal")
+        )
+        font_size_primer = int(self.settings.get("font_size_map_primer", 13))
+
         v_target, h_margin, c_width, t_width, v_frag_start = (
             PCRLayoutSolver.calculate_canvas_dimensions(
                 target_length,
@@ -217,6 +222,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 fwd_bindings,
                 rev_bindings,
                 self.app_page.width,
+                label_orientation=label_orientation,
+                font_size_primer=font_size_primer,
             )
         )
 
@@ -237,6 +244,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             t_width,
             h_margin,
             v_target,
+            c_width=c_width,
+            label_orientation=label_orientation,
+            font_size_primer=font_size_primer,
         )
 
         self._draw_amplicons(
@@ -378,6 +388,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         t_width: float,
         h_margin: float,
         v_target: float,
+        c_width: float = 800.0,
+        label_orientation: str = "Horizontal",
+        font_size_primer: int = 13,
     ) -> None:
         """Draw forward and reverse primers using DrawnPrimer instances.
 
@@ -391,6 +404,10 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             t_width: Template drawing width in pixels.
             h_margin: Horizontal margin in pixels.
             v_target: Vertical position of the baseline.
+            c_width: Total canvas width in pixels.
+            label_orientation: Primer label orientation ('Horizontal' or
+                'Vertical').
+            font_size_primer: Font size in pixels for primer labels.
         """
         fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
             fwd_bindings, target_length, t_width, h_margin
@@ -398,6 +415,28 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         rev_shifted = PCRLayoutSolver.calculate_shifted_x(
             rev_bindings, target_length, t_width, h_margin
         )
+
+        fwd_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
+        rev_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
+        if label_orientation != "Vertical":
+            fwd_label_layout, _ = (
+                PCRLayoutSolver.calculate_horizontal_label_layout(
+                    fwd_bindings,
+                    fwd_shifted,
+                    c_width,
+                    font_size_primer,
+                    is_fwd=True,
+                )
+            )
+            rev_label_layout, _ = (
+                PCRLayoutSolver.calculate_horizontal_label_layout(
+                    rev_bindings,
+                    rev_shifted,
+                    c_width,
+                    font_size_primer,
+                    is_fwd=False,
+                )
+            )
 
         def make_click(
             n_val: str, idx_val: int, c_val: Repliconf, v_val: DirIdx
@@ -411,6 +450,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             fwd_conf,
             fwd_var,
         ) in fwd_bindings.items():
+            label_left, label_row, label_width = fwd_label_layout.get(
+                (start_idx, name), (None, 0, None)
+            )
             drawn = DrawnPrimer(
                 name=name_val,
                 index=start_idx,
@@ -424,6 +466,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 settings=self.settings,
                 on_click=make_click(name_val, start_idx, fwd_conf, fwd_var),
                 x_shifted=fwd_shifted.get((start_idx, name)),
+                label_left=label_left,
+                label_row=label_row,
+                label_width=label_width,
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
@@ -433,6 +478,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             rev_conf,
             rev_var,
         ) in rev_bindings.items():
+            label_left, label_row, label_width = rev_label_layout.get(
+                (end_idx, name), (None, 0, None)
+            )
             drawn = DrawnPrimer(
                 name=name_val,
                 index=end_idx,
@@ -446,6 +494,9 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 settings=self.settings,
                 on_click=make_click(name_val, end_idx, rev_conf, rev_var),
                 x_shifted=rev_shifted.get((end_idx, name)),
+                label_left=label_left,
+                label_row=label_row,
+                label_width=label_width,
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
 
