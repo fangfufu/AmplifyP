@@ -551,3 +551,114 @@ def test_dimer_weights_reset_button() -> None:
         DEFAULT_PRIMER_DIMER_WEIGHTS["A", "T"]
     )
     assert mock_on_change.called
+
+
+def test_general_tile_factory_reset() -> None:
+    """Test Factory Reset button and confirmation dialogue in GeneralTile."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_on_change = MagicMock()
+    mock_on_reset = MagicMock()
+
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+        on_reset=mock_on_reset,
+    )
+
+    # Modify a wide range of preferences across sections
+    settings["font_family"] = "Courier New"
+    settings["dark_mode"] = True
+    settings["colour_deficient"] = True
+    settings["primability_cutoff"] = "0.95"
+    settings["template_fixed_width"] = True
+    settings["template_bases_per_line"] = "80"
+    settings["auto_activate_new_valid_primer"] = True
+    settings["auto_reload_on_startup"] = False
+    settings["designer_1d_show_tm"] = False
+    view.update_ui()
+
+    btn = view.general_tile.factory_reset_button
+    assert isinstance(btn, ft.OutlinedButton)
+    assert btn.content == "Reset Settings"
+
+    # Clicking opens the confirmation dialogue
+    with patch.object(settings, "save_to_local") as mock_save:
+        view.general_tile._on_factory_reset_click(MagicMock())
+        dialog = view.general_tile._factory_reset_dialog
+        assert dialog is not None
+        assert dialog.open is True
+        assert dialog in mock_page.overlay
+
+        # Cancel dismisses without resetting
+        view.general_tile._dismiss_factory_reset()
+        assert dialog.open is False
+        assert settings["font_family"] == "Courier New"
+        assert not mock_save.called
+
+        # Re-open and confirm resets all preferences to factory defaults
+        view.general_tile._on_factory_reset_click(MagicMock())
+        assert dialog.open is True
+        with patch.object(
+            view.general_tile.notification_helper, "show_message"
+        ) as mock_msg:
+            view.general_tile._confirm_factory_reset()
+
+        assert dialog.open is False
+        assert mock_save.called
+        assert mock_on_reset.called
+        assert settings["font_family"] == "Roboto Mono"
+        assert settings["dark_mode"] == "system"
+        assert settings["colour_deficient"] is False
+        assert settings["primability_cutoff"] == "0.8"
+        assert settings["template_fixed_width"] is False
+        assert settings["template_bases_per_line"] == "Auto"
+        assert settings["auto_activate_new_valid_primer"] is False
+        assert settings["auto_reload_on_startup"] is True
+        assert settings["designer_1d_show_tm"] is True
+        assert view.set_font_family.value == "Roboto Mono"
+        assert view.set_colour_scheme.value == "System"
+        assert view.set_primability_cutoff.value == "0.8"
+        mock_msg.assert_called_once_with(
+            "All preferences reset to their default values."
+        )
+
+
+def test_general_tile_factory_reset_standalone() -> None:
+    """Test GeneralTile.perform_factory_reset without on_reset_callback."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_on_change = MagicMock()
+    mock_sync = MagicMock()
+    mock_update_ui = MagicMock()
+
+    settings = GUISettings()
+    settings["font_family"] = "Consolas"
+    tile = GeneralTile(
+        page=mock_page,
+        settings=settings,
+        settings_map={},
+        on_change_handler=mock_on_change,
+        header_size=18,
+        font_size_default=14,
+        sync_to_state_callback=mock_sync,
+        update_ui_callback=mock_update_ui,
+    )
+
+    with (
+        patch.object(settings, "save_to_local") as mock_save,
+        patch.object(tile.notification_helper, "show_message") as mock_msg,
+    ):
+        tile.perform_factory_reset()
+
+    assert settings["font_family"] == "Roboto Mono"
+    mock_save.assert_called_once_with(mock_page)
+    mock_update_ui.assert_called_once()
+    mock_on_change.assert_called_once_with(None)
+    mock_msg.assert_called_once_with(
+        "All preferences reset to their default values."
+    )

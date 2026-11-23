@@ -44,6 +44,10 @@ settings backup file operations.
   - **Load Settings**: Opens a file dialog to import settings from a YAML
     configuration file and immediately apply theme and parameter changes across
     the UI.
+- **Reset Settings**:
+  - **Reset Settings**: Opens a confirmation dialogue and, upon confirmation,
+    resets all preferences across all tiles to their default values, saves the
+    updated state to local storage, reconfigures logging, and refreshes the UI.
 
 ## 2. Appearance
 

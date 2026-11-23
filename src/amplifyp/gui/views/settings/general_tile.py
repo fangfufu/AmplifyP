@@ -55,6 +55,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         sync_to_state_callback: Callable[[], None],
         update_ui_callback: Callable[[], None],
         on_update_found: Callable[[str], None] | None = None,
+        on_reset_callback: Callable[[], None] | None = None,
     ) -> None:
         """Initialise the GeneralTile."""
         self.app_page = page
@@ -64,8 +65,10 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.sync_to_state_callback = sync_to_state_callback
         self.update_ui_callback = update_ui_callback
         self.on_update_found = on_update_found
+        self.on_reset_callback = on_reset_callback
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
+        self._factory_reset_dialog: ft.AlertDialog | None = None
 
         # --- Appearance settings ---
         self.set_font_family = ft.Dropdown(
@@ -172,6 +175,15 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             tooltip="Load settings from a YAML file",
         )
 
+        # --- Factory Reset ---
+        self.factory_reset_button = ft.OutlinedButton(
+            "Reset Settings",
+            icon=ft.Icons.RESTORE,
+            on_click=self._on_factory_reset_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            tooltip="Reset all preferences to their default values",
+            style=ft.ButtonStyle(color=GUIColours.ERROR_RED),
+        )
+
         super().__init__(
             title=ft.Text(
                 "General",
@@ -242,7 +254,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ),
                                         ft.Text(
                                             "Export or import all application "
-                                            "settings exposed in this view.",
+                                            "settings.",
                                             size=font_size_default,
                                         ),
                                         ft.Row(
@@ -251,6 +263,21 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                                 self.load_button,
                                             ],
                                             spacing=15,
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                        ),
+                                        ft.Divider(),
+                                        ft.Text(
+                                            "Reset Settings",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        ft.Text(
+                                            "Reset all preferences to their "
+                                            "default values.",
+                                            size=font_size_default,
+                                        ),
+                                        ft.Row(
+                                            [self.factory_reset_button],
                                             alignment=ft.MainAxisAlignment.CENTER,
                                         ),
                                     ],
@@ -271,6 +298,62 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
     def set_auto_reload_on_startup(self) -> BorderedCheckbox:
         """Get the auto reload checkbox."""
         return self.auto_reload_checkbox
+
+    def _on_factory_reset_click(self, _e: ft.ControlEvent) -> None:
+        """Show a confirmation dialogue before performing a factory reset."""
+        if not self._factory_reset_dialog:
+            self._factory_reset_dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(
+                    "Confirm Reset Settings", color=GUIColours.ERROR_RED
+                ),
+                content=ft.Text(
+                    "Are you sure you want to reset all preferences to their "
+                    "default values?"
+                ),
+                actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton(
+                        "Reset",
+                        on_click=self._confirm_factory_reset,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        style=ft.ButtonStyle(color=GUIColours.ERROR_RED),
+                    ),
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=self._dismiss_factory_reset,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+
+        if self._factory_reset_dialog not in self.app_page.overlay:
+            self.app_page.overlay.append(self._factory_reset_dialog)
+        self._factory_reset_dialog.open = True
+        self.app_page.update()
+
+    def _dismiss_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
+        """Dismiss the factory reset confirmation dialogue."""
+        if self._factory_reset_dialog:
+            self._factory_reset_dialog.open = False
+        self.app_page.update()
+
+    def _confirm_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
+        """Confirm and execute the factory reset."""
+        self._dismiss_factory_reset()
+        self.perform_factory_reset()
+
+    def perform_factory_reset(self) -> None:
+        """Reset all preferences to factory defaults and update UI."""
+        if self.on_reset_callback is not None:
+            self.on_reset_callback()
+        else:
+            self.settings.reset_to_defaults()
+            self.settings.save_to_local(self.app_page)
+            self.update_ui_callback()
+            if self.on_change_handler is not None:
+                self.on_change_handler(None)
+        self.notification_helper.show_message(
+            "All preferences reset to their default values."
+        )
 
     def _on_manual_check_click(self, e: ft.ControlEvent) -> None:
         """Handle manual update check trigger."""

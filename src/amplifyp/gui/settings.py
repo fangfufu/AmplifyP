@@ -579,6 +579,18 @@ class GUISettings:
             GUIColours.dark_mode = bool(dark_mode_val)
         self._cached_tm_settings = None
 
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to their factory default values."""
+        defaults = GUISettings()
+        self._settings = dict(defaults._settings)
+        self._cached_tm_settings = None
+        GUIColours.colour_deficient_mode = bool(
+            self._settings.get("colour_deficient", False)
+        )
+        dark_mode_val = self._settings.get("dark_mode", False)
+        if str(dark_mode_val).lower() != "system":
+            GUIColours.dark_mode = bool(dark_mode_val)
+
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration.
 

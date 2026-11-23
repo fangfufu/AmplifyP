@@ -77,6 +77,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             sync_to_state_callback=self.sync_to_state,
             update_ui_callback=self.update_ui,
             on_update_found=self.on_update_found,
+            on_reset_callback=self._on_reset_handler,
         )
 
         self.input_tile = InputTile(
@@ -368,87 +369,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""
-        from amplifyp.dna import Nucleotides
-        from amplifyp.settings import (
-            DEFAULT_BASE_PAIR_WEIGHTS,
-            DEFAULT_PRIMABILITY_CUTOFF,
-            DEFAULT_PRIMER_DIMER_OVERLAP,
-            DEFAULT_PRIMER_DIMER_THRESHOLD,
-            DEFAULT_PRIMER_DIMER_WEIGHTS,
-            DEFAULT_STABILITY_CUTOFF,
-            GLOBAL_TM_SETTINGS,
-        )
-
-        reset_dict = {
-            "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
-            "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
-            "amp4_compat": False,
-            "tm_method": "SantaLucia 1998 / Owczarzy 2008 (Default)",
-            "tm_dna_conc": str(GLOBAL_TM_SETTINGS.dna_conc),
-            "tm_dnap_conc": str(GLOBAL_TM_SETTINGS.dnap_conc),
-            "tm_mono_salt": str(GLOBAL_TM_SETTINGS.monovalent_salt_conc),
-            "tm_div_salt": str(GLOBAL_TM_SETTINGS.divalent_salt_conc),
-            "tm_dNTP_conc": str(GLOBAL_TM_SETTINGS.dntp_conc),
-            "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
-            "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
-            "font_family": "Roboto Mono",
-            "dimer_sequence_separator": "Space (' ')",
-            "sequence_separator": "Space (' ')",
-            "colour_deficient": False,
-            "dark_mode": "system",
-            "improved_visualisation": True,
-            "show_primer_temperature": False,
-            "tm_colour_scheme": "None",
-            "designer_2d_colour_scheme": "Blue-Orange",
-            "designer_2d_show_rev_fwd": False,
-            "log_level_amplifyp": "INFO",
-            "log_level_flet": "INFO",
-            "log_console_enabled": True,
-            "log_file_enabled": True,
-            "log_file_path": "(Default)",
-            "log_rotation_enabled": True,
-            "log_rotation_max_bytes": 5242880,
-            "version_checking_frequency": "Once per Month",
-            "last_version_check_timestamp": 0.0,
-            "auto_reload_on_startup": True,
-            "primer_info_panel_position": "bottom",
-            "primer_info_panel_fixed_height": False,
-            "primer_info_panel_height": 260,
-            "designer_1d_show_tm": True,
-            "designer_1d_show_pct_at": False,
-            "pcr_amplicon_ranking": "Position, then length",
-            "pcr_primer_label_orientation": "Horizontal",
-        }
-
-        for r_char in Nucleotides.PRIMER:
-            for c_char in Nucleotides.TEMPLATE:
-                if c_char == Nucleotides.GAP:
-                    continue
-                key = f"bp_score_{r_char}_{c_char}"
-                reset_dict[key] = str(DEFAULT_BASE_PAIR_WEIGHTS[r_char, c_char])
-
-        for r_char in Nucleotides.PRIMER:
-            for c_char in Nucleotides.PRIMER:
-                key = f"pd_score_{r_char}_{c_char}"
-                reset_dict[key] = str(
-                    DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
-                )
-
-        from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
-
-        reset_dict["match_weight_default"] = str(
-            DEFAULT_MATCH_WEIGHTS.default_weight
-        )
-        for idx, val in DEFAULT_MATCH_WEIGHTS.overrides.items():
-            reset_dict[f"match_weight_{idx}"] = str(val)
-
-        reset_dict["run_weight_default"] = str(
-            DEFAULT_RUN_WEIGHTS.default_weight
-        )
-        for idx, val in DEFAULT_RUN_WEIGHTS.overrides.items():
-            reset_dict[f"run_weight_{idx}"] = str(val)
-
-        self.settings.from_dict(reset_dict)
+        self.settings.reset_to_defaults()
         self.update_ui()
         self.settings.save_to_local(self.app_page)
         self._reconfigure_logging()
