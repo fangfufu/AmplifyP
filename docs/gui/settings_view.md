@@ -133,6 +133,11 @@ thresholds, and compatibility modes for PCR replication calculations.
   - **Amplicon vertical ranking**: Dropdown controlling the vertical ordering of
     amplicon fragment bars in the PCR View diagram (`Position, then length`
     [default], `Quality score`, `Position, then quality`).
+  - **Horizontal divider behaviour**: Dropdown controlling how the PCR overview
+    map height is sized (`Auto-resize (max 1/4 of viewport)`,
+    `Auto-resize (max 1/3 of viewport)` [default],
+    `Auto-resize (max 1/2 of viewport)`, `Auto-resize (max 2/3 of viewport)`,
+    `Save proportionality across session`).
 
 ## 6. Primer Dimer
 

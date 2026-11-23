@@ -109,6 +109,36 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             text_size=font_size_default,
             border_color=GUIColours.OUTLINE,
         )
+        self.set_pcr_divider_behaviour = ft.Dropdown(
+            label="Horizontal divider behaviour",
+            value=self.settings.get("pcr_divider_behaviour", "autoresize"),
+            options=[
+                ft.dropdown.Option(
+                    key="autoresize_1_4",
+                    text="Auto-resize (max 1/4 of viewport)",
+                ),
+                ft.dropdown.Option(
+                    key="autoresize",
+                    text="Auto-resize (max 1/3 of viewport)",
+                ),
+                ft.dropdown.Option(
+                    key="autoresize_1_2",
+                    text="Auto-resize (max 1/2 of viewport)",
+                ),
+                ft.dropdown.Option(
+                    key="autoresize_2_3",
+                    text="Auto-resize (max 2/3 of viewport)",
+                ),
+                ft.dropdown.Option(
+                    key="save_proportionality",
+                    text="Save proportionality across session",
+                ),
+            ],
+            expand=True,
+            on_select=on_change_handler,
+            text_size=font_size_default,
+            border_color=GUIColours.OUTLINE,
+        )
 
         settings_map["primability_cutoff"] = self.set_primability_cutoff
         settings_map["stability_cutoff"] = self.set_stability_cutoff
@@ -118,6 +148,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         settings_map["pcr_primer_label_orientation"] = (
             self.set_primer_label_orientation
         )
+        settings_map["pcr_divider_behaviour"] = self.set_pcr_divider_behaviour
 
         col_headers = [c for c in Nucleotides.TEMPLATE if c != Nucleotides.GAP]
 
@@ -177,6 +208,28 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Column(
                         [
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Text(
+                                            "Overview Map",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_pcr_divider_behaviour,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Divider(),
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=700,
+                            ),
                             ft.Container(
                                 content=ft.Text(
                                     "Replication Origin",

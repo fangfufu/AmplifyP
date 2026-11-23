@@ -1242,3 +1242,113 @@ def test_drawn_primer_triangle_and_label_same_line_when_stacked() -> None:
     # Label is the first stack control; vertically centred on tri_mid_y
     label_ctrl = stack.controls[0]
     assert label_ctrl.top == 67.0 - (13 + 3.0) / 2.0
+
+
+def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
+    """Test autoresize fits PCR map up to configured viewport fractions."""
+    from amplifyp.gui.settings import GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    # 1000 - 100 (nav bar) = 900 available viewport height
+    mock_page.height = 1000
+
+    settings = GUISettings()
+    assert settings["pcr_divider_behaviour"] == "autoresize"
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+
+    # Single amplicon canvas is smaller than 1/3 of 900 (300),
+    # clamped to >= 150.0 and <= 300.0.
+    assert view.diagram_container.height is not None
+    assert 150.0 <= view.diagram_container.height <= 300.0
+
+    # Simulate a tall canvas (many amplicons): capped at 1/3 of viewport.
+    view.diagram_panel.diagram_canvas.height = 1000.0
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 300.0
+
+    # Viewport grows to 1300 (1200 available) -> 1/3 cap becomes 400.0.
+    mock_page.height = 1300
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 400.0
+
+    # 1/4 viewport cap on 1200 available -> 300.0.
+    settings["pcr_divider_behaviour"] = "autoresize_1_4"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 300.0
+
+    # 1/2 viewport cap on 1200 available -> 600.0.
+    settings["pcr_divider_behaviour"] = "autoresize_1_2"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 600.0
+
+    # 2/3 viewport cap on 1200 available -> 800.0.
+    settings["pcr_divider_behaviour"] = "autoresize_2_3"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 800.0
+
+
+def test_pcr_divider_save_proportionality() -> None:
+    """Test saving and restoring PCR map height proportionality."""
+    from amplifyp.gui.settings import GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    # 1100 - 100 (nav bar) = 1000 available viewport height
+    mock_page.height = 1100
+
+    settings = GUISettings()
+    settings["pcr_divider_behaviour"] = "save_proportionality"
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+
+    # Default ratio 0.375 on 1000px available viewport -> 375.0px
+    assert view.diagram_container.height == 375.0
+
+    # Drag divider down by 125px -> 500px -> ratio 0.5
+    view.diagram_panel.update = MagicMock()
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=125.0))
+        )
+    assert view.diagram_container.height == 500.0
+    assert settings["pcr_map_height_ratio"] == 0.5
+
+    with patch.object(settings, "save_to_local") as mock_save:
+        view.diagram_panel._on_pan_end(MagicMock(spec=ft.DragEndEvent))
+        mock_save.assert_called_once_with(
+            mock_page, keys=("pcr_map_height_ratio",)
+        )
+
+    # Resize to 900px (800 available) preserves 0.5 proportionality -> 400px
+    mock_page.height = 900
+    view._handle_resize(MagicMock())
+    assert view.diagram_container.height == 400.0
+
+    # New view in a new session with the same persisted settings restores 0.5
+    new_view = PCRView(mock_page, input_data, settings)
+    new_view.run_pcr()
+    assert new_view.diagram_container.height == 400.0

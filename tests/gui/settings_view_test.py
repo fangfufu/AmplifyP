@@ -484,6 +484,25 @@ def test_pcr_primer_label_orientation_settings() -> None:
     assert settings["pcr_primer_label_orientation"] == "Vertical"
 
 
+def test_pcr_divider_behaviour_settings() -> None:
+    """Test PCR horizontal divider behaviour dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert view.set_pcr_divider_behaviour.value == "autoresize"
+    assert [opt.key for opt in view.set_pcr_divider_behaviour.options] == [
+        "autoresize_1_4",
+        "autoresize",
+        "autoresize_1_2",
+        "autoresize_2_3",
+        "save_proportionality",
+    ]
+    view.set_pcr_divider_behaviour.value = "save_proportionality"
+    view.sync_to_state()
+    assert settings["pcr_divider_behaviour"] == "save_proportionality"
+
+
 def test_weights_cells_centred_alignment() -> None:
     """Test that all weights cells in SettingsView are centred."""
     mock_page = MagicMock(spec=ft.Page)

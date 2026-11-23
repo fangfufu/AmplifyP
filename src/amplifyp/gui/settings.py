@@ -120,6 +120,8 @@ class GUISettings:
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
             "pcr_primer_label_orientation": "Horizontal",
+            "pcr_divider_behaviour": "autoresize",
+            "pcr_map_height_ratio": 0.375,
         }
 
         # Initialise base-pair weights

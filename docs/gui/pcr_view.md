@@ -45,7 +45,10 @@ PCR amplicons on an interactive canvas.
     the canvas.
 - **Resizable Container**: A drag handle (divider bar) below the canvas allows
   dragging vertically to resize the overview map container (minimum height 150
-  px).
+  px). Its sizing behaviour can be configured in the **PCR** settings tile:
+  either auto-resizing to fit the map up to 1/4, 1/3 (default), 1/2, or 2/3 of
+  the viewport height, or saving the viewport height proportionality across the
+  session.
 - **Safe Rendering Limits**: If more than 100 amplicons are predicted, amplicons
   are sorted according to the active **Amplicon vertical ranking** mode and only
   the top 100 are rendered on the map to prevent UI freezing. A red warning

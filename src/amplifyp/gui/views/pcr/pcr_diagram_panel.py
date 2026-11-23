@@ -37,6 +37,14 @@ from .primer_drawing import DrawnPrimer
 
 __all__ = ["PCRDrawingPanel", "sort_amplicons"]
 
+_AUTORESIZE_VIEWPORT_FRACTIONS: dict[str, float] = {
+    "autoresize_1_4": 1.0 / 4.0,
+    "autoresize": 1.0 / 3.0,
+    "autoresize_1_2": 1.0 / 2.0,
+    "autoresize_2_3": 2.0 / 3.0,
+}
+_NAV_BAR_HEIGHT = 100.0
+
 
 def sort_amplicons(
     amplicons: list[Amplicon], ranking_mode: str
@@ -124,6 +132,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         self.divider = ft.GestureDetector(
             on_pan_update=self._on_pan_update,
+            on_pan_end=self._on_pan_end,
             content=ft.Container(
                 height=5,
                 bgcolor=GUIColours.DIVIDER_GREY,
@@ -139,6 +148,35 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             self.divider,
         ]
 
+    def _get_viewport_height(self) -> float:
+        """Return available viewport height excluding the top navigation bar."""
+        page_h = getattr(self.app_page, "height", None)
+        if isinstance(page_h, (int, float)) and page_h > 0:
+            return max(0.0, float(page_h) - _NAV_BAR_HEIGHT)
+        return 800.0 - _NAV_BAR_HEIGHT
+
+    def _apply_container_height(self) -> None:
+        """Size the diagram container according to the divider behaviour."""
+        viewport_height = self._get_viewport_height()
+        behaviour = str(
+            self.settings.get("pcr_divider_behaviour", "autoresize")
+        )
+        if behaviour == "save_proportionality":
+            ratio = float(self.settings.get("pcr_map_height_ratio", 0.375))
+            max_height = max(150.0, viewport_height - 150.0)
+            self.diagram_container.height = max(
+                150.0, min(max_height, viewport_height * ratio)
+            )
+            return
+
+        # Default: autoresize to fit content, capped at viewport fraction.
+        fraction = _AUTORESIZE_VIEWPORT_FRACTIONS.get(behaviour, 1.0 / 3.0)
+        content_height = float(self.diagram_canvas.height or 300.0) + 22.0
+        max_auto_height = max(150.0, viewport_height * fraction)
+        self.diagram_container.height = max(
+            150.0, min(content_height, max_auto_height)
+        )
+
     def _on_pan_update(self, e: ft.DragUpdateEvent) -> None:
         """Handle vertical resizing of the diagram container.
 
@@ -146,14 +184,37 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             e: The Flet drag update event containing delta y.
         """
         delta_y = getattr(e.local_delta, "y", 0.0) if e.local_delta else 0.0
-        self.diagram_container.height = max(
-            150.0, float(self.diagram_container.height or 300.0) + delta_y
+        viewport_height = self._get_viewport_height()
+        max_height = max(150.0, viewport_height - 150.0)
+        new_height = max(
+            150.0,
+            min(
+                max_height,
+                float(self.diagram_container.height or 300.0) + delta_y,
+            ),
         )
+        self.diagram_container.height = new_height
+        if (
+            self.settings.get("pcr_divider_behaviour", "autoresize")
+            == "save_proportionality"
+        ):
+            self.settings["pcr_map_height_ratio"] = new_height / viewport_height
         try:
             if self.page:
                 self.update()
         except RuntimeError:
             pass
+
+    def _on_pan_end(self, _e: ft.DragEndEvent) -> None:
+        """Persist map height proportionality when drag finishes."""
+        if (
+            self.app_page
+            and self.settings.get("pcr_divider_behaviour", "autoresize")
+            == "save_proportionality"
+        ):
+            self.settings.save_to_local(
+                self.app_page, keys=("pcr_map_height_ratio",)
+            )
 
     def reset_ui(self) -> None:
         """Reset the PCR view diagram canvas shapes and controls.
@@ -231,6 +292,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_canvas.width = c_width
         self.diagram_canvas.height = v_frag_start + num_amplicons * 35 + 30.0
         self.diagram_stack.height = self.diagram_canvas.height
+        self._apply_container_height()
 
         if target_length > 0:
             self._draw_template_baseline(

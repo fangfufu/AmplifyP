@@ -138,6 +138,8 @@ class NavigationManager:
             ctrl.page.on_resize = ctrl.input_view._handle_resize
         elif view == ctrl.pcr_view:
             ctrl.page.on_resize = ctrl.pcr_view._handle_resize  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            if ctrl.pcr_view.diagram_container.visible:
+                ctrl.pcr_view.diagram_panel._apply_container_height()
         else:
             ctrl.page.on_resize = None
 
