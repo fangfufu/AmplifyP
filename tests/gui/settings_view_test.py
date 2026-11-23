@@ -55,7 +55,7 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.general_tile.title.value == "General"
     assert view.input_tile.title.value == "Input"
     assert view.replication_tile.title.value == "PCR"
-    assert view.dimer_tile.title.value == "Primer Dimer"
+    assert view.dimer_tile.title.value == "Primer Dimers"
     assert view.designer_2d_tile.title.value == "Designer 2D"
     assert view.diagnostics_tile.title.value == "Diagnostics"
 

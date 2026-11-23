@@ -50,12 +50,14 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_pd_min_overlap = ft.TextField(
             label="Min Overlap",
             value="3",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_pd_threshold = ft.TextField(
             label="Threshold",
             value="60.0",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -88,7 +90,7 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
 
         super().__init__(
             title=ft.Text(
-                "Primer Dimer",
+                "Primer Dimers",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -102,16 +104,13 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
-                                        ft.Divider(),
-                                        ft.Text(
-                                            "Parameters",
-                                            weight=ft.FontWeight.BOLD,
-                                            size=self.settings.get(
-                                                "font_size_default", 14
-                                            ),
+                                        ft.Row(
+                                            [
+                                                self.set_pd_min_overlap,
+                                                self.set_pd_threshold,
+                                            ],
+                                            spacing=15,
                                         ),
-                                        self.set_pd_min_overlap,
-                                        self.set_pd_threshold,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
