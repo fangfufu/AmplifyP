@@ -139,6 +139,21 @@ class GUISettings:
                     DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
                 )
 
+        # Initialise lengthwise match and run weights
+        from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
+
+        self._settings["match_weight_default"] = str(
+            DEFAULT_MATCH_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_MATCH_WEIGHTS.overrides.items():
+            self._settings[f"match_weight_{idx}"] = str(val)
+
+        self._settings["run_weight_default"] = str(
+            DEFAULT_RUN_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_RUN_WEIGHTS.overrides.items():
+            self._settings[f"run_weight_{idx}"] = str(val)
+
         if settings_dict is not None:
             self._settings.update(settings_dict)
             if "sequence_separator" in settings_dict:
@@ -323,7 +338,13 @@ class GUISettings:
             A ReplicationSettings instance configured from GUI settings.
         """
         from amplifyp.dna import Nucleotides
-        from amplifyp.settings import BasePairWeightsTbl, ReplicationSettings
+        from amplifyp.settings import (
+            DEFAULT_MATCH_WEIGHTS,
+            DEFAULT_RUN_WEIGHTS,
+            BasePairWeightsTbl,
+            LengthWiseWeightTbl,
+            ReplicationSettings,
+        )
 
         bp_weights = []
         for r_char in Nucleotides.PRIMER:
@@ -342,6 +363,41 @@ class GUISettings:
             weight=bp_weights,
         )
 
+        match_overrides: dict[int, float] = {}
+        match_prefix = "match_weight_"
+        for key in self._settings:
+            if key.startswith(match_prefix) and key != "match_weight_default":
+                suffix = key[len(match_prefix) :]
+                if suffix.isdigit():
+                    idx = int(suffix)
+                    match_overrides[idx] = self._safe_float(
+                        key, DEFAULT_MATCH_WEIGHTS.default_weight
+                    )
+
+        run_overrides: dict[int, float] = {}
+        run_prefix = "run_weight_"
+        for key in self._settings:
+            if key.startswith(run_prefix) and key != "run_weight_default":
+                suffix = key[len(run_prefix) :]
+                if suffix.isdigit():
+                    idx = int(suffix)
+                    run_overrides[idx] = self._safe_float(
+                        key, DEFAULT_RUN_WEIGHTS.default_weight
+                    )
+
+        match_weight = LengthWiseWeightTbl(
+            default_weight=self._safe_float(
+                "match_weight_default", DEFAULT_MATCH_WEIGHTS.default_weight
+            ),
+            overrides=match_overrides,
+        )
+        run_weights = LengthWiseWeightTbl(
+            default_weight=self._safe_float(
+                "run_weight_default", DEFAULT_RUN_WEIGHTS.default_weight
+            ),
+            overrides=run_overrides,
+        )
+
         return ReplicationSettings(
             primability_cutoff=self._safe_float(
                 "primability_cutoff", DEFAULT_PRIMABILITY_CUTOFF
@@ -351,6 +407,8 @@ class GUISettings:
             ),
             amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
             base_pair_scores=base_pair_scores,
+            match_weight=match_weight,
+            run_weights=run_weights,
         )
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:

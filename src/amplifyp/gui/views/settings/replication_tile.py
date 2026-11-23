@@ -29,7 +29,11 @@ from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
     initialise_score_fields,
 )
+from amplifyp.gui.views.settings.lengthwise_weight_table import (
+    LengthwiseWeightTable,
+)
 from amplifyp.gui.views.settings.score_table import ScoreTable
+from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
 
 
 class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -117,6 +121,28 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_table_header=font_size_table_header,
         )
 
+        self.match_weight_table = LengthwiseWeightTable(
+            label="Match Weights",
+            indices=sorted(DEFAULT_MATCH_WEIGHTS.overrides.keys()),
+            prefix="match_weight",
+            settings_map=self.settings_map,
+            on_change_handler=self.on_change_handler,
+            font_size_default=font_size_default,
+            font_size_table_header=font_size_table_header,
+            default_weights=DEFAULT_MATCH_WEIGHTS,
+        )
+
+        self.run_weight_table = LengthwiseWeightTable(
+            label="Run Weights",
+            indices=sorted(DEFAULT_RUN_WEIGHTS.overrides.keys()),
+            prefix="run_weight",
+            settings_map=self.settings_map,
+            on_change_handler=self.on_change_handler,
+            font_size_default=font_size_default,
+            font_size_table_header=font_size_table_header,
+            default_weights=DEFAULT_RUN_WEIGHTS,
+        )
+
         super().__init__(
             title=ft.Text(
                 "PCR",
@@ -129,6 +155,16 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                     content=ft.Column(
                         [
                             self.score_table,
+                            ft.Container(height=10),
+                            ft.Row(
+                                [
+                                    self.match_weight_table,
+                                    self.run_weight_table,
+                                ],
+                                alignment=ft.MainAxisAlignment.CENTER,
+                                vertical_alignment=ft.CrossAxisAlignment.START,
+                                spacing=30,
+                            ),
                             ft.Container(height=10),
                             ft.Container(
                                 content=ft.Column(
@@ -164,3 +200,9 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
     def update_ui(self) -> None:
         """Update Flet UI controls to match theme/settings."""
         self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
+        self.match_weight_table.table.heading_row_color = (
+            GUIColours.INFO_HEADER_BG
+        )
+        self.run_weight_table.table.heading_row_color = (
+            GUIColours.INFO_HEADER_BG
+        )
