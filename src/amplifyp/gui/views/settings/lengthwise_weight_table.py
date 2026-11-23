@@ -39,7 +39,6 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_table_header: int,
         default_weights: LengthWiseWeightTbl,
-        width: int = 270,
     ) -> None:
         """Initialise the LengthwiseWeightTable."""
         self.label = label
@@ -92,7 +91,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=self.font_size_table_header,
                     ),
-                    width=80,
+                    width=60,
                     alignment=ft.Alignment(0, 0),
                 )
             ),
@@ -103,7 +102,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
                         weight=ft.FontWeight.BOLD,
                         size=self.font_size_table_header,
                     ),
-                    width=100,
+                    width=65,
                     alignment=ft.Alignment(0, 0),
                 )
             ),
@@ -136,7 +135,6 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
                     border=ft.Border.all(1, GUIColours.OUTLINE),
                     border_radius=5,
                     padding=0,
-                    width=width,
                 ),
                 ft.Row(
                     [
@@ -156,7 +154,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         """Create a borderless TextField matching ScoreTable styling."""
         return ft.TextField(
             value=value,
-            width=100,
+            width=65,
             height=30,
             content_padding=0,
             border=ft.NoInputBorder(),
@@ -176,14 +174,14 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
                             weight=ft.FontWeight.BOLD,
                             size=self.font_size_table_header,
                         ),
-                        width=80,
+                        width=60,
                         alignment=ft.Alignment(0, 0),
                     )
                 ),
                 ft.DataCell(
                     ft.Container(
                         content=field,
-                        width=100,
+                        width=65,
                         alignment=ft.Alignment(0, 0),
                     )
                 ),
