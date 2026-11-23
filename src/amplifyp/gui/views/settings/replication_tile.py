@@ -57,25 +57,29 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_primability_cutoff = ft.TextField(
             label="Primability Cutoff",
             value="0.8",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_stability_cutoff = ft.TextField(
             label="Stability Cutoff",
             value="0.4",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
 
         self.set_amp4_compat = BorderedCheckbox(
-            label="Amplify4 Compatibility Mode",
+            label="Amplify 4 Compatibility Mode",
             value=False,
             on_change=on_change_handler,
         )
+        self.set_amp4_compat.expand = True
         self.set_improved_visualisation = BorderedCheckbox(
-            label="Improved Primer Binding Site Visualisation",
+            label="Improved Replication Origin Visualisation",
             on_change=on_change_handler,
         )
+        self.set_improved_visualisation.expand = True
         self.set_amplicon_ranking = ft.Dropdown(
             label="Amplicon vertical ranking",
             value=self.settings.get(
@@ -86,12 +90,13 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Quality score"),
                 ft.dropdown.Option("Position, then quality"),
             ],
+            expand=True,
             on_select=on_change_handler,
             text_size=font_size_default,
             border_color=GUIColours.OUTLINE,
         )
         self.set_primer_label_orientation = ft.Dropdown(
-            label="Origin map primer label orientation",
+            label="Primer label orientation",
             value=self.settings.get(
                 "pcr_primer_label_orientation", "Horizontal"
             ),
@@ -99,6 +104,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Horizontal"),
                 ft.dropdown.Option("Vertical"),
             ],
+            expand=True,
             on_select=on_change_handler,
             text_size=font_size_default,
             border_color=GUIColours.OUTLINE,
@@ -171,6 +177,14 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Column(
                         [
+                            ft.Container(
+                                content=ft.Text(
+                                    "Replication Origin",
+                                    weight=ft.FontWeight.BOLD,
+                                    size=font_size_default + 2,
+                                ),
+                                width=700,
+                            ),
                             ft.Row(
                                 [
                                     self.score_table,
@@ -187,20 +201,40 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Row(
+                                            [
+                                                self.set_primability_cutoff,
+                                                self.set_stability_cutoff,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_amp4_compat,
+                                                self.set_improved_visualisation,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_primer_label_orientation,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
                                         ft.Divider(),
                                         ft.Text(
-                                            "Parameters",
+                                            "Amplicon",
                                             weight=ft.FontWeight.BOLD,
-                                            size=self.settings.get(
-                                                "font_size_default", 14
-                                            ),
+                                            size=font_size_default + 2,
                                         ),
-                                        self.set_primability_cutoff,
-                                        self.set_stability_cutoff,
-                                        self.set_amp4_compat,
-                                        self.set_improved_visualisation,
-                                        self.set_amplicon_ranking,
-                                        self.set_primer_label_orientation,
+                                        ft.Row(
+                                            [
+                                                self.set_amplicon_ranking,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
