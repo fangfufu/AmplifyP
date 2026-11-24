@@ -16,21 +16,29 @@
 """Settings sub-controls package."""
 
 from amplifyp.gui.views.settings.designer_1d_tile import Designer1DTile
+from amplifyp.gui.views.settings.designer_2d_tile import Designer2DTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.dimer_tile import DimerTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
 from amplifyp.gui.views.settings.input_tile import InputTile
+from amplifyp.gui.views.settings.lengthwise_weight_table import (
+    LengthwiseWeightTable,
+)
 from amplifyp.gui.views.settings.replication_tile import ReplicationTile
 from amplifyp.gui.views.settings.score_table import ScoreTable
 from amplifyp.gui.views.settings.settings_view import SettingsView
+from amplifyp.gui.views.settings.weight_table_base import WeightTableBase
 
 __all__ = [
     "Designer1DTile",
+    "Designer2DTile",
     "DiagnosticsTile",
     "DimerTile",
     "GeneralTile",
     "InputTile",
+    "LengthwiseWeightTable",
     "ReplicationTile",
     "ScoreTable",
     "SettingsView",
+    "WeightTableBase",
 ]

@@ -33,7 +33,11 @@ from amplifyp.gui.views.settings.lengthwise_weight_table import (
     LengthwiseWeightTable,
 )
 from amplifyp.gui.views.settings.score_table import ScoreTable
-from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
+from amplifyp.settings import (
+    DEFAULT_BASE_PAIR_WEIGHTS,
+    DEFAULT_MATCH_WEIGHTS,
+    DEFAULT_RUN_WEIGHTS,
+)
 
 
 class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -174,28 +178,43 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
             scrollable=False,
+            default_weights=DEFAULT_BASE_PAIR_WEIGHTS,
+            on_change_handler=self.on_change_handler,
         )
 
+        match_indices = sorted(
+            int(k[len("match_weight_") :])
+            for k in self.settings.keys()
+            if k.startswith("match_weight_")
+            and k[len("match_weight_") :].isdigit()
+        )
         self.match_weight_table = LengthwiseWeightTable(
             label="Match Weights",
-            indices=sorted(DEFAULT_MATCH_WEIGHTS.overrides.keys()),
+            indices=match_indices,
             prefix="match_weight",
             settings_map=self.settings_map,
             on_change_handler=self.on_change_handler,
             font_size_default=font_size_default,
             font_size_table_header=font_size_table_header,
             default_weights=DEFAULT_MATCH_WEIGHTS,
+            row_header_label="3' Position",
         )
 
+        run_indices = sorted(
+            int(k[len("run_weight_") :])
+            for k in self.settings.keys()
+            if k.startswith("run_weight_") and k[len("run_weight_") :].isdigit()
+        )
         self.run_weight_table = LengthwiseWeightTable(
             label="Run Weights",
-            indices=sorted(DEFAULT_RUN_WEIGHTS.overrides.keys()),
+            indices=run_indices,
             prefix="run_weight",
             settings_map=self.settings_map,
             on_change_handler=self.on_change_handler,
             font_size_default=font_size_default,
             font_size_table_header=font_size_table_header,
             default_weights=DEFAULT_RUN_WEIGHTS,
+            row_header_label="Run Length",
         )
 
         super().__init__(
@@ -306,6 +325,8 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match theme/settings."""
+        self.match_weight_table.sync_from_settings(self.settings)
+        self.run_weight_table.sync_from_settings(self.settings)
         self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
         self.match_weight_table.table.heading_row_color = (
             GUIColours.INFO_HEADER_BG

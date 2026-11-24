@@ -36,8 +36,13 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_table_header: int,
         on_change_handler: Callable[[ft.Event | None], None] | None = None,
+        spacing: int = 10,
     ) -> None:
         """Store shared configuration for weight table subclasses."""
+        super().__init__(
+            spacing=spacing,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
         self.label = label
         self.prefix = prefix
         self.settings_map = settings_map
@@ -125,9 +130,11 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         table_control: ft.Control,
         action_controls: list[ft.Control] | None = None,
         *,
-        spacing: int,
+        spacing: int | None = None,
     ) -> None:
-        """Initialise the Flet Column with title, table, and actions."""
+        """Populate the Flet Column with title, table, and actions."""
+        if spacing is not None:
+            self.spacing = spacing
         controls: list[ft.Control] = [
             ft.Text(
                 self.label,
@@ -145,11 +152,7 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
                     tight=True,
                 )
             )
-        super().__init__(
-            controls=controls,
-            spacing=spacing,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        )
+        self.controls = controls
 
     def _notify_changed(self) -> None:
         """Invoke the change handler and update the control if mounted."""

@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import ItemsView, Iterator, KeysView
 from pathlib import Path
@@ -191,6 +192,11 @@ class GUISettings:
             KeyError: If the key does not exist.
         """
         return self._settings[key]
+
+    def __delitem__(self, key: str) -> None:
+        """Delete a setting key."""
+        del self._settings[key]
+        self._cached_tm_settings = None
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key with type coercion.
@@ -565,6 +571,19 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
+        for prefix in ("match_weight_", "run_weight_"):
+            if any(k.startswith(prefix) for k in settings_dict):
+                for existing_k in [
+                    k for k in self._settings if k.startswith(prefix)
+                ]:
+                    if existing_k not in settings_dict:
+                        del self._settings[existing_k]
+                for incoming_k, incoming_v in settings_dict.items():
+                    if incoming_k.startswith(prefix) and (
+                        incoming_k == f"{prefix}default"
+                        or incoming_k[len(prefix) :].isdigit()
+                    ):
+                        self._settings[incoming_k] = str(incoming_v)
         if "sequence_separator" in settings_dict:
             self._settings["dimer_sequence_separator"] = str(
                 settings_dict["sequence_separator"]
@@ -608,11 +627,27 @@ class GUISettings:
     async def load_from_local_async(self, page: ft.Page) -> None:
         """Asynchronously load settings from web SharedPreferences."""
         prefs = ft.SharedPreferences()
-        settings_dict = {}
+        settings_dict: dict[str, Any] = {}
+        storage_prefix = "amplifyp.settings."
         for k in self._settings:
-            storage_key = f"amplifyp.settings.{k}"
+            storage_key = f"{storage_prefix}{k}"
             if await prefs.contains_key(storage_key):
                 settings_dict[k] = await prefs.get(storage_key)
+        for prefix in ("match_weight_", "run_weight_"):
+            idx = 0
+            while await prefs.contains_key(f"{storage_prefix}{prefix}{idx}"):
+                k = f"{prefix}{idx}"
+                if k not in settings_dict:
+                    settings_dict[k] = await prefs.get(f"{storage_prefix}{k}")
+                idx += 1
+        if inspect.iscoroutinefunction(getattr(prefs, "get_keys", None)):
+            all_keys = await prefs.get_keys(storage_prefix)
+            for full_key in all_keys:
+                k = full_key[len(storage_prefix) :]
+                if k not in settings_dict and k.startswith(
+                    ("match_weight_", "run_weight_")
+                ):
+                    settings_dict[k] = await prefs.get(full_key)
         if settings_dict:
             self.from_dict(settings_dict)
 
@@ -669,9 +704,26 @@ class GUISettings:
                         except Exception as e:
                             logger.debug("Previous web save failed: %s", e)
                     prefs = ft.SharedPreferences()
+                    storage_prefix = "amplifyp.settings."
                     for k, v in snapshot.items():
-                        storage_key = f"amplifyp.settings.{k}"
+                        storage_key = f"{storage_prefix}{k}"
                         await prefs.set(storage_key, v)
+                    if (
+                        keys is None
+                        and inspect.iscoroutinefunction(
+                            getattr(prefs, "get_keys", None)
+                        )
+                        and inspect.iscoroutinefunction(
+                            getattr(prefs, "remove", None)
+                        )
+                    ):
+                        existing_keys = await prefs.get_keys(storage_prefix)
+                        for full_key in existing_keys:
+                            k = full_key[len(storage_prefix) :]
+                            if k not in snapshot and k.startswith(
+                                ("match_weight_", "run_weight_")
+                            ):
+                                await prefs.remove(full_key)
 
                 task = page.run_task(_save_web)
                 self._web_save_task = task

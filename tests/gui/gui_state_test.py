@@ -162,6 +162,7 @@ def test_gui_state_save_load() -> None:
 def test_settings_view_buttons() -> None:
     """Test Reset to Default button in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.overlay = []
 
     reset_called = False
 
@@ -189,8 +190,12 @@ def test_settings_view_buttons() -> None:
 
     assert reset_btn.content == "Reset to Default"
 
-    # Trigger Reset
+    # Trigger Reset -> opens confirmation dialogue, then confirm
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert not reset_called
+    assert settings_view.general_tile._factory_reset_dialogue is not None
+    assert settings_view.general_tile._factory_reset_dialogue.open is True
+    settings_view.general_tile._confirm_factory_reset()
     assert reset_called
     assert (
         settings_view.settings["tm_method"]

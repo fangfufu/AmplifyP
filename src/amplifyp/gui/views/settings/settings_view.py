@@ -298,7 +298,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     ft.OutlinedButton(
                         "Reset to Default",
                         icon=ft.Icons.RESTORE,
-                        on_click=self._on_reset_handler,
+                        on_click=self.general_tile._on_factory_reset_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                     ),
                 ]
             ),
@@ -308,6 +308,16 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
+        for prefix in ("match_weight_", "run_weight_"):
+            stale_keys = [
+                k
+                for k in self.settings.keys()
+                if k.startswith(prefix)
+                and k != f"{prefix}default"
+                and k not in self.settings_map
+            ]
+            for k in stale_keys:
+                del self.settings[k]
         for k, v in self.settings_map.items():
             if k == "log_rotation_max_bytes":
                 try:
@@ -347,6 +357,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                     self.settings_map[k].value = bool(v)
                 else:
                     self.settings_map[k].value = str(v)
+        for ctrl in self.controls:
+            if isinstance(ctrl, ft.Divider):
+                ctrl.color = GUIColours.OUTLINE
         self.general_tile.update_ui()
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()

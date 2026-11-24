@@ -68,7 +68,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.on_reset_callback = on_reset_callback
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
-        self._factory_reset_dialog: ft.AlertDialog | None = None
+        self._factory_reset_dialogue: ft.AlertDialog | None = None
 
         # --- Appearance settings ---
         self.set_font_family = ft.Dropdown(
@@ -142,7 +142,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Once per Month"),
                 ft.dropdown.Option("Disabled"),
             ],
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -193,7 +193,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             ft.Container(
                                 content=ft.Column(
@@ -237,7 +237,11 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                             size=13,
                                             color=GUIColours.TEXT_ON_SURFACE,
                                         ),
-                                        self.set_version_checking_frequency,
+                                        ft.Row(
+                                            [
+                                                self.set_version_checking_frequency,
+                                            ]
+                                        ),
                                         ft.Row(
                                             [
                                                 self.check_button,
@@ -287,7 +291,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                 width=700,
                             ),
                         ],
-                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )
@@ -301,8 +305,8 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def _on_factory_reset_click(self, _e: ft.ControlEvent) -> None:
         """Show a confirmation dialogue before performing a factory reset."""
-        if not self._factory_reset_dialog:
-            self._factory_reset_dialog = ft.AlertDialog(
+        if not self._factory_reset_dialogue:
+            self._factory_reset_dialogue = ft.AlertDialog(
                 modal=True,
                 title=ft.Text(
                     "Confirm Reset Settings", color=GUIColours.ERROR_RED
@@ -325,15 +329,15 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 actions_alignment=ft.MainAxisAlignment.END,
             )
 
-        if self._factory_reset_dialog not in self.app_page.overlay:
-            self.app_page.overlay.append(self._factory_reset_dialog)
-        self._factory_reset_dialog.open = True
+        if self._factory_reset_dialogue not in self.app_page.overlay:
+            self.app_page.overlay.append(self._factory_reset_dialogue)
+        self._factory_reset_dialogue.open = True
         self.app_page.update()
 
     def _dismiss_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
         """Dismiss the factory reset confirmation dialogue."""
-        if self._factory_reset_dialog:
-            self._factory_reset_dialog.open = False
+        if self._factory_reset_dialogue:
+            self._factory_reset_dialogue.open = False
         self.app_page.update()
 
     def _confirm_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
@@ -496,6 +500,18 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             "sequence_separator",
             self.settings.get("dimer_sequence_separator", "Space (' ')"),
         )
+        self.factory_reset_button.style = ft.ButtonStyle(
+            color=GUIColours.ERROR_RED
+        )
+        if self._factory_reset_dialogue is not None:
+            if isinstance(self._factory_reset_dialogue.title, ft.Text):
+                self._factory_reset_dialogue.title.color = GUIColours.ERROR_RED
+            if self._factory_reset_dialogue.actions:
+                reset_action = self._factory_reset_dialogue.actions[0]
+                if isinstance(reset_action, ft.TextButton):
+                    reset_action.style = ft.ButtonStyle(
+                        color=GUIColours.ERROR_RED
+                    )
         self.update_colour_scheme_dropdown()
 
     @property

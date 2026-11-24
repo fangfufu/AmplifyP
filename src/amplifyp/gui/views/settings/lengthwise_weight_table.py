@@ -22,6 +22,7 @@ from typing import Any
 
 import flet as ft
 
+from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings.weight_table_base import WeightTableBase
 from amplifyp.settings import LengthWiseWeightTbl
 
@@ -39,6 +40,7 @@ class LengthwiseWeightTable(WeightTableBase):
         font_size_default: int,
         font_size_table_header: int,
         default_weights: LengthWiseWeightTbl,
+        row_header_label: str = "Length",
     ) -> None:
         """Initialise the LengthwiseWeightTable."""
         super().__init__(
@@ -48,9 +50,12 @@ class LengthwiseWeightTable(WeightTableBase):
             font_size_default=font_size_default,
             font_size_table_header=font_size_table_header,
             on_change_handler=on_change_handler,
+            spacing=8,
         )
         self.indices = sorted(indices)
         self.default_weights = default_weights
+        self.row_header_label = row_header_label
+        self._label_col_width = 92
 
         for idx in self.indices:
             key = f"{self.prefix}_{idx}"
@@ -82,7 +87,11 @@ class LengthwiseWeightTable(WeightTableBase):
         self.reset_button = self._create_reset_button(self._on_reset_click)
 
         columns = [
-            ft.DataColumn(label=self._build_header_label("Length", width=60)),
+            ft.DataColumn(
+                label=self._build_header_label(
+                    self.row_header_label, width=self._label_col_width
+                )
+            ),
             ft.DataColumn(label=self._build_header_label("Weight", width=65)),
         ]
 
@@ -117,7 +126,11 @@ class LengthwiseWeightTable(WeightTableBase):
         """Create a DataRow with a centred label and weight field."""
         return ft.DataRow(
             cells=[
-                ft.DataCell(self._build_header_label(row_label, width=60)),
+                ft.DataCell(
+                    self._build_header_label(
+                        row_label, width=self._label_col_width
+                    )
+                ),
                 ft.DataCell(self._wrap_centred(field, width=65)),
             ]
         )
@@ -125,7 +138,9 @@ class LengthwiseWeightTable(WeightTableBase):
     def _rebuild_rows(self) -> None:
         """Rebuild the DataTable rows from current indices and Default."""
         rows = [
-            self._make_row(str(idx), self.settings_map[f"{self.prefix}_{idx}"])
+            self._make_row(
+                str(idx + 1), self.settings_map[f"{self.prefix}_{idx}"]
+            )
             for idx in self.indices
         ]
         rows.append(
@@ -134,6 +149,41 @@ class LengthwiseWeightTable(WeightTableBase):
             )
         )
         self.table.rows = rows
+
+    def sync_from_settings(self, settings: GUISettings) -> None:
+        """Sync rows and field values from GUISettings."""
+        prefix_with_sep = f"{self.prefix}_"
+        new_indices = sorted(
+            int(k[len(prefix_with_sep) :])
+            for k in settings.keys()
+            if k.startswith(prefix_with_sep)
+            and k[len(prefix_with_sep) :].isdigit()
+        )
+        if new_indices != self.indices:
+            for idx in self.indices:
+                self.settings_map.pop(f"{self.prefix}_{idx}", None)
+            self.indices = new_indices
+            for idx in self.indices:
+                key = f"{self.prefix}_{idx}"
+                self.settings_map[key] = self._create_field(
+                    str(settings.get(key, self.default_weights.default_weight))
+                )
+            self._rebuild_rows()
+        else:
+            for idx in self.indices:
+                key = f"{self.prefix}_{idx}"
+                val = str(
+                    settings.get(key, self.default_weights.default_weight)
+                )
+                if self.settings_map[key].value != val:
+                    self.settings_map[key].value = val
+
+        default_key = f"{self.prefix}_default"
+        default_val = str(
+            settings.get(default_key, self.default_weights.default_weight)
+        )
+        if self.settings_map[default_key].value != default_val:
+            self.settings_map[default_key].value = default_val
 
     def _on_add_click(self, _e: ft.Event | None) -> None:
         """Add the next length entry."""

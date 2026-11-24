@@ -610,7 +610,7 @@ def test_general_tile_factory_reset() -> None:
     # Clicking opens the confirmation dialogue
     with patch.object(settings, "save_to_local") as mock_save:
         view.general_tile._on_factory_reset_click(MagicMock())
-        dialog = view.general_tile._factory_reset_dialog
+        dialog = view.general_tile._factory_reset_dialogue
         assert dialog is not None
         assert dialog.open is True
         assert dialog in mock_page.overlay
@@ -684,3 +684,96 @@ def test_general_tile_factory_reset_standalone() -> None:
     mock_msg.assert_called_once_with(
         "All preferences reset to their default values."
     )
+
+
+def test_lengthwise_weight_tables_add_remove_reset_and_persistence() -> None:
+    """Test LengthwiseWeightTable add, remove, reset, and GUISettings sync."""
+    from amplifyp.settings import (
+        DEFAULT_BASE_PAIR_WEIGHTS,
+        DEFAULT_MATCH_WEIGHTS,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+    )
+
+    match_tbl = view.replication_tile.match_weight_table
+    # Row labels are 1-based while internal keys remain 0-based
+    first_label = match_tbl.table.rows[0].cells[0].content.content.value
+    assert first_label == "1"
+    assert match_tbl.indices == sorted(DEFAULT_MATCH_WEIGHTS.overrides.keys())
+
+    with patch.object(
+        type(match_tbl),
+        "page",
+        new_callable=lambda: property(lambda _self: None),
+    ):
+        # 1. Add a new entry (index 15 -> displayed as "16")
+        match_tbl._on_add_click(None)
+        assert 15 in match_tbl.indices
+        assert "match_weight_15" in view.settings_map
+        assert settings["match_weight_15"] == str(
+            DEFAULT_MATCH_WEIGHTS.default_weight
+        )
+        assert match_tbl.table.rows[-2].cells[0].content.content.value == "16"
+
+        # 2. Remove entries down to empty (Default row remains)
+        while match_tbl.indices:
+            match_tbl._on_remove_click(None)
+        assert match_tbl.indices == []
+        assert len(match_tbl.table.rows) == 1
+        assert "match_weight_0" not in settings
+        assert "match_weight_15" not in settings
+        assert view.get_replication_settings().match_weight.overrides == {}
+
+        # Removing when already empty is a no-op
+        match_tbl._on_remove_click(None)
+        assert match_tbl.indices == []
+
+        # 3. Round-trip added/removed indices through to_dict / from_dict
+        match_tbl._on_add_click(None)  # adds index 0
+        view.settings_map["match_weight_0"].value = "42"
+        view.sync_to_state()
+        saved = settings.to_dict()
+
+        restored = GUISettings()
+        restored.from_dict(saved)
+        assert "match_weight_0" in restored
+        assert "match_weight_14" not in restored
+        assert restored.get_replication_settings().match_weight[0] == 42.0
+
+        # 4. update_ui rebuilds table when settings change externally
+        view.set_state(restored.to_dict())
+        assert match_tbl.indices == [0]
+        assert len(match_tbl.table.rows) == 2
+
+        # 5. Per-table reset restores defaults
+        match_tbl._on_reset_click(None)
+        assert match_tbl.indices == sorted(
+            DEFAULT_MATCH_WEIGHTS.overrides.keys()
+        )
+        assert settings["match_weight_0"] == str(
+            DEFAULT_MATCH_WEIGHTS.overrides[0]
+        )
+
+        # 6. Base Pair Weights table also has a working Reset button
+        bp_tbl = view.replication_tile.score_table
+        assert bp_tbl.reset_button is not None
+        view.settings_map["bp_score_G_G"].value = "123"
+        view.sync_to_state()
+        assert settings["bp_score_G_G"] == "123"
+        with patch.object(
+            type(bp_tbl),
+            "page",
+            new_callable=lambda: property(lambda _self: None),
+        ):
+            bp_tbl._on_reset_click(None)
+        assert settings["bp_score_G_G"] == str(
+            DEFAULT_BASE_PAIR_WEIGHTS["G", "G"]
+        )
