@@ -548,3 +548,69 @@ async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
         await task
 
     assert mock_storage == {"amplifyp.settings.dark_mode": True}
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_web_save_prunes_stale_weights_and_fallback_load() -> None:
+    """Test web save prunes stale weights and fallback load reads extras."""
+    from amplifyp.gui.colours import GUIColours
+
+    settings = GUISettings()
+    mock_page, _ = _make_web_page()
+
+    # 1. Fallback load_from_local_async (no get_keys) reads extra weight idx 15
+    storage: dict[str, Any] = {
+        f"amplifyp.settings.match_weight_{i}": str(i) for i in range(16)
+    }
+    mock_prefs, _ = _make_mock_prefs(storage=storage)
+    del mock_prefs.get_keys
+
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        await settings.load_from_local_async(mock_page)
+    assert settings["match_weight_15"] == "15"
+
+    # 2. Full web save with get_keys + remove prunes stale lengthwise weights
+    storage_prune: dict[str, Any] = {
+        "amplifyp.settings.match_weight_20": "99",
+        "amplifyp.settings.run_weight_10": "88",
+        "amplifyp.settings.other_key": "keep",
+    }
+
+    async def _set_key(k: str, v: Any) -> bool:
+        storage_prune[k] = v
+        return True
+
+    async def _get_keys(prefix: str) -> list[str]:
+        return [k for k in storage_prune if k.startswith(prefix)]
+
+    async def _remove(k: str) -> bool:
+        storage_prune.pop(k, None)
+        return True
+
+    prune_prefs = MagicMock()
+    prune_prefs.set = _set_key
+    prune_prefs.get_keys = _get_keys
+    prune_prefs.remove = _remove
+
+    with patch("flet.SharedPreferences", return_value=prune_prefs):
+        task = settings.save_to_local(mock_page)
+        assert task is not None
+        await task
+
+    assert "amplifyp.settings.match_weight_20" not in storage_prune
+    assert "amplifyp.settings.run_weight_10" not in storage_prune
+    assert storage_prune["amplifyp.settings.other_key"] == "keep"
+
+    # 3. reset_to_defaults handles non-"system" default dark_mode cleanly
+    prev_dark = GUIColours.dark_mode
+    try:
+        fake_defaults = SimpleNamespace(
+            _settings={"dark_mode": True, "colour_deficient": False}
+        )
+        with patch(
+            "amplifyp.gui.settings.GUISettings", return_value=fake_defaults
+        ):
+            settings.reset_to_defaults()
+        assert GUIColours.dark_mode is True
+    finally:
+        GUIColours.dark_mode = prev_dark

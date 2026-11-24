@@ -310,6 +310,8 @@ def test_theme_manager_and_brightness_changes() -> None:
     mock_ctrl.settings_view = MagicMock()
     mock_ctrl.pcr_view = MagicMock()
     mock_ctrl.dimers_view = MagicMock()
+    mock_ctrl.designer_view = MagicMock()
+    mock_ctrl.designer_2d_view = MagicMock()
 
     theme_manager = ThemeManager(mock_ctrl)
 
@@ -354,6 +356,14 @@ def test_theme_manager_and_brightness_changes() -> None:
     mock_ctrl.view_container.content = mock_ctrl.dimers_view
     theme_manager.on_platform_brightness_change()
     mock_ctrl.dimers_view.run_analysis.assert_called()
+
+    mock_ctrl.view_container.content = mock_ctrl.designer_view
+    theme_manager.on_platform_brightness_change()
+    mock_ctrl.designer_view.update_ui.assert_called()
+
+    mock_ctrl.view_container.content = mock_ctrl.designer_2d_view
+    theme_manager.on_platform_brightness_change()
+    mock_ctrl.designer_2d_view.update_ui.assert_called()
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]

@@ -2190,3 +2190,85 @@ async def test_system_lifecycle_and_screenshots_coverage(
     with patch("asyncio.sleep", AsyncMock()):
         await auto_close_and_quit_delayed(mock_ctrl)
         mock_ctrl.confirm_exit_async.assert_called_once()
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_data_helpers_web_and_desktop_last_state_edge_cases() -> None:
+    """Test _parse_web_last_state, _await_pending_task, and state loaders."""
+    import asyncio
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.utils.data_helpers import (
+        _await_pending_task,
+        _parse_web_last_state,
+        load_last_state_async,
+        save_last_state,
+    )
+
+    # 1. _parse_web_last_state variations
+    assert _parse_web_last_state({"template": "ATGC"}) == {"template": "ATGC"}
+    assert _parse_web_last_state("   ") is None
+    assert _parse_web_last_state(123) is None
+    assert _parse_web_last_state("[1, 2]") is None
+    assert _parse_web_last_state("input:\n  template: ATGC") == {
+        "input": {"template": "ATGC"}
+    }
+    assert _parse_web_last_state("- list_only") is None
+    assert _parse_web_last_state("{invalid: [yaml") is None
+
+    # 2. _await_pending_task awaits unfinished tasks and swallows errors
+    async def _ok_task() -> None:
+        await asyncio.sleep(0)
+
+    async def _failing_task() -> None:
+        await asyncio.sleep(0)
+        raise RuntimeError("boom")
+
+    t_ok = asyncio.create_task(_ok_task())
+    await _await_pending_task(t_ok, "ok msg")
+    assert t_ok.done()
+
+    t_fail = asyncio.create_task(_failing_task())
+    await _await_pending_task(t_fail, "fail msg")
+    assert t_fail.done()
+
+    # Already-done task is skipped without error
+    await _await_pending_task(t_ok, "done msg")
+
+    # 3. save_last_state on web without run_task returns early
+    ctrl = MagicMock()
+    ctrl.settings = GUISettings()
+    ctrl.settings["auto_reload_on_startup"] = True
+    ctrl.input_data = GUIInput()
+    ctrl.page = SimpleNamespace(web=True)
+    save_last_state(ctrl)
+
+    # 4. save_last_state on web with non-JSON-serialisable input logs error
+    ctrl.page = MagicMock(spec=ft.Page)
+    ctrl.page.web = True
+    ctrl.input_data = MagicMock()
+    ctrl.input_data.to_dict.return_value = {"bad": object()}
+    save_last_state(ctrl)
+    ctrl.page.run_task.assert_not_called()
+
+    # 5. load_last_state_async when auto_reload is False
+    ctrl.settings["auto_reload_on_startup"] = False
+    await load_last_state_async(ctrl)
+
+    # 6. load_last_state_async on desktop delegates to load_last_state
+    ctrl.settings["auto_reload_on_startup"] = True
+    ctrl.page.web = False
+    ctrl.input_data = GUIInput()
+    fake_path = MagicMock(spec=Path)
+    fake_path.exists.return_value = True
+    ctrl._get_last_state_path.return_value = fake_path
+    with patch(
+        "builtins.open",
+        mock_open(read_data="template: GGGG\ntemplate_circular: true\n"),
+    ):
+        await load_last_state_async(ctrl)
+    assert ctrl.input_data.template == "GGGG"
+    assert ctrl.input_data.template_circular is True
