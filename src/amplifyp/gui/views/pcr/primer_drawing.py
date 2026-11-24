@@ -171,6 +171,11 @@ class DrawnPrimer:
 
         row_height = font_size + 5.0
         half_text_h = (font_size + 3.0) / 2.0
+        width = (
+            self.label_width
+            if self.label_width is not None
+            else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
+        )
         if is_fwd:
             left = (
                 self.label_left
@@ -184,18 +189,7 @@ class DrawnPrimer:
                 - half_text_h
                 - self.label_row * row_height
             )
-            text_control = ft.Text(
-                self.name,
-                color=colour,
-                size=font_size,
-                weight=ft.FontWeight.BOLD,
-            )
         else:
-            width = (
-                self.label_width
-                if self.label_width is not None
-                else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
-            )
             left = (
                 self.label_left
                 if self.label_left is not None
@@ -208,6 +202,7 @@ class DrawnPrimer:
                 - half_text_h
                 + self.label_row * row_height
             )
+        if left < x_render:
             text_control = ft.Text(
                 self.name,
                 color=colour,
@@ -215,6 +210,13 @@ class DrawnPrimer:
                 weight=ft.FontWeight.BOLD,
                 width=width,
                 text_align=ft.TextAlign.RIGHT,
+            )
+        else:
+            text_control = ft.Text(
+                self.name,
+                color=colour,
+                size=font_size,
+                weight=ft.FontWeight.BOLD,
             )
         stack.controls.append(
             ft.GestureDetector(
@@ -569,6 +571,12 @@ class ReplicationContextCard(DismissibleDetailCard):
             settings: Application GUI settings instance.
             dismiss_callback: Callback invoked when the card is dismissed.
         """
+        self._primer_name = primer_name
+        self._padded_idx = padded_idx
+        self._conf = conf
+        self._var = var
+        self._dismiss_callback = dismiss_callback
+
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
@@ -679,4 +687,15 @@ class ReplicationContextCard(DismissibleDetailCard):
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,
             title_controls=title_controls,
+        )
+
+    def rebuild(self, settings: GUISettings) -> "ReplicationContextCard":
+        """Rebuild this card with current theme colours and settings."""
+        return ReplicationContextCard(
+            primer_name=self._primer_name,
+            padded_idx=self._padded_idx,
+            conf=self._conf,
+            var=self._var,
+            settings=settings,
+            dismiss_callback=self._dismiss_callback,
         )

@@ -174,7 +174,15 @@ class PCRView(ft.Column):  # type: ignore[misc]
             success = False
 
         if keep_cards:
-            self.result_list.controls[0:0] = saved_cards
+            refreshed_cards = [
+                card.rebuild(self.settings)
+                if isinstance(
+                    card, (AmpliconDetailCard, ReplicationContextCard)
+                )
+                else card
+                for card in saved_cards
+            ]
+            self.result_list.controls[0:0] = refreshed_cards
             self._update_cards_header_visibility()
 
         self.app_page.update()

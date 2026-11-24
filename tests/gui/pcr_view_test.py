@@ -1567,3 +1567,123 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
     )
     rev_lbl_left, _, _ = rev_map[(2, long_rev_name)]
     assert rev_lbl_left >= rev_x + 6.0 - 1e-6
+
+    # 3. Flipped horizontal labels align toward their triangle (RIGHT when on
+    # left side of x_render, left-aligned when on right side)
+    settings["pcr_primer_label_orientation"] = "Horizontal"
+    stack_h = ft.Stack()
+    DrawnPrimer(
+        name=long_fwd_name,
+        index=998,
+        conf=fwd_conf,
+        var=fwd_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=c_width - 40.0,
+        h_margin=20.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+        label_left=fwd_lbl_left,
+        label_width=fwd_w,
+    ).draw(ft.canvas.Canvas(), stack_h)
+    fwd_text = next(
+        c.content
+        for c in stack_h.controls
+        if isinstance(c, ft.GestureDetector) and isinstance(c.content, ft.Text)
+    )
+    assert fwd_text.text_align == ft.TextAlign.RIGHT
+    assert fwd_text.width == fwd_w
+
+    stack_rev_h = ft.Stack()
+    DrawnPrimer(
+        name=long_rev_name,
+        index=2,
+        conf=rev_conf,
+        var=rev_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=c_width - 40.0,
+        h_margin=20.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+        label_left=rev_lbl_left,
+        label_width=rev_map[(2, long_rev_name)][2],
+    ).draw(ft.canvas.Canvas(), stack_rev_h)
+    rev_text = next(
+        c.content
+        for c in stack_rev_h.controls
+        if isinstance(c, ft.GestureDetector) and isinstance(c.content, ft.Text)
+    )
+    assert rev_text.text_align == ft.TextAlign.START
+    assert rev_text.width is None
+
+    # 4. Zero-denominator quality and infinite amplicon q_score guards
+    from amplifyp.amplicon import Amplicon, AmpliconGenerator
+    from amplifyp.gui.views.pcr.amplicon_drawing import AmpliconDetailCard
+    from amplifyp.origin import ReplicationOrigin
+    from amplifyp.settings import ReplicationSettings
+
+    rep_max = ReplicationSettings(primability_cutoff=1.0, stability_cutoff=1.0)
+    origin_max = ReplicationOrigin(
+        target="ATGC", primer="GCAT", settings=rep_max
+    )
+    assert origin_max.quality == 0.0
+
+    mock_tpl = DNA("ATGCATGCATGCATGC")
+    amp_gen = AmpliconGenerator(mock_tpl)
+    mock_conf_q0 = MagicMock(spec=Repliconf)
+    mock_conf_q0.origin.return_value = origin_max
+    inf_q = amp_gen.get_amplicon_quality_score(
+        mock_conf_q0, mock_conf_q0, fwd_var, rev_var, 100
+    )
+    assert inf_q == float("inf")
+    amp_inf = Amplicon(
+        product=DNA("ATGCATGCATGC"),
+        fwd_origin=Primer("ATGC", name="F"),
+        rev_origin=Primer("GCAT", name="R"),
+        start=DirIdx(DNADirection.FWD, 0),
+        end=DirIdx(DNADirection.REV, 10),
+        q_score=inf_q,
+        circular=False,
+    )
+    assert "very weak" in amp_inf.q_score_report_str(verbose=True)
+    inf_card = AmpliconDetailCard(
+        amp=amp_inf, settings=settings, dismiss_callback=MagicMock()
+    )
+    assert inf_card is not None
+
+    # 5. run_pcr(keep_cards=True) rebuilds open cards with updated theme colours
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+    mock_page.height = 900
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+    prev_dark = GUIColours.dark_mode
+    try:
+        GUIColours.dark_mode = False
+        pcr_view = PCRView(mock_page, input_data)
+        pcr_view.run_pcr()
+        pcr_view.open_all_cards()
+        detectors = [
+            c
+            for c in pcr_view.diagram_stack.controls
+            if isinstance(c, ft.GestureDetector)
+        ]
+        detectors[0].on_tap(MagicMock())
+        old_cards = list(pcr_view.result_list.controls)
+        GUIColours.dark_mode = True
+        pcr_view.run_pcr(keep_cards=True)
+        new_cards = list(pcr_view.result_list.controls)
+        assert len(new_cards) == len(old_cards)
+        assert new_cards[0] is not old_cards[0]
+    finally:
+        GUIColours.dark_mode = prev_dark

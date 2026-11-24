@@ -163,12 +163,15 @@ class ReplicationOrigin:
         cutoffs = (
             self.settings.primability_cutoff + self.settings.stability_cutoff
         )
+        denom = 2 - cutoffs
+        if denom == 0:
+            return 0.0
         if not self.settings.amplify4_compatibility_mode:
-            return (self.primability + self.stability - cutoffs) / (2 - cutoffs)
+            return (self.primability + self.stability - cutoffs) / denom
         else:
             primability = trunc(self.primability * 100) / 100
             stability = trunc(self.stability * 100) / 100
-            return (primability + stability - cutoffs) / (2 - cutoffs)
+            return (primability + stability - cutoffs) / denom
 
     @property
     def binding_strength_str(self) -> str:
