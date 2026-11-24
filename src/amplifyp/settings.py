@@ -23,11 +23,55 @@ For more information on the original Amplify4 software, see:
 https://github.com/wrengels/Amplify4
 """
 
+from __future__ import annotations
+
+import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Final
+from typing import Any, Final, Self, cast
 
 from .dna import Nucleotides
 from .errors import ColumnLengthMismatchError, RowLengthMismatchError
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    """Convert value to a finite float, falling back to default on failure."""
+    if value is None or value == "" or isinstance(value, bool):
+        return default
+    try:
+        parsed = float(value)
+    except (ValueError, TypeError):
+        return default
+    return parsed if math.isfinite(parsed) else default
+
+
+def _coerce_int(value: Any, default: int) -> int:
+    """Convert value to int, falling back to default on failure."""
+    if value is None or value == "" or isinstance(value, bool):
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def coerce_bool(value: Any, default: bool) -> bool:
+    """Convert bool, int, or string flag values into a boolean."""
+    if value is None or value == "":
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        if isinstance(value, float) and not math.isfinite(value):
+            return default
+        return value != 0
+    if isinstance(value, str):
+        norm = value.strip().lower()
+        if norm in ("true", "1", "yes", "on"):
+            return True
+        if norm in ("false", "0", "no", "off"):
+            return False
+    return default
 
 
 class LengthWiseWeightTbl:
@@ -72,7 +116,7 @@ class LengthWiseWeightTbl:
         """Return the dictionary of length overrides."""
         return self._overrides
 
-    def __copy__(self) -> "LengthWiseWeightTbl":
+    def __copy__(self) -> LengthWiseWeightTbl:
         """Return a deep copy of this object.
 
         Returns:
@@ -83,7 +127,7 @@ class LengthWiseWeightTbl:
             overrides=dict(self._overrides),
         )
 
-    def copy(self) -> "LengthWiseWeightTbl":
+    def copy(self) -> LengthWiseWeightTbl:
         """Return a deep copy of this object.
 
         Returns:
@@ -127,6 +171,56 @@ class LengthWiseWeightTbl:
             f"LengthWiseWeightTbl(default_weight={self._default_weight!r}, "
             f"overrides={self._overrides!r})"
         )
+
+    def to_dict(self, prefix: str) -> dict[str, Any]:
+        """Serialise weights into a flat dictionary keyed by ``prefix``."""
+        result: dict[str, Any] = {f"{prefix}_default": self._default_weight}
+        for idx in sorted(self._overrides):
+            result[f"{prefix}_{idx}"] = self._overrides[idx]
+        return result
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: Mapping[str, Any],
+        prefix: str,
+        default_tbl: LengthWiseWeightTbl,
+    ) -> LengthWiseWeightTbl:
+        """Construct a LengthWiseWeightTbl from a flat dictionary."""
+        default_key = f"{prefix}_default"
+        prefix_underscore = f"{prefix}_"
+        has_flat_keys = default_key in data or any(
+            isinstance(cast("object", k), str)
+            and k.startswith(prefix_underscore)
+            and k[len(prefix_underscore) :].isascii()
+            and k[len(prefix_underscore) :].isdigit()
+            for k in data
+        )
+        if not has_flat_keys:
+            return default_tbl.copy()
+
+        default_weight = _coerce_float(
+            data.get(default_key), default_tbl.default_weight
+        )
+        overrides: dict[int, float] = (
+            {} if default_key in data else dict(default_tbl.overrides)
+        )
+        for key, val in data.items():
+            if (
+                isinstance(cast("object", key), str)
+                and key.startswith(prefix_underscore)
+                and key != default_key
+            ):
+                suffix = key[len(prefix_underscore) :]
+                if suffix.isascii() and suffix.isdigit():
+                    idx = int(suffix)
+                    fallback_weight = (
+                        default_tbl.default_weight
+                        if default_key in data
+                        else default_tbl[idx]
+                    )
+                    overrides[idx] = _coerce_float(val, fallback_weight)
+        return cls(default_weight=default_weight, overrides=overrides)
 
 
 class BasePairWeightsTbl:
@@ -321,7 +415,7 @@ class BasePairWeightsTbl:
         """Return a string representation of the BasePairWeightsTbl object."""
         return f"BasePairWeightsTbl(row={self.row()!r}, col={self.column()!r})"
 
-    def __copy__(self) -> "BasePairWeightsTbl":
+    def __copy__(self) -> BasePairWeightsTbl:
         """Return a deep copy of this object.
 
         Returns:
@@ -337,13 +431,55 @@ class BasePairWeightsTbl:
         new_tbl._col_map = list(self._col_map)
         return new_tbl
 
-    def copy(self) -> "BasePairWeightsTbl":
+    def copy(self) -> BasePairWeightsTbl:
         """Return a deep copy of this object.
 
         Returns:
             BasePairWeightsTbl: A new object with the same weights.
         """
         return self.__copy__()
+
+    def to_dict(self, prefix: str) -> dict[str, Any]:
+        """Serialise weights into a flat dictionary keyed by ``prefix``."""
+        result: dict[str, Any] = {}
+        for r_char in self.row():
+            for c_char in self.column():
+                result[f"{prefix}_{r_char}_{c_char}"] = self[r_char, c_char]
+        return result
+
+    @classmethod
+    def from_dict(
+        cls,
+        data: Mapping[str, Any],
+        prefix: str,
+        default_tbl: BasePairWeightsTbl,
+    ) -> BasePairWeightsTbl:
+        """Construct a BasePairWeightsTbl from a flat dictionary."""
+        prefix_underscore = f"{prefix}_"
+        has_prefix_keys = any(
+            isinstance(cast("object", k), str)
+            and k.startswith(prefix_underscore)
+            for k in data
+        )
+        if not has_prefix_keys:
+            return default_tbl.copy()
+
+        weights: list[list[float]] = []
+        for r_char in default_tbl.row():
+            row_vals: list[float] = []
+            for c_char in default_tbl.column():
+                key = f"{prefix_underscore}{r_char}_{c_char}"
+                try:
+                    cell_default = default_tbl[r_char, c_char]
+                except KeyError:
+                    cell_default = 0.0
+                row_vals.append(_coerce_float(data.get(key), cell_default))
+            weights.append(row_vals)
+        return cls(
+            row=default_tbl._row,
+            col=default_tbl._col,
+            weight=weights,
+        )
 
 
 DEFAULT_MATCH_WEIGHTS: Final[LengthWiseWeightTbl] = LengthWiseWeightTbl(
@@ -467,6 +603,48 @@ class ReplicationSettings:
     stability_cutoff: float = DEFAULT_STABILITY_CUTOFF
     amplify4_compatibility_mode: bool = False
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise replication settings into a flat dictionary."""
+        data: dict[str, Any] = {
+            "primability_cutoff": self.primability_cutoff,
+            "stability_cutoff": self.stability_cutoff,
+            "amplify4_compatibility_mode": self.amplify4_compatibility_mode,
+        }
+        data.update(self.base_pair_scores.to_dict("bp_score"))
+        if self.primer_dimer_scores != DEFAULT_PRIMER_DIMER_WEIGHTS:
+            data.update(self.primer_dimer_scores.to_dict("rep_pd_score"))
+        data.update(self.match_weight.to_dict("match_weight"))
+        data.update(self.run_weights.to_dict("run_weight"))
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Self:
+        """Construct ReplicationSettings from a dictionary."""
+        compat_val = data.get(
+            "amplify4_compatibility_mode", data.get("amp4_compat", False)
+        )
+        return cls(
+            base_pair_scores=BasePairWeightsTbl.from_dict(
+                data, "bp_score", DEFAULT_BASE_PAIR_WEIGHTS
+            ),
+            primer_dimer_scores=BasePairWeightsTbl.from_dict(
+                data, "rep_pd_score", DEFAULT_PRIMER_DIMER_WEIGHTS
+            ),
+            match_weight=LengthWiseWeightTbl.from_dict(
+                data, "match_weight", DEFAULT_MATCH_WEIGHTS
+            ),
+            run_weights=LengthWiseWeightTbl.from_dict(
+                data, "run_weight", DEFAULT_RUN_WEIGHTS
+            ),
+            primability_cutoff=_coerce_float(
+                data.get("primability_cutoff"), DEFAULT_PRIMABILITY_CUTOFF
+            ),
+            stability_cutoff=_coerce_float(
+                data.get("stability_cutoff"), DEFAULT_STABILITY_CUTOFF
+            ),
+            amplify4_compatibility_mode=coerce_bool(compat_val, False),
+        )
+
 
 GLOBAL_REPLICATION_SETTINGS: ReplicationSettings = ReplicationSettings()
 
@@ -527,6 +705,54 @@ class TMSettings:
         default_factory=DEFAULT_AMPLIFY4_TM_ENTROPY.copy
     )
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise thermodynamic concentration and matrix settings."""
+        data: dict[str, Any] = {
+            "tm_dna_conc": self.dna_conc,
+            "tm_dnap_conc": self.dnap_conc,
+            "tm_mono_salt": self.monovalent_salt_conc,
+            "tm_div_salt": self.divalent_salt_conc,
+            "tm_dNTP_conc": self.dntp_conc,
+        }
+        if self.enthalpy != DEFAULT_AMPLIFY4_TM_ENTHALPY:
+            data.update(self.enthalpy.to_dict("tm_enthalpy"))
+        if self.entropy != DEFAULT_AMPLIFY4_TM_ENTROPY:
+            data.update(self.entropy.to_dict("tm_entropy"))
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Self:
+        """Construct TMSettings from a dictionary."""
+        defaults = cls()
+        return cls(
+            dna_conc=_coerce_float(
+                data.get("tm_dna_conc", data.get("dna_conc")),
+                defaults.dna_conc,
+            ),
+            dnap_conc=_coerce_float(
+                data.get("tm_dnap_conc", data.get("dnap_conc")),
+                defaults.dnap_conc,
+            ),
+            monovalent_salt_conc=_coerce_float(
+                data.get("tm_mono_salt", data.get("monovalent_salt_conc")),
+                defaults.monovalent_salt_conc,
+            ),
+            divalent_salt_conc=_coerce_float(
+                data.get("tm_div_salt", data.get("divalent_salt_conc")),
+                defaults.divalent_salt_conc,
+            ),
+            dntp_conc=_coerce_float(
+                data.get("tm_dNTP_conc", data.get("dntp_conc")),
+                defaults.dntp_conc,
+            ),
+            enthalpy=BasePairWeightsTbl.from_dict(
+                data, "tm_enthalpy", DEFAULT_AMPLIFY4_TM_ENTHALPY
+            ),
+            entropy=BasePairWeightsTbl.from_dict(
+                data, "tm_entropy", DEFAULT_AMPLIFY4_TM_ENTROPY
+            ),
+        )
+
 
 GLOBAL_TM_SETTINGS: TMSettings = TMSettings()
 
@@ -554,6 +780,37 @@ class PrimerDimerSettings:
     min_overlap: int = DEFAULT_PRIMER_DIMER_OVERLAP
     threshold: float = DEFAULT_PRIMER_DIMER_THRESHOLD
     symbol_threshold: float = DEFAULT_PRIMER_DIMER_SYMBOL_THRESHOLD
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise primer dimer settings into a flat dictionary."""
+        data: dict[str, Any] = {
+            "pd_min_overlap": self.min_overlap,
+            "pd_threshold": self.threshold,
+            "symbol_threshold": self.symbol_threshold,
+        }
+        data.update(self.weights.to_dict("pd_score"))
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> Self:
+        """Construct PrimerDimerSettings from a dictionary."""
+        return cls(
+            weights=BasePairWeightsTbl.from_dict(
+                data, "pd_score", DEFAULT_PRIMER_DIMER_WEIGHTS
+            ),
+            min_overlap=_coerce_int(
+                data.get("pd_min_overlap", data.get("min_overlap")),
+                DEFAULT_PRIMER_DIMER_OVERLAP,
+            ),
+            threshold=_coerce_float(
+                data.get("pd_threshold", data.get("threshold")),
+                DEFAULT_PRIMER_DIMER_THRESHOLD,
+            ),
+            symbol_threshold=_coerce_float(
+                data.get("symbol_threshold"),
+                DEFAULT_PRIMER_DIMER_SYMBOL_THRESHOLD,
+            ),
+        )
 
 
 GLOBAL_PRIMER_DIMER_SETTINGS: PrimerDimerSettings = PrimerDimerSettings()

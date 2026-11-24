@@ -21,6 +21,8 @@ from amplifyp.errors import ColumnLengthMismatchError, RowLengthMismatchError
 from amplifyp.settings import (
     BasePairWeightsTbl,
     LengthWiseWeightTbl,
+    PrimerDimerSettings,
+    ReplicationSettings,
     TMSettings,
 )
 
@@ -218,3 +220,127 @@ def test_base_pair_weights_tbl_non_table_equality() -> None:
     tbl = DEFAULT_BASE_PAIR_WEIGHTS
     assert tbl != "not_a_table"
     assert tbl != 42
+
+
+def test_core_settings_dict_round_trip() -> None:
+    """Test to_dict and from_dict round-tripping on core settings classes."""
+    rep = ReplicationSettings(
+        primability_cutoff=0.75,
+        stability_cutoff=0.35,
+        amplify4_compatibility_mode=True,
+    )
+    rep.base_pair_scores["A", "T"] = 42.0
+    rep.match_weight[0] = 99.0
+    rep.run_weights[1] = 111.0
+    rep_round = ReplicationSettings.from_dict(rep.to_dict())
+    assert rep_round == rep
+
+    # String-typed GUI dictionary coercion
+    rep_from_str = ReplicationSettings.from_dict(
+        {
+            "primability_cutoff": "0.65",
+            "stability_cutoff": "bad",
+            "amp4_compat": "true",
+            "match_weight_default": "2",
+            "match_weight_0": "45",
+        }
+    )
+    assert rep_from_str.primability_cutoff == pytest.approx(0.65)
+    assert rep_from_str.stability_cutoff == pytest.approx(0.4)
+    assert rep_from_str.amplify4_compatibility_mode is True
+    assert rep_from_str.match_weight[0] == pytest.approx(45.0)
+    assert rep_from_str.match_weight[99] == pytest.approx(2.0)
+
+    pd = PrimerDimerSettings(
+        min_overlap=5, threshold=45.0, symbol_threshold=8.0
+    )
+    assert PrimerDimerSettings.from_dict(pd.to_dict()) == pd
+
+    tm = TMSettings(
+        dna_conc=100.0,
+        dnap_conc=1.0,
+        monovalent_salt_conc=75.0,
+        divalent_salt_conc=2.0,
+        dntp_conc=0.8,
+    )
+    tm.enthalpy["A", "A"] = 123.0
+    tm.entropy["C", "C"] = 456.0
+    assert TMSettings.from_dict(tm.to_dict()) == tm
+
+
+def test_core_settings_partial_overrides_and_bad_coercions() -> None:
+    """Partial overrides preserve defaults and reject bool/non-finite inputs."""
+    from amplifyp.settings import (
+        DEFAULT_BASE_PAIR_WEIGHTS,
+        DEFAULT_MATCH_WEIGHTS,
+        DEFAULT_PRIMABILITY_CUTOFF,
+        DEFAULT_PRIMER_DIMER_OVERLAP,
+    )
+
+    rep_partial = ReplicationSettings.from_dict(
+        {
+            "bp_score_G_G": 90.0,
+            "match_weight_0": 45.0,
+            "primability_cutoff": True,
+            "stability_cutoff": float("nan"),
+        }
+    )
+    assert rep_partial.base_pair_scores["G", "G"] == pytest.approx(90.0)
+    assert rep_partial.base_pair_scores["A", "A"] == pytest.approx(
+        DEFAULT_BASE_PAIR_WEIGHTS["A", "A"]
+    )
+    assert rep_partial.match_weight[0] == pytest.approx(45.0)
+    assert rep_partial.match_weight[1] == pytest.approx(
+        DEFAULT_MATCH_WEIGHTS[1]
+    )
+    assert rep_partial.primability_cutoff == pytest.approx(
+        DEFAULT_PRIMABILITY_CUTOFF
+    )
+    assert rep_partial.stability_cutoff == pytest.approx(0.4)
+
+    rep_custom = ReplicationSettings()
+    rep_custom.primer_dimer_scores["A", "T"] = 12.0
+    assert ReplicationSettings.from_dict(rep_custom.to_dict()) == rep_custom
+
+    pd_bool = PrimerDimerSettings.from_dict(
+        {"pd_min_overlap": True, "pd_threshold": "inf"}
+    )
+    assert pd_bool.min_overlap == DEFAULT_PRIMER_DIMER_OVERLAP
+    assert pd_bool.threshold == pytest.approx(60.0)
+
+    rep_cleared = ReplicationSettings.from_dict({"match_weight_default": 2.0})
+    assert rep_cleared.match_weight.default_weight == pytest.approx(2.0)
+    assert rep_cleared.match_weight.overrides == {}
+
+    # coerce_bool rejects NaN, and default matrix keys are omitted unless edited
+    rep_nan = ReplicationSettings.from_dict({"amp4_compat": float("nan")})
+    assert rep_nan.amplify4_compatibility_mode is False
+    rep_bad_partial = ReplicationSettings.from_dict({"match_weight_0": "bad"})
+    assert rep_bad_partial.match_weight[0] == pytest.approx(
+        DEFAULT_MATCH_WEIGHTS[0]
+    )
+    default_rep_dict = ReplicationSettings().to_dict()
+    assert not any(k.startswith("rep_pd_score_") for k in default_rep_dict)
+    default_tm_dict = TMSettings().to_dict()
+    assert not any(k.startswith("tm_enthalpy_") for k in default_tm_dict)
+    assert not any(k.startswith("tm_entropy_") for k in default_tm_dict)
+
+    # Non-string mapping keys are ignored safely
+    assert (
+        ReplicationSettings.from_dict({123: 456}) == ReplicationSettings()  # type: ignore[dict-item]
+    )
+
+    # GUISettings prunes omitted lengthwise weights and coerces
+    # amplify4_compatibility_mode safely
+    from amplifyp.gui.settings import GUISettings
+
+    gui_settings = GUISettings()
+    gui_settings.from_dict(
+        {
+            "match_weight_0": "45",
+            "amplify4_compatibility_mode": float("nan"),
+        }
+    )
+    assert gui_settings["match_weight_0"] == "45"
+    assert "match_weight_1" not in gui_settings
+    assert gui_settings["amp4_compat"] is False

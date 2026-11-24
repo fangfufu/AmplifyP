@@ -17,7 +17,14 @@
 
 import pytest
 
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.dna import (
+    DNA,
+    DNADirection,
+    DNAType,
+    Primer,
+    clean_sequence,
+    format_sequence,
+)
 from amplifyp.errors import InvalidDNASequenceError, InvalidDNATypeError
 
 
@@ -281,3 +288,29 @@ def test_dna_generate_truncations_invalid() -> None:
     )
     with pytest.raises(ValueError, match=msg):
         dna.generate_truncations(min_length=15)
+
+
+def test_clean_sequence_and_format_sequence() -> None:
+    """Test clean_sequence and format_sequence utilities."""
+    assert clean_sequence("") == ""
+    assert clean_sequence("  at\\ncg\\t\\r gg ") == "atcggg"
+    assert DNA("at\\ncg\\t\\r").seq == "atcg"
+
+    assert format_sequence("ATGCATGC", wrap_length=4) == "ATGC\nATGC"
+    assert format_sequence("ATGC\\nATGC", wrap_length=0) == "ATGCATGC"
+    assert format_sequence("") == ""
+
+
+def test_dna_padded_slice() -> None:
+    """Test DNA.padded_slice for linear and circular templates."""
+    linear = DNA("ACGTACGT", DNAType.LINEAR)
+    assert linear.padded_slice(-2, 6) == "--ACGT"
+    assert linear.padded_slice(6, 5) == "GT---"
+    assert linear.padded_slice(2, 0) == ""
+
+    circular = DNA("ACGT", DNAType.CIRCULAR)
+    assert circular.padded_slice(-2, 8) == "GTACGTAC"
+    assert circular.padded_slice(3, 4) == "TACG"
+
+    empty_circ = DNA("", DNAType.CIRCULAR)
+    assert empty_circ.padded_slice(0, 3) == "---"
