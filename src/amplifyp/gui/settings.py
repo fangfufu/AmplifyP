@@ -545,7 +545,14 @@ class GUISettings:
                         else:
                             self._settings[k] = bool(v)
                 elif isinstance(self._settings[k], bool):
-                    self._settings[k] = bool(v)
+                    if isinstance(v, str):
+                        self._settings[k] = v.lower() in (
+                            "true",
+                            "1",
+                            "yes",
+                        )
+                    else:
+                        self._settings[k] = bool(v)
                 elif isinstance(self._settings[k], int):
                     try:
                         self._settings[k] = int(v)

@@ -397,7 +397,9 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         self._reconfigure_logging()
         if self.on_change:
             self.on_change(cast(Any, None))
+            self.update_ui()
         else:
+            self.update_ui()
             self.settings.save_to_local(self.app_page)
             self.app_page.update()
 

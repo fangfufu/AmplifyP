@@ -478,12 +478,11 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
 
             self.settings.from_dict(settings_dict)
 
-            # Sync values back to the UI controls
-            self.update_ui_callback()
-
             if self.on_external_load_callback is not None:
                 self.on_external_load_callback()
             else:
+                # Sync values back to the UI controls
+                self.update_ui_callback()
                 self.settings.save_to_local(self.app_page)
                 if self.on_change_handler is not None:
                     self.on_change_handler(None)

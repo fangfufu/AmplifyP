@@ -783,12 +783,23 @@ def test_gui_settings_constructor_web_get_keys_and_yaml_load() -> None:
     """Test GUISettings constructor, web get_keys fast path, and YAML load."""
     from amplifyp.gui.colours import GUIColours
 
-    # 1. Constructor delegates to from_dict (prunes omitted lengthwise weights)
+    # 1. Constructor delegates to from_dict (prunes omitted lengthwise weights
+    # and coerces string booleans accurately)
     init_settings = GUISettings(
-        {"match_weight_0": "77", "dark_mode": "system", "custom_extra": "ok"}
+        {
+            "match_weight_0": "77",
+            "dark_mode": "system",
+            "colour_deficient": "false",
+            "auto_reload_on_startup": "0",
+            "amp4_compat": "no",
+            "custom_extra": "ok",
+        }
     )
     assert init_settings["match_weight_0"] == "77"
     assert "match_weight_14" not in init_settings
+    assert init_settings["colour_deficient"] is False
+    assert init_settings["auto_reload_on_startup"] is False
+    assert init_settings["amp4_compat"] is False
     assert init_settings["custom_extra"] == "ok"
 
     # 2. Web load_from_local_async uses async get_keys fast path
@@ -867,3 +878,34 @@ def test_gui_settings_constructor_web_get_keys_and_yaml_load() -> None:
     assert GUIColours.dark_mode is False
     assert shared_cb.call_count == 1
     assert mock_save_reset.call_count == 0
+
+    # 5. Loading YAML with dark_mode="system" from Dark mode runs on_change
+    # (apply_theme) before refreshing UI border colours
+    settings["dark_mode"] = True
+    GUIColours.dark_mode = True
+    call_order: list[str] = []
+
+    def _on_theme_change(_e: Any) -> None:
+        call_order.append("on_change")
+        GUIColours.dark_mode = False
+
+    view_yaml_theme = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=_on_theme_change,
+    )
+    orig_update_ui = view_yaml_theme.update_ui
+
+    def _tracked_update_ui() -> None:
+        call_order.append(f"update_ui:dark={GUIColours.dark_mode}")
+        orig_update_ui()
+
+    view_yaml_theme.update_ui = _tracked_update_ui  # type: ignore[method-assign]
+    with patch(
+        "amplifyp.gui.views.settings.general_tile.pick_and_read_file",
+        new=AsyncMock(return_value=yaml.safe_dump({"dark_mode": "system"})),
+    ):
+        asyncio.run(
+            view_yaml_theme.general_tile._load_settings_async(MagicMock())
+        )
+    assert call_order == ["on_change", "update_ui:dark=False"]
