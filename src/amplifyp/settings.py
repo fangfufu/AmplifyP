@@ -40,7 +40,7 @@ def _coerce_float(value: Any, default: float) -> float:
         return default
     try:
         parsed = float(value)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
     return parsed if math.isfinite(parsed) else default
 
@@ -51,7 +51,7 @@ def _coerce_int(value: Any, default: int) -> int:
         return default
     try:
         return int(value)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 

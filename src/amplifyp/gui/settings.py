@@ -161,8 +161,10 @@ class GUISettings:
         if settings_dict is not None:
             self.from_dict(settings_dict)
             for k, v in settings_dict.items():
-                if k not in self._settings and not k.startswith(
-                    ("match_weight_", "run_weight_")
+                if (
+                    k not in self._settings
+                    and k != "amplify4_compatibility_mode"
+                    and not k.startswith(("match_weight_", "run_weight_"))
                 ):
                     self._settings[k] = v
 
@@ -335,7 +337,11 @@ class GUISettings:
         """
         from amplifyp.settings import ReplicationSettings
 
-        return ReplicationSettings.from_dict(self._settings)
+        normalised = dict(self._settings)
+        normalised["amplify4_compatibility_mode"] = normalised.get(
+            "amp4_compat", False
+        )
+        return ReplicationSettings.from_dict(normalised)
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:
         """Get PrimerDimerSettings from the central settings.

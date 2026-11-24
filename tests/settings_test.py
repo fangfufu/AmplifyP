@@ -364,3 +364,39 @@ def test_core_settings_partial_overrides_and_bad_coercions() -> None:
     )
     assert tbl_fallback["A", "A"] == pytest.approx(9.0)
     assert tbl_fallback["A", "C"] == pytest.approx(0.0)
+
+
+def test_overflow_coercion_and_gui_compat_normalisation() -> None:
+    """Test overflow fallback and authoritative amp4_compat in GUISettings."""
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.settings import (
+        DEFAULT_PRIMER_DIMER_OVERLAP,
+        DEFAULT_PRIMER_DIMER_THRESHOLD,
+    )
+
+    pd_inf = PrimerDimerSettings.from_dict({"pd_min_overlap": float("inf")})
+    assert pd_inf.min_overlap == DEFAULT_PRIMER_DIMER_OVERLAP
+
+    pd_big = PrimerDimerSettings.from_dict({"pd_threshold": 10**400})
+    assert pd_big.threshold == pytest.approx(DEFAULT_PRIMER_DIMER_THRESHOLD)
+
+    gui_settings = GUISettings({"amplify4_compatibility_mode": True})
+    assert "amplify4_compatibility_mode" not in gui_settings
+    assert gui_settings["amp4_compat"] is True
+    assert (
+        gui_settings.get_replication_settings().amplify4_compatibility_mode
+        is True
+    )
+
+    gui_settings["amp4_compat"] = False
+    assert (
+        gui_settings.get_replication_settings().amplify4_compatibility_mode
+        is False
+    )
+
+    # Even if the legacy alias is set directly, amp4_compat is authoritative.
+    gui_settings["amplify4_compatibility_mode"] = True
+    assert (
+        gui_settings.get_replication_settings().amplify4_compatibility_mode
+        is False
+    )
