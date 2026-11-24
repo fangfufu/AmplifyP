@@ -518,6 +518,12 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             seq_val, name_val, show_temp, scheme, settings
         )
         if getattr(self, "_last_tm_cache_key", None) == cache_key:
+            tm_val_stored = getattr(self, "_tm_value", None)
+            self.tm_text.color = (
+                tm_colour(tm_val_stored, scheme)
+                if tm_val_stored is not None
+                else None
+            )
             return
 
         self._last_tm_cache_key = cache_key

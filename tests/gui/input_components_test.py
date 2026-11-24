@@ -2013,5 +2013,18 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
             view.template_input.template_box_container.border
             == expected_outline
         )
+
+        # 7. PrimerRow.update_tm refreshes tm_text.color on cache hit when
+        # palette changes
+        settings["show_primer_temperature"] = True
+        settings["tm_colour_scheme"] = "Cool-Warm"
+        reused_row.seq_field.value = "ATGCATGCATGCATGC"
+        GUIColours.dark_mode = False
+        reused_row.update_tm(settings)
+        light_colour = reused_row.tm_text.color
+        assert light_colour is not None
+        GUIColours.dark_mode = True
+        reused_row.update_tm(settings)
+        assert reused_row.tm_text.color != light_colour
     finally:
         GUIColours.dark_mode = prev_dark
