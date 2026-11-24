@@ -69,30 +69,25 @@ class Designer1DTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Row(
-                                [
-                                    ft.Container(
-                                        content=ft.Column(
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Row(
                                             [
-                                                ft.Row(
-                                                    [
-                                                        self.show_tm_checkbox,
-                                                        self.show_pct_at_checkbox,
-                                                    ],
-                                                    spacing=15,
-                                                ),
+                                                self.show_tm_checkbox,
+                                                self.show_pct_at_checkbox,
                                             ],
                                             spacing=15,
-                                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                         ),
-                                        width=700,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER,
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=700,
                             ),
                         ],
                         spacing=15,
-                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )

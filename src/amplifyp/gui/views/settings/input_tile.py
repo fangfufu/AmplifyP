@@ -161,7 +161,7 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             ft.Container(
                                 content=ft.Column(
@@ -227,7 +227,7 @@ class InputTile(ft.ExpansionTile):  # type: ignore[misc]
                                 width=700,
                             ),
                         ],
-                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )

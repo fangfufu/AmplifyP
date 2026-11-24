@@ -80,30 +80,25 @@ class Designer2DTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.Container(
                     content=ft.Column(
                         [
-                            ft.Row(
-                                [
-                                    ft.Container(
-                                        content=ft.Column(
+                            ft.Container(
+                                content=ft.Column(
+                                    [
+                                        ft.Row(
                                             [
-                                                ft.Row(
-                                                    [
-                                                        self.set_designer_2d_colour_scheme,
-                                                        self.show_rev_fwd_checkbox,
-                                                    ],
-                                                    spacing=15,
-                                                ),
+                                                self.set_designer_2d_colour_scheme,
+                                                self.show_rev_fwd_checkbox,
                                             ],
                                             spacing=15,
-                                            horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
                                         ),
-                                        width=700,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER,
+                                    ],
+                                    spacing=15,
+                                    horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                                ),
+                                width=700,
                             ),
                         ],
                         spacing=15,
-                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )
