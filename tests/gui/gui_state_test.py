@@ -161,7 +161,7 @@ def test_gui_state_save_load() -> None:
 
 
 def test_settings_view_buttons() -> None:
-    """Test Reset to Default button in SettingsView."""
+    """Test Reset Settings button in SettingsView and no bottom divider."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.overlay = []
 
@@ -184,12 +184,13 @@ def test_settings_view_buttons() -> None:
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
-    # Find the Row containing the Reset button
-    buttons_row = settings_view.controls[-1]
-    assert isinstance(buttons_row, ft.Row)
-    reset_btn = buttons_row.controls[0]
+    # Bottom control should be diagnostics_tile (no bottom divider or reset row)
+    assert settings_view.controls[-1] is settings_view.diagnostics_tile
 
-    assert reset_btn.content == "Reset to Default"
+    # Use the Reset Settings button in the General section
+    reset_btn = settings_view.general_tile.factory_reset_button
+    assert isinstance(reset_btn, ft.OutlinedButton)
+    assert reset_btn.content == "Reset Settings"
 
     # Trigger Reset -> opens confirmation dialogue, then confirm
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))

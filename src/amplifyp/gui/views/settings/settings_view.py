@@ -150,12 +150,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
                 self.controls.append(
                     ft.Divider(height=1, color=GUIColours.OUTLINE)
                 )
-        self.controls.extend(
-            [
-                ft.Divider(height=1, color=GUIColours.OUTLINE),
-                self._build_reset_button(),
-            ]
-        )
 
         # Sync initial UI state
         self.update_ui()
@@ -290,22 +284,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_auto_activate_new_valid_primer(self) -> BorderedCheckbox:
         """Get the auto activate new valid primer checkbox."""
         return self.input_tile.auto_activate_new_valid_primer
-
-    def _build_reset_button(self) -> ft.Row:
-        """Build the Reset button Row."""
-        return ft.Row(
-            list[ft.Control](
-                [
-                    ft.OutlinedButton(
-                        "Reset to Default",
-                        icon=ft.Icons.RESTORE,
-                        on_click=self.general_tile._on_factory_reset_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
-                    ),
-                ]
-            ),
-            alignment=ft.MainAxisAlignment.END,
-            spacing=10,
-        )
 
     def sync_to_state(self) -> None:
         """Sync current settings UI controls back to the central state."""
