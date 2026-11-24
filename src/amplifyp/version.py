@@ -63,28 +63,31 @@ def _get_sha(full: bool = False) -> str:
     except (ImportError, AttributeError):
         pass
 
-    try:
-        cmd = (
-            ["git", "rev-parse", "HEAD"]
-            if full
-            else ["git", "rev-parse", "--short", "HEAD"]
-        )
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        pass
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    git_dir = os.path.join(repo_root, ".git")
+
+    if os.path.exists(git_dir):
+        try:
+            cmd = (
+                ["git", "rev-parse", "HEAD"]
+                if full
+                else ["git", "rev-parse", "--short", "HEAD"]
+            )
+            result = subprocess.run(  # noqa: S603
+                cmd,
+                cwd=repo_root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                return result.stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            pass
 
     try:
-        repo_root = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-        git_dir = os.path.join(repo_root, ".git")
         head_path = os.path.join(git_dir, "HEAD")
         if os.path.exists(head_path):
             with open(head_path, encoding="utf-8") as f:

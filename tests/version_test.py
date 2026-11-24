@@ -246,3 +246,56 @@ def test_fetch_latest_release_version() -> None:
 
     with patch("urllib.request.urlopen", side_effect=OSError("offline")):
         assert fetch_latest_release_version() is None
+
+
+def test_get_sha_uses_checkout_root_independent_of_cwd(tmp_path: Any) -> None:
+    """_get_sha runs git in AmplifyP checkout and ignores unrelated repos."""
+    import os
+
+    import amplifyp.version as version_mod
+
+    expected_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(version_mod.__file__)))
+    )
+    mock_result = MagicMock(returncode=0, stdout="1234abc\n")
+    with (
+        patch.dict(
+            sys.modules,
+            {
+                "amplifyp.git_sha": None,
+                "amplifyp.gui.git_sha": None,
+                "js": None,
+            },
+        ),
+        patch(
+            "os.path.exists",
+            side_effect=lambda p: str(p) == os.path.join(expected_root, ".git"),
+        ),
+        patch("subprocess.run", return_value=mock_result) as mock_run,
+    ):
+        assert _get_sha(full=False) == "1234abc"
+        assert mock_run.call_args.kwargs["cwd"] == expected_root
+
+    # When AmplifyP has no .git directory (e.g. packaged install inside another
+    # repo's working directory), git must not be invoked against caller cwd.
+    other_repo = tmp_path / "other_repo"
+    (other_repo / ".git").mkdir(parents=True)
+    orig_cwd = os.getcwd()
+    try:
+        os.chdir(other_repo)
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "amplifyp.git_sha": None,
+                    "amplifyp.gui.git_sha": None,
+                    "js": None,
+                },
+            ),
+            patch("os.path.exists", return_value=False),
+            patch("subprocess.run") as mock_run,
+        ):
+            assert _get_sha(full=False) == "unknown"
+            mock_run.assert_not_called()
+    finally:
+        os.chdir(orig_cwd)
