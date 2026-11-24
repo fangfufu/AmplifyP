@@ -24,7 +24,7 @@ from collections.abc import Callable
 import flet as ft
 
 from amplifyp.dimer import PrimerDimerGenerator
-from amplifyp.dna import DNA, DNAType
+from amplifyp.dna import DNA
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -168,12 +168,7 @@ class Designer2DView(BaseDesignerView):
                 except RuntimeError:
                     pass
                 return
-            t_type = (
-                DNAType.CIRCULAR
-                if self.input_data.template_circular
-                else DNAType.LINEAR
-            )
-            template_dna = DNA(clean_tpl, dna_type=t_type)
+            template_dna = self.input_data.to_template_dna()
 
         # Compute total (fwd x rev) combination count before threading so we
         # can display a determinate progress bar from the first frame.

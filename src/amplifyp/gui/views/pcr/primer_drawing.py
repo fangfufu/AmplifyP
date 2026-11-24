@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.dna import DNA, DNADirection, DNAType
+from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.repliconf import DirIdx, Repliconf
@@ -406,16 +406,7 @@ def get_template_substring(template: DNA, start: int, length: int) -> str:
         A string of the requested DNA substring, with '-' for out-of-
         bounds positions on linear templates.
     """
-    N_len = len(template)
-    if template.type == DNAType.CIRCULAR:
-        return "".join(
-            template.seq[i % N_len] for i in range(start, start + length)
-        )
-    else:
-        return "".join(
-            template.seq[i] if 0 <= i < N_len else "-"
-            for i in range(start, start + length)
-        )
+    return template.padded_slice(start, length)
 
 
 def format_context_lines(
@@ -453,6 +444,7 @@ def format_context_lines(
         A tuple of (top_line, primer_line, bottom_line) strings for
         the context map visualisation.
     """
+    _ = (L, N)
     if separator is not None:
         sep = "-" if (separator == "Dash ('-')" or separator == "-") else " "
     elif settings is not None and hasattr(settings, "get"):
@@ -466,83 +458,15 @@ def format_context_lines(
     else:
         sep = " "
 
-    if direction == DNADirection.FWD:
-        start_genomic = (padded_idx - L) % N
-        primer_display_seq = conf.primer.seq
-        primer_label = primer_name
-        primer_ends = ("5'", "3'")
-        strength_display = origin.binding_strength_str[::-1]
-    else:
-        start_genomic = padded_idx % N
-        primer_display_seq = conf.primer.seq[::-1]
-        primer_label = f"{primer_name} (Reverse)"
-        primer_ends = ("3'", "5'")
-        strength_display = origin.binding_strength_str
-
-    end_genomic = start_genomic + L
-    start_num_str = str(((start_genomic) % N) + 1)
-    end_num_str = str(((end_genomic - 1) % N) + 1)
-
-    label_width = max(29, len(primer_label))
-    extra_spaces = label_width - 29
-
-    # Construct primer line:
-    primer_line = (
-        f"{primer_label:<{label_width}}"
-        f"{primer_ends[0]}{sep}{primer_display_seq}{sep}{primer_ends[1]}"
+    alignment = Repliconf.format_context_alignment(
+        conf,
+        DirIdx(direction, padded_idx),
+        primer_name=primer_name,
+        origin=origin,
+        improved_visualisation=improved_visualisation,
+        separator=sep,
     )
-
-    # Construct strength line:
-    bonds_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}{strength_display}"
-
-    # Construct pipes and arrows:
-    pipe_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}|{' ' * (L - 2)}|"
-    arrow_line = f"{' ' * 12}{' ' * (20 + extra_spaces)}V{' ' * (L - 2)}V"
-
-    # Construct numbers:
-    num_line_chars = [" "] * (12 + 20 + extra_spaces + L + 20)
-    col1 = 12 + 20 + extra_spaces - len(start_num_str) // 2
-    for idx, char in enumerate(start_num_str):
-        num_line_chars[col1 + idx] = char
-    col2 = (12 + 20 + extra_spaces + L - 1) - len(end_num_str) // 2
-    for idx, char in enumerate(end_num_str):
-        num_line_chars[col2 + idx] = char
-    top_line = "".join(num_line_chars).rstrip()
-
-    # Combined top line:
-    top_line = f"{top_line}\n{pipe_line}\n{arrow_line}"
-
-    upstream_seq = get_template_substring(conf.template, start_genomic - 20, 20)
-    binding_seq = get_template_substring(conf.template, start_genomic, L)
-    downstream_seq = get_template_substring(
-        conf.template, start_genomic + L, 20
-    )
-
-    context_line_prefix = "Context  "
-    if improved_visualisation and direction == DNADirection.FWD:
-        from amplifyp.dna import GLOBAL_COMPLEMENT_TABLE
-
-        comp_upstream = upstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
-        comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
-        comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
-        comp_line = (
-            f"{' ' * (9 + extra_spaces)}3'{sep}"
-            f"{comp_upstream}{comp_binding}{comp_downstream}{sep}5'"
-        )
-        bottom_line = (
-            f"{bonds_line}\n"
-            f"{comp_line}\n"
-            f"{context_line_prefix}{' ' * extra_spaces}"
-            f"5'{sep}{upstream_seq}{binding_seq}{downstream_seq}{sep}3'"
-        )
-    else:
-        bottom_line = (
-            f"{bonds_line}\n"
-            f"{context_line_prefix}{' ' * extra_spaces}"
-            f"5'{sep}{upstream_seq}{binding_seq}{downstream_seq}{sep}3'"
-        )
-
-    return top_line, primer_line, bottom_line
+    return alignment.top_block, alignment.primer_line, alignment.bottom_block
 
 
 class ReplicationContextCard(DismissibleDetailCard):
@@ -582,35 +506,39 @@ class ReplicationContextCard(DismissibleDetailCard):
         origin = conf.origin(var)
 
         primer_type = "" if var.direction == DNADirection.FWD else "Reverse"
-        L = len(conf.primer)
-        N = len(conf.template)
 
         from amplifyp.gui.utils.data_helpers import (
             create_overlapped_sequence_view,
         )
 
-        top_line, primer_line, bottom_line = format_context_lines(
+        sep_setting = settings.get(
+            "sequence_separator",
+            settings.get("dimer_sequence_separator", "Space (' ')"),
+        )
+        sep = (
+            "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
+        )
+        alignment = Repliconf.format_context_alignment(
+            conf,
+            var,
             primer_name=primer_name,
-            padded_idx=padded_idx,
-            conf=conf,
             origin=origin,
-            L=L,
-            N=N,
-            direction=var.direction,
             improved_visualisation=bool(
                 settings.get("improved_visualisation", False)
             ),
-            settings=settings,
+            separator=sep,
         )
 
         font_family = settings.get("font_family", "Roboto Mono")
         font_size = settings.get("font_size_default", 14)
         diagram_text = create_overlapped_sequence_view(
-            top_line=top_line,
-            mid_line=primer_line,
-            bottom_line=bottom_line,
+            top_line=alignment.top_block,
+            mid_line=alignment.primer_line,
+            bottom_line=alignment.bonds_line,
             font_family=font_family,
             font_size=font_size,
+            complement_line=alignment.complement_line,
+            template_line=alignment.template_line,
         )
 
         if origin.settings.amplify4_compatibility_mode:

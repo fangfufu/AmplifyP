@@ -15,8 +15,6 @@
 
 """GUI utility function re-exports."""
 
-import yaml
-
 from amplifyp.gui.utils.data_helpers import (
     _read_file,
     _resolve_font_family,
@@ -34,35 +32,7 @@ from amplifyp.gui.utils.gui_helpers import (
     show_error_dialog,
 )
 from amplifyp.gui.utils.system import get_full_sha, get_git_sha, get_version
-
-
-def serialise_state(state: dict[str, object]) -> str:
-    """Serialise state dict to YAML string, handling multiline strings.
-
-    Uses a custom YAML dumper that represents multiline strings using
-    the '|' block style for better readability.
-
-    Args:
-        state: The state dictionary to serialise.
-
-    Returns:
-        A YAML string representation of the state.
-    """
-
-    def multiline_presenter(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
-        """Represent multiline strings using the '|' block style in YAML."""
-        if "\n" in data:
-            return dumper.represent_scalar(
-                "tag:yaml.org,2002:str", data, style="|"
-            )
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-    class _StateDumper(yaml.Dumper):
-        """Custom YAML dumper using multiline representer for strings."""
-
-    _StateDumper.add_representer(str, multiline_presenter)
-    return yaml.dump(state, Dumper=_StateDumper, sort_keys=False)
-
+from amplifyp.io import serialise_state
 
 __all__ = [
     "BorderedCheckbox",

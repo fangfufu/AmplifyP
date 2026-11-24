@@ -16,13 +16,13 @@
 """Handles loading and saving of primers using file pickers."""
 
 import csv
-import io
 from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.user_data import GUIInput
+from amplifyp.io import parse_primers_from_text, serialise_primers_to_tsv
 
 
 class PrimerFileManager:
@@ -52,80 +52,12 @@ class PrimerFileManager:
         self.show_notification = show_notification
 
     def _parse_primers_from_text(self, content: str) -> list[dict[str, Any]]:
-        """Parse primers from CSV/TSV content.
-
-        Supports both comma-separated and tab-separated formats.
-        Skips blank lines and lines starting with '#'.
-        Handles optional third column as extra description.
-
-        Args:
-            content: The raw file content string to parse.
-
-        Returns:
-            List of primer dicts with 'name', 'seq', and 'active' keys.
-        """
-        parsed_primers = []
-        for line in content.strip().splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            delimiter = "\t" if "\t" in line else ","
-            reader = csv.reader([line], delimiter=delimiter)
-            try:
-                row = next(reader)
-            except (StopIteration, csv.Error):
-                continue
-
-            if not row or len(row) < 2:
-                continue
-
-            seq = row[0].strip()
-            name = row[1].strip()
-
-            if len(row) >= 3:
-                extra = row[2].strip()
-                if extra:
-                    name = f"{name} - {extra}"
-
-            if not name and not seq:
-                continue
-
-            from amplifyp.gui.views.input.primer.validation import (
-                validate_primer,
-            )
-
-            name_err, seq_err = validate_primer(
-                name, seq, show_empty_errors=False
-            )
-            is_valid_primer = name_err is None and seq_err is None
-
-            parsed_primers.append(
-                {
-                    "name": name,
-                    "seq": seq,
-                    "active": is_valid_primer,
-                }
-            )
-        return parsed_primers
+        """Parse primers from CSV/TSV content."""
+        return parse_primers_from_text(content, csv_reader=csv.reader)
 
     def _serialise_primers_to_tsv(self, primers: list[dict[str, Any]]) -> str:
-        """Serialise primers list to a TSV string.
-
-        Args:
-            primers: List of primer dicts with 'seq' and 'name' keys.
-
-        Returns:
-            Tab-separated string suitable for saving to a .tsv file.
-        """
-        output = io.StringIO()
-        writer = csv.writer(output, delimiter="\t")
-        for p in primers:
-            writer.writerow([p.get("seq", ""), p.get("name", "")])
-
-        tsv_content = output.getvalue()
-        output.close()
-        return tsv_content
+        """Serialise primers list to a TSV string."""
+        return serialise_primers_to_tsv(primers)
 
     async def load_primers_click(self, _e: ft.Event | None) -> None:
         """Open file picker to load primers from CSV/TSV file.

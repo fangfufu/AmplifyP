@@ -21,7 +21,6 @@ from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
-from amplifyp.dna import DNA, DNAType, Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -210,24 +209,8 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
     def _execute_pcr_simulation(self) -> PCR:
         """Clean sequences, build DNA/PCR objects, run simulation."""
-        from amplifyp.gui.utils.data_helpers import clean_sequence
-
-        clean_template = clean_sequence(self.input_data.template)
-        t_type = (
-            DNAType.CIRCULAR
-            if self.input_data.template_circular
-            else DNAType.LINEAR
-        )
-        template_dna = DNA(clean_template, dna_type=t_type)
-
         rep_settings = self.settings.get_replication_settings()
-        pcr = PCR(template_dna, settings=rep_settings)
-
-        primers = self.input_data.get_active_primers()
-        for p in primers:
-            name = p["name"]
-            seq = clean_sequence(p["seq"])
-            pcr.add_primer(Primer(sequence=seq, name=name))
+        pcr = self.input_data.to_pcr(settings=rep_settings)
         pcr.predict_amplicons()
         return pcr
 

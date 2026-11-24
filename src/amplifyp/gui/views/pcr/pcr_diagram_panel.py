@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 import flet as ft
 import flet.canvas as cv
 
+from amplifyp.amplicon import AmpliconRanking, sort_amplicons
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
@@ -44,41 +45,6 @@ _AUTORESIZE_VIEWPORT_FRACTIONS: dict[str, float] = {
     "autoresize_2_3": 2.0 / 3.0,
 }
 _NAV_BAR_HEIGHT = 100.0
-
-
-def sort_amplicons(
-    amplicons: list[Amplicon], ranking_mode: str
-) -> list[Amplicon]:
-    """Sort amplicons according to the chosen vertical ranking mode.
-
-    Args:
-        amplicons: List of amplicons to sort.
-        ranking_mode: Mode to sort by. Options:
-            - 'Position, then length': Primary 5' start pos, secondary length,
-              tertiary quality score.
-            - 'Quality score': Primary quality score (ascending), secondary
-              start pos, tertiary length.
-            - 'Position, then quality': Primary 5' start pos, secondary
-              quality score, tertiary length.
-
-    Returns:
-        Sorted list of amplicons.
-    """
-    if ranking_mode == "Position, then length":
-        return sorted(
-            amplicons,
-            key=lambda a: (a.start.index, len(a.product), a.q_score),
-        )
-    if ranking_mode == "Position, then quality":
-        return sorted(
-            amplicons,
-            key=lambda a: (a.start.index, a.q_score, len(a.product)),
-        )
-    # Default fallback / "Quality score": lower q_score is better quality
-    return sorted(
-        amplicons,
-        key=lambda a: (a.q_score, a.start.index, len(a.product)),
-    )
 
 
 class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
@@ -247,10 +213,16 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         if amplicons:
             ranking_mode = str(
                 self.settings.get(
-                    "pcr_amplicon_ranking", "Position, then length"
+                    "pcr_amplicon_ranking",
+                    AmpliconRanking.POSITION_THEN_LENGTH,
                 )
             )
-            amplicons = sort_amplicons(amplicons, ranking_mode)
+            try:
+                amplicons = sort_amplicons(amplicons, ranking_mode)
+            except ValueError:
+                amplicons = sort_amplicons(
+                    amplicons, AmpliconRanking.QUALITY_SCORE
+                )
             num_amplicons = len(amplicons)
 
             # Limit to top amplicons if there are too many

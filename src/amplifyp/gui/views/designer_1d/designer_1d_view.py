@@ -25,7 +25,7 @@ from collections.abc import Callable
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import DNA, DNADirection, DNAType
+from amplifyp.dna import DNA, DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -60,6 +60,7 @@ class PrimerDesignerView(BaseDesignerView):
         super().__init__(page=page, input_data=input_data, settings=settings)
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
+        self._origin_counts_by_seq: dict[str, int | None] = {}
         self._analysis_running = False
         self._cancel_event: threading.Event | None = None
 
@@ -364,20 +365,21 @@ class PrimerDesignerView(BaseDesignerView):
         template_dna: DNA | None,
         rep_settings: ReplicationSettings,
     ) -> list[int | None]:
-        """Count template binding sites per dimer.
+        """Return template binding site counts per dimer.
 
-        Runs in the analysis worker thread; performs no UI mutation.
-
-        Args:
-            designer: The completed 1D primer designer.
-            template_dna: Template DNA for origin counting, or None.
-            rep_settings: Replication settings captured at analysis start.
-
-        Returns:
-            Per-dimer binding-site counts, or None entries when no template.
+        Reuses the counts already computed by ``PrimerDesigner1D`` when
+        ``template_dna`` and ``rep_settings`` match the designer run.
         """
         if template_dna is None:
             return [None] * len(designer.all_dimers)
+        if (
+            designer.template is not None
+            and designer.template == template_dna
+            and designer.template.type == template_dna.type
+            and designer.replication_settings == rep_settings
+            and len(designer.origin_counts) == len(designer.all_dimers)
+        ):
+            return list(designer.origin_counts)
 
         counts: list[int | None] = []
         for dimer in designer.all_dimers:
@@ -408,6 +410,9 @@ class PrimerDesignerView(BaseDesignerView):
         # Sort primers from shortest to longest (increasing length)
         dimer_data = list(zip(designer.all_dimers, origin_counts, strict=True))
         dimer_data.sort(key=lambda item: len(item[0].primer_1.seq))
+        self._origin_counts_by_seq = {
+            dimer.primer_1.seq: count for dimer, count in dimer_data
+        }
 
         sorted_dimers = [dimer for dimer, _ in dimer_data]
 
@@ -499,12 +504,7 @@ class PrimerDesignerView(BaseDesignerView):
                 except RuntimeError:
                     pass
                 return
-            t_type = (
-                DNAType.CIRCULAR
-                if self.input_data.template_circular
-                else DNAType.LINEAR
-            )
-            template_dna = DNA(clean_tpl, dna_type=t_type)
+            template_dna = self.input_data.to_template_dna()
 
         dna_obj = DNA(clean_seq)
         # Total truncation steps is deterministic before threading.
@@ -607,12 +607,7 @@ class PrimerDesignerView(BaseDesignerView):
                     )
                     self.app_page.update()
                     return False
-                t_type = (
-                    DNAType.CIRCULAR
-                    if self.input_data.template_circular
-                    else DNAType.LINEAR
-                )
-                template_dna = DNA(clean_tpl, dna_type=t_type)
+                template_dna = self.input_data.to_template_dna()
 
             dna_obj = DNA(clean_seq)
             pd_settings = self.settings.get_primer_dimer_settings()
@@ -674,21 +669,30 @@ class PrimerDesignerView(BaseDesignerView):
         if self.form.filter_dna_checkbox.value:
             clean_tpl = clean_sequence(self.input_data.template)
             if clean_tpl:
-                t_type = (
-                    DNAType.CIRCULAR
-                    if self.input_data.template_circular
-                    else DNAType.LINEAR
-                )
-                tpl_dna = DNA(clean_tpl, dna_type=t_type)
-                repliconf = Repliconf(
-                    tpl_dna,
-                    dimer.primer_1,
-                    settings=self.settings.get_replication_settings(),
-                )
-                repliconf.search()
-                origin_count = len(repliconf.origin_db.fwd) + len(
-                    repliconf.origin_db.rev
-                )
+                tpl_dna = self.input_data.to_template_dna()
+                rep_settings = self.settings.get_replication_settings()
+                if (
+                    self._cached_designer is not None
+                    and self._cached_designer.template is not None
+                    and self._cached_designer.template == tpl_dna
+                    and self._cached_designer.template.type == tpl_dna.type
+                    and self._cached_designer.replication_settings
+                    == rep_settings
+                    and dimer.primer_1.seq in self._origin_counts_by_seq
+                ):
+                    origin_count = self._origin_counts_by_seq[
+                        dimer.primer_1.seq
+                    ]
+                else:
+                    repliconf = Repliconf(
+                        tpl_dna,
+                        dimer.primer_1,
+                        settings=rep_settings,
+                    )
+                    repliconf.search()
+                    origin_count = len(repliconf.origin_db.fwd) + len(
+                        repliconf.origin_db.rev
+                    )
 
         def _factory() -> DismissibleSelfDimerCard:
             font_family = self.settings.get("font_family", "Roboto Mono")
@@ -754,6 +758,7 @@ class PrimerDesignerView(BaseDesignerView):
         self.form.clear_errors()
         self.primer_list.controls.clear()
         self._cached_designer = None
+        self._origin_counts_by_seq = {}
         self.chart_content_container.content = self._build_chart([])
         self._clear_all_cards()
         try:

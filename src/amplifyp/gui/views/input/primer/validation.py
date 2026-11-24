@@ -17,93 +17,40 @@
 
 from __future__ import annotations
 
-import functools
 from typing import Any
 
-from amplifyp.dna import Primer
-from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.dna import clean_sequence
+from amplifyp.io import (
+    count_active_primer_names_and_sequences as _count_names_and_sequences,
+)
+from amplifyp.io import (
+    get_duplicate_primer_indices as _core_get_duplicate_primer_indices,
+)
+from amplifyp.io import validate_primer, validate_primers
 
-
-@functools.lru_cache(maxsize=4096)
-def validate_primer(
-    name: str, seq: str, show_empty_errors: bool = False
-) -> tuple[str | None, str | None]:
-    """Validate a single primer sequence and name.
-
-    Checks for empty fields and validates the DNA sequence using the
-    Primer class. Returns error messages for invalid fields.
-
-    Args:
-        name: The primer name to validate.
-        seq: The primer DNA sequence to validate.
-        show_empty_errors: If True, reports empty name/sequence as errors.
-
-    Returns:
-        A tuple of (name_error, seq_error) where each element is an
-        error message string or None if valid.
-    """
-    name_err = None
-    seq_err = None
-
-    if not name.strip() and show_empty_errors:
-        name_err = "Name cannot be empty"
-
-    if not seq.strip():
-        if show_empty_errors:
-            seq_err = "Sequence cannot be empty"
-    else:
-        try:
-            Primer(sequence=seq, name=name)
-        except ValueError as ex:
-            seq_err = str(ex)
-
-    return name_err, seq_err
-
-
-def _count_names_and_sequences(
-    primers: list[dict[str, Any]],
-) -> tuple[dict[str, int], dict[str, int]]:
-    """Count occurrences of active primer names and sequences."""
-    active_names_count: dict[str, int] = {}
-    active_seqs_count: dict[str, int] = {}
-
-    for p in primers:
-        if not p.get("active", True):
-            continue
-        n_lower = str(p.get("name") or "").strip().lower()
-        s_lower = clean_sequence(str(p.get("seq") or "")).lower()
-
-        if n_lower:
-            active_names_count[n_lower] = active_names_count.get(n_lower, 0) + 1
-        if s_lower:
-            active_seqs_count[s_lower] = active_seqs_count.get(s_lower, 0) + 1
-
-    return active_names_count, active_seqs_count
+__all__ = [
+    "_count_names_and_sequences",
+    "get_duplicate_primer_indices",
+    "reconcile_primer_states",
+    "validate_primer",
+    "validate_primers",
+]
 
 
 def get_duplicate_primer_indices(
     primers: list[dict[str, Any]],
 ) -> set[int]:
     """Find and return indices of duplicate active primers by name/sequence."""
-    active_names_count, active_seqs_count = _count_names_and_sequences(primers)
-
-    dup_indices = set()
-    for idx, p in enumerate(primers):
-        if not p.get("active", True):
-            continue
-        n_lower = str(p.get("name") or "").strip().lower()
-        s_lower = clean_sequence(str(p.get("seq") or "")).lower()
-
-        is_name_dup = bool(n_lower) and active_names_count.get(n_lower, 0) > 1
-        is_seq_dup = bool(s_lower) and active_seqs_count.get(s_lower, 0) > 1
-        if is_name_dup or is_seq_dup:
-            c = p.get("container")
-            c_idx = (
-                c.data
-                if (c is not None and getattr(c, "data", None) is not None)
-                else idx
-            )
-            dup_indices.add(c_idx)
+    raw_dup_indices = _core_get_duplicate_primer_indices(primers)
+    dup_indices: set[int] = set()
+    for idx in raw_dup_indices:
+        c = primers[idx].get("container")
+        c_idx = (
+            c.data
+            if (c is not None and getattr(c, "data", None) is not None)
+            else idx
+        )
+        dup_indices.add(c_idx)
     return dup_indices
 
 
@@ -118,7 +65,7 @@ def reconcile_primer_states(
         prev_p = prev_primers[i] if i < len(prev_primers) else {}
         p_name = str(p.get("name") or "")
         p_seq = str(p.get("seq") or "")
-        is_filled = bool(p_name.strip() and p_seq.strip())
+        is_filled = bool(p_name.strip() and clean_sequence(p_seq))
         was_active = prev_p.get("active", False)
         is_active = p.get("active", True)
 
@@ -143,39 +90,3 @@ def reconcile_primer_states(
             }
         )
     return primers
-
-
-def validate_primers(
-    primers: list[dict[str, Any]],
-    check_empty: bool = True,
-    check_duplicates: bool = True,
-) -> list[dict[str, str | None]]:
-    """Validate a list of primers, detecting format and duplicate errors."""
-    active_names_count, active_seqs_count = _count_names_and_sequences(primers)
-
-    errors = []
-    for p in primers:
-        name_val = str(p.get("name", "")).strip()
-        seq_val = clean_sequence(str(p.get("seq", "")))
-
-        is_active = p.get("active", True)
-        show_empty_errors = check_empty and (
-            is_active or bool(p.get("show_empty_errors", False))
-        )
-        name_err, seq_err = validate_primer(
-            name_val, seq_val, show_empty_errors=show_empty_errors
-        )
-
-        n_lower = name_val.lower()
-        s_lower = seq_val.lower()
-
-        if check_duplicates and is_active and not seq_err and s_lower:
-            if active_seqs_count.get(s_lower, 0) > 1:
-                seq_err = "Duplicate primer sequence"
-
-        if check_duplicates and is_active and not name_err and n_lower:
-            if active_names_count.get(n_lower, 0) > 1:
-                name_err = "Duplicate primer name"
-
-        errors.append({"name": name_err, "seq": seq_err})
-    return errors

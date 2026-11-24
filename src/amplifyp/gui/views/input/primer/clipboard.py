@@ -22,52 +22,15 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.utils.data_helpers import clean_sequence
+from amplifyp.io import parse_primer_clipboard_text
 
 logger = logging.getLogger(__name__)
 
-
-def parse_primer_clipboard_text(text: str) -> list[dict[str, Any]]:
-    """Parse pasted text containing primers.
-
-    Args:
-        text: The raw clipboard or pasted text.
-
-    Returns:
-        A list of dicts with keys 'name', 'seq', and 'active'.
-    """
-    parsed = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        parts = line.split("\t")
-        if len(parts) >= 2:
-            name = parts[0].strip()
-            seq = clean_sequence(parts[1])
-        elif len(parts) == 1:
-            subparts = line.split(",")
-            if len(subparts) >= 2:
-                name = subparts[0].strip()
-                seq = clean_sequence(subparts[1])
-            else:
-                val = line.strip()
-                cleaned = clean_sequence(val)
-                is_seq = False
-                if cleaned:
-                    is_seq = all(
-                        c in "ACGTRYSWKMBDHVNacgtryswkmbdhvn" for c in cleaned
-                    )
-                if is_seq:
-                    name = ""
-                    seq = cleaned
-                else:
-                    name = val
-                    seq = ""
-        else:
-            continue
-        parsed.append({"name": name, "seq": seq, "active": False})
-    return parsed
+__all__ = [
+    "copy_primers_click",
+    "parse_primer_clipboard_text",
+    "paste_primers_click",
+]
 
 
 async def copy_primers_click(primer_input: Any, _e: ft.Event | None) -> None:
