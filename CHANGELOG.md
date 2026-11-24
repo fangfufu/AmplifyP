@@ -6,6 +6,65 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0](https://github.com/fangfufu/AmplifyP/compare/v1.26.3...v1.27.0) (2026-11-24)
+
+
+### Features
+
+* **gui:** add lengthwise weight tables ([e3dc055](https://github.com/fangfufu/AmplifyP/commit/e3dc055ecafa7b9998e5856888a1233f7788e11e))
+* **gui:** add lengthwise weight tables to PCR settings ([13b3d42](https://github.com/fangfufu/AmplifyP/commit/13b3d42858aa652c82eba70e11f24c1688a95950))
+* **gui:** add reset button for dimer weights ([7c21a00](https://github.com/fangfufu/AmplifyP/commit/7c21a001a872aa418ad5b44cab2dfa8db3859c45))
+* **gui:** add Reset Settings button to General ([1716ba3](https://github.com/fangfufu/AmplifyP/commit/1716ba3bb6408d956b9fb2297fa0b740c92f430d))
+* **gui:** configure PCR divider behaviour ([aeb8c71](https://github.com/fangfufu/AmplifyP/commit/aeb8c71e71283c4f8dd162c31f661781c85cf15b))
+* **gui:** wrap PCR weight tables side by side ([7430ef1](https://github.com/fangfufu/AmplifyP/commit/7430ef1cf83c4a304b87ad8090b70938f641b5f3))
+* **pcr:** add 45-degree primer label option ([94eccb1](https://github.com/fangfufu/AmplifyP/commit/94eccb1d1d21290d0611c6d90aa8a9383536a703))
+* **pcr:** add horizontal primer label option ([bfe08c6](https://github.com/fangfufu/AmplifyP/commit/bfe08c6184ca07b1385217e44c879f0bfd52880b))
+
+
+### Bug Fixes
+
+* **designer:** refresh 1D list and add 2D getter ([b74991e](https://github.com/fangfufu/AmplifyP/commit/b74991e965e7830dc00055faa769f5b9884e1527))
+* **designer:** refresh 2D cards and form colours ([cb924ca](https://github.com/fangfufu/AmplifyP/commit/cb924cae1afcb367e374bedb79f3ce2b0bfe0fbd))
+* **designer:** sync 1D cards and origin settings ([a745804](https://github.com/fangfufu/AmplifyP/commit/a74580469891f9a6dd55c8860a2a513ed76075cd))
+* **gui:** align AmplifyP log level fallback ([233cdd2](https://github.com/fangfufu/AmplifyP/commit/233cdd281f114381736b8ff4b22712bdda734824))
+* **gui:** centralise settings weights cells ([414fe02](https://github.com/fangfufu/AmplifyP/commit/414fe02632c0f98cc0d631987ebe0f8590fd2f8e))
+* **gui:** coerce string bools and order YAML load ([f43001a](https://github.com/fangfufu/AmplifyP/commit/f43001a5250f62b727da2bb22067926a896613b8))
+* **gui:** display primer quality to 3dp ([cc7cf3b](https://github.com/fangfufu/AmplifyP/commit/cc7cf3be814acc55b947564078e377051481aa94))
+* **gui:** fix primer row clicks and input styling ([20d790f](https://github.com/fangfufu/AmplifyP/commit/20d790f48d555a4079cbce6a9507d74472197e2b))
+* **gui:** fix settings load, reset, and colours ([b1e4127](https://github.com/fangfufu/AmplifyP/commit/b1e4127e1ed1c71056f5b3aeb887c6b11796ea3c))
+* **gui:** fix settings save and info panel state ([0604d79](https://github.com/fangfufu/AmplifyP/commit/0604d79c4873664528e3e907e0324ee1bd2c8a92))
+* **gui:** guard web restore against input edits ([32a6d80](https://github.com/fangfufu/AmplifyP/commit/32a6d80a12b88c3e0fc7a6000aaf03f4d4baf7f6))
+* **gui:** keep fixed-height primer panel on close ([2d03ea1](https://github.com/fangfufu/AmplifyP/commit/2d03ea13280db053ce826faf99f2995f5f1d0751))
+* **gui:** keep primer info box visible when empty ([b14eb15](https://github.com/fangfufu/AmplifyP/commit/b14eb15d39513034ca3661d0325a9f4967b5f0b6))
+* **gui:** keep retained PCR cards in sync ([7ecd13e](https://github.com/fangfufu/AmplifyP/commit/7ecd13e81d23a2a0df64461308e502fe8c10a1d2))
+* **gui:** persist web state in SharedPreferences ([04d5fa1](https://github.com/fangfufu/AmplifyP/commit/04d5fa1406912e650da8185ad502399f4333e8b6))
+* **gui:** prevent settings tiles narrow overflow ([d8f21ac](https://github.com/fangfufu/AmplifyP/commit/d8f21acf34f86e408e19811b6245280c66e4cdce))
+* **gui:** refresh cached Tm colour on palette hit ([58f17a4](https://github.com/fangfufu/AmplifyP/commit/58f17a456005e42cdbfe582ca8319637b8713c9b))
+* **gui:** refresh input panel font and borders ([35949de](https://github.com/fangfufu/AmplifyP/commit/35949deb8f22ab5514edbb7cfb8c444d499ccdb6))
+* **gui:** remove duplicate dividers in settings ([878dea1](https://github.com/fangfufu/AmplifyP/commit/878dea146e3679de31aa258610d8b6b58763e5c9))
+* **gui:** reuse captured settings in 1D origin count ([f5a4cbd](https://github.com/fangfufu/AmplifyP/commit/f5a4cbd682b79b1b2c535ab46756fe3fd2aa42ea))
+* **gui:** sync lengthwise weights and reset flow ([03f4d4d](https://github.com/fangfufu/AmplifyP/commit/03f4d4d263b38da04523927e46ba6adbe170cf16))
+* **gui:** trim ScoreTable cell padding ([2e2527a](https://github.com/fangfufu/AmplifyP/commit/2e2527a192510081c5f451ea120199b8fcbd0e07))
+* **gui:** validate and normalize weight imports ([5f55af7](https://github.com/fangfufu/AmplifyP/commit/5f55af7ab28fababdfe2dd7517b84957e7254ecd))
+* **pcr:** fix banner cloning and edge map labels ([a1e026a](https://github.com/fangfufu/AmplifyP/commit/a1e026af54b6003087ef22e76cf116808c8f0a68))
+* **pcr:** guard quality division and align labels ([e4bb148](https://github.com/fangfufu/AmplifyP/commit/e4bb14851cdd7e78f3534e6dcee45230a762e11b))
+* **pcr:** guard zero weights and refine map layout ([9c90d73](https://github.com/fangfufu/AmplifyP/commit/9c90d7379580a5b7a33c6f3be71abc11a81156d3))
+
+
+### Code Refactoring
+
+* **gui:** combine primer stats onto one line ([e759bbe](https://github.com/fangfufu/AmplifyP/commit/e759bbe1631243390779fa423f11e79e37419e89))
+* **gui:** compact appearance settings layout ([beed0e6](https://github.com/fangfufu/AmplifyP/commit/beed0e689f4550c6b963e3028d8c2d81782e17d7))
+* **gui:** compact designer settings ([54bc61d](https://github.com/fangfufu/AmplifyP/commit/54bc61d73daad0b5bb6e549a64c814a7e6d5388d))
+* **gui:** compact diagnostics settings ([a996b6a](https://github.com/fangfufu/AmplifyP/commit/a996b6ae3eef1c8680fc647afdffbe3f9703a6c1))
+* **gui:** compact input settings layout ([e5d6e08](https://github.com/fangfufu/AmplifyP/commit/e5d6e080479bb1cc9cecc71710dd5de5dc9c3651))
+* **gui:** drop ranking dropdown and header ([674d586](https://github.com/fangfufu/AmplifyP/commit/674d5860e4d78fc80effab40741e42465bbf85c1))
+* **gui:** extract WeightTableBase class ([7079db5](https://github.com/fangfufu/AmplifyP/commit/7079db58a809d085879ed0101f077240e75643b1))
+* **gui:** remove ranking dropdown and map header ([e2c6ef7](https://github.com/fangfufu/AmplifyP/commit/e2c6ef7c9f7b8dbb2b7fcd9fd87f83293f67b3c1))
+* **gui:** reorganise PCR settings layout ([ba42c88](https://github.com/fangfufu/AmplifyP/commit/ba42c88579ce26148c236d95e24acd1d34455592))
+* **gui:** reorganise settings tab sections ([e7eb0ac](https://github.com/fangfufu/AmplifyP/commit/e7eb0aca79962e6587bae54e1bc51f7250253c5f))
+* **gui:** tidy primer dimers settings ([4c0bb96](https://github.com/fangfufu/AmplifyP/commit/4c0bb96c1ad3fd72de3941567e7a390bb5e3ff7a))
+
 ## [1.26.3](https://github.com/fangfufu/AmplifyP/compare/v1.26.2...v1.26.3) (2026-11-19)
 
 
