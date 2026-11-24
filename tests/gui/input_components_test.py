@@ -1925,3 +1925,19 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
     primer_input._update_primer_info_panel()
     assert primer_input.primer_info_panel.visible is True
     assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.close_button.visible is False
+
+    # 4. Dismissing a focused primer hides panel, then update_panel(None)
+    # restores the fixed-height placeholder
+    input_data.primers = [
+        {"name": "P1", "seq": "ATGCATGCATGCATGC", "active": True}
+    ]
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.close_button.visible is True
+    primer_input.primer_info_panel._on_close_click(MagicMock())
+    assert primer_input.primer_info_panel.visible is False
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.close_button.visible is False

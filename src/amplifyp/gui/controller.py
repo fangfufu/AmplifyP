@@ -39,7 +39,6 @@ from amplifyp.gui.views import (
     PrimerDesignerView,
     SettingsView,
 )
-from amplifyp.gui.views.settings.input_tile import InputTile
 
 logger = logging.getLogger(__name__)
 
@@ -414,21 +413,6 @@ class GUIController:
             and active_view == self.input_view
         ):
             self.input_view.update_ui()
-            # Immediately reposition the info panel if its position changed
-            if e is not None:
-                ctrl = getattr(e, "control", None)
-                if ctrl is not None:
-                    try:
-                        tile = getattr(self.settings_view, "input_tile", None)
-                        if (
-                            tile is not None
-                            and isinstance(tile, InputTile)
-                            and tile.set_primer_info_panel_position is ctrl
-                        ):
-                            self.input_view.reposition_primer_info_panel()
-                            return
-                    except Exception as ex:
-                        logger.debug("Failed to check input tile: %s", ex)
         else:
             self.input_view_dirty = True
 

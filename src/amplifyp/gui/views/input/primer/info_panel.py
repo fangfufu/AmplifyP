@@ -147,10 +147,8 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
     def _show_empty_or_hide(self) -> None:
         """Show an empty placeholder in fixed-height mode, or hide the panel."""
-        if (
-            self.settings.get("primer_info_panel_fixed_height", False)
-            and not self._manually_hidden
-        ):
+        if self.settings.get("primer_info_panel_fixed_height", False):
+            self._manually_hidden = False
             self.info_header_text.value = "Primer: -"
             self.info_seq_text.value = ""
             self.info_stats_text.value = ""
@@ -158,9 +156,11 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             self.info_dimer_text.visible = False
             self.info_dimer_card_container.content = None
             self.info_dimer_card_container.visible = False
+            self.close_button.visible = False
             self._apply_height_mode(True)
             self.visible = True
         else:
+            self.close_button.visible = True
             self.visible = False
             self._apply_height_mode(False)
             self.info_dimer_card_container.visible = False
@@ -260,6 +260,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             self._apply_height_mode(
                 bool(self.settings.get("primer_info_panel_fixed_height", False))
             )
+            self.close_button.visible = True
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
