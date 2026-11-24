@@ -281,7 +281,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             self.settings.get("log_console_enabled", True)
         )
         self.log_level_amplifyp.value = self.settings.get(
-            "log_level_amplifyp", "DEBUG"
+            "log_level_amplifyp", "INFO"
         )
         self.log_level_flet.value = self.settings.get("log_level_flet", "INFO")
         self.log_file_enabled.value = bool(

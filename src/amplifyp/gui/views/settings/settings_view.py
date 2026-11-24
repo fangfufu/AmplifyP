@@ -332,7 +332,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def _reconfigure_logging(self) -> None:
         """Reconfigure logging based on current settings."""
         reconfigure_logging(
-            log_level_amplifyp=self.settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_amplifyp=self.settings.get("log_level_amplifyp", "INFO"),
             log_level_flet=self.settings.get("log_level_flet", "INFO"),
             log_console_enabled=self.settings.get("log_console_enabled", True),
             log_file_enabled=self.settings.get("log_file_enabled", True),
