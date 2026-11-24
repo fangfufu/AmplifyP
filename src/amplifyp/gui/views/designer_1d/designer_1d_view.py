@@ -41,6 +41,7 @@ from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
 from amplifyp.gui.views.designer_1d.quality_bar_chart import QualityBarChart
 from amplifyp.primer_designer_1d import PrimerDesigner1D
 from amplifyp.repliconf import Repliconf
+from amplifyp.settings import ReplicationSettings
 
 logger = logging.getLogger(__name__)
 
@@ -361,6 +362,7 @@ class PrimerDesignerView(BaseDesignerView):
         self,
         designer: PrimerDesigner1D,
         template_dna: DNA | None,
+        rep_settings: ReplicationSettings,
     ) -> list[int | None]:
         """Count template binding sites per dimer.
 
@@ -369,6 +371,7 @@ class PrimerDesignerView(BaseDesignerView):
         Args:
             designer: The completed 1D primer designer.
             template_dna: Template DNA for origin counting, or None.
+            rep_settings: Replication settings captured at analysis start.
 
         Returns:
             Per-dimer binding-site counts, or None entries when no template.
@@ -377,7 +380,6 @@ class PrimerDesignerView(BaseDesignerView):
             return [None] * len(designer.all_dimers)
 
         counts: list[int | None] = []
-        rep_settings = self.settings.get_replication_settings()
         for dimer in designer.all_dimers:
             repliconf = Repliconf(
                 template_dna, dimer.primer_1, settings=rep_settings
@@ -550,7 +552,7 @@ class PrimerDesignerView(BaseDesignerView):
                 )
                 self._cached_designer = designer
                 origin_counts = self._compute_origin_counts(
-                    designer, template_dna
+                    designer, template_dna, rep_settings
                 )
                 self._schedule_on_event_loop(
                     self._on_analysis_success, designer, origin_counts, mode
@@ -630,7 +632,9 @@ class PrimerDesignerView(BaseDesignerView):
             self._cached_designer = designer
             self._update_chart_and_primer_list(
                 designer,
-                self._compute_origin_counts(designer, template_dna),
+                self._compute_origin_counts(
+                    designer, template_dna, rep_settings
+                ),
                 mode,
             )
 

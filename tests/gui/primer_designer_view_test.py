@@ -1334,3 +1334,34 @@ def test_designer_1d_update_ui_runtime_error_and_card_edge_cases() -> None:
 
         card_page.update.side_effect = RuntimeError("card update err")
         card.update_ui()
+
+
+def test_compute_origin_counts_uses_captured_replication_settings() -> None:
+    """_compute_origin_counts must use passed settings, not live settings."""
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.settings import ReplicationSettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = PrimerDesignerView(mock_page, GUIInput(), settings)
+
+    captured_rep = ReplicationSettings(
+        primability_cutoff=0.5, stability_cutoff=0.5
+    )
+    template = DNA("ATGCGTACGTATGCGTACGT")
+    designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template,
+        max_origin_count=5,
+        replication_settings=captured_rep,
+    )
+    # Mutate live settings after capture to ensure _compute_origin_counts
+    # ignores live settings and uses captured_rep instead.
+    settings["primability_cutoff"] = 1.0
+    settings["stability_cutoff"] = 1.0
+
+    counts = view._compute_origin_counts(designer, template, captured_rep)
+    assert len(counts) == len(designer.all_dimers)
+    assert all(c is not None and c > 0 for c in counts)
