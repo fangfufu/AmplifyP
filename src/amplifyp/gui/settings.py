@@ -566,18 +566,26 @@ class GUISettings:
                 else:
                     self._settings[k] = str(v)
         for prefix in ("match_weight_", "run_weight_"):
-            if any(k.startswith(prefix) for k in settings_dict):
+            valid_entries: dict[str, str] = {}
+            for incoming_k, incoming_v in settings_dict.items():
+                if not incoming_k.startswith(prefix):
+                    continue
+                suffix = incoming_k[len(prefix) :]
+                if suffix == "default":
+                    valid_entries[incoming_k] = str(incoming_v)
+                elif suffix.isascii() and suffix.isdigit():
+                    canonical_k = f"{prefix}{int(suffix)}"
+                    if (
+                        canonical_k not in valid_entries
+                        or incoming_k == canonical_k
+                    ):
+                        valid_entries[canonical_k] = str(incoming_v)
+            if valid_entries:
                 for existing_k in [
                     k for k in self._settings if k.startswith(prefix)
                 ]:
-                    if existing_k not in settings_dict:
-                        del self._settings[existing_k]
-                for incoming_k, incoming_v in settings_dict.items():
-                    if incoming_k.startswith(prefix) and (
-                        incoming_k == f"{prefix}default"
-                        or incoming_k[len(prefix) :].isdigit()
-                    ):
-                        self._settings[incoming_k] = str(incoming_v)
+                    del self._settings[existing_k]
+                self._settings.update(valid_entries)
         if "sequence_separator" in settings_dict:
             self._settings["dimer_sequence_separator"] = str(
                 settings_dict["sequence_separator"]

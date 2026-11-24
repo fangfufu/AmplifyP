@@ -614,3 +614,32 @@ async def test_web_save_prunes_stale_weights_and_fallback_load() -> None:
         assert GUIColours.dark_mode is True
     finally:
         GUIColours.dark_mode = prev_dark
+
+
+def test_from_dict_validates_and_canonicalizes_weight_keys() -> None:
+    """Validate weight keys and normalize numeric suffixes."""
+    settings = GUISettings()
+    original_default = settings["match_weight_default"]
+    original_zero = settings["match_weight_0"]
+
+    # 1. Invalid-only weight keys must leave existing weights unchanged
+    settings.from_dict({"match_weight_typo": "99", "run_weight_bad": "42"})
+    assert settings["match_weight_default"] == original_default
+    assert settings["match_weight_0"] == original_zero
+    assert "match_weight_typo" not in settings._settings
+    assert "run_weight_bad" not in settings._settings
+
+    # 2. Leading-zero numeric suffix is canonicalized to match_weight_0
+    settings.from_dict({"match_weight_00": "77"})
+    assert settings["match_weight_0"] == "77"
+    assert "match_weight_00" not in settings._settings
+
+    # 3. Exact canonical key takes precedence over non-canonical duplicate
+    settings.from_dict({"match_weight_0": "55", "match_weight_00": "88"})
+    assert settings["match_weight_0"] == "55"
+    assert "match_weight_00" not in settings._settings
+
+    # 4. Default-only replacement still clears non-default overrides
+    settings.from_dict({"match_weight_default": "12"})
+    assert settings["match_weight_default"] == "12"
+    assert "match_weight_0" not in settings._settings
