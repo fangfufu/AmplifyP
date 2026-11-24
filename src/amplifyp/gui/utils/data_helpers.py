@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import inspect
 import json
 import logging
@@ -388,6 +389,25 @@ async def _await_pending_task(task: Any, err_msg: str) -> None:
             logger.debug("%s: %s", err_msg, exc)
 
 
+def _snapshot_input_state(controller: Any) -> tuple[Any, Any]:
+    """Capture input_data and template box value for change detection."""
+    input_data = getattr(controller, "input_data", None)
+    to_dict = getattr(input_data, "to_dict", None)
+    raw_dict = to_dict() if callable(to_dict) else None
+    data_snapshot = (
+        copy.deepcopy(raw_dict) if isinstance(raw_dict, dict) else raw_dict
+    )
+    input_view = getattr(controller, "input_view", None)
+    template_input = getattr(input_view, "template_input", None)
+    template_box = getattr(template_input, "template_box", None)
+    template_value = (
+        getattr(template_box, "value", None)
+        if template_box is not None
+        else None
+    )
+    return (data_snapshot, template_value)
+
+
 async def load_last_state_async(controller: Any) -> None:
     """Asynchronously load the last template and primers on web."""
     if not controller.settings.get("auto_reload_on_startup", True):
@@ -396,6 +416,8 @@ async def load_last_state_async(controller: Any) -> None:
     if not getattr(controller.page, "web", False):
         load_last_state(controller)
         return
+
+    initial_snapshot = _snapshot_input_state(controller)
 
     await _await_pending_task(
         getattr(controller, "_web_last_state_task", None),
@@ -413,6 +435,11 @@ async def load_last_state_async(controller: Any) -> None:
 
     parsed = _parse_web_last_state(raw_state)
     if parsed is not None:
+        if _snapshot_input_state(controller) != initial_snapshot:
+            logger.debug(
+                "Skipping web last-state restore due to intervening input edit"
+            )
+            return
         state_dict = parsed if "input" in parsed else {"input": parsed}
         apply_parsed_state(controller, state_dict, ignore_settings=True)
 

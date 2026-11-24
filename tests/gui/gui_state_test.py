@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 import yaml
 
 from amplifyp.gui.colours import GUIColours
@@ -756,3 +757,35 @@ def test_controller_clear_all_dismiss() -> None:
     assert len(controller.input_data.primers) == 1
     assert controller.input_data.primers[0]["name"] == "P1"
     assert dialog.open is False
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_load_last_state_async_skips_if_edited_during_await() -> None:
+    """Startup web restore must not overwrite intervening template edits."""
+    import json
+
+    from amplifyp.gui.controller import GUIController
+    from amplifyp.gui.utils.data_helpers import load_last_state_async
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = True
+    mock_page.overlay = []
+    mock_page.window = MagicMock()
+    controller = GUIController(mock_page)
+    controller.initialise(load_settings=False)
+
+    stored_payload = json.dumps({"template": "AAAA", "primers": []})
+
+    class _MockPrefs:
+        async def contains_key(self, _key: str) -> bool:
+            return True
+
+        async def get(self, _key: str) -> str:
+            # Simulate user editing template while SharedPreferences.get awaits
+            controller.input_data.template = "CCCCGGGG"
+            return stored_payload
+
+    with patch("flet.SharedPreferences", return_value=_MockPrefs()):
+        await load_last_state_async(controller)
+
+    assert controller.input_data.template == "CCCCGGGG"
