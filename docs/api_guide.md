@@ -59,6 +59,16 @@ print(f"Redundancy fold: {deg_primer.redundancy_fold}")
 print(f"Redundant base count: {deg_primer.redundant_base_count}")
 ```
 
+`amplifyp.dna` also provides sequence formatting helpers and padded slicing:
+
+- `clean_sequence(seq)` removes escaped and standard whitespace (preserving
+  case).
+- `format_sequence(seq, wrap_length=80)` inserts line breaks every `wrap_length`
+  bases for readable display.
+- `dna.padded_slice(start, length)` returns a `length`-base window from a linear
+  or circular `DNA` template, wrapping circular templates or padding
+  out-of-range linear positions with `"-"` (`Nucleotides.GAP`).
+
 ## 2. PCR Simulation Engine
 
 The `PCR` class in `amplifyp.pcr` orchestrates the simulation. It handles adding
@@ -124,15 +134,19 @@ The result types returned by the PCR engine live in dedicated modules:
 
 - `amplifyp.amplicon` — `Amplicon` (a predicted PCR product: `product` DNA
   sequence, `fwd_origin` / `rev_origin` primers, `start` / `end` template
-  positions, `q_score`, `circular`) and `AmpliconGenerator` (collects
-  `Repliconf` objects for a template and combines their origins into amplicons).
+  positions, `q_score`, `circular`, `quality_tier`, `inter_primer_length`,
+  `sequence_parts`), `AmpliconGenerator` (collects `Repliconf` objects for a
+  template and combines their origins into amplicons), `AmpliconQuality`,
+  `AmpliconRanking`, and `sort_amplicons`.
 - `amplifyp.origin` — `ReplicationOrigin`, which scores a primer/target pair and
   exposes `primability` and `stability` (both in the range `0.0`–`1.0`), a
   combined `quality` score, and `binding_strength_str` (a visual base-pairing
   alignment string).
 - `amplifyp.repliconf` — `Repliconf`, a single primer/template search
   configuration. Call `search()` to populate `origin_db` with the found
-  replication origin positions (`DirIdx` objects).
+  replication origin positions (`DirIdx` objects), and
+  `format_context_alignment()` (`OriginContextAlignment`) to align the primer
+  against the surrounding template window.
 - `amplifyp.dir_idx` — `DirIdx`, a position on the template combining an integer
   `index` with a `DNADirection` (plus optional cached primability / stability
   scores), and `DirIdxDb`, the results database used by `Repliconf`.
@@ -168,7 +182,9 @@ for origin_idx in repliconf.origin_db.fwd:
 
 The `PrimerDimerGenerator` class in `amplifyp.dimer` identifies and scores the
 potential of primers to hybridise with each other (self-dimer or cross-dimer
-formation) and act as templates for DNA synthesis.
+formation) and act as templates for DNA synthesis. Each `PrimerDimer` also
+provides `is_self_dimer` and `format_alignment()` (`DimerAlignment`) for padded
+terminal alignment rendering.
 
 ```python
 from amplifyp.dna import Primer
@@ -190,38 +206,46 @@ for dimer in dimer_gen.primer_dimers:
     print(f"Dimer between: {dimer.primer_1.name} and {dimer.primer_2.name}")
     print(f"Overlap length: {dimer.overlap} bp")
     print(f"Quality Score: {dimer.quality:.1f}")
-    print(f"Alignment Visual representation:")
-    # Print the visual base pairing alignment
-    # e.g., '|| |||' indicating match strength symbols
-    print(f"  5' {dimer.primer_1.seq} 3'")
-    print(f"     {dimer.binding_strength_str}")
-    print(f"  3' {dimer.primer_2.seq[::-1]} 5'")
+    alignment = dimer.format_alignment()
+    print("Alignment visual representation:")
+    print(f"  {alignment.top_seq_line}")
+    print(f"  {alignment.bonds_line}")
+    print(f"  {alignment.bottom_seq_line}")
     print("-" * 30)
 ```
 
 ## 5. Thermodynamic Melting Temperature (Tm) Calculations
 
 AmplifyP provides two models for computing primer melting temperatures in
-`amplifyp.melting`:
+`amplifyp.melting`, plus a unified `calculate_tm()` dispatcher using `TmMethod`:
 
-1. **SantaLucia (1998)** with **Owczarzy (2008)** salt corrections (Default
-   modern model).
-2. **Lander-Amplify4** model (Legacy matrix-based model from original Amplify4).
+1. **SantaLucia (1998)** with **Owczarzy (2008)** salt corrections
+   (`TmMethod.SANTALUCIA_1998_OWCZARZY_2008`, default modern model).
+2. **Lander-Amplify4** model (`TmMethod.LANDER_AMPLIFY4`, legacy matrix-based
+   model from original Amplify4).
 
 ```python
 from amplifyp.dna import Primer
 from amplifyp.melting import (
-    calculate_tm_santalucia_1998_owczarzy_2008,
+    TmMethod,
+    calculate_tm,
     calculate_tm_lander_amplify4,
+    calculate_tm_santalucia_1998_owczarzy_2008,
 )
 
 primer = Primer("CGACTGGGCAAAGGAAATCC", name="FwdPrimer")
 
-# 1. Calculate modern Tm (degrees Celsius)
+# 1. Unified dispatcher (falls back to Amplify4 on degenerate bases by default)
+tm_dispatch = calculate_tm(
+    primer, method=TmMethod.SANTALUCIA_1998_OWCZARZY_2008
+)
+print(f"Dispatched Tm: {tm_dispatch:.2f}°C")
+
+# 2. Calculate modern Tm directly (degrees Celsius)
 tm_modern = calculate_tm_santalucia_1998_owczarzy_2008(primer)
 print(f"Modern Tm: {tm_modern:.2f}°C")
 
-# 2. Calculate legacy Amplify4 Tm (degrees Celsius)
+# 3. Calculate legacy Amplify4 Tm directly (degrees Celsius)
 tm_legacy = calculate_tm_lander_amplify4(primer)
 print(f"Legacy Tm: {tm_legacy:.2f}°C")
 ```
@@ -399,4 +423,46 @@ try:
     DNA("ACGNZ", DNAType.LINEAR, name="BadSequence")
 except InvalidDNASequenceError as e:
     print(f"Invalid characters: {', '.join(sorted(e.invalid_chars))}")
+```
+
+## 9. Reaction I/O, Validation, and Project State (`amplifyp.io`)
+
+`amplifyp.io` provides Flet-free primer list parsing/serialisation, validation,
+`ReactionInput` builders (`to_pcr()` and `to_dimer_generator()`), and YAML
+project state persistence (`ProjectState`, `serialise_state`,
+`parse_state_yaml`, and `load_state_yaml`), while `amplifyp.settings`
+dataclasses support `to_dict()` and `from_dict()` for dictionary-based
+configuration loading.
+
+```python
+from amplifyp.io import (
+    ProjectState,
+    ReactionInput,
+    parse_primers_from_text,
+    serialise_primers_to_tsv,
+    serialise_state,
+    validate_primers,
+)
+from amplifyp.settings import ReplicationSettings
+
+primers = parse_primers_from_text(
+    "CGACTGGGCAAAGGAAATCC\tFwd\nGTGGGTATCACAAATTTGGG\tRev\n"
+)
+validation_errors = validate_primers(primers)
+
+reaction = ReactionInput(
+    template="CGACTGGGCAAAGGAAATCCATGCATGCCCAAATTTGTGATACCCAC",
+    template_circular=False,
+    primers=primers,
+)
+pcr = reaction.to_pcr(
+    ReplicationSettings.from_dict({"primability_cutoff": 0.85})
+)
+pcr.predict_amplicons()
+
+# Collect forward and reverse PrimerBinding sites along the template
+fwd_bindings, rev_bindings = pcr.collect_primer_bindings(pcr.amplicons)
+
+# Serialise project state to readable YAML
+yaml_text = serialise_state(ProjectState(input=reaction).to_dict())
 ```

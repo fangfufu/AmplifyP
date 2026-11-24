@@ -49,15 +49,18 @@ AmplifyP/
 │       ├── dir_idx.py          # Directional index calculation utilities
 │       ├── dna.py              # DNA and Primer classes, IUB/IUPAC codes
 │       ├── errors.py           # Custom exception types
+│       ├── io.py               # Reaction input, primer I/O, validation, YAML state
 │       ├── main.py             # CLI entry point (`amplifyp`) and Flet app runner
 │       ├── melting.py          # Thermodynamic melting temperature calculations (Tm)
 │       ├── origin.py           # Origin matching, stability/primability scoring algorithms
+│       ├── os_paths.py         # OS-specific configuration and log file paths
 │       ├── pcr.py              # PCR reaction simulation engine
 │       ├── primer_designer_1d.py # 1D primer design and analysis engine
 │       ├── primer_designer_2d.py # 2D primer pair design and matrix analysis engine
 │       ├── py.typed            # PEP 561 marker for inline type annotations
 │       ├── repliconf.py        # Replication configurations, padding, and caching
 │       ├── settings.py         # Customisable simulation and biophysical constants
+│       ├── version.py          # Application version, git SHA, and update checks
 │       └── gui/                # Flet-based cross-platform GUI modules
 └── tests/                      # Unit, integration, GUI, and end-to-end tests
     └── gui/                    # Flet GUI tests
@@ -107,6 +110,7 @@ python src/main.py [options]
 | Argument                   | Type    | Description                                                        |
 | :------------------------- | :------ | :----------------------------------------------------------------- |
 | `-h`, `--help`             | Flag    | Display the help message and exit.                                 |
+| `-V`, `--version`          | Flag    | Display the AmplifyP version and git SHA and exit.                 |
 | `-f`, `--state <path>`     | String  | Path to a YAML state file to load on startup.                      |
 | `--auto-close`             | Flag    | Automatically quit after rendering completes (requires `--state`). |
 | `-s`, `--screenshots`      | Flag    | Save PNG screenshots of views (requires `--state`).                |
