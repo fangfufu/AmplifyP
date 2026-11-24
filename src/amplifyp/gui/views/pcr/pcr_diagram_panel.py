@@ -162,7 +162,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             self.settings.get("pcr_divider_behaviour", "autoresize")
         )
         if behaviour == "save_proportionality":
-            ratio = float(self.settings.get("pcr_map_height_ratio", 0.375))
+            ratio = self.settings._safe_float("pcr_map_height_ratio", 0.375)
             max_height = max(150.0, viewport_height - 150.0)
             self.diagram_container.height = max(
                 150.0, min(max_height, viewport_height * ratio)
@@ -197,6 +197,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         if (
             self.settings.get("pcr_divider_behaviour", "autoresize")
             == "save_proportionality"
+            and viewport_height > 0
         ):
             self.settings["pcr_map_height_ratio"] = new_height / viewport_height
         try:
@@ -274,7 +275,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         label_orientation = str(
             self.settings.get("pcr_primer_label_orientation", "Horizontal")
         )
-        font_size_primer = int(self.settings.get("font_size_map_primer", 13))
+        font_size_primer = self.settings._safe_int("font_size_map_primer", 13)
 
         v_target, h_margin, c_width, t_width, v_frag_start = (
             PCRLayoutSolver.calculate_canvas_dimensions(

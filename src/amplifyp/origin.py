@@ -97,7 +97,7 @@ class ReplicationOrigin:
         for k, (i, j) in enumerate(zip(self.primer, self.target, strict=True)):
             numerator += m[k] * S[i, j]
             denominator += m[k] * row_max(i)
-        score = numerator / denominator
+        score = numerator / denominator if denominator != 0 else 0.0
         object.__setattr__(self, "_primability", score)
         return score
 
@@ -142,7 +142,8 @@ class ReplicationOrigin:
         numerator += r[max(0, this_run_len - 1)] * this_run_score
         # We multiply the denominator by the largest score that this primer
         # can obtain.
-        score = numerator / (denominator * r[max(0, len(self.primer) - 1)])
+        total_denom = denominator * r[max(0, len(self.primer) - 1)]
+        score = numerator / total_denom if total_denom != 0 else 0.0
         object.__setattr__(self, "_stability", score)
         return score
 

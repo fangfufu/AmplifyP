@@ -111,33 +111,46 @@ class DrawnPrimer:
 
         if orientation in ("Vertical", "45°"):
             top = (
-                self.v_target - 25 - self.S - 13
+                self.v_target - 25 - self.S - font_size
                 if is_fwd
                 else self.v_target + 25 + self.S - 3
             )
-            if orientation == "45°" and not is_fwd:
-                width = (
-                    self.label_width
-                    if self.label_width is not None
-                    else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
-                )
-                left = x_render - width
-                angle = -math.pi / 4
-                alignment = ft.Alignment(1, 0)
-                text_control = ft.Text(
-                    self.name,
-                    color=colour,
-                    size=font_size,
-                    weight=ft.FontWeight.BOLD,
-                    width=width,
-                    text_align=ft.TextAlign.RIGHT,
-                )
+            c_width = self.t_width + 2.0 * self.h_margin
+            width = (
+                self.label_width
+                if self.label_width is not None
+                else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
+            )
+            if orientation == "45°":
+                proj_w = width * math.cos(math.pi / 4)
+                if is_fwd:
+                    max_left = max(4.0, c_width - 4.0 - proj_w)
+                    left = max(4.0, min(max_left, x_render))
+                    angle = -math.pi / 4
+                    alignment = ft.Alignment(-1, 0)
+                    text_control = ft.Text(
+                        self.name,
+                        color=colour,
+                        size=font_size,
+                        weight=ft.FontWeight.BOLD,
+                    )
+                else:
+                    min_anchor = min(c_width - 4.0, 4.0 + proj_w)
+                    anchor = max(min_anchor, min(c_width - 4.0, x_render))
+                    left = anchor - width
+                    angle = -math.pi / 4
+                    alignment = ft.Alignment(1, 0)
+                    text_control = ft.Text(
+                        self.name,
+                        color=colour,
+                        size=font_size,
+                        weight=ft.FontWeight.BOLD,
+                        width=width,
+                        text_align=ft.TextAlign.RIGHT,
+                    )
             else:
-                left = x_render
-                angle_mag = (
-                    math.pi / 2 if orientation == "Vertical" else math.pi / 4
-                )
-                angle = -angle_mag if is_fwd else angle_mag
+                left = max(4.0, min(c_width - 4.0 - font_size, x_render))
+                angle = -math.pi / 2 if is_fwd else math.pi / 2
                 alignment = ft.Alignment(-1, 0)
                 text_control = ft.Text(
                     self.name,

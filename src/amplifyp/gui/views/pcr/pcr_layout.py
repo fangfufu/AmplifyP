@@ -328,8 +328,9 @@ class PCRLayoutSolver:
                 if label_orientation == "Vertical"
                 else math.sin(math.pi / 4)
             )
-            fwd_px = max_fwd_len * 8.0 * scale
-            rev_px = max_rev_len * 8.0 * scale
+            char_advance = font_size_primer * 0.72
+            fwd_px = max_fwd_len * char_advance * scale
+            rev_px = max_rev_len * char_advance * scale
 
             v_target = max(100.0, 66.0 + fwd_px)
             v_frag_start = v_target + 70.0 + rev_px

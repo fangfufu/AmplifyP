@@ -1391,3 +1391,48 @@ def test_pcr_divider_save_proportionality() -> None:
     new_view = PCRView(mock_page, input_data, settings)
     new_view.run_pcr()
     assert new_view.diagram_container.height == 400.0
+
+    # Tiny viewport height (<= 100px -> 0 available) does not raise
+    mock_page.height = 80
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        new_view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=10.0))
+        )
+
+
+def test_pcr_zeroed_weights_and_visual_cache() -> None:
+    """Test zeroed weights do not crash PCR and visual settings hit cache."""
+    from amplifyp.origin import ReplicationOrigin
+    from amplifyp.settings import LengthWiseWeightTbl, ReplicationSettings
+
+    rep = ReplicationSettings(
+        run_weights=LengthWiseWeightTbl(default_weight=0.0, overrides={}),
+        match_weight=LengthWiseWeightTbl(default_weight=0.0, overrides={}),
+    )
+    origin = ReplicationOrigin(target="ATGC", primer="GCAT", settings=rep)
+    assert origin.primability == 0.0
+    assert origin.stability == 0.0
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    mock_page.height = 900
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Changing a purely visual setting should reuse cached PCR simulation
+    view.settings["pcr_map_height_ratio"] = 0.5
+    view.settings["pcr_primer_label_orientation"] = "45°"
+    with patch.object(
+        view,
+        "_execute_pcr_simulation",
+        side_effect=AssertionError("Cache miss"),
+    ):
+        assert view.run_pcr(keep_cards=True) is True
