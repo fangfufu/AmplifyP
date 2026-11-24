@@ -16,10 +16,9 @@ PCR amplicons on an interactive canvas.
   base $N$). Vertical boundary lines mark the start and end of the template,
   with dynamically scaled tick marks (spaced at 100, 500, or 1000 bp intervals
   depending on template length).
-- **Amplicon Vertical Ranking**: A dropdown next to the **Amplicon Map** title
-  controls the vertical ordering of amplicon bars (`Position, then length`
-  [default], `Quality score`, `Position, then quality`). The choice is persisted
-  to the PCR settings tile and redraws the map immediately.
+- **Amplicon Vertical Ranking**: Configured in **Settings -> PCR -> Amplicon**
+  (`Position, then length` [default], `Quality score`, `Position, then quality`)
+  to control the vertical ordering of amplicon bars.
 - **Primer Match Indicators**:
   - **Forward Primers**: Rendered in **blue** floating above the baseline as
     right-pointing triangles (indicating $5'$ to $3'$ forward synthesis),
@@ -73,11 +72,11 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
 - **Replication Context Card (Primer Binding Details)**:
   - **Binding Metrics**: Displays **Primeability** (weighted score favouring
     match perfection near the critical 3' end), **Stability** (overall
-    structural binding stability), and overall **Quality**. Primeability and
-    stability are shown as three-decimal fractions, or as whole percentages when
-    Amplify4 compatibility mode is enabled. Quality is shown as a rounded
-    integer and can be negative when the scores fall below the configured
-    cutoffs.
+    structural binding stability), and overall **Quality**. Primeability,
+    stability, and quality are shown to three decimal places (or whole
+    percentages for primeability and stability when Amplify4 compatibility mode
+    is enabled). Quality can be negative when the scores fall below the
+    configured cutoffs.
   - **Visual Alignment Context Map**: Multi-line monospace text alignment
     showing exact template coordinates, 5' and 3' primer ends (formatted with
     the **5'/3' Sequence Separator** setting: space or dash), base pairing
