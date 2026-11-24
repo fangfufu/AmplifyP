@@ -46,10 +46,10 @@ Every view shares a common header bar at the top of the window:
   view is highlighted with filled primary styling, while inactive view buttons
   use a subdued secondary container tonal styling. The **PCR** and **Primer
   Dimers** buttons are always enabled; clicking them validates the input first
-  and shows a dialog if the requirements are not met:
+  and shows a dialogue if the requirements are not met:
   - **PCR** requires a non-empty template sequence and at least one active,
     valid primer (*"Template Required"* / *"Primers Required"* / *"Invalid
-    Primers"* dialogs).
+    Primers"* dialogues).
   - **Primer Dimers** requires at least one active, valid primer; no template
     sequence is needed.
 - **Action Buttons**: `Clear all`, `Save all`, and `Load all` rendered as

@@ -92,8 +92,8 @@ thresholds:
   pressing Enter inside any text input field.
 - **Save / Load / Clear All Parameters**:
   - **Save Button**: Saves the current form parameters to a YAML file using a
-    file save dialog.
-  - **Load Button**: Opens a file picker dialog to import parameters from a
+    file save dialogue.
+  - **Load Button**: Opens a file picker dialogue to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
   - **Clear All Button**: Clears all form parameters and the analysis results
@@ -198,7 +198,7 @@ list:
 ## Error Handling
 
 If the 2D analysis fails, a red *"Error: {message}"* text is shown in the grid
-area and an *"Analysis Error"* dialog opens.
+area and an *"Analysis Error"* dialogue opens.
 
 ______________________________________________________________________
 

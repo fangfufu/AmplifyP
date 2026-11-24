@@ -104,7 +104,7 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
     internal product sequence in standard text, and reverse primer region in
     **red/pink** (with a `◀` marker).
 - **Error Handling**: If the PCR calculation fails, a red error text with the
-  traceback is shown and an *"Error running PCR"* dialog opens.
+  traceback is shown and an *"Error running PCR"* dialogue opens.
 
 ______________________________________________________________________
 

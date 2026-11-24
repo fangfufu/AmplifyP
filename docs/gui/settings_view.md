@@ -49,9 +49,9 @@ update checks, settings backup file operations, and factory reset.
     check against the current application version. Reports whether AmplifyP is
     up to date or displays a notification when a new release tag is available.
 - **Backup Settings**:
-  - **Save Settings**: Opens a file dialog to export all current settings into a
-    YAML configuration file.
-  - **Load Settings**: Opens a file dialog to import settings from a YAML
+  - **Save Settings**: Opens a file dialogue to export all current settings into
+    a YAML configuration file.
+  - **Load Settings**: Opens a file dialogue to import settings from a YAML
     configuration file and immediately apply theme and parameter changes across
     the UI.
 - **Reset Settings**:
@@ -198,7 +198,7 @@ file rotation parameters.
 - **Log File Path**: Dropdown selector with options:
   - `(Default)`: Writes to OS-specific application log directory (e.g.
     `~/.config/amplifyp/app.log` or `%APPDATA%\AmplifyP\app.log`).
-  - `Select folder`: Launches a directory picker dialog to select a custom
+  - `Select folder`: Launches a directory picker dialogue to select a custom
     destination folder for `app.log`.
 - **Log Rotation**: Bordered checkbox (default: checked on desktop). Enables
   rotating log files when size limits are reached.
