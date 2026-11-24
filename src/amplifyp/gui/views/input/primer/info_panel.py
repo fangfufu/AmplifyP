@@ -174,6 +174,11 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     ) -> None:
         """Update the primer information panel based on the focused primer."""
         self._on_dismiss_callback = on_dismiss
+        self.font_family = str(
+            self.settings.get("font_family", self.font_family)
+        )
+        self.info_seq_text.font_family = self.font_family
+        self.info_dimer_text.color = GUIColours.ERROR_RED
         if focused_idx is None:
             self._show_empty_or_hide()
             on_update_highlights()

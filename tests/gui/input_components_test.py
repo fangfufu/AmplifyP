@@ -1958,3 +1958,21 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
     assert primer_input.primer_info_panel.visible is True
     primer_input.primer_info_panel._on_close_click(MagicMock())
     assert primer_input.primer_info_panel.visible is False
+
+    # 6. Font family and outline border refresh on update_ui()
+    prev_dark = GUIColours.dark_mode
+    try:
+        settings["font_family"] = "Consolas"
+        GUIColours.dark_mode = True
+        primer_input.focused_primer_index = 0
+        primer_input.update_ui()
+        assert primer_input.primer_info_panel.font_family == "Consolas"
+        assert (
+            primer_input.primer_info_panel.info_seq_text.font_family
+            == "Consolas"
+        )
+        assert primer_input.primer_list_container.border == ft.Border.all(
+            1, GUIColours.OUTLINE
+        )
+    finally:
+        GUIColours.dark_mode = prev_dark

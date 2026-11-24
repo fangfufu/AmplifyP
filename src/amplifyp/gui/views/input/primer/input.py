@@ -299,6 +299,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header = self.primer_header.header_row
         self.primers_header_container = self.primer_header
 
+        self.primer_list_container.border = ft.Border.all(1, GUIColours.OUTLINE)
         self._reposition_info_panel(update=False)
         self._update_primer_info_panel()
 
