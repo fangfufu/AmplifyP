@@ -1379,3 +1379,52 @@ def test_compute_origin_counts_uses_captured_replication_settings() -> None:
     view._cached_designer = None
     view._on_primer_selected(designer.all_dimers[0], 0)
     assert len(view._active_cards) == 1
+
+
+def test_on_primer_selected_ignores_stale_origin_counts_during_new_run() -> (
+    None
+):
+    """_on_primer_selected must not reuse count map from an earlier run."""
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.settings import ReplicationSettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTATGCGTACGT"
+    view = PrimerDesignerView(mock_page, input_data, settings)
+
+    # Run A: without template filtering -> _origin_counts_by_seq stores None
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "9"
+    view.form.filter_dna_checkbox.value = False
+    assert view.run_designer() is True
+    designer_a = view._cached_designer
+    assert designer_a is not None
+    dimer_0 = designer_a.all_dimers[0]
+    assert view._origin_counts_by_seq[dimer_0.primer_1.seq] is None
+
+    # Simulate Run B having set _cached_designer before _origin_counts_by_seq
+    # finishes updating, while template filtering is now enabled.
+    rep_settings = settings.get_replication_settings()
+    template_dna = input_data.to_template_dna()
+    designer_b = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template_dna,
+        max_origin_count=10,
+        replication_settings=ReplicationSettings(
+            primability_cutoff=rep_settings.primability_cutoff,
+            stability_cutoff=rep_settings.stability_cutoff,
+        ),
+    )
+    view._cached_designer = designer_b
+    view.form.filter_dna_checkbox.value = True
+
+    view._on_primer_selected(dimer_0, 0)
+    assert len(view._active_cards) == 1
+    card = view._active_cards[0]
+    assert isinstance(card, DismissibleSelfDimerCard)
+    assert card.origin_count is not None
+    assert card.origin_count > 0

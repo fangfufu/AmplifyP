@@ -61,6 +61,7 @@ class PrimerDesignerView(BaseDesignerView):
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
         self._origin_counts_by_seq: dict[str, int | None] = {}
+        self._origin_counts_designer: PrimerDesigner1D | None = None
         self._analysis_running = False
         self._cancel_event: threading.Event | None = None
 
@@ -413,6 +414,7 @@ class PrimerDesignerView(BaseDesignerView):
         self._origin_counts_by_seq = {
             dimer.primer_1.seq: count for dimer, count in dimer_data
         }
+        self._origin_counts_designer = designer
 
         sorted_dimers = [dimer for dimer, _ in dimer_data]
 
@@ -671,18 +673,20 @@ class PrimerDesignerView(BaseDesignerView):
             if clean_tpl:
                 tpl_dna = self.input_data.to_template_dna()
                 rep_settings = self.settings.get_replication_settings()
+                counts_designer = self._origin_counts_designer
+                cached_count = self._origin_counts_by_seq.get(
+                    dimer.primer_1.seq
+                )
                 if (
-                    self._cached_designer is not None
-                    and self._cached_designer.template is not None
-                    and self._cached_designer.template == tpl_dna
-                    and self._cached_designer.template.type == tpl_dna.type
-                    and self._cached_designer.replication_settings
-                    == rep_settings
-                    and dimer.primer_1.seq in self._origin_counts_by_seq
+                    counts_designer is not None
+                    and counts_designer is self._cached_designer
+                    and counts_designer.template is not None
+                    and counts_designer.template == tpl_dna
+                    and counts_designer.template.type == tpl_dna.type
+                    and counts_designer.replication_settings == rep_settings
+                    and cached_count is not None
                 ):
-                    origin_count = self._origin_counts_by_seq[
-                        dimer.primer_1.seq
-                    ]
+                    origin_count = cached_count
                 else:
                     repliconf = Repliconf(
                         tpl_dna,
@@ -759,6 +763,7 @@ class PrimerDesignerView(BaseDesignerView):
         self.primer_list.controls.clear()
         self._cached_designer = None
         self._origin_counts_by_seq = {}
+        self._origin_counts_designer = None
         self.chart_content_container.content = self._build_chart([])
         self._clear_all_cards()
         try:
