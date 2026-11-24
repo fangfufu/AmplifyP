@@ -79,6 +79,7 @@ def initialise_score_fields(
                 value="0",
                 on_change=on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
                 text_align=ft.TextAlign.CENTER,
+                text_vertical_align=ft.VerticalAlignment.CENTER,
                 dense=True,
                 width=38,
                 height=36,

@@ -379,12 +379,31 @@ def test_primer_row_components_and_events() -> None:
     row.set_error(None)
     assert row.tooltip is None
 
-    # 5. update_tm
+    # 5. update_tm (preserves _row_gesture_detector, busts cache on Tm settings)
+    settings["show_primer_temperature"] = True
+    row.seq_field.value = "ATGCATGCATGCATGC"
     row.update_tm(settings)
+    assert row._row_gesture_detector in row.content.controls
+    first_tm = row.tm_text.value
+    assert first_tm.endswith("°C")
+
+    settings["tm_method"] = "Lander / Amplify 4"
+    row.update_tm(settings)
+    assert row.tm_text.value != first_tm
+    assert row._row_gesture_detector in row.content.controls
+
+    row.seq_field.value = "NNNNNNNN"
+    with patch.object(
+        settings, "calculate_primer_tm", side_effect=KeyError("bad base")
+    ):
+        row.update_tm(settings)
+    assert row.tm_text.value == "-"
+
     row.seq_field.value = "invalid sequence %%%"
     row.update_tm(settings)
     settings["show_primer_temperature"] = False
     row.update_tm(settings)
+    assert row._row_gesture_detector in row.content.controls
 
 
 def test_template_casing_and_formatter() -> None:
@@ -1881,7 +1900,17 @@ def test_primer_info_panel_divider_resizing() -> None:
         primer_input._update_primer_info_panel()
         primer_input.primer_info_divider.update.assert_called_once()
 
-        # Dismiss via close button
+        # Dismiss via close button in fixed-height mode keeps placeholder and
+        # divider visible
+        primer_input.primer_info_divider.update.reset_mock()
+        primer_input.primer_info_panel._on_close_click(MagicMock())
+        assert primer_input.primer_info_divider.visible is True
+        primer_input.primer_info_divider.update.assert_called_once()
+
+        # When fixed-height mode is disabled, dismissing hides the divider
+        settings["primer_info_panel_fixed_height"] = False
+        primer_input.focused_primer_index = 0
+        primer_input._update_primer_info_panel()
         primer_input.primer_info_divider.update.reset_mock()
         primer_input.primer_info_panel._on_close_click(MagicMock())
         assert primer_input.primer_info_divider.visible is False
@@ -1894,3 +1923,95 @@ def test_primer_info_panel_divider_resizing() -> None:
         primer_input.focused_primer_index = 0
         primer_input._update_primer_info_panel()
         primer_input.primer_info_panel._on_close_click(MagicMock())
+
+
+def test_primer_info_panel_persistent_fixed_height() -> None:
+    """Test that primer info panel stays visible in fixed-height mode."""
+    page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings["primer_info_panel_fixed_height"] = True
+    input_data = GUIInput()
+    input_data.primers = [{"name": "Empty", "seq": "", "active": True}]
+    view = InputView(page, input_data, settings, None)
+    primer_input = view.primer_input
+
+    # 1. No focused primer -> visible placeholder
+    primer_input.focused_primer_index = None
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.info_seq_text.value == ""
+
+    # 2. Focused primer with empty sequence -> still visible placeholder
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.info_seq_text.value == ""
+
+    # 3. Focused primer index out of range -> still visible placeholder
+    primer_input.focused_primer_index = 5
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.close_button.visible is False
+
+    # 4. Dismissing a focused primer in fixed-height mode reverts directly to
+    # the visible "Primer: -" placeholder without collapsing
+    input_data.primers = [
+        {"name": "P1", "seq": "ATGCATGCATGCATGC", "active": True}
+    ]
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.close_button.visible is True
+    primer_input.primer_info_panel._on_close_click(MagicMock())
+    assert primer_input.primer_info_panel.visible is True
+    assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
+    assert primer_input.primer_info_panel.close_button.visible is False
+    assert primer_input.focused_primer_index is None
+
+    # 5. When fixed-height mode is disabled, dismissing hides the panel
+    settings["primer_info_panel_fixed_height"] = False
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    primer_input.primer_info_panel._on_close_click(MagicMock())
+    assert primer_input.primer_info_panel.visible is False
+
+    # 6. Font family and outline border refresh on update_ui()
+    prev_dark = GUIColours.dark_mode
+    try:
+        settings["font_family"] = "Consolas"
+        GUIColours.dark_mode = True
+        primer_input.focused_primer_index = 0
+        primer_input.update_ui()
+        assert primer_input.primer_info_panel.font_family == "Consolas"
+        assert (
+            primer_input.primer_info_panel.info_seq_text.font_family
+            == "Consolas"
+        )
+        assert (
+            primer_input.primer_info_panel.info_header_text.color
+            == GUIColours.TEXT_ON_SURFACE
+        )
+        assert primer_input.primer_list_container.border == ft.Border.all(
+            1, GUIColours.OUTLINE
+        )
+        reused_row = primer_input.primers_list.controls[0]
+        assert isinstance(reused_row, PrimerRow)
+        assert reused_row.seq_field.text_style is not None
+        assert reused_row.seq_field.text_style.font_family == "Consolas"
+
+        view.template_input.update_ui()
+        expected_outline = ft.Border.all(1, GUIColours.OUTLINE)
+        assert (
+            view.template_input.bases_per_line_value_container.border
+            == expected_outline
+        )
+        assert view.template_input.circular_container.border == expected_outline
+        assert (
+            view.template_input.template_box_container.border
+            == expected_outline
+        )
+    finally:
+        GUIColours.dark_mode = prev_dark

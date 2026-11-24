@@ -585,3 +585,18 @@ def test_primer_designer_2d_circular_vs_linear_template() -> None:
 
     assert len(des_linear_filtered.all_steps) == 1
     assert len(des_circ_filtered.all_steps) == 0
+
+
+def test_primer_designer_2d_identical_fwd_rev_with_template() -> None:
+    """Test 2D designer when fwd and rev primer sequences are identical."""
+    palindromic_seq = "ATGCGCAT"
+    template = DNA("ATGCGCATTTTTATGCGCAT")
+    designer = PrimerDesigner2D(
+        fwd_dna=DNA(palindromic_seq),
+        fwd_min_length=8,
+        rev_dna=DNA(palindromic_seq),
+        rev_min_length=8,
+        template=template,
+    )
+    assert len(designer.all_steps) == 1
+    assert designer.all_steps[0].amplicon_count == 1

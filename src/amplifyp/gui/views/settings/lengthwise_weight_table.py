@@ -22,11 +22,12 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.views.settings.weight_table_base import WeightTableBase
 from amplifyp.settings import LengthWiseWeightTbl
 
 
-class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
+class LengthwiseWeightTable(WeightTableBase):
     """A Flet component displaying a vertical table of lengthwise weights."""
 
     def __init__(
@@ -39,17 +40,22 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_table_header: int,
         default_weights: LengthWiseWeightTbl,
-        width: int = 270,
+        row_header_label: str = "Length",
     ) -> None:
         """Initialise the LengthwiseWeightTable."""
-        self.label = label
+        super().__init__(
+            label=label,
+            prefix=prefix,
+            settings_map=settings_map,
+            font_size_default=font_size_default,
+            font_size_table_header=font_size_table_header,
+            on_change_handler=on_change_handler,
+            spacing=8,
+        )
         self.indices = sorted(indices)
-        self.prefix = prefix
-        self.settings_map = settings_map
-        self.on_change_handler = on_change_handler
-        self.font_size_default = font_size_default
-        self.font_size_table_header = font_size_table_header
         self.default_weights = default_weights
+        self.row_header_label = row_header_label
+        self._label_col_width = 92
 
         for idx in self.indices:
             key = f"{self.prefix}_{idx}"
@@ -60,9 +66,10 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         if default_key not in self.settings_map:
             self.settings_map[default_key] = self._create_field("0")
 
+        entry_noun = self.row_header_label.lower()
         self.add_button = ft.IconButton(
             icon=ft.Icons.ADD,
-            tooltip="Add length entry",
+            tooltip=f"Add {entry_noun} entry",
             on_click=self._on_add_click,
             icon_size=16,
             padding=0,
@@ -71,129 +78,65 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         )
         self.remove_button = ft.IconButton(
             icon=ft.Icons.REMOVE,
-            tooltip="Remove last length entry",
+            tooltip=f"Remove last {entry_noun} entry",
             on_click=self._on_remove_click,
             icon_size=16,
             padding=0,
             width=24,
             height=24,
         )
-        self.reset_button = ft.TextButton(
-            "Reset",
-            icon=ft.Icons.RESTORE,
-            on_click=self._on_reset_click,
-        )
+        self.reset_button = self._create_reset_button(self._on_reset_click)
 
         columns = [
             ft.DataColumn(
-                label=ft.Container(
-                    content=ft.Text(
-                        "Length",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.font_size_table_header,
-                    ),
-                    width=80,
-                    alignment=ft.Alignment(0, 0),
+                label=self._build_header_label(
+                    self.row_header_label, width=self._label_col_width
                 )
             ),
-            ft.DataColumn(
-                label=ft.Container(
-                    content=ft.Text(
-                        "Weight",
-                        weight=ft.FontWeight.BOLD,
-                        size=self.font_size_table_header,
-                    ),
-                    width=100,
-                    alignment=ft.Alignment(0, 0),
-                )
-            ),
+            ft.DataColumn(label=self._build_header_label("Weight", width=65)),
         ]
 
-        self.table = ft.DataTable(
-            border=ft.Border.all(1, GUIColours.TRANSPARENT),
-            vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            column_spacing=10,
-            horizontal_margin=10,
-            heading_row_color=GUIColours.INFO_HEADER_BG,
-            heading_row_height=40,
-            data_row_min_height=36,
-            data_row_max_height=36,
+        self.table = self._create_data_table(
             columns=columns,
             rows=[],
+            column_spacing=10,
+            horizontal_margin=10,
         )
         self._rebuild_rows()
 
-        super().__init__(
-            controls=[
-                ft.Text(
-                    self.label,
-                    weight=ft.FontWeight.BOLD,
-                    size=self.font_size_default,
-                ),
-                ft.Container(
-                    content=self.table,
-                    border=ft.Border.all(1, GUIColours.OUTLINE),
-                    border_radius=5,
-                    padding=0,
-                    width=width,
-                ),
-                ft.Row(
-                    [
-                        self.add_button,
-                        self.remove_button,
-                        self.reset_button,
-                    ],
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=4,
-                ),
+        self._init_column(
+            table_control=self._create_table_container(self.table),
+            action_controls=[
+                self.add_button,
+                self.remove_button,
+                self.reset_button,
             ],
             spacing=8,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
     def _create_field(self, value: str) -> ft.TextField:
         """Create a borderless TextField matching ScoreTable styling."""
-        return ft.TextField(
-            value=value,
-            width=100,
-            height=30,
-            content_padding=0,
-            border=ft.NoInputBorder(),
-            text_align=ft.TextAlign.CENTER,
-            text_size=self.font_size_default,
-            on_change=self.on_change_handler,
-        )
+        return self._create_cell_field(value, width=65)
 
     def _make_row(self, row_label: str, field: ft.TextField) -> ft.DataRow:
         """Create a DataRow with a centred label and weight field."""
         return ft.DataRow(
             cells=[
                 ft.DataCell(
-                    ft.Container(
-                        content=ft.Text(
-                            row_label,
-                            weight=ft.FontWeight.BOLD,
-                            size=self.font_size_table_header,
-                        ),
-                        width=80,
-                        alignment=ft.Alignment(0, 0),
+                    self._build_header_label(
+                        row_label, width=self._label_col_width
                     )
                 ),
-                ft.DataCell(
-                    ft.Container(
-                        content=field,
-                        width=100,
-                        alignment=ft.Alignment(0, 0),
-                    )
-                ),
+                ft.DataCell(self._wrap_centred(field, width=65)),
             ]
         )
 
     def _rebuild_rows(self) -> None:
         """Rebuild the DataTable rows from current indices and Default."""
         rows = [
-            self._make_row(str(idx), self.settings_map[f"{self.prefix}_{idx}"])
+            self._make_row(
+                str(idx + 1), self.settings_map[f"{self.prefix}_{idx}"]
+            )
             for idx in self.indices
         ]
         rows.append(
@@ -202,6 +145,41 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
             )
         )
         self.table.rows = rows
+
+    def sync_from_settings(self, settings: GUISettings) -> None:
+        """Sync rows and field values from GUISettings."""
+        prefix_with_sep = f"{self.prefix}_"
+        new_indices = sorted(
+            int(k[len(prefix_with_sep) :])
+            for k in settings.keys()
+            if k.startswith(prefix_with_sep)
+            and k[len(prefix_with_sep) :].isdigit()
+        )
+        if new_indices != self.indices:
+            for idx in self.indices:
+                self.settings_map.pop(f"{self.prefix}_{idx}", None)
+            self.indices = new_indices
+            for idx in self.indices:
+                key = f"{self.prefix}_{idx}"
+                self.settings_map[key] = self._create_field(
+                    str(settings.get(key, self.default_weights.default_weight))
+                )
+            self._rebuild_rows()
+        else:
+            for idx in self.indices:
+                key = f"{self.prefix}_{idx}"
+                val = str(
+                    settings.get(key, self.default_weights.default_weight)
+                )
+                if self.settings_map[key].value != val:
+                    self.settings_map[key].value = val
+
+        default_key = f"{self.prefix}_default"
+        default_val = str(
+            settings.get(default_key, self.default_weights.default_weight)
+        )
+        if self.settings_map[default_key].value != default_val:
+            self.settings_map[default_key].value = default_val
 
     def _on_add_click(self, _e: ft.Event | None) -> None:
         """Add the next length entry."""
@@ -214,9 +192,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         )
         self.indices.append(next_idx)
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()
 
     def _on_remove_click(self, _e: ft.Event | None) -> None:
         """Remove the last length entry, always keeping Default."""
@@ -225,9 +201,7 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
         last_idx = self.indices.pop()
         self.settings_map.pop(f"{self.prefix}_{last_idx}", None)
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()
 
     def _on_reset_click(self, _e: ft.Event | None) -> None:
         """Reset this table's entries to their default values."""
@@ -245,6 +219,4 @@ class LengthwiseWeightTable(ft.Column):  # type: ignore[misc]
             self.default_weights.default_weight
         )
         self._rebuild_rows()
-        self.on_change_handler(None)
-        if self.page:
-            self.update()
+        self._notify_changed()

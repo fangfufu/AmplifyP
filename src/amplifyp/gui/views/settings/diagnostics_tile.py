@@ -53,12 +53,13 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             value=settings.get("log_console_enabled", True),
             on_change=self.on_change_handler,
         )
+        self.log_console_enabled.expand = True
 
         self.log_level_amplifyp = ft.Dropdown(
             label="AmplifyP Log Level",
             options=[ft.dropdown.Option(level) for level in LOG_LEVELS],
             value=settings.get("log_level_amplifyp", "INFO"),
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -71,7 +72,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                 if level != "DEBUG"
             ],
             value=settings.get("log_level_flet", "INFO"),
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -81,12 +82,14 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             value=settings.get("log_file_enabled", True),
             on_change=self._on_file_logging_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
         )
+        self.log_file_enabled.expand = True
 
         self.log_rotation_enabled = BorderedCheckbox(
             label="Log Rotation",
             value=settings.get("log_rotation_enabled", True),
             on_change=self.on_change_handler,
         )
+        self.log_rotation_enabled.expand = True
 
         current_max_mb = str(
             settings.get("log_rotation_max_bytes", 5242880) // (1024 * 1024)
@@ -100,7 +103,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             label="Max Log Size (MB)",
             options=[ft.dropdown.Option(mb) for mb in mb_options],
             value=current_max_mb,
-            width=700,
+            expand=True,
             disabled=True,
             border_color=GUIColours.OUTLINE,
             on_select=self.on_change_handler,
@@ -109,7 +112,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         current_path = settings.get("log_file_path", "(Default)")
         self.log_file_path = ft.Dropdown(
             label="Log File Path",
-            width=700,
+            expand=True,
             on_select=self._on_log_file_path_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -133,13 +136,28 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
         )
 
         controls: list[ft.Control] = [
-            self.log_console_enabled,
-            self.log_level_amplifyp,
-            self.log_level_flet,
-            self.log_file_enabled,
-            self.log_file_path,
-            self.log_rotation_enabled,
-            self.log_rotation_max_bytes,
+            ft.Row(
+                [
+                    self.log_console_enabled,
+                    self.log_file_enabled,
+                ],
+                spacing=15,
+            ),
+            ft.Row(
+                [
+                    self.log_level_amplifyp,
+                    self.log_level_flet,
+                ],
+                spacing=15,
+            ),
+            ft.Row([self.log_file_path]),
+            ft.Row(
+                [
+                    self.log_rotation_enabled,
+                    self.log_rotation_max_bytes,
+                ],
+                spacing=15,
+            ),
         ]
 
         if self.is_web:
@@ -154,7 +172,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             ft.Container(
                                 content=ft.Column(
@@ -165,7 +183,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
                                 width=700,
                             ),
                         ],
-                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )
@@ -263,7 +281,7 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             self.settings.get("log_console_enabled", True)
         )
         self.log_level_amplifyp.value = self.settings.get(
-            "log_level_amplifyp", "DEBUG"
+            "log_level_amplifyp", "INFO"
         )
         self.log_level_flet.value = self.settings.get("log_level_flet", "INFO")
         self.log_file_enabled.value = bool(
@@ -291,5 +309,6 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             )
 
         self.log_rotation_max_bytes.value = mb_value
+        self.web_info_text.color = GUIColours.OUTLINE
         self._update_file_path_field()
         self._update_rotation_controls()

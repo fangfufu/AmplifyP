@@ -40,8 +40,10 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
     ) -> None:
         """Initialise PrimerItemCard."""
         self.dimer = dimer
+        self.settings = settings
         font_size_default = settings.get("font_size_default", 14)
         font_size_header = settings.get("font_size_header", 18)
+        font_family = str(settings.get("font_family", "Roboto Mono"))
 
         is_reverse = mode == DNADirection.REV
         seq_align = ft.TextAlign.RIGHT if is_reverse else ft.TextAlign.LEFT
@@ -61,7 +63,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
             on_click=_on_pcr_click,
         )
 
-        badge_controls: list[ft.Control] = [
+        self._badge_containers: list[ft.Container] = [
             ft.Container(
                 content=ft.Text(
                     f"Quality: {round(dimer.quality)}",
@@ -86,7 +88,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
             ),
         ]
         if origin_count is not None:
-            badge_controls.append(
+            self._badge_containers.append(
                 ft.Container(
                     content=ft.Text(
                         f"Sites: {origin_count}",
@@ -99,6 +101,18 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                     border_radius=4,
                 )
             )
+        badge_controls: list[ft.Control] = list(self._badge_containers)
+
+        self._seq_field = ft.TextField(
+            value=seq,
+            read_only=True,
+            dense=True,
+            expand=True,
+            text_size=font_size_default,
+            text_style=ft.TextStyle(font_family=font_family),
+            text_align=seq_align,
+            content_padding=ft.Padding(6, 4, 6, 4),
+        )
 
         card_container = ft.Container(
             content=ft.Row(
@@ -112,18 +126,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                                 text_align=ft.TextAlign.LEFT,
                             ),
                             ft.Container(
-                                content=ft.TextField(
-                                    value=seq,
-                                    read_only=True,
-                                    dense=True,
-                                    expand=True,
-                                    text_size=font_size_default,
-                                    text_style=ft.TextStyle(
-                                        font_family="Roboto Mono"
-                                    ),
-                                    text_align=seq_align,
-                                    content_padding=ft.Padding(6, 4, 6, 4),
-                                ),
+                                content=self._seq_field,
                                 expand=True,
                                 alignment=(
                                     ft.Alignment(1, 0)
@@ -156,3 +159,10 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         )
 
         super().__init__(content=card_container)
+
+    def update_ui(self) -> None:
+        """Refresh dynamic theme colours and font family."""
+        for badge in self._badge_containers:
+            badge.bgcolor = GUIColours.SELECTED_ROW_BG
+        font_family = str(self.settings.get("font_family", "Roboto Mono"))
+        self._seq_field.text_style = ft.TextStyle(font_family=font_family)

@@ -39,7 +39,6 @@ from amplifyp.gui.views import (
     PrimerDesignerView,
     SettingsView,
 )
-from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +136,11 @@ class GUIController:
                 e: The Flet control event.
             """
             self.update_pcr_button_state(sync=False)
+            if self.page.web and (
+                e is None
+                or isinstance(getattr(e, "control", None), ft.Checkbox)
+            ):
+                self.save_last_state()
 
         def handle_stop_editing(e: ft.ControlEvent | None) -> None:
             """Save state if on web when editing is stopped.
@@ -414,23 +418,6 @@ class GUIController:
             and active_view == self.input_view
         ):
             self.input_view.update_ui()
-            # Immediately reposition the info panel if its position changed
-            if e is not None:
-                ctrl = getattr(e, "control", None)
-                if ctrl is not None:
-                    try:
-                        tile = getattr(
-                            self.settings_view, "primer_list_tile", None
-                        )
-                        if (
-                            tile is not None
-                            and isinstance(tile, PrimerListTile)
-                            and tile.set_primer_info_panel_position is ctrl
-                        ):
-                            self.input_view.reposition_primer_info_panel()
-                            return
-                    except Exception as ex:
-                        logger.debug("Failed to check primer list tile: %s", ex)
         else:
             self.input_view_dirty = True
 
@@ -440,6 +427,7 @@ class GUIController:
         self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
+        self.designer_view.update_ui()
         self.designer_2d_view.update_ui()
 
         # Only redraw/re-simulate active views
@@ -476,7 +464,12 @@ class GUIController:
         """Asynchronously load the last template and primers from storage."""
         # Yield to let the page finish initial rendering and attach controls
         await asyncio.sleep(0)
-        self.load_last_state()
+        if getattr(self.page, "web", False):
+            from amplifyp.gui.utils.data_helpers import load_last_state_async
+
+            await load_last_state_async(self)
+        else:
+            self.load_last_state()
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.

@@ -84,4 +84,8 @@ class ThemeManager:
             self.controller.pcr_view.run_pcr(keep_cards=True)
         elif active_view == self.controller.dimers_view:
             self.controller.dimers_view.run_analysis()
+        elif active_view == getattr(self.controller, "designer_view", None):
+            self.controller.designer_view.update_ui()
+        elif active_view == getattr(self.controller, "designer_2d_view", None):
+            self.controller.designer_2d_view.update_ui()
         self.controller.page.update()

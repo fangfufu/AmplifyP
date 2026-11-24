@@ -54,9 +54,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
         self._cached_pcr: PCR | None = None
-        self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
-            None
-        )
+        self._cached_state_key: tuple[dict[str, Any], Any] | None = None
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -122,7 +120,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         try:
             current_state_key = (
                 self.input_data.to_dict(),
-                self.settings.to_dict(),
+                self.settings.get_replication_settings(),
             )
             if (
                 self._cached_state_key == current_state_key
@@ -162,7 +160,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                         )
                     )
 
-        except (OSError, ValueError, RuntimeError) as ex:
+        except (OSError, ValueError, RuntimeError, ArithmeticError) as ex:
             logger.exception("PCR simulation failed: %s", ex)
             self.result_list.controls.append(
                 ft.Text(
@@ -176,7 +174,15 @@ class PCRView(ft.Column):  # type: ignore[misc]
             success = False
 
         if keep_cards:
-            self.result_list.controls.extend(saved_cards)
+            refreshed_cards = [
+                card.rebuild(self.settings)
+                if isinstance(
+                    card, (AmpliconDetailCard, ReplicationContextCard)
+                )
+                else card
+                for card in saved_cards
+            ]
+            self.result_list.controls[0:0] = refreshed_cards
             self._update_cards_header_visibility()
 
         self.app_page.update()
@@ -184,7 +190,11 @@ class PCRView(ft.Column):  # type: ignore[misc]
 
     def _reset_pcr_ui(self, keep_cards: bool) -> list[Any]:
         """Reset the PCR view UI controls and canvas shapes."""
-        saved_cards = list(self.result_list.controls) if keep_cards else []
+        saved_cards = (
+            [c for c in self.result_list.controls if isinstance(c, ft.Card)]
+            if keep_cards
+            else []
+        )
         self.result_list.controls.clear()
         self._update_cards_header_visibility()
         self.diagram_panel.reset_ui()
@@ -280,14 +290,18 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.app_page.update()
 
     def _update_cards_header_visibility(self) -> None:
-        """Toggle header visibility based on list content."""
-        has_cards = len(self.result_list.controls) > 0
+        """Toggle header visibility based on detail card presence."""
+        has_cards = any(
+            isinstance(c, ft.Card) for c in self.result_list.controls
+        )
         self.cards_header.visible = has_cards
         self.clear_button.visible = has_cards
 
     def _clear_all_cards(self, e: ft.Event) -> None:
         """Clear all detail cards below the overview map."""
-        self.result_list.controls.clear()
+        self.result_list.controls = [
+            c for c in self.result_list.controls if not isinstance(c, ft.Card)
+        ]
         self._update_cards_header_visibility()
         self.app_page.update()
 

@@ -37,7 +37,6 @@ from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
     NotificationHelper,
 )
-from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +55,8 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         sync_to_state_callback: Callable[[], None],
         update_ui_callback: Callable[[], None],
         on_update_found: Callable[[str], None] | None = None,
-        appearance_tile: AppearanceTile | None = None,
+        on_reset_callback: Callable[[], None] | None = None,
+        on_external_load_callback: Callable[[], None] | None = None,
     ) -> None:
         """Initialise the GeneralTile."""
         self.app_page = page
@@ -66,19 +66,67 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.sync_to_state_callback = sync_to_state_callback
         self.update_ui_callback = update_ui_callback
         self.on_update_found = on_update_found
+        self.on_reset_callback = on_reset_callback
+        self.on_external_load_callback = on_external_load_callback
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
+        self._factory_reset_dialogue: ft.AlertDialog | None = None
+        self._status_state: str | None = None
 
-        if appearance_tile is None:
-            self.appearance_tile = AppearanceTile(
-                settings=self.settings,
-                settings_map=self.settings_map,
-                on_change_handler=self.on_change_handler,
-                header_size=header_size,
-                font_size_default=font_size_default,
-            )
-        else:
-            self.appearance_tile = appearance_tile
+        # --- Appearance settings ---
+        self.set_font_family = ft.Dropdown(
+            label="Font Family",
+            options=[
+                ft.dropdown.Option("Roboto Mono"),
+                ft.dropdown.Option("Courier New"),
+                ft.dropdown.Option("Consolas"),
+                ft.dropdown.Option("monospace"),
+            ],
+            expand=True,
+            on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+
+        self.set_colour_scheme = ft.Dropdown(
+            label="Colour Scheme",
+            options=[
+                ft.dropdown.Option("Light"),
+                ft.dropdown.Option("Dark"),
+                ft.dropdown.Option("Light (Colour Deficient Friendly)"),
+                ft.dropdown.Option("Dark (Colour Deficient Friendly)"),
+                ft.dropdown.Option("System"),
+                ft.dropdown.Option("System (Colour Deficient Friendly)"),
+            ],
+            expand=True,
+            on_select=self._on_colour_scheme_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+        self.set_dimer_sequence_separator = ft.Dropdown(
+            label="5'/3' Sequence Separator",
+            options=[
+                ft.dropdown.Option("Space (' ')"),
+                ft.dropdown.Option("Dash ('-')"),
+            ],
+            value=self.settings.get(
+                "sequence_separator",
+                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            ),
+            expand=True,
+            on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            border_color=GUIColours.OUTLINE,
+        )
+        self.set_sequence_separator = self.set_dimer_sequence_separator
+
+        self._dummy_colour_deficient = ft.Checkbox(visible=False)
+
+        self.settings_map["font_family"] = self.set_font_family
+        self.settings_map["colour_deficient"] = self._dummy_colour_deficient
+        self.settings_map["dimer_sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
+        self.settings_map["sequence_separator"] = (
+            self.set_dimer_sequence_separator
+        )
 
         # --- General settings ---
         self.auto_reload_checkbox = BorderedCheckbox(
@@ -97,7 +145,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option("Once per Month"),
                 ft.dropdown.Option("Disabled"),
             ],
-            width=700,
+            expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
@@ -130,6 +178,15 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             tooltip="Load settings from a YAML file",
         )
 
+        # --- Factory Reset ---
+        self.factory_reset_button = ft.OutlinedButton(
+            "Reset Settings",
+            icon=ft.Icons.RESTORE,
+            on_click=self._on_factory_reset_click,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+            tooltip="Reset all preferences to their default values",
+            style=ft.ButtonStyle(color=GUIColours.ERROR_RED),
+        )
+
         super().__init__(
             title=ft.Text(
                 "General",
@@ -139,11 +196,32 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             expanded_cross_axis_alignment=ft.CrossAxisAlignment.STRETCH,
             controls=[
                 ft.Container(
-                    content=ft.Row(
+                    content=ft.Column(
                         [
                             ft.Container(
                                 content=ft.Column(
                                     [
+                                        ft.Text(
+                                            "Appearance",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_font_family,
+                                                self.set_colour_scheme,
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        ft.Row(
+                                            [
+                                                self.set_dimer_sequence_separator,
+                                                ft.Container(expand=True),
+                                            ],
+                                            spacing=15,
+                                        ),
+                                        self._dummy_colour_deficient,
+                                        ft.Divider(),
                                         ft.Text(
                                             "Autosave",
                                             weight=ft.FontWeight.BOLD,
@@ -162,7 +240,11 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                             size=13,
                                             color=GUIColours.TEXT_ON_SURFACE,
                                         ),
-                                        self.set_version_checking_frequency,
+                                        ft.Row(
+                                            [
+                                                self.set_version_checking_frequency,
+                                            ]
+                                        ),
                                         ft.Row(
                                             [
                                                 self.check_button,
@@ -179,7 +261,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ),
                                         ft.Text(
                                             "Export or import all application "
-                                            "settings exposed in this view.",
+                                            "settings.",
                                             size=font_size_default,
                                         ),
                                         ft.Row(
@@ -190,6 +272,21 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                             spacing=15,
                                             alignment=ft.MainAxisAlignment.CENTER,
                                         ),
+                                        ft.Divider(),
+                                        ft.Text(
+                                            "Reset Settings",
+                                            weight=ft.FontWeight.BOLD,
+                                            size=font_size_default + 2,
+                                        ),
+                                        ft.Text(
+                                            "Reset all preferences to their "
+                                            "default values.",
+                                            size=font_size_default,
+                                        ),
+                                        ft.Row(
+                                            [self.factory_reset_button],
+                                            alignment=ft.MainAxisAlignment.CENTER,
+                                        ),
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -197,7 +294,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                 width=700,
                             ),
                         ],
-                        alignment=ft.MainAxisAlignment.CENTER,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
                     padding=ft.Padding(0, 20, 0, 10),
                 )
@@ -208,6 +305,62 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
     def set_auto_reload_on_startup(self) -> BorderedCheckbox:
         """Get the auto reload checkbox."""
         return self.auto_reload_checkbox
+
+    def _on_factory_reset_click(self, _e: ft.ControlEvent) -> None:
+        """Show a confirmation dialogue before performing a factory reset."""
+        if not self._factory_reset_dialogue:
+            self._factory_reset_dialogue = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(
+                    "Confirm Reset Settings", color=GUIColours.ERROR_RED
+                ),
+                content=ft.Text(
+                    "Are you sure you want to reset all preferences to their "
+                    "default values?"
+                ),
+                actions=[  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ft.TextButton(
+                        "Reset",
+                        on_click=self._confirm_factory_reset,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                        style=ft.ButtonStyle(color=GUIColours.ERROR_RED),
+                    ),
+                    ft.TextButton(
+                        "Cancel",
+                        on_click=self._dismiss_factory_reset,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+                    ),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+
+        if self._factory_reset_dialogue not in self.app_page.overlay:
+            self.app_page.overlay.append(self._factory_reset_dialogue)
+        self._factory_reset_dialogue.open = True
+        self.app_page.update()
+
+    def _dismiss_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
+        """Dismiss the factory reset confirmation dialogue."""
+        if self._factory_reset_dialogue:
+            self._factory_reset_dialogue.open = False
+        self.app_page.update()
+
+    def _confirm_factory_reset(self, _e: ft.ControlEvent | None = None) -> None:
+        """Confirm and execute the factory reset."""
+        self._dismiss_factory_reset()
+        self.perform_factory_reset()
+
+    def perform_factory_reset(self) -> None:
+        """Reset all preferences to factory defaults and update UI."""
+        if self.on_reset_callback is not None:
+            self.on_reset_callback()
+        else:
+            self.settings.reset_to_defaults()
+            self.settings.save_to_local(self.app_page)
+            self.update_ui_callback()
+            if self.on_change_handler is not None:
+                self.on_change_handler(None)
+        self.notification_helper.show_message(
+            "All preferences reset to their default values."
+        )
 
     def _on_manual_check_click(self, e: ft.ControlEvent) -> None:
         """Handle manual update check trigger."""
@@ -223,6 +376,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
 
         self.check_button.disabled = True
         self.status_text.value = "Checking for updates..."
+        self._status_state = "checking"
         self.status_text.color = GUIColours.MUTED_GREY
         self.app_page.update()
 
@@ -238,6 +392,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 "Could not check for updates. "
                 "Please check your network connection."
             )
+            self._status_state = "error"
             self.status_text.color = GUIColours.ERROR_RED
         else:
             self.settings["last_version_check_timestamp"] = float(time.time())
@@ -247,11 +402,13 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 self.status_text.value = (
                     f"New version {latest_tag} is available!"
                 )
+                self._status_state = "success"
                 self.status_text.color = GUIColours.SUCCESS_GREEN
                 if self.on_update_found:
                     self.on_update_found(latest_tag)
             else:
                 self.status_text.value = "AmplifyP is up to date."
+                self._status_state = "success"
                 self.status_text.color = GUIColours.SUCCESS_GREEN
 
         self.app_page.update()
@@ -320,15 +477,15 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 return
 
             self.settings.from_dict(settings_dict)
-            self.settings.save_to_local(self.app_page)
 
-            # Sync values back to the UI controls
-            self.update_ui_callback()
-
-            # Apply loaded changes (theme, notify views, update PCR
-            # button, etc.)
-            if self.on_change_handler is not None:
-                self.on_change_handler(None)
+            if self.on_external_load_callback is not None:
+                self.on_external_load_callback()
+            else:
+                # Sync values back to the UI controls
+                self.update_ui_callback()
+                self.settings.save_to_local(self.app_page)
+                if self.on_change_handler is not None:
+                    self.on_change_handler(None)
 
             self.notification_helper.show_message(
                 "Settings loaded successfully!"
@@ -346,40 +503,107 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_version_checking_frequency.value = self.settings.get(
             "version_checking_frequency", "Once per Month"
         )
-
-    @property
-    def set_font_family(self) -> ft.Dropdown:
-        """Get the font family dropdown for backwards compatibility."""
-        return self.appearance_tile.set_font_family
-
-    @property
-    def set_colour_scheme(self) -> ft.Dropdown:
-        """Get the colour scheme dropdown for backwards compatibility."""
-        return self.appearance_tile.set_colour_scheme
-
-    @property
-    def set_dimer_sequence_separator(self) -> ft.Dropdown:
-        """Get the dimer sequence separator for backwards compatibility."""
-        return self.appearance_tile.set_dimer_sequence_separator
-
-    @property
-    def set_sequence_separator(self) -> ft.Dropdown:
-        """Get the 5'/3' sequence separator for backwards compatibility."""
-        return self.appearance_tile.set_sequence_separator
+        self.set_dimer_sequence_separator.value = self.settings.get(
+            "sequence_separator",
+            self.settings.get("dimer_sequence_separator", "Space (' ')"),
+        )
+        self.set_colour_scheme.border_color = GUIColours.OUTLINE
+        if self._status_state == "error":
+            self.status_text.color = GUIColours.ERROR_RED
+        elif self._status_state == "success":
+            self.status_text.color = GUIColours.SUCCESS_GREEN
+        elif self._status_state == "checking":
+            self.status_text.color = GUIColours.MUTED_GREY
+        self.factory_reset_button.style = ft.ButtonStyle(
+            color=GUIColours.ERROR_RED
+        )
+        if self._factory_reset_dialogue is not None:
+            if isinstance(self._factory_reset_dialogue.title, ft.Text):
+                self._factory_reset_dialogue.title.color = GUIColours.ERROR_RED
+            if self._factory_reset_dialogue.actions:
+                reset_action = self._factory_reset_dialogue.actions[0]
+                if isinstance(reset_action, ft.TextButton):
+                    reset_action.style = ft.ButtonStyle(
+                        color=GUIColours.ERROR_RED
+                    )
+        self.update_colour_scheme_dropdown()
 
     @property
     def set_colour_deficient(self) -> ft.Checkbox:
         """Get colour deficient checkbox for backwards compatibility."""
-        return self.appearance_tile.set_colour_deficient
+        return self._dummy_colour_deficient
 
     def _on_colour_scheme_change(self, e: ft.ControlEvent) -> None:
-        """Forward colour scheme change to appearance tile."""
-        self.appearance_tile._on_colour_scheme_change(e)
+        """Handle colour scheme dropdown change.
+
+        Syncs the selected colour scheme to settings and triggers the
+        change handler.
+
+        Args:
+            e: The Flet control event triggered by the dropdown change.
+        """
+        self.sync_colour_scheme_to_settings()
+        self.on_change_handler(e)
 
     def update_colour_scheme_dropdown(self) -> None:
-        """Forward colour scheme dropdown update to appearance tile."""
-        self.appearance_tile.update_colour_scheme_dropdown()
+        """Update the colour scheme dropdown value based on settings.
+
+        Reads the current dark_mode and colour_deficient settings and
+        sets the dropdown to the matching display option.
+        """
+        dark = self.settings.get("dark_mode", False)
+        deficient = bool(self.settings.get("colour_deficient", False))
+        if str(dark).lower() == "system":
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "System (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "System"
+        elif bool(dark):
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Dark (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Dark"
+        else:
+            if deficient:
+                self.set_colour_scheme.value = (
+                    "Light (Colour Deficient Friendly)"
+                )
+            else:
+                self.set_colour_scheme.value = "Light"
 
     def sync_colour_scheme_to_settings(self) -> None:
-        """Forward colour scheme sync to appearance tile."""
-        self.appearance_tile.sync_colour_scheme_to_settings()
+        """Sync the colour scheme dropdown selection back to settings.
+
+        Parses the dropdown value and updates dark_mode and
+        colour_deficient settings accordingly, including the hidden
+        checkbox state.
+        """
+        val = self.set_colour_scheme.value
+        if val == "Dark":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "Dark (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = True
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "Light (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        elif val == "System":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
+        elif val == "System (Colour Deficient Friendly)":
+            self.settings["dark_mode"] = "system"
+            self.settings["colour_deficient"] = True
+            self._dummy_colour_deficient.value = True
+        else:  # Light
+            self.settings["dark_mode"] = False
+            self.settings["colour_deficient"] = False
+            self._dummy_colour_deficient.value = False
