@@ -91,7 +91,7 @@ summary header and an antiparallel sequence alignment diagram:
 ## Error Handling
 
 If the dimer analysis fails, a red error text with the traceback is rendered in
-the results panel and an error dialog opens.
+the results panel and an error dialogue opens.
 
 ______________________________________________________________________
 

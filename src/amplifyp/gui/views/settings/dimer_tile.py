@@ -27,6 +27,7 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.gui_helpers import initialise_score_fields
 from amplifyp.gui.views.settings.score_table import ScoreTable
+from amplifyp.settings import DEFAULT_PRIMER_DIMER_WEIGHTS
 
 
 class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
@@ -50,12 +51,14 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
         self.set_pd_min_overlap = ft.TextField(
             label="Min Overlap",
             value="3",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
         self.set_pd_threshold = ft.TextField(
             label="Threshold",
             value="60.0",
+            expand=True,
             on_change=on_change_handler,
             border_color=GUIColours.OUTLINE,
         )
@@ -83,12 +86,13 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
             font_size_default=font_size_default,
             font_size_micro=font_size_micro,
             font_size_table_header=font_size_table_header,
-            width=815,
+            default_weights=DEFAULT_PRIMER_DIMER_WEIGHTS,
+            on_change_handler=self.on_change_handler,
         )
 
         super().__init__(
             title=ft.Text(
-                "Primer Dimer",
+                "Primer Dimers",
                 weight=ft.FontWeight.BOLD,
                 size=header_size,
             ),
@@ -102,16 +106,13 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
                             ft.Container(
                                 content=ft.Column(
                                     [
-                                        ft.Divider(),
-                                        ft.Text(
-                                            "Parameters",
-                                            weight=ft.FontWeight.BOLD,
-                                            size=self.settings.get(
-                                                "font_size_default", 14
-                                            ),
+                                        ft.Row(
+                                            [
+                                                self.set_pd_min_overlap,
+                                                self.set_pd_threshold,
+                                            ],
+                                            spacing=15,
                                         ),
-                                        self.set_pd_min_overlap,
-                                        self.set_pd_threshold,
                                     ],
                                     spacing=15,
                                     horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
@@ -129,4 +130,4 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match theme/settings."""
-        self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
+        self.score_table.update_colours(self.score_table.table)

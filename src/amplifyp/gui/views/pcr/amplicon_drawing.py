@@ -15,6 +15,7 @@
 
 """Amplicon drawing class and detail card helpers for the PCRView."""
 
+import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -267,6 +268,9 @@ class AmpliconDetailCard(DismissibleDetailCard):
             settings: Application GUI settings instance.
             dismiss_callback: Callback invoked when the card is dismissed.
         """
+        self._amp = amp
+        self._dismiss_callback = dismiss_callback
+
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
             f"{amp.start.index}_{amp.end.index}"
@@ -318,6 +322,9 @@ class AmpliconDetailCard(DismissibleDetailCard):
             selectable=True,
         )
 
+        q_display = (
+            str(round(amp.q_score)) if math.isfinite(amp.q_score) else "∞"
+        )
         body_controls = [
             ft.Text(
                 spans=[
@@ -338,7 +345,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                         ),
                     ),
                     ft.TextSpan(
-                        f")◀      Q = {round(amp.q_score)} "
+                        f")◀      Q = {q_display} "
                         f"({amp.q_score_report_str(verbose=True)})"
                     ),
                 ],
@@ -364,4 +371,12 @@ class AmpliconDetailCard(DismissibleDetailCard):
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,
+        )
+
+    def rebuild(self, settings: GUISettings) -> "AmpliconDetailCard":
+        """Rebuild this card with current theme colours and settings."""
+        return AmpliconDetailCard(
+            amp=self._amp,
+            settings=settings,
+            dismiss_callback=self._dismiss_callback,
         )

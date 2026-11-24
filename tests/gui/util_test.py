@@ -500,12 +500,6 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     mock_page.web = False
     mock_page.window = MagicMock()
     mock_page.controls = []
-    mock_page.client_storage = MagicMock()
-    mock_page.client_storage.contains_key.return_value = True
-    mock_page.client_storage.get.return_value = {
-        "template": "ATGC",
-        "primers": [],
-    }
 
     notifier = MagicMock()
 
@@ -625,9 +619,42 @@ async def test_data_helpers_and_system_utilities(tmp_path: Any) -> None:
     ctrl = GUIController(page=mock_page)
     ctrl.initialise()
 
+    import asyncio
+
+    web_storage: dict[str, str] = {}
+    web_tasks: list[asyncio.Task[Any]] = []
+
+    async def _mock_set(k: str, v: Any) -> bool:
+        web_storage[k] = str(v)
+        return True
+
+    async def _mock_contains(k: str) -> bool:
+        return k in web_storage
+
+    async def _mock_get(k: str) -> Any:
+        return web_storage.get(k)
+
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=_mock_set)
+    mock_prefs.contains_key = MagicMock(side_effect=_mock_contains)
+    mock_prefs.get = MagicMock(side_effect=_mock_get)
+
+    def _run_web_task(fn: Any, *args: Any, **kwargs: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*args, **kwargs))
+        web_tasks.append(t)
+        return t
+
     mock_page.web = True
-    save_last_state(ctrl)
-    load_last_state(ctrl)
+    mock_page.run_task = MagicMock(side_effect=_run_web_task)
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        save_last_state(ctrl)
+        await asyncio.gather(*web_tasks)
+        web_tasks.clear()
+        assert "amplifyp.last_state" in web_storage
+        load_last_state(ctrl)
+        await asyncio.gather(*web_tasks)
+        web_tasks.clear()
+    mock_page.run_task = MagicMock()
 
     ctrl.settings["auto_reload_on_startup"] = False
     save_last_state(ctrl)
@@ -1884,16 +1911,45 @@ async def test_state_persistence_and_restoration_branches(
             "Error loading state: Load error"
         )
 
-    # 7. save_last_state on web
+    # 7. save_last_state on web via SharedPreferences
+    import asyncio
+    import json
+
     mock_ctrl.settings.get.return_value = True
+    web_storage: dict[str, Any] = {}
+    web_tasks: list[asyncio.Task[Any]] = []
+
+    async def _pref_set(k: str, v: Any) -> bool:
+        web_storage[k] = v
+        return True
+
+    async def _pref_contains(k: str) -> bool:
+        return k in web_storage
+
+    async def _pref_get(k: str) -> Any:
+        return web_storage.get(k)
+
+    mock_prefs = MagicMock()
+    mock_prefs.set = MagicMock(side_effect=_pref_set)
+    mock_prefs.contains_key = MagicMock(side_effect=_pref_contains)
+    mock_prefs.get = MagicMock(side_effect=_pref_get)
+
+    def _run_task(fn: Any, *args: Any, **kwargs: Any) -> asyncio.Task[Any]:
+        t = asyncio.create_task(fn(*args, **kwargs))
+        web_tasks.append(t)
+        return t
+
     mock_ctrl.page = MagicMock(web=True)
-    mock_storage = MagicMock()
-    mock_ctrl.page.client_storage = mock_storage
+    mock_ctrl.page.run_task = MagicMock(side_effect=_run_task)
+    mock_ctrl._web_last_state_task = None
     mock_ctrl.input_data.to_dict.return_value = {"template": "ATGC"}
-    save_last_state(mock_ctrl)
-    mock_storage.set.assert_called_once_with(
-        "amplifyp.last_state", {"template": "ATGC"}
-    )
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        save_last_state(mock_ctrl)
+        await asyncio.gather(*web_tasks)
+        web_tasks.clear()
+    assert json.loads(web_storage["amplifyp.last_state"]) == {
+        "template": "ATGC"
+    }
 
     # 8. save_last_state desktop exception logged
     mock_ctrl.page.web = False
@@ -1903,12 +1959,32 @@ async def test_state_persistence_and_restoration_branches(
     with patch("builtins.open", side_effect=OSError("Permission denied")):
         save_last_state(mock_ctrl)
 
-    # 9. load_last_state on web
+    # 9. load_last_state / load_last_state_async on web via SharedPreferences
+    from amplifyp.gui.utils.data_helpers import load_last_state_async
+
     mock_ctrl.page.web = True
-    mock_storage.contains_key.return_value = True
-    mock_storage.get.return_value = {"template": "ATGC", "primers": []}
-    load_last_state(mock_ctrl)
-    mock_ctrl.input_data.from_dict.assert_called()
+    mock_ctrl.input_data.from_dict.reset_mock()
+    web_storage["amplifyp.last_state"] = json.dumps(
+        {"template": "ATGC", "primers": []}
+    )
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        load_last_state(mock_ctrl)
+        await asyncio.gather(*web_tasks)
+        web_tasks.clear()
+        mock_ctrl.input_data.from_dict.assert_called_with(
+            {"template": "ATGC", "primers": []}
+        )
+
+        # Invalid JSON / YAML and SharedPreferences error handled gracefully
+        mock_ctrl.input_data.from_dict.reset_mock()
+        web_storage["amplifyp.last_state"] = "not: [valid"
+        await load_last_state_async(mock_ctrl)
+        mock_ctrl.input_data.from_dict.assert_not_called()
+
+        with patch.object(
+            mock_prefs, "contains_key", side_effect=OSError("prefs err")
+        ):
+            await load_last_state_async(mock_ctrl)
 
     # 10. restore_state_from_file valid, invalid, and error
     valid_file = tmp_path / "valid.yaml"

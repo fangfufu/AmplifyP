@@ -291,6 +291,37 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         self.error_text.visible = False
         self.error_text.value = ""
 
+    def update_colours(self, *extra_fields: ft.TextField) -> None:
+        """Refresh form borders, field labels, and error colour from theme."""
+        for field in (
+            self.max_quality_input,
+            self.max_overlap_input,
+            *extra_fields,
+        ):
+            field.border_color = GUIColours.OUTLINE
+        self.filter_dna_checkbox.border = ft.Border.all(1, GUIColours.OUTLINE)
+        self.error_text.color = GUIColours.ERROR_RED
+
+        def _refresh_labels(ctrl: ft.Control) -> None:
+            if isinstance(ctrl, ft.Column) and len(ctrl.controls) == 2:
+                label = ctrl.controls[0]
+                field = ctrl.controls[1]
+                if isinstance(label, ft.Text) and isinstance(
+                    field, ft.TextField
+                ):
+                    label.color = GUIColours.TEXT_ON_SURFACE
+                    return
+            children = getattr(ctrl, "controls", None)
+            if isinstance(children, list):
+                for child in children:
+                    _refresh_labels(child)
+            content = getattr(ctrl, "content", None)
+            if isinstance(content, ft.Control):
+                _refresh_labels(content)
+
+        for child in self.controls:
+            _refresh_labels(child)
+
     def show_field_error(self, field: ft.TextField, message: str) -> None:
         """Set error text on a specific input field.
 

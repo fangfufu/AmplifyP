@@ -16,17 +16,18 @@ PCR amplicons on an interactive canvas.
   base $N$). Vertical boundary lines mark the start and end of the template,
   with dynamically scaled tick marks (spaced at 100, 500, or 1000 bp intervals
   depending on template length).
-- **Amplicon Vertical Ranking**: A dropdown next to the **Amplicon Map** title
-  controls the vertical ordering of amplicon bars (`Position, then length`
-  [default], `Quality score`, `Position, then quality`). The choice is persisted
-  to the PCR settings tile and redraws the map immediately.
+- **Amplicon Vertical Ranking**: Configured in **Settings -> PCR -> Amplicon**
+  (`Position, then length` [default], `Quality score`, `Position, then quality`)
+  to control the vertical ordering of amplicon bars.
 - **Primer Match Indicators**:
   - **Forward Primers**: Rendered in **blue** floating above the baseline as
     right-pointing triangles (indicating $5'$ to $3'$ forward synthesis),
-    accompanied by connector lines and vertically rotated primer name labels.
+    accompanied by connector lines and primer name labels (horizontal, 45°, or
+    vertical).
   - **Reverse Primers**: Rendered in **red** floating below the baseline as
     left-pointing triangles (indicating $5'$ to $3'$ reverse synthesis),
-    accompanied by connector lines and vertically rotated primer name labels.
+    accompanied by connector lines and primer name labels (horizontal, 45°, or
+    vertical).
   - **Match Strength Scaling**: Triangle sizes scale dynamically between 7.0 and
     16.0 pixels proportional to primer binding match quality.
   - **Overlap De-collision**: Closely spaced primer binding sites automatically
@@ -45,7 +46,10 @@ PCR amplicons on an interactive canvas.
     the canvas.
 - **Resizable Container**: A drag handle (divider bar) below the canvas allows
   dragging vertically to resize the overview map container (minimum height 150
-  px).
+  px). Its sizing behaviour can be configured in the **PCR** settings tile:
+  either auto-resizing to fit the map up to 1/4, 1/3 (default), 1/2, or 2/3 of
+  the viewport height, or saving the viewport height proportionality across the
+  session.
 - **Safe Rendering Limits**: If more than 100 amplicons are predicted, amplicons
   are sorted according to the active **Amplicon vertical ranking** mode and only
   the top 100 are rendered on the map to prevent UI freezing. A red warning
@@ -68,11 +72,11 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
 - **Replication Context Card (Primer Binding Details)**:
   - **Binding Metrics**: Displays **Primeability** (weighted score favouring
     match perfection near the critical 3' end), **Stability** (overall
-    structural binding stability), and overall **Quality**. Primeability and
-    stability are shown as three-decimal fractions, or as whole percentages when
-    Amplify4 compatibility mode is enabled. Quality is shown as a rounded
-    integer and can be negative when the scores fall below the configured
-    cutoffs.
+    structural binding stability), and overall **Quality**. Primeability,
+    stability, and quality are shown to three decimal places (or whole
+    percentages for primeability and stability when Amplify4 compatibility mode
+    is enabled). Quality can be negative when the scores fall below the
+    configured cutoffs.
   - **Visual Alignment Context Map**: Multi-line monospace text alignment
     showing exact template coordinates, 5' and 3' primer ends (formatted with
     the **5'/3' Sequence Separator** setting: space or dash), base pairing
@@ -100,7 +104,7 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
     internal product sequence in standard text, and reverse primer region in
     **red/pink** (with a `◀` marker).
 - **Error Handling**: If the PCR calculation fails, a red error text with the
-  traceback is shown and an *"Error running PCR"* dialog opens.
+  traceback is shown and an *"Error running PCR"* dialogue opens.
 
 ______________________________________________________________________
 

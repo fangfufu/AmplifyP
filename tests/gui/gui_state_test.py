@@ -56,9 +56,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
     settings_view.set_dimer_sequence_separator.value = "Dash ('-')"
-    settings_view.primer_list_tile.set_primer_info_panel_position.value = (
-        "bottom"
-    )
+    settings_view.input_tile.set_primer_info_panel_position.value = "bottom"
     settings_view.set_primer_info_panel_fixed_height.value = True
     settings_view.general_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
@@ -136,7 +134,7 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_font_family.value == "Courier New"
     assert new_settings_view.set_dimer_sequence_separator.value == "Dash ('-')"
     assert (
-        new_settings_view.primer_list_tile.set_primer_info_panel_position.value
+        new_settings_view.input_tile.set_primer_info_panel_position.value
         == "bottom"
     )
     assert new_settings_view.settings["primer_info_panel_position"] == "bottom"
@@ -164,6 +162,7 @@ def test_gui_state_save_load() -> None:
 def test_settings_view_buttons() -> None:
     """Test Reset to Default button in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.overlay = []
 
     reset_called = False
 
@@ -191,8 +190,12 @@ def test_settings_view_buttons() -> None:
 
     assert reset_btn.content == "Reset to Default"
 
-    # Trigger Reset
+    # Trigger Reset -> opens confirmation dialogue, then confirm
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert not reset_called
+    assert settings_view.general_tile._factory_reset_dialogue is not None
+    assert settings_view.general_tile._factory_reset_dialogue.open is True
+    settings_view.general_tile._confirm_factory_reset()
     assert reset_called
     assert (
         settings_view.settings["tm_method"]
@@ -573,10 +576,10 @@ def test_general_settings_auto_reload() -> None:
     settings = GUISettings()
     assert settings["auto_reload_on_startup"] is True
 
-    # 2. Verify SettingsView includes GeneralTile and AppearanceTile
+    # 2. Verify SettingsView includes GeneralTile and InputTile
     settings_view = SettingsView(mock_page)
     assert hasattr(settings_view, "general_tile")
-    assert hasattr(settings_view, "appearance_tile")
+    assert hasattr(settings_view, "input_tile")
     assert settings_view.set_auto_reload_on_startup.value is True
 
     # Toggle checkbox

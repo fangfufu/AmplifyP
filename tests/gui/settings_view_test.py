@@ -25,9 +25,9 @@ import yaml
 
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.views.settings import SettingsView
-from amplifyp.gui.views.settings.appearance_tile import AppearanceTile
 from amplifyp.gui.views.settings.diagnostics_tile import DiagnosticsTile
 from amplifyp.gui.views.settings.general_tile import GeneralTile
+from amplifyp.gui.views.settings.input_tile import InputTile
 
 
 def test_settings_view_properties_and_methods() -> None:
@@ -46,17 +46,16 @@ def test_settings_view_properties_and_methods() -> None:
     )
 
     # 1. Properties and tile order
-    assert hasattr(view, "appearance_tile")
     assert hasattr(view, "general_tile")
+    assert hasattr(view, "input_tile")
     assert view.controls[0] == view.general_tile
-    assert view.controls[1] == view.appearance_tile
+    assert isinstance(view.controls[1], ft.Divider)
+    assert view.controls[2] == view.input_tile
 
     assert view.general_tile.title.value == "General"
-    assert view.appearance_tile.title.value == "Appearance"
-    assert view.primer_list_tile.title.value == "Primer List"
-    assert view.tm_tile.title.value == "Primer Melting Temperature (Tm)"
+    assert view.input_tile.title.value == "Input"
     assert view.replication_tile.title.value == "PCR"
-    assert view.dimer_tile.title.value == "Primer Dimer"
+    assert view.dimer_tile.title.value == "Primer Dimers"
     assert view.designer_2d_tile.title.value == "Designer 2D"
     assert view.diagnostics_tile.title.value == "Diagnostics"
 
@@ -107,14 +106,17 @@ def test_settings_view_properties_and_methods() -> None:
     settings["designer_1d_show_tm"] = False
     settings["designer_1d_show_pct_at"] = True
     settings["pcr_amplicon_ranking"] = "Quality score"
+    settings["pcr_primer_label_orientation"] = "Vertical"
     view._on_reset_handler(mock_event)
     assert mock_on_reset.called
     assert settings["designer_1d_show_tm"] is True
     assert settings["designer_1d_show_pct_at"] is False
     assert settings["pcr_amplicon_ranking"] == "Position, then length"
+    assert settings["pcr_primer_label_orientation"] == "Horizontal"
     assert view.set_designer_1d_show_tm.value is True
     assert view.set_designer_1d_show_pct_at.value is False
     assert view.set_pcr_amplicon_ranking.value == "Position, then length"
+    assert view.set_pcr_primer_label_orientation.value == "Horizontal"
 
     # 5. get_replication_settings, get_state, set_state
     repl_settings = view.get_replication_settings()
@@ -393,46 +395,12 @@ def test_general_tile_all_branches() -> None:
         tile.update_colour_scheme_dropdown()
         assert tile.set_colour_scheme.value == scheme_val
 
-
-def test_appearance_tile_all_branches() -> None:
-    """Test all branches of AppearanceTile."""
-    mock_on_change = MagicMock()
-    settings = GUISettings()
-    tile = AppearanceTile(
-        settings=settings,
-        settings_map={},
-        on_change_handler=mock_on_change,
-        header_size=18,
-        font_size_default=14,
-    )
-
-    # 1. Properties
+    # 9. GeneralTile appearance controls and update_ui
     assert tile.set_font_family is not None
     assert tile.set_colour_scheme is not None
     assert tile.set_colour_deficient is not None
     assert tile.set_dimer_sequence_separator is not None
     assert tile.set_sequence_separator is not None
-    assert tile.set_dimer_sequence_separator.value == "Space (' ')"
-
-    # 2. Colour scheme dropdown and syncing (all 6 branches)
-    schemes = [
-        ("Dark", True, False),
-        ("Dark (Colour Deficient Friendly)", True, True),
-        ("Light (Colour Deficient Friendly)", False, True),
-        ("System", "system", False),
-        ("System (Colour Deficient Friendly)", "system", True),
-        ("Light", False, False),
-    ]
-    for scheme_val, expected_dark, expected_def in schemes:
-        tile.set_colour_scheme.value = scheme_val
-        tile._on_colour_scheme_change(MagicMock())
-        assert settings["dark_mode"] == expected_dark
-        assert settings["colour_deficient"] == expected_def
-        tile.update_colour_scheme_dropdown()
-        assert tile.set_colour_scheme.value == scheme_val
-        assert mock_on_change.called
-
-    # 3. update_ui
     settings["sequence_separator"] = "Dash ('-')"
     settings["dark_mode"] = True
     settings["colour_deficient"] = False
@@ -441,50 +409,33 @@ def test_appearance_tile_all_branches() -> None:
     assert tile.set_colour_scheme.value == "Dark"
 
 
-def test_general_tile_appearance_compatibility_accessors() -> None:
-    """Test backward compatibility properties and methods on GeneralTile."""
+def test_input_tile_all_branches() -> None:
+    """Test all controls and properties of InputTile."""
     mock_on_change = MagicMock()
-    mock_page = MagicMock(spec=ft.Page)
     settings = GUISettings()
     settings_map: dict[str, Any] = {}
-    appearance_tile = AppearanceTile(
+    tile = InputTile(
         settings=settings,
         settings_map=settings_map,
         on_change_handler=mock_on_change,
         header_size=18,
         font_size_default=14,
     )
-    general_tile = GeneralTile(
-        page=mock_page,
-        settings=settings,
-        settings_map=settings_map,
-        on_change_handler=mock_on_change,
-        appearance_tile=appearance_tile,
-        header_size=18,
-        font_size_default=14,
-        sync_to_state_callback=MagicMock(),
-        update_ui_callback=MagicMock(),
-    )
 
-    assert general_tile.set_font_family is appearance_tile.set_font_family
-    assert general_tile.set_colour_scheme is appearance_tile.set_colour_scheme
-    assert (
-        general_tile.set_dimer_sequence_separator
-        is appearance_tile.set_dimer_sequence_separator
-    )
-    assert (
-        general_tile.set_sequence_separator
-        is appearance_tile.set_sequence_separator
-    )
-    assert (
-        general_tile.set_colour_deficient
-        is appearance_tile.set_colour_deficient
-    )
-
-    general_tile.sync_colour_scheme_to_settings()
-    general_tile.update_colour_scheme_dropdown()
-    mock_event = MagicMock(spec=ft.ControlEvent)
-    general_tile._on_colour_scheme_change(mock_event)
+    assert tile.title.value == "Input"
+    assert tile.set_primer_info_panel_position is not None
+    assert tile.fixed_height_primer_info_checkbox is not None
+    assert tile.set_show_primer_temperature is not None
+    assert tile.auto_activate_new_valid_primer is not None
+    assert tile.set_tm_colour_scheme is not None
+    assert tile.set_tm_dna_conc is not None
+    assert tile.set_tm_dnap_conc is not None
+    assert tile.set_tm_mono_salt is not None
+    assert tile.set_tm_div_salt is not None
+    assert tile.set_tm_dNTP_conc is not None
+    assert tile.set_tm_method is not None
+    assert "primer_info_panel_position" in settings_map
+    assert "tm_dna_conc" in settings_map
 
 
 def test_designer_1d_tile_settings() -> None:
@@ -516,3 +467,445 @@ def test_pcr_amplicon_ranking_settings() -> None:
     view.set_pcr_amplicon_ranking.value = "Quality score"
     view.sync_to_state()
     assert settings["pcr_amplicon_ranking"] == "Quality score"
+
+
+def test_pcr_primer_label_orientation_settings() -> None:
+    """Test origin map primer label orientation dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert view.set_pcr_primer_label_orientation.value == "Horizontal"
+    assert [
+        opt.key for opt in view.set_pcr_primer_label_orientation.options
+    ] == ["Horizontal", "45°", "Vertical"]
+    view.set_pcr_primer_label_orientation.value = "45°"
+    view.sync_to_state()
+    assert settings["pcr_primer_label_orientation"] == "45°"
+    view.set_pcr_primer_label_orientation.value = "Vertical"
+    view.sync_to_state()
+    assert settings["pcr_primer_label_orientation"] == "Vertical"
+
+
+def test_pcr_divider_behaviour_settings() -> None:
+    """Test PCR horizontal divider behaviour dropdown in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert view.set_pcr_divider_behaviour.value == "autoresize"
+    assert [opt.key for opt in view.set_pcr_divider_behaviour.options] == [
+        "autoresize_1_4",
+        "autoresize",
+        "autoresize_1_2",
+        "autoresize_2_3",
+        "save_proportionality",
+    ]
+    view.set_pcr_divider_behaviour.value = "save_proportionality"
+    view.sync_to_state()
+    assert settings["pcr_divider_behaviour"] == "save_proportionality"
+
+
+def test_weights_cells_centred_alignment() -> None:
+    """Test that all weights cells in SettingsView are centred."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    tables = [
+        view.replication_tile.score_table.table,
+        view.replication_tile.match_weight_table.table,
+        view.replication_tile.run_weight_table.table,
+        view.dimer_tile.score_table.table,
+    ]
+    for table in tables:
+        for row in table.rows:
+            for cell in row.cells:
+                container = cell.content
+                assert isinstance(container, ft.Container)
+                assert container.alignment == ft.Alignment(0, 0)
+                if isinstance(container.content, ft.TextField):
+                    assert container.content.dense is True
+                    assert container.content.text_align == ft.TextAlign.CENTER
+                    assert (
+                        container.content.text_vertical_align
+                        == ft.VerticalAlignment.CENTER
+                    )
+
+
+def test_dimer_weights_reset_button() -> None:
+    """Test that the primer dimer weights reset button restores defaults."""
+    from amplifyp.settings import DEFAULT_PRIMER_DIMER_WEIGHTS
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+    )
+
+    reset_button = view.dimer_tile.score_table.reset_button
+    assert isinstance(reset_button, ft.TextButton)
+    assert reset_button.content == "Reset"
+
+    # Modify a primer dimer weight and sync
+    view.settings_map["pd_score_A_T"].value = "99"
+    view.sync_to_state()
+    assert settings["pd_score_A_T"] == "99"
+
+    # Click the reset button (detached from a live Flet Page in unit test)
+    mock_on_change.reset_mock()
+    with patch.object(
+        type(view.dimer_tile.score_table),
+        "page",
+        new_callable=lambda: property(lambda _self: None),
+    ):
+        view.dimer_tile.score_table._on_reset_click(None)
+
+    assert view.settings_map["pd_score_A_T"].value == str(
+        DEFAULT_PRIMER_DIMER_WEIGHTS["A", "T"]
+    )
+    assert settings["pd_score_A_T"] == str(
+        DEFAULT_PRIMER_DIMER_WEIGHTS["A", "T"]
+    )
+    assert mock_on_change.called
+
+
+def test_general_tile_factory_reset() -> None:
+    """Test Factory Reset button and confirmation dialogue in GeneralTile."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_on_change = MagicMock()
+    mock_on_reset = MagicMock()
+
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+        on_reset=mock_on_reset,
+    )
+
+    # Modify a wide range of preferences across sections
+    settings["font_family"] = "Courier New"
+    settings["dark_mode"] = True
+    settings["colour_deficient"] = True
+    settings["primability_cutoff"] = "0.95"
+    settings["template_fixed_width"] = True
+    settings["template_bases_per_line"] = "80"
+    settings["auto_activate_new_valid_primer"] = True
+    settings["auto_reload_on_startup"] = False
+    settings["designer_1d_show_tm"] = False
+    view.update_ui()
+
+    btn = view.general_tile.factory_reset_button
+    assert isinstance(btn, ft.OutlinedButton)
+    assert btn.content == "Reset Settings"
+
+    # Clicking opens the confirmation dialogue
+    with patch.object(settings, "save_to_local") as mock_save:
+        view.general_tile._on_factory_reset_click(MagicMock())
+        dialog = view.general_tile._factory_reset_dialogue
+        assert dialog is not None
+        assert dialog.open is True
+        assert dialog in mock_page.overlay
+
+        # Cancel dismisses without resetting
+        view.general_tile._dismiss_factory_reset()
+        assert dialog.open is False
+        assert settings["font_family"] == "Courier New"
+        assert not mock_save.called
+
+        # Re-open and confirm resets all preferences to factory defaults
+        view.general_tile._on_factory_reset_click(MagicMock())
+        assert dialog.open is True
+        with patch.object(
+            view.general_tile.notification_helper, "show_message"
+        ) as mock_msg:
+            view.general_tile._confirm_factory_reset()
+
+        assert dialog.open is False
+        assert mock_save.called
+        assert mock_on_reset.called
+        assert settings["font_family"] == "Roboto Mono"
+        assert settings["dark_mode"] == "system"
+        assert settings["colour_deficient"] is False
+        assert settings["primability_cutoff"] == "0.8"
+        assert settings["template_fixed_width"] is False
+        assert settings["template_bases_per_line"] == "Auto"
+        assert settings["auto_activate_new_valid_primer"] is False
+        assert settings["auto_reload_on_startup"] is True
+        assert settings["designer_1d_show_tm"] is True
+        assert view.set_font_family.value == "Roboto Mono"
+        assert view.set_colour_scheme.value == "System"
+        assert view.set_primability_cutoff.value == "0.8"
+        mock_msg.assert_called_once_with(
+            "All preferences reset to their default values."
+        )
+
+
+def test_general_tile_factory_reset_standalone() -> None:
+    """Test GeneralTile.perform_factory_reset without on_reset_callback."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_on_change = MagicMock()
+    mock_sync = MagicMock()
+    mock_update_ui = MagicMock()
+
+    settings = GUISettings()
+    settings["font_family"] = "Consolas"
+    tile = GeneralTile(
+        page=mock_page,
+        settings=settings,
+        settings_map={},
+        on_change_handler=mock_on_change,
+        header_size=18,
+        font_size_default=14,
+        sync_to_state_callback=mock_sync,
+        update_ui_callback=mock_update_ui,
+    )
+
+    with (
+        patch.object(settings, "save_to_local") as mock_save,
+        patch.object(tile.notification_helper, "show_message") as mock_msg,
+    ):
+        tile.perform_factory_reset()
+
+    assert settings["font_family"] == "Roboto Mono"
+    mock_save.assert_called_once_with(mock_page)
+    mock_update_ui.assert_called_once()
+    mock_on_change.assert_called_once_with(None)
+    mock_msg.assert_called_once_with(
+        "All preferences reset to their default values."
+    )
+
+
+def test_lengthwise_weight_tables_add_remove_reset_and_persistence() -> None:
+    """Test LengthwiseWeightTable add, remove, reset, and GUISettings sync."""
+    from amplifyp.settings import (
+        DEFAULT_BASE_PAIR_WEIGHTS,
+        DEFAULT_MATCH_WEIGHTS,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+    )
+
+    match_tbl = view.replication_tile.match_weight_table
+    # Row labels are 1-based while internal keys remain 0-based
+    first_label = match_tbl.table.rows[0].cells[0].content.content.value
+    assert first_label == "1"
+    assert match_tbl.indices == sorted(DEFAULT_MATCH_WEIGHTS.overrides.keys())
+
+    with patch.object(
+        type(match_tbl),
+        "page",
+        new_callable=lambda: property(lambda _self: None),
+    ):
+        # 1. Add a new entry (index 15 -> displayed as "16")
+        match_tbl._on_add_click(None)
+        assert 15 in match_tbl.indices
+        assert "match_weight_15" in view.settings_map
+        assert settings["match_weight_15"] == str(
+            DEFAULT_MATCH_WEIGHTS.default_weight
+        )
+        assert match_tbl.table.rows[-2].cells[0].content.content.value == "16"
+
+        # 2. Remove entries down to empty (Default row remains)
+        while match_tbl.indices:
+            match_tbl._on_remove_click(None)
+        assert match_tbl.indices == []
+        assert len(match_tbl.table.rows) == 1
+        assert "match_weight_0" not in settings
+        assert "match_weight_15" not in settings
+        assert view.get_replication_settings().match_weight.overrides == {}
+
+        # Removing when already empty is a no-op
+        match_tbl._on_remove_click(None)
+        assert match_tbl.indices == []
+
+        # 3. Round-trip added/removed indices through to_dict / from_dict
+        match_tbl._on_add_click(None)  # adds index 0
+        view.settings_map["match_weight_0"].value = "42"
+        view.sync_to_state()
+        saved = settings.to_dict()
+
+        restored = GUISettings()
+        restored.from_dict(saved)
+        assert "match_weight_0" in restored
+        assert "match_weight_14" not in restored
+        assert restored.get_replication_settings().match_weight[0] == 42.0
+
+        # 4. update_ui rebuilds table when settings change externally
+        view.set_state(restored.to_dict())
+        assert match_tbl.indices == [0]
+        assert len(match_tbl.table.rows) == 2
+
+        # 5. Per-table reset restores defaults
+        match_tbl._on_reset_click(None)
+        assert match_tbl.indices == sorted(
+            DEFAULT_MATCH_WEIGHTS.overrides.keys()
+        )
+        assert settings["match_weight_0"] == str(
+            DEFAULT_MATCH_WEIGHTS.overrides[0]
+        )
+
+        # 6. Base Pair Weights table also has a working Reset button
+        bp_tbl = view.replication_tile.score_table
+        assert bp_tbl.reset_button is not None
+        view.settings_map["bp_score_G_G"].value = "123"
+        view.sync_to_state()
+        assert settings["bp_score_G_G"] == "123"
+        with patch.object(
+            type(bp_tbl),
+            "page",
+            new_callable=lambda: property(lambda _self: None),
+        ):
+            bp_tbl._on_reset_click(None)
+        assert settings["bp_score_G_G"] == str(
+            DEFAULT_BASE_PAIR_WEIGHTS["G", "G"]
+        )
+
+
+def test_gui_settings_constructor_web_get_keys_and_yaml_load() -> None:
+    """Test GUISettings constructor, web get_keys fast path, and YAML load."""
+    from amplifyp.gui.colours import GUIColours
+
+    # 1. Constructor delegates to from_dict (prunes omitted lengthwise weights
+    # and coerces string booleans accurately)
+    init_settings = GUISettings(
+        {
+            "match_weight_0": "77",
+            "dark_mode": "system",
+            "colour_deficient": "false",
+            "auto_reload_on_startup": "0",
+            "amp4_compat": "no",
+            "custom_extra": "ok",
+        }
+    )
+    assert init_settings["match_weight_0"] == "77"
+    assert "match_weight_14" not in init_settings
+    assert init_settings["colour_deficient"] is False
+    assert init_settings["auto_reload_on_startup"] is False
+    assert init_settings["amp4_compat"] is False
+    assert init_settings["custom_extra"] == "ok"
+
+    # 2. Web load_from_local_async uses async get_keys fast path
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = True
+    mock_prefs = MagicMock()
+    mock_prefs.get_keys = AsyncMock(
+        return_value=[
+            "amplifyp.settings.font_family",
+            "amplifyp.settings.match_weight_default",
+            "amplifyp.settings.match_weight_0",
+        ]
+    )
+    store = {
+        "amplifyp.settings.font_family": "Consolas",
+        "amplifyp.settings.match_weight_default": "1",
+        "amplifyp.settings.match_weight_0": "88",
+    }
+    mock_prefs.get = AsyncMock(side_effect=lambda k: store[k])
+    mock_prefs.contains_key = AsyncMock(
+        side_effect=AssertionError("Should use get_keys fast path")
+    )
+
+    web_settings = GUISettings()
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        asyncio.run(web_settings.load_from_local_async(mock_page))
+    assert web_settings["font_family"] == "Consolas"
+    assert web_settings["match_weight_0"] == "88"
+    assert "match_weight_14" not in web_settings
+
+    # 3. Loading YAML via GeneralTile inside SettingsView does not clobber
+    # non-integer-MB log_rotation_max_bytes or save twice
+    desktop_page = MagicMock(spec=ft.Page)
+    desktop_page.web = False
+    desktop_page.overlay = []
+    settings = GUISettings()
+    on_change_calls: list[Any] = []
+    view = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=lambda e: on_change_calls.append(e),
+        on_reset=lambda e: setattr(GUIColours, "dark_mode", False),
+    )
+
+    yaml_payload = yaml.safe_dump(
+        {"font_family": "Courier New", "log_rotation_max_bytes": 2621440}
+    )
+    with (
+        patch(
+            "amplifyp.gui.views.settings.general_tile.pick_and_read_file",
+            new=AsyncMock(return_value=yaml_payload),
+        ),
+        patch.object(settings, "save_to_local") as mock_save,
+    ):
+        asyncio.run(view.general_tile._load_settings_async(MagicMock()))
+
+    assert settings["font_family"] == "Courier New"
+    assert settings["log_rotation_max_bytes"] == 2621440
+    assert len(on_change_calls) == 1
+    mock_save.assert_not_called()  # delegated to controller on_change
+
+    # 4. Resetting from Dark mode runs on_reset before update_ui and saves once
+    settings["dark_mode"] = True
+    GUIColours.dark_mode = True
+    shared_cb = MagicMock(
+        side_effect=lambda _e: setattr(GUIColours, "dark_mode", False)
+    )
+    view_reset = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=shared_cb,
+        on_reset=shared_cb,
+    )
+    with patch.object(settings, "save_to_local") as mock_save_reset:
+        view_reset._on_reset_handler(None)
+    assert GUIColours.dark_mode is False
+    assert shared_cb.call_count == 1
+    assert mock_save_reset.call_count == 0
+
+    # 5. Loading YAML with dark_mode="system" from Dark mode runs on_change
+    # (apply_theme) before refreshing UI border colours
+    settings["dark_mode"] = True
+    GUIColours.dark_mode = True
+    call_order: list[str] = []
+
+    def _on_theme_change(_e: Any) -> None:
+        call_order.append("on_change")
+        GUIColours.dark_mode = False
+
+    view_yaml_theme = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=_on_theme_change,
+    )
+    orig_update_ui = view_yaml_theme.update_ui
+
+    def _tracked_update_ui() -> None:
+        call_order.append(f"update_ui:dark={GUIColours.dark_mode}")
+        orig_update_ui()
+
+    view_yaml_theme.update_ui = _tracked_update_ui  # type: ignore[method-assign]
+    with patch(
+        "amplifyp.gui.views.settings.general_tile.pick_and_read_file",
+        new=AsyncMock(return_value=yaml.safe_dump({"dark_mode": "system"})),
+    ):
+        asyncio.run(
+            view_yaml_theme.general_tile._load_settings_async(MagicMock())
+        )
+    assert call_order == ["on_change", "update_ui:dark=False"]

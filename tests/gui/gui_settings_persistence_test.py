@@ -389,7 +389,8 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
     s1 = GUISettings(
         settings_dict={"colour_deficient": "yes", "dark_mode": "true"}
     )
-    assert s1["colour_deficient"] == "yes"
+    assert s1["colour_deficient"] is True
+    assert s1["dark_mode"] is True
     assert GUIColours.colour_deficient_mode is True
     assert GUIColours.dark_mode is True
 

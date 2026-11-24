@@ -377,8 +377,11 @@ class PrimerDesignerView(BaseDesignerView):
             return [None] * len(designer.all_dimers)
 
         counts: list[int | None] = []
+        rep_settings = self.settings.get_replication_settings()
         for dimer in designer.all_dimers:
-            repliconf = Repliconf(template_dna, dimer.primer_1)
+            repliconf = Repliconf(
+                template_dna, dimer.primer_1, settings=rep_settings
+            )
             repliconf.search()
             counts.append(
                 len(repliconf.origin_db.fwd) + len(repliconf.origin_db.rev)
@@ -517,6 +520,7 @@ class PrimerDesignerView(BaseDesignerView):
             pass
 
         pd_settings = self.settings.get_primer_dimer_settings()
+        rep_settings = self.settings.get_replication_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
 
         def _on_progress(done: int, total: int) -> None:
@@ -542,6 +546,7 @@ class PrimerDesignerView(BaseDesignerView):
                     max_origin_count=max_binding_sites,
                     on_progress=_on_progress,
                     cancel_event=cancel_event,
+                    replication_settings=rep_settings,
                 )
                 self._cached_designer = designer
                 origin_counts = self._compute_origin_counts(
@@ -609,6 +614,7 @@ class PrimerDesignerView(BaseDesignerView):
 
             dna_obj = DNA(clean_seq)
             pd_settings = self.settings.get_primer_dimer_settings()
+            rep_settings = self.settings.get_replication_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
             designer = PrimerDesigner1D(
                 dna=dna_obj,
@@ -619,6 +625,7 @@ class PrimerDesignerView(BaseDesignerView):
                 max_overlap=max_overlap,
                 template=template_dna,
                 max_origin_count=max_binding_sites,
+                replication_settings=rep_settings,
             )
             self._cached_designer = designer
             self._update_chart_and_primer_list(
@@ -669,7 +676,11 @@ class PrimerDesignerView(BaseDesignerView):
                     else DNAType.LINEAR
                 )
                 tpl_dna = DNA(clean_tpl, dna_type=t_type)
-                repliconf = Repliconf(tpl_dna, dimer.primer_1)
+                repliconf = Repliconf(
+                    tpl_dna,
+                    dimer.primer_1,
+                    settings=self.settings.get_replication_settings(),
+                )
                 repliconf.search()
                 origin_count = len(repliconf.origin_db.fwd) + len(
                     repliconf.origin_db.rev
@@ -689,6 +700,42 @@ class PrimerDesignerView(BaseDesignerView):
             )
 
         self._bring_card_to_top_or_add(card_id, _factory)
+
+    def update_ui(self) -> None:
+        """Update 1D designer view components and cards when settings change."""
+        self._update_panel_colours()
+        self.top_right_chart_container.border = ft.Border.all(
+            1, GUIColours.OUTLINE_VARIANT
+        )
+        if isinstance(self.right_v_divider.content, ft.Container):
+            self.right_v_divider.content.bgcolor = GUIColours.DIVIDER_GREY
+        self.form.update_colours(
+            self.form.dna_input,
+            self.form.length_display,
+            self.form.min_len_input,
+            self.form.max_binding_sites_input,
+        )
+        for item in self.primer_list.controls:
+            if isinstance(item, PrimerItemCard):
+                item.update_ui()
+        if self._cached_designer and self._cached_designer.all_dimers:
+            sorted_dimers = sorted(
+                self._cached_designer.all_dimers,
+                key=lambda d: len(d.primer_1.seq),
+            )
+            self.chart_content_container.content = self._build_chart(
+                sorted_dimers
+            )
+        elif not self._analysis_running:
+            self.chart_content_container.content = self._build_chart([])
+        for card in self._active_cards:
+            if isinstance(card, DismissibleSelfDimerCard):
+                card.on_settings_change()
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
 
     def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
         """Clear all inputs, parameters, error messages, and results."""

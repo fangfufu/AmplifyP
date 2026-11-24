@@ -30,7 +30,6 @@ from amplifyp.gui.controllers.theme import ThemeManager
 from amplifyp.gui.controllers.updater import UpdateManager
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.views.settings.primer_list_tile import PrimerListTile
 
 
 def test_navigation_manager_flow() -> None:
@@ -506,25 +505,11 @@ async def test_gui_controller_methods_and_delegations() -> None:
     controller.view_container.content = controller.dimers_view
     controller.on_settings_change()
 
-    # Primer list tile reposition branch in settings change
-    mock_ev = MagicMock()
-    controller.settings_view.primer_list_tile = MagicMock(spec=PrimerListTile)
-    pos_ctrl = MagicMock()
-    set_pos = controller.settings_view.primer_list_tile
-    set_pos.set_primer_info_panel_position = pos_ctrl
-    mock_ev.control = pos_ctrl
-
+    # Settings change on input_view saves settings to local storage
     controller.view_container.content = controller.input_view
-    controller.on_settings_change(mock_ev)
-
-    # Exception safety branch when checking primer list tile
-    class BadSettingsView:
-        @property
-        def primer_list_tile(self) -> None:
-            raise RuntimeError("tile lookup failed")
-
-    controller.settings_view = BadSettingsView()  # type: ignore[assignment]
-    controller.on_settings_change(mock_ev)
+    with patch.object(controller.settings, "save_to_local") as mock_save:
+        controller.on_settings_change(MagicMock())
+        mock_save.assert_called_once_with(mock_page)
 
     # PCR button state updates with validation errors and active primers
     controller.input_data.template = "ATGCATGC"
@@ -581,6 +566,14 @@ async def test_gui_controller_methods_and_delegations() -> None:
         controller.save_last_state()
         controller.load_last_state()
         await controller._load_last_state_async()
+        with patch(
+            "amplifyp.gui.utils.data_helpers.load_last_state_async",
+            new_callable=AsyncMock,
+        ) as mock_web_load:
+            mock_page.web = True
+            await controller._load_last_state_async()
+            mock_web_load.assert_awaited_once_with(controller)
+            mock_page.web = False
         controller._restore_state_from_file("dummy.yaml")
         controller._apply_parsed_state({})
         await controller.save_state(MagicMock())

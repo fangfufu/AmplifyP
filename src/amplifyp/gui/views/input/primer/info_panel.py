@@ -39,7 +39,6 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.settings = settings
         self.font_family = font_family
         self._on_dismiss_callback: Callable[[], None] | None = None
-        self._manually_hidden = False
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -69,17 +68,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             size=self.settings.get("font_size_body", 13),
             selectable=True,
         )
-        self.info_tm_text = ft.Text(
-            "",
-            size=self.settings.get("font_size_body", 13),
-            selectable=True,
-        )
-        self.info_pairs_text = ft.Text(
-            "",
-            size=self.settings.get("font_size_body", 13),
-            selectable=True,
-        )
-        self.info_redundancy_text = ft.Text(
+        self.info_stats_text = ft.Text(
             "",
             size=self.settings.get("font_size_body", 13),
             selectable=True,
@@ -95,9 +84,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.info_body_column = ft.Column(
             [
                 self.info_seq_text,
-                self.info_tm_text,
-                self.info_pairs_text,
-                self.info_redundancy_text,
+                self.info_stats_text,
                 self.info_dimer_text,
                 self.info_dimer_card_container,
             ],
@@ -105,7 +92,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         )
 
         self.content = ft.Container(
-            padding=ft.Padding(10, 2, 10, 0),
+            padding=ft.Padding(10, 2, 10, 2),
             content=ft.Column(
                 [
                     ft.Row(
@@ -152,10 +139,30 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
     def _on_close_click(self, e: ft.Event) -> None:
         """Handle close button click."""
-        self._manually_hidden = True
-        self.visible = False
+        self._show_empty_or_hide()
+        self._update_safe()
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
+
+    def _show_empty_or_hide(self) -> None:
+        """Show an empty placeholder in fixed-height mode, or hide the panel."""
+        if self.settings.get("primer_info_panel_fixed_height", False):
+            self.info_header_text.value = "Primer: -"
+            self.info_seq_text.value = ""
+            self.info_stats_text.value = ""
+            self.info_dimer_text.value = ""
+            self.info_dimer_text.visible = False
+            self.info_dimer_card_container.content = None
+            self.info_dimer_card_container.visible = False
+            self.close_button.visible = False
+            self._apply_height_mode(True)
+            self.visible = True
+        else:
+            self.close_button.visible = True
+            self.visible = False
+            self._apply_height_mode(False)
+            self.info_dimer_card_container.visible = False
+            self.info_dimer_card_container.content = None
 
     def update_panel(
         self,
@@ -167,25 +174,14 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
     ) -> None:
         """Update the primer information panel based on the focused primer."""
         self._on_dismiss_callback = on_dismiss
+        self.font_family = str(
+            self.settings.get("font_family", self.font_family)
+        )
+        self.info_header_text.color = GUIColours.TEXT_ON_SURFACE
+        self.info_seq_text.font_family = self.font_family
+        self.info_dimer_text.color = GUIColours.ERROR_RED
         if focused_idx is None:
-            if (
-                self.settings.get("primer_info_panel_fixed_height", False)
-                and not self._manually_hidden
-            ):
-                self.info_header_text.value = "Primer: -"
-                self.info_seq_text.value = ""
-                self.info_tm_text.value = ""
-                self.info_pairs_text.value = ""
-                self.info_redundancy_text.value = ""
-                self.info_dimer_text.value = ""
-                self.info_dimer_text.visible = False
-                self.info_dimer_card_container.content = None
-                self.info_dimer_card_container.visible = False
-                self._apply_height_mode(True)
-                self.visible = True
-            else:
-                self.visible = False
-                self._apply_height_mode(False)
+            self._show_empty_or_hide()
             on_update_highlights()
             self._update_safe()
             return
@@ -193,20 +189,16 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         try:
             primers = input_data.primers
             if focused_idx < 0 or focused_idx >= len(primers):
-                self.visible = False
-                self._apply_height_mode(False)
+                self._show_empty_or_hide()
                 self._update_safe()
                 return
-
-            self._manually_hidden = False
 
             p_data = primers[focused_idx]
             name_val = p_data.get("name", "").strip()
             seq_val = clean_sequence(p_data.get("seq", ""))
 
             if not seq_val:
-                self.visible = False
-                self._apply_height_mode(False)
+                self._show_empty_or_hide()
                 self._update_safe()
                 return
 
@@ -225,21 +217,21 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
             try:
                 tm = self.settings.calculate_primer_tm(primer_obj)
-                self.info_tm_text.value = f"Tm = {tm:.2f}°C"
+                tm_str = f"Tm = {tm:.2f}°C"
             except (KeyError, ValueError):
-                self.info_tm_text.value = "Tm = N/A"
+                tm_str = "Tm = N/A"
 
-            self.info_pairs_text.value = (
-                f"{primer_obj.ratio_at() * 100:.1f}% AT"
-            )
+            at_str = f"{primer_obj.ratio_at() * 100:.1f}% AT"
 
             if primer_obj.redundant_base_count == 0:
-                self.info_redundancy_text.value = "No redundant bases."
+                redundancy_str = "No redundant bases."
             else:
-                self.info_redundancy_text.value = (
+                redundancy_str = (
                     f"{primer_obj.redundant_base_count} redundant bases "
                     f"(redundancy fold = {primer_obj.redundancy_fold})."
                 )
+
+            self.info_stats_text.value = f"{tm_str}, {at_str}, {redundancy_str}"
 
             pd_settings = self.settings.get_primer_dimer_settings()
             generator = PrimerDimerGenerator(settings=pd_settings)
@@ -270,14 +262,12 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             self._apply_height_mode(
                 bool(self.settings.get("primer_info_panel_fixed_height", False))
             )
+            self.close_button.visible = True
             self.visible = True
 
         except (ValueError, AttributeError, ArithmeticError):
             logger.debug("Failed to calculate primer info, hiding panel")
-            self.visible = False
-            self._apply_height_mode(False)
-            self.info_dimer_card_container.visible = False
-            self.info_dimer_card_container.content = None
+            self._show_empty_or_hide()
 
         self._update_safe()
 

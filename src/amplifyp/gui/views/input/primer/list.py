@@ -161,6 +161,7 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                 row.checkbox.value = is_active
 
             row.set_error(error_message)
+            row.update_appearance(font_family, self.primer_input.settings)
             row.update_tm(self.primer_input.settings)
 
         self.update_row_highlights()
