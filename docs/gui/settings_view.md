@@ -1,7 +1,7 @@
 # AmplifyP GUI — Settings & Preferences View
 
 The **Settings & Preferences View** provides comprehensive options for
-customising algorithm parameters, visual appearance, primer list behavior,
+customising algorithm parameters, visual appearance, primer list behaviour,
 melting temperature ($T_m$) calculations, primer dimer threshold scoring,
 designer view display options, logging diagnostics, and local setting
 persistence.
@@ -83,7 +83,7 @@ behaviour, and melting temperature ($T_m$) calculations within the
     $T_m$ values in the primer list.
 - **Primer Melting Temperature (Tm)**:
   - **Tm Calculation Method**: Dropdown selector for the algorithm:
-    - **SantaLucia 1998 / Owczarzy 2008 (Default)**: Nearest-neighbor
+    - **SantaLucia 1998 / Owczarzy 2008 (Default)**: Nearest-neighbour
       thermodynamics with salt corrections for monovalent and divalent cations.
     - **Lander / Amplify 4**: Empirical formula from the original Amplify4
       program.
@@ -208,9 +208,10 @@ file rotation parameters.
 ## Reset & Local Persistence
 
 - **Reset to Default Button**: Located at the bottom of the Settings View.
-  Clicking **Reset to Default** resets all configuration settings across all
-  tiles to factory defaults, saves the updated state to local storage,
-  reconfigures logging, and refreshes the application UI.
+  Clicking **Reset to Default** opens a confirmation dialogue and, upon
+  confirmation, resets all configuration settings across all tiles to factory
+  defaults, saves the updated state to local storage, reconfigures logging, and
+  refreshes the application UI.
 - **Storage Locations**:
   - **Desktop Platforms (Linux, macOS, Windows)**: Settings are persisted in
     YAML format at the OS-specific config path (`settings.yaml` under
