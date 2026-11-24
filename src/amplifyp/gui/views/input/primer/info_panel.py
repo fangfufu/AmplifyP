@@ -177,6 +177,7 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.font_family = str(
             self.settings.get("font_family", self.font_family)
         )
+        self.info_header_text.color = GUIColours.TEXT_ON_SURFACE
         self.info_seq_text.font_family = self.font_family
         self.info_dimer_text.color = GUIColours.ERROR_RED
         if focused_idx is None:

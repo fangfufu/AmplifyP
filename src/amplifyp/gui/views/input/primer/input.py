@@ -139,14 +139,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                 "one or more selected primers are invalid, or "
                 "have duplicated names/sequences."
             ),
-            color=ft.Colors.ON_ERROR_CONTAINER,
+            color=GUIColours.ERROR_RED,
             weight=ft.FontWeight.BOLD,
             size=13,
         )
         self.error_banner = ft.Container(
             content=self.error_message_text,
             padding=ft.Padding(10, 5, 10, 5),
-            bgcolor=ft.Colors.ERROR_CONTAINER,
+            bgcolor=GUIColours.ERROR_BG,
             border_radius=5,
             visible=False,
         )
@@ -300,6 +300,10 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header_container = self.primer_header
 
         self.primer_list_container.border = ft.Border.all(1, GUIColours.OUTLINE)
+        if isinstance(self.primer_info_divider.content, ft.Container):
+            self.primer_info_divider.content.bgcolor = GUIColours.DIVIDER_GREY
+        self.error_message_text.color = GUIColours.ERROR_RED
+        self.error_banner.bgcolor = GUIColours.ERROR_BG
         self._reposition_info_panel(update=False)
         self._update_primer_info_panel()
 

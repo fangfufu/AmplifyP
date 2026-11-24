@@ -379,12 +379,31 @@ def test_primer_row_components_and_events() -> None:
     row.set_error(None)
     assert row.tooltip is None
 
-    # 5. update_tm
+    # 5. update_tm (preserves _row_gesture_detector, busts cache on Tm settings)
+    settings["show_primer_temperature"] = True
+    row.seq_field.value = "ATGCATGCATGCATGC"
     row.update_tm(settings)
+    assert row._row_gesture_detector in row.content.controls
+    first_tm = row.tm_text.value
+    assert first_tm.endswith("°C")
+
+    settings["tm_method"] = "Lander / Amplify 4"
+    row.update_tm(settings)
+    assert row.tm_text.value != first_tm
+    assert row._row_gesture_detector in row.content.controls
+
+    row.seq_field.value = "NNNNNNNN"
+    with patch.object(
+        settings, "calculate_primer_tm", side_effect=KeyError("bad base")
+    ):
+        row.update_tm(settings)
+    assert row.tm_text.value == "-"
+
     row.seq_field.value = "invalid sequence %%%"
     row.update_tm(settings)
     settings["show_primer_temperature"] = False
     row.update_tm(settings)
+    assert row._row_gesture_detector in row.content.controls
 
 
 def test_template_casing_and_formatter() -> None:
@@ -1971,8 +1990,28 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
             primer_input.primer_info_panel.info_seq_text.font_family
             == "Consolas"
         )
+        assert (
+            primer_input.primer_info_panel.info_header_text.color
+            == GUIColours.TEXT_ON_SURFACE
+        )
         assert primer_input.primer_list_container.border == ft.Border.all(
             1, GUIColours.OUTLINE
+        )
+        reused_row = primer_input.primers_list.controls[0]
+        assert isinstance(reused_row, PrimerRow)
+        assert reused_row.seq_field.text_style is not None
+        assert reused_row.seq_field.text_style.font_family == "Consolas"
+
+        view.template_input.update_ui()
+        expected_outline = ft.Border.all(1, GUIColours.OUTLINE)
+        assert (
+            view.template_input.bases_per_line_value_container.border
+            == expected_outline
+        )
+        assert view.template_input.circular_container.border == expected_outline
+        assert (
+            view.template_input.template_box_container.border
+            == expected_outline
         )
     finally:
         GUIColours.dark_mode = prev_dark

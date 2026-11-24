@@ -64,9 +64,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             read_only=True,
             text_align=ft.TextAlign.RIGHT,
             border=ft.NoInputBorder(),
-            bgcolor=ft.Colors.TRANSPARENT,
-            hover_color=ft.Colors.TRANSPARENT,
-            focused_bgcolor=ft.Colors.TRANSPARENT,
+            bgcolor=GUIColours.TRANSPARENT,
+            hover_color=GUIColours.TRANSPARENT,
+            focused_bgcolor=GUIColours.TRANSPARENT,
             content_padding=ft.Padding(0, 10, 0, 10),
             can_request_focus=False,
         )
@@ -90,9 +90,9 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             expand=False,
             hint_text="Enter DNA sequence here...",
             border=ft.NoInputBorder(),
-            bgcolor=ft.Colors.TRANSPARENT,
-            hover_color=ft.Colors.TRANSPARENT,
-            focused_bgcolor=ft.Colors.TRANSPARENT,
+            bgcolor=GUIColours.TRANSPARENT,
+            hover_color=GUIColours.TRANSPARENT,
+            focused_bgcolor=GUIColours.TRANSPARENT,
             content_padding=ft.Padding(0, 10, 10, 10),
             on_change=self._handle_change,
             on_focus=self._handle_focus,
@@ -267,6 +267,24 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.template_box_container = ft.Container(
+            content=ft.Column(
+                [
+                    ft.ListView(
+                        [self.sequence_layout],
+                        expand=True,
+                        scroll=ft.ScrollMode.ALWAYS,
+                    ),
+                    self.status_bar,
+                ],
+                spacing=0,
+                horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
+            ),
+            expand=True,
+            border=ft.Border.all(1, GUIColours.OUTLINE),
+            border_radius=5,
+            padding=0,
+        )
         self.content = ft.Column(
             [
                 ft.ResponsiveRow(
@@ -317,24 +335,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                         ),
                     ],
                 ),
-                ft.Container(
-                    content=ft.Column(
-                        [
-                            ft.ListView(
-                                [self.sequence_layout],
-                                expand=True,
-                                scroll=ft.ScrollMode.ALWAYS,
-                            ),
-                            self.status_bar,
-                        ],
-                        spacing=0,
-                        horizontal_alignment=ft.CrossAxisAlignment.STRETCH,
-                    ),
-                    expand=True,
-                    border=ft.Border.all(1, GUIColours.OUTLINE),
-                    border_radius=5,
-                    padding=0,
-                ),
+                self.template_box_container,
             ],
             expand=True,
             spacing=5,
@@ -519,6 +520,13 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.status_bar.bgcolor = GUIColours.INFO_HEADER_BG
         self.status_bar.border = ft.Border(
             top=ft.BorderSide(1, GUIColours.OUTLINE)
+        )
+        self.bases_per_line_value_container.border = ft.Border.all(
+            1, GUIColours.OUTLINE
+        )
+        self.circular_container.border = ft.Border.all(1, GUIColours.OUTLINE)
+        self.template_box_container.border = ft.Border.all(
+            1, GUIColours.OUTLINE
         )
 
         self._update_line_numbers(update=False)
