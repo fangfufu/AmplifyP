@@ -199,11 +199,12 @@ def parse_primers_from_text(
         List of primer dicts with ``name``, ``seq``, and ``active`` keys.
     """
     parsed_primers: list[dict[str, Any]] = []
-    for raw_line in content.strip().splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
+    for raw_line in content.splitlines():
+        stripped = raw_line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
 
+        line = raw_line if "\t" in raw_line else stripped
         delimiter = "\t" if "\t" in line else ","
         reader = csv_reader([line], delimiter=delimiter)
         try:
@@ -322,14 +323,16 @@ class ReactionInput:
             and clean_sequence(str(p.get("seq") or "")).strip()
         ]
 
-    def _load_primers(self, primers: Sequence[Mapping[str, Any]]) -> None:
-        """Load primer data from a sequence of primer dicts."""
+    def _parse_primers(
+        self, primers: Sequence[Mapping[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Validate and normalise primer entries without mutating self."""
         primers_obj = cast("object", primers)
         if not isinstance(primers_obj, Sequence) or isinstance(
             primers_obj, (str, bytes)
         ):
             raise ValueError("Invalid primers format: expected a sequence.")
-        self.primers = []
+        parsed_primers: list[dict[str, Any]] = []
         for raw_p in cast("Sequence[object]", primers_obj):
             if not isinstance(raw_p, Mapping):
                 raise ValueError("Invalid primer entry: expected a mapping.")
@@ -340,13 +343,14 @@ class ReactionInput:
                 seq_str = "".join(str(x) for x in seq_items)
             else:
                 seq_str = str(p_seq)
-            self.primers.append(
+            parsed_primers.append(
                 {
                     "name": str(p.get("name", "")),
                     "seq": clean_sequence(seq_str),
                     "active": bool(p.get("active", True)),
                 }
             )
+        return parsed_primers
 
     def to_dict(self) -> dict[str, Any]:
         """Convert input data to a dictionary for serialisation."""
@@ -369,18 +373,24 @@ class ReactionInput:
         if not isinstance(state_obj, Mapping):
             raise ValueError("Invalid input state: expected a mapping.")
         state_map = cast("Mapping[str, Any]", state_obj)
+        new_template = self.template
+        new_circular = self.template_circular
+        new_primers = self.primers
         if "template" in state_map:
             raw_tpl = state_map["template"]
-            self.template = (
+            new_template = (
                 "" if raw_tpl is None else clean_sequence(str(raw_tpl))
             )
         if "template_circular" in state_map:
-            self.template_circular = coerce_bool(
-                state_map["template_circular"], False
-            )
+            new_circular = coerce_bool(state_map["template_circular"], False)
         if "primers" in state_map:
             raw_primers = state_map["primers"]
-            self._load_primers([] if raw_primers is None else raw_primers)
+            new_primers = self._parse_primers(
+                [] if raw_primers is None else raw_primers
+            )
+        self.template = new_template
+        self.template_circular = new_circular
+        self.primers = new_primers
 
     def activate_only_primers(
         self, candidates: Sequence[tuple[str, str]]
@@ -487,6 +497,17 @@ def _empty_settings_dict() -> dict[str, Any]:
     return {}
 
 
+_TYPED_SETTING_PREFIXES = (
+    "bp_score_",
+    "rep_pd_score_",
+    "match_weight_",
+    "run_weight_",
+    "pd_score_",
+    "tm_enthalpy_",
+    "tm_entropy_",
+)
+
+
 @dataclass(slots=True)
 class ProjectState:
     """Represents a complete serialisable AmplifyP project state."""
@@ -540,7 +561,14 @@ class ProjectState:
         """Serialise the project state to a dictionary."""
         result: dict[str, Any] = {"input": self.input.to_dict()}
         if include_settings:
-            combined_settings = dict(self.raw_settings)
+            combined_settings = {
+                k: v
+                for k, v in self.raw_settings.items()
+                if not (
+                    isinstance(cast("object", k), str)
+                    and k.startswith(_TYPED_SETTING_PREFIXES)
+                )
+            }
             combined_settings.update(self.replication_settings.to_dict())
             combined_settings.update(self.primer_dimer_settings.to_dict())
             combined_settings.update(self.tm_settings.to_dict())

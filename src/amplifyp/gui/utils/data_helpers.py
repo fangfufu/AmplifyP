@@ -457,7 +457,12 @@ async def load_last_state_async(controller: Any) -> None:
             )
             return
         state_dict = parsed if "input" in parsed else {"input": parsed}
-        apply_parsed_state(controller, state_dict, ignore_settings=True)
+        try:
+            apply_parsed_state(controller, state_dict, ignore_settings=True)
+        except ValueError as e:
+            logger.exception(
+                "Error applying last state from web storage: %s", e
+            )
 
 
 def load_last_state(controller: Any) -> None:
@@ -483,7 +488,10 @@ def load_last_state(controller: Any) -> None:
     if state_dict and isinstance(state_dict, dict):
         if "input" not in state_dict:
             state_dict = {"input": state_dict}
-        apply_parsed_state(controller, state_dict, ignore_settings=True)
+        try:
+            apply_parsed_state(controller, state_dict, ignore_settings=True)
+        except ValueError as e:
+            logger.exception("Error applying last state from %s: %s", path, e)
 
 
 def restore_state_from_file(controller: Any, path: str) -> None:
@@ -508,18 +516,25 @@ def apply_parsed_state(
     controller: Any, parsed_state: dict[str, Any], ignore_settings: bool = False
 ) -> None:
     """Apply parsed YAML state to the application."""
+    from amplifyp.io import ReactionInput
+
     if "input" in parsed_state:
         input_payload = parsed_state["input"]
         if input_payload is None:
-            controller.input_data.from_dict({"template": "", "primers": []})
+            input_dict: dict[str, Any] = {"template": "", "primers": []}
         elif isinstance(input_payload, Mapping):
-            controller.input_data.from_dict(dict(input_payload))
+            input_dict = dict(input_payload)
         else:
             raise ValueError(
                 "Invalid state file format: 'input' must be a mapping."
             )
     else:
-        controller.input_data.from_dict(parsed_state)
+        input_dict = parsed_state
+
+    staged_input = ReactionInput()
+    staged_input.from_dict(input_dict)
+
+    settings_dict: dict[str, Any] | None = None
     if not ignore_settings and "settings" in parsed_state:
         settings_payload = parsed_state["settings"]
         if settings_payload is not None:
@@ -527,8 +542,12 @@ def apply_parsed_state(
                 raise ValueError(
                     "Invalid state file format: 'settings' must be a mapping."
                 )
-            controller.settings.from_dict(dict(settings_payload))
-            controller.settings.save_to_local(controller.page)
+            settings_dict = dict(settings_payload)
+
+    controller.input_data.from_dict(input_dict)
+    if settings_dict is not None:
+        controller.settings.from_dict(settings_dict)
+        controller.settings.save_to_local(controller.page)
     controller.apply_theme()
     controller.input_view.update_ui()
     controller.settings_view.update_ui()

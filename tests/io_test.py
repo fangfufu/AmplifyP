@@ -259,3 +259,72 @@ def test_project_state_yaml_round_trip(tmp_path: Path) -> None:
     assert parse_primers_from_text(tsv_wrapped) == [
         {"name": "Long Primer", "seq": long_seq, "active": True}
     ]
+
+
+def test_tsv_empty_columns_atomic_input_and_stale_settings_pruning() -> None:
+    """TSV keeps empty columns; ReactionInput and ProjectState behave safely."""
+    # 1. Empty sequence or empty name in TSV rows are preserved
+    draft_tsv = serialise_primers_to_tsv(
+        [{"name": "Draft", "seq": ""}, {"name": "", "seq": "ACGT"}]
+    )
+    assert draft_tsv == "\tDraft\nACGT\t\n"
+    assert parse_primers_from_text(draft_tsv) == [
+        {"name": "Draft", "seq": "", "active": True},
+        {"name": "", "seq": "ACGT", "active": True},
+    ]
+
+    # 2. Failed ReactionInput.from_dict does not partially mutate existing state
+    ri = ReactionInput(
+        template="AAAA",
+        template_circular=True,
+        primers=[{"name": "Existing", "seq": "ACGT", "active": True}],
+    )
+    with pytest.raises(ValueError, match="expected a mapping"):
+        ri.from_dict(
+            {
+                "template": "TTTT",
+                "template_circular": False,
+                "primers": [{"name": "New", "seq": "GGGG"}, "malformed"],
+            }
+        )
+    assert ri.template == "AAAA"
+    assert ri.template_circular is True
+    assert ri.primers == [{"name": "Existing", "seq": "ACGT", "active": True}]
+
+    # 3. ProjectState.to_dict removes stale typed keys when reset to defaults
+    state = ProjectState.from_dict(
+        {
+            "settings": {
+                "match_weight_0": 45,
+                "run_weight_0": 120,
+                "bp_score_A_A": 99,
+                "rep_pd_score_A_A": 15,
+                "tm_enthalpy_A_A": 999,
+                "tm_entropy_A_A": 888,
+                "custom_setting": "preserve_me",
+            }
+        }
+    )
+    del state.replication_settings.match_weight.overrides[0]
+    del state.replication_settings.run_weights.overrides[0]
+    state.replication_settings.primer_dimer_scores = (
+        PrimerDimerSettings().weights.copy()
+    )
+    state.tm_settings = TMSettings()
+
+    dumped_settings = state.to_dict(include_settings=True)["settings"]
+    assert "match_weight_0" not in dumped_settings
+    assert "run_weight_0" not in dumped_settings
+    assert not any(k.startswith("rep_pd_score_") for k in dumped_settings)
+    assert not any(k.startswith("tm_enthalpy_") for k in dumped_settings)
+    assert not any(k.startswith("tm_entropy_") for k in dumped_settings)
+    assert dumped_settings["custom_setting"] == "preserve_me"
+
+    reloaded = ProjectState.from_dict({"settings": dumped_settings})
+    assert reloaded.replication_settings.match_weight[0] != pytest.approx(45.0)
+    assert reloaded.replication_settings.run_weights[0] != pytest.approx(120.0)
+    assert (
+        reloaded.replication_settings.primer_dimer_scores
+        == PrimerDimerSettings().weights
+    )
+    assert reloaded.tm_settings == TMSettings()

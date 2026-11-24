@@ -790,3 +790,99 @@ async def test_load_last_state_async_skips_if_edited_during_await() -> None:
         await load_last_state_async(controller)
 
     assert controller.input_data.template == "CCCCGGGG"
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_failed_state_loads_preserve_existing_input_data(
+    tmp_path: Any,
+) -> None:
+    """Invalid state payloads must not partially mutate live input_data."""
+    import json
+
+    from amplifyp.gui.controller import GUIController
+    from amplifyp.gui.utils.data_helpers import (
+        apply_parsed_state,
+        load_last_state,
+        load_last_state_async,
+        restore_state_from_file,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_page.window = MagicMock()
+    controller = GUIController(mock_page)
+    controller.initialise(load_settings=False)
+
+    orig_primers = [{"name": "Keep", "seq": "ACGTACGT", "active": True}]
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = list(orig_primers)
+
+    # 1. apply_parsed_state with valid template and malformed primer entry
+    with pytest.raises(ValueError, match="expected a mapping"):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {
+                    "template": "TTTT",
+                    "template_circular": False,
+                    "primers": [{"name": "P1", "seq": "AAAA"}, "bad_entry"],
+                }
+            },
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.template_circular is True
+    assert controller.input_data.primers == orig_primers
+
+    # 2. apply_parsed_state with valid input and invalid settings
+    with pytest.raises(ValueError, match="settings"):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {"template": "TTTT", "primers": []},
+                "settings": ["invalid"],
+            },
+            ignore_settings=False,
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 3. restore_state_from_file with malformed primer entry preserves state
+    bad_file = tmp_path / "bad_primers.yaml"
+    bad_file.write_text(
+        "input:\n  template: TTTT\n  primers:\n    - not_a_mapping\n",
+        encoding="utf-8",
+    )
+    restore_state_from_file(controller, str(bad_file))
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 4. load_last_state (desktop) with malformed primer entry preserves state
+    last_file = tmp_path / "last_state.yaml"
+    last_file.write_text(
+        "input:\n  template: TTTT\n  primers: bad_string\n",
+        encoding="utf-8",
+    )
+    with patch.object(
+        controller, "_get_last_state_path", return_value=last_file
+    ):
+        load_last_state(controller)
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 5. load_last_state_async (web) with malformed primer entry preserves state
+    mock_page.web = True
+    bad_web_payload = json.dumps({"template": "TTTT", "primers": ["bad"]})
+
+    class _BadMockPrefs:
+        async def contains_key(self, _key: str) -> bool:
+            return True
+
+        async def get(self, _key: str) -> str:
+            return bad_web_payload
+
+    with patch("flet.SharedPreferences", return_value=_BadMockPrefs()):
+        await load_last_state_async(controller)
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
