@@ -105,7 +105,7 @@ class DrawnPrimer:
         orientation = str(
             self.settings.get("pcr_primer_label_orientation", "Horizontal")
         )
-        font_size = int(self.settings.get("font_size_map_primer", 13))
+        font_size = self.settings._safe_int("font_size_map_primer", 13)
         is_fwd = self.direction == DNADirection.FWD
         colour = GUIColours.FWD_PRIMER if is_fwd else GUIColours.REV_LABEL
 
@@ -121,35 +121,34 @@ class DrawnPrimer:
                 if self.label_width is not None
                 else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
             )
-            if orientation == "45°":
-                proj_w = width * math.cos(math.pi / 4)
-                if is_fwd:
-                    max_left = max(4.0, c_width - 4.0 - proj_w)
-                    left = max(4.0, min(max_left, x_render))
-                    angle = -math.pi / 4
-                    alignment = ft.Alignment(-1, 0)
-                    text_control = ft.Text(
-                        self.name,
-                        color=colour,
-                        size=font_size,
-                        weight=ft.FontWeight.BOLD,
-                    )
-                else:
-                    min_anchor = min(c_width - 4.0, 4.0 + proj_w)
-                    anchor = max(min_anchor, min(c_width - 4.0, x_render))
-                    left = anchor - width
-                    angle = -math.pi / 4
-                    alignment = ft.Alignment(1, 0)
-                    text_control = ft.Text(
-                        self.name,
-                        color=colour,
-                        size=font_size,
-                        weight=ft.FontWeight.BOLD,
-                        width=width,
-                        text_align=ft.TextAlign.RIGHT,
-                    )
+            if orientation == "45°" and not is_fwd:
+                left = x_render - width
+                angle = -math.pi / 4
+                alignment = ft.Alignment(1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                    width=width,
+                    text_align=ft.TextAlign.RIGHT,
+                )
+            elif orientation == "45°":
+                left = x_render
+                angle = -math.pi / 4
+                alignment = ft.Alignment(-1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                )
             else:
-                left = max(4.0, min(c_width - 4.0 - font_size, x_render))
+                half_h = font_size / 2.0
+                left = max(
+                    4.0 + half_h,
+                    min(c_width - 4.0 - half_h, x_render),
+                )
                 angle = -math.pi / 2 if is_fwd else math.pi / 2
                 alignment = ft.Alignment(-1, 0)
                 text_control = ft.Text(
@@ -243,7 +242,7 @@ class DrawnPrimer:
         orientation = str(
             self.settings.get("pcr_primer_label_orientation", "Horizontal")
         )
-        font_size = int(self.settings.get("font_size_map_primer", 13))
+        font_size = self.settings._safe_int("font_size_map_primer", 13)
         row_height = font_size + 5.0
         row_offset = (
             self.label_row * row_height if orientation == "Horizontal" else 0.0

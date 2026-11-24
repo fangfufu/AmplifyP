@@ -1436,3 +1436,134 @@ def test_pcr_zeroed_weights_and_visual_cache() -> None:
         side_effect=AssertionError("Cache miss"),
     ):
         assert view.run_pcr(keep_cards=True) is True
+
+
+def test_pcr_view_keep_cards_does_not_duplicate_banners() -> None:
+    """Test run_pcr(keep_cards=True) preserves cards without cloning banners."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+    mock_page.height = 900
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+    assert len(view.result_list.controls) == 1
+    assert view.cards_header.visible is False
+
+    # Resizing / re-running with keep_cards=True does not duplicate banner
+    view.run_pcr(keep_cards=True)
+    view.run_pcr(keep_cards=True)
+    assert len(view.result_list.controls) == 1
+    assert isinstance(view.result_list.controls[0], ft.Text)
+    assert view.cards_header.visible is False
+
+    # Opening a binding-site card then resizing keeps card and single banner
+    detectors = [
+        c
+        for c in view.diagram_stack.controls
+        if isinstance(c, ft.GestureDetector)
+    ]
+    detectors[0].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 2
+    view.run_pcr(keep_cards=True)
+    cards = [c for c in view.result_list.controls if isinstance(c, ft.Card)]
+    texts = [c for c in view.result_list.controls if isinstance(c, ft.Text)]
+    assert len(cards) == 1
+    assert len(texts) == 1
+    assert isinstance(view.result_list.controls[0], ft.Card)
+    assert view.cards_header.visible is True
+
+
+def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
+    """Test edge primer labels stay anchored at 45° and flip horizontally."""
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.pcr_layout import PCRLayoutSolver
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+    page_width = 680.0
+    target_len = 1000
+    long_fwd_name = "VeryLongForwardEdgePrimerName"
+    long_rev_name = "VeryLongReverseEdgePrimerName"
+
+    fwd_conf: Repliconf = MagicMock(spec=Repliconf, direction=DNADirection.FWD)
+    rev_conf: Repliconf = MagicMock(spec=Repliconf, direction=DNADirection.REV)
+    fwd_var = DirIdx(DNADirection.FWD, 998)
+    rev_var = DirIdx(DNADirection.REV, 2)
+
+    fwd_dict: dict[tuple[int, str], tuple[str, float, Repliconf, DirIdx]] = {
+        (998, long_fwd_name): (long_fwd_name, 12.0, fwd_conf, fwd_var)
+    }
+    rev_dict: dict[tuple[int, str], tuple[str, float, Repliconf, DirIdx]] = {
+        (2, long_rev_name): (long_rev_name, 12.0, rev_conf, rev_var)
+    }
+
+    # 1. 45° mode expands h_margin so diagonal labels stay anchored at x_pos
+    v_target, h_margin, c_width, t_width, _ = (
+        PCRLayoutSolver.calculate_canvas_dimensions(
+            target_length=target_len,
+            num_amplicons=0,
+            fwd_bindings=fwd_dict,
+            rev_bindings=rev_dict,
+            page_width=page_width,
+            label_orientation="45°",
+            font_size_primer=13,
+        )
+    )
+    assert h_margin > 20.0
+
+    settings["pcr_primer_label_orientation"] = "45°"
+    canvas = ft.canvas.Canvas()
+    stack = ft.Stack()
+    dp_fwd = DrawnPrimer(
+        name=long_fwd_name,
+        index=998,
+        conf=fwd_conf,
+        var=fwd_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=t_width,
+        h_margin=h_margin,
+        v_target=v_target,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    dp_fwd.draw(canvas, stack)
+    label_ctrl = next(
+        c
+        for c in stack.controls
+        if isinstance(c, ft.GestureDetector) and c.rotate is not None
+    )
+    assert label_ctrl.left == dp_fwd.x_pos
+
+    # 2. Horizontal mode flips edge-constrained labels to non-overlapping side
+    fwd_x = 20.0 + (998 / target_len) * (c_width - 40.0)
+    fwd_map, _ = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings=fwd_dict,
+        shifted_x={(998, long_fwd_name): fwd_x},
+        c_width=c_width,
+        font_size=13,
+        is_fwd=True,
+    )
+    fwd_lbl_left, _, fwd_w = fwd_map[(998, long_fwd_name)]
+    assert fwd_lbl_left + fwd_w <= fwd_x - 6.0 + 1e-6
+
+    rev_x = 20.0 + (2 / target_len) * (c_width - 40.0)
+    rev_map, _ = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings=rev_dict,
+        shifted_x={(2, long_rev_name): rev_x},
+        c_width=c_width,
+        font_size=13,
+        is_fwd=False,
+    )
+    rev_lbl_left, _, _ = rev_map[(2, long_rev_name)]
+    assert rev_lbl_left >= rev_x + 6.0 - 1e-6

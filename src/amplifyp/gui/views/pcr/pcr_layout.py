@@ -237,11 +237,19 @@ class PCRLayoutSolver:
         for key, (name, s_val, _, _) in bindings.items():
             x_render = shifted_x.get(key, 0.0)
             label_width = max(20.0, len(name) * char_width + 4.0)
+            max_left = max(min_left, c_width - label_width - 4.0)
             if is_fwd:
                 desired_left = x_render + s_val / 2.0 + 4.0
+                if desired_left > max_left:
+                    alt_left = x_render - s_val / 2.0 - 4.0 - label_width
+                    if alt_left >= min_left:
+                        desired_left = alt_left
             else:
                 desired_left = x_render - s_val / 2.0 - 4.0 - label_width
-            max_left = max(min_left, c_width - label_width - 4.0)
+                if desired_left < min_left:
+                    alt_left = x_render + s_val / 2.0 + 4.0
+                    if alt_left <= max_left:
+                        desired_left = alt_left
             left = max(min_left, min(max_left, desired_left))
             unit_left = min(x_render - s_val / 2.0, left)
             unit_right = max(x_render + s_val / 2.0, left + label_width)
@@ -311,9 +319,35 @@ class PCRLayoutSolver:
         """
         h_margin = 20.0
         c_width = max(600.0, page_width - 80.0) if page_width else 800.0
-        t_width = c_width - (2.0 * h_margin)
 
         if label_orientation in ("Vertical", "45°"):
+            char_advance = font_size_primer * 0.72
+            if label_orientation == "45°" and target_length > 0:
+                cos_45 = math.cos(math.pi / 4)
+                needed_margin = h_margin
+                for (idx, _), (name, _, _, _) in fwd_bindings.items():
+                    frac = max(0.0, min(1.0, idx / target_length))
+                    if frac > 0.5:
+                        proj_w = (
+                            max(20.0, len(name) * char_advance + 4.0) * cos_45
+                        )
+                        req = (proj_w + 4.0 - (1.0 - frac) * c_width) / (
+                            2.0 * frac - 1.0
+                        )
+                        needed_margin = max(needed_margin, req)
+                for (idx, _), (name, _, _, _) in rev_bindings.items():
+                    frac = max(0.0, min(1.0, idx / target_length))
+                    if frac < 0.5:
+                        proj_w = (
+                            max(20.0, len(name) * char_advance + 4.0) * cos_45
+                        )
+                        req = (proj_w + 4.0 - frac * c_width) / (
+                            1.0 - 2.0 * frac
+                        )
+                        needed_margin = max(needed_margin, req)
+                h_margin = min(c_width * 0.3, needed_margin)
+
+            t_width = c_width - (2.0 * h_margin)
             max_fwd_len = max(
                 (len(name) for name, _, _, _ in fwd_bindings.values()),
                 default=0,
@@ -328,13 +362,13 @@ class PCRLayoutSolver:
                 if label_orientation == "Vertical"
                 else math.sin(math.pi / 4)
             )
-            char_advance = font_size_primer * 0.72
             fwd_px = max_fwd_len * char_advance * scale
             rev_px = max_rev_len * char_advance * scale
 
             v_target = max(100.0, 66.0 + fwd_px)
             v_frag_start = v_target + 70.0 + rev_px
         else:
+            t_width = c_width - (2.0 * h_margin)
             fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
                 fwd_bindings, target_length, t_width, h_margin
             )

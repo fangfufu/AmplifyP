@@ -269,6 +269,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             self.reset_ui()
             return
 
+        self.diagram_container.border = ft.Border.all(1, GUIColours.OUTLINE)
         self.diagram_container.visible = True
         self.divider.visible = True
 
