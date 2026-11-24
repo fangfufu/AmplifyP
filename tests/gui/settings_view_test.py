@@ -408,6 +408,16 @@ def test_general_tile_all_branches() -> None:
     assert tile.set_dimer_sequence_separator.value == "Dash ('-')"
     assert tile.set_colour_scheme.value == "Dark"
 
+    from amplifyp.gui.colours import GUIColours
+
+    tile._status_state = "error"
+    tile.update_ui()
+    assert tile.status_text.color == GUIColours.ERROR_RED
+
+    tile._status_state = "checking"
+    tile.update_ui()
+    assert tile.status_text.color == GUIColours.MUTED_GREY
+
 
 def test_input_tile_all_branches() -> None:
     """Test all controls and properties of InputTile."""
@@ -909,3 +919,73 @@ def test_gui_settings_constructor_web_get_keys_and_yaml_load() -> None:
             view_yaml_theme.general_tile._load_settings_async(MagicMock())
         )
     assert call_order == ["on_change", "update_ui:dark=False"]
+
+
+def test_weight_tables_sync_no_defaults_and_mounted_update() -> None:
+    """Test LengthwiseWeightTable sync, ScoreTable None defaults, and page."""
+    from amplifyp.gui.views.settings.score_table import ScoreTable
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_on_change = MagicMock()
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=mock_on_change,
+    )
+
+    match_tbl = view.replication_tile.match_weight_table
+
+    # 1. sync_from_settings when indices differ rebuilds rows
+    alt_settings = GUISettings(
+        {
+            "match_weight_0": "11",
+            "match_weight_1": "22",
+            "match_weight_default": "33",
+        }
+    )
+    match_tbl.sync_from_settings(alt_settings)
+    assert match_tbl.indices == [0, 1]
+    assert view.settings_map["match_weight_0"].value == "11"
+    assert view.settings_map["match_weight_1"].value == "22"
+    assert view.settings_map["match_weight_default"].value == "33"
+
+    # 2. sync_from_settings when indices match updates differing field values
+    view.settings_map["match_weight_0"].value = "999"
+    view.settings_map["match_weight_default"].value = "888"
+    match_tbl.sync_from_settings(alt_settings)
+    assert view.settings_map["match_weight_0"].value == "11"
+    assert view.settings_map["match_weight_default"].value == "33"
+
+    # 3. _notify_changed calls self.update() when mounted on a page
+    with (
+        patch.object(
+            type(match_tbl),
+            "page",
+            new_callable=lambda: property(lambda _s: mock_page),
+        ),
+        patch.object(match_tbl, "update") as mock_update,
+    ):
+        match_tbl._notify_changed()
+        mock_update.assert_called_once()
+
+    # 4. ScoreTable._on_reset_click is a no-op when default_weights is None
+    custom_map: dict[str, Any] = {"custom_A_T": ft.TextField(value="5")}
+    no_default_cb = MagicMock()
+    score_tbl = ScoreTable(
+        label="Custom",
+        row_headers=["A"],
+        col_headers=["T"],
+        row_label="R",
+        col_label="C",
+        prefix="custom",
+        settings_map=custom_map,
+        font_size_default=14,
+        font_size_micro=10,
+        font_size_table_header=14,
+        default_weights=None,
+        on_change_handler=no_default_cb,
+    )
+    score_tbl._on_reset_click(None)
+    no_default_cb.assert_not_called()
