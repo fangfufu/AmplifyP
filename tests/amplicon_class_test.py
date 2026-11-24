@@ -17,7 +17,13 @@
 
 import pytest
 
-from amplifyp.amplicon import Amplicon, AmpliconGenerator
+from amplifyp.amplicon import (
+    Amplicon,
+    AmpliconGenerator,
+    AmpliconQuality,
+    AmpliconRanking,
+    sort_amplicons,
+)
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.errors import (
     InvalidAmpliconRangeError,
@@ -260,3 +266,75 @@ def test_amplicon_generator_pre_searched_repliconf() -> None:
     generator.add_repliconf(repliconf)
     amplicons = generator.get_amplicons()
     assert isinstance(amplicons, list)
+
+
+def test_amplicon_quality_tier_parts_and_sorting() -> None:
+    """Test quality_tier, inter_primer_length, sequence_parts, and sorting."""
+    assert create_dummy_amplicon(100.0).quality_tier == AmpliconQuality.GOOD
+    assert create_dummy_amplicon(500.0).quality_tier == AmpliconQuality.OKAY
+    assert (
+        create_dummy_amplicon(1000.0).quality_tier == AmpliconQuality.MODERATE
+    )
+    assert create_dummy_amplicon(2000.0).quality_tier == AmpliconQuality.WEAK
+    assert (
+        create_dummy_amplicon(5000.0).quality_tier == AmpliconQuality.VERY_WEAK
+    )
+
+    fwd = Primer("AAAA", name="F")
+    rev = Primer("TTTT", name="R")
+    amp = Amplicon(
+        product=DNA("AAAACCCCGGGG"),
+        fwd_origin=fwd,
+        rev_origin=rev,
+        start=DirIdx(DNADirection.FWD, 10),
+        end=DirIdx(DNADirection.REV, 20),
+        q_score=250.0,
+        circular=False,
+    )
+    assert amp.inter_primer_length == 4
+    assert amp.sequence_parts == ("AAAA", "CCCC", "GGGG")
+
+    short_amp = Amplicon(
+        product=DNA("AA"),
+        fwd_origin=fwd,
+        rev_origin=rev,
+        start=DirIdx(DNADirection.FWD, 5),
+        end=DirIdx(DNADirection.REV, 15),
+        q_score=100.0,
+        circular=False,
+    )
+    assert short_amp.sequence_parts == ("AA", "", "")
+
+    amp_empty_rev = Amplicon(
+        product=DNA("AAAACCCC"),
+        fwd_origin=fwd,
+        rev_origin=Primer("", name="EmptyRev"),
+        start=DirIdx(DNADirection.FWD, 10),
+        end=DirIdx(DNADirection.REV, 25),
+        q_score=300.0,
+        circular=False,
+    )
+    assert amp_empty_rev.sequence_parts == ("AAAA", "CCCC", "")
+
+    sorted_by_pos = sort_amplicons(
+        [amp, short_amp], AmpliconRanking.POSITION_THEN_LENGTH
+    )
+    assert sorted_by_pos == [short_amp, amp]
+
+    sorted_by_q = sort_amplicons(
+        [amp_empty_rev, amp], AmpliconRanking.QUALITY_SCORE
+    )
+    assert sorted_by_q == [amp, amp_empty_rev]
+
+    sorted_by_pq = sort_amplicons(
+        [amp_empty_rev, amp], AmpliconRanking.POSITION_THEN_QUALITY
+    )
+    assert sorted_by_pq == [amp, amp_empty_rev]
+
+    with pytest.raises(ValueError, match="Invalid"):
+        sort_amplicons([amp], "Invalid ranking")
+
+    with pytest.raises(ValueError, match="non-negative"):
+        Amplicon.split_sequence("ACGT", -1, 1)
+    with pytest.raises(ValueError, match="non-negative"):
+        Amplicon.split_sequence("ACGT", 1, -1)

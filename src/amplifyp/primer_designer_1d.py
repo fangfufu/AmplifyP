@@ -54,6 +54,7 @@ class PrimerDesigner1D:
         "_min_length",
         "_mode",
         "_on_progress",
+        "_origin_counts",
         "_replication_settings",
         "_template",
         "_threshold",
@@ -135,6 +136,7 @@ class PrimerDesigner1D:
         self._replication_settings: ReplicationSettings = replication_settings
         self._aborted: bool = False
         self._dimers: list[PrimerDimer] = []
+        self._origin_counts: list[int | None] = []
 
         self._analyse()
 
@@ -192,6 +194,15 @@ class PrimerDesigner1D:
     def all_dimers(self) -> tuple[PrimerDimer, ...]:
         """The stored self-dimers from initial sequence down to length n."""
         return tuple(self._dimers)
+
+    @property
+    def origin_counts(self) -> tuple[int | None, ...]:
+        """The template binding site counts for each stored step."""
+        return tuple(self._origin_counts)
+
+    def get_origin_count(self, index: int) -> int | None:
+        """Query stored template origin count by 0-indexed step position."""
+        return self._origin_counts[index]
 
     @property
     def best_score(self) -> tuple[int, float]:
@@ -284,6 +295,7 @@ class PrimerDesigner1D:
         the minimum length.
         """
         self._dimers.clear()
+        self._origin_counts.clear()
         truncated_seqs = self._dna.generate_truncations(
             self._min_length, self._mode
         )
@@ -324,6 +336,7 @@ class PrimerDesigner1D:
                 )
             ):
                 self._dimers.append(dimer)
+                self._origin_counts.append(origin_count)
 
             done += 1
             if self._on_progress is not None:

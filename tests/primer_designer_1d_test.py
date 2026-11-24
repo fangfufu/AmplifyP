@@ -215,14 +215,19 @@ def test_primer_designer_origin_filtering() -> None:
     )
     assert designer.template == template_dna
     assert designer.max_origin_count == 2
+    assert len(designer.origin_counts) == len(designer.all_dimers)
     # All stored dimers must satisfy origin_count <= max_origin_count
     from amplifyp.repliconf import Repliconf
 
-    for dimer in designer.all_dimers:
+    for idx, dimer in enumerate(designer.all_dimers):
         repliconf = Repliconf(template_dna, dimer.primer_1)
         repliconf.search()
         cnt = len(repliconf.origin_db.fwd) + len(repliconf.origin_db.rev)
         assert cnt <= 2
+        assert designer.get_origin_count(idx) == cnt
+
+    designer_no_tpl = PrimerDesigner1D(primer_dna, min_length=7)
+    assert designer_no_tpl.origin_counts == (None, None, None, None)
 
 
 def test_primer_designer_origin_invalid_inputs() -> None:
