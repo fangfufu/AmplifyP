@@ -1881,7 +1881,17 @@ def test_primer_info_panel_divider_resizing() -> None:
         primer_input._update_primer_info_panel()
         primer_input.primer_info_divider.update.assert_called_once()
 
-        # Dismiss via close button
+        # Dismiss via close button in fixed-height mode keeps placeholder and
+        # divider visible
+        primer_input.primer_info_divider.update.reset_mock()
+        primer_input.primer_info_panel._on_close_click(MagicMock())
+        assert primer_input.primer_info_divider.visible is True
+        primer_input.primer_info_divider.update.assert_called_once()
+
+        # When fixed-height mode is disabled, dismissing hides the divider
+        settings["primer_info_panel_fixed_height"] = False
+        primer_input.focused_primer_index = 0
+        primer_input._update_primer_info_panel()
         primer_input.primer_info_divider.update.reset_mock()
         primer_input.primer_info_panel._on_close_click(MagicMock())
         assert primer_input.primer_info_divider.visible is False
@@ -1927,8 +1937,8 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
     assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
     assert primer_input.primer_info_panel.close_button.visible is False
 
-    # 4. Dismissing a focused primer hides panel, then update_panel(None)
-    # restores the fixed-height placeholder
+    # 4. Dismissing a focused primer in fixed-height mode reverts directly to
+    # the visible "Primer: -" placeholder without collapsing
     input_data.primers = [
         {"name": "P1", "seq": "ATGCATGCATGCATGC", "active": True}
     ]
@@ -1936,8 +1946,15 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
     primer_input._update_primer_info_panel()
     assert primer_input.primer_info_panel.close_button.visible is True
     primer_input.primer_info_panel._on_close_click(MagicMock())
-    assert primer_input.primer_info_panel.visible is False
-    primer_input._update_primer_info_panel()
     assert primer_input.primer_info_panel.visible is True
     assert primer_input.primer_info_panel.info_header_text.value == "Primer: -"
     assert primer_input.primer_info_panel.close_button.visible is False
+    assert primer_input.focused_primer_index is None
+
+    # 5. When fixed-height mode is disabled, dismissing hides the panel
+    settings["primer_info_panel_fixed_height"] = False
+    primer_input.focused_primer_index = 0
+    primer_input._update_primer_info_panel()
+    assert primer_input.primer_info_panel.visible is True
+    primer_input.primer_info_panel._on_close_click(MagicMock())
+    assert primer_input.primer_info_panel.visible is False

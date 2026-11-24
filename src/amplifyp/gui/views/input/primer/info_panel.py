@@ -39,7 +39,6 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
         self.settings = settings
         self.font_family = font_family
         self._on_dismiss_callback: Callable[[], None] | None = None
-        self._manually_hidden = False
 
         self.info_header_text = ft.Text(
             "Primer: -",
@@ -140,15 +139,14 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
 
     def _on_close_click(self, e: ft.Event) -> None:
         """Handle close button click."""
-        self._manually_hidden = True
-        self.visible = False
+        self._show_empty_or_hide()
+        self._update_safe()
         if self._on_dismiss_callback:
             self._on_dismiss_callback()
 
     def _show_empty_or_hide(self) -> None:
         """Show an empty placeholder in fixed-height mode, or hide the panel."""
         if self.settings.get("primer_info_panel_fixed_height", False):
-            self._manually_hidden = False
             self.info_header_text.value = "Primer: -"
             self.info_seq_text.value = ""
             self.info_stats_text.value = ""
@@ -188,8 +186,6 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
                 self._show_empty_or_hide()
                 self._update_safe()
                 return
-
-            self._manually_hidden = False
 
             p_data = primers[focused_idx]
             name_val = p_data.get("name", "").strip()
