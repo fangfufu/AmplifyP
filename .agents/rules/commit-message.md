@@ -4,7 +4,7 @@ trigger: always_on
 
 # Commit Message Standard
 
-Whenever generating a commit message or running `git commit`, inspect the staged changes (`git diff --staged`) and follow both the **Conventional Commits** specification and the **50/72** rule:
+Whenever generating a commit message or running `git commit`, inspect the effective commit diff — including staged changes (`git diff --staged`), tracked modifications included by `git commit -a` (`git diff HEAD`), and existing commit changes retained when amending (`git show` or `git diff HEAD~1`) — and follow both the **Conventional Commits** specification and the **50/72** rule:
 
 1. **Conventional Commits Format**
    - Header: `<type>(<optional scope>): <subject>` (append `!` before `:` for breaking changes, e.g. `feat!: ...`).
