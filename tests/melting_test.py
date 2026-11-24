@@ -446,3 +446,14 @@ def test_calculate_tm_dispatcher_and_fallback() -> None:
 
     with pytest.raises(ValueError):
         calculate_tm(std_primer, method="Unknown Method")
+
+    # Degenerate IUPAC bases other than N raise
+    # InsufficientThermodynamicDataError rather than leaking KeyError.
+    for deg_seq in ("ACGTRACGT", "ACGTYACGT", "ACGTMACGT", "ACGTVACGT"):
+        iupac_primer = Primer(deg_seq)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm_lander_amplify4(iupac_primer, GLOBAL_TM_SETTINGS)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm(iupac_primer, fallback_to_amplify4=True)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm(iupac_primer, method=TmMethod.LANDER_AMPLIFY4)

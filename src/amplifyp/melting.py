@@ -310,8 +310,14 @@ def calculate_tm_lander_amplify4(
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
     for x, y in pairwise(seq):
-        entr += entropy[y, x]
-        enth += enthalpy[y, x]
+        try:
+            entr += entropy[y, x]
+            enth += enthalpy[y, x]
+        except KeyError as exc:
+            raise InsufficientThermodynamicDataError(
+                "Sequence contains bases without Amplify4 thermodynamic "
+                f"parameters: {(x, y)}"
+            ) from exc
 
     # Scaling applied in Swift code
     entr = -entr * 0.1
