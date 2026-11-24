@@ -1293,3 +1293,44 @@ def test_designer_1d_card_badges_settings() -> None:
         replication_settings=strict_rep,
     )
     assert strict_2d.replication_settings is strict_rep
+
+
+def test_designer_1d_update_ui_runtime_error_and_card_edge_cases() -> None:
+    """Test update_ui RuntimeError handling and DismissibleSelfDimerCard."""
+    from amplifyp.dimer import PrimerDimer
+    from amplifyp.dna import Primer
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.update.side_effect = RuntimeError("update error")
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    view.update_ui()
+
+    p = Primer("ATGCGTACGT", name="TestPrimer")
+    dimer = PrimerDimer(
+        primer_1=p,
+        primer_2=p,
+        quality=80.0,
+        overlap=8,
+        p1_pos=0,
+    )
+    settings = GUISettings()
+    settings._settings["designer_1d_show_tm"] = "false"
+    settings._settings["designer_1d_show_pct_at"] = "true"
+    card = DismissibleSelfDimerCard(
+        card_id="c_str",
+        dimer=dimer,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    assert not _contains_text(card, "Tm:")
+    assert _contains_text(card, "% AT:")
+
+    card_page = MagicMock(spec=ft.Page)
+    with patch.object(
+        type(card), "page", new_callable=lambda: property(lambda _s: card_page)
+    ):
+        card.update_ui()
+        card_page.update.assert_called_once()
+
+        card_page.update.side_effect = RuntimeError("card update err")
+        card.update_ui()
