@@ -1256,6 +1256,13 @@ def test_designer_1d_card_badges_settings() -> None:
         )
         assert item_card._seq_field.text_style is not None
         assert item_card._seq_field.text_style.font_family == "Consolas"
+
+        # Empty chart placeholder also tracks theme colour
+        view._cached_designer = None
+        view.update_ui()
+        empty_chart_text = view.chart_content_container.content.content
+        assert isinstance(empty_chart_text, ft.Text)
+        assert empty_chart_text.color == GUIColours.TEXT_ON_SURFACE
     finally:
         GUIColours.dark_mode = prev_dark
 

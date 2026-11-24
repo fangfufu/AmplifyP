@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.utils.gui_helpers import copy_text_to_clipboard
 
 if TYPE_CHECKING:
     from amplifyp.dna import Primer
@@ -102,24 +103,20 @@ def build_primer_summary_row(
         copy button.
     """
     tm_text, pct_at_text = format_primer_properties(primer, settings)
+    font_family = str(settings.get("font_family", "Roboto Mono"))
 
     seq_field = ft.TextField(
         value=primer.seq,
         read_only=True,
         expand=True,
         dense=True,
+        text_style=ft.TextStyle(font_family=font_family),
         border_color=GUIColours.OUTLINE,
         content_padding=ft.Padding(8, 4, 8, 4),
     )
 
-    async def _copy_seq_async() -> None:
-        await ft.Clipboard().set(primer.seq)
-
     def _copy_seq(e: ft.ControlEvent) -> None:
-        try:
-            e.page.run_task(_copy_seq_async)  # pyright: ignore[reportAttributeAccessIssue]
-        except RuntimeError:
-            pass
+        copy_text_to_clipboard(e.page, primer.seq)
 
     copy_btn = ft.IconButton(
         icon=ft.Icons.COPY,

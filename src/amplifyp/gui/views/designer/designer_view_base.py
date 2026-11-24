@@ -278,6 +278,19 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         has_cards = len(self.right_cards_list.controls) > 0
         self.clear_cards_button.visible = has_cards
 
+    def _update_panel_colours(self) -> None:
+        """Refresh panel borders and split dividers from active theme."""
+        self.top_left_container.border = ft.Border.all(
+            1, GUIColours.OUTLINE_VARIANT
+        )
+        self.bottom_left_container.border = ft.Border.all(
+            1, GUIColours.OUTLINE_VARIANT
+        )
+        if isinstance(self.main_h_divider.content, ft.Container):
+            self.main_h_divider.content.bgcolor = GUIColours.DIVIDER_GREY
+        if isinstance(self.left_v_divider.content, ft.Container):
+            self.left_v_divider.content.bgcolor = GUIColours.DIVIDER_GREY
+
     async def _save_parameters_yaml(
         self,
         dialog_title: str,

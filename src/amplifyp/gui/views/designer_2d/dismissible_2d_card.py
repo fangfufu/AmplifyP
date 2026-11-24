@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import cast
 
 import flet as ft
 
@@ -75,31 +76,13 @@ class Dismissible2DCard(DismissibleDetailCard):
         rev_p = step.rev_rev.primer_1
         fwd_len = len(fwd_p.seq)
         rev_len = len(rev_p.seq)
+        self._fwd_p = fwd_p
+        self._rev_p = rev_p
 
         title = f"2D Primer Pair (Forward: {fwd_len} nt, Reverse: {rev_len} nt)"
 
         font_size_small = settings.get("font_size_small", 12)
         font_size_default = settings.get("font_size_default", 14)
-
-        # Right hand side title metric boxes
-        title_controls = [
-            create_badge(
-                f"Max Quality: {round(step.max_quality)}",
-                font_size=font_size_small,
-            ),
-            create_badge(
-                f"Max Overlap: {step.max_overlap} bp",
-                font_size=font_size_small,
-            ),
-        ]
-
-        if self.amplicon_count is not None:
-            title_controls.append(
-                create_badge(
-                    f"Amplicons: {self.amplicon_count}",
-                    font_size=font_size_small,
-                )
-            )
 
         def _on_pcr_click(e: ft.ControlEvent) -> None:
             if self.on_run_pcr_callback:
@@ -120,13 +103,16 @@ class Dismissible2DCard(DismissibleDetailCard):
             ),
             on_click=_on_pcr_click,
         )
-        title_controls.append(self.pcr_button)
+        title_controls = self._build_title_controls(font_size_small)
 
         # Primer details section (Forward & Reverse)
-        primer_info_section = self._build_primer_details_section(
+        self.primer_info_section = self._build_primer_details_section(
             fwd_p=fwd_p,
             rev_p=rev_p,
             font_size_small=font_size_small,
+        )
+        self._primer_divider = ft.Divider(
+            height=1, color=GUIColours.OUTLINE_VARIANT
         )
 
         # Dimer pair subcontainers
@@ -136,8 +122,8 @@ class Dismissible2DCard(DismissibleDetailCard):
         )
 
         card_body = [
-            primer_info_section,
-            ft.Divider(height=1, color=GUIColours.OUTLINE_VARIANT),
+            self.primer_info_section,
+            self._primer_divider,
             self.dimer_subcontainers,
         ]
 
@@ -150,11 +136,52 @@ class Dismissible2DCard(DismissibleDetailCard):
             title_controls=title_controls,
         )
 
+    def _build_title_controls(self, font_size_small: int) -> list[ft.Control]:
+        """Build header metric badges and Run PCR button."""
+        title_controls: list[ft.Control] = [
+            create_badge(
+                f"Max Quality: {round(self.step.max_quality)}",
+                font_size=font_size_small,
+            ),
+            create_badge(
+                f"Max Overlap: {self.step.max_overlap} bp",
+                font_size=font_size_small,
+            ),
+        ]
+        if self.amplicon_count is not None:
+            title_controls.append(
+                create_badge(
+                    f"Amplicons: {self.amplicon_count}",
+                    font_size=font_size_small,
+                )
+            )
+        title_controls.append(self.pcr_button)
+        return title_controls
+
     def on_settings_change(self) -> None:
-        """Update dimer subcontainers and sequence font when settings change."""
+        """Update header badges, primer details, alignment cards, and font."""
         self.font_family = self.settings.get("font_family", self.font_family)
         font_size_small = self.settings.get("font_size_small", 12)
         font_size_default = self.settings.get("font_size_default", 14)
+
+        container = cast(ft.Container, self.content)
+        card_col = cast(ft.Column, container.content)
+        title_row = cast(ft.Row, card_col.controls[0])
+        title_row.controls = [
+            title_row.controls[0],
+            *self._build_title_controls(font_size_small),
+            title_row.controls[-1],
+        ]
+
+        new_primer_info = self._build_primer_details_section(
+            fwd_p=self._fwd_p,
+            rev_p=self._rev_p,
+            font_size_small=font_size_small,
+        )
+        self.primer_info_section.content = new_primer_info.content
+        self.primer_info_section.bgcolor = new_primer_info.bgcolor
+        self._primer_divider.color = GUIColours.OUTLINE_VARIANT
+
         new_subcontainers = self._build_dimer_subcontainers(
             font_size_default=font_size_default,
             font_size_small=font_size_small,
