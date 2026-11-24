@@ -281,6 +281,11 @@ class PrimerDesigner2D:
         return self._max_amplicon_count
 
     @property
+    def replication_settings(self) -> ReplicationSettings:
+        """The replication settings used for template amplicon searches."""
+        return self._replication_settings
+
+    @property
     def aborted(self) -> bool:
         """Whether the analysis was stopped before completion."""
         return self._aborted

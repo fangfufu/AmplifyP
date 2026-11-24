@@ -714,6 +714,22 @@ class PrimerDesignerView(BaseDesignerView):
         )
         if isinstance(self.right_v_divider.content, ft.Container):
             self.right_v_divider.content.bgcolor = GUIColours.DIVIDER_GREY
+        for field in (
+            self.form.dna_input,
+            self.form.length_display,
+            self.form.min_len_input,
+            self.form.max_binding_sites_input,
+            self.form.max_quality_input,
+            self.form.max_overlap_input,
+        ):
+            field.border_color = GUIColours.OUTLINE
+        self.form.filter_dna_checkbox.border = ft.Border.all(
+            1, GUIColours.OUTLINE
+        )
+        self.form.error_text.color = GUIColours.ERROR_RED
+        for item in self.primer_list.controls:
+            if isinstance(item, PrimerItemCard):
+                item.update_ui()
         if self._cached_designer and self._cached_designer.all_dimers:
             sorted_dimers = sorted(
                 self._cached_designer.all_dimers,

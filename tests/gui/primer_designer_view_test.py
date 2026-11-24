@@ -1238,18 +1238,31 @@ def test_designer_1d_card_badges_settings() -> None:
     settings["designer_1d_show_tm"] = True
     settings["designer_1d_show_pct_at"] = False
     settings["sequence_separator"] = "Dash ('-')"
-    view.update_ui()
-    assert _contains_text(open_card, "Tm:")
-    assert not _contains_text(open_card, "% AT:")
-    assert _contains_text(open_card, "5'-")
+    settings["font_family"] = "Consolas"
+    from amplifyp.gui.colours import GUIColours
+    from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
 
-    # ReplicationSettings cutoffs affect Designer 1D origin counts & filtering
-    settings["primability_cutoff"] = "0.9999"
-    settings["stability_cutoff"] = "0.9999"
-    view.max_binding_sites_input.value = "0"
-    # Impossible cutoff > 1.0 yields 0 sites in PrimerDesigner1D
+    prev_dark = GUIColours.dark_mode
+    try:
+        GUIColours.dark_mode = True
+        view.update_ui()
+        assert _contains_text(open_card, "Tm:")
+        assert not _contains_text(open_card, "% AT:")
+        assert _contains_text(open_card, "5'-")
+        item_card = view.primer_list.controls[0]
+        assert isinstance(item_card, PrimerItemCard)
+        assert item_card._badge_containers[0].bgcolor == (
+            GUIColours.SELECTED_ROW_BG
+        )
+        assert item_card._seq_field.text_style is not None
+        assert item_card._seq_field.text_style.font_family == "Consolas"
+    finally:
+        GUIColours.dark_mode = prev_dark
+
+    # ReplicationSettings cutoffs affect Designer 1D & 2D origin searches
     from amplifyp.dna import DNA
     from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.primer_designer_2d import PrimerDesigner2D
     from amplifyp.settings import ReplicationSettings
 
     strict_rep = ReplicationSettings(
@@ -1264,3 +1277,12 @@ def test_designer_1d_card_badges_settings() -> None:
     )
     assert strict_designer.replication_settings is strict_rep
     assert len(strict_designer.all_dimers) == 2
+
+    strict_2d = PrimerDesigner2D(
+        fwd_dna=DNA("ATGCGTACGT"),
+        fwd_min_length=10,
+        rev_dna=DNA("ACGTACGCAT"),
+        rev_min_length=10,
+        replication_settings=strict_rep,
+    )
+    assert strict_2d.replication_settings is strict_rep
