@@ -777,3 +777,93 @@ def test_lengthwise_weight_tables_add_remove_reset_and_persistence() -> None:
         assert settings["bp_score_G_G"] == str(
             DEFAULT_BASE_PAIR_WEIGHTS["G", "G"]
         )
+
+
+def test_gui_settings_constructor_web_get_keys_and_yaml_load() -> None:
+    """Test GUISettings constructor, web get_keys fast path, and YAML load."""
+    from amplifyp.gui.colours import GUIColours
+
+    # 1. Constructor delegates to from_dict (prunes omitted lengthwise weights)
+    init_settings = GUISettings(
+        {"match_weight_0": "77", "dark_mode": "system", "custom_extra": "ok"}
+    )
+    assert init_settings["match_weight_0"] == "77"
+    assert "match_weight_14" not in init_settings
+    assert init_settings["custom_extra"] == "ok"
+
+    # 2. Web load_from_local_async uses async get_keys fast path
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = True
+    mock_prefs = MagicMock()
+    mock_prefs.get_keys = AsyncMock(
+        return_value=[
+            "amplifyp.settings.font_family",
+            "amplifyp.settings.match_weight_default",
+            "amplifyp.settings.match_weight_0",
+        ]
+    )
+    store = {
+        "amplifyp.settings.font_family": "Consolas",
+        "amplifyp.settings.match_weight_default": "1",
+        "amplifyp.settings.match_weight_0": "88",
+    }
+    mock_prefs.get = AsyncMock(side_effect=lambda k: store[k])
+    mock_prefs.contains_key = AsyncMock(
+        side_effect=AssertionError("Should use get_keys fast path")
+    )
+
+    web_settings = GUISettings()
+    with patch("flet.SharedPreferences", return_value=mock_prefs):
+        asyncio.run(web_settings.load_from_local_async(mock_page))
+    assert web_settings["font_family"] == "Consolas"
+    assert web_settings["match_weight_0"] == "88"
+    assert "match_weight_14" not in web_settings
+
+    # 3. Loading YAML via GeneralTile inside SettingsView does not clobber
+    # non-integer-MB log_rotation_max_bytes or save twice
+    desktop_page = MagicMock(spec=ft.Page)
+    desktop_page.web = False
+    desktop_page.overlay = []
+    settings = GUISettings()
+    on_change_calls: list[Any] = []
+    view = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=lambda e: on_change_calls.append(e),
+        on_reset=lambda e: setattr(GUIColours, "dark_mode", False),
+    )
+
+    yaml_payload = yaml.safe_dump(
+        {"font_family": "Courier New", "log_rotation_max_bytes": 2621440}
+    )
+    with (
+        patch(
+            "amplifyp.gui.views.settings.general_tile.pick_and_read_file",
+            new=AsyncMock(return_value=yaml_payload),
+        ),
+        patch.object(settings, "save_to_local") as mock_save,
+    ):
+        asyncio.run(view.general_tile._load_settings_async(MagicMock()))
+
+    assert settings["font_family"] == "Courier New"
+    assert settings["log_rotation_max_bytes"] == 2621440
+    assert len(on_change_calls) == 1
+    mock_save.assert_not_called()  # delegated to controller on_change
+
+    # 4. Resetting from Dark mode runs on_reset before update_ui and saves once
+    settings["dark_mode"] = True
+    GUIColours.dark_mode = True
+    shared_cb = MagicMock(
+        side_effect=lambda _e: setattr(GUIColours, "dark_mode", False)
+    )
+    view_reset = SettingsView(
+        page=desktop_page,
+        settings=settings,
+        on_change=shared_cb,
+        on_reset=shared_cb,
+    )
+    with patch.object(settings, "save_to_local") as mock_save_reset:
+        view_reset._on_reset_handler(None)
+    assert GUIColours.dark_mode is False
+    assert shared_cb.call_count == 1
+    assert mock_save_reset.call_count == 0

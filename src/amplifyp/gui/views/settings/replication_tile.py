@@ -327,10 +327,6 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         """Update Flet UI controls to match theme/settings."""
         self.match_weight_table.sync_from_settings(self.settings)
         self.run_weight_table.sync_from_settings(self.settings)
-        self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
-        self.match_weight_table.table.heading_row_color = (
-            GUIColours.INFO_HEADER_BG
-        )
-        self.run_weight_table.table.heading_row_color = (
-            GUIColours.INFO_HEADER_BG
-        )
+        self.score_table.update_colours(self.score_table.table)
+        self.match_weight_table.update_colours(self.match_weight_table.table)
+        self.run_weight_table.update_colours(self.run_weight_table.table)

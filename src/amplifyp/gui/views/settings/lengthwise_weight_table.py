@@ -66,9 +66,10 @@ class LengthwiseWeightTable(WeightTableBase):
         if default_key not in self.settings_map:
             self.settings_map[default_key] = self._create_field("0")
 
+        entry_noun = self.row_header_label.lower()
         self.add_button = ft.IconButton(
             icon=ft.Icons.ADD,
-            tooltip="Add length entry",
+            tooltip=f"Add {entry_noun} entry",
             on_click=self._on_add_click,
             icon_size=16,
             padding=0,
@@ -77,7 +78,7 @@ class LengthwiseWeightTable(WeightTableBase):
         )
         self.remove_button = ft.IconButton(
             icon=ft.Icons.REMOVE,
-            tooltip="Remove last length entry",
+            tooltip=f"Remove last {entry_noun} entry",
             on_click=self._on_remove_click,
             icon_size=16,
             padding=0,
@@ -115,12 +116,7 @@ class LengthwiseWeightTable(WeightTableBase):
 
     def _create_field(self, value: str) -> ft.TextField:
         """Create a borderless TextField matching ScoreTable styling."""
-        field = ft.TextField(
-            value=value,
-            text_size=self.font_size_default,
-            on_change=self.on_change_handler,
-        )
-        return self._style_field(field, width=65)
+        return self._create_cell_field(value, width=65)
 
     def _make_row(self, row_label: str, field: ft.TextField) -> ft.DataRow:
         """Create a DataRow with a centred label and weight field."""

@@ -49,6 +49,7 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         self.font_size_default = font_size_default
         self.font_size_table_header = font_size_table_header
         self.on_change_handler = on_change_handler
+        self.table_container: ft.Container | None = None
 
     def _wrap_centred(self, control: ft.Control, width: int) -> ft.Container:
         """Wrap a control in a fixed-width, centred Container."""
@@ -78,7 +79,18 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         field.dense = True
         field.text_align = ft.TextAlign.CENTER
         field.text_vertical_align = ft.VerticalAlignment.CENTER
+        field.text_style = ft.TextStyle(
+            color=GUIColours.DIAGRAM_BLACK, size=self.font_size_default
+        )
         return field
+
+    def _create_cell_field(self, value: str, width: int) -> ft.TextField:
+        """Create a borderless, centred table cell TextField."""
+        field = ft.TextField(
+            value=value,
+            on_change=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
+        )
+        return self._style_field(field, width=width)
 
     def _create_data_table(
         self,
@@ -107,13 +119,22 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         self, table: ft.DataTable, width: int | None = None
     ) -> ft.Container:
         """Wrap a DataTable in a rounded outline Container."""
-        return ft.Container(
+        self.table_container = ft.Container(
             content=table,
             border=ft.Border.all(1, GUIColours.OUTLINE),
             border_radius=5,
             padding=0,
             width=width,
         )
+        return self.table_container
+
+    def update_colours(self, table: ft.DataTable) -> None:
+        """Refresh dynamic GUIColours on the DataTable and its container."""
+        table.heading_row_color = GUIColours.INFO_HEADER_BG
+        table.vertical_lines = ft.BorderSide(1, GUIColours.DIVIDER_GREY)
+        table.horizontal_lines = ft.BorderSide(1, GUIColours.DIVIDER_GREY)
+        if self.table_container is not None:
+            self.table_container.border = ft.Border.all(1, GUIColours.OUTLINE)
 
     def _create_reset_button(
         self, on_click: Callable[[ft.Event | None], None]

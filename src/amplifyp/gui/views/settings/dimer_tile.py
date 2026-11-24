@@ -130,4 +130,4 @@ class DimerTile(ft.ExpansionTile):  # type: ignore[misc]
 
     def update_ui(self) -> None:
         """Update Flet UI controls to match theme/settings."""
-        self.score_table.table.heading_row_color = GUIColours.INFO_HEADER_BG
+        self.score_table.update_colours(self.score_table.table)

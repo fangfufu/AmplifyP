@@ -56,6 +56,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         update_ui_callback: Callable[[], None],
         on_update_found: Callable[[str], None] | None = None,
         on_reset_callback: Callable[[], None] | None = None,
+        on_external_load_callback: Callable[[], None] | None = None,
     ) -> None:
         """Initialise the GeneralTile."""
         self.app_page = page
@@ -66,9 +67,11 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.update_ui_callback = update_ui_callback
         self.on_update_found = on_update_found
         self.on_reset_callback = on_reset_callback
+        self.on_external_load_callback = on_external_load_callback
         self.notification_helper = NotificationHelper(page)
         self.filepicker_open = False
         self._factory_reset_dialogue: ft.AlertDialog | None = None
+        self._status_state: str | None = None
 
         # --- Appearance settings ---
         self.set_font_family = ft.Dropdown(
@@ -373,6 +376,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
 
         self.check_button.disabled = True
         self.status_text.value = "Checking for updates..."
+        self._status_state = "checking"
         self.status_text.color = GUIColours.MUTED_GREY
         self.app_page.update()
 
@@ -388,6 +392,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 "Could not check for updates. "
                 "Please check your network connection."
             )
+            self._status_state = "error"
             self.status_text.color = GUIColours.ERROR_RED
         else:
             self.settings["last_version_check_timestamp"] = float(time.time())
@@ -397,11 +402,13 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 self.status_text.value = (
                     f"New version {latest_tag} is available!"
                 )
+                self._status_state = "success"
                 self.status_text.color = GUIColours.SUCCESS_GREEN
                 if self.on_update_found:
                     self.on_update_found(latest_tag)
             else:
                 self.status_text.value = "AmplifyP is up to date."
+                self._status_state = "success"
                 self.status_text.color = GUIColours.SUCCESS_GREEN
 
         self.app_page.update()
@@ -470,15 +477,16 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                 return
 
             self.settings.from_dict(settings_dict)
-            self.settings.save_to_local(self.app_page)
 
             # Sync values back to the UI controls
             self.update_ui_callback()
 
-            # Apply loaded changes (theme, notify views, update PCR
-            # button, etc.)
-            if self.on_change_handler is not None:
-                self.on_change_handler(None)
+            if self.on_external_load_callback is not None:
+                self.on_external_load_callback()
+            else:
+                self.settings.save_to_local(self.app_page)
+                if self.on_change_handler is not None:
+                    self.on_change_handler(None)
 
             self.notification_helper.show_message(
                 "Settings loaded successfully!"
@@ -500,6 +508,13 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             "sequence_separator",
             self.settings.get("dimer_sequence_separator", "Space (' ')"),
         )
+        self.set_colour_scheme.border_color = GUIColours.OUTLINE
+        if self._status_state == "error":
+            self.status_text.color = GUIColours.ERROR_RED
+        elif self._status_state == "success":
+            self.status_text.color = GUIColours.SUCCESS_GREEN
+        elif self._status_state == "checking":
+            self.status_text.color = GUIColours.MUTED_GREY
         self.factory_reset_button.style = ft.ButtonStyle(
             color=GUIColours.ERROR_RED
         )

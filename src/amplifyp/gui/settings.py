@@ -159,25 +159,12 @@ class GUISettings:
             self._settings[f"run_weight_{idx}"] = str(val)
 
         if settings_dict is not None:
-            self._settings.update(settings_dict)
-            if "sequence_separator" in settings_dict:
-                self._settings["dimer_sequence_separator"] = str(
-                    settings_dict["sequence_separator"]
-                )
-            elif "dimer_sequence_separator" in settings_dict:
-                self._settings["sequence_separator"] = str(
-                    settings_dict["dimer_sequence_separator"]
-                )
-            if "colour_deficient" in settings_dict:
-                val = settings_dict["colour_deficient"]
-                if isinstance(val, str):
-                    val = val.lower() in ("true", "1", "yes")
-                GUIColours.colour_deficient_mode = bool(val)
-            if "dark_mode" in settings_dict:
-                val = settings_dict["dark_mode"]
-                if isinstance(val, str):
-                    val = val.lower() in ("true", "1", "yes")
-                GUIColours.dark_mode = bool(val)
+            self.from_dict(settings_dict)
+            for k, v in settings_dict.items():
+                if k not in self._settings and not k.startswith(
+                    ("match_weight_", "run_weight_")
+                ):
+                    self._settings[k] = v
 
     def __getitem__(self, key: str) -> Any:
         """Get a setting value by key.
@@ -609,7 +596,9 @@ class GUISettings:
             self._settings.get("colour_deficient", False)
         )
         dark_mode_val = self._settings.get("dark_mode", False)
-        if str(dark_mode_val).lower() != "system":
+        if str(dark_mode_val).lower() == "system":
+            GUIColours.dark_mode = False
+        else:
             GUIColours.dark_mode = bool(dark_mode_val)
 
     def _get_config_path(self) -> Path:
@@ -629,25 +618,28 @@ class GUISettings:
         prefs = ft.SharedPreferences()
         settings_dict: dict[str, Any] = {}
         storage_prefix = "amplifyp.settings."
-        for k in self._settings:
-            storage_key = f"{storage_prefix}{k}"
-            if await prefs.contains_key(storage_key):
-                settings_dict[k] = await prefs.get(storage_key)
-        for prefix in ("match_weight_", "run_weight_"):
-            idx = 0
-            while await prefs.contains_key(f"{storage_prefix}{prefix}{idx}"):
-                k = f"{prefix}{idx}"
-                if k not in settings_dict:
-                    settings_dict[k] = await prefs.get(f"{storage_prefix}{k}")
-                idx += 1
         if inspect.iscoroutinefunction(getattr(prefs, "get_keys", None)):
             all_keys = await prefs.get_keys(storage_prefix)
             for full_key in all_keys:
-                k = full_key[len(storage_prefix) :]
-                if k not in settings_dict and k.startswith(
-                    ("match_weight_", "run_weight_")
-                ):
+                if full_key.startswith(storage_prefix):
+                    k = full_key[len(storage_prefix) :]
                     settings_dict[k] = await prefs.get(full_key)
+        else:
+            for k in self._settings:
+                storage_key = f"{storage_prefix}{k}"
+                if await prefs.contains_key(storage_key):
+                    settings_dict[k] = await prefs.get(storage_key)
+            for prefix in ("match_weight_", "run_weight_"):
+                idx = 0
+                while await prefs.contains_key(
+                    f"{storage_prefix}{prefix}{idx}"
+                ):
+                    k = f"{prefix}{idx}"
+                    if k not in settings_dict:
+                        settings_dict[k] = await prefs.get(
+                            f"{storage_prefix}{k}"
+                        )
+                    idx += 1
         if settings_dict:
             self.from_dict(settings_dict)
 

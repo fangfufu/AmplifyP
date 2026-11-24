@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import flet as ft
 
@@ -78,6 +78,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
             update_ui_callback=self.update_ui,
             on_update_found=self.on_update_found,
             on_reset_callback=self._on_reset_handler,
+            on_external_load_callback=self._on_external_settings_loaded,
         )
 
         self.input_tile = InputTile(
@@ -351,15 +352,26 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
         for k, v in self.settings.items():
             if k in self.settings_map:
-                if isinstance(
-                    self.settings_map[k], (ft.Checkbox, BorderedCheckbox)
-                ):
-                    self.settings_map[k].value = bool(v)
+                ctrl = self.settings_map[k]
+                if isinstance(ctrl, (ft.Checkbox, BorderedCheckbox)):
+                    ctrl.value = bool(v)
+                    if isinstance(ctrl, BorderedCheckbox):
+                        ctrl.border = ft.Border.all(1, GUIColours.OUTLINE)
                 else:
-                    self.settings_map[k].value = str(v)
-        for ctrl in self.controls:
-            if isinstance(ctrl, ft.Divider):
-                ctrl.color = GUIColours.OUTLINE
+                    ctrl.value = str(v)
+                    if isinstance(ctrl, ft.Dropdown):
+                        ctrl.border_color = GUIColours.OUTLINE
+                    elif isinstance(ctrl, ft.TextField):
+                        if isinstance(ctrl.border, ft.NoInputBorder):
+                            ctrl.text_style = ft.TextStyle(
+                                color=GUIColours.DIAGRAM_BLACK,
+                                size=self.settings.get("font_size_default", 14),
+                            )
+                        else:
+                            ctrl.border_color = GUIColours.OUTLINE
+        for tile_ctrl in self.controls:
+            if isinstance(tile_ctrl, ft.Divider):
+                tile_ctrl.color = GUIColours.OUTLINE
         self.general_tile.update_ui()
         self.replication_tile.update_ui()
         self.dimer_tile.update_ui()
@@ -380,15 +392,25 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         if self.on_change:
             self.on_change(e)
 
+    def _on_external_settings_loaded(self) -> None:
+        """Apply externally loaded settings without overwriting from widgets."""
+        self._reconfigure_logging()
+        if self.on_change:
+            self.on_change(cast(Any, None))
+        else:
+            self.settings.save_to_local(self.app_page)
+            self.app_page.update()
+
     def _on_reset_handler(self, *args: Any) -> None:
         """Handle reset to default button click."""
         self.settings.reset_to_defaults()
-        self.update_ui()
-        self.settings.save_to_local(self.app_page)
         self._reconfigure_logging()
-        self.app_page.update()
         if self.on_reset:
             self.on_reset(args[0] if args else None)
+        self.update_ui()
+        if not self.on_reset or self.on_reset != self.on_change:
+            self.settings.save_to_local(self.app_page)
+            self.app_page.update()
 
     def get_replication_settings(self) -> ReplicationSettings:
         """Get the current settings as a ReplicationSettings object."""

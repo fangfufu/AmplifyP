@@ -309,5 +309,6 @@ class DiagnosticsTile(ft.ExpansionTile):  # type: ignore[misc]
             )
 
         self.log_rotation_max_bytes.value = mb_value
+        self.web_info_text.color = GUIColours.OUTLINE
         self._update_file_path_field()
         self._update_rotation_controls()
