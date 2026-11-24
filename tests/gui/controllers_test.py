@@ -351,7 +351,9 @@ def test_theme_manager_and_brightness_changes() -> None:
 
     mock_ctrl.view_container.content = mock_ctrl.pcr_view
     theme_manager.on_platform_brightness_change()
-    mock_ctrl.pcr_view.run_pcr.assert_called_with(keep_cards=True)
+    mock_ctrl.pcr_view.run_pcr.assert_called_with(
+        keep_cards=True, refresh_cards=True
+    )
 
     mock_ctrl.view_container.content = mock_ctrl.dimers_view
     theme_manager.on_platform_brightness_change()

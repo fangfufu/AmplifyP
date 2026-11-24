@@ -113,10 +113,13 @@ class PCRView(ft.Column):  # type: ignore[misc]
         if self.diagram_panel.diagram_container.visible:
             self.run_pcr(keep_cards=True)
 
-    def run_pcr(self, keep_cards: bool = False) -> bool:
+    def run_pcr(
+        self, keep_cards: bool = False, refresh_cards: bool = False
+    ) -> bool:
         """Execute the PCR simulation and update the UI."""
         saved_cards = self._reset_pcr_ui(keep_cards)
         success = True
+        cache_hit = False
         try:
             current_state_key = (
                 self.input_data.to_dict(),
@@ -127,6 +130,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 and self._cached_pcr is not None
             ):
                 pcr = self._cached_pcr
+                cache_hit = True
             else:
                 pcr = self._execute_pcr_simulation()
                 self._cached_pcr = pcr
@@ -173,16 +177,20 @@ class PCRView(ft.Column):  # type: ignore[misc]
             show_error_dialog(self.app_page, "Error running PCR", str(ex))
             success = False
 
-        if keep_cards:
-            refreshed_cards = [
-                card.rebuild(self.settings)
-                if isinstance(
-                    card, (AmpliconDetailCard, ReplicationContextCard)
-                )
-                else card
-                for card in saved_cards
-            ]
-            self.result_list.controls[0:0] = refreshed_cards
+        if keep_cards and cache_hit and success:
+            retained_cards = (
+                [
+                    card.rebuild(self.settings)
+                    if isinstance(
+                        card, (AmpliconDetailCard, ReplicationContextCard)
+                    )
+                    else card
+                    for card in saved_cards
+                ]
+                if refresh_cards
+                else saved_cards
+            )
+            self.result_list.controls[0:0] = retained_cards
             self._update_cards_header_visibility()
 
         self.app_page.update()

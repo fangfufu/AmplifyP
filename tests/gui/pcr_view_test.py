@@ -1654,7 +1654,8 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
     )
     assert inf_card is not None
 
-    # 5. run_pcr(keep_cards=True) rebuilds open cards with updated theme colours
+    # 5. run_pcr(keep_cards=True) preserves cards on resize and rebuilds
+    # them only when refresh_cards=True (and discards on cache miss)
     mock_page = MagicMock(spec=ft.Page)
     mock_page.dialog = None
     mock_page.width = 800
@@ -1680,10 +1681,25 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
         ]
         detectors[0].on_tap(MagicMock())
         old_cards = list(pcr_view.result_list.controls)
-        GUIColours.dark_mode = True
+
+        # Resize path (refresh_cards=False) keeps existing card instances
         pcr_view.run_pcr(keep_cards=True)
+        resize_cards = list(pcr_view.result_list.controls)
+        assert len(resize_cards) == len(old_cards)
+        assert resize_cards[0] is old_cards[0]
+
+        # Theme/settings path (refresh_cards=True) rebuilds open cards
+        GUIColours.dark_mode = True
+        pcr_view.run_pcr(keep_cards=True, refresh_cards=True)
         new_cards = list(pcr_view.result_list.controls)
         assert len(new_cards) == len(old_cards)
         assert new_cards[0] is not old_cards[0]
+
+        # Replication settings change invalidates cache and discards stale cards
+        pcr_view.settings["primability_cutoff"] = 0.99
+        pcr_view.run_pcr(keep_cards=True, refresh_cards=True)
+        assert not any(
+            isinstance(c, ft.Card) for c in pcr_view.result_list.controls
+        )
     finally:
         GUIColours.dark_mode = prev_dark

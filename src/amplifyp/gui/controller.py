@@ -432,7 +432,7 @@ class GUIController:
 
         # Only redraw/re-simulate active views
         if active_view == self.pcr_view:
-            self.pcr_view.run_pcr(keep_cards=True)
+            self.pcr_view.run_pcr(keep_cards=True, refresh_cards=True)
         elif active_view == self.dimers_view:
             self.dimers_view.run_analysis()
         else:
