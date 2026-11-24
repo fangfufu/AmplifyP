@@ -1719,6 +1719,57 @@ def test_create_overlapped_sequence_view_single_bottom_line() -> None:
     assert text_control.spans[3].text == ""
     assert text_control.spans[4].text == ""
 
+    two_line_ctrl = create_overlapped_sequence_view(
+        top_line="ATGC",
+        mid_line="||||",
+        bottom_line="B1\nTPL",
+        is_dimer=False,
+    )
+    assert two_line_ctrl.spans is not None
+    assert two_line_ctrl.spans[3].text == ""
+    assert two_line_ctrl.spans[4].text == "TPL"
+
+    three_line_ctrl = create_overlapped_sequence_view(
+        top_line="ATGC",
+        mid_line="||||",
+        bottom_line="B1\nCMP\nTPL",
+        is_dimer=False,
+    )
+    assert three_line_ctrl.spans is not None
+    assert three_line_ctrl.spans[3].text == "CMP\n"
+    assert three_line_ctrl.spans[4].text == "TPL"
+
+
+def test_data_helper_last_state_and_apply_validation() -> None:
+    """Test get_last_state_path(None) and apply_parsed_state validation."""
+    from pathlib import Path
+    from unittest.mock import MagicMock, patch
+
+    from amplifyp.gui.utils.data_helpers import (
+        apply_parsed_state,
+        get_last_state_path,
+    )
+
+    expected_path = Path.home() / "last_state.yaml"
+    with patch(
+        "amplifyp.os_paths.get_last_state_path",
+        return_value=expected_path,
+    ) as mock_core_path:
+        assert get_last_state_path(None) == expected_path
+        mock_core_path.assert_called_once_with()
+
+    ctrl = MagicMock()
+    apply_parsed_state(ctrl, {"input": None})
+    ctrl.input_data.from_dict.assert_called_with(
+        {"template": "", "primers": []}
+    )
+
+    with pytest.raises(ValueError, match="input"):
+        apply_parsed_state(ctrl, {"input": ["bad"]})
+
+    with pytest.raises(ValueError, match="settings"):
+        apply_parsed_state(ctrl, {"settings": ["bad"]}, ignore_settings=False)
+
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_pick_and_read_file_branches(tmp_path: Any) -> None:

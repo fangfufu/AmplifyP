@@ -183,3 +183,13 @@ def test_pcr_get_repliconf_and_collect_primer_bindings() -> None:
     fwd_amps, rev_amps = pcr.collect_primer_bindings(pcr.amplicons[:1])
     assert len(fwd_amps) == 1
     assert len(rev_amps) == 1
+
+
+def test_pcr_find_repliconf_fallback_scan() -> None:
+    """Test _find_repliconf falls back to scanning amplicon_generator."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+    del pcr._primer_repliconfs[primer_11bp]
+    found = pcr._find_repliconf(primer_11bp)
+    assert found is not None
+    assert found.primer is primer_11bp

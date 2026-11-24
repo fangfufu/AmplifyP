@@ -344,3 +344,23 @@ def test_core_settings_partial_overrides_and_bad_coercions() -> None:
     assert gui_settings["match_weight_0"] == "45"
     assert "match_weight_1" not in gui_settings
     assert gui_settings["amp4_compat"] is False
+
+    from amplifyp.settings import coerce_bool
+
+    assert coerce_bool("", True) is True
+    assert coerce_bool(1, False) is True
+    assert coerce_bool(0, True) is False
+    assert coerce_bool("maybe", True) is True
+
+    pd_bad_int = PrimerDimerSettings.from_dict({"pd_min_overlap": "bad"})
+    assert pd_bad_int.min_overlap == DEFAULT_PRIMER_DIMER_OVERLAP
+
+    partial_default = BasePairWeightsTbl("AC", "AC", [[1.0, 2.0], [3.0, 4.0]])
+    partial_default._col_map[ord("C")] = -1
+    partial_default._col_map[ord("c")] = -1
+    del partial_default._weight[("A", "C")]
+    tbl_fallback = BasePairWeightsTbl.from_dict(
+        {"tbl_A_A": 9.0}, "tbl", partial_default
+    )
+    assert tbl_fallback["A", "A"] == pytest.approx(9.0)
+    assert tbl_fallback["A", "C"] == pytest.approx(0.0)

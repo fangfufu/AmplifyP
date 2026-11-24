@@ -469,6 +469,21 @@ def test_format_context_lines_alignment_long_label() -> None:
     lines_bot_d = bot_d.split("\n")
     assert lines_bot_d[1].startswith("Context  " + " " * 15 + "5'-")
 
+    # Test reading separator from settings when separator is None
+    from amplifyp.gui.settings import GUISettings
+
+    _top_s, mid_s, _bot_s = format_context_lines(
+        primer_name=long_name,
+        padded_idx=50,
+        conf=conf,
+        origin=origin,
+        L=20,
+        N=100,
+        direction=DNADirection.REV,
+        settings=GUISettings({"sequence_separator": "Dash ('-')"}),
+    )
+    assert mid_s.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+
 
 def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
     """Test that PCRView shows binding sites when 0 amplicons are found."""
@@ -1701,5 +1716,12 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
         assert not any(
             isinstance(c, ft.Card) for c in pcr_view.result_list.controls
         )
+
+        # Invalid pcr_amplicon_ranking falls back to QUALITY_SCORE when drawing
+        pcr_view.settings["primability_cutoff"] = 0.8
+        pcr_view.settings._settings["pcr_amplicon_ranking"] = "InvalidRanking"
+        pcr_view.run_pcr()
+        pcr_view.open_all_cards()
+        assert len(pcr_view.result_list.controls) > 0
     finally:
         GUIColours.dark_mode = prev_dark

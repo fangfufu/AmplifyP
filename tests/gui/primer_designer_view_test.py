@@ -1365,3 +1365,17 @@ def test_compute_origin_counts_uses_captured_replication_settings() -> None:
     counts = view._compute_origin_counts(designer, template, captured_rep)
     assert len(counts) == len(designer.all_dimers)
     assert all(c is not None and c > 0 for c in counts)
+
+    # Fallback scan path when template differs from cached designer template
+    alt_template = DNA("ATGCGTACGTATGCGTACGTATGC")
+    alt_counts = view._compute_origin_counts(
+        designer, alt_template, captured_rep
+    )
+    assert len(alt_counts) == len(designer.all_dimers)
+
+    # Fallback origin count calculation on _on_primer_selected cache miss
+    view.input_data.template = "ATGCGTACGTATGCGTACGT"
+    view.form.filter_dna_checkbox.value = True
+    view._cached_designer = None
+    view._on_primer_selected(designer.all_dimers[0], 0)
+    assert len(view._active_cards) == 1

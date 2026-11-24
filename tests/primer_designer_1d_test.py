@@ -331,3 +331,13 @@ def test_primer_designer_1d_unset_cancel_event_runs_to_completion() -> None:
 
     assert designer.aborted is False
     assert len(designer) == expected_total
+
+
+def test_primer_designer_1d_get_origin_count() -> None:
+    """Test get_origin_count returns the origin count for a given step."""
+    dna_obj = DNA("ATGCGTACGT")
+    tpl = DNA("ATGCGTACGTATGCGTACGT")
+    designer = PrimerDesigner1D(
+        dna_obj, min_length=9, template=tpl, max_origin_count=5
+    )
+    assert designer.get_origin_count(0) == designer.origin_counts[0]
