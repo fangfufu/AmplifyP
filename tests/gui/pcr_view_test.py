@@ -15,9 +15,12 @@
 
 """Tests for PCR View and primer binding site context map popups."""
 
+import math
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import flet as ft
+import pytest
 
 from amplifyp.dna import DNA, DNADirection, Primer
 from amplifyp.gui.colours import GUIColours
@@ -85,7 +88,7 @@ def test_pcr_view_click_context_map() -> None:
     q_text = metrics_row.controls[2].content.value
     assert "Primeability: 1.000" in p_text
     assert "Stability: 1.000" in s_text
-    assert q_text == "Quality: 1"
+    assert q_text == "Quality: 1.000"
 
     # Extract diagram_text
     diagram_text = card.content.content.controls[1].content.controls[0]
@@ -513,7 +516,6 @@ def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
 def test_pcr_view_all_remaining_branches() -> None:
     """Test all remaining branches across PCR view for 100% coverage."""
     from typing import Any, cast
-    from unittest.mock import patch
 
     from amplifyp.amplicon import Amplicon
     from amplifyp.dir_idx import DirIdx
@@ -1063,131 +1065,641 @@ def test_sort_amplicons() -> None:
     assert res_pos_q == [amp3, amp2, amp1]
 
 
-def test_pcr_view_ranking_dropdown() -> None:
-    """Test PCRView ranking dropdown change updates settings and diagram."""
+def test_pcr_view_primer_label_orientation() -> None:
+    """Test horizontal (compact) and vertical primer label orientations."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    # Long primer names to verify vertical vs horizontal compactness
+    input_data.primers = [
+        {
+            "name": "very_long_forward_primer_name",
+            "seq": "TTCCACTGCGAATCATTAAA",
+            "active": True,
+        },
+        {
+            "name": "very_long_reverse_primer_name",
+            "seq": "GTGCAGCCTTGGTGAAAACT",
+            "active": True,
+        },
+    ]
+
+    view = PCRView(mock_page, input_data)
+    assert view.settings["pcr_primer_label_orientation"] == "Horizontal"
+    view.run_pcr()
+
+    horiz_height = view.diagram_panel.diagram_canvas.height
+    horiz_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(horiz_labels) == 2
+    assert all(lbl.rotate is None for lbl in horiz_labels)
+    fwd_lbl = next(
+        lbl
+        for lbl in horiz_labels
+        if lbl.content.value == "very_long_forward_primer_name"
+    )
+    rev_lbl = next(
+        lbl
+        for lbl in horiz_labels
+        if lbl.content.value == "very_long_reverse_primer_name"
+    )
+    # Forward primer is at start (left ~ 20), so label is to its right
+    assert fwd_lbl.left > 20.0
+    # Reverse primer is at end (right ~ 780), so label is to its left
+    assert rev_lbl.left + rev_lbl.content.width < 780.0
+    assert rev_lbl.content.text_align == ft.TextAlign.RIGHT
+
+    # Switch to 45° orientation
+    view.settings["pcr_primer_label_orientation"] = "45°"
+    view.run_pcr()
+
+    diag_height = view.diagram_panel.diagram_canvas.height
+    diag_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(diag_labels) == 2
+    diag_fwd = next(
+        lbl
+        for lbl in diag_labels
+        if lbl.content.value == "very_long_forward_primer_name"
+    )
+    diag_rev = next(
+        lbl
+        for lbl in diag_labels
+        if lbl.content.value == "very_long_reverse_primer_name"
+    )
+    assert (
+        diag_fwd.rotate is not None
+        and diag_fwd.rotate.angle == pytest.approx(-math.pi / 4)
+        and diag_fwd.rotate.alignment == ft.Alignment(-1, 0)
+    )
+    assert (
+        diag_rev.rotate is not None
+        and diag_rev.rotate.angle == pytest.approx(-math.pi / 4)
+        and diag_rev.rotate.alignment == ft.Alignment(1, 0)
+    )
+    assert diag_rev.left + diag_rev.content.width < 780.0
+    assert diag_rev.content.text_align == ft.TextAlign.RIGHT
+
+    # Switch to Vertical orientation
+    view.settings["pcr_primer_label_orientation"] = "Vertical"
+    view.run_pcr()
+
+    vert_height = view.diagram_panel.diagram_canvas.height
+    vert_labels = [
+        ctrl
+        for ctrl in view.diagram_stack.controls
+        if isinstance(ctrl, ft.GestureDetector)
+        and isinstance(ctrl.content, ft.Text)
+        and ctrl.content.value
+        in ("very_long_forward_primer_name", "very_long_reverse_primer_name")
+    ]
+    assert len(vert_labels) == 2
+    assert all(lbl.rotate is not None for lbl in vert_labels)
+    assert horiz_height < diag_height < vert_height
+
+
+def test_horizontal_label_layout_row_stacking_and_clamping() -> None:
+    """Test horizontal label layout stacks overlapping labels into rows."""
+    from amplifyp.gui.views.pcr.pcr_layout import PCRLayoutSolver
+
+    mock_conf = MagicMock()
+    mock_var = MagicMock()
+    bindings: dict[tuple[int, str], tuple[str, float, Any, Any]] = {
+        (0, "long_primer_alpha"): (
+            "long_primer_alpha",
+            16.0,
+            mock_conf,
+            mock_var,
+        ),
+        (5, "long_primer_beta"): (
+            "long_primer_beta",
+            16.0,
+            mock_conf,
+            mock_var,
+        ),
+        (500, "edge_primer"): ("edge_primer", 16.0, mock_conf, mock_var),
+    }
+    shifted_x = {
+        (0, "long_primer_alpha"): 20.0,
+        (5, "long_primer_beta"): 44.0,
+        (500, "edge_primer"): 780.0,
+    }
+
+    layout, num_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings, shifted_x, c_width=800.0, font_size=13, is_fwd=True
+    )
+
+    assert num_rows == 2
+    left_a, row_a, _width_a = layout[(0, "long_primer_alpha")]
+    _left_b, row_b, _width_b = layout[(5, "long_primer_beta")]
+    left_edge, row_edge, width_edge = layout[(500, "edge_primer")]
+
+    assert row_a == 1
+    assert row_b == 0
+    assert row_edge == 0
+    assert left_a >= 20.0 + 8.0 + 4.0
+    assert left_edge + width_edge <= 800.0 - 4.0 + 1e-6
+
+    # Reverse primers: left-hand primer goes in row 0 (closer to baseline),
+    # right-hand primer goes in row 1 (further from baseline) so connector
+    # lines do not cross labels.
+    rev_bindings: dict[tuple[int, str], tuple[str, float, Any, Any]] = {
+        (200, "rev_alpha"): ("rev_alpha", 16.0, mock_conf, mock_var),
+        (224, "rev_beta"): ("rev_beta", 16.0, mock_conf, mock_var),
+    }
+    rev_shifted = {
+        (200, "rev_alpha"): 200.0,
+        (224, "rev_beta"): 224.0,
+    }
+    rev_layout, rev_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
+        rev_bindings, rev_shifted, c_width=800.0, font_size=13, is_fwd=False
+    )
+    assert rev_rows == 2
+    _, rev_row_alpha, _ = rev_layout[(200, "rev_alpha")]
+    _, rev_row_beta, _ = rev_layout[(224, "rev_beta")]
+    assert rev_row_alpha == 0
+    assert rev_row_beta == 1
+
+
+def test_drawn_primer_triangle_and_label_same_line_when_stacked() -> None:
+    """Test that stacked horizontal primers keep triangle and label aligned."""
     from amplifyp.gui.settings import GUISettings
-    from amplifyp.gui.user_data import GUIInput
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+    settings["pcr_primer_label_orientation"] = "Horizontal"
+    mock_conf = MagicMock()
+    mock_var = MagicMock()
+    mock_var.direction = DNADirection.FWD
+
+    canvas = MagicMock()
+    canvas.shapes = []
+    stack = MagicMock()
+    stack.controls = []
+
+    drawn = DrawnPrimer(
+        name="stacked_fwd",
+        index=0,
+        conf=mock_conf,
+        var=mock_var,
+        S=16.0,
+        target_length=100,
+        t_width=760.0,
+        h_margin=20.0,
+        v_target=118.0,
+        settings=settings,
+        on_click=lambda: None,
+        label_left=32.0,
+        label_row=1,
+    )
+    drawn.draw(canvas, stack)
+
+    # Triangle is the second shape (index 1); its tip y is at tri_mid:
+    # v_target (118) - 25 - row_offset (18) - S/2 (8) = 67.0
+    tri_path = canvas.shapes[1]
+    tri_mid_y = tri_path.elements[0].y
+    assert tri_mid_y == 67.0
+
+    # Label is the first stack control; vertically centred on tri_mid_y
+    label_ctrl = stack.controls[0]
+    assert label_ctrl.top == 67.0 - (13 + 3.0) / 2.0
+
+
+def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
+    """Test autoresize fits PCR map up to configured viewport fractions."""
+    from amplifyp.gui.settings import GUISettings
 
     mock_page = MagicMock(spec=ft.Page)
     mock_page.width = 800
+    # 1000 - 100 (nav bar) = 900 available viewport height
+    mock_page.height = 1000
+
     settings = GUISettings()
+    assert settings["pcr_divider_behaviour"] == "autoresize"
+
     input_data = GUIInput()
     input_data.template = (
-        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
     input_data.template_circular = False
     input_data.primers = [
-        {"name": "10290", "seq": "tTccACTGCGAATCATTAAA", "active": True},
-        {"name": "rev_primer", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
 
     view = PCRView(mock_page, input_data, settings)
     view.run_pcr()
 
-    assert view.diagram_header.visible is True
-    assert view.ranking_dropdown.value == "Position, then length"
-    assert len(view.diagram_panel._sorted_amplicons) == 1
+    # Single amplicon canvas is smaller than 1/3 of 900 (300),
+    # clamped to >= 150.0 and <= 300.0.
+    assert view.diagram_container.height is not None
+    assert 150.0 <= view.diagram_container.height <= 300.0
 
-    # Switch ranking via dropdown to "Quality score"
-    mock_event = MagicMock(spec=ft.ControlEvent)
-    mock_event.control = view.ranking_dropdown
-    view.ranking_dropdown.value = "Quality score"
+    # Simulate a tall canvas (many amplicons): capped at 1/3 of viewport.
+    view.diagram_panel.diagram_canvas.height = 1000.0
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 300.0
+
+    # Viewport grows to 1300 (1200 available) -> 1/3 cap becomes 400.0.
+    mock_page.height = 1300
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 400.0
+
+    # 1/4 viewport cap on 1200 available -> 300.0.
+    settings["pcr_divider_behaviour"] = "autoresize_1_4"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 300.0
+
+    # 1/2 viewport cap on 1200 available -> 600.0.
+    settings["pcr_divider_behaviour"] = "autoresize_1_2"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 600.0
+
+    # 2/3 viewport cap on 1200 available -> 800.0.
+    settings["pcr_divider_behaviour"] = "autoresize_2_3"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 800.0
+
+
+def test_pcr_divider_save_proportionality() -> None:
+    """Test saving and restoring PCR map height proportionality."""
+    from amplifyp.gui.settings import GUISettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    # 1100 - 100 (nav bar) = 1000 available viewport height
+    mock_page.height = 1100
+
+    settings = GUISettings()
+    settings["pcr_divider_behaviour"] = "save_proportionality"
+
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+
+    view = PCRView(mock_page, input_data, settings)
+    view.run_pcr()
+
+    # Default ratio 0.375 on 1000px available viewport -> 375.0px
+    assert view.diagram_container.height == 375.0
+
+    # Drag divider down by 125px -> 500px -> ratio 0.5
+    view.diagram_panel.update = MagicMock()
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=125.0))
+        )
+    assert view.diagram_container.height == 500.0
+    assert settings["pcr_map_height_ratio"] == 0.5
+
+    with patch.object(settings, "save_to_local") as mock_save:
+        view.diagram_panel._on_pan_end(MagicMock(spec=ft.DragEndEvent))
+        mock_save.assert_called_once_with(
+            mock_page, keys=("pcr_map_height_ratio",)
+        )
+
+    # Resize to 900px (800 available) preserves 0.5 proportionality -> 400px
+    mock_page.height = 900
+    view._handle_resize(MagicMock())
+    assert view.diagram_container.height == 400.0
+
+    # New view in a new session with the same persisted settings restores 0.5
+    new_view = PCRView(mock_page, input_data, settings)
+    new_view.run_pcr()
+    assert new_view.diagram_container.height == 400.0
+
+    # Tiny viewport height (<= 100px -> 0 available) does not raise
+    mock_page.height = 80
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        new_view.diagram_panel._on_pan_update(
+            MagicMock(local_delta=MagicMock(y=10.0))
+        )
+
+
+def test_pcr_zeroed_weights_and_visual_cache() -> None:
+    """Test zeroed weights do not crash PCR and visual settings hit cache."""
+    from amplifyp.origin import ReplicationOrigin
+    from amplifyp.settings import LengthWiseWeightTbl, ReplicationSettings
+
+    rep = ReplicationSettings(
+        run_weights=LengthWiseWeightTbl(default_weight=0.0, overrides={}),
+        match_weight=LengthWiseWeightTbl(default_weight=0.0, overrides={}),
+    )
+    origin = ReplicationOrigin(target="ATGC", primer="GCAT", settings=rep)
+    assert origin.primability == 0.0
+    assert origin.stability == 0.0
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    mock_page.height = 900
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
+    ]
+    view = PCRView(mock_page, input_data)
+    view.run_pcr()
+
+    # Changing a purely visual setting should reuse cached PCR simulation
+    view.settings["pcr_map_height_ratio"] = 0.5
+    view.settings["pcr_primer_label_orientation"] = "45°"
     with patch.object(
-        view.diagram_panel, "reset_ui", wraps=view.diagram_panel.reset_ui
-    ) as mock_reset_ui:
-        view._on_ranking_change(mock_event)
-        mock_reset_ui.assert_called_once()
-
-    assert settings["pcr_amplicon_ranking"] == "Quality score"
-    assert len(view.diagram_panel._sorted_amplicons) == 1
+        view,
+        "_execute_pcr_simulation",
+        side_effect=AssertionError("Cache miss"),
+    ):
+        assert view.run_pcr(keep_cards=True) is True
 
 
-def test_pcr_view_ranking_change_with_warning_banner() -> None:
-    """Test ranking update updates warning text when amplicons exceed limit."""
-    from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
-
+def test_pcr_view_keep_cards_does_not_duplicate_banners() -> None:
+    """Test run_pcr(keep_cards=True) preserves cards without cloning banners."""
     mock_page = MagicMock(spec=ft.Page)
-    settings = GUISettings()
-    input_data = GUIInput()
-    view = PCRView(mock_page, input_data, settings)
-
-    mock_pcr = MagicMock()
-    mock_pcr.amplicons = [
-        MagicMock(q_score=float(i), start=MagicMock(index=i), product="A")
-        for i in range(MAX_AMPLICONS_RENDER + 1)
-    ]
-    view._cached_pcr = mock_pcr
-
-    warning_text = ft.Text("Warning: 101 amplicons found...")
-    warning_container = ft.Container(content=warning_text)
-    view.result_list.controls = [warning_container]
-
-    mock_event = MagicMock(spec=ft.ControlEvent)
-    mock_event.control = view.ranking_dropdown
-    view.ranking_dropdown.value = "Quality score"
-
-    view._on_ranking_change(mock_event)
-
-    assert "sorted by quality score" in str(warning_text.value)
-    assert settings["pcr_amplicon_ranking"] == "Quality score"
-
-
-def test_pcr_view_ranking_change_open_all_cards() -> None:
-    """Test open_all_cards follows the selected ranking after ranking change."""
-    from amplifyp.gui.settings import GUISettings
-
-    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
     mock_page.width = 800
-    settings = GUISettings()
+    mock_page.height = 900
+
     input_data = GUIInput()
-    # A repeated template produces amplicons where "Position, then length"
-    # and "Quality score" rankings order amplicons differently.
     input_data.template = (
-        "tTccACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC" * 2
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
     )
-    input_data.template_circular = False
     input_data.primers = [
-        {"name": "fwd1", "seq": "tTccACTGCGAATCATTAAA", "active": True},
-        {"name": "rev1", "seq": "gTgcAGCCTTGGTGAAAACT", "active": True},
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
     ]
 
-    view = PCRView(mock_page, input_data, settings)
+    view = PCRView(mock_page, input_data)
     view.run_pcr()
-    assert view._cached_pcr is not None
+    assert len(view.result_list.controls) == 1
+    assert view.cards_header.visible is False
 
-    # Initial order under default "Position, then length"
-    view.open_all_cards()
-    initial_card_ids = [
-        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    # Resizing / re-running with keep_cards=True does not duplicate banner
+    view.run_pcr(keep_cards=True)
+    view.run_pcr(keep_cards=True)
+    assert len(view.result_list.controls) == 1
+    assert isinstance(view.result_list.controls[0], ft.Text)
+    assert view.cards_header.visible is False
+
+    # Opening a binding-site card then resizing keeps card and single banner
+    detectors = [
+        c
+        for c in view.diagram_stack.controls
+        if isinstance(c, ft.GestureDetector)
     ]
-    raw_amp_ids = [
-        (
-            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
-            f"{a.start.index}_{a.end.index}"
+    detectors[0].on_tap(MagicMock())
+    assert len(view.result_list.controls) == 2
+    view.run_pcr(keep_cards=True)
+    cards = [c for c in view.result_list.controls if isinstance(c, ft.Card)]
+    texts = [c for c in view.result_list.controls if isinstance(c, ft.Text)]
+    assert len(cards) == 1
+    assert len(texts) == 1
+    assert isinstance(view.result_list.controls[0], ft.Card)
+    assert view.cards_header.visible is True
+
+
+def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
+    """Test edge primer labels stay anchored at 45° and flip horizontally."""
+    from amplifyp.dir_idx import DirIdx
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.pcr_layout import PCRLayoutSolver
+    from amplifyp.gui.views.pcr.primer_drawing import DrawnPrimer
+
+    settings = GUISettings()
+    page_width = 680.0
+    target_len = 1000
+    long_fwd_name = "VeryLongForwardEdgePrimerName"
+    long_rev_name = "VeryLongReverseEdgePrimerName"
+
+    fwd_conf: Repliconf = MagicMock(spec=Repliconf, direction=DNADirection.FWD)
+    rev_conf: Repliconf = MagicMock(spec=Repliconf, direction=DNADirection.REV)
+    fwd_var = DirIdx(DNADirection.FWD, 998)
+    rev_var = DirIdx(DNADirection.REV, 2)
+
+    fwd_dict: dict[tuple[int, str], tuple[str, float, Repliconf, DirIdx]] = {
+        (998, long_fwd_name): (long_fwd_name, 12.0, fwd_conf, fwd_var)
+    }
+    rev_dict: dict[tuple[int, str], tuple[str, float, Repliconf, DirIdx]] = {
+        (2, long_rev_name): (long_rev_name, 12.0, rev_conf, rev_var)
+    }
+
+    # 1. 45° mode expands h_margin so diagonal labels stay anchored at x_pos
+    v_target, h_margin, c_width, t_width, _ = (
+        PCRLayoutSolver.calculate_canvas_dimensions(
+            target_length=target_len,
+            num_amplicons=0,
+            fwd_bindings=fwd_dict,
+            rev_bindings=rev_dict,
+            page_width=page_width,
+            label_orientation="45°",
+            font_size_primer=13,
         )
-        for a in view._cached_pcr.amplicons
-    ]
+    )
+    assert h_margin > 20.0
 
-    # Switch ranking via dropdown to "Quality score"
-    mock_event = MagicMock(spec=ft.ControlEvent)
-    mock_event.control = view.ranking_dropdown
-    view.ranking_dropdown.value = "Quality score"
-    view._on_ranking_change(mock_event)
+    settings["pcr_primer_label_orientation"] = "45°"
+    canvas = ft.canvas.Canvas()
+    stack = ft.Stack()
+    dp_fwd = DrawnPrimer(
+        name=long_fwd_name,
+        index=998,
+        conf=fwd_conf,
+        var=fwd_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=t_width,
+        h_margin=h_margin,
+        v_target=v_target,
+        settings=settings,
+        on_click=MagicMock(),
+    )
+    dp_fwd.draw(canvas, stack)
+    label_ctrl = next(
+        c
+        for c in stack.controls
+        if isinstance(c, ft.GestureDetector) and c.rotate is not None
+    )
+    assert label_ctrl.left == dp_fwd.x_pos
 
-    # Open all cards and verify expansion follows the selected ranking
-    view.open_all_cards()
-    qual_card_ids = [
-        c._card_id for c in view.result_list.controls if hasattr(c, "_card_id")
+    # 2. Horizontal mode flips edge-constrained labels to non-overlapping side
+    fwd_x = 20.0 + (998 / target_len) * (c_width - 40.0)
+    fwd_map, _ = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings=fwd_dict,
+        shifted_x={(998, long_fwd_name): fwd_x},
+        c_width=c_width,
+        font_size=13,
+        is_fwd=True,
+    )
+    fwd_lbl_left, _, fwd_w = fwd_map[(998, long_fwd_name)]
+    assert fwd_lbl_left + fwd_w <= fwd_x - 6.0 + 1e-6
+
+    rev_x = 20.0 + (2 / target_len) * (c_width - 40.0)
+    rev_map, _ = PCRLayoutSolver.calculate_horizontal_label_layout(
+        bindings=rev_dict,
+        shifted_x={(2, long_rev_name): rev_x},
+        c_width=c_width,
+        font_size=13,
+        is_fwd=False,
+    )
+    rev_lbl_left, _, _ = rev_map[(2, long_rev_name)]
+    assert rev_lbl_left >= rev_x + 6.0 - 1e-6
+
+    # 3. Flipped horizontal labels align toward their triangle (RIGHT when on
+    # left side of x_render, left-aligned when on right side)
+    settings["pcr_primer_label_orientation"] = "Horizontal"
+    stack_h = ft.Stack()
+    DrawnPrimer(
+        name=long_fwd_name,
+        index=998,
+        conf=fwd_conf,
+        var=fwd_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=c_width - 40.0,
+        h_margin=20.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+        label_left=fwd_lbl_left,
+        label_width=fwd_w,
+    ).draw(ft.canvas.Canvas(), stack_h)
+    fwd_text = next(
+        c.content
+        for c in stack_h.controls
+        if isinstance(c, ft.GestureDetector) and isinstance(c.content, ft.Text)
+    )
+    assert fwd_text.text_align == ft.TextAlign.RIGHT
+    assert fwd_text.width == fwd_w
+
+    stack_rev_h = ft.Stack()
+    DrawnPrimer(
+        name=long_rev_name,
+        index=2,
+        conf=rev_conf,
+        var=rev_var,
+        S=12.0,
+        target_length=target_len,
+        t_width=c_width - 40.0,
+        h_margin=20.0,
+        v_target=100.0,
+        settings=settings,
+        on_click=MagicMock(),
+        label_left=rev_lbl_left,
+        label_width=rev_map[(2, long_rev_name)][2],
+    ).draw(ft.canvas.Canvas(), stack_rev_h)
+    rev_text = next(
+        c.content
+        for c in stack_rev_h.controls
+        if isinstance(c, ft.GestureDetector) and isinstance(c.content, ft.Text)
+    )
+    assert rev_text.text_align == ft.TextAlign.START
+    assert rev_text.width is None
+
+    # 4. Zero-denominator quality and infinite amplicon q_score guards
+    from amplifyp.amplicon import Amplicon, AmpliconGenerator
+    from amplifyp.gui.views.pcr.amplicon_drawing import AmpliconDetailCard
+    from amplifyp.origin import ReplicationOrigin
+    from amplifyp.settings import ReplicationSettings
+
+    rep_max = ReplicationSettings(primability_cutoff=1.0, stability_cutoff=1.0)
+    origin_max = ReplicationOrigin(
+        target="ATGC", primer="GCAT", settings=rep_max
+    )
+    assert origin_max.quality == 0.0
+
+    mock_tpl = DNA("ATGCATGCATGCATGC")
+    amp_gen = AmpliconGenerator(mock_tpl)
+    mock_conf_q0 = MagicMock(spec=Repliconf)
+    mock_conf_q0.origin.return_value = origin_max
+    inf_q = amp_gen.get_amplicon_quality_score(
+        mock_conf_q0, mock_conf_q0, fwd_var, rev_var, 100
+    )
+    assert inf_q == float("inf")
+    amp_inf = Amplicon(
+        product=DNA("ATGCATGCATGC"),
+        fwd_origin=Primer("ATGC", name="F"),
+        rev_origin=Primer("GCAT", name="R"),
+        start=DirIdx(DNADirection.FWD, 0),
+        end=DirIdx(DNADirection.REV, 10),
+        q_score=inf_q,
+        circular=False,
+    )
+    assert "very weak" in amp_inf.q_score_report_str(verbose=True)
+    inf_card = AmpliconDetailCard(
+        amp=amp_inf, settings=settings, dismiss_callback=MagicMock()
+    )
+    assert inf_card is not None
+
+    # 5. run_pcr(keep_cards=True) preserves cards on resize and rebuilds
+    # them only when refresh_cards=True (and discards on cache miss)
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+    mock_page.height = 900
+    input_data = GUIInput()
+    input_data.template = (
+        "TTCCACTGCGAATCATTAAAGTGGGTATCACAAATTTGGGAGTTTTCACCAAGGCTGCAC"
+    )
+    input_data.primers = [
+        {"name": "fwd1", "seq": "TTCCACTGCGAATCATTAAA", "active": True},
+        {"name": "rev1", "seq": "GTGCAGCCTTGGTGAAAACT", "active": True},
     ]
-    sorted_amp_ids = [
-        (
-            f"amplicon_{a.fwd_origin.name}_{a.rev_origin.name}_"
-            f"{a.start.index}_{a.end.index}"
+    prev_dark = GUIColours.dark_mode
+    try:
+        GUIColours.dark_mode = False
+        pcr_view = PCRView(mock_page, input_data)
+        pcr_view.run_pcr()
+        pcr_view.open_all_cards()
+        detectors = [
+            c
+            for c in pcr_view.diagram_stack.controls
+            if isinstance(c, ft.GestureDetector)
+        ]
+        detectors[0].on_tap(MagicMock())
+        old_cards = list(pcr_view.result_list.controls)
+
+        # Resize path (refresh_cards=False) keeps existing card instances
+        pcr_view.run_pcr(keep_cards=True)
+        resize_cards = list(pcr_view.result_list.controls)
+        assert len(resize_cards) == len(old_cards)
+        assert resize_cards[0] is old_cards[0]
+
+        # Theme/settings path (refresh_cards=True) rebuilds open cards
+        GUIColours.dark_mode = True
+        pcr_view.run_pcr(keep_cards=True, refresh_cards=True)
+        new_cards = list(pcr_view.result_list.controls)
+        assert len(new_cards) == len(old_cards)
+        assert new_cards[0] is not old_cards[0]
+
+        # Replication settings change invalidates cache and discards stale cards
+        pcr_view.settings["primability_cutoff"] = 0.99
+        pcr_view.run_pcr(keep_cards=True, refresh_cards=True)
+        assert not any(
+            isinstance(c, ft.Card) for c in pcr_view.result_list.controls
         )
-        for a in view.diagram_panel._sorted_amplicons
-    ]
-
-    assert len(qual_card_ids) >= 2
-    assert qual_card_ids == sorted_amp_ids
-    assert qual_card_ids != raw_amp_ids
-    assert qual_card_ids != initial_card_ids
+    finally:
+        GUIColours.dark_mode = prev_dark

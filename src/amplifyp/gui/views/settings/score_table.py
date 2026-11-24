@@ -17,14 +17,17 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
 
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.views.settings.weight_table_base import WeightTableBase
+from amplifyp.settings import BasePairWeightsTbl
 
 
-class ScoreTable(ft.Column):  # type: ignore[misc]
+class ScoreTable(WeightTableBase):
     """A Flet component displaying a grid/table of weight TextFields."""
 
     def __init__(
@@ -39,19 +42,26 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
         font_size_default: int,
         font_size_micro: int,
         font_size_table_header: int,
-        width: int = 810,
+        width: int | None = None,
+        scrollable: bool = True,
+        default_weights: BasePairWeightsTbl | None = None,
+        on_change_handler: Callable[[ft.Event | None], None] | None = None,
     ) -> None:
         """Initialise the ScoreTable."""
-        self.label = label
+        super().__init__(
+            label=label,
+            prefix=prefix,
+            settings_map=settings_map,
+            font_size_default=font_size_default,
+            font_size_table_header=font_size_table_header,
+            on_change_handler=on_change_handler,
+        )
         self.row_headers = row_headers
         self.col_headers = col_headers
         self.row_label = row_label
         self.col_label = col_label
-        self.prefix = prefix
-        self.settings_map = settings_map
-        self.font_size_default = font_size_default
         self.font_size_micro = font_size_micro
-        self.font_size_table_header = font_size_table_header
+        self.default_weights = default_weights
 
         # Diagonal line canvas header
         header_stack = ft.Stack(
@@ -99,98 +109,69 @@ class ScoreTable(ft.Column):  # type: ignore[misc]
             height=36,
         )
 
+        col_width = 30
         columns = [ft.DataColumn(label=header_stack)]
-        for i, c_char in enumerate(self.col_headers):
-            is_last = i == len(self.col_headers) - 1
-            col_width = 48 if is_last else 38
+        for c_char in self.col_headers:
             columns.append(
                 ft.DataColumn(
-                    label=ft.Container(
-                        content=ft.Text(
-                            c_char,
-                            weight=ft.FontWeight.BOLD,
-                            size=self.font_size_table_header,
-                        ),
-                        width=col_width,
-                        alignment=ft.Alignment(0, 0),
-                    )
+                    label=self._build_header_label(c_char, width=col_width)
                 )
             )
 
         rows = []
         for r_char in self.row_headers:
-            cells = [
-                ft.DataCell(
-                    ft.Container(
-                        content=ft.Text(
-                            r_char,
-                            weight=ft.FontWeight.BOLD,
-                            size=self.font_size_table_header,
-                        ),
-                        width=70,
-                        alignment=ft.Alignment(0, 0),
-                    )
-                )
-            ]
-            for i, c_char in enumerate(self.col_headers):
-                is_last = i == len(self.col_headers) - 1
-                col_width = 48 if is_last else 38
+            cells = [ft.DataCell(self._build_header_label(r_char, width=70))]
+            for c_char in self.col_headers:
                 key = f"{self.prefix}_{r_char}_{c_char}"
-                field = self.settings_map[key]
-
-                # Style TextField to match the borderless style in primer table
-                field.border = ft.NoInputBorder()
-                field.width = col_width
-                field.height = 30
-                field.content_padding = 0
-
+                field = self._style_field(
+                    self.settings_map[key], width=col_width
+                )
                 cells.append(
-                    ft.DataCell(
-                        ft.Container(
-                            content=field,
-                            width=col_width,
-                            alignment=ft.Alignment(0, 0),
-                        )
-                    )
+                    ft.DataCell(self._wrap_centred(field, width=col_width))
                 )
 
             rows.append(ft.DataRow(cells=cells))
 
-        self.table = ft.DataTable(
-            border=ft.Border.all(1, GUIColours.TRANSPARENT),
-            vertical_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            horizontal_lines=ft.BorderSide(1, GUIColours.DIVIDER_GREY),
-            column_spacing=10,
-            horizontal_margin=10,
-            heading_row_color=GUIColours.INFO_HEADER_BG,
-            heading_row_height=40,
-            data_row_min_height=36,
-            data_row_max_height=36,
+        self.table = self._create_data_table(
             columns=columns,
             rows=rows,
+            column_spacing=4,
+            horizontal_margin=4,
         )
 
-        super().__init__(
-            [
-                ft.Text(
-                    self.label,
-                    weight=ft.FontWeight.BOLD,
-                    size=self.font_size_default,
-                ),
-                ft.Row(
-                    [
-                        ft.Container(
-                            content=self.table,
-                            border=ft.Border.all(1, GUIColours.OUTLINE),
-                            border_radius=5,
-                            padding=0,
-                            width=width,
-                        )
-                    ],
-                    scroll=ft.ScrollMode.ALWAYS,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                ),
-            ],
-            spacing=10,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        table_container = self._create_table_container(self.table, width=width)
+        table_control: ft.Control = (
+            ft.Row(
+                [table_container],
+                scroll=ft.ScrollMode.ALWAYS,
+                alignment=ft.MainAxisAlignment.CENTER,
+                tight=True,
+            )
+            if scrollable
+            else table_container
         )
+
+        self.reset_button: ft.TextButton | None = None
+        action_controls: list[ft.Control] | None = None
+        if self.default_weights is not None:
+            self.reset_button = self._create_reset_button(self._on_reset_click)
+            action_controls = [self.reset_button]
+
+        self._init_column(
+            table_control=table_control,
+            action_controls=action_controls,
+            spacing=10,
+        )
+
+    def _on_reset_click(self, _e: ft.Event | None) -> None:
+        """Reset this table's entries to their default values."""
+        if self.default_weights is None:
+            return
+        for r_char in self.row_headers:
+            for c_char in self.col_headers:
+                key = f"{self.prefix}_{r_char}_{c_char}"
+                if key in self.settings_map:
+                    self.settings_map[key].value = str(
+                        self.default_weights[r_char, c_char]
+                    )
+        self._notify_changed()

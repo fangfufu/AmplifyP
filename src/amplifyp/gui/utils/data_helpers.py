@@ -18,6 +18,9 @@
 from __future__ import annotations
 
 import asyncio
+import copy
+import inspect
+import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
@@ -302,6 +305,26 @@ async def save_and_write_file(
 # ==============================================================================
 
 
+_LAST_STATE_PREF_KEY = "amplifyp.last_state"
+
+
+def _parse_web_last_state(raw_state: Any) -> dict[str, Any] | None:
+    """Parse stored web last-state payload from JSON, YAML, or dict."""
+    if isinstance(raw_state, dict):
+        return raw_state
+    if not isinstance(raw_state, str) or not raw_state.strip():
+        return None
+    try:
+        loaded = json.loads(raw_state)
+        return loaded if isinstance(loaded, dict) else None
+    except json.JSONDecodeError:
+        try:
+            loaded = yaml.safe_load(raw_state)
+            return loaded if isinstance(loaded, dict) else None
+        except yaml.YAMLError:
+            return None
+
+
 def get_last_state_path(controller: Any) -> Path:
     """Get the OS-specific path for the last saved GUI state."""
     settings_path = cast(Path, controller.settings._get_config_path())
@@ -319,9 +342,28 @@ def save_last_state(controller: Any) -> None:
     }
 
     if getattr(controller.page, "web", False):
-        storage = getattr(controller.page, "client_storage", None)
-        if storage is not None:
-            storage.set("amplifyp.last_state", state_dict["input"])
+        if not hasattr(controller.page, "run_task"):
+            return
+        try:
+            payload = json.dumps(state_dict["input"])
+        except (TypeError, ValueError) as e:
+            logger.exception("Error serialising last state for web: %s", e)
+            return
+        prev_task = getattr(controller, "_web_last_state_task", None)
+
+        async def _save_web() -> None:
+            await _await_pending_task(
+                prev_task, "Previous web state save failed"
+            )
+            try:
+                prefs = ft.SharedPreferences()
+                await prefs.set(_LAST_STATE_PREF_KEY, payload)
+            except Exception as exc:
+                logger.exception(
+                    "Error saving last state to web storage: %s", exc
+                )
+
+        controller._web_last_state_task = controller.page.run_task(_save_web)
     else:
         path = controller._get_last_state_path()
         try:
@@ -335,27 +377,92 @@ def save_last_state(controller: Any) -> None:
             logger.exception("Error saving last state to %s: %s", path, e)
 
 
+async def _await_pending_task(task: Any, err_msg: str) -> None:
+    """Await an unfinished awaitable task, logging errors at debug level."""
+    done_fn = getattr(task, "done", None)
+    if callable(done_fn) and done_fn():
+        return
+    if inspect.isawaitable(task):
+        try:
+            await task
+        except Exception as exc:
+            logger.debug("%s: %s", err_msg, exc)
+
+
+def _snapshot_input_state(controller: Any) -> tuple[Any, Any]:
+    """Capture input_data and template box value for change detection."""
+    input_data = getattr(controller, "input_data", None)
+    to_dict = getattr(input_data, "to_dict", None)
+    raw_dict = to_dict() if callable(to_dict) else None
+    data_snapshot = (
+        copy.deepcopy(raw_dict) if isinstance(raw_dict, dict) else raw_dict
+    )
+    input_view = getattr(controller, "input_view", None)
+    template_input = getattr(input_view, "template_input", None)
+    template_box = getattr(template_input, "template_box", None)
+    template_value = (
+        getattr(template_box, "value", None)
+        if template_box is not None
+        else None
+    )
+    return (data_snapshot, template_value)
+
+
+async def load_last_state_async(controller: Any) -> None:
+    """Asynchronously load the last template and primers on web."""
+    if not controller.settings.get("auto_reload_on_startup", True):
+        return
+
+    if not getattr(controller.page, "web", False):
+        load_last_state(controller)
+        return
+
+    initial_snapshot = _snapshot_input_state(controller)
+
+    await _await_pending_task(
+        getattr(controller, "_web_last_state_task", None),
+        "Pending web state save failed",
+    )
+
+    raw_state: Any = None
+    try:
+        prefs = ft.SharedPreferences()
+        if await prefs.contains_key(_LAST_STATE_PREF_KEY):
+            raw_state = await prefs.get(_LAST_STATE_PREF_KEY)
+    except Exception as e:
+        logger.exception("Error loading last state from web storage: %s", e)
+        return
+
+    parsed = _parse_web_last_state(raw_state)
+    if parsed is not None:
+        if _snapshot_input_state(controller) != initial_snapshot:
+            logger.debug(
+                "Skipping web last-state restore due to intervening input edit"
+            )
+            return
+        state_dict = parsed if "input" in parsed else {"input": parsed}
+        apply_parsed_state(controller, state_dict, ignore_settings=True)
+
+
 def load_last_state(controller: Any) -> None:
     """Load the last template and primers from local/platform storage."""
     if not controller.settings.get("auto_reload_on_startup", True):
         return
 
-    state_dict = None
     if getattr(controller.page, "web", False):
-        storage = getattr(controller.page, "client_storage", None)
-        if storage is not None and storage.contains_key("amplifyp.last_state"):
-            state_dict = storage.get("amplifyp.last_state")
-    else:
-        path = controller._get_last_state_path()
-        if path.exists():
-            try:
-                with open(path, encoding="utf-8") as f:
-                    content = f.read()
-                state_dict = yaml.safe_load(content)
-            except Exception as e:
-                logger.exception(
-                    "Error loading last state from %s: %s", path, e
-                )
+        if hasattr(controller.page, "run_task"):
+            controller.page.run_task(load_last_state_async, controller)
+        return
+
+    state_dict = None
+    path = controller._get_last_state_path()
+    if path.exists():
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+            state_dict = yaml.safe_load(content)
+        except Exception as e:
+            logger.exception("Error loading last state from %s: %s", path, e)
 
     if state_dict and isinstance(state_dict, dict):
         if "input" not in state_dict:
@@ -453,6 +560,8 @@ async def load_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
             return
 
         apply_parsed_state(controller, parsed_state, ignore_settings=True)
+        if getattr(controller.page, "web", False):
+            save_last_state(controller)
         controller.notification_helper.show_message(
             "State loaded successfully!"
         )

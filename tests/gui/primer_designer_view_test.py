@@ -33,8 +33,13 @@ from amplifyp.gui.views.designer_1d import (
 
 def _contains_text(control: ft.Control, text: str) -> bool:
     """Recursively check whether any text in the control tree matches."""
-    if isinstance(control, ft.Text) and text in (control.value or ""):
-        return True
+    if isinstance(control, ft.Text):
+        if text in (control.value or ""):
+            return True
+        if control.spans:
+            joined = "".join(s.text or "" for s in control.spans)
+            if text in joined:
+                return True
     if hasattr(control, "content") and control.content:
         if _contains_text(control.content, text):
             return True
@@ -1212,3 +1217,151 @@ def test_designer_1d_card_badges_settings() -> None:
     )
     assert not _contains_text(card_custom, "Tm:")
     assert _contains_text(card_custom, "% AT:")
+
+    # Live settings refresh on open card via PrimerDesignerView.update_ui
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTATGCGTACGT"
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "9"
+    view.filter_dna_checkbox.value = True
+    assert view.run_designer() is True
+    assert view._cached_designer is not None
+
+    view._on_primer_selected(view._cached_designer.all_dimers[0], 0)
+    assert len(view._active_cards) == 1
+    open_card = view._active_cards[0]
+    assert not _contains_text(open_card, "Tm:")
+    assert _contains_text(open_card, "% AT:")
+
+    settings["designer_1d_show_tm"] = True
+    settings["designer_1d_show_pct_at"] = False
+    settings["sequence_separator"] = "Dash ('-')"
+    settings["font_family"] = "Consolas"
+    from amplifyp.gui.colours import GUIColours
+    from amplifyp.gui.views.designer_1d.primer_item_card import PrimerItemCard
+
+    prev_dark = GUIColours.dark_mode
+    try:
+        GUIColours.dark_mode = True
+        view.update_ui()
+        assert _contains_text(open_card, "Tm:")
+        assert not _contains_text(open_card, "% AT:")
+        assert _contains_text(open_card, "5'-")
+        item_card = view.primer_list.controls[0]
+        assert isinstance(item_card, PrimerItemCard)
+        assert item_card._badge_containers[0].bgcolor == (
+            GUIColours.SELECTED_ROW_BG
+        )
+        assert item_card._seq_field.text_style is not None
+        assert item_card._seq_field.text_style.font_family == "Consolas"
+
+        # Empty chart placeholder also tracks theme colour
+        view._cached_designer = None
+        view.update_ui()
+        empty_chart_text = view.chart_content_container.content.content
+        assert isinstance(empty_chart_text, ft.Text)
+        assert empty_chart_text.color == GUIColours.TEXT_ON_SURFACE
+    finally:
+        GUIColours.dark_mode = prev_dark
+
+    # ReplicationSettings cutoffs affect Designer 1D & 2D origin searches
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.primer_designer_2d import PrimerDesigner2D
+    from amplifyp.settings import ReplicationSettings
+
+    strict_rep = ReplicationSettings(
+        primability_cutoff=1.0, stability_cutoff=1.0
+    )
+    strict_designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=DNA("ATGCGTACGTATGCGTACGT"),
+        max_origin_count=0,
+        replication_settings=strict_rep,
+    )
+    assert strict_designer.replication_settings is strict_rep
+    assert len(strict_designer.all_dimers) == 2
+
+    strict_2d = PrimerDesigner2D(
+        fwd_dna=DNA("ATGCGTACGT"),
+        fwd_min_length=10,
+        rev_dna=DNA("ACGTACGCAT"),
+        rev_min_length=10,
+        replication_settings=strict_rep,
+    )
+    assert strict_2d.replication_settings is strict_rep
+
+
+def test_designer_1d_update_ui_runtime_error_and_card_edge_cases() -> None:
+    """Test update_ui RuntimeError handling and DismissibleSelfDimerCard."""
+    from amplifyp.dimer import PrimerDimer
+    from amplifyp.dna import Primer
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.update.side_effect = RuntimeError("update error")
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    view.update_ui()
+
+    p = Primer("ATGCGTACGT", name="TestPrimer")
+    dimer = PrimerDimer(
+        primer_1=p,
+        primer_2=p,
+        quality=80.0,
+        overlap=8,
+        p1_pos=0,
+    )
+    settings = GUISettings()
+    settings._settings["designer_1d_show_tm"] = "false"
+    settings._settings["designer_1d_show_pct_at"] = "true"
+    card = DismissibleSelfDimerCard(
+        card_id="c_str",
+        dimer=dimer,
+        settings=settings,
+        dismiss_callback=MagicMock(),
+    )
+    assert not _contains_text(card, "Tm:")
+    assert _contains_text(card, "% AT:")
+
+    card_page = MagicMock(spec=ft.Page)
+    with patch.object(
+        type(card), "page", new_callable=lambda: property(lambda _s: card_page)
+    ):
+        card.update_ui()
+        card_page.update.assert_called_once()
+
+        card_page.update.side_effect = RuntimeError("card update err")
+        card.update_ui()
+
+
+def test_compute_origin_counts_uses_captured_replication_settings() -> None:
+    """_compute_origin_counts must use passed settings, not live settings."""
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.settings import ReplicationSettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = PrimerDesignerView(mock_page, GUIInput(), settings)
+
+    captured_rep = ReplicationSettings(
+        primability_cutoff=0.5, stability_cutoff=0.5
+    )
+    template = DNA("ATGCGTACGTATGCGTACGT")
+    designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template,
+        max_origin_count=5,
+        replication_settings=captured_rep,
+    )
+    # Mutate live settings after capture to ensure _compute_origin_counts
+    # ignores live settings and uses captured_rep instead.
+    settings["primability_cutoff"] = 1.0
+    settings["stability_cutoff"] = 1.0
+
+    counts = view._compute_origin_counts(designer, template, captured_rep)
+    assert len(counts) == len(designer.all_dimers)
+    assert all(c is not None and c > 0 for c in counts)

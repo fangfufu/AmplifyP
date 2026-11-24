@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import ItemsView, Iterator, KeysView
 from pathlib import Path
@@ -119,6 +120,9 @@ class GUISettings:
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
+            "pcr_primer_label_orientation": "Horizontal",
+            "pcr_divider_behaviour": "autoresize",
+            "pcr_map_height_ratio": 0.375,
         }
 
         # Initialise base-pair weights
@@ -139,26 +143,28 @@ class GUISettings:
                     DEFAULT_PRIMER_DIMER_WEIGHTS[r_char, c_char]
                 )
 
+        # Initialise lengthwise match and run weights
+        from amplifyp.settings import DEFAULT_MATCH_WEIGHTS, DEFAULT_RUN_WEIGHTS
+
+        self._settings["match_weight_default"] = str(
+            DEFAULT_MATCH_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_MATCH_WEIGHTS.overrides.items():
+            self._settings[f"match_weight_{idx}"] = str(val)
+
+        self._settings["run_weight_default"] = str(
+            DEFAULT_RUN_WEIGHTS.default_weight
+        )
+        for idx, val in DEFAULT_RUN_WEIGHTS.overrides.items():
+            self._settings[f"run_weight_{idx}"] = str(val)
+
         if settings_dict is not None:
-            self._settings.update(settings_dict)
-            if "sequence_separator" in settings_dict:
-                self._settings["dimer_sequence_separator"] = str(
-                    settings_dict["sequence_separator"]
-                )
-            elif "dimer_sequence_separator" in settings_dict:
-                self._settings["sequence_separator"] = str(
-                    settings_dict["dimer_sequence_separator"]
-                )
-            if "colour_deficient" in settings_dict:
-                val = settings_dict["colour_deficient"]
-                if isinstance(val, str):
-                    val = val.lower() in ("true", "1", "yes")
-                GUIColours.colour_deficient_mode = bool(val)
-            if "dark_mode" in settings_dict:
-                val = settings_dict["dark_mode"]
-                if isinstance(val, str):
-                    val = val.lower() in ("true", "1", "yes")
-                GUIColours.dark_mode = bool(val)
+            self.from_dict(settings_dict)
+            for k, v in settings_dict.items():
+                if k not in self._settings and not k.startswith(
+                    ("match_weight_", "run_weight_")
+                ):
+                    self._settings[k] = v
 
     def __getitem__(self, key: str) -> Any:
         """Get a setting value by key.
@@ -173,6 +179,11 @@ class GUISettings:
             KeyError: If the key does not exist.
         """
         return self._settings[key]
+
+    def __delitem__(self, key: str) -> None:
+        """Delete a setting key."""
+        del self._settings[key]
+        self._cached_tm_settings = None
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key with type coercion.
@@ -323,7 +334,13 @@ class GUISettings:
             A ReplicationSettings instance configured from GUI settings.
         """
         from amplifyp.dna import Nucleotides
-        from amplifyp.settings import BasePairWeightsTbl, ReplicationSettings
+        from amplifyp.settings import (
+            DEFAULT_MATCH_WEIGHTS,
+            DEFAULT_RUN_WEIGHTS,
+            BasePairWeightsTbl,
+            LengthWiseWeightTbl,
+            ReplicationSettings,
+        )
 
         bp_weights = []
         for r_char in Nucleotides.PRIMER:
@@ -342,6 +359,41 @@ class GUISettings:
             weight=bp_weights,
         )
 
+        match_overrides: dict[int, float] = {}
+        match_prefix = "match_weight_"
+        for key in self._settings:
+            if key.startswith(match_prefix) and key != "match_weight_default":
+                suffix = key[len(match_prefix) :]
+                if suffix.isdigit():
+                    idx = int(suffix)
+                    match_overrides[idx] = self._safe_float(
+                        key, DEFAULT_MATCH_WEIGHTS.default_weight
+                    )
+
+        run_overrides: dict[int, float] = {}
+        run_prefix = "run_weight_"
+        for key in self._settings:
+            if key.startswith(run_prefix) and key != "run_weight_default":
+                suffix = key[len(run_prefix) :]
+                if suffix.isdigit():
+                    idx = int(suffix)
+                    run_overrides[idx] = self._safe_float(
+                        key, DEFAULT_RUN_WEIGHTS.default_weight
+                    )
+
+        match_weight = LengthWiseWeightTbl(
+            default_weight=self._safe_float(
+                "match_weight_default", DEFAULT_MATCH_WEIGHTS.default_weight
+            ),
+            overrides=match_overrides,
+        )
+        run_weights = LengthWiseWeightTbl(
+            default_weight=self._safe_float(
+                "run_weight_default", DEFAULT_RUN_WEIGHTS.default_weight
+            ),
+            overrides=run_overrides,
+        )
+
         return ReplicationSettings(
             primability_cutoff=self._safe_float(
                 "primability_cutoff", DEFAULT_PRIMABILITY_CUTOFF
@@ -351,6 +403,8 @@ class GUISettings:
             ),
             amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
             base_pair_scores=base_pair_scores,
+            match_weight=match_weight,
+            run_weights=run_weights,
         )
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:
@@ -491,7 +545,14 @@ class GUISettings:
                         else:
                             self._settings[k] = bool(v)
                 elif isinstance(self._settings[k], bool):
-                    self._settings[k] = bool(v)
+                    if isinstance(v, str):
+                        self._settings[k] = v.lower() in (
+                            "true",
+                            "1",
+                            "yes",
+                        )
+                    else:
+                        self._settings[k] = bool(v)
                 elif isinstance(self._settings[k], int):
                     try:
                         self._settings[k] = int(v)
@@ -504,6 +565,27 @@ class GUISettings:
                         pass
                 else:
                     self._settings[k] = str(v)
+        for prefix in ("match_weight_", "run_weight_"):
+            valid_entries: dict[str, str] = {}
+            for incoming_k, incoming_v in settings_dict.items():
+                if not incoming_k.startswith(prefix):
+                    continue
+                suffix = incoming_k[len(prefix) :]
+                if suffix == "default":
+                    valid_entries[incoming_k] = str(incoming_v)
+                elif suffix.isascii() and suffix.isdigit():
+                    canonical_k = f"{prefix}{int(suffix)}"
+                    if (
+                        canonical_k not in valid_entries
+                        or incoming_k == canonical_k
+                    ):
+                        valid_entries[canonical_k] = str(incoming_v)
+            if valid_entries:
+                for existing_k in [
+                    k for k in self._settings if k.startswith(prefix)
+                ]:
+                    del self._settings[existing_k]
+                self._settings.update(valid_entries)
         if "sequence_separator" in settings_dict:
             self._settings["dimer_sequence_separator"] = str(
                 settings_dict["sequence_separator"]
@@ -520,6 +602,20 @@ class GUISettings:
             GUIColours.dark_mode = bool(dark_mode_val)
         self._cached_tm_settings = None
 
+    def reset_to_defaults(self) -> None:
+        """Reset all settings to their factory default values."""
+        defaults = GUISettings()
+        self._settings = dict(defaults._settings)
+        self._cached_tm_settings = None
+        GUIColours.colour_deficient_mode = bool(
+            self._settings.get("colour_deficient", False)
+        )
+        dark_mode_val = self._settings.get("dark_mode", False)
+        if str(dark_mode_val).lower() == "system":
+            GUIColours.dark_mode = False
+        else:
+            GUIColours.dark_mode = bool(dark_mode_val)
+
     def _get_config_path(self) -> Path:
         """Get the OS-specific path for user settings configuration.
 
@@ -535,11 +631,30 @@ class GUISettings:
     async def load_from_local_async(self, page: ft.Page) -> None:
         """Asynchronously load settings from web SharedPreferences."""
         prefs = ft.SharedPreferences()
-        settings_dict = {}
-        for k in self._settings:
-            storage_key = f"amplifyp.settings.{k}"
-            if await prefs.contains_key(storage_key):
-                settings_dict[k] = await prefs.get(storage_key)
+        settings_dict: dict[str, Any] = {}
+        storage_prefix = "amplifyp.settings."
+        if inspect.iscoroutinefunction(getattr(prefs, "get_keys", None)):
+            all_keys = await prefs.get_keys(storage_prefix)
+            for full_key in all_keys:
+                if full_key.startswith(storage_prefix):
+                    k = full_key[len(storage_prefix) :]
+                    settings_dict[k] = await prefs.get(full_key)
+        else:
+            for k in self._settings:
+                storage_key = f"{storage_prefix}{k}"
+                if await prefs.contains_key(storage_key):
+                    settings_dict[k] = await prefs.get(storage_key)
+            for prefix in ("match_weight_", "run_weight_"):
+                idx = 0
+                while await prefs.contains_key(
+                    f"{storage_prefix}{prefix}{idx}"
+                ):
+                    k = f"{prefix}{idx}"
+                    if k not in settings_dict:
+                        settings_dict[k] = await prefs.get(
+                            f"{storage_prefix}{k}"
+                        )
+                    idx += 1
         if settings_dict:
             self.from_dict(settings_dict)
 
@@ -596,9 +711,26 @@ class GUISettings:
                         except Exception as e:
                             logger.debug("Previous web save failed: %s", e)
                     prefs = ft.SharedPreferences()
+                    storage_prefix = "amplifyp.settings."
                     for k, v in snapshot.items():
-                        storage_key = f"amplifyp.settings.{k}"
+                        storage_key = f"{storage_prefix}{k}"
                         await prefs.set(storage_key, v)
+                    if (
+                        keys is None
+                        and inspect.iscoroutinefunction(
+                            getattr(prefs, "get_keys", None)
+                        )
+                        and inspect.iscoroutinefunction(
+                            getattr(prefs, "remove", None)
+                        )
+                    ):
+                        existing_keys = await prefs.get_keys(storage_prefix)
+                        for full_key in existing_keys:
+                            k = full_key[len(storage_prefix) :]
+                            if k not in snapshot and k.startswith(
+                                ("match_weight_", "run_weight_")
+                            ):
+                                await prefs.remove(full_key)
 
                 task = page.run_task(_save_web)
                 self._web_save_task = task

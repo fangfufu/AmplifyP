@@ -59,9 +59,9 @@ terminus:
   also be executed by pressing Enter inside any input field.
 - **Save / Load / Clear All Parameters**:
   - **Save Button**: Saves the current form parameters (including sequence
-    filter and max binding sites) to a YAML file using a file save dialog
+    filter and max binding sites) to a YAML file using a file save dialogue
     (default file name `designer_1d_parameters.yaml`).
-  - **Load Button**: Opens a file picker dialog to import parameters from a
+  - **Load Button**: Opens a file picker dialogue to import parameters from a
     `.yaml` or `.yml` file. Automatically populates input fields, clears
     previous errors, and executes analysis.
   - **Clear All Button**: Clears all form parameters and the analysis results
@@ -93,7 +93,7 @@ length is evaluated.
   - **PCR Button**: A dedicated button on each card to run the PCR simulation
     using the template DNA sequence and this candidate primer directly (added to
     the PCR view as *"1D Primer ({length} nt)"*). If no template sequence is
-    present, a *"Template Required"* dialog is shown instead.
+    present, a *"Template Required"* dialogue is shown instead.
 - **Interactive Selection**: Clicking anywhere on a primer item card selects
   that primer step and opens or brings to top its detailed self-dimer card in
   the right-hand panel.

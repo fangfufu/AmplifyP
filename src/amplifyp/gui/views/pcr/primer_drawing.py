@@ -15,6 +15,7 @@
 
 """Primer drawing class and context card helpers for the PCRView."""
 
+import math
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
@@ -49,6 +50,9 @@ class DrawnPrimer:
         settings: GUISettings,
         on_click: Callable[[], None],
         x_shifted: float | None = None,
+        label_left: float | None = None,
+        label_row: int = 0,
+        label_width: float | None = None,
     ) -> None:
         """Initialise the DrawnPrimer.
 
@@ -66,6 +70,11 @@ class DrawnPrimer:
             on_click: Callback invoked when the primer is clicked.
             x_shifted: Optional overridden x-coordinate for shifted
                 positioning to prevent overlap.
+            label_left: Optional overridden x-coordinate for horizontal
+                label placement.
+            label_row: Row index for stacking horizontal labels without
+                overlap.
+            label_width: Optional precomputed horizontal label width.
         """
         self.name = name
         self.index = index
@@ -79,6 +88,9 @@ class DrawnPrimer:
         self.settings = settings
         self.on_click = on_click
         self.x_shifted = x_shifted
+        self.label_left = label_left
+        self.label_row = label_row
+        self.label_width = label_width
 
         # Calculate coordinates
         self.x_pos = (
@@ -87,6 +99,134 @@ class DrawnPrimer:
             else h_margin
         )
         self.direction = var.direction
+
+    def _add_label(self, stack: ft.Stack, x_render: float) -> None:
+        """Add a horizontal, 45-degree, or vertical primer label to stack."""
+        orientation = str(
+            self.settings.get("pcr_primer_label_orientation", "Horizontal")
+        )
+        font_size = self.settings._safe_int("font_size_map_primer", 13)
+        is_fwd = self.direction == DNADirection.FWD
+        colour = GUIColours.FWD_PRIMER if is_fwd else GUIColours.REV_LABEL
+
+        if orientation in ("Vertical", "45°"):
+            top = (
+                self.v_target - 25 - self.S - font_size
+                if is_fwd
+                else self.v_target + 25 + self.S - 3
+            )
+            c_width = self.t_width + 2.0 * self.h_margin
+            width = (
+                self.label_width
+                if self.label_width is not None
+                else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
+            )
+            if orientation == "45°" and not is_fwd:
+                left = x_render - width
+                angle = -math.pi / 4
+                alignment = ft.Alignment(1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                    width=width,
+                    text_align=ft.TextAlign.RIGHT,
+                )
+            elif orientation == "45°":
+                left = x_render
+                angle = -math.pi / 4
+                alignment = ft.Alignment(-1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                )
+            else:
+                half_h = font_size / 2.0
+                left = max(
+                    4.0 + half_h,
+                    min(c_width - 4.0 - half_h, x_render),
+                )
+                angle = -math.pi / 2 if is_fwd else math.pi / 2
+                alignment = ft.Alignment(-1, 0)
+                text_control = ft.Text(
+                    self.name,
+                    color=colour,
+                    size=font_size,
+                    weight=ft.FontWeight.BOLD,
+                )
+            stack.controls.append(
+                ft.GestureDetector(
+                    mouse_cursor=ft.MouseCursor.CLICK,
+                    on_tap=lambda _: self.on_click(),
+                    content=text_control,
+                    left=left,
+                    top=top,
+                    rotate=ft.Rotate(angle, alignment=alignment),
+                )
+            )
+            return
+
+        row_height = font_size + 5.0
+        half_text_h = (font_size + 3.0) / 2.0
+        width = (
+            self.label_width
+            if self.label_width is not None
+            else max(20.0, len(self.name) * (font_size * 0.72) + 4.0)
+        )
+        if is_fwd:
+            left = (
+                self.label_left
+                if self.label_left is not None
+                else x_render + self.S / 2.0 + 4.0
+            )
+            top = (
+                self.v_target
+                - 25
+                - self.S / 2.0
+                - half_text_h
+                - self.label_row * row_height
+            )
+        else:
+            left = (
+                self.label_left
+                if self.label_left is not None
+                else x_render - self.S / 2.0 - 4.0 - width
+            )
+            top = (
+                self.v_target
+                + 25
+                + self.S / 2.0
+                - half_text_h
+                + self.label_row * row_height
+            )
+        if left < x_render:
+            text_control = ft.Text(
+                self.name,
+                color=colour,
+                size=font_size,
+                weight=ft.FontWeight.BOLD,
+                width=width,
+                text_align=ft.TextAlign.RIGHT,
+            )
+        else:
+            text_control = ft.Text(
+                self.name,
+                color=colour,
+                size=font_size,
+                weight=ft.FontWeight.BOLD,
+            )
+        stack.controls.append(
+            ft.GestureDetector(
+                mouse_cursor=ft.MouseCursor.CLICK,
+                on_tap=lambda _: self.on_click(),
+                content=text_control,
+                left=left,
+                top=top,
+            )
+        )
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
         """Draw the primer indicator elements onto the canvas and stack.
@@ -101,7 +241,19 @@ class DrawnPrimer:
         """
         x_render = self.x_shifted if self.x_shifted is not None else self.x_pos
 
+        orientation = str(
+            self.settings.get("pcr_primer_label_orientation", "Horizontal")
+        )
+        font_size = self.settings._safe_int("font_size_map_primer", 13)
+        row_height = font_size + 5.0
+        row_offset = (
+            self.label_row * row_height if orientation == "Horizontal" else 0.0
+        )
+
         if self.direction == DNADirection.FWD:
+            tri_bottom = self.v_target - 25 - row_offset
+            tri_mid = tri_bottom - self.S / 2
+            tri_top = tri_bottom - self.S
             # Draw FWD primers (blue, float above baseline, pointing right)
             if abs(x_render - self.x_pos) > 0.1:
                 # Bent leader line:
@@ -114,9 +266,7 @@ class DrawnPrimer:
                             cv.Path.MoveTo(self.x_pos, self.v_target),
                             cv.Path.LineTo(self.x_pos, self.v_target - 10),
                             cv.Path.LineTo(x_render, self.v_target - 20),
-                            cv.Path.LineTo(
-                                x_render, self.v_target - 25 - self.S / 2
-                            ),
+                            cv.Path.LineTo(x_render, tri_mid),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.FWD_PRIMER,
@@ -131,9 +281,7 @@ class DrawnPrimer:
                     cv.Path(
                         [
                             cv.Path.MoveTo(self.x_pos, self.v_target),
-                            cv.Path.LineTo(
-                                self.x_pos, self.v_target - 25 - self.S / 2
-                            ),
+                            cv.Path.LineTo(self.x_pos, tri_mid),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.FWD_PRIMER,
@@ -143,24 +291,12 @@ class DrawnPrimer:
                     )
                 )
             # Right-pointing triangle of size S:
-            # Tip: (x_render + S/2, self.v_target - 25 - S/2)
-            # Top-Left: (x_render - S/2, self.v_target - 25 - S)
-            # Bottom-Left: (x_render - S/2, self.v_target - 25)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(
-                            x_render + self.S / 2,
-                            self.v_target - 25 - self.S / 2,
-                        ),
-                        cv.Path.LineTo(
-                            x_render - self.S / 2,
-                            self.v_target - 25 - self.S,
-                        ),
-                        cv.Path.LineTo(
-                            x_render - self.S / 2,
-                            self.v_target - 25,
-                        ),
+                        cv.Path.MoveTo(x_render + self.S / 2, tri_mid),
+                        cv.Path.LineTo(x_render - self.S / 2, tri_top),
+                        cv.Path.LineTo(x_render - self.S / 2, tri_bottom),
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
@@ -169,22 +305,8 @@ class DrawnPrimer:
                     ),
                 )
             )
-            # Add rotated label in the stack
-            stack.controls.append(
-                ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda _: self.on_click(),
-                    content=ft.Text(
-                        self.name,
-                        color=GUIColours.FWD_PRIMER,
-                        size=self.settings.get("font_size_map_primer", 13),
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    left=x_render,
-                    top=self.v_target - 25 - self.S - 13,
-                    rotate=ft.Rotate(-1.5708, alignment=ft.Alignment(-1, 0)),
-                )
-            )
+            # Add label in the stack
+            self._add_label(stack, x_render)
             # Click overlay
             stack.controls.append(
                 ft.GestureDetector(
@@ -193,13 +315,16 @@ class DrawnPrimer:
                     content=ft.Container(
                         bgcolor=GUIColours.TRANSPARENT,
                         width=20,
-                        height=25 + self.S,
+                        height=25 + self.S + row_offset,
                     ),
                     left=x_render - 10,
-                    top=self.v_target - 25 - self.S,
+                    top=tri_top,
                 )
             )
         else:
+            tri_top = self.v_target + 25 + row_offset
+            tri_mid = tri_top + self.S / 2
+            tri_bottom = tri_top + self.S
             # Draw REV primers (red, float below baseline, pointing left)
             if abs(x_render - self.x_pos) > 0.1:
                 # Bent leader line:
@@ -212,9 +337,7 @@ class DrawnPrimer:
                             cv.Path.MoveTo(self.x_pos, self.v_target),
                             cv.Path.LineTo(self.x_pos, self.v_target + 10),
                             cv.Path.LineTo(x_render, self.v_target + 20),
-                            cv.Path.LineTo(
-                                x_render, self.v_target + 25 + self.S / 2
-                            ),
+                            cv.Path.LineTo(x_render, tri_mid),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.REV_PRIMER,
@@ -229,9 +352,7 @@ class DrawnPrimer:
                     cv.Path(
                         [
                             cv.Path.MoveTo(self.x_pos, self.v_target),
-                            cv.Path.LineTo(
-                                self.x_pos, self.v_target + 25 + self.S / 2
-                            ),
+                            cv.Path.LineTo(self.x_pos, tri_mid),
                         ],
                         paint=ft.Paint(
                             color=GUIColours.REV_PRIMER,
@@ -241,24 +362,12 @@ class DrawnPrimer:
                     )
                 )
             # Left-pointing triangle of size S:
-            # Tip: (x_render - S/2, self.v_target + 25 + S/2)
-            # Top-Right: (x_render + S/2, self.v_target + 25)
-            # Bottom-Right: (x_render + S/2, self.v_target + 25 + S)
             canvas.shapes.append(
                 cv.Path(
                     [
-                        cv.Path.MoveTo(
-                            x_render - self.S / 2,
-                            self.v_target + 25 + self.S / 2,
-                        ),
-                        cv.Path.LineTo(
-                            x_render + self.S / 2,
-                            self.v_target + 25,
-                        ),
-                        cv.Path.LineTo(
-                            x_render + self.S / 2,
-                            self.v_target + 25 + self.S,
-                        ),
+                        cv.Path.MoveTo(x_render - self.S / 2, tri_mid),
+                        cv.Path.LineTo(x_render + self.S / 2, tri_top),
+                        cv.Path.LineTo(x_render + self.S / 2, tri_bottom),
                         cv.Path.Close(),
                     ],
                     paint=ft.Paint(
@@ -267,22 +376,8 @@ class DrawnPrimer:
                     ),
                 )
             )
-            # Add rotated label in the stack
-            stack.controls.append(
-                ft.GestureDetector(
-                    mouse_cursor=ft.MouseCursor.CLICK,
-                    on_tap=lambda _: self.on_click(),
-                    content=ft.Text(
-                        self.name,
-                        color=GUIColours.REV_LABEL,
-                        size=self.settings.get("font_size_map_primer", 13),
-                        weight=ft.FontWeight.BOLD,
-                    ),
-                    left=x_render,
-                    top=self.v_target + 25 + self.S - 3,
-                    rotate=ft.Rotate(1.5708, alignment=ft.Alignment(-1, 0)),
-                )
-            )
+            # Add label in the stack
+            self._add_label(stack, x_render)
             # Click overlay
             stack.controls.append(
                 ft.GestureDetector(
@@ -291,7 +386,7 @@ class DrawnPrimer:
                     content=ft.Container(
                         bgcolor=GUIColours.TRANSPARENT,
                         width=20,
-                        height=25 + self.S,
+                        height=25 + self.S + row_offset,
                     ),
                     left=x_render - 10,
                     top=self.v_target,
@@ -476,6 +571,12 @@ class ReplicationContextCard(DismissibleDetailCard):
             settings: Application GUI settings instance.
             dismiss_callback: Callback invoked when the card is dismissed.
         """
+        self._primer_name = primer_name
+        self._padded_idx = padded_idx
+        self._conf = conf
+        self._var = var
+        self._dismiss_callback = dismiss_callback
+
         card_id = f"context_{primer_name}_{padded_idx}"
 
         origin = conf.origin(var)
@@ -547,7 +648,7 @@ class ReplicationContextCard(DismissibleDetailCard):
                     ),
                     ft.Container(
                         content=ft.Text(
-                            f"Quality: {round(origin.quality)}",
+                            f"Quality: {origin.quality:.3f}",
                             weight=ft.FontWeight.BOLD,
                             color=GUIColours.DIAGRAM_BLACK,
                             size=font_size_small,
@@ -586,4 +687,15 @@ class ReplicationContextCard(DismissibleDetailCard):
             dismiss_callback=dismiss_callback,
             body_controls=body_controls,
             title_controls=title_controls,
+        )
+
+    def rebuild(self, settings: GUISettings) -> "ReplicationContextCard":
+        """Rebuild this card with current theme colours and settings."""
+        return ReplicationContextCard(
+            primer_name=self._primer_name,
+            padded_idx=self._padded_idx,
+            conf=self._conf,
+            var=self._var,
+            settings=settings,
+            dismiss_callback=self._dismiss_callback,
         )

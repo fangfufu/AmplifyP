@@ -61,48 +61,15 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         self.settings = settings
         self.font_family = font_family
         self.step_index = step_index
+        self.on_run_pcr_callback = on_run_pcr_callback
         self.origin_count = origin_count
-
-        dimer_card = DimerCard(
-            d=dimer,
-            settings=settings,
-            font_family=font_family,
-            show_names=False,
-        )
 
         primer_seq = dimer.primer_1.seq
         title = f"Self-dimer ({len(primer_seq)} nt)"
 
-        font_size_subheader = settings.get("font_size_subheader", 16)
-        font_size_small = settings.get("font_size_small", 12)
-        font_size_default = settings.get("font_size_default", 14)
-
-        header_row = dimer_card._build_card_header(
-            font_size_subheader, font_size_small
-        )
-        metric_controls = cast(ft.Row, header_row.controls[1])
-
-        tm_text, pct_at_text = format_primer_properties(
-            dimer.primer_1, settings
-        )
-        title_controls: list[ft.Control] = list(metric_controls.controls)
-        if settings.get("designer_1d_show_tm", True):
-            title_controls.append(
-                create_badge(tm_text, font_size=font_size_small)
-            )
-        if settings.get("designer_1d_show_pct_at", False):
-            title_controls.append(
-                create_badge(pct_at_text, font_size=font_size_small)
-            )
-        if origin_count is not None:
-            sites_badge = create_badge(
-                f"Sites: {origin_count}", font_size=font_size_small
-            )
-            title_controls.append(sites_badge)
-
         def _on_pcr_click(e: ft.ControlEvent) -> None:
-            if on_run_pcr_callback:
-                on_run_pcr_callback(
+            if self.on_run_pcr_callback:
+                self.on_run_pcr_callback(
                     primer_seq, f"1D Primer ({len(primer_seq)} nt)"
                 )
 
@@ -113,7 +80,6 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             tooltip=f"Run PCR using template with {len(primer_seq)} nt primer",
             on_click=_on_pcr_click,
         )
-        title_controls.append(self.pcr_button)
 
         super().__init__(
             card_id=card_id,
@@ -121,7 +87,87 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=[
-                dimer_card._build_alignment_diagram(font_size_default),
+                self._build_alignment_diagram(),
             ],
-            title_controls=title_controls,
+            title_controls=self._build_title_controls(),
         )
+
+    @staticmethod
+    def _is_enabled(val: object) -> bool:
+        """Coerce bool or string setting values to a boolean."""
+        if isinstance(val, str):
+            return val.lower() not in ("false", "0", "no", "")
+        return bool(val)
+
+    def _build_title_controls(self) -> list[ft.Control]:
+        """Build header metric badges and Run PCR button from settings."""
+        dimer_card = DimerCard(
+            d=self.dimer,
+            settings=self.settings,
+            font_family=self.font_family,
+            show_names=False,
+        )
+        font_size_subheader = self.settings._safe_int("font_size_subheader", 16)
+        font_size_small = self.settings._safe_int("font_size_small", 12)
+        header_row = dimer_card._build_card_header(
+            font_size_subheader, font_size_small
+        )
+        metric_controls = cast(ft.Row, header_row.controls[1])
+
+        tm_text, pct_at_text = format_primer_properties(
+            self.dimer.primer_1, self.settings
+        )
+        title_controls: list[ft.Control] = list(metric_controls.controls)
+        if self._is_enabled(self.settings.get("designer_1d_show_tm", True)):
+            title_controls.append(
+                create_badge(tm_text, font_size=font_size_small)
+            )
+        if self._is_enabled(
+            self.settings.get("designer_1d_show_pct_at", False)
+        ):
+            title_controls.append(
+                create_badge(pct_at_text, font_size=font_size_small)
+            )
+        if self.origin_count is not None:
+            title_controls.append(
+                create_badge(
+                    f"Sites: {self.origin_count}", font_size=font_size_small
+                )
+            )
+        title_controls.append(self.pcr_button)
+        return title_controls
+
+    def _build_alignment_diagram(self) -> ft.Control:
+        """Build self-dimer sequence alignment diagram from current settings."""
+        dimer_card = DimerCard(
+            d=self.dimer,
+            settings=self.settings,
+            font_family=self.font_family,
+            show_names=False,
+        )
+        font_size_default = self.settings._safe_int("font_size_default", 14)
+        return dimer_card._build_alignment_diagram(font_size_default)
+
+    def on_settings_change(self) -> None:
+        """Refresh header badges, alignment diagram, and font from settings."""
+        self.font_family = str(
+            self.settings.get("font_family", self.font_family)
+        )
+        container = cast(ft.Container, self.content)
+        card_col = cast(ft.Column, container.content)
+        title_row = cast(ft.Row, card_col.controls[0])
+        title_row.controls = [
+            title_row.controls[0],
+            *self._build_title_controls(),
+            title_row.controls[-1],
+        ]
+        card_col.controls[1] = self._build_alignment_diagram()
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
+    def update_ui(self) -> None:
+        """Alias for on_settings_change."""
+        self.on_settings_change()

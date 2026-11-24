@@ -25,6 +25,7 @@ from .amplicon import AmpliconGenerator
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
+from .settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
 if TYPE_CHECKING:
     import threading
@@ -129,6 +130,7 @@ class PrimerDesigner2D:
         "_max_amplicon_count",
         "_max_overlap",
         "_on_progress",
+        "_replication_settings",
         "_rev_dna",
         "_rev_min_length",
         "_steps",
@@ -150,6 +152,7 @@ class PrimerDesigner2D:
         max_amplicon_count: int | None = None,
         on_progress: Callable[[int, int], None] | None = None,
         cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ) -> None:
         """Initialises a new PrimerDesigner2D object and runs the analysis.
 
@@ -179,6 +182,9 @@ class PrimerDesigner2D:
                 used to abort the analysis. When set, the analysis stops
                 after the current (fwd, rev) pair is processed and the steps
                 analysed so far are retained. Defaults to None.
+            replication_settings (ReplicationSettings, optional): Custom
+                replication settings used for template amplicon searches.
+                Defaults to `GLOBAL_REPLICATION_SETTINGS`.
 
         Raises:
             ValueError: If minimum lengths are non-positive or exceed sequence
@@ -218,6 +224,7 @@ class PrimerDesigner2D:
         self._max_amplicon_count: int | None = max_amplicon_count
         self._on_progress: Callable[[int, int], None] | None = on_progress
         self._cancel_event: threading.Event | None = cancel_event
+        self._replication_settings: ReplicationSettings = replication_settings
         self._aborted: bool = False
         self._steps: list[PrimerDimers2D] = []
 
@@ -272,6 +279,11 @@ class PrimerDesigner2D:
     def max_amplicon_count(self) -> int | None:
         """The maximum amplicon count cutoff filter, if set."""
         return self._max_amplicon_count
+
+    @property
+    def replication_settings(self) -> ReplicationSettings:
+        """The replication settings used for template amplicon searches."""
+        return self._replication_settings
 
     @property
     def aborted(self) -> bool:
@@ -404,10 +416,18 @@ class PrimerDesigner2D:
                 amplicon_count: int | None = None
                 if self._template is not None:
                     amp_gen = AmpliconGenerator(self._template)
-                    fwd_conf = Repliconf(self._template, fwd_p)
+                    fwd_conf = Repliconf(
+                        self._template,
+                        fwd_p,
+                        settings=self._replication_settings,
+                    )
                     amp_gen.add_repliconf(fwd_conf)
                     if fwd_seq != rev_seq:
-                        rev_conf = Repliconf(self._template, rev_p)
+                        rev_conf = Repliconf(
+                            self._template,
+                            rev_p,
+                            settings=self._replication_settings,
+                        )
                         amp_gen.add_repliconf(rev_conf)
                     amplicon_count = len(amp_gen.get_amplicons())
                     if amplicon_count < 1:

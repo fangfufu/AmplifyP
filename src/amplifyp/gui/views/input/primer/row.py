@@ -21,6 +21,7 @@ import asyncio
 import inspect
 import logging
 from collections.abc import Callable
+from typing import Any
 
 import flet as ft
 
@@ -106,31 +107,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._handle_field_blur = handle_field_blur
         self.is_last_row = is_last_row
         show_temp = self.settings.get("show_primer_temperature", False)
-
-        tm_val = ""
-        self._tm_value: float | None = None
-        if show_temp and seq.strip():
-            try:
-                cleaned_seq = clean_sequence(seq)
-                if cleaned_seq:
-                    primer_obj = Primer(sequence=cleaned_seq, name=name)
-                    tm = self.settings.calculate_primer_tm(primer_obj)
-                    self._tm_value = tm
-                    tm_val = f"{tm:.1f}°C"
-            except (
-                ValueError,
-                AttributeError,
-                ArithmeticError,
-                KeyError,
-            ):
-                logger.debug(
-                    "Failed to calculate Tm for primer '%s'",
-                    name,
-                    exc_info=True,
-                )
-                tm_val = "-"
-
         scheme = self.settings.get("tm_colour_scheme", "None")
+        self._last_show_temp = show_temp
+        self._tm_value, tm_val = self._compute_tm_display(
+            seq, name, show_temp, self.settings
+        )
+        self._last_tm_cache_key = self._tm_cache_key(
+            seq, name, show_temp, scheme, self.settings
+        )
 
         _tm_colour = (
             tm_colour(self._tm_value, scheme)
@@ -169,6 +153,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             padding=0,
         )
 
+        self._drag_icon = ft.Icon(
+            ft.Icons.DRAG_INDICATOR,
+            size=16,
+            color=GUIColours.DIVIDER_GREY,
+        )
         self.drag_handle = ft.GestureDetector(
             on_pan_start=lambda e: (
                 on_drag_start(self.idx, e) if on_drag_start else None
@@ -186,9 +175,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             ),
             mouse_cursor=ft.MouseCursor.CLICK,
             content=ft.Container(
-                content=ft.Icon(
-                    ft.Icons.DRAG_INDICATOR, size=16, color=ft.Colors.GREY_400
-                ),
+                content=self._drag_icon,
                 alignment=ft.Alignment(0, 0),
                 width=25,
                 padding=0,
@@ -285,7 +272,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         if show_temp:
             row_body.extend([self.tm_divider, self.tm_container])
 
-        row_content = ft.Row(
+        self._row_content = ft.Row(
             row_body,
             spacing=0,
             vertical_alignment=ft.CrossAxisAlignment.START,
@@ -294,7 +281,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._row_gesture_detector = ft.GestureDetector(
             on_tap=lambda e: on_row_click(self.idx, self.name_field),
             mouse_cursor=ft.MouseCursor.CLICK,
-            content=row_content,
+            content=self._row_content,
         )
 
         self.content = ft.Row(
@@ -449,37 +436,100 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             new_idx, self.name_field
         )
 
-    def update_tm(self, settings: GUISettings) -> None:
-        """Update the displayed Tm in-place based on the current sequence."""
-        seq_val = self.seq_field.value
-        name_val = self.name_field.value
+    @staticmethod
+    def _compute_tm_display(
+        seq_val: str | None,
+        name_val: str | None,
+        show_temp: bool,
+        settings: GUISettings,
+    ) -> tuple[float | None, str]:
+        """Compute raw and formatted Tm display values for a primer."""
+        tm_value: float | None = None
         tm_val = ""
-        show_temp = settings.get("show_primer_temperature", False)
-        scheme = settings.get("tm_colour_scheme", "None")
-
-        # Check cache before recomputing
-        cache_key = (seq_val, name_val, show_temp, scheme)
-        if getattr(self, "_last_tm_cache_key", None) == cache_key:
-            return
-
-        self._last_tm_cache_key = cache_key
-        self._tm_value = None
-
         if show_temp and seq_val and seq_val.strip():
             try:
                 cleaned_seq = clean_sequence(seq_val)
                 if cleaned_seq:
-                    primer_obj = Primer(sequence=cleaned_seq, name=name_val)
+                    primer_obj = Primer(
+                        sequence=cleaned_seq, name=name_val or ""
+                    )
                     tm = settings.calculate_primer_tm(primer_obj)
-                    self._tm_value = tm
+                    tm_value = tm
                     tm_val = f"{tm:.1f}°C"
-            except (ValueError, AttributeError, ArithmeticError):
+            except (
+                ValueError,
+                AttributeError,
+                ArithmeticError,
+                KeyError,
+            ):
                 logger.debug(
                     "Failed to calculate Tm for primer '%s'",
                     name_val,
                     exc_info=True,
                 )
                 tm_val = "-"
+        return tm_value, tm_val
+
+    @staticmethod
+    def _tm_cache_key(
+        seq_val: str | None,
+        name_val: str | None,
+        show_temp: bool,
+        scheme: str,
+        settings: GUISettings,
+    ) -> tuple[Any, ...]:
+        """Build a cache key covering primer inputs and Tm configuration."""
+        if not show_temp:
+            return (seq_val, name_val, False, scheme)
+        return (
+            seq_val,
+            name_val,
+            True,
+            scheme,
+            settings.get(
+                "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
+            ),
+            settings.get_tm_settings(),
+        )
+
+    def update_appearance(
+        self, font_family: str, settings: GUISettings
+    ) -> None:
+        """Refresh sequence font family and theme divider colours."""
+        self.settings = settings
+        self.seq_field.text_style = ft.TextStyle(font_family=font_family)
+        self._drag_icon.color = GUIColours.DIVIDER_GREY
+        self.active_divider.bgcolor = GUIColours.DIVIDER_GREY
+        if isinstance(self.divider.content, ft.Container):
+            self.divider.content.bgcolor = GUIColours.DIVIDER_GREY
+        self.tm_divider.bgcolor = GUIColours.DIVIDER_GREY
+        self.tm_text.size = settings.get("font_size_body", 13)
+
+    def update_tm(self, settings: GUISettings) -> None:
+        """Update the displayed Tm in-place based on the current sequence."""
+        self.settings = settings
+        seq_val = self.seq_field.value
+        name_val = self.name_field.value
+        show_temp = settings.get("show_primer_temperature", False)
+        scheme = settings.get("tm_colour_scheme", "None")
+
+        # Check cache before recomputing
+        cache_key = self._tm_cache_key(
+            seq_val, name_val, show_temp, scheme, settings
+        )
+        if getattr(self, "_last_tm_cache_key", None) == cache_key:
+            tm_val_stored = getattr(self, "_tm_value", None)
+            self.tm_text.color = (
+                tm_colour(tm_val_stored, scheme)
+                if tm_val_stored is not None
+                else None
+            )
+            return
+
+        self._last_tm_cache_key = cache_key
+        self._tm_value, tm_val = self._compute_tm_display(
+            seq_val, name_val, show_temp, settings
+        )
         self.tm_text.value = tm_val
 
         self.tm_text.color = (
@@ -492,8 +542,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self._last_show_temp = show_temp
             self.tm_container.visible = show_temp
             self.tm_divider.visible = show_temp
-            controls = [
-                self.drag_handle,
+            row_body: list[ft.Control] = [
                 self.checkbox_container,
                 self.active_divider,
                 self.name_scroll,
@@ -501,9 +550,15 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                 self.seq_scroll,
             ]
             if show_temp:
-                controls.extend([self.tm_divider, self.tm_container])
+                row_body.extend([self.tm_divider, self.tm_container])
+            self._row_content = ft.Row(
+                row_body,
+                spacing=0,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+            )
+            self._row_gesture_detector.content = self._row_content
             self.content = ft.Row(
-                controls,
+                [self.drag_handle, self._row_gesture_detector],
                 spacing=0,
                 vertical_alignment=ft.CrossAxisAlignment.START,
             )

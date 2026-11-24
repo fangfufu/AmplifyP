@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 import yaml
 
 from amplifyp.gui.colours import GUIColours
@@ -56,9 +57,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
     settings_view.set_dimer_sequence_separator.value = "Dash ('-')"
-    settings_view.primer_list_tile.set_primer_info_panel_position.value = (
-        "bottom"
-    )
+    settings_view.input_tile.set_primer_info_panel_position.value = "bottom"
     settings_view.set_primer_info_panel_fixed_height.value = True
     settings_view.general_tile.set_colour_scheme.value = (
         "Dark (Colour Deficient Friendly)"
@@ -136,7 +135,7 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_font_family.value == "Courier New"
     assert new_settings_view.set_dimer_sequence_separator.value == "Dash ('-')"
     assert (
-        new_settings_view.primer_list_tile.set_primer_info_panel_position.value
+        new_settings_view.input_tile.set_primer_info_panel_position.value
         == "bottom"
     )
     assert new_settings_view.settings["primer_info_panel_position"] == "bottom"
@@ -164,6 +163,7 @@ def test_gui_state_save_load() -> None:
 def test_settings_view_buttons() -> None:
     """Test Reset to Default button in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
+    mock_page.overlay = []
 
     reset_called = False
 
@@ -191,8 +191,12 @@ def test_settings_view_buttons() -> None:
 
     assert reset_btn.content == "Reset to Default"
 
-    # Trigger Reset
+    # Trigger Reset -> opens confirmation dialogue, then confirm
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
+    assert not reset_called
+    assert settings_view.general_tile._factory_reset_dialogue is not None
+    assert settings_view.general_tile._factory_reset_dialogue.open is True
+    settings_view.general_tile._confirm_factory_reset()
     assert reset_called
     assert (
         settings_view.settings["tm_method"]
@@ -573,10 +577,10 @@ def test_general_settings_auto_reload() -> None:
     settings = GUISettings()
     assert settings["auto_reload_on_startup"] is True
 
-    # 2. Verify SettingsView includes GeneralTile and AppearanceTile
+    # 2. Verify SettingsView includes GeneralTile and InputTile
     settings_view = SettingsView(mock_page)
     assert hasattr(settings_view, "general_tile")
-    assert hasattr(settings_view, "appearance_tile")
+    assert hasattr(settings_view, "input_tile")
     assert settings_view.set_auto_reload_on_startup.value is True
 
     # Toggle checkbox
@@ -753,3 +757,35 @@ def test_controller_clear_all_dismiss() -> None:
     assert len(controller.input_data.primers) == 1
     assert controller.input_data.primers[0]["name"] == "P1"
     assert dialog.open is False
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_load_last_state_async_skips_if_edited_during_await() -> None:
+    """Startup web restore must not overwrite intervening template edits."""
+    import json
+
+    from amplifyp.gui.controller import GUIController
+    from amplifyp.gui.utils.data_helpers import load_last_state_async
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = True
+    mock_page.overlay = []
+    mock_page.window = MagicMock()
+    controller = GUIController(mock_page)
+    controller.initialise(load_settings=False)
+
+    stored_payload = json.dumps({"template": "AAAA", "primers": []})
+
+    class _MockPrefs:
+        async def contains_key(self, _key: str) -> bool:
+            return True
+
+        async def get(self, _key: str) -> str:
+            # Simulate user editing template while SharedPreferences.get awaits
+            controller.input_data.template = "CCCCGGGG"
+            return stored_payload
+
+    with patch("flet.SharedPreferences", return_value=_MockPrefs()):
+        await load_last_state_async(controller)
+
+    assert controller.input_data.template == "CCCCGGGG"

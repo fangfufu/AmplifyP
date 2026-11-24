@@ -146,10 +146,10 @@ Located at the top of the Primer List Panel:
 ### Primer Information & Analysis Panel
 
 Clicking or focusing a primer displays a detailed analysis card (positionable at
-the top or bottom of the list via Settings). The panel is only shown while the
-focused primer has a non-empty cleaned sequence, and can be hidden with the
-close button in its header (which also clears the row focus). Two additional
-Settings options affect it:
+the top or bottom of the list via Settings). By default (when fixed-height mode
+is disabled), the panel is only shown while the focused primer has a non-empty
+cleaned sequence, and can be hidden with the close button in its header (which
+also clears the row focus). Two additional Settings options affect it:
 
 - **Auto-activate new valid primer** (default off): Newly added primers are
   automatically ticked active once a valid sequence is entered.
@@ -181,7 +181,7 @@ Panel contents:
   characters: ..."*, *"Duplicate primer name"*, *"Duplicate primer sequence"*,
   *"Name cannot be empty"*, *"Sequence cannot be empty"*).
 - **Run Validation Dialogues**: Attempting to open the PCR or Primer Dimer views
-  while active primers are invalid shows a dialog instead of switching views:
+  while active primers are invalid shows a dialogue instead of switching views:
   > *"Invalid Primers — One or more selected primers are invalid, have empty
   > names/sequences, or have duplicate names/sequences."*
 

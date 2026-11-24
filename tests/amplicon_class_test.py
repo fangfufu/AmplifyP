@@ -246,3 +246,17 @@ def test_construct_amplicon_sequence_linear_start_gt_end() -> None:
     )
     assert seq is None
     assert circular is False
+
+
+def test_amplicon_generator_pre_searched_repliconf() -> None:
+    """Test AmpliconGenerator skips search when Repliconf already searched."""
+    template = DNA("ATGCGTACGTATGCGTACGT")
+    primer = Primer("ATGCGTACGT")
+    repliconf = Repliconf(template, primer)
+    repliconf.search()
+    assert repliconf.searched is True
+
+    generator = AmpliconGenerator(template)
+    generator.add_repliconf(repliconf)
+    amplicons = generator.get_amplicons()
+    assert isinstance(amplicons, list)

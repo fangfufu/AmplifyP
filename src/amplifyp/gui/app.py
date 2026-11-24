@@ -110,7 +110,7 @@ def main(
     def _initialise_app(load_settings_in_controller: bool) -> None:
         initialise_logging(
             is_web=page.web,
-            log_level_amplifyp=gui_settings.get("log_level_amplifyp", "DEBUG"),
+            log_level_amplifyp=gui_settings.get("log_level_amplifyp", "INFO"),
             log_level_flet=gui_settings.get("log_level_flet", "INFO"),
             log_console_enabled=gui_settings.get("log_console_enabled", True),
             log_file_enabled=gui_settings.get("log_file_enabled", not page.web),

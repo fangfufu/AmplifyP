@@ -1441,3 +1441,87 @@ def test_designer_2d_view_template_circular_affects_results() -> None:
     assert view_circ._cached_designer is not None
     # 16 amplicons on circular template > max_amplicons of 5 -> filtered out
     assert len(view_circ._cached_designer.all_steps) == 0
+
+
+def test_designer_2d_view_update_ui_refreshes_theme_and_cards() -> None:
+    """Test Designer2DView.update_ui refreshes form borders, grid, and cards."""
+    from amplifyp.gui.colours import GUIColours
+    from amplifyp.gui.views.designer_2d.dismissible_2d_card import (
+        Dismissible2DCard,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+    settings = GUISettings()
+    view = Designer2DView(mock_page, GUIInput(), settings)
+
+    prev_dark = GUIColours.dark_mode
+    try:
+        # 1. Empty state placeholder refreshes colour cleanly on theme change
+        GUIColours.dark_mode = True
+        view.update_ui()
+        placeholder = view.results_grid.content_column.controls[1].content
+        assert isinstance(placeholder, ft.Text)
+        assert placeholder.color == GUIColours.TEXT_ON_SURFACE
+        assert view.top_left_container.border == ft.Border.all(
+            1, GUIColours.OUTLINE_VARIANT
+        )
+        assert view.form.fwd_dna_input.border_color == GUIColours.OUTLINE
+        assert view.form.filter_dna_checkbox.border == ft.Border.all(
+            1, GUIColours.OUTLINE
+        )
+        assert view.form.error_text.color == GUIColours.ERROR_RED
+
+        # 2. Populate results + open card in Light mode, then switch to Dark,
+        # new font_family, Tm method, and separator
+        GUIColours.dark_mode = False
+        view.form.fwd_dna_input.value = "ATGCGTACGT"
+        view.form.fwd_min_len_input.value = "10"
+        view.form.rev_dna_input.value = "CGTACGATGC"
+        view.form.rev_min_len_input.value = "10"
+        with patch(
+            "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+            side_effect=lambda target, daemon: MagicMock(start=target),
+        ):
+            view._run_designer_event()
+        assert view._cached_designer is not None
+        view._on_grid_step_selected(view._cached_designer.all_steps[0])
+        assert len(view._active_cards) == 1
+        card = cast(Dismissible2DCard, view._active_cards[0])
+
+        fwd_summary_col = card.primer_info_section.content.controls[0]
+        old_tm_text = (
+            fwd_summary_col.controls[0].controls[1].controls[0].content.value
+        )
+
+        GUIColours.dark_mode = True
+        settings["font_family"] = "Consolas"
+        settings["tm_method"] = "Lander / Amplify 4"
+        settings["sequence_separator"] = "Dash ('-')"
+        view.update_ui()
+
+        assert card.font_family == "Consolas"
+        assert card.primer_info_section.bgcolor == GUIColours.SURFACE_VARIANT
+        updated_fwd_summary = card.primer_info_section.content.controls[0]
+        new_tm_text = (
+            updated_fwd_summary.controls[0]
+            .controls[1]
+            .controls[0]
+            .content.value
+        )
+        assert new_tm_text != old_tm_text
+        seq_field = updated_fwd_summary.controls[1].controls[0]
+        assert isinstance(seq_field, ft.TextField)
+        assert seq_field.border_color == GUIColours.OUTLINE
+        assert seq_field.text_style is not None
+        assert seq_field.text_style.font_family == "Consolas"
+
+        first_diag = (
+            card.dimer_subcontainers.controls[0]
+            .content.controls[1]
+            .content.controls[0]
+        )
+        spans_text = "".join(span.text for span in first_diag.spans)
+        assert "5'-" in spans_text
+    finally:
+        GUIColours.dark_mode = prev_dark

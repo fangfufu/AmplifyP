@@ -102,7 +102,7 @@ class Amplicon:
             str: The textual report describing the amplification quality.
         """
         for limit, desc, verbose_suffix in self._Q_SCORE_THRESHOLDS:
-            if self.q_score < limit:
+            if self.q_score < limit or limit == float("inf"):
                 suffix = verbose_suffix if verbose else ""
                 circ = " (Circular)" if self.circular else ""
                 return f"{desc}{suffix}{circ}"
@@ -193,7 +193,10 @@ class AmpliconGenerator:
         """
         fwd_quality = fwd_conf.origin(start).quality
         rev_quality = rev_conf.origin(end).quality
-        return length / (fwd_quality * rev_quality) ** 2
+        denom = (fwd_quality * rev_quality) ** 2
+        if denom == 0:
+            return float("inf")
+        return length / denom
 
     def _construct_amplicon_sequence(
         self,

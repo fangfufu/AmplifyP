@@ -54,13 +54,18 @@ def test_input_view_row_boxes_editing() -> None:
     assert isinstance(outer_row, ft.Row)
 
     drag_handle = outer_row.controls[0]
+    gesture_detector = outer_row.controls[1]
     assert isinstance(drag_handle, ft.GestureDetector)
+    assert isinstance(gesture_detector, ft.GestureDetector)
 
-    checkbox_container = outer_row.controls[1]
-    active_divider = outer_row.controls[2]
-    name_scroll = outer_row.controls[3]
-    divider = outer_row.controls[4]
-    seq_scroll = outer_row.controls[5]
+    row_body = gesture_detector.content
+    assert isinstance(row_body, ft.Row)
+
+    checkbox_container = row_body.controls[0]
+    active_divider = row_body.controls[1]
+    name_scroll = row_body.controls[2]
+    divider = row_body.controls[3]
+    seq_scroll = row_body.controls[4]
 
     assert isinstance(checkbox_container, ft.Container)
     checkbox = checkbox_container.content
@@ -251,9 +256,10 @@ def test_input_view_primer_info_panel() -> None:
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P1"
     assert view.info_seq_text.value == "20 nt:   AAAAAAAAAAAAAAAAAAAA"
-    assert "Tm =" in view.info_tm_text.value
-    assert "100.0% AT" in view.info_pairs_text.value
-    assert view.info_redundancy_text.value == "No redundant bases."
+    assert "Tm =" in view.info_stats_text.value
+    assert "100.0% AT" in view.info_stats_text.value
+    assert "No redundant bases." in view.info_stats_text.value
+    assert ", " in view.info_stats_text.value
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on second primer (index 1) which has redundant bases
@@ -263,8 +269,8 @@ def test_input_view_primer_info_panel() -> None:
     assert view.focused_primer_index == 1
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P2"
-    assert "2 redundant bases" in view.info_redundancy_text.value
-    assert "redundancy fold = 4" in view.info_redundancy_text.value
+    assert "2 redundant bases" in view.info_stats_text.value
+    assert "redundancy fold = 4" in view.info_stats_text.value
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on third primer (index 2) which has a self-dimer

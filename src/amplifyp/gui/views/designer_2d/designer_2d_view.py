@@ -195,6 +195,7 @@ class Designer2DView(BaseDesignerView):
             pass
 
         pd_settings = self.settings.get_primer_dimer_settings()
+        rep_settings = self.settings.get_replication_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
 
         def _on_progress(done: int, total: int) -> None:
@@ -222,6 +223,7 @@ class Designer2DView(BaseDesignerView):
                     max_amplicon_count=max_amplicons,
                     on_progress=_on_progress,
                     cancel_event=cancel_event,
+                    replication_settings=rep_settings,
                 )
                 self._cached_designer = designer
                 self._schedule_on_event_loop(
@@ -323,8 +325,20 @@ class Designer2DView(BaseDesignerView):
 
     def update_ui(self) -> None:
         """Update 2D designer view components when settings change."""
+        self._update_panel_colours()
+        self.form.update_colours(
+            self.form.fwd_dna_input,
+            self.form.fwd_length_display,
+            self.form.fwd_min_len_input,
+            self.form.rev_dna_input,
+            self.form.rev_length_display,
+            self.form.rev_min_len_input,
+            self.form.max_amplicons_input,
+        )
         if self._cached_designer is not None:
             self.results_grid.update_grid(self._cached_designer)
+        elif not self._analysis_running:
+            self.results_grid.clear_grid()
         for card in self._active_cards:
             if isinstance(card, Dismissible2DCard):
                 card.on_settings_change()
