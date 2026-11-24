@@ -18,139 +18,36 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
-import os
-import re
-import subprocess
-import urllib.request
-from importlib.metadata import PackageNotFoundError
 from pathlib import Path
 from typing import Any
 
 import flet as ft
 
+from amplifyp.version import (
+    _get_sha,
+    _parse_to_tuple,
+    fetch_latest_release_version,
+    get_full_sha,
+    get_git_sha,
+    is_newer_version,
+    should_check_for_updates,
+)
+from amplifyp.version import (
+    get_version as _core_get_version,
+)
+
 logger = logging.getLogger(__name__)
 
 
 # ==============================================================================
-# Git & Version Info (formerly git.py)
+# Git & Version Info (re-exported from amplifyp.version)
 # ==============================================================================
-
-
-def _get_sha(full: bool = False) -> str:
-    """Retrieve the git commit SHA (either 40-char full or 7-char short)."""
-    try:
-        if full:
-            from amplifyp.gui.git_sha import (  # pyright: ignore[reportMissingImports]
-                GIT_FULL_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
-            )
-        else:
-            from amplifyp.gui.git_sha import (  # pyright: ignore[reportMissingImports]
-                GIT_SHA as imported_sha,  # pyright: ignore[reportMissingImports]
-            )
-
-        if imported_sha and imported_sha != "unknown":
-            return str(imported_sha)
-    except ImportError:
-        pass
-
-    try:
-        import js  # type: ignore[import-not-found, unused-ignore]
-
-        if hasattr(js, "window") and hasattr(js.window, "__APP_SHA__"):
-            sha = str(js.window.__APP_SHA__)
-            if sha and sha != "unknown":
-                return sha
-    except (ImportError, AttributeError):
-        pass
-
-    try:
-        cmd = (
-            ["git", "rev-parse", "HEAD"]
-            if full
-            else ["git", "rev-parse", "--short", "HEAD"]
-        )
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        pass
-
-    try:
-        git_dir = os.path.join(
-            os.path.dirname(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(
-                            os.path.dirname(os.path.abspath(__file__))
-                        )
-                    )
-                )
-            ),
-            ".git",
-        )
-        head_path = os.path.join(git_dir, "HEAD")
-        if os.path.exists(head_path):
-            with open(head_path, encoding="utf-8") as f:
-                head_content = f.read().strip()
-            if head_content.startswith("ref: refs/heads/"):
-                ref_path = head_content.replace("ref: refs/heads/", "")
-                ref_file = os.path.join(git_dir, ref_path)
-                if os.path.exists(ref_file):
-                    with open(ref_file, encoding="utf-8") as f:
-                        full_sha = f.read().strip()
-                    return full_sha if full else full_sha[:7]
-            else:
-                return head_content if full else head_content[:7]
-    except OSError:
-        pass
-
-    try:
-        dist_sha_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "..", "..", ".git-sha"
-        )
-        dist_sha_path = os.path.normpath(dist_sha_path)
-        if os.path.exists(dist_sha_path):
-            with open(dist_sha_path, encoding="utf-8") as f:
-                return f.read().strip()
-    except OSError:
-        pass
-
-    return "unknown"
-
-
-def get_git_sha() -> str:
-    """Get the short git commit SHA (7 chars), or 'unknown' if not available."""
-    return _get_sha(full=False)
-
-
-def get_full_sha() -> str:
-    """Get the full git commit SHA (40 chars), or 'unknown' if not available."""
-    return _get_sha(full=True)
 
 
 def get_version() -> str:
     """Return version string like 'v0.0.1 (abc1234f)' or 'v0.0.1 (unknown)'."""
-    local_logger = logging.getLogger(__name__)
-    try:
-        from amplifyp import __version__ as pkg_version
-    except ImportError:
-        try:
-            from importlib.metadata import version
-
-            pkg_version = version("amplifyp")
-        except PackageNotFoundError:
-            local_logger.debug("amplifyp package version not found")
-            pkg_version = "unknown"
-
-    git_sha = get_git_sha()
-    return f"{pkg_version} ({git_sha})"
+    return _core_get_version(git_sha_fn=get_git_sha)
 
 
 # ==============================================================================
@@ -339,100 +236,21 @@ def on_window_event(controller: Any, e: ft.WindowEvent) -> None:
         controller.page.update()
 
 
-# ==============================================================================
-# Version Check Helpers (formerly version_check.py)
-# ==============================================================================
-
-
-def fetch_latest_release_version() -> str | None:
-    """Fetch the latest release version tag from GitHub API."""
-    url = "https://api.github.com/repos/fangfufu/AmplifyP/releases/latest"
-    req = urllib.request.Request(
-        url,
-        headers={"User-Agent": "AmplifyP-Updater"},
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=5) as response:  # noqa: S310
-            data = json.loads(response.read().decode("utf-8"))
-            if isinstance(data, dict):
-                tag_name = data.get("tag_name")
-                if isinstance(tag_name, str):
-                    return tag_name.strip()
-    except Exception as e:
-        logger.warning("Failed to check for updates: %s", e)
-    return None
-
-
-def _parse_to_tuple(v: str) -> tuple[int, ...]:
-    """Parse a version string into a comparable tuple of integers."""
-    if v.startswith("v"):
-        v = v[1:]
-
-    match = re.match(r"^([\d.]+)(.*)$", v)
-    if not match:
-        return (0, 0, 0, 0, 0, 0)
-
-    release_str, pre_str = match.groups()
-    release_list = [int(x) for x in release_str.split(".") if x.isdigit()]
-
-    while release_list and release_list[-1] == 0:
-        release_list.pop()
-
-    while len(release_list) < 4:
-        release_list.append(0)
-
-    if not pre_str or pre_str.startswith("+"):
-        pre_type = 4
-        pre_num = 0
-    else:
-        pre_str = pre_str.lower()
-        pre_word_match = re.search(r"([a-z]+)", pre_str)
-        if pre_word_match:
-            pre_word = pre_word_match.group(1)
-            if pre_word in ("a", "alpha"):
-                pre_type = 1
-            elif pre_word in ("b", "beta"):
-                pre_type = 2
-            elif pre_word in ("rc", "preview"):
-                pre_type = 3
-            elif pre_word in ("post", "rev", "patch"):
-                pre_type = 5
-            else:
-                pre_type = 0
-        else:
-            pre_type = 0
-
-        num_match = re.search(r"(\d+)", pre_str)
-        pre_num = int(num_match.group(1)) if num_match else 0
-
-    return (*release_list, pre_type, pre_num)
-
-
-def is_newer_version(latest_tag: str, current_ver: str) -> bool:
-    """Compare latest tag with current version to see if update is available."""
-    latest_tuple = _parse_to_tuple(latest_tag)
-    current_tuple = _parse_to_tuple(current_ver)
-
-    return latest_tuple > current_tuple
-
-
-def should_check_for_updates(
-    frequency: str, last_check: float, current_time: float
-) -> bool:
-    """Determine if update checking is due based on configured frequency."""
-    if frequency == "At Startup":
-        return True
-    if frequency == "Disabled":
-        return False
-
-    elapsed = current_time - last_check
-
-    if frequency == "Once per Day":
-        return elapsed >= 86400.0
-    if frequency == "Once per Week":
-        return elapsed >= 604800.0
-    if frequency == "Once per Month":
-        return elapsed >= 2592000.0
-
-    return False
+__all__ = [
+    "_get_sha",
+    "_parse_to_tuple",
+    "auto_close_and_quit_delayed",
+    "capture_all_views_async",
+    "capture_view_screenshot_async",
+    "confirm_dismiss",
+    "confirm_exit",
+    "confirm_exit_async",
+    "fetch_latest_release_version",
+    "get_full_sha",
+    "get_git_sha",
+    "get_version",
+    "is_newer_version",
+    "on_window_event",
+    "restore_state_and_auto_close_async",
+    "should_check_for_updates",
+]

@@ -117,12 +117,12 @@ include = [
   "LICENSE",
 ]
 artifacts = [
-  "src/amplifyp/gui/git_sha.py",
+  "src/amplifyp/git_sha.py",
 ]
 
 [tool.hatch.build.targets.wheel]
 artifacts = [
-  "src/amplifyp/gui/git_sha.py",
+  "src/amplifyp/git_sha.py",
 ]
 
 [tool.hatch.build.targets.wheel.force-include]

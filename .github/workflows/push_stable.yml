@@ -123,6 +123,7 @@ jobs:
         run: |
           python scripts/gen_git_sha.py
           flet build macos . -o build/macos --project AmplifyP --yes
+          rm -f src/amplifyp/git_sha.py
           mv build/macos build/AmplifyP
           ln -s /Applications build/AmplifyP/Applications
           hdiutil create \

@@ -17,39 +17,20 @@
 
 import logging
 import logging.handlers
-import os
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
 
-from amplifyp.gui.os_paths import get_settings_yaml_path
+from amplifyp.os_paths import get_app_config_dir, get_settings_yaml_path
 
 logger = logging.getLogger(__name__)
 
 
 def _get_log_dir() -> Path:
-    """Get the OS-specific directory for log storage.
-
-    Matches the behaviour in GUISettings._get_config_path.
-    """
-    if sys.platform.startswith("win"):
-        appdata = os.environ.get("APPDATA")
-        if appdata:
-            return Path(appdata) / "AmplifyP"
-        return (
-            Path(os.path.expanduser("~")) / "AppData" / "Roaming" / "AmplifyP"
-        )
-    elif sys.platform.startswith("darwin"):
-        home = os.environ.get("HOME") or os.path.expanduser("~")
-        return Path(home) / "Library" / "Application Support" / "AmplifyP"
-    else:
-        xdg_config = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config:
-            return Path(xdg_config) / "amplifyp"
-        home = os.environ.get("HOME") or os.path.expanduser("~")
-        return Path(home) / ".config" / "amplifyp"
+    """Get the OS-specific directory for log storage."""
+    return get_app_config_dir()
 
 
 # Resolve default log file path at module import time (once, at startup)
