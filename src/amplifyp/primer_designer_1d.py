@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
+from .settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
 if TYPE_CHECKING:
     import threading
@@ -53,6 +54,7 @@ class PrimerDesigner1D:
         "_min_length",
         "_mode",
         "_on_progress",
+        "_replication_settings",
         "_template",
         "_threshold",
     )
@@ -69,6 +71,7 @@ class PrimerDesigner1D:
         max_origin_count: int | None = None,
         on_progress: Callable[[int, int], None] | None = None,
         cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
     ) -> None:
         """Initialises a new PrimerDesigner1D object and runs the analysis.
 
@@ -99,6 +102,9 @@ class PrimerDesigner1D:
                 used to abort the analysis. When set, the analysis stops
                 after the current truncation step and the primers analysed
                 so far are retained. Defaults to None.
+            replication_settings (ReplicationSettings, optional): Custom
+                replication settings used for template origin searches.
+                Defaults to `GLOBAL_REPLICATION_SETTINGS`.
 
         Raises:
             ValueError: If minimum length is non-positive or greater than
@@ -126,6 +132,7 @@ class PrimerDesigner1D:
         self._max_origin_count: int | None = max_origin_count
         self._on_progress: Callable[[int, int], None] | None = on_progress
         self._cancel_event: threading.Event | None = cancel_event
+        self._replication_settings: ReplicationSettings = replication_settings
         self._aborted: bool = False
         self._dimers: list[PrimerDimer] = []
 
@@ -170,6 +177,11 @@ class PrimerDesigner1D:
     def max_origin_count(self) -> int | None:
         """The maximum replication origin count cutoff filter, if set."""
         return self._max_origin_count
+
+    @property
+    def replication_settings(self) -> ReplicationSettings:
+        """The replication settings used for template origin searches."""
+        return self._replication_settings
 
     @property
     def aborted(self) -> bool:
@@ -287,7 +299,11 @@ class PrimerDesigner1D:
             dimer = self._generator.generate_primer_dimer(primer, primer)
             origin_count: int | None = None
             if self._template is not None:
-                repliconf = Repliconf(self._template, primer)
+                repliconf = Repliconf(
+                    self._template,
+                    primer,
+                    settings=self._replication_settings,
+                )
                 repliconf.search()
                 origin_count = len(repliconf.origin_db.fwd) + len(
                     repliconf.origin_db.rev

@@ -195,6 +195,7 @@ class Designer2DView(BaseDesignerView):
             pass
 
         pd_settings = self.settings.get_primer_dimer_settings()
+        rep_settings = self.settings.get_replication_settings()
         generator = PrimerDimerGenerator(settings=pd_settings)
 
         def _on_progress(done: int, total: int) -> None:
@@ -222,6 +223,7 @@ class Designer2DView(BaseDesignerView):
                     max_amplicon_count=max_amplicons,
                     on_progress=_on_progress,
                     cancel_event=cancel_event,
+                    replication_settings=rep_settings,
                 )
                 self._cached_designer = designer
                 self._schedule_on_event_loop(

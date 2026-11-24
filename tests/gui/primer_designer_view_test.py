@@ -33,8 +33,13 @@ from amplifyp.gui.views.designer_1d import (
 
 def _contains_text(control: ft.Control, text: str) -> bool:
     """Recursively check whether any text in the control tree matches."""
-    if isinstance(control, ft.Text) and text in (control.value or ""):
-        return True
+    if isinstance(control, ft.Text):
+        if text in (control.value or ""):
+            return True
+        if control.spans:
+            joined = "".join(s.text or "" for s in control.spans)
+            if text in joined:
+                return True
     if hasattr(control, "content") and control.content:
         if _contains_text(control.content, text):
             return True
@@ -1212,3 +1217,50 @@ def test_designer_1d_card_badges_settings() -> None:
     )
     assert not _contains_text(card_custom, "Tm:")
     assert _contains_text(card_custom, "% AT:")
+
+    # Live settings refresh on open card via PrimerDesignerView.update_ui
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTATGCGTACGT"
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "9"
+    view.filter_dna_checkbox.value = True
+    assert view.run_designer() is True
+    assert view._cached_designer is not None
+
+    view._on_primer_selected(view._cached_designer.all_dimers[0], 0)
+    assert len(view._active_cards) == 1
+    open_card = view._active_cards[0]
+    assert not _contains_text(open_card, "Tm:")
+    assert _contains_text(open_card, "% AT:")
+
+    settings["designer_1d_show_tm"] = True
+    settings["designer_1d_show_pct_at"] = False
+    settings["sequence_separator"] = "Dash ('-')"
+    view.update_ui()
+    assert _contains_text(open_card, "Tm:")
+    assert not _contains_text(open_card, "% AT:")
+    assert _contains_text(open_card, "5'-")
+
+    # ReplicationSettings cutoffs affect Designer 1D origin counts & filtering
+    settings["primability_cutoff"] = "0.9999"
+    settings["stability_cutoff"] = "0.9999"
+    view.max_binding_sites_input.value = "0"
+    # Impossible cutoff > 1.0 yields 0 sites in PrimerDesigner1D
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.settings import ReplicationSettings
+
+    strict_rep = ReplicationSettings(
+        primability_cutoff=1.0, stability_cutoff=1.0
+    )
+    strict_designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=DNA("ATGCGTACGTATGCGTACGT"),
+        max_origin_count=0,
+        replication_settings=strict_rep,
+    )
+    assert strict_designer.replication_settings is strict_rep
+    assert len(strict_designer.all_dimers) == 2
