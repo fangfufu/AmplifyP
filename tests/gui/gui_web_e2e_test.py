@@ -509,8 +509,8 @@ def test_e2e_primer_lifecycle_and_state(
     assert "I1" in state_content
     assert "I2" in state_content
 
-    # 9. Load the state
-    print("Refreshing/reloading page to clear state...")
+    # 9. Verify auto-reload on startup, explicit clear, and manual state load
+    print("Reloading page to verify web auto-reload persistence...")
     page.goto(f"{serve_app}/?enable-semantics=true")
     try:
         page.wait_for_load_state("networkidle", timeout=5000)
@@ -518,11 +518,45 @@ def test_e2e_primer_lifecycle_and_state(
         pass
     wait_for_semantics(page)
 
-    # Wait for app/Pyodide to fully load and the input to appear
+    # Wait for app/Pyodide to fully load and restore the saved session state
     page.wait_for_selector(PRIMER_INPUT_SEL, state="attached", timeout=60000)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(8, timeout=30000)
 
-    # Assert clean state before load (2 inputs)
+    # Verify auto-reloaded template and primers via Save all (CanvasKit does not
+    # sync typed/loaded text into DOM textarea.value)
+    with page.expect_download(timeout=20000) as download_info:
+        page.locator("[aria-label*='Save all']").first.click()
+    reloaded_yaml_path = tmp_path / "reloaded_saved.yaml"
+    download_info.value.save_as(str(reloaded_yaml_path))
+    reloaded_content = reloaded_yaml_path.read_text(encoding="utf-8")
+    for expected_token in ("ATGCATGC", "V1", "V2", "I1", "I2"):
+        assert expected_token in reloaded_content
+
+    print("Clearing all state via confirmation dialogue...")
+    page.locator("[aria-label*='Clear all']").first.click()
+    confirm_yes_btn = page.get_by_role("button", name="Yes").first
+    confirm_yes_btn.wait_for(state="attached", timeout=10000)
+    confirm_yes_btn.click(force=True)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(2, timeout=15000)
+    time.sleep(1)
+
+    print("Reloading page to confirm cleared state persists...")
+    page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
+    wait_for_semantics(page)
+    page.wait_for_selector(PRIMER_INPUT_SEL, state="attached", timeout=60000)
+    time.sleep(1)
     expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(2)
+    with page.expect_download(timeout=20000) as download_info:
+        page.locator("[aria-label*='Save all']").first.click()
+    cleared_yaml_path = tmp_path / "cleared_saved.yaml"
+    download_info.value.save_as(str(cleared_yaml_path))
+    cleared_content = cleared_yaml_path.read_text(encoding="utf-8")
+    for cleared_token in ("ATGCATGC", "V1", "V2", "I1", "I2"):
+        assert cleared_token not in cleared_content
 
     print("Loading the saved state...")
     load_state_btn = page.locator("[aria-label*='Load all']").first
@@ -530,7 +564,8 @@ def test_e2e_primer_lifecycle_and_state(
         load_state_btn.click()
     file_chooser = fc_info.value
     file_chooser.set_files(str(state_yaml_path))
-    time.sleep(5)
+    expect(page.locator(PRIMER_INPUT_SEL)).to_have_count(8, timeout=15000)
+    time.sleep(1)
 
     # Verify template and primers are restored (we can save and check)
     with page.expect_download(timeout=20000) as download_info:

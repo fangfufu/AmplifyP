@@ -566,6 +566,14 @@ async def test_gui_controller_methods_and_delegations() -> None:
         controller.save_last_state()
         controller.load_last_state()
         await controller._load_last_state_async()
+        with patch(
+            "amplifyp.gui.utils.data_helpers.load_last_state_async",
+            new_callable=AsyncMock,
+        ) as mock_web_load:
+            mock_page.web = True
+            await controller._load_last_state_async()
+            mock_web_load.assert_awaited_once_with(controller)
+            mock_page.web = False
         controller._restore_state_from_file("dummy.yaml")
         controller._apply_parsed_state({})
         await controller.save_state(MagicMock())

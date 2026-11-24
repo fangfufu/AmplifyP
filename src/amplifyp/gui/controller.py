@@ -136,6 +136,11 @@ class GUIController:
                 e: The Flet control event.
             """
             self.update_pcr_button_state(sync=False)
+            if self.page.web and (
+                e is None
+                or isinstance(getattr(e, "control", None), ft.Checkbox)
+            ):
+                self.save_last_state()
 
         def handle_stop_editing(e: ft.ControlEvent | None) -> None:
             """Save state if on web when editing is stopped.
@@ -459,7 +464,12 @@ class GUIController:
         """Asynchronously load the last template and primers from storage."""
         # Yield to let the page finish initial rendering and attach controls
         await asyncio.sleep(0)
-        self.load_last_state()
+        if getattr(self.page, "web", False):
+            from amplifyp.gui.utils.data_helpers import load_last_state_async
+
+            await load_last_state_async(self)
+        else:
+            self.load_last_state()
 
     def _restore_state_from_file(self, path: str) -> None:
         """Restore app state from a YAML file on startup.
