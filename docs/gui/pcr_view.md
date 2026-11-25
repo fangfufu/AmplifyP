@@ -101,7 +101,9 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
     quality: $$Q = \\frac{\\text{Internal fragment length in bp}}{(\\text{Left
     Match Quality} \\times \\text{Right Match Quality})^2}$$ *(For perfect
     primer matches with quality 1.0, $Q$ equals the internal fragment length.
-    Larger $Q$ values indicate lower amplification efficiency).*
+    Larger $Q$ values indicate lower amplification efficiency).* When **Relative
+    Q score** is enabled in Settings, each amplicon's $Q$ score is divided by
+    the smallest positive finite $Q$ score across all predicted amplicons.
   - **Amplified Sequence**: A labelled, monospace, selectable sequence box
     highlighting the forward primer region in **blue** (with a `▶` marker),
     internal product sequence in standard text, and reverse primer region in
