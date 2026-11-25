@@ -210,7 +210,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             border_radius=5,
             padding=ft.Padding(0, 0, 0, 0),
             height=32,
-            width=115,
+            width=100,
         )
 
         self.save_template_button = ft.FilledTonalButton(
@@ -285,56 +285,64 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             border_radius=5,
             padding=0,
         )
-        self.content = ft.Column(
+        self.template_title_row = ft.Column(
             [
                 ft.ResponsiveRow(
                     [
-                        ft.Container(
-                            content=ft.Row(
-                                [
-                                    self.circular_container,
-                                    ft.Text(
-                                        "Template Sequence",
-                                        weight=ft.FontWeight.BOLD,
-                                        no_wrap=True,
-                                    ),
-                                ],
-                                spacing=10,
-                                tight=True,
-                                wrap=True,
-                            ),
-                            col={
-                                "xl": 4,
-                                "lg": 4,
-                                "md": 12,
-                                "sm": 12,
-                                "xs": 12,
-                            },
-                        ),
-                        ft.Container(
-                            content=ft.Row(
-                                [
-                                    self.load_template_button,
-                                    self.save_template_button,
-                                    self.clear_template_button,
-                                    self.copy_template_button,
-                                    self.casing_group,
-                                ],
-                                spacing=10,
-                                tight=True,
-                                wrap=True,
-                            ),
-                            col={
-                                "xl": 8,
-                                "lg": 8,
-                                "md": 12,
-                                "sm": 12,
-                                "xs": 12,
-                            },
-                            alignment=ft.Alignment(1, 0),
+                        ft.Row(
+                            [
+                                ft.Row(
+                                    [
+                                        self.circular_container,
+                                        ft.Text(
+                                            "Template",
+                                            weight=ft.FontWeight.BOLD,
+                                            no_wrap=True,
+                                        ),
+                                    ],
+                                    spacing=10,
+                                    tight=True,
+                                    wrap=True,
+                                ),
+                                ft.Row(
+                                    [
+                                        self.load_template_button,
+                                        self.save_template_button,
+                                    ],
+                                    spacing=10,
+                                    tight=True,
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            wrap=True,
                         ),
                     ],
+                    run_spacing=0,
                 ),
+                ft.Divider(height=1, thickness=1),
+                ft.ResponsiveRow(
+                    [
+                        ft.Row(
+                            [
+                                self.clear_template_button,
+                                self.copy_template_button,
+                                self.casing_group,
+                            ],
+                            spacing=10,
+                            alignment=ft.MainAxisAlignment.END,
+                            tight=True,
+                            wrap=True,
+                        ),
+                    ],
+                    run_spacing=0,
+                ),
+            ],
+            spacing=5,
+        )
+        self.content = ft.Column(
+            [
+                self.template_title_row,
                 self.template_box_container,
             ],
             expand=True,
