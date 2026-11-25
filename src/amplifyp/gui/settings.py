@@ -82,7 +82,6 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "dimer_sequence_separator": "Dash ('-')",
             "sequence_separator": "Dash ('-')",
             "colour_deficient": False,
             "dark_mode": "system",
@@ -223,9 +222,6 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        if key in ("dimer_sequence_separator", "sequence_separator"):
-            self._settings["dimer_sequence_separator"] = str(value)
-            self._settings["sequence_separator"] = str(value)
         self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
@@ -479,14 +475,6 @@ class GUISettings:
                 ]:
                     del self._settings[existing_k]
                 self._settings.update(valid_entries)
-        if "sequence_separator" in settings_dict:
-            self._settings["dimer_sequence_separator"] = str(
-                settings_dict["sequence_separator"]
-            )
-        elif "dimer_sequence_separator" in settings_dict:
-            self._settings["sequence_separator"] = str(
-                settings_dict["dimer_sequence_separator"]
-            )
         if (
             "amplify4_compatibility_mode" in settings_dict
             and "amp4_compat" not in settings_dict

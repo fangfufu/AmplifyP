@@ -509,22 +509,6 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
         s.load_from_local(mock_page)
 
 
-def test_sequence_separator_synchronisation() -> None:
-    """Test sequence separator bidirectional synchronisation."""
-    for key, sep in (
-        ("sequence_separator", " "),
-        ("dimer_sequence_separator", "-"),
-    ):
-        settings = GUISettings({key: sep})
-        assert settings["sequence_separator"] == sep
-        assert settings["dimer_sequence_separator"] == sep
-
-    settings_from_dict = GUISettings()
-    settings_from_dict.from_dict({"dimer_sequence_separator": " / "})
-    assert settings_from_dict["sequence_separator"] == " / "
-    assert settings_from_dict["dimer_sequence_separator"] == " / "
-
-
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
     """Test web save awaits failing prev task and handles missing run_task."""

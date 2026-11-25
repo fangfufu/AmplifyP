@@ -267,7 +267,7 @@ def test_dimer_card_separator_setting() -> None:
 
     # Test default Space separator
     settings = GUISettings()
-    settings["dimer_sequence_separator"] = "Space (' ')"
+    settings["sequence_separator"] = "Space (' ')"
     card_space = DimerCard(d, settings)
     card_space_col = card_space.content.content
     diagram_text_space = card_space_col.controls[1].content.controls[0]
@@ -276,7 +276,7 @@ def test_dimer_card_separator_setting() -> None:
     assert "3' CGTACGTA 5'" in text_space
 
     # Test Dash separator
-    settings["dimer_sequence_separator"] = "Dash ('-')"
+    settings["sequence_separator"] = "Dash ('-')"
     card_dash = DimerCard(d, settings)
     card_dash_col = card_dash.content.content
     diagram_text_dash = card_dash_col.controls[1].content.controls[0]

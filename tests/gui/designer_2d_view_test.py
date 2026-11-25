@@ -1364,7 +1364,7 @@ def test_dismissible_2d_card_separator_setting() -> None:
 
     # Test Space separator
     settings_space = GUISettings()
-    settings_space["dimer_sequence_separator"] = "Space (' ')"
+    settings_space["sequence_separator"] = "Space (' ')"
     card_space = Dismissible2DCard(
         "card_sp", step, settings_space, dismiss_callback=MagicMock()
     )
@@ -1376,7 +1376,7 @@ def test_dismissible_2d_card_separator_setting() -> None:
 
     # Test Dash separator
     settings_dash = GUISettings()
-    settings_dash["dimer_sequence_separator"] = "Dash ('-')"
+    settings_dash["sequence_separator"] = "Dash ('-')"
     card_dash = Dismissible2DCard(
         "card_ds", step, settings_dash, dismiss_callback=MagicMock()
     )

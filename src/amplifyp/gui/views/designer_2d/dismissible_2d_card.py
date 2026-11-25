@@ -259,10 +259,7 @@ class Dismissible2DCard(DismissibleDetailCard):
         subcontainers: list[ft.Control] = []
 
         sep_setting = (
-            self.settings.get(
-                "sequence_separator",
-                self.settings.get("dimer_sequence_separator", "Dash ('-')"),
-            )
+            self.settings.get("sequence_separator", "Dash ('-')")
             if hasattr(self.settings, "get")
             else " "
         )

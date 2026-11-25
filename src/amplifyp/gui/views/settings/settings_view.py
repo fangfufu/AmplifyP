@@ -221,11 +221,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.general_tile.set_colour_scheme
 
     @property
-    def set_dimer_sequence_separator(self) -> ft.Dropdown:
-        """Get the dimer sequence separator dropdown."""
-        return self.general_tile.set_dimer_sequence_separator
-
-    @property
     def set_sequence_separator(self) -> ft.Dropdown:
         """Get the 5'/3' sequence separator dropdown."""
         return self.general_tile.set_sequence_separator
