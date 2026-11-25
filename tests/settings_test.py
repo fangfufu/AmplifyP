@@ -400,3 +400,7 @@ def test_overflow_coercion_and_gui_compat_normalisation() -> None:
         gui_settings.get_replication_settings().amplify4_compatibility_mode
         is False
     )
+
+    # Float conversion in GUISettings.from_dict handles OverflowError safely.
+    gui_settings.from_dict({"last_version_check_timestamp": 10**400})
+    assert gui_settings["last_version_check_timestamp"] == pytest.approx(0.0)

@@ -542,7 +542,11 @@ def apply_parsed_state(
                 raise ValueError(
                     "Invalid state file format: 'settings' must be a mapping."
                 )
+            from amplifyp.gui.settings import GUISettings
+
             settings_dict = dict(settings_payload)
+            staged_settings = GUISettings()
+            staged_settings.from_dict(settings_dict)
 
     controller.input_data.from_dict(input_dict)
     if settings_dict is not None:

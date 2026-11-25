@@ -454,7 +454,7 @@ class GUISettings:
                 elif isinstance(self._settings[k], float):
                     try:
                         self._settings[k] = float(v)
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, OverflowError):
                         pass
                 else:
                     self._settings[k] = str(v)

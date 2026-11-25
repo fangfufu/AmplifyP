@@ -886,3 +886,40 @@ async def test_failed_state_loads_preserve_existing_input_data(
         await load_last_state_async(controller)
     assert controller.input_data.template == "GGGGCCCC"
     assert controller.input_data.primers == orig_primers
+
+    # 6. apply_parsed_state handles oversized float settings without partial
+    # mutation, and preserves input_data if staged settings conversion raises.
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.primers = list(orig_primers)
+    apply_parsed_state(
+        controller,
+        {
+            "input": {"template": "ATATATAT", "primers": []},
+            "settings": {"last_version_check_timestamp": 10**400},
+        },
+        ignore_settings=False,
+    )
+    assert controller.input_data.template == "ATATATAT"
+    assert controller.settings["last_version_check_timestamp"] == pytest.approx(
+        0.0
+    )
+
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.primers = list(orig_primers)
+    with (
+        patch(
+            "amplifyp.gui.settings.GUISettings.from_dict",
+            side_effect=ValueError("bad settings"),
+        ),
+        pytest.raises(ValueError, match="bad settings"),
+    ):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {"template": "TTTT", "primers": []},
+                "settings": {"dark_mode": True},
+            },
+            ignore_settings=False,
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
