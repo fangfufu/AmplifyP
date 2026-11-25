@@ -92,26 +92,6 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 input_view.input_data.primers[idx]["name_touched"] = True
             elif field == "seq":
                 input_view.input_data.primers[idx]["seq_touched"] = True
-                try:
-                    page = e.page or input_view.page
-                except RuntimeError:
-                    page = None
-                if page and not getattr(
-                    input_view, "_skip_seq_focus_reset", False
-                ):
-
-                    async def set_seq_cursor() -> None:
-                        """Reset cursor to start of the text field."""
-                        try:
-                            e.control.selection = ft.TextSelection(
-                                base_offset=0, extent_offset=0
-                            )
-                            e.control.update()
-                        except Exception:  # noqa: S110
-                            pass
-
-                    page.run_task(set_seq_cursor)  # pyright: ignore[reportAttributeAccessIssue]
-                input_view._skip_seq_focus_reset = False
 
         input_view.primer_input._update_row_highlights()
         input_view.primer_input._update_primer_info_panel()

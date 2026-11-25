@@ -1720,9 +1720,8 @@ def test_primer_list_update_highlights_non_int_idx() -> None:
     invalid_row.update_highlight_and_reorder.assert_not_called()
 
 
-@pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_handle_field_focus_no_echo_loop() -> None:
-    """Test sequence focus cursor reset avoids redundant focus call and loop."""
+def test_handle_field_focus_no_echo_loop() -> None:
+    """Test sequence focus preserves cursor position and drops echo events."""
     mock_page = MagicMock(spec=ft.Page)
     tasks: list[Any] = []
     mock_page.run_task = lambda t: tasks.append(t())
@@ -1733,25 +1732,24 @@ async def test_handle_field_focus_no_echo_loop() -> None:
     view.update_ui()
 
     txt_fld = view.primers_list.controls[0].seq_field
+    txt_fld.selection = ft.TextSelection(base_offset=2, extent_offset=2)
     txt_fld.focus = MagicMock()
     txt_fld.update = MagicMock()
 
     ev = MagicMock(control=txt_fld, page=mock_page)
 
-    # First focus event schedules cursor reset task
+    # First focus event should not reset cursor or call focus()
     handle_field_focus(view, ev)
-    assert len(tasks) == 1
-    await tasks[0]
-
-    # Verify focus() was NOT called inside set_seq_cursor (prevents loop)
+    assert len(tasks) == 0
     txt_fld.focus.assert_not_called()
-    assert txt_fld.selection.base_offset == 0
-    assert txt_fld.selection.extent_offset == 0
-    txt_fld.update.assert_called_once()
+    assert txt_fld.selection.base_offset == 2
+    assert txt_fld.selection.extent_offset == 2
 
     # Second identical focus event (echo) is dropped immediately
+    mock_page.update.reset_mock()
     handle_field_focus(view, ev)
-    assert len(tasks) == 1  # No new task scheduled
+    assert len(tasks) == 0
+    mock_page.update.assert_not_called()
 
 
 def test_handle_row_click_preserves_active_field_focus() -> None:
