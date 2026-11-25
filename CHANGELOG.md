@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0](https://github.com/fangfufu/AmplifyP/compare/v1.29.0...v1.30.0) (2026-11-25)
+
+
+### Features
+
+* **gui:** enable relative Q score by default ([08353df](https://github.com/fangfufu/AmplifyP/commit/08353df215e8de0ace08da943f71fbecb2144a99))
+* **gui:** multiply relative Q score by 100 ([3245659](https://github.com/fangfufu/AmplifyP/commit/3245659cdcdc0e7e8cc67d000f609ce408b62245))
+* **gui:** smoothly scale amplicon bar thickness ([646a724](https://github.com/fangfufu/AmplifyP/commit/646a724e870f6661e45b3f7097a23f2b605c8480))
+
+
+### Bug Fixes
+
+* **gui:** group template Clear and Copy buttons ([1631d3b](https://github.com/fangfufu/AmplifyP/commit/1631d3becafacc5c40bb9fad943c240e46f369a4))
+
 ## [1.29.0](https://github.com/fangfufu/AmplifyP/compare/v1.28.0...v1.29.0) (2026-11-25)
 
 
