@@ -298,6 +298,7 @@ async def test_web_save_snapshot_and_key_filtering() -> None:
         }
 
 
+@pytest.mark.ci  # type: ignore[untyped-decorator]
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_startup_awaits_preferences_before_init() -> None:
     """Test web startup awaits preferences before logging and controller."""
