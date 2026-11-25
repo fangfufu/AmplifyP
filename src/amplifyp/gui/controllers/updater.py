@@ -47,7 +47,7 @@ class UpdateManager:
 
         ctrl = self.controller
         frequency = ctrl.settings.get(
-            "version_checking_frequency", "Once per Month"
+            "version_checking_frequency", "Once per Day"
         )
         try:
             last_check = float(

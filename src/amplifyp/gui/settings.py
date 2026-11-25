@@ -107,7 +107,7 @@ class GUISettings:
             "log_file_path": "(Default)",
             "log_rotation_enabled": True,
             "log_rotation_max_bytes": 5242880,
-            "version_checking_frequency": "Once per Month",
+            "version_checking_frequency": "Once per Day",
             "last_version_check_timestamp": 0.0,
             "auto_reload_on_startup": True,
             "template_fixed_width": False,

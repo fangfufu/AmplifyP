@@ -492,7 +492,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
     def update_ui(self) -> None:
         """Sync component with settings state."""
         self.set_version_checking_frequency.value = self.settings.get(
-            "version_checking_frequency", "Once per Month"
+            "version_checking_frequency", "Once per Day"
         )
         self.set_sequence_separator.value = self.settings.get(
             "sequence_separator", "Dash ('-')"
