@@ -478,7 +478,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         await self.file_manager.load_primers_click(e)
 
     async def _save_primers_click(self, e: ft.Event | None) -> None:
-        """Save active primers to a CSV file."""
+        """Save primers to a TSV file."""
         await self.file_manager.save_primers_click(e)
 
     def _show_notification(self, message: str) -> None:

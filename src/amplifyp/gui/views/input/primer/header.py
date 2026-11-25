@@ -166,7 +166,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             self.sequence_header,
         ]
         if show_temp:
-            controls.append(self.tm_header)
+            controls.extend([self.tm_divider, self.tm_header])
         self.header_row = ft.Row(
             controls,
             alignment=ft.MainAxisAlignment.START,

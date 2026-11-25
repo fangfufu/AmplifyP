@@ -579,6 +579,16 @@ def test_input_view_primer_reordering() -> None:
         header.down_button.disabled is True
     )  # Down is disabled on the last row
 
+    # Enabling primer temperature keeps the Tm divider aligned with rows
+    view.settings["show_primer_temperature"] = True
+    view.update_ui()
+    tm_header = view.primer_input.primer_header
+    assert tm_header.header_row.controls[-2:] == [
+        tm_header.tm_divider,
+        tm_header.tm_header,
+    ]
+    assert tm_header.tm_header.width == 50
+
 
 def test_input_view_block_invalid_primer() -> None:
     """Test invalid primer does not block row editing.
