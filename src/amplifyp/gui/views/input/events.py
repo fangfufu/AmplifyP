@@ -148,9 +148,6 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 if isinstance(row, PrimerRow) and row.idx == idx:
                     row.set_error(err)
                     break
-            input_view._auto_add_empty_row_if_needed(
-                cast(ft.Control, e.control)
-            )
             input_view.app_page.update()
 
     if input_view.on_stop_editing_callback:

@@ -503,6 +503,33 @@ def test_input_events_coordination() -> None:
     auto_add_empty_row_if_needed(view, row.seq_field)
 
 
+def test_blur_last_row_does_not_auto_add_empty_row() -> None:
+    """Blurring the last row's seq field should not append a new empty row."""
+    view, _, input_data, _ = _setup_test_view()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view.update_ui()
+
+    last_row = view.primer_input.primers_list.controls[-1]
+    assert isinstance(last_row, PrimerRow)
+
+    ev_focus = MagicMock()
+    ev_focus.control = last_row.seq_field
+    handle_field_focus(view, ev_focus)
+
+    ev_blur = MagicMock()
+    ev_blur.control = last_row.seq_field
+    handle_field_blur(view, ev_blur)
+
+    assert len(input_data.primers) == 1
+
+    ev_submit = MagicMock()
+    ev_submit.control = last_row.seq_field
+    handle_field_submit(view, ev_submit)
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[1] == {"name": "", "seq": "", "active": False}
+
+
 def test_primer_info_panel_details() -> None:
     """Test PrimerInfoPanel for zero, single, and multiple selected primers."""
     view, _, _input_data, _ = _setup_test_view()
