@@ -353,8 +353,8 @@ q = \begin{cases}
   truncates both scores to two decimal places prior to combining them:
 
 ```math
-P_{\text{amp4}} = \frac{\operatorname{trunc}(100 P)}{100}, \qquad
-Z_{\text{amp4}} = \frac{\operatorname{trunc}(100 Z)}{100}, \qquad
+P_{\text{amp4}} = \frac{\text{trunc}(100 P)}{100}, \qquad
+Z_{\text{amp4}} = \frac{\text{trunc}(100 Z)}{100}, \qquad
 q_{\text{amp4}} = \frac{P_{\text{amp4}} + Z_{\text{amp4}} - (c_P + c_Z)}{2 - (c_P + c_Z)}
 ```
 
