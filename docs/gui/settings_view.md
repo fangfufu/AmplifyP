@@ -107,9 +107,11 @@ PCR replication calculations.
 
 - **Overview Map**:
   - **Horizontal divider behaviour**: Dropdown controlling how the PCR overview
-    map height is sized (`Auto-resize (max 1/4 of viewport)`,
-    `Auto-resize (max 1/3 of viewport)` [default],
-    `Auto-resize (max 1/2 of viewport)`, `Auto-resize (max 2/3 of viewport)`,
+    map height is sized (`Auto-resizing, max 1/4 of the viewport`,
+    `Auto-resizing, max 1/3 of the viewport` [default],
+    `Auto-resizing, max 1/2 of the viewport`,
+    `Auto-resizing, max 2/3 of the viewport`,
+    `Auto-resizing, max 3/4 of the viewport`,
     `Save proportionality across session`).
 - **Replication Origin**:
   - **Base Pair Weights**: A $15 \\times 5$ interactive table of pairwise

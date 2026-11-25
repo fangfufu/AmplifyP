@@ -120,23 +120,23 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             options=[
                 ft.dropdown.Option(
                     key="autoresize_1_4",
-                    text="Auto-resize (max 1/4 of viewport)",
+                    text="Auto-resizing, max 1/4 of the viewport",
                 ),
                 ft.dropdown.Option(
                     key="autoresize",
-                    text="Auto-resize (max 1/3 of viewport)",
+                    text="Auto-resizing, max 1/3 of the viewport",
                 ),
                 ft.dropdown.Option(
                     key="autoresize_1_2",
-                    text="Auto-resize (max 1/2 of viewport)",
+                    text="Auto-resizing, max 1/2 of the viewport",
                 ),
                 ft.dropdown.Option(
                     key="autoresize_2_3",
-                    text="Auto-resize (max 2/3 of viewport)",
+                    text="Auto-resizing, max 2/3 of the viewport",
                 ),
                 ft.dropdown.Option(
                     key="autoresize_3_4",
-                    text="Auto-resize (max 3/4 of viewport)",
+                    text="Auto-resizing, max 3/4 of the viewport",
                 ),
                 ft.dropdown.Option(
                     key="save_proportionality",
