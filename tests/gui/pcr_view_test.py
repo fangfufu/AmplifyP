@@ -408,8 +408,8 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
     ]
     assert len(comp_spans) == 1
     # Check that it contains "3' " and " 5'" and the translated comp sequence
-    assert "3' " in comp_spans[0].text
-    assert " 5'" in comp_spans[0].text
+    assert "3'-" in comp_spans[0].text
+    assert "-5'" in comp_spans[0].text
 
 
 def test_format_context_lines_alignment_long_label() -> None:
@@ -771,8 +771,8 @@ def test_pcr_view_all_remaining_branches() -> None:
         .content.controls[0]
         .spans
     )
-    assert "5' " in spans_text
-    assert " 3'" in spans_text
+    assert "5'-" in spans_text
+    assert "-3'" in spans_text
 
     dash_settings = GUISettings()
     dash_settings["sequence_separator"] = "Dash ('-')"

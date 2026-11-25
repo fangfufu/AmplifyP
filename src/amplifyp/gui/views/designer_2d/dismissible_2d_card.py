@@ -261,7 +261,7 @@ class Dismissible2DCard(DismissibleDetailCard):
         sep_setting = (
             self.settings.get(
                 "sequence_separator",
-                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+                self.settings.get("dimer_sequence_separator", "Dash ('-')"),
             )
             if hasattr(self.settings, "get")
             else " "

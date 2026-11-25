@@ -450,7 +450,7 @@ def format_context_lines(
     elif settings is not None and hasattr(settings, "get"):
         sep_setting = settings.get(
             "sequence_separator",
-            settings.get("dimer_sequence_separator", "Space (' ')"),
+            settings.get("dimer_sequence_separator", "Dash ('-')"),
         )
         sep = (
             "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
@@ -513,7 +513,7 @@ class ReplicationContextCard(DismissibleDetailCard):
 
         sep_setting = settings.get(
             "sequence_separator",
-            settings.get("dimer_sequence_separator", "Space (' ')"),
+            settings.get("dimer_sequence_separator", "Dash ('-')"),
         )
         sep = (
             "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "

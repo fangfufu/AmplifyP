@@ -109,7 +109,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             ],
             value=self.settings.get(
                 "sequence_separator",
-                self.settings.get("dimer_sequence_separator", "Space (' ')"),
+                self.settings.get("dimer_sequence_separator", "Dash ('-')"),
             ),
             expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
@@ -505,7 +505,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         )
         self.set_dimer_sequence_separator.value = self.settings.get(
             "sequence_separator",
-            self.settings.get("dimer_sequence_separator", "Space (' ')"),
+            self.settings.get("dimer_sequence_separator", "Dash ('-')"),
         )
         self.set_colour_scheme.border_color = GUIColours.OUTLINE
         if self._status_state == "error":

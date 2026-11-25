@@ -73,7 +73,7 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_colour_scheme is not None
     assert view.set_dimer_sequence_separator is not None
     assert view.set_sequence_separator is not None
-    assert view.set_dimer_sequence_separator.value == "Space (' ')"
+    assert view.set_dimer_sequence_separator.value == "Dash ('-')"
     assert [opt.key for opt in view.set_dimer_sequence_separator.options] == [
         "Space (' ')",
         "Dash ('-')",
@@ -228,7 +228,7 @@ def test_general_tile_all_branches() -> None:
     assert tile.set_colour_deficient is not None
     assert tile.set_auto_reload_on_startup is not None
     assert tile.set_dimer_sequence_separator is not None
-    assert tile.set_dimer_sequence_separator.value == "Space (' ')"
+    assert tile.set_dimer_sequence_separator.value == "Dash ('-')"
 
     # 2. _on_manual_check_click
     captured_task = None
