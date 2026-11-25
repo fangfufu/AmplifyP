@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0](https://github.com/fangfufu/AmplifyP/compare/v1.28.0...v1.29.0) (2026-11-25)
+
+
+### Features
+
+* **gui:** add relative amplicon Q score option ([558df03](https://github.com/fangfufu/AmplifyP/commit/558df0332ade44a14bc5e13264076081622af76c))
+* **gui:** default 5'/3' separator to hyphen ([5e8f19c](https://github.com/fangfufu/AmplifyP/commit/5e8f19c3ab089ebfbe59b42a75cf99118418340f))
+* **gui:** default PCR autoresize to 3/4 viewport ([ad3fbe3](https://github.com/fangfufu/AmplifyP/commit/ad3fbe36afd239ceafaf784a645a2df8a2069b61))
+* **gui:** default version check to daily ([adeb655](https://github.com/fangfufu/AmplifyP/commit/adeb655be77a1f340bfb4733debb5de5ca87b5e2))
+
+
+### Bug Fixes
+
+* **gui:** align Tm header divider and PCR card Q ([8cbae31](https://github.com/fangfufu/AmplifyP/commit/8cbae310d6c01905b1f86accf317d65e1b39b160))
+* **gui:** guard legacy separator migration ([3c36551](https://github.com/fangfufu/AmplifyP/commit/3c365512e07edfd9bb83911cdbba33c62e90f365))
+* **gui:** migrate legacy dimer separator setting ([0fd1878](https://github.com/fangfufu/AmplifyP/commit/0fd187872ec19985da958a36592d6a4754294a7a))
+* **gui:** polish input dividers and Q score reuse ([9a02ec7](https://github.com/fangfufu/AmplifyP/commit/9a02ec7a87d92cfffcc90e54d3404c60bb75766e))
+* **gui:** scale relative Q tiers and dash defaults ([bbbd3d6](https://github.com/fangfufu/AmplifyP/commit/bbbd3d6600c1bb40c1fa13e094c06fb717665b9e))
+* **pcr:** use unscaled thresholds for relative Q ([ff74add](https://github.com/fangfufu/AmplifyP/commit/ff74add583ec6d97e1a46e5d6e669816dcd3e408))
+
+
+### Code Refactoring
+
+* **gui:** remove dimer_sequence_separator ([637c199](https://github.com/fangfufu/AmplifyP/commit/637c199ef8c17d0cd5abb86cca848864c9028f74))
+* **gui:** reorganise primer toolbar layout ([b76fd4d](https://github.com/fangfufu/AmplifyP/commit/b76fd4d5f0ff44f8ac8a8a922d9fe4c7b11cd291))
+* **gui:** reorganise template header layout ([177b6b5](https://github.com/fangfufu/AmplifyP/commit/177b6b5ed62d8ce92d74132548d2a4fd9155778e))
+
 ## [1.28.0](https://github.com/fangfufu/AmplifyP/compare/v1.27.0...v1.28.0) (2026-11-25)
 
 
