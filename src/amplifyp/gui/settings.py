@@ -119,7 +119,7 @@ class GUISettings:
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
-            "pcr_relative_q_score": False,
+            "pcr_relative_q_score": True,
             "pcr_primer_label_orientation": "Horizontal",
             "pcr_divider_behaviour": "autoresize_3_4",
             "pcr_map_height_ratio": 0.375,

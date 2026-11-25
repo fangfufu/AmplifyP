@@ -101,7 +101,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         )
         self.set_relative_q_score = BorderedCheckbox(
             label="Relative Q score",
-            value=bool(self.settings.get("pcr_relative_q_score", False)),
+            value=bool(self.settings.get("pcr_relative_q_score", True)),
             on_change=on_change_handler,
         )
         self.set_relative_q_score.expand = True

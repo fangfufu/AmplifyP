@@ -140,7 +140,7 @@ PCR replication calculations.
   - **Amplicon vertical ranking**: Dropdown controlling the vertical ordering of
     amplicon fragment bars in the PCR View diagram (`Position, then length`
     [default], `Quality score`, `Position, then quality`).
-  - **Relative Q score**: Bordered checkbox (default: unchecked). When enabled,
+  - **Relative Q score**: Bordered checkbox (default: checked). When enabled,
     scales each amplicon's $Q$ score by dividing by the smallest positive finite
     $Q$ score across all predicted amplicons and multiplying by 100.
 

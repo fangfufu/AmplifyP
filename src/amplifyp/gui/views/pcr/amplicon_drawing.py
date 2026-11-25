@@ -50,7 +50,7 @@ def _resolve_q_score(
 ) -> tuple[float, bool]:
     """Return `(effective_q_score, is_scaled)` according to settings."""
     if (
-        bool(settings.get("pcr_relative_q_score", False))
+        bool(settings.get("pcr_relative_q_score", True))
         and min_q_score is not None
         and math.isfinite(min_q_score)
         and min_q_score > 0
