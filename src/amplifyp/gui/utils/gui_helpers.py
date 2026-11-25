@@ -314,13 +314,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                 for row in controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         target_field = row.name_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                         break
                 else:
                     return
@@ -333,13 +326,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                             break
                     if prev_row:
                         target_field = prev_row.seq_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                     else:
                         return
                 else:
@@ -351,13 +337,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                 for row in controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         target_field = row.seq_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                         break
                 else:
                     return
@@ -369,13 +348,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                         break
                 if next_row:
                     target_field = next_row.name_field
-                    target_field.selection = ft.TextSelection(
-                        base_offset=0, extent_offset=0
-                    )
-                    try:
-                        target_field.update()
-                    except RuntimeError:
-                        pass
                 else:
                     return
             else:
