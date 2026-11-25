@@ -81,7 +81,7 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         sep_setting = (
             self.settings.get("sequence_separator", "Dash ('-')")
             if hasattr(self.settings, "get")
-            else " "
+            else "-"
         )
         sep = "-" if str(sep_setting) in ("Dash ('-')", "-") else " "
         alignment = PrimerDimer.format_alignment(

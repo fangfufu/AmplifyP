@@ -118,6 +118,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             self.diagram_container,
             self.divider,
         ]
+        self._sorted_amplicons: list[Amplicon] = []
+        self._min_q_score: float | None = None
 
     def _get_viewport_height(self) -> float:
         """Return available viewport height excluding the top navigation bar."""
@@ -141,7 +143,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             return
 
         # Default: autoresize to fit content, capped at viewport fraction.
-        fraction = _AUTORESIZE_VIEWPORT_FRACTIONS.get(behaviour, 1.0 / 3.0)
+        fraction = _AUTORESIZE_VIEWPORT_FRACTIONS.get(behaviour, 3.0 / 4.0)
         content_height = float(self.diagram_canvas.height or 300.0) + 22.0
         max_auto_height = max(150.0, viewport_height * fraction)
         self.diagram_container.height = max(
@@ -199,8 +201,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_stack.controls.append(self.diagram_canvas)
         self.diagram_container.visible = False
         self.divider.visible = False
-        self._sorted_amplicons: list[Amplicon] = []
-        self._min_q_score: float | None = None
+        self._sorted_amplicons = []
+        self._min_q_score = None
 
     def render_diagram(self, pcr: PCR) -> None:
         """Perform coordinates calculations and render diagram elements.

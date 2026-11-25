@@ -453,7 +453,7 @@ def format_context_lines(
             "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
         )
     else:
-        sep = " "
+        sep = "-"
 
     alignment = Repliconf.format_context_alignment(
         conf,

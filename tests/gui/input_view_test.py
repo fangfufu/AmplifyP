@@ -493,7 +493,7 @@ def test_input_view_primer_reordering() -> None:
     assert header.up_button.disabled is True
     assert header.down_button.disabled is True
 
-    # Toolbar order: (Load, Save) on title row, then (Clear, Rev Comp),
+    # Toolbar order: (Load, Save) on title row, then (Rev Comp, Clear),
     # (Copy, Paste), (Add, Delete) on the line below
     toolbar = view.primer_input.primer_toolbar
     assert toolbar.controls == [

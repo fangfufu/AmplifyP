@@ -117,9 +117,11 @@ class DrawnAmplicon:
         self.y_pos = v_frag_start + (idx * v_frag_step)
 
         # Dynamic thickness based on the quality tier
-        effective_q, _ = _resolve_q_score(amp.q_score, settings, min_q_score)
+        effective_q, is_scaled = _resolve_q_score(
+            amp.q_score, settings, min_q_score
+        )
         self.bar_height = _BAR_HEIGHT_BY_TIER[
-            Amplicon.quality_tier_for_score(effective_q)
+            Amplicon.quality_tier_for_score(effective_q, relative=is_scaled)
         ]
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
@@ -347,8 +349,12 @@ class AmpliconDetailCard(DismissibleDetailCard):
         else:
             q_display = str(round(effective_q))
         q_report = Amplicon.quality_report_str_for_score(
-            effective_q, circular=amp.circular, verbose=True
+            effective_q,
+            circular=amp.circular,
+            verbose=True,
+            relative=is_scaled,
         )
+        q_label = "Relative Q" if is_scaled else "Q"
         body_controls = [
             ft.Text(
                 spans=[
@@ -368,7 +374,9 @@ class AmpliconDetailCard(DismissibleDetailCard):
                             weight=ft.FontWeight.BOLD,
                         ),
                     ),
-                    ft.TextSpan(f")◀      Q = {q_display} ({q_report})"),
+                    ft.TextSpan(
+                        f")◀      {q_label} = {q_display} ({q_report})"
+                    ),
                 ],
                 selectable=True,
                 size=settings.get("font_size_body", 13),

@@ -265,7 +265,7 @@ def test_dimer_card_separator_setting() -> None:
         p1_pos=0,
     )
 
-    # Test default Space separator
+    # Test Space separator
     settings = GUISettings()
     settings["sequence_separator"] = "Space (' ')"
     card_space = DimerCard(d, settings)

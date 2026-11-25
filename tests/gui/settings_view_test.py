@@ -84,6 +84,8 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_designer_2d_colour_scheme is not None
     assert view.set_designer_2d_show_rev_fwd is not None
     assert view.set_version_checking_frequency is not None
+    assert view.set_version_checking_frequency.value == "Once per Day"
+    assert settings["version_checking_frequency"] == "Once per Day"
     assert view.set_auto_reload_on_startup is not None
     assert view.set_primer_info_panel_position is not None
     assert view.set_primer_info_panel_fixed_height is not None

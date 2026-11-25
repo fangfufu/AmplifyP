@@ -376,3 +376,35 @@ def test_quality_report_str_for_score() -> None:
         )
         == "okay amplification"
     )
+    assert (
+        Amplicon.quality_tier_for_score(1.0, relative=True)
+        == AmpliconQuality.GOOD
+    )
+    assert (
+        Amplicon.quality_tier_for_score(2.0, relative=True)
+        == AmpliconQuality.OKAY
+    )
+    assert (
+        Amplicon.quality_tier_for_score(5.0, relative=True)
+        == AmpliconQuality.MODERATE
+    )
+    assert (
+        Amplicon.quality_tier_for_score(13.0, relative=True)
+        == AmpliconQuality.WEAK
+    )
+    assert (
+        Amplicon.quality_tier_for_score(14.0, relative=True)
+        == AmpliconQuality.VERY_WEAK
+    )
+    assert (
+        Amplicon.quality_report_str_for_score(
+            1.0, circular=True, verbose=True, relative=True
+        )
+        == "good amplification (Circular)"
+    )
+    assert (
+        Amplicon.quality_report_str_for_score(
+            14.0, circular=False, verbose=True, relative=True
+        )
+        == "very weak amplification — probably not visible on an agarose gel"
+    )
