@@ -141,8 +141,8 @@ PCR replication calculations.
     amplicon fragment bars in the PCR View diagram (`Position, then length`
     [default], `Quality score`, `Position, then quality`).
   - **Relative Q score**: Bordered checkbox (default: unchecked). When enabled,
-    scales each amplicon's $Q$ score by the smallest positive finite $Q$ score
-    across all predicted amplicons.
+    scales each amplicon's $Q$ score by dividing by the smallest positive finite
+    $Q$ score across all predicted amplicons and multiplying by 100.
 
 ## 4. Primer Dimers
 

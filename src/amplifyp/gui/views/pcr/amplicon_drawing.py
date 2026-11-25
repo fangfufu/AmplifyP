@@ -55,7 +55,7 @@ def _resolve_q_score(
         and math.isfinite(min_q_score)
         and min_q_score > 0
     ):
-        return q_score / min_q_score, True
+        return (q_score / min_q_score) * 100.0, True
     return q_score, False
 
 
