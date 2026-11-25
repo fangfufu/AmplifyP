@@ -142,8 +142,7 @@ PCR replication calculations.
     [default], `Quality score`, `Position, then quality`).
   - **Relative Q score**: Bordered checkbox (default: unchecked). When enabled,
     scales each amplicon's $Q$ score by the smallest positive finite $Q$ score
-    across all predicted amplicons (and divides quality tier thresholds by the
-    smallest tier threshold, `300`).
+    across all predicted amplicons.
 
 ## 4. Primer Dimers
 

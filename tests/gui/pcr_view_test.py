@@ -1757,7 +1757,35 @@ def test_relative_q_score_display_and_scaling() -> None:
     amp.rev_origin.name = "R1"
     amp.rev_origin.seq = "TGCA"
     amp.circular = False
-    # Raw Q = 1200 (moderate), min_q = 600.0 -> scaled Q = 2.000 (okay)
+    # Raw Q = 2839 (weak), min_q = 2838.0 -> scaled Q = 1.000 (good)
+    amp.q_score = 2839.0
+
+    drawn_long = DrawnAmplicon(
+        amp=amp,
+        idx=0,
+        target_length=100,
+        t_width=500.0,
+        h_margin=20.0,
+        v_target=100.0,
+        c_width=540.0,
+        settings=settings,
+        on_click=lambda: None,
+        min_q_score=2838.0,
+    )
+    # Unscaled thresholds keep near-best long amplicons in GOOD tier (8.0)
+    assert drawn_long.bar_height == 8.0
+
+    long_card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=2838.0,
+    )
+    long_info = long_card.content.content.controls[1]
+    long_text = "".join(span.text for span in long_info.spans)
+    assert "Relative Q = 1.000 (good amplification" in long_text
+
+    # Raw Q = 1200 (moderate), min_q = 600.0 -> scaled Q = 2.000 (good)
     amp.q_score = 1200.0
 
     drawn_scaled = DrawnAmplicon(
@@ -1772,8 +1800,8 @@ def test_relative_q_score_display_and_scaling() -> None:
         on_click=lambda: None,
         min_q_score=600.0,
     )
-    # 2.0 falls in OKAY tier (<= 700/300, height 5.5) rather than MODERATE (3.5)
-    assert drawn_scaled.bar_height == 5.5
+    # 2.0 falls in GOOD tier (< 300, height 8.0) rather than MODERATE (3.5)
+    assert drawn_scaled.bar_height == 8.0
 
     card = AmpliconDetailCard(
         amp=amp,
@@ -1783,10 +1811,10 @@ def test_relative_q_score_display_and_scaling() -> None:
     )
     info_row = card.content.content.controls[1]
     full_text = "".join(span.text for span in info_row.spans)
-    assert "Relative Q = 2.000 (okay amplification" in full_text
+    assert "Relative Q = 2.000 (good amplification" in full_text
 
-    # Best amplicon (Q_rel = 1.000) falls in GOOD tier (<= 1.0, height 8.0)
-    drawn_best = DrawnAmplicon(
+    # Large relative Q (400.0) falls in OKAY tier (< 700, height 5.5)
+    drawn_okay = DrawnAmplicon(
         amp=amp,
         idx=0,
         target_length=100,
@@ -1796,9 +1824,9 @@ def test_relative_q_score_display_and_scaling() -> None:
         c_width=540.0,
         settings=settings,
         on_click=lambda: None,
-        min_q_score=1200.0,
+        min_q_score=3.0,
     )
-    assert drawn_best.bar_height == 8.0
+    assert drawn_okay.bar_height == 5.5
 
     # Toggling setting off and rebuilding restores raw Q score & tier
     settings["pcr_relative_q_score"] = False

@@ -111,25 +111,18 @@ class Amplicon:
 
     @staticmethod
     def _quality_entry_for_score(
-        q_score: float, relative: bool = False
+        q_score: float,
     ) -> tuple[float, AmpliconQuality, str]:
         """Return the matching threshold entry for a numeric q-score."""
-        scale = Amplicon._Q_SCORE_THRESHOLDS[0][0] if relative else 1
         for limit, tier, verbose_suffix in Amplicon._Q_SCORE_THRESHOLDS:
-            scaled_limit = limit / scale
-            matched = (
-                q_score <= scaled_limit if relative else q_score < scaled_limit
-            )
-            if matched or limit == float("inf"):
+            if q_score < limit or limit == float("inf"):
                 return limit, tier, verbose_suffix
         return Amplicon._Q_SCORE_THRESHOLDS[-1]  # pragma: no cover
 
     @staticmethod
-    def quality_tier_for_score(
-        q_score: float, relative: bool = False
-    ) -> AmpliconQuality:
+    def quality_tier_for_score(q_score: float) -> AmpliconQuality:
         """Return the quality tier corresponding to a numeric q_score."""
-        return Amplicon._quality_entry_for_score(q_score, relative=relative)[1]
+        return Amplicon._quality_entry_for_score(q_score)[1]
 
     @staticmethod
     def split_sequence(
@@ -174,12 +167,9 @@ class Amplicon:
         q_score: float,
         circular: bool = False,
         verbose: bool = False,
-        relative: bool = False,
     ) -> str:
         """Generate textual report for a given numeric q-score."""
-        _, tier, verbose_suffix = Amplicon._quality_entry_for_score(
-            q_score, relative=relative
-        )
+        _, tier, verbose_suffix = Amplicon._quality_entry_for_score(q_score)
         suffix = verbose_suffix if verbose else ""
         circ = " (Circular)" if circular else ""
         return f"{tier.value}{suffix}{circ}"
