@@ -26,6 +26,7 @@ The project directory is structured as follows:
 ```
 AmplifyP/
 ├── docs/                       # Markdown user and API documentation
+│   ├── algorithms.md           # Mathematical models and core algorithm specifications
 │   ├── api_guide.md            # Python library programmatic usage guide
 │   ├── gui/
 │   │   ├── images/             # Visual assets (screenshots)

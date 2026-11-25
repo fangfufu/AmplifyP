@@ -5,7 +5,9 @@ This guide is for bioinformaticians, developers, and researchers who want to use
 
 The `amplifyp` library provides a fully typed, high-performance API to run
 Polymerase Chain Reaction (PCR) simulations, analyse potential primer dimer
-risks, and compute thermodynamic melting properties of DNA.
+risks, and compute thermodynamic melting properties of DNA. For the underlying
+mathematical formulations, weight matrices, and biophysical assumptions, see the
+[Core Algorithms Guide](algorithms.md).
 
 ## Installation
 

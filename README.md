@@ -243,6 +243,9 @@ For more documentation, please refer to:
 - **[Python API Guide](docs/api_guide.md)**: A developer guide with code
   snippets demonstrating programmatic PCR simulation, dimer analyses, and Tm
   calculations.
+- **[Core Algorithms Guide](docs/algorithms.md)**: Detailed documentation on
+  origin scoring, amplicon prediction, primer dimer alignment, melting
+  temperature thermodynamics, and truncation-based primer design.
 - **[Development Guide](src/README.md)**: Information on setting up development
   dependencies, linters, hot-reload, and Pyodide web builds.
 - **[Windows Setup Guide](docs/windows_setup.md)**: A step-by-step developer
