@@ -163,7 +163,11 @@ class GUISettings:
             for k, v in settings_dict.items():
                 if (
                     k not in self._settings
-                    and k != "amplify4_compatibility_mode"
+                    and k
+                    not in (
+                        "amplify4_compatibility_mode",
+                        "dimer_sequence_separator",
+                    )
                     and not k.startswith(("match_weight_", "run_weight_"))
                 ):
                     self._settings[k] = v
@@ -485,6 +489,13 @@ class GUISettings:
             self._settings["amp4_compat"] = coerce_bool(
                 settings_dict["amplify4_compatibility_mode"],
                 bool(self._settings.get("amp4_compat", False)),
+            )
+        if (
+            "dimer_sequence_separator" in settings_dict
+            and "sequence_separator" not in settings_dict
+        ):
+            self._settings["sequence_separator"] = str(
+                settings_dict["dimer_sequence_separator"]
             )
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)

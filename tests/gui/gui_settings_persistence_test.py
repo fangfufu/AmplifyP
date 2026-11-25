@@ -535,6 +535,28 @@ async def test_web_save_awaits_previous_task_and_no_run_task() -> None:
     assert mock_storage == {"amplifyp.settings.dark_mode": True}
 
 
+def test_legacy_dimer_sequence_separator_migration() -> None:
+    """Test legacy dimer_sequence_separator migrates without leaking keys."""
+    s_init = GUISettings({"dimer_sequence_separator": "Space (' ')"})
+    assert s_init["sequence_separator"] == "Space (' ')"
+    assert "dimer_sequence_separator" not in s_init
+
+    s_dict = GUISettings()
+    s_dict.from_dict({"dimer_sequence_separator": "Space (' ')"})
+    assert s_dict["sequence_separator"] == "Space (' ')"
+    assert "dimer_sequence_separator" not in s_dict
+
+    # Explicit sequence_separator takes precedence over legacy key
+    s_both = GUISettings()
+    s_both.from_dict(
+        {
+            "dimer_sequence_separator": "Space (' ')",
+            "sequence_separator": "Dash ('-')",
+        }
+    )
+    assert s_both["sequence_separator"] == "Dash ('-')"
+
+
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_web_save_prunes_stale_weights_and_fallback_load() -> None:
     """Test web save prunes stale weights and fallback load reads extras."""
