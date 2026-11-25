@@ -116,7 +116,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         )
         self.set_pcr_divider_behaviour = ft.Dropdown(
             label="Horizontal divider behaviour",
-            value=self.settings.get("pcr_divider_behaviour", "autoresize"),
+            value=self.settings.get("pcr_divider_behaviour", "autoresize_3_4"),
             options=[
                 ft.dropdown.Option(
                     key="autoresize_1_4",
@@ -133,6 +133,10 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                 ft.dropdown.Option(
                     key="autoresize_2_3",
                     text="Auto-resize (max 2/3 of viewport)",
+                ),
+                ft.dropdown.Option(
+                    key="autoresize_3_4",
+                    text="Auto-resize (max 3/4 of viewport)",
                 ),
                 ft.dropdown.Option(
                     key="save_proportionality",

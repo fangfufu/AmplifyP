@@ -1308,7 +1308,7 @@ def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
     mock_page.height = 1000
 
     settings = GUISettings()
-    assert settings["pcr_divider_behaviour"] == "autoresize"
+    assert settings["pcr_divider_behaviour"] == "autoresize_3_4"
 
     input_data = GUIInput()
     input_data.template = (
@@ -1328,20 +1328,25 @@ def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
     assert view.diagram_container.height is not None
     assert 150.0 <= view.diagram_container.height <= 300.0
 
-    # Simulate a tall canvas (many amplicons): capped at 1/3 of viewport.
+    # Simulate a tall canvas (many amplicons): capped at 3/4 of 900 (675.0).
     view.diagram_panel.diagram_canvas.height = 1000.0
     view.diagram_panel._apply_container_height()
-    assert view.diagram_container.height == 300.0
+    assert view.diagram_container.height == 675.0
 
-    # Viewport grows to 1300 (1200 available) -> 1/3 cap becomes 400.0.
+    # Viewport grows to 1300 (1200 available) -> 3/4 cap becomes 900.0.
     mock_page.height = 1300
     view.diagram_panel._apply_container_height()
-    assert view.diagram_container.height == 400.0
+    assert view.diagram_container.height == 900.0
 
     # 1/4 viewport cap on 1200 available -> 300.0.
     settings["pcr_divider_behaviour"] = "autoresize_1_4"
     view.diagram_panel._apply_container_height()
     assert view.diagram_container.height == 300.0
+
+    # 1/3 viewport cap on 1200 available -> 400.0.
+    settings["pcr_divider_behaviour"] = "autoresize"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 400.0
 
     # 1/2 viewport cap on 1200 available -> 600.0.
     settings["pcr_divider_behaviour"] = "autoresize_1_2"

@@ -503,12 +503,13 @@ def test_pcr_divider_behaviour_settings() -> None:
     settings = GUISettings()
     view = SettingsView(mock_page, settings)
 
-    assert view.set_pcr_divider_behaviour.value == "autoresize"
+    assert view.set_pcr_divider_behaviour.value == "autoresize_3_4"
     assert [opt.key for opt in view.set_pcr_divider_behaviour.options] == [
         "autoresize_1_4",
         "autoresize",
         "autoresize_1_2",
         "autoresize_2_3",
+        "autoresize_3_4",
         "save_proportionality",
     ]
     view.set_pcr_divider_behaviour.value = "save_proportionality"

@@ -43,6 +43,7 @@ _AUTORESIZE_VIEWPORT_FRACTIONS: dict[str, float] = {
     "autoresize": 1.0 / 3.0,
     "autoresize_1_2": 1.0 / 2.0,
     "autoresize_2_3": 2.0 / 3.0,
+    "autoresize_3_4": 3.0 / 4.0,
 }
 _NAV_BAR_HEIGHT = 100.0
 
@@ -125,7 +126,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Size the diagram container according to the divider behaviour."""
         viewport_height = self._get_viewport_height()
         behaviour = str(
-            self.settings.get("pcr_divider_behaviour", "autoresize")
+            self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
         )
         if behaviour == "save_proportionality":
             ratio = self.settings._safe_float("pcr_map_height_ratio", 0.375)
@@ -161,7 +162,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         self.diagram_container.height = new_height
         if (
-            self.settings.get("pcr_divider_behaviour", "autoresize")
+            self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
             == "save_proportionality"
             and viewport_height > 0
         ):
@@ -176,7 +177,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Persist map height proportionality when drag finishes."""
         if (
             self.app_page
-            and self.settings.get("pcr_divider_behaviour", "autoresize")
+            and self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
             == "save_proportionality"
         ):
             self.settings.save_to_local(
