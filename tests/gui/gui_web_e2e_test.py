@@ -47,7 +47,7 @@ SRC_DIR = os.path.join(os.getcwd(), "src")
 DIST_DIR = os.path.join(os.getcwd(), "dist")
 
 PRIMER_INPUT_SEL = (
-    'flt-semantics[aria-label="Add Primer Below"] ~ flt-semantics '
+    'flt-semantics[aria-label="Add Primer"] ~ flt-semantics '
     "textarea:not([disabled])"
 )
 
@@ -320,11 +320,9 @@ def test_e2e_primer_lifecycle_and_state(
 
     def _delete_selected_primer(expected_count: int) -> None:
         """Delete primer row and verify expected input count."""
-        btn = page.locator("[aria-label*='Delete Primer']").first
+        btn = page.locator("[aria-label*='Delete Highlighted Primers']").first
         if not btn.is_visible():
-            row_container = page.locator(
-                "[aria-label*='Add Primer Below']"
-            ).first
+            row_container = page.locator("[aria-label*='Add Primer']").first
             btn = row_container.locator("[role='button']").nth(1)
         expect(btn).to_be_enabled(timeout=5000)
 
@@ -1064,7 +1062,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.locator('textarea:not([aria-label*="Add Primer Below"])').first.focus()
+    page.locator('textarea:not([aria-label*="Add Primer"])').first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new
@@ -1082,7 +1080,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
             return
 
         # It was not auto-added (because it was invalid). Re-focus the last
-        # non-file input so the header Add button is enabled.
+        # non-file input before using the toolbar Add button.
         page.locator(PRIMER_INPUT_SEL).last.click(force=True)
         time.sleep(0.5)
 
@@ -1090,7 +1088,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
         if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
             return
 
-        add_btn = page.locator("[aria-label*='Add Primer Below']").first
+        add_btn = page.locator("[aria-label*='Add Primer']").first
         add_btn.wait_for(state="attached", timeout=5000)
         box = add_btn.bounding_box()
         if box and box["width"] > 100:
