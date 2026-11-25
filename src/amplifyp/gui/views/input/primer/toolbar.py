@@ -39,35 +39,35 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         ],
     ) -> None:
         """Initialise the PrimerToolbar."""
-        self.save_button = ft.FilledTonalButton(
+        self.save_button = ft.OutlinedButton(
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=on_save,
             tooltip="Save primers to CSV",
             height=32,
         )
-        self.load_button = ft.FilledTonalButton(
+        self.load_button = ft.OutlinedButton(
             "Load",
             icon=ft.Icons.FILE_OPEN,
             on_click=on_load,
             tooltip="Load primers from CSV/TSV",
             height=32,
         )
-        self.add_button = ft.OutlinedButton(
+        self.add_button = ft.FilledTonalButton(
             "Add",
             icon=ft.Icons.ADD,
             tooltip="Add Primer",
             on_click=on_add,
             height=32,
         )
-        self.clear_button = ft.OutlinedButton(
+        self.clear_button = ft.FilledTonalButton(
             "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear All Primers",
             on_click=on_clear,
             height=32,
         )
-        self.delete_selected_button = ft.OutlinedButton(
+        self.delete_selected_button = ft.FilledTonalButton(
             "Delete",
             icon=ft.Icons.DELETE_SWEEP,
             tooltip="Delete Highlighted Primers",
@@ -75,7 +75,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             height=32,
             disabled=True,
         )
-        self.reverse_complement_button = ft.OutlinedButton(
+        self.reverse_complement_button = ft.FilledTonalButton(
             "Rev Comp",
             icon=ft.Icons.SYNC_ALT,
             tooltip="Reverse Complement Highlighted Primers",
@@ -83,14 +83,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             height=32,
             disabled=True,
         )
-        self.copy_button = ft.OutlinedButton(
+        self.copy_button = ft.FilledTonalButton(
             "Copy",
             icon=ft.Icons.CONTENT_COPY,
             tooltip="Copy Highlighted Primers to Clipboard",
             on_click=on_copy,
             height=32,
         )
-        self.paste_button = ft.OutlinedButton(
+        self.paste_button = ft.FilledTonalButton(
             "Paste",
             icon=ft.Icons.CONTENT_PASTE,
             tooltip="Paste Primers from Clipboard",

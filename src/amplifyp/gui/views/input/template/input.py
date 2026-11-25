@@ -213,7 +213,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             width=100,
         )
 
-        self.save_template_button = ft.FilledTonalButton(
+        self.save_template_button = ft.OutlinedButton(
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=self._save_template_click,
@@ -221,7 +221,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
-        self.load_template_button = ft.FilledTonalButton(
+        self.load_template_button = ft.OutlinedButton(
             "Load",
             icon=ft.Icons.FILE_OPEN,
             on_click=self._load_template_click,
@@ -229,7 +229,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
-        self.upper_case_button = ft.OutlinedButton(
+        self.upper_case_button = ft.FilledTonalButton(
             "Upper",
             icon=ft.Icons.TEXT_FIELDS,
             tooltip="Convert selected bases to upper case",
@@ -237,7 +237,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
-        self.lower_case_button = ft.OutlinedButton(
+        self.lower_case_button = ft.FilledTonalButton(
             "Lower",
             icon=ft.Icons.TEXT_FIELDS,
             tooltip="Convert selected bases to lower case",
@@ -251,7 +251,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             tight=True,
         )
 
-        self.copy_template_button = ft.OutlinedButton(
+        self.copy_template_button = ft.FilledTonalButton(
             "Copy",
             icon=ft.Icons.COPY,
             tooltip="Copy template sequence without linebreaks",
@@ -259,7 +259,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
-        self.clear_template_button = ft.OutlinedButton(
+        self.clear_template_button = ft.FilledTonalButton(
             "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear Template",
