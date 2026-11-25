@@ -22,29 +22,44 @@ import copy
 import inspect
 import json
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, cast
 
 import flet as ft
 import yaml
 
+from amplifyp.dna import clean_sequence, format_sequence
 from amplifyp.gui.colours import GUIColours
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "_read_file",
+    "_resolve_font_family",
+    "_write_file",
+    "apply_parsed_state",
+    "clean_sequence",
+    "clear_all",
+    "confirm_clear",
+    "create_overlapped_sequence_view",
+    "dismiss_clear",
+    "format_sequence",
+    "get_last_state_path",
+    "load_last_state",
+    "load_last_state_async",
+    "load_state",
+    "pick_and_read_file",
+    "restore_state_from_file",
+    "save_and_write_file",
+    "save_last_state",
+    "save_state",
+]
 
 
 # ==============================================================================
 # Sequence Handling Utilities (formerly sequence.py)
 # ==============================================================================
-
-
-def clean_sequence(seq: str) -> str:
-    r"""Clean sequence of escaped and standard whitespaces."""
-    if not seq:
-        return ""
-    clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
-    return "".join(clean.split())
 
 
 _SYSTEM_MONOSPACE_FONTS = (
@@ -71,16 +86,6 @@ def _resolve_font_family(font_family: str) -> str:
     return ff
 
 
-def format_sequence(seq: str, wrap_length: int = 80) -> str:
-    """Format sequence into lines of specified length."""
-    clean = clean_sequence(seq)
-    if wrap_length <= 0:
-        return clean
-    return "\n".join(
-        [clean[i : i + wrap_length] for i in range(0, len(clean), wrap_length)]
-    )
-
-
 def create_overlapped_sequence_view(
     top_line: str,
     mid_line: str,
@@ -90,6 +95,8 @@ def create_overlapped_sequence_view(
     is_dimer: bool = False,
     top_name_line: str = "",
     bottom_name_line: str = "",
+    complement_line: str | None = None,
+    template_line: str | None = None,
 ) -> ft.Text:
     """Create a Flet Text control showing visually aligned sequences."""
     resolved = _resolve_font_family(font_family)
@@ -142,19 +149,24 @@ def create_overlapped_sequence_view(
                 )
             )
     else:
-        bottom_parts = bottom_line.split("\n")
-        if len(bottom_parts) == 3:
-            bonds_line = bottom_parts[0]
-            comp_line = bottom_parts[1]
-            template_line = bottom_parts[2]
-        elif len(bottom_parts) >= 2:
-            bonds_line = bottom_parts[0]
-            comp_line = ""
-            template_line = "\n".join(bottom_parts[1:])
-        else:
+        if template_line is not None:
             bonds_line = bottom_line
-            comp_line = ""
-            template_line = ""
+            comp_line = complement_line or ""
+            resolved_template_line = template_line
+        else:
+            bottom_parts = bottom_line.split("\n")
+            if len(bottom_parts) == 3:
+                bonds_line = bottom_parts[0]
+                comp_line = bottom_parts[1]
+                resolved_template_line = bottom_parts[2]
+            elif len(bottom_parts) >= 2:
+                bonds_line = bottom_parts[0]
+                comp_line = ""
+                resolved_template_line = "\n".join(bottom_parts[1:])
+            else:
+                bonds_line = bottom_line
+                comp_line = ""
+                resolved_template_line = ""
 
         comp_span_text = f"{comp_line}\n" if comp_line else ""
 
@@ -188,7 +200,7 @@ def create_overlapped_sequence_view(
                 ),
             ),
             ft.TextSpan(
-                template_line,
+                resolved_template_line,
                 style=ft.TextStyle(
                     color=GUIColours.TEXT_ON_SURFACE,
                     weight=ft.FontWeight.BOLD,
@@ -325,10 +337,14 @@ def _parse_web_last_state(raw_state: Any) -> dict[str, Any] | None:
             return None
 
 
-def get_last_state_path(controller: Any) -> Path:
+def get_last_state_path(controller: Any | None = None) -> Path:
     """Get the OS-specific path for the last saved GUI state."""
-    settings_path = cast(Path, controller.settings._get_config_path())
-    return settings_path.parent / "last_state.yaml"
+    if controller is not None and hasattr(controller, "settings"):
+        settings_path = cast(Path, controller.settings._get_config_path())
+        return settings_path.parent / "last_state.yaml"
+    from amplifyp.os_paths import get_last_state_path as _core_last_state_path
+
+    return _core_last_state_path()
 
 
 def save_last_state(controller: Any) -> None:
@@ -368,7 +384,7 @@ def save_last_state(controller: Any) -> None:
         path = controller._get_last_state_path()
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            from amplifyp.gui.util import serialise_state
+            from amplifyp.io import serialise_state
 
             yaml_str = serialise_state(state_dict)
             with open(path, "w", encoding="utf-8") as f:
@@ -441,7 +457,12 @@ async def load_last_state_async(controller: Any) -> None:
             )
             return
         state_dict = parsed if "input" in parsed else {"input": parsed}
-        apply_parsed_state(controller, state_dict, ignore_settings=True)
+        try:
+            apply_parsed_state(controller, state_dict, ignore_settings=True)
+        except ValueError as e:
+            logger.exception(
+                "Error applying last state from web storage: %s", e
+            )
 
 
 def load_last_state(controller: Any) -> None:
@@ -467,7 +488,10 @@ def load_last_state(controller: Any) -> None:
     if state_dict and isinstance(state_dict, dict):
         if "input" not in state_dict:
             state_dict = {"input": state_dict}
-        apply_parsed_state(controller, state_dict, ignore_settings=True)
+        try:
+            apply_parsed_state(controller, state_dict, ignore_settings=True)
+        except ValueError as e:
+            logger.exception("Error applying last state from %s: %s", path, e)
 
 
 def restore_state_from_file(controller: Any, path: str) -> None:
@@ -492,12 +516,41 @@ def apply_parsed_state(
     controller: Any, parsed_state: dict[str, Any], ignore_settings: bool = False
 ) -> None:
     """Apply parsed YAML state to the application."""
+    from amplifyp.io import ReactionInput
+
     if "input" in parsed_state:
-        controller.input_data.from_dict(parsed_state["input"])
+        input_payload = parsed_state["input"]
+        if input_payload is None:
+            input_dict: dict[str, Any] = {"template": "", "primers": []}
+        elif isinstance(input_payload, Mapping):
+            input_dict = dict(input_payload)
+        else:
+            raise ValueError(
+                "Invalid state file format: 'input' must be a mapping."
+            )
     else:
-        controller.input_data.from_dict(parsed_state)
+        input_dict = parsed_state
+
+    staged_input = ReactionInput()
+    staged_input.from_dict(input_dict)
+
+    settings_dict: dict[str, Any] | None = None
     if not ignore_settings and "settings" in parsed_state:
-        controller.settings.from_dict(parsed_state["settings"])
+        settings_payload = parsed_state["settings"]
+        if settings_payload is not None:
+            if not isinstance(settings_payload, Mapping):
+                raise ValueError(
+                    "Invalid state file format: 'settings' must be a mapping."
+                )
+            from amplifyp.gui.settings import GUISettings
+
+            settings_dict = dict(settings_payload)
+            staged_settings = GUISettings()
+            staged_settings.from_dict(settings_dict)
+
+    controller.input_data.from_dict(input_dict)
+    if settings_dict is not None:
+        controller.settings.from_dict(settings_dict)
         controller.settings.save_to_local(controller.page)
     controller.apply_theme()
     controller.input_view.update_ui()
@@ -516,7 +569,7 @@ async def save_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
         combined: dict[str, object] = {
             "input": controller.input_data.to_dict(),
         }
-        from amplifyp.gui.util import serialise_state
+        from amplifyp.io import serialise_state
 
         yaml_str = serialise_state(combined)
 

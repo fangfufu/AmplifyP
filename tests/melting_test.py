@@ -23,6 +23,8 @@ import pytest
 from amplifyp.dna import Primer
 from amplifyp.errors import InsufficientThermodynamicDataError
 from amplifyp.melting import (
+    TmMethod,
+    calculate_tm,
     calculate_tm_lander_amplify4,
     calculate_tm_santalucia_1998_owczarzy_2008,
 )
@@ -417,3 +419,41 @@ def test_calculate_tm_zero_enthalpy_and_denominators() -> None:
         match="Denominator is zero in Tm calculation \\(Amplify4\\)",
     ):
         calculate_tm_lander_amplify4(Primer("AC"), settings=s_amp4)
+
+
+def test_calculate_tm_dispatcher_and_fallback() -> None:
+    """Test calculate_tm dispatch across methods and Amplify4 fallback."""
+    std_primer = primer_1701
+    assert calculate_tm(
+        std_primer, method=TmMethod.SANTALUCIA_1998_OWCZARZY_2008
+    ) == pytest.approx(
+        calculate_tm_santalucia_1998_owczarzy_2008(
+            std_primer, GLOBAL_TM_SETTINGS
+        )
+    )
+    assert calculate_tm(
+        std_primer, method=TmMethod.LANDER_AMPLIFY4
+    ) == pytest.approx(
+        calculate_tm_lander_amplify4(std_primer, GLOBAL_TM_SETTINGS)
+    )
+
+    deg_primer = Primer("ACGTNNACGT")
+    assert calculate_tm(deg_primer, fallback_to_amplify4=True) == pytest.approx(
+        calculate_tm_lander_amplify4(deg_primer, GLOBAL_TM_SETTINGS)
+    )
+    with pytest.raises(InsufficientThermodynamicDataError):
+        calculate_tm(deg_primer, fallback_to_amplify4=False)
+
+    with pytest.raises(ValueError):
+        calculate_tm(std_primer, method="Unknown Method")
+
+    # Degenerate IUPAC bases other than N raise
+    # InsufficientThermodynamicDataError rather than leaking KeyError.
+    for deg_seq in ("ACGTRACGT", "ACGTYACGT", "ACGTMACGT", "ACGTVACGT"):
+        iupac_primer = Primer(deg_seq)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm_lander_amplify4(iupac_primer, GLOBAL_TM_SETTINGS)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm(iupac_primer, fallback_to_amplify4=True)
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm(iupac_primer, method=TmMethod.LANDER_AMPLIFY4)

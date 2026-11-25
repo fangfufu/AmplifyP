@@ -161,7 +161,7 @@ def test_gui_state_save_load() -> None:
 
 
 def test_settings_view_buttons() -> None:
-    """Test Reset to Default button in SettingsView."""
+    """Test Reset Settings button in SettingsView and no bottom divider."""
     mock_page = MagicMock(spec=ft.Page)
     mock_page.overlay = []
 
@@ -184,12 +184,13 @@ def test_settings_view_buttons() -> None:
     settings_view.settings_map["bp_score_G_G"].value = "50.0"
     settings_view.settings_map["pd_score_G_G"].value = "50.0"
 
-    # Find the Row containing the Reset button
-    buttons_row = settings_view.controls[-1]
-    assert isinstance(buttons_row, ft.Row)
-    reset_btn = buttons_row.controls[0]
+    # Bottom control should be diagnostics_tile (no bottom divider or reset row)
+    assert settings_view.controls[-1] is settings_view.diagnostics_tile
 
-    assert reset_btn.content == "Reset to Default"
+    # Use the Reset Settings button in the General section
+    reset_btn = settings_view.general_tile.factory_reset_button
+    assert isinstance(reset_btn, ft.OutlinedButton)
+    assert reset_btn.content == "Reset Settings"
 
     # Trigger Reset -> opens confirmation dialogue, then confirm
     reset_btn.on_click(MagicMock(spec=ft.ControlEvent))
@@ -789,3 +790,136 @@ async def test_load_last_state_async_skips_if_edited_during_await() -> None:
         await load_last_state_async(controller)
 
     assert controller.input_data.template == "CCCCGGGG"
+
+
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_failed_state_loads_preserve_existing_input_data(
+    tmp_path: Any,
+) -> None:
+    """Invalid state payloads must not partially mutate live input_data."""
+    import json
+
+    from amplifyp.gui.controller import GUIController
+    from amplifyp.gui.utils.data_helpers import (
+        apply_parsed_state,
+        load_last_state,
+        load_last_state_async,
+        restore_state_from_file,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    mock_page.overlay = []
+    mock_page.window = MagicMock()
+    controller = GUIController(mock_page)
+    controller.initialise(load_settings=False)
+
+    orig_primers = [{"name": "Keep", "seq": "ACGTACGT", "active": True}]
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.template_circular = True
+    controller.input_data.primers = list(orig_primers)
+
+    # 1. apply_parsed_state with valid template and malformed primer entry
+    with pytest.raises(ValueError, match="expected a mapping"):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {
+                    "template": "TTTT",
+                    "template_circular": False,
+                    "primers": [{"name": "P1", "seq": "AAAA"}, "bad_entry"],
+                }
+            },
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.template_circular is True
+    assert controller.input_data.primers == orig_primers
+
+    # 2. apply_parsed_state with valid input and invalid settings
+    with pytest.raises(ValueError, match="settings"):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {"template": "TTTT", "primers": []},
+                "settings": ["invalid"],
+            },
+            ignore_settings=False,
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 3. restore_state_from_file with malformed primer entry preserves state
+    bad_file = tmp_path / "bad_primers.yaml"
+    bad_file.write_text(
+        "input:\n  template: TTTT\n  primers:\n    - not_a_mapping\n",
+        encoding="utf-8",
+    )
+    restore_state_from_file(controller, str(bad_file))
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 4. load_last_state (desktop) with malformed primer entry preserves state
+    last_file = tmp_path / "last_state.yaml"
+    last_file.write_text(
+        "input:\n  template: TTTT\n  primers: bad_string\n",
+        encoding="utf-8",
+    )
+    with patch.object(
+        controller, "_get_last_state_path", return_value=last_file
+    ):
+        load_last_state(controller)
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 5. load_last_state_async (web) with malformed primer entry preserves state
+    mock_page.web = True
+    bad_web_payload = json.dumps({"template": "TTTT", "primers": ["bad"]})
+
+    class _BadMockPrefs:
+        async def contains_key(self, _key: str) -> bool:
+            return True
+
+        async def get(self, _key: str) -> str:
+            return bad_web_payload
+
+    with patch("flet.SharedPreferences", return_value=_BadMockPrefs()):
+        await load_last_state_async(controller)
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers
+
+    # 6. apply_parsed_state handles oversized float settings without partial
+    # mutation, and preserves input_data if staged settings conversion raises.
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.primers = list(orig_primers)
+    apply_parsed_state(
+        controller,
+        {
+            "input": {"template": "ATATATAT", "primers": []},
+            "settings": {"last_version_check_timestamp": 10**400},
+        },
+        ignore_settings=False,
+    )
+    assert controller.input_data.template == "ATATATAT"
+    assert controller.settings["last_version_check_timestamp"] == pytest.approx(
+        0.0
+    )
+
+    controller.input_data.template = "GGGGCCCC"
+    controller.input_data.primers = list(orig_primers)
+    with (
+        patch(
+            "amplifyp.gui.settings.GUISettings.from_dict",
+            side_effect=ValueError("bad settings"),
+        ),
+        pytest.raises(ValueError, match="bad settings"),
+    ):
+        apply_parsed_state(
+            controller,
+            {
+                "input": {"template": "TTTT", "primers": []},
+                "settings": {"dark_mode": True},
+            },
+            ignore_settings=False,
+        )
+    assert controller.input_data.template == "GGGGCCCC"
+    assert controller.input_data.primers == orig_primers

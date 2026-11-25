@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import lru_cache
 
 from .dir_idx import DirIdx as DirIdx
@@ -34,6 +35,49 @@ from .settings import (
     GLOBAL_REPLICATION_SETTINGS,
     ReplicationSettings,
 )
+
+
+@dataclass(slots=True, frozen=True)
+class OriginContextAlignment:
+    """Formatted alignment of a primer binding site with template context.
+
+    Attributes:
+        coordinates_line: 1-based start and end genomic coordinate header.
+        pipe_line: Vertical markers pointing to binding boundaries.
+        arrow_line: Arrow markers pointing to binding boundaries.
+        primer_line: Formatted primer label and sequence line.
+        bonds_line: Base-pairing bond symbol line.
+        complement_line: Optional 3'-5' template complement line.
+        template_line: Formatted 5'-3' template context sequence line.
+    """
+
+    coordinates_line: str
+    pipe_line: str
+    arrow_line: str
+    primer_line: str
+    bonds_line: str
+    complement_line: str | None
+    template_line: str
+
+    @property
+    def top_block(self) -> str:
+        """Return the combined coordinate, pipe, and arrow header lines."""
+        return f"{self.coordinates_line}\n{self.pipe_line}\n{self.arrow_line}"
+
+    @property
+    def bottom_block(self) -> str:
+        """Return the bonds, optional complement, and template lines."""
+        if self.complement_line is not None:
+            return (
+                f"{self.bonds_line}\n"
+                f"{self.complement_line}\n"
+                f"{self.template_line}"
+            )
+        return f"{self.bonds_line}\n{self.template_line}"
+
+    def to_text(self) -> str:
+        """Render the full origin context alignment as a multi-line string."""
+        return f"{self.top_block}\n{self.primer_line}\n{self.bottom_block}"
 
 
 class _SettingsWrapper:
@@ -415,4 +459,149 @@ class Repliconf:
         """
         return (
             f"ReplicationConfig: Primer: {self.primer}, Target: {self.template}"
+        )
+
+    def format_context_alignment(
+        self,
+        var: DirIdx,
+        primer_name: str | None = None,
+        origin: ReplicationOrigin | None = None,
+        improved_visualisation: bool = False,
+        separator: str = " ",
+        context_bases: int = 20,
+    ) -> OriginContextAlignment:
+        """Format a multi-line alignment showing a binding site in context.
+
+        Args:
+            var: Directed index specifying the binding site and strand.
+            primer_name: Optional override for the displayed primer name.
+            origin: Optional precomputed `ReplicationOrigin` for bond symbols.
+            improved_visualisation: If True, includes the complementary strand
+                for forward primer alignments.
+            separator: Separator between 5'/3' markers and sequences
+                (``" "`` or ``"-"``).
+            context_bases: Number of flanking template bases on each side.
+
+        Returns:
+            OriginContextAlignment containing structured alignment lines.
+
+        Raises:
+            ValueError: If ``separator`` is invalid, ``context_bases < 0``,
+                or the template/primer sequence is empty.
+        """
+        if separator not in (" ", "-"):
+            raise ValueError("separator must be ' ' or '-'")
+        if context_bases < 0:
+            raise ValueError("context_bases must be non-negative.")
+        sep = separator
+        resolved_name = self.primer.name if primer_name is None else primer_name
+        resolved_origin = (
+            Repliconf.origin(self, var) if origin is None else origin
+        )
+        primer_len = len(self.primer)
+        template_len = len(self.template)
+        if template_len == 0 or primer_len == 0:
+            raise ValueError(
+                "Cannot format context alignment for empty template or primer."
+            )
+
+        is_circular = self.template.type == DNAType.CIRCULAR
+        if var.direction == DNADirection.FWD:
+            raw_start = var.index - primer_len
+            start_genomic = (
+                raw_start % template_len if is_circular else raw_start
+            )
+            primer_display_seq = self.primer.seq
+            primer_label = resolved_name
+            primer_ends = ("5'", "3'")
+            strength_display = resolved_origin.binding_strength_str[::-1]
+        else:
+            start_genomic = (
+                var.index % template_len if is_circular else var.index
+            )
+            primer_display_seq = self.primer.seq[::-1]
+            primer_label = f"{resolved_name} (Reverse)"
+            primer_ends = ("3'", "5'")
+            strength_display = resolved_origin.binding_strength_str
+
+        end_genomic = start_genomic + primer_len
+        if is_circular:
+            start_num_str = str((start_genomic % template_len) + 1)
+            end_num_str = str(((end_genomic - 1) % template_len) + 1)
+        else:
+            start_num_str = str(
+                start_genomic + 1 if start_genomic >= 0 else start_genomic
+            )
+            end_pos = end_genomic - 1
+            end_num_str = str(end_pos + 1 if end_pos >= 0 else end_pos)
+
+        base_label_width = 9 + context_bases
+        label_width = max(base_label_width, len(primer_label))
+        extra_spaces = label_width - base_label_width
+        bind_offset = 12 + context_bases + extra_spaces
+        prefix_pad = " " * bind_offset
+
+        primer_line = (
+            f"{primer_label:<{label_width}}"
+            f"{primer_ends[0]}{sep}{primer_display_seq}{sep}{primer_ends[1]}"
+        )
+        bonds_line = f"{prefix_pad}{strength_display}"
+
+        if primer_len == 1:
+            pipe_line = f"{prefix_pad}|"
+            arrow_line = f"{prefix_pad}V"
+        else:
+            gap_spaces = " " * (primer_len - 2)
+            pipe_line = f"{prefix_pad}|{gap_spaces}|"
+            arrow_line = f"{prefix_pad}V{gap_spaces}V"
+
+        col1 = max(0, bind_offset - len(start_num_str) // 2)
+        col2 = max(0, (bind_offset + primer_len - 1) - len(end_num_str) // 2)
+        if primer_len > 1 and col2 < col1 + len(start_num_str) + 1:
+            col2 = col1 + len(start_num_str) + 1
+        line_len = max(
+            bind_offset + primer_len + context_bases,
+            col1 + len(start_num_str),
+            col2 + len(end_num_str) if primer_len > 1 else 0,
+        )
+        num_line_chars = [" "] * line_len
+        for idx, char in enumerate(start_num_str):
+            num_line_chars[col1 + idx] = char
+        if primer_len > 1:
+            for idx, char in enumerate(end_num_str):
+                num_line_chars[col2 + idx] = char
+        coordinates_line = "".join(num_line_chars).rstrip()
+
+        upstream_seq = self.template.padded_slice(
+            start_genomic - context_bases, context_bases
+        )
+        binding_seq = self.template.padded_slice(start_genomic, primer_len)
+        downstream_seq = self.template.padded_slice(
+            start_genomic + primer_len, context_bases
+        )
+
+        context_line_prefix = "Context  "
+        complement_line: str | None = None
+        if improved_visualisation and var.direction == DNADirection.FWD:
+            comp_upstream = upstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+            comp_binding = binding_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+            comp_downstream = downstream_seq.translate(GLOBAL_COMPLEMENT_TABLE)
+            complement_line = (
+                f"{' ' * (9 + extra_spaces)}3'{sep}"
+                f"{comp_upstream}{comp_binding}{comp_downstream}{sep}5'"
+            )
+
+        template_line = (
+            f"{context_line_prefix}{' ' * extra_spaces}"
+            f"5'{sep}{upstream_seq}{binding_seq}{downstream_seq}{sep}3'"
+        )
+
+        return OriginContextAlignment(
+            coordinates_line=coordinates_line,
+            pipe_line=pipe_line,
+            arrow_line=arrow_line,
+            primer_line=primer_line,
+            bonds_line=bonds_line,
+            complement_line=complement_line,
+            template_line=template_line,
         )

@@ -46,7 +46,7 @@ try {
     Move-Item -Path "build\windows" -Destination "build\AmplifyP"
 
     # Clean up temporary files
-    if (Test-Path "src\amplifyp\gui\git_sha.py") { Remove-Item -Force "src\amplifyp\gui\git_sha.py" }
+    if (Test-Path "src\amplifyp\git_sha.py") { Remove-Item -Force "src\amplifyp\git_sha.py" }
     if (Test-Path "src\build") { Remove-Item -Recurse -Force "src\build" }
     if (Test-Path "src\dist") { Remove-Item -Recurse -Force "src\dist" }
 

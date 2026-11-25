@@ -78,11 +78,6 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         Returns:
             A Container with the alignment diagram and border styling.
         """
-        seq1 = self.d.primer_1.seq
-        seq2 = self.d.primer_2.seq
-
-        middle_str = self.d.binding_strength_str
-
         sep_setting = (
             self.settings.get(
                 "sequence_separator",
@@ -91,32 +86,23 @@ class DimerCard(ft.Card):  # type: ignore[misc]
             if hasattr(self.settings, "get")
             else " "
         )
-        sep = (
-            "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
-        )
-
-        # Build visually aligned lines.
-        p2_name_line = self.d.primer_2.name if self.show_names else ""
-        p2_line = f"5'{sep}{seq2}{sep}3'"
-        mid_line = f"{' ' * (3 + self.d.p1_pos)}{middle_str}"
-        p1_line = f"{' ' * self.d.p1_pos}3'{sep}{seq1[::-1]}{sep}5'"
-        p1_pad = max(
-            0, self.d.p1_pos + len(seq1) + 5 - len(self.d.primer_1.name)
-        )
-        p1_name_line = (
-            f"{' ' * p1_pad}{self.d.primer_1.name}" if self.show_names else ""
+        sep = "-" if str(sep_setting) in ("Dash ('-')", "-") else " "
+        alignment = PrimerDimer.format_alignment(
+            self.d,
+            separator=sep,
+            include_names=self.show_names,
         )
 
         # Create visual alignment stack using generic helper
         diagram_stack = create_overlapped_sequence_view(
-            p2_line,
-            mid_line,
-            p1_line,
+            alignment.top_seq_line,
+            alignment.bonds_line,
+            alignment.bottom_seq_line,
             font_family=self.font_family,
             font_size=font_size_default,
             is_dimer=True,
-            top_name_line=p2_name_line,
-            bottom_name_line=p1_name_line,
+            top_name_line=alignment.top_name_line,
+            bottom_name_line=alignment.bottom_name_line,
         )
         return ft.Container(
             content=ft.Row(
@@ -146,10 +132,8 @@ class DimerCard(ft.Card):  # type: ignore[misc]
         """
         p1_name = self.d.primer_1.name
         p2_name = self.d.primer_2.name
-        seq1 = self.d.primer_1.seq
-        seq2 = self.d.primer_2.seq
 
-        is_self = p1_name == p2_name and seq1 == seq2
+        is_self = self.d.is_self_dimer
         if not self.show_names and is_self:
             dimer_title = "Self-dimer"
         else:

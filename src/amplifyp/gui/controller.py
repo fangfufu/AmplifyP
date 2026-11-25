@@ -300,21 +300,7 @@ class GUIController:
             )
             return
 
-        for p in self.input_data.primers:
-            p["active"] = False
-
-        matched = False
-        for p in self.input_data.primers:
-            if clean_sequence(p.get("seq", "")) == clean_p_seq:
-                p["active"] = True
-                p["name"] = name
-                matched = True
-                break
-
-        if not matched:
-            self.input_data.primers.append(
-                {"name": name, "seq": clean_p_seq, "active": True}
-            )
+        self.input_data.activate_only_primers([(name, clean_p_seq)])
 
         self.input_view_dirty = True
         self.update_pcr_button_state(sync=False, update_page=False)
@@ -349,30 +335,9 @@ class GUIController:
             )
             return
 
-        for p in self.input_data.primers:
-            p["active"] = False
-
-        fwd_found = False
-        rev_found = False
-        for p in self.input_data.primers:
-            p_seq = clean_sequence(p.get("seq", ""))
-            if not fwd_found and p_seq == clean_fwd:
-                p["active"] = True
-                p["name"] = fwd_name
-                fwd_found = True
-            elif not rev_found and p_seq == clean_rev:
-                p["active"] = True
-                p["name"] = rev_name
-                rev_found = True
-
-        if not fwd_found:
-            self.input_data.primers.append(
-                {"name": fwd_name, "seq": clean_fwd, "active": True}
-            )
-        if not rev_found:
-            self.input_data.primers.append(
-                {"name": rev_name, "seq": clean_rev, "active": True}
-            )
+        self.input_data.activate_only_primers(
+            [(fwd_name, clean_fwd), (rev_name, clean_rev)]
+        )
 
         self.input_view_dirty = True
         self.update_pcr_button_state(sync=False, update_page=False)

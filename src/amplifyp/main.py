@@ -18,11 +18,45 @@ import argparse
 import logging
 import sys
 import traceback
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 import flet as ft
 
 from amplifyp.gui import main as app_main
+from amplifyp.version import get_version
+
+
+class _VersionAction(argparse.Action):
+    """Argparse action that computes and prints the version lazily."""
+
+    def __init__(
+        self,
+        option_strings: Sequence[str],
+        dest: str = argparse.SUPPRESS,
+        default: str = argparse.SUPPRESS,
+        help: str = "Show program's version number and exit",
+    ) -> None:
+        super().__init__(
+            option_strings=option_strings,
+            dest=dest,
+            default=default,
+            nargs=0,
+            help=help,
+        )
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: str | Sequence[Any] | None,
+        option_string: str | None = None,
+    ) -> None:
+        _ = (namespace, values, option_string)
+        sys.stdout.write(f"AmplifyP {get_version()}\n")
+        parser.exit()
+
 
 state_file: str | None = None
 auto_close: bool = False
@@ -113,6 +147,11 @@ def cli(args_list: list[str] | None = None) -> None:
         type=int,
         default=34521,
         help="Port number for web browser mode (default: 34521)",
+    )
+    parser.add_argument(
+        "-V",
+        "--version",
+        action=_VersionAction,
     )
     parsed_args = parser.parse_args(args_list)
     if parsed_args.auto_close and not parsed_args.state:

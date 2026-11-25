@@ -231,3 +231,29 @@ def test_get_assets_dir(
     # Package assets directory exists -> returns package_assets
     (base / "amplifyp" / "assets").mkdir()
     assert amplifyp_main.get_assets_dir() == expected_pkg
+
+
+def test_cli_version_flag(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test cli() prints version and exits cleanly on --version / -V."""
+    import amplifyp.main as amplifyp_main
+
+    with pytest.raises(SystemExit) as exc_info:
+        amplifyp_main.cli(["--version"])
+    assert exc_info.value.code == 0
+    captured = capsys.readouterr()
+    assert "AmplifyP " in captured.out
+
+
+def test_cli_does_not_call_get_version_without_flag(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test cli() avoids computing version/git SHA on normal app launch."""
+    import amplifyp.main as amplifyp_main
+
+    mock_run = MagicMock()
+    mock_get_version = MagicMock(return_value="1.0.0 (abc)")
+    monkeypatch.setattr(flet, "run", mock_run)
+    monkeypatch.setattr(amplifyp_main, "get_version", mock_get_version)
+
+    amplifyp_main.cli([])
+    mock_get_version.assert_not_called()

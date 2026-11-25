@@ -157,3 +157,39 @@ def test_pcr_protocols_and_cache() -> None:
 
     pcr.remove_primer(primer_1701)
     assert len(pcr.amplicons) == 0
+
+
+def test_pcr_get_repliconf_and_collect_primer_bindings() -> None:
+    """Test PCR.get_repliconf and PCR.collect_primer_bindings."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+    pcr.add_primer(primer_1701)
+
+    conf = pcr.get_repliconf(primer_11bp)
+    assert conf.primer == primer_11bp
+    with pytest.raises(PrimerNotFoundError):
+        pcr.get_repliconf(primer_10289)
+
+    # Before predict_amplicons (empty amplicons): returns all searched sites
+    fwd_all, rev_all = pcr.collect_primer_bindings()
+    assert isinstance(fwd_all, dict)
+    assert isinstance(rev_all, dict)
+    assert conf.searched is True
+
+    # With explicit non-empty amplicon list
+    pcr.add_primer(primer_10289)
+    pcr.add_primer(primer_10290)
+    pcr.predict_amplicons()
+    fwd_amps, rev_amps = pcr.collect_primer_bindings(pcr.amplicons[:1])
+    assert len(fwd_amps) == 1
+    assert len(rev_amps) == 1
+
+
+def test_pcr_find_repliconf_fallback_scan() -> None:
+    """Test _find_repliconf falls back to scanning amplicon_generator."""
+    pcr = PCR(amplify4_linear_example)
+    pcr.add_primer(primer_11bp)
+    del pcr._primer_repliconfs[primer_11bp]
+    found = pcr._find_repliconf(primer_11bp)
+    assert found is not None
+    assert found.primer is primer_11bp

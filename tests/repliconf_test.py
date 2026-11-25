@@ -167,3 +167,84 @@ def test_repliconf_origin_from_db() -> None:
     assert orig_fwd is not None
     orig_rev = test_repliconf.origin_from_db(DNADirection.REV, 0)
     assert orig_rev is not None
+
+
+def test_repliconf_format_context_alignment() -> None:
+    """Test Repliconf.format_context_alignment for FWD and REV origins."""
+    template = DNA("ACCTCCTAGGAGGTTT", DNAType.LINEAR)
+    primer = Primer("CCT", name="MyPrimer")
+    conf = Repliconf(template, primer, GLOBAL_REPLICATION_SETTINGS)
+    conf.search()
+
+    fwd_var = conf.origin_db.fwd[0]
+    fwd_align = conf.format_context_alignment(
+        fwd_var, improved_visualisation=True, separator="-"
+    )
+    assert "5'-CCT-3'" in fwd_align.primer_line
+    assert fwd_align.complement_line is not None
+    assert "3'-" in fwd_align.complement_line
+    assert "5'-" in fwd_align.template_line
+    assert len(fwd_align.top_block.splitlines()) == 3
+    assert len(fwd_align.bottom_block.splitlines()) == 3
+    assert len(fwd_align.to_text().splitlines()) == 7
+
+    rev_var = conf.origin_db.rev[0]
+    rev_align = conf.format_context_alignment(
+        rev_var, improved_visualisation=True, separator=" "
+    )
+    assert "MyPrimer (Reverse)" in rev_align.primer_line
+    assert "3' TCC 5'" in rev_align.primer_line
+    assert rev_align.complement_line is None
+    assert len(rev_align.bottom_block.splitlines()) == 2
+
+    empty_conf = Repliconf(DNA(""), Primer("CCT"))
+    with pytest.raises(ValueError, match="empty template or primer"):
+        empty_conf.format_context_alignment(DirIdx(DNADirection.FWD, 0))
+
+    # Variable context_bases alignment keeps primer and context columns aligned
+    ctx10 = conf.format_context_alignment(fwd_var, context_bases=10)
+    assert ctx10.primer_line.index("CCT") == ctx10.template_line.index("CCT")
+    assert ctx10.pipe_line.index("|") == ctx10.primer_line.index("CCT")
+    assert ctx10.arrow_line.index("V") == ctx10.primer_line.index("CCT")
+
+    # 1-bp primer renders single marker and validates invalid arguments
+    one_bp_conf = Repliconf(DNA("ACGT"), Primer("C", name="P1"))
+    one_bp_conf.search()
+    one_bp_align = one_bp_conf.format_context_alignment(
+        one_bp_conf.origin_db.fwd[0], context_bases=0
+    )
+    assert one_bp_align.pipe_line.strip() == "|"
+    assert one_bp_align.arrow_line.strip() == "V"
+
+    with pytest.raises(ValueError, match="separator"):
+        conf.format_context_alignment(fwd_var, separator="Dash ('-')")
+    with pytest.raises(ValueError, match="context_bases"):
+        conf.format_context_alignment(fwd_var, context_bases=-1)
+
+    # Linear 5' overhang gap-pads 5' end rather than wrapping to 3' end
+    linear_tpl = DNA("AAAAACCCCCTTTTTGGGGG", DNAType.LINEAR)
+    overhang_primer = Primer("TTAAAA", name="Overhang")
+    overhang_conf = Repliconf(linear_tpl, overhang_primer)
+    overhang_align = overhang_conf.format_context_alignment(
+        DirIdx(DNADirection.FWD, 4), context_bases=2
+    )
+    assert "5' ----AAAAAC 3'" in overhang_align.template_line
+    assert "-2" in overhang_align.coordinates_line
+    assert "4" in overhang_align.coordinates_line
+
+    # Circular template wraps context slices and coordinates cleanly
+    circ_tpl = DNA("ACGTACGTACGT", DNAType.CIRCULAR)
+    circ_conf = Repliconf(circ_tpl, Primer("GTAC", name="Circ"))
+    circ_align = circ_conf.format_context_alignment(
+        DirIdx(DNADirection.FWD, 6), context_bases=4
+    )
+    assert "5' GTACGTACGTAC 3'" in circ_align.template_line
+
+    # Short 3-bp primer at 3-digit coordinates with context_bases=0 does not
+    # overwrite start/end labels or clip trailing digits
+    long_tpl = DNA("A" * 120, DNAType.LINEAR)
+    short_conf = Repliconf(long_tpl, Primer("AAA", name="Short"))
+    short_align = short_conf.format_context_alignment(
+        DirIdx(DNADirection.FWD, 102), context_bases=0
+    )
+    assert "100 102" in short_align.coordinates_line

@@ -17,18 +17,23 @@
 
 import math
 from collections.abc import Callable
-from typing import TYPE_CHECKING
 
 import flet as ft
 import flet.canvas as cv
 
+from amplifyp.amplicon import Amplicon, AmpliconQuality
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 from .dismissible_detail_card import DismissibleDetailCard
 
-if TYPE_CHECKING:
-    from amplifyp.amplicon import Amplicon
+_BAR_HEIGHT_BY_TIER: dict[AmpliconQuality, float] = {
+    AmpliconQuality.GOOD: 8.0,
+    AmpliconQuality.OKAY: 5.5,
+    AmpliconQuality.MODERATE: 3.5,
+    AmpliconQuality.WEAK: 2.0,
+    AmpliconQuality.VERY_WEAK: 1.0,
+}
 
 
 class DrawnAmplicon:
@@ -92,17 +97,10 @@ class DrawnAmplicon:
         v_frag_step = 35
         self.y_pos = v_frag_start + (idx * v_frag_step)
 
-        # Dynamic thickness based on the quality score
-        if amp.q_score < 300:
-            self.bar_height = 8.0
-        elif amp.q_score < 700:
-            self.bar_height = 5.5
-        elif amp.q_score < 1500:
-            self.bar_height = 3.5
-        elif amp.q_score < 4000:
-            self.bar_height = 2.0
-        else:
-            self.bar_height = 1.0
+        # Dynamic thickness based on the quality tier
+        self.bar_height = _BAR_HEIGHT_BY_TIER[
+            Amplicon.quality_tier_for_score(amp.q_score)
+        ]
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
         """Draw the amplicon bar, text label, and gesture detector overlay.
@@ -276,19 +274,12 @@ class AmpliconDetailCard(DismissibleDetailCard):
             f"{amp.start.index}_{amp.end.index}"
         )
 
-        full_seq = str(amp.product.seq)
         fwd_len = len(amp.fwd_origin.seq)
         rev_len = len(amp.rev_origin.seq)
         mid_len = len(amp.product) - (fwd_len + rev_len)
-
-        if len(full_seq) >= fwd_len + rev_len:
-            fwd_part = full_seq[:fwd_len]
-            mid_part = full_seq[fwd_len:-rev_len]
-            rev_part = full_seq[-rev_len:]
-        else:
-            fwd_part = full_seq
-            mid_part = ""
-            rev_part = ""
+        fwd_part, mid_part, rev_part = Amplicon.split_sequence(
+            str(amp.product.seq), fwd_len, rev_len
+        )
 
         from amplifyp.gui.utils.data_helpers import _resolve_font_family
 

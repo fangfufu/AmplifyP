@@ -48,74 +48,25 @@ class PCRLayoutSolver:
             A tuple of (forward_bindings, reverse_bindings) dicts mapping
             (index, name) keys to (name, size, conf, var) tuples.
         """
-        fwd_bindings = {}
-        rev_bindings = {}
-        if amplicons:
-            for amp in amplicons:
-                fwd_conf = next(
-                    (
-                        c
-                        for c in pcr.amplicon_generator.repliconfs
-                        if c.primer is amp.fwd_origin
-                    ),
-                    None,
-                )
-                rev_conf = next(
-                    (
-                        c
-                        for c in pcr.amplicon_generator.repliconfs
-                        if c.primer is amp.rev_origin
-                    ),
-                    None,
-                )
-                if fwd_conf is None or rev_conf is None:
-                    continue
-                fwd_origin_point = fwd_conf.origin(amp.start)
-                rev_origin_point = rev_conf.origin(amp.end)
-
-                fwd_quality = fwd_origin_point.quality
-                rev_quality = rev_origin_point.quality
-
-                # Scale triangle size S based on quality score
-                fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
-                rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
-
-                fwd_bindings[(amp.start.index, amp.fwd_origin.name)] = (
-                    amp.fwd_origin.name,
-                    fwd_s,
-                    fwd_conf,
-                    amp.start,
-                )
-                rev_bindings[(amp.end.index, amp.rev_origin.name)] = (
-                    amp.rev_origin.name,
-                    rev_s,
-                    rev_conf,
-                    amp.end,
-                )
-        else:
-            for repliconf in pcr.amplicon_generator.repliconfs:
-                if not repliconf.searched:
-                    repliconf.search()
-                for start in repliconf.origin_db.fwd:
-                    fwd_origin_point = repliconf.origin(start)
-                    fwd_quality = fwd_origin_point.quality
-                    fwd_s = 6.0 + (max(0.1, min(1.0, fwd_quality)) * 10.0)
-                    fwd_bindings[(start.index, repliconf.primer.name)] = (
-                        repliconf.primer.name,
-                        fwd_s,
-                        repliconf,
-                        start,
-                    )
-                for end in repliconf.origin_db.rev:
-                    rev_origin_point = repliconf.origin(end)
-                    rev_quality = rev_origin_point.quality
-                    rev_s = 6.0 + (max(0.1, min(1.0, rev_quality)) * 10.0)
-                    rev_bindings[(end.index, repliconf.primer.name)] = (
-                        repliconf.primer.name,
-                        rev_s,
-                        repliconf,
-                        end,
-                    )
+        raw_fwd, raw_rev = PCR.collect_primer_bindings(pcr, amplicons)
+        fwd_bindings = {
+            key: (
+                binding.name,
+                6.0 + (max(0.1, min(1.0, binding.origin.quality)) * 10.0),
+                binding.repliconf,
+                binding.dir_idx,
+            )
+            for key, binding in raw_fwd.items()
+        }
+        rev_bindings = {
+            key: (
+                binding.name,
+                6.0 + (max(0.1, min(1.0, binding.origin.quality)) * 10.0),
+                binding.repliconf,
+                binding.dir_idx,
+            )
+            for key, binding in raw_rev.items()
+        }
         return fwd_bindings, rev_bindings
 
     @staticmethod

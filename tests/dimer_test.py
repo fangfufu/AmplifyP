@@ -375,3 +375,37 @@ def test_primer_dimer_reverse_binding_swap() -> None:
     found_dimer = generator.primer_dimers[0]
     assert found_dimer.primer_1 == p2
     assert found_dimer.primer_2 == p1
+
+
+def test_primer_dimer_self_and_format_alignment() -> None:
+    """Test PrimerDimer.is_self_dimer and PrimerDimer.format_alignment."""
+    generator = PrimerDimerGenerator()
+    self_dimer = generator.generate_primer_dimer(primer_1701, primer_1701)
+    assert self_dimer.is_self_dimer is True
+
+    lower_primer = Primer(primer_1701.seq.lower(), name=primer_1701.name)
+    case_self_dimer = generator.generate_primer_dimer(primer_1701, lower_primer)
+    assert case_self_dimer.is_self_dimer is True
+
+    cross_dimer = generator.generate_primer_dimer(primer_1701, primer_10289)
+    assert cross_dimer.is_self_dimer is False
+
+    align_plain = cross_dimer.format_alignment()
+    assert align_plain.top_name_line == ""
+    assert align_plain.bottom_name_line == ""
+    assert align_plain.top_seq_line.startswith("5' ")
+    assert align_plain.bottom_seq_line.strip().startswith("3' ")
+    assert len(align_plain.to_text().splitlines()) == 3
+
+    align_named = cross_dimer.format_alignment(
+        separator="-", include_names=True
+    )
+    assert align_named.top_name_line == cross_dimer.primer_2.name
+    assert cross_dimer.primer_1.name in align_named.bottom_name_line
+    assert align_named.top_seq_line.startswith("5'-")
+    assert len(align_named.to_text().splitlines()) == 5
+
+    import pytest
+
+    with pytest.raises(ValueError, match="separator"):
+        cross_dimer.format_alignment(separator="Dash ('-')")

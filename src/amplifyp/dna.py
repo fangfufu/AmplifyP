@@ -26,6 +26,40 @@ GLOBAL_COMPLEMENT_TABLE = str.maketrans(
 )
 
 
+def clean_sequence(seq: str) -> str:
+    """Clean sequence of escaped and standard whitespaces.
+
+    Args:
+        seq (str): The raw sequence string.
+
+    Returns:
+        str: Sequence string with escaped and standard whitespace removed.
+    """
+    if not seq:
+        return ""
+    clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
+    return "".join(clean.split())
+
+
+def format_sequence(seq: str, wrap_length: int = 80) -> str:
+    """Format sequence into lines of specified length.
+
+    Args:
+        seq (str): The sequence string to format.
+        wrap_length (int, optional): Maximum characters per line. Values <= 0
+            return a single unwrapped line. Defaults to 80.
+
+    Returns:
+        str: The cleaned, line-wrapped sequence string.
+    """
+    clean = clean_sequence(seq)
+    if wrap_length <= 0:
+        return clean
+    return "\n".join(
+        clean[i : i + wrap_length] for i in range(0, len(clean), wrap_length)
+    )
+
+
 class Nucleotides(StrEnum):
     """Enumeration of valid nucleotide characters for use in AmplifyP.
 
@@ -157,7 +191,7 @@ class DNA:
         if dna_type not in (DNAType.PRIMER, DNAType.CIRCULAR, DNAType.LINEAR):
             raise InvalidDNATypeError()
 
-        self._seq: str = "".join(seq.split())
+        self._seq: str = clean_sequence(seq)
         # Optimisation: cache the uppercase sequence to avoid repeated
         # allocations in _count_bases and other methods.
         seq_upper = self._seq.upper()
@@ -453,6 +487,34 @@ class DNA:
         if len(self) == 0:
             return 0.0
         return self.count_cg() / len(self)
+
+    def padded_slice(self, start: int, length: int) -> str:
+        """Extract a sequence slice of `length`, wrapping or gap-padding bounds.
+
+        For circular DNA, indices wrap modulo the template length. For linear
+        DNA or primers, out-of-bounds positions are filled with gap characters
+        (`-`).
+
+        Args:
+            start (int): The starting index for the slice.
+            length (int): The number of bases to extract.
+
+        Returns:
+            str: The extracted DNA substring.
+        """
+        if length <= 0:
+            return ""
+        seq_len = len(self._seq)
+        if self._dna_type == DNAType.CIRCULAR:
+            if seq_len == 0:
+                return Nucleotides.GAP * length
+            return "".join(
+                self._seq[i % seq_len] for i in range(start, start + length)
+            )
+        return "".join(
+            self._seq[i] if 0 <= i < seq_len else Nucleotides.GAP
+            for i in range(start, start + length)
+        )
 
 
 class Primer(DNA):

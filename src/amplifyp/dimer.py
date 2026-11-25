@@ -28,6 +28,40 @@ from .settings import (
 
 
 @dataclass(slots=True, frozen=True)
+class DimerAlignment:
+    """Formatted plain-text representation of a primer dimer alignment.
+
+    Attributes:
+        top_name_line: Optional label line for ``primer_2``.
+        top_seq_line: Formatted 5'-to-3' sequence line for ``primer_2``.
+        bonds_line: Indented base-pairing symbol line.
+        bottom_seq_line: Formatted 3'-to-5' sequence line for ``primer_1``.
+        bottom_name_line: Optional label line for ``primer_1``.
+    """
+
+    top_name_line: str
+    top_seq_line: str
+    bonds_line: str
+    bottom_seq_line: str
+    bottom_name_line: str
+
+    def to_text(self) -> str:
+        """Render the alignment as a single multi-line string."""
+        lines = [
+            line
+            for line in (
+                self.top_name_line,
+                self.top_seq_line,
+                self.bonds_line,
+                self.bottom_seq_line,
+                self.bottom_name_line,
+            )
+            if line
+        ]
+        return "\n".join(lines)
+
+
+@dataclass(slots=True, frozen=True)
 class PrimerDimer:
     """Represents a primer dimer.
 
@@ -76,6 +110,53 @@ class PrimerDimer:
                 symbol = "|"
             bonds.append(symbol)
         return "".join(bonds)
+
+    @property
+    def is_self_dimer(self) -> bool:
+        """Return True if this dimer is formed by two identical primers."""
+        return (
+            self.primer_1.name == self.primer_2.name
+            and self.primer_1.seq_upper == self.primer_2.seq_upper
+        )
+
+    def format_alignment(
+        self, separator: str = " ", include_names: bool = False
+    ) -> DimerAlignment:
+        """Format the antiparallel dimer alignment for display.
+
+        Args:
+            separator: Separator placed between 5'/3' markers and sequences.
+                Must be ``" "`` or ``"-"``.
+            include_names: Whether to populate ``top_name_line`` and
+                ``bottom_name_line``.
+
+        Returns:
+            DimerAlignment containing the aligned lines.
+
+        Raises:
+            ValueError: If ``separator`` is not ``" "`` or ``"-"``.
+        """
+        if separator not in (" ", "-"):
+            raise ValueError("separator must be ' ' or '-'")
+        sep = separator
+        seq1 = self.primer_1.seq
+        seq2 = self.primer_2.seq
+
+        top_name_line = self.primer_2.name if include_names else ""
+        top_seq_line = f"5'{sep}{seq2}{sep}3'"
+        bonds_line = f"{' ' * (3 + self.p1_pos)}{self.binding_strength_str}"
+        bottom_seq_line = f"{' ' * self.p1_pos}3'{sep}{seq1[::-1]}{sep}5'"
+        p1_pad = max(0, self.p1_pos + len(seq1) + 5 - len(self.primer_1.name))
+        bottom_name_line = (
+            f"{' ' * p1_pad}{self.primer_1.name}" if include_names else ""
+        )
+        return DimerAlignment(
+            top_name_line=top_name_line,
+            top_seq_line=top_seq_line,
+            bonds_line=bonds_line,
+            bottom_seq_line=bottom_seq_line,
+            bottom_name_line=bottom_name_line,
+        )
 
 
 class PrimerDimerGenerator:

@@ -266,23 +266,18 @@ class Dismissible2DCard(DismissibleDetailCard):
             if hasattr(self.settings, "get")
             else " "
         )
-        sep = (
-            "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
-        )
+
+        sep = "-" if str(sep_setting) in ("Dash ('-')", "-") else " "
 
         for label, dimer in dimer_pairs:
-            seq1 = dimer.primer_1.seq
-            seq2 = dimer.primer_2.seq
-            middle_str = dimer.binding_strength_str
-
-            p2_line = f"5'{sep}{seq2}{sep}3'"
-            mid_line = f"{' ' * (3 + dimer.p1_pos)}{middle_str}"
-            p1_line = f"{' ' * dimer.p1_pos}3'{sep}{seq1[::-1]}{sep}5'"
+            alignment = PrimerDimer.format_alignment(
+                dimer, separator=sep, include_names=False
+            )
 
             diagram_stack = create_overlapped_sequence_view(
-                p2_line,
-                mid_line,
-                p1_line,
+                alignment.top_seq_line,
+                alignment.bonds_line,
+                alignment.bottom_seq_line,
                 font_family=self.font_family,
                 font_size=font_size_default,
                 is_dimer=True,

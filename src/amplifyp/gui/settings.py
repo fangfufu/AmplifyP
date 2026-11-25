@@ -161,8 +161,10 @@ class GUISettings:
         if settings_dict is not None:
             self.from_dict(settings_dict)
             for k, v in settings_dict.items():
-                if k not in self._settings and not k.startswith(
-                    ("match_weight_", "run_weight_")
+                if (
+                    k not in self._settings
+                    and k != "amplify4_compatibility_mode"
+                    and not k.startswith(("match_weight_", "run_weight_"))
                 ):
                     self._settings[k] = v
 
@@ -333,79 +335,13 @@ class GUISettings:
         Returns:
             A ReplicationSettings instance configured from GUI settings.
         """
-        from amplifyp.dna import Nucleotides
-        from amplifyp.settings import (
-            DEFAULT_MATCH_WEIGHTS,
-            DEFAULT_RUN_WEIGHTS,
-            BasePairWeightsTbl,
-            LengthWiseWeightTbl,
-            ReplicationSettings,
+        from amplifyp.settings import ReplicationSettings
+
+        normalised = dict(self._settings)
+        normalised["amplify4_compatibility_mode"] = normalised.get(
+            "amp4_compat", False
         )
-
-        bp_weights = []
-        for r_char in Nucleotides.PRIMER:
-            row_vals = []
-            for c_char in Nucleotides.TEMPLATE:
-                if c_char == Nucleotides.GAP:
-                    continue
-                key = f"bp_score_{r_char}_{c_char}"
-                val = self._safe_float(key, 0.0)
-                row_vals.append(val)
-            bp_weights.append(row_vals)
-
-        base_pair_scores = BasePairWeightsTbl(
-            row=Nucleotides.PRIMER,
-            col=Nucleotides.TEMPLATE,
-            weight=bp_weights,
-        )
-
-        match_overrides: dict[int, float] = {}
-        match_prefix = "match_weight_"
-        for key in self._settings:
-            if key.startswith(match_prefix) and key != "match_weight_default":
-                suffix = key[len(match_prefix) :]
-                if suffix.isdigit():
-                    idx = int(suffix)
-                    match_overrides[idx] = self._safe_float(
-                        key, DEFAULT_MATCH_WEIGHTS.default_weight
-                    )
-
-        run_overrides: dict[int, float] = {}
-        run_prefix = "run_weight_"
-        for key in self._settings:
-            if key.startswith(run_prefix) and key != "run_weight_default":
-                suffix = key[len(run_prefix) :]
-                if suffix.isdigit():
-                    idx = int(suffix)
-                    run_overrides[idx] = self._safe_float(
-                        key, DEFAULT_RUN_WEIGHTS.default_weight
-                    )
-
-        match_weight = LengthWiseWeightTbl(
-            default_weight=self._safe_float(
-                "match_weight_default", DEFAULT_MATCH_WEIGHTS.default_weight
-            ),
-            overrides=match_overrides,
-        )
-        run_weights = LengthWiseWeightTbl(
-            default_weight=self._safe_float(
-                "run_weight_default", DEFAULT_RUN_WEIGHTS.default_weight
-            ),
-            overrides=run_overrides,
-        )
-
-        return ReplicationSettings(
-            primability_cutoff=self._safe_float(
-                "primability_cutoff", DEFAULT_PRIMABILITY_CUTOFF
-            ),
-            stability_cutoff=self._safe_float(
-                "stability_cutoff", DEFAULT_STABILITY_CUTOFF
-            ),
-            amplify4_compatibility_mode=self._safe_int("amp4_compat", 0) != 0,
-            base_pair_scores=base_pair_scores,
-            match_weight=match_weight,
-            run_weights=run_weights,
-        )
+        return ReplicationSettings.from_dict(normalised)
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:
         """Get PrimerDimerSettings from the central settings.
@@ -417,33 +353,9 @@ class GUISettings:
         Returns:
             A PrimerDimerSettings instance configured from GUI settings.
         """
-        from amplifyp.dna import Nucleotides
-        from amplifyp.settings import BasePairWeightsTbl, PrimerDimerSettings
+        from amplifyp.settings import PrimerDimerSettings
 
-        pd_weights = []
-        for r_char in Nucleotides.PRIMER:
-            row_vals = []
-            for c_char in Nucleotides.PRIMER:
-                key = f"pd_score_{r_char}_{c_char}"
-                val = self._safe_float(key, 0.0)
-                row_vals.append(val)
-            pd_weights.append(row_vals)
-
-        weights = BasePairWeightsTbl(
-            row=Nucleotides.PRIMER,
-            col=Nucleotides.PRIMER,
-            weight=pd_weights,
-        )
-
-        return PrimerDimerSettings(
-            min_overlap=self._safe_int(
-                "pd_min_overlap", DEFAULT_PRIMER_DIMER_OVERLAP
-            ),
-            threshold=self._safe_float(
-                "pd_threshold", DEFAULT_PRIMER_DIMER_THRESHOLD
-            ),
-            weights=weights,
-        )
+        return PrimerDimerSettings.from_dict(self._settings)
 
     def get_tm_settings(self) -> TMSettings:
         """Get TMSettings from the central settings.
@@ -460,23 +372,7 @@ class GUISettings:
         if self._cached_tm_settings is not None:
             return self._cached_tm_settings
 
-        self._cached_tm_settings = TMSettings(
-            dna_conc=self._safe_float(
-                "tm_dna_conc", GLOBAL_TM_SETTINGS.dna_conc
-            ),
-            dnap_conc=self._safe_float(
-                "tm_dnap_conc", GLOBAL_TM_SETTINGS.dnap_conc
-            ),
-            monovalent_salt_conc=self._safe_float(
-                "tm_mono_salt", GLOBAL_TM_SETTINGS.monovalent_salt_conc
-            ),
-            divalent_salt_conc=self._safe_float(
-                "tm_div_salt", GLOBAL_TM_SETTINGS.divalent_salt_conc
-            ),
-            dntp_conc=self._safe_float(
-                "tm_dNTP_conc", GLOBAL_TM_SETTINGS.dntp_conc
-            ),
-        )
+        self._cached_tm_settings = TMSettings.from_dict(self._settings)
         return self._cached_tm_settings
 
     def calculate_primer_tm(self, primer: Primer) -> float:
@@ -492,24 +388,21 @@ class GUISettings:
         Returns:
             The melting temperature as a float.
         """
-        from amplifyp.errors import InsufficientThermodynamicDataError
-        from amplifyp.melting import (
-            calculate_tm_lander_amplify4,
-            calculate_tm_santalucia_1998_owczarzy_2008,
-        )
+        from amplifyp.melting import TmMethod, calculate_tm
 
-        tm_method = self.get(
-            "tm_method", "SantaLucia 1998 / Owczarzy 2008 (Default)"
+        tm_method_raw = str(
+            self.get("tm_method", TmMethod.SANTALUCIA_1998_OWCZARZY_2008)
         )
-        tm_settings = self.get_tm_settings()
-        if tm_method == "Lander / Amplify 4":
-            return calculate_tm_lander_amplify4(primer, tm_settings)
         try:
-            return calculate_tm_santalucia_1998_owczarzy_2008(
-                primer, tm_settings
-            )
-        except InsufficientThermodynamicDataError:
-            return calculate_tm_lander_amplify4(primer, tm_settings)
+            tm_method = TmMethod(tm_method_raw)
+        except ValueError:
+            tm_method = TmMethod.SANTALUCIA_1998_OWCZARZY_2008
+        return calculate_tm(
+            primer,
+            settings=self.get_tm_settings(),
+            method=tm_method,
+            fallback_to_amplify4=True,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert settings to a dictionary for serialisation.
@@ -561,7 +454,7 @@ class GUISettings:
                 elif isinstance(self._settings[k], float):
                     try:
                         self._settings[k] = float(v)
-                    except (ValueError, TypeError):
+                    except (ValueError, TypeError, OverflowError):
                         pass
                 else:
                     self._settings[k] = str(v)
@@ -593,6 +486,16 @@ class GUISettings:
         elif "dimer_sequence_separator" in settings_dict:
             self._settings["sequence_separator"] = str(
                 settings_dict["dimer_sequence_separator"]
+            )
+        if (
+            "amplify4_compatibility_mode" in settings_dict
+            and "amp4_compat" not in settings_dict
+        ):
+            from amplifyp.settings import coerce_bool
+
+            self._settings["amp4_compat"] = coerce_bool(
+                settings_dict["amplify4_compatibility_mode"],
+                bool(self._settings.get("amp4_compat", False)),
             )
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)

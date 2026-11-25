@@ -20,6 +20,7 @@ DNA primers using the Nearest-Neighbour thermodynamics model.
 """
 
 import math
+from enum import StrEnum
 from itertools import pairwise
 from typing import Final
 
@@ -309,8 +310,14 @@ def calculate_tm_lander_amplify4(
     # Note: entropy/enthalpy tables in Swift are accessed as [y][x]
     # where x is current base, y is next base.
     for x, y in pairwise(seq):
-        entr += entropy[y, x]
-        enth += enthalpy[y, x]
+        try:
+            entr += entropy[y, x]
+            enth += enthalpy[y, x]
+        except KeyError as exc:
+            raise InsufficientThermodynamicDataError(
+                "Sequence contains bases without Amplify4 thermodynamic "
+                f"parameters: {(x, y)}"
+            ) from exc
 
     # Scaling applied in Swift code
     entr = -entr * 0.1
@@ -343,3 +350,41 @@ def calculate_tm_lander_amplify4(
 
     tm = (enth * 1000.0) / denom - 273.15 + log_salt
     return tm
+
+
+class TmMethod(StrEnum):
+    """Supported melting temperature calculation methods."""
+
+    SANTALUCIA_1998_OWCZARZY_2008 = "SantaLucia 1998 / Owczarzy 2008 (Default)"
+    LANDER_AMPLIFY4 = "Lander / Amplify 4"
+
+
+def calculate_tm(
+    primer: Primer,
+    settings: TMSettings = GLOBAL_TM_SETTINGS,
+    method: TmMethod | str = TmMethod.SANTALUCIA_1998_OWCZARZY_2008,
+    fallback_to_amplify4: bool = True,
+) -> float:
+    """Calculate the melting temperature (Tm) of a primer.
+
+    Args:
+        primer: The primer object containing the sequence.
+        settings: Melting settings containing concentrations and matrices.
+        method: Calculation method to use. Accepts a `TmMethod` member or its
+            string value.
+        fallback_to_amplify4: If True and the SantaLucia/Owczarzy model raises
+            `InsufficientThermodynamicDataError` (for example, on degenerate
+            bases), fall back to `calculate_tm_lander_amplify4`.
+
+    Returns:
+        The melting temperature in degrees Celsius.
+    """
+    resolved_method = TmMethod(method)
+    if resolved_method == TmMethod.LANDER_AMPLIFY4:
+        return calculate_tm_lander_amplify4(primer, settings)
+    try:
+        return calculate_tm_santalucia_1998_owczarzy_2008(primer, settings)
+    except InsufficientThermodynamicDataError:
+        if fallback_to_amplify4:
+            return calculate_tm_lander_amplify4(primer, settings)
+        raise

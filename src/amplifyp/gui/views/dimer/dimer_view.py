@@ -21,12 +21,10 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
-from amplifyp.dna import Primer
+from amplifyp.dimer import PrimerDimer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_DIMERS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
-from amplifyp.gui.utils.data_helpers import clean_sequence
 from amplifyp.gui.utils.gui_helpers import show_error_dialog
 from amplifyp.gui.views.dimer.dimer_card import DimerCard
 
@@ -75,13 +73,9 @@ class DimerView(ft.Column):  # type: ignore[misc]
                 dimers = self._cached_dimers
             else:
                 pd_settings = self.settings.get_primer_dimer_settings()
-                generator = PrimerDimerGenerator(settings=pd_settings)
-                primers = self.input_data.get_active_primers()
-                for p in primers:
-                    name = p["name"]
-                    seq = clean_sequence(p["seq"])
-                    generator.add_primer(Primer(sequence=seq, name=name))
-
+                generator = self.input_data.to_dimer_generator(
+                    settings=pd_settings
+                )
                 generator.analyse_primers()
                 dimers = generator.primer_dimers
                 self._cached_dimers = dimers

@@ -15,7 +15,9 @@
 
 """Amplicon-related classes for AmplifyP."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import ClassVar
 
 from .dna import DNA, DNADirection, DNAType, Primer
@@ -28,6 +30,24 @@ from .errors import (
     TemplateMismatchError,
 )
 from .repliconf import DirIdx, Repliconf
+
+
+class AmpliconQuality(StrEnum):
+    """Quality tier classifications for an amplicon based on q_score."""
+
+    GOOD = "good"
+    OKAY = "okay"
+    MODERATE = "moderate"
+    WEAK = "weak"
+    VERY_WEAK = "very weak"
+
+
+class AmpliconRanking(StrEnum):
+    """Supported sorting modes for amplicon lists."""
+
+    POSITION_THEN_LENGTH = "Position, then length"
+    QUALITY_SCORE = "Quality score"
+    POSITION_THEN_QUALITY = "Position, then quality"
 
 
 @dataclass(slots=True, frozen=True)
@@ -51,17 +71,17 @@ class Amplicon:
     """
 
     _Q_SCORE_THRESHOLDS: ClassVar = (
-        (300, "good", " amplification"),
-        (700, "okay", " amplification"),
-        (1500, "moderate", " amplification"),
+        (300, AmpliconQuality.GOOD, " amplification"),
+        (700, AmpliconQuality.OKAY, " amplification"),
+        (1500, AmpliconQuality.MODERATE, " amplification"),
         (
             4000,
-            "weak",
+            AmpliconQuality.WEAK,
             " amplification — might be visible on an agarose gel",
         ),
         (
             float("inf"),
-            "very weak",
+            AmpliconQuality.VERY_WEAK,
             " amplification — probably not visible on an agarose gel",
         ),
     )
@@ -88,6 +108,52 @@ class Amplicon:
         if (self.start.index >= self.end.index) and not self.circular:
             raise InvalidIndexOrderError()
 
+    @staticmethod
+    def quality_tier_for_score(q_score: float) -> AmpliconQuality:
+        """Return the quality tier corresponding to a numeric q_score."""
+        for limit, tier, _ in Amplicon._Q_SCORE_THRESHOLDS:
+            if q_score < limit or limit == float("inf"):
+                return tier
+        return AmpliconQuality.VERY_WEAK  # pragma: no cover
+
+    @staticmethod
+    def split_sequence(
+        full_seq: str, fwd_len: int, rev_len: int
+    ) -> tuple[str, str, str]:
+        """Split a product sequence into `(fwd_primer, middle, rev_primer)`."""
+        if fwd_len < 0 or rev_len < 0:
+            raise ValueError("Primer lengths must be non-negative.")
+        if len(full_seq) < fwd_len + rev_len:
+            return full_seq, "", ""
+        fwd_part = full_seq[:fwd_len]
+        if rev_len == 0:
+            return fwd_part, full_seq[fwd_len:], ""
+        return fwd_part, full_seq[fwd_len:-rev_len], full_seq[-rev_len:]
+
+    @property
+    def quality_tier(self) -> AmpliconQuality:
+        """Return the quality tier corresponding to this amplicon's q_score."""
+        return self.quality_tier_for_score(self.q_score)
+
+    @property
+    def inter_primer_length(self) -> int:
+        """Return template base count between forward and reverse primers.
+
+        May be negative if the forward and reverse primer footprints overlap.
+        """
+        return len(self.product) - (
+            len(self.fwd_origin.seq) + len(self.rev_origin.seq)
+        )
+
+    @property
+    def sequence_parts(self) -> tuple[str, str, str]:
+        """Split amplicon product into `(fwd_primer, middle, rev_primer)`."""
+        return self.split_sequence(
+            str(self.product.seq),
+            len(self.fwd_origin.seq),
+            len(self.rev_origin.seq),
+        )
+
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
 
@@ -101,13 +167,50 @@ class Amplicon:
         Returns:
             str: The textual report describing the amplification quality.
         """
-        for limit, desc, verbose_suffix in self._Q_SCORE_THRESHOLDS:
+        for limit, tier, verbose_suffix in self._Q_SCORE_THRESHOLDS:
             if self.q_score < limit or limit == float("inf"):
                 suffix = verbose_suffix if verbose else ""
                 circ = " (Circular)" if self.circular else ""
-                return f"{desc}{suffix}{circ}"
+                return f"{tier.value}{suffix}{circ}"
 
         return ""  # pragma: no cover
+
+
+def sort_amplicons(
+    amplicons: Sequence[Amplicon],
+    ranking_mode: AmpliconRanking | str = AmpliconRanking.POSITION_THEN_LENGTH,
+) -> list[Amplicon]:
+    """Sort amplicons according to the chosen ranking mode.
+
+    Args:
+        amplicons: Sequence of amplicons to sort.
+        ranking_mode: Mode to sort by. Options:
+            - 'Position, then length': Primary 5' start pos, secondary length,
+              tertiary quality score.
+            - 'Quality score': Primary quality score (ascending), secondary
+              start pos, tertiary length.
+            - 'Position, then quality': Primary 5' start pos, secondary
+              quality score, tertiary length.
+
+    Returns:
+        Sorted list of amplicons.
+    """
+    resolved_mode = AmpliconRanking(ranking_mode)
+    if resolved_mode == AmpliconRanking.POSITION_THEN_LENGTH:
+        return sorted(
+            amplicons,
+            key=lambda a: (a.start.index, len(a.product), a.q_score),
+        )
+    if resolved_mode == AmpliconRanking.POSITION_THEN_QUALITY:
+        return sorted(
+            amplicons,
+            key=lambda a: (a.start.index, a.q_score, len(a.product)),
+        )
+    # "Quality score": lower q_score is better quality
+    return sorted(
+        amplicons,
+        key=lambda a: (a.q_score, a.start.index, len(a.product)),
+    )
 
 
 class AmpliconGenerator:

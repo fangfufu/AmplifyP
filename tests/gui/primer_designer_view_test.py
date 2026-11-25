@@ -1365,3 +1365,103 @@ def test_compute_origin_counts_uses_captured_replication_settings() -> None:
     counts = view._compute_origin_counts(designer, template, captured_rep)
     assert len(counts) == len(designer.all_dimers)
     assert all(c is not None and c > 0 for c in counts)
+
+    # Fallback scan path when template differs from cached designer template
+    alt_template = DNA("ATGCGTACGTATGCGTACGTATGC")
+    alt_counts = view._compute_origin_counts(
+        designer, alt_template, captured_rep
+    )
+    assert len(alt_counts) == len(designer.all_dimers)
+
+    # Fallback origin count calculation on _on_primer_selected cache miss
+    view.input_data.template = "ATGCGTACGTATGCGTACGT"
+    view.form.filter_dna_checkbox.value = True
+    view._cached_designer = None
+    view._on_primer_selected(designer.all_dimers[0], 0)
+    assert len(view._active_cards) == 1
+
+
+def test_on_primer_selected_ignores_stale_origin_counts_during_new_run() -> (
+    None
+):
+    """_on_primer_selected must not reuse count map from an earlier run."""
+    from amplifyp.dna import DNA
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+    from amplifyp.settings import ReplicationSettings
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    input_data = GUIInput()
+    input_data.template = "ATGCGTACGTATGCGTACGT"
+    view = PrimerDesignerView(mock_page, input_data, settings)
+
+    # Run A: without template filtering -> _origin_counts_by_seq stores None
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "9"
+    view.form.filter_dna_checkbox.value = False
+    assert view.run_designer() is True
+    designer_a = view._cached_designer
+    assert designer_a is not None
+    dimer_0 = designer_a.all_dimers[0]
+    assert view._origin_counts_by_seq[dimer_0.primer_1.seq] is None
+
+    # Simulate Run B having set _cached_designer before _origin_counts_by_seq
+    # finishes updating, while template filtering is now enabled.
+    rep_settings = settings.get_replication_settings()
+    template_dna = input_data.to_template_dna()
+    designer_b = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template_dna,
+        max_origin_count=10,
+        replication_settings=ReplicationSettings(
+            primability_cutoff=rep_settings.primability_cutoff,
+            stability_cutoff=rep_settings.stability_cutoff,
+        ),
+    )
+    view._cached_designer = designer_b
+    view.form.filter_dna_checkbox.value = True
+
+    view._on_primer_selected(dimer_0, 0)
+    assert len(view._active_cards) == 1
+    card = view._active_cards[0]
+    assert isinstance(card, DismissibleSelfDimerCard)
+    assert card.origin_count is not None
+    assert card.origin_count > 0
+
+    # Stale numeric-count case: run A stores a numeric count for template A;
+    # while run B (template B) is in progress with _cached_designer updated,
+    # selecting the primer must compute run B's count rather than run A's.
+    from amplifyp.repliconf import Repliconf
+
+    input_data.template = "ATGCGTACGT"
+    view.form.filter_dna_checkbox.value = True
+    assert view.run_designer() is True
+    assert view._cached_designer is not None
+    dimer_numeric = view._cached_designer.all_dimers[0]
+    count_a = view._origin_counts_by_seq[dimer_numeric.primer_1.seq]
+    assert count_a is not None
+
+    input_data.template = "ATGCGTACGTTTTTATGCGTACGT"
+    template_b_dna = input_data.to_template_dna()
+    expected_rep = Repliconf(
+        template_b_dna, dimer_numeric.primer_1, settings=rep_settings
+    )
+    expected_rep.search()
+    count_b = len(expected_rep.origin_db.fwd) + len(expected_rep.origin_db.rev)
+    assert count_b != count_a
+
+    view._cached_designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template_b_dna,
+        max_origin_count=10,
+        replication_settings=ReplicationSettings(
+            primability_cutoff=rep_settings.primability_cutoff,
+            stability_cutoff=rep_settings.stability_cutoff,
+        ),
+    )
+    view._on_primer_selected(dimer_numeric, 99)
+    top_card = view._active_cards[0]
+    assert isinstance(top_card, DismissibleSelfDimerCard)
+    assert top_card.origin_count == count_b

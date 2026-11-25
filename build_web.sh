@@ -40,8 +40,8 @@ find "${SCRIPT_DIR}/src" -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/nu
 
 GIT_SHA=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_FULL_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
-echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
-echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py"
+echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/git_sha.py"
+echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/git_sha.py"
 
 echo "==> Building static site..."
 "${FLET_BIN}" publish "${SCRIPT_DIR}" \
@@ -54,7 +54,7 @@ echo "==> Building static site..."
   "$@"
 
 # Clean up temporary git_sha.py
-rm -f "${SCRIPT_DIR}/src/amplifyp/gui/git_sha.py" || true
+rm -f "${SCRIPT_DIR}/src/amplifyp/git_sha.py" || true
 
 
 echo "==> Injecting browser unload warning script and git SHA..."

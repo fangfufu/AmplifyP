@@ -989,3 +989,17 @@ def test_weight_tables_sync_no_defaults_and_mounted_update() -> None:
     )
     score_tbl._on_reset_click(None)
     no_default_cb.assert_not_called()
+
+
+def test_gui_settings_invalid_tm_method_falls_back() -> None:
+    """Invalid tm_method values fall back to default TmMethod."""
+    import pytest
+
+    from amplifyp.dna import Primer
+
+    settings = GUISettings()
+    settings._settings["tm_method"] = "InvalidMethod"
+    primer = Primer("ATGCGTACGT")
+    assert settings.calculate_primer_tm(primer) == pytest.approx(
+        GUISettings().calculate_primer_tm(primer)
+    )
