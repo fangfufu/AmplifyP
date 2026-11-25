@@ -546,15 +546,22 @@ def test_legacy_dimer_sequence_separator_migration() -> None:
     assert s_dict["sequence_separator"] == "Space (' ')"
     assert "dimer_sequence_separator" not in s_dict
 
+    # Null legacy value preserves the default rather than storing "None"
+    s_null = GUISettings()
+    s_null.from_dict({"dimer_sequence_separator": None})
+    assert s_null["sequence_separator"] == "Dash ('-')"
+    assert "dimer_sequence_separator" not in s_null
+
     # Explicit sequence_separator takes precedence over legacy key
     s_both = GUISettings()
     s_both.from_dict(
         {
-            "dimer_sequence_separator": "Space (' ')",
-            "sequence_separator": "Dash ('-')",
+            "dimer_sequence_separator": "Dash ('-')",
+            "sequence_separator": "Space (' ')",
         }
     )
-    assert s_both["sequence_separator"] == "Dash ('-')"
+    assert s_both["sequence_separator"] == "Space (' ')"
+    assert "dimer_sequence_separator" not in s_both
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -576,10 +583,11 @@ async def test_web_save_prunes_stale_weights_and_fallback_load() -> None:
         await settings.load_from_local_async(mock_page)
     assert settings["match_weight_15"] == "15"
 
-    # 2. Full web save with get_keys + remove prunes stale lengthwise weights
+    # 2. Full web save with get_keys + remove prunes stale keys
     storage_prune: dict[str, Any] = {
         "amplifyp.settings.match_weight_20": "99",
         "amplifyp.settings.run_weight_10": "88",
+        "amplifyp.settings.dimer_sequence_separator": "Space (' ')",
         "amplifyp.settings.other_key": "keep",
     }
 
@@ -606,6 +614,7 @@ async def test_web_save_prunes_stale_weights_and_fallback_load() -> None:
 
     assert "amplifyp.settings.match_weight_20" not in storage_prune
     assert "amplifyp.settings.run_weight_10" not in storage_prune
+    assert "amplifyp.settings.dimer_sequence_separator" not in storage_prune
     assert storage_prune["amplifyp.settings.other_key"] == "keep"
 
     # 3. reset_to_defaults handles non-"system" default dark_mode cleanly

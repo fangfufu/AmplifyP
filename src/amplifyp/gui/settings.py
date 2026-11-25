@@ -494,9 +494,9 @@ class GUISettings:
             "dimer_sequence_separator" in settings_dict
             and "sequence_separator" not in settings_dict
         ):
-            self._settings["sequence_separator"] = str(
-                settings_dict["dimer_sequence_separator"]
-            )
+            legacy_sep = settings_dict["dimer_sequence_separator"]
+            if legacy_sep is not None:
+                self._settings["sequence_separator"] = str(legacy_sep)
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)
         )
@@ -630,8 +630,9 @@ class GUISettings:
                         existing_keys = await prefs.get_keys(storage_prefix)
                         for full_key in existing_keys:
                             k = full_key[len(storage_prefix) :]
-                            if k not in snapshot and k.startswith(
-                                ("match_weight_", "run_weight_")
+                            if k not in snapshot and (
+                                k.startswith(("match_weight_", "run_weight_"))
+                                or k == "dimer_sequence_separator"
                             ):
                                 await prefs.remove(full_key)
 
