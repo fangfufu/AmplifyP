@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0](https://github.com/fangfufu/AmplifyP/compare/v1.27.0...v1.28.0) (2026-11-25)
+
+
+### Features
+
+* **core:** add amplicon, PCR, dimer, and 1D APIs ([8963c90](https://github.com/fangfufu/AmplifyP/commit/8963c902f7bb83d7abbaa33a6bc3388092bcad1a))
+* **core:** add DNA, Tm, settings, and I/O APIs ([eafd5e3](https://github.com/fangfufu/AmplifyP/commit/eafd5e3fd790137a8c3c0ce613920a0823658fe4))
+* **core:** add os_paths, version, and --version ([8c5a1ea](https://github.com/fangfufu/AmplifyP/commit/8c5a1eab2de0a946fcf45109cb3258ac715ac6a1))
+
+
+### Bug Fixes
+
+* **gui:** check origin-count cache provenance ([3d5cd68](https://github.com/fangfufu/AmplifyP/commit/3d5cd68757940b8cbea363ebb86116b774718b42))
+* **gui:** stage settings in apply_parsed_state ([df626d2](https://github.com/fangfufu/AmplifyP/commit/df626d25e17180a16702e3d0bbf84f426e7ae2f7))
+* **io:** keep TSV blanks and stage state loads ([cb87e3f](https://github.com/fangfufu/AmplifyP/commit/cb87e3f15b9143446900fbc4f914035f8fe003ac))
+* **melting:** handle degenerate IUPAC fallback ([d059a87](https://github.com/fangfufu/AmplifyP/commit/d059a879f5a31ea249569c5dddb902f16ec43ae5))
+* **settings:** handle overflow and compat flag ([c75e99b](https://github.com/fangfufu/AmplifyP/commit/c75e99ba5dda1a660fe651d819f2efba0d46856f))
+* **version:** resolve git SHA from repo root ([0051daa](https://github.com/fangfufu/AmplifyP/commit/0051daa998c6a38cb627dc12ac1810acb50fd611))
+
+
+### Code Refactoring
+
+* **gui:** delegate domain logic to base ([720b5e8](https://github.com/fangfufu/AmplifyP/commit/720b5e87f9d71eb1ee28cbbd08a81110ab12ec3f))
+* **gui:** remove bottom reset button ([09fa75a](https://github.com/fangfufu/AmplifyP/commit/09fa75a554f6d3c07cd5dd0d0c5899105a5e34f5))
+
 ## [1.27.0](https://github.com/fangfufu/AmplifyP/compare/v1.26.3...v1.27.0) (2026-11-24)
 
 
