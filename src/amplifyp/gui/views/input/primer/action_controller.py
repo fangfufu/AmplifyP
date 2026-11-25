@@ -70,7 +70,7 @@ class PrimerActionController:
         if isinstance(focused_data, dict) and focused_data.get("idx") == idx:
             owner.selected_indices.add(idx)
             owner.focused_primer_index = idx
-            owner._update_row_highlights()
+            owner._update_row_highlights(only_changed=True)
             owner._update_primer_info_panel()
             owner._update_delete_button_disabled_state()
             return
@@ -87,7 +87,7 @@ class PrimerActionController:
             if inspect.iscoroutine(res) and owner.app_page:
                 owner.app_page.run_task(focus_async, res)
 
-        owner._update_row_highlights()
+        owner._update_row_highlights(only_changed=True)
         owner._update_primer_info_panel()
         owner._update_delete_button_disabled_state()
 
@@ -140,7 +140,7 @@ class PrimerActionController:
             self._click_a = None
             self._click_b = None
 
-        owner._update_row_highlights()
+        owner._update_row_highlights(only_changed=True)
         owner._update_primer_info_panel()
         owner._update_delete_button_disabled_state()
 

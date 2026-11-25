@@ -332,8 +332,22 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
     def _update_delete_button_disabled_state(self) -> None:
         """Update disabled state of delete and rev comp buttons."""
         is_disabled = not self.selected_indices
+        changed = (
+            self.delete_selected_button.disabled != is_disabled
+            or self.reverse_complement_button.disabled != is_disabled
+        )
         self.delete_selected_button.disabled = is_disabled
         self.reverse_complement_button.disabled = is_disabled
+        if changed:
+            for btn in (
+                self.delete_selected_button,
+                self.reverse_complement_button,
+            ):
+                try:
+                    if btn.page:
+                        btn.update()
+                except RuntimeError:
+                    pass
         self._update_header_buttons_state()
 
     def _reverse_complement_selected_click(self, _e: ft.Event | None) -> None:
@@ -435,9 +449,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         """Find indices of primers with duplicate names or sequences."""
         return self.coordinator.get_duplicate_indices()
 
-    def _update_row_highlights(self) -> None:
+    def _update_row_highlights(self, only_changed: bool = False) -> None:
         """Update background colours of all row containers."""
-        self.primers_list.update_row_highlights()
+        self.primers_list.update_row_highlights(only_changed=only_changed)
         self._update_header_buttons_state()
 
     def _update_primer_info_panel(self) -> None:
@@ -452,7 +466,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                     self.primer_info_divider.update()
             except RuntimeError:
                 pass
-            self._update_row_highlights()
+            self._update_row_highlights(only_changed=True)
             if self.app_page:
                 self.app_page.update()
 
@@ -460,7 +474,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             focused_idx=self.focused_primer_index,
             input_data=self.input_data,
             app_page=self.app_page,
-            on_update_highlights=self._update_row_highlights,
+            on_update_highlights=lambda: self._update_row_highlights(
+                only_changed=True
+            ),
             on_dismiss=on_dismiss,
         )
         self.primer_info_divider.visible = self.primer_info_panel.visible
@@ -507,11 +523,20 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         if has_sel:
             min_idx = min(self.selected_indices)
             max_idx = max(self.selected_indices)
-            self.primer_header.up_button.disabled = min_idx == 0
-            self.primer_header.down_button.disabled = max_idx == num_primers - 1
+            up_disabled = min_idx == 0
+            down_disabled = max_idx == num_primers - 1
         else:
-            self.primer_header.up_button.disabled = True
-            self.primer_header.down_button.disabled = True
+            up_disabled = True
+            down_disabled = True
+
+        if (
+            self.primer_header.up_button.disabled == up_disabled
+            and self.primer_header.down_button.disabled == down_disabled
+        ):
+            return
+
+        self.primer_header.up_button.disabled = up_disabled
+        self.primer_header.down_button.disabled = down_disabled
 
         try:
             if self.primer_header.page:

@@ -80,11 +80,14 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             else None
         )
 
-        if idx not in input_view.primer_input.selected_indices:
-            input_view.primer_input.selected_indices = {idx}
-            input_view.primer_input._update_delete_button_disabled_state()
-        input_view.primer_input.focused_primer_index = idx
-        input_view.primer_input._update_header_buttons_state()
+        primer_input = input_view.primer_input
+        selection_changed = idx not in primer_input.selected_indices
+        focus_changed = primer_input.focused_primer_index != idx
+
+        if selection_changed:
+            primer_input.selected_indices = {idx}
+            primer_input._update_delete_button_disabled_state()
+        primer_input.focused_primer_index = idx
 
         # Set touched status in state
         if 0 <= idx < len(input_view.input_data.primers):
@@ -93,10 +96,10 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             elif field == "seq":
                 input_view.input_data.primers[idx]["seq_touched"] = True
 
-        input_view.primer_input._update_row_highlights()
-        input_view.primer_input._update_primer_info_panel()
-        if input_view.app_page:
-            input_view.app_page.update()
+        if selection_changed:
+            primer_input._update_row_highlights(only_changed=True)
+        if focus_changed:
+            primer_input._update_primer_info_panel()
 
 
 def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:

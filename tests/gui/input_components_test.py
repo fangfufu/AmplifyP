@@ -1752,6 +1752,95 @@ def test_handle_field_focus_no_echo_loop() -> None:
     mock_page.update.assert_not_called()
 
 
+def test_handle_field_focus_minimal_updates() -> None:
+    """Test focus skips same-row updates and only updates changed rows."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P0", "seq": "ATGC", "active": True},
+        {"name": "P1", "seq": "CGTA", "active": True},
+        {"name": "P2", "seq": "GGGG", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row_0 = view.primers_list.controls[0]
+    row_1 = view.primers_list.controls[1]
+    row_2 = view.primers_list.controls[2]
+    assert isinstance(row_0, PrimerRow)
+    assert isinstance(row_1, PrimerRow)
+    assert isinstance(row_2, PrimerRow)
+
+    view.primer_input.primers_list.update = MagicMock()
+    view.primer_input.primer_header.update = MagicMock()
+    view.primer_input.primer_info_panel.update = MagicMock()
+    view.primer_input.primer_info_divider.update = MagicMock()
+    view.primer_input.delete_selected_button.update = MagicMock()
+    view.primer_input.reverse_complement_button.update = MagicMock()
+    row_0.update = MagicMock()
+    row_1.update = MagicMock()
+    row_2.update = MagicMock()
+
+    with (
+        patch.object(
+            type(view.primer_input.primers_list),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            PrimerRow,
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            type(view.primer_input.primer_header),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            type(view.primer_input.delete_selected_button),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+    ):
+        mock_page.update.reset_mock()
+
+        # 1. Focus row 0 name_field: updates only row_0, not list or page
+        handle_field_focus(view, MagicMock(control=row_0.name_field))
+        view.primer_input.primers_list.update.assert_not_called()
+        mock_page.update.assert_not_called()
+        row_0.update.assert_called_once()
+        row_1.update.assert_not_called()
+        row_2.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_called_once()
+        view.primer_input.delete_selected_button.update.assert_called_once()
+        view.primer_input.reverse_complement_button.update.assert_called_once()
+
+        # 2. Focus row 0 seq_field (same row): zero UI updates
+        row_0.update.reset_mock()
+        view.primer_input.primer_header.update.reset_mock()
+        view.primer_input.primer_info_panel.update = MagicMock()
+        view.primer_input.delete_selected_button.update.reset_mock()
+        view.primer_input.reverse_complement_button.update.reset_mock()
+        handle_field_focus(view, MagicMock(control=row_0.seq_field))
+        row_0.update.assert_not_called()
+        view.primer_input.primers_list.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_not_called()
+        view.primer_input.primer_info_panel.update.assert_not_called()
+        view.primer_input.delete_selected_button.update.assert_not_called()
+        view.primer_input.reverse_complement_button.update.assert_not_called()
+        mock_page.update.assert_not_called()
+
+        # 3. Focus row 1 name_field: updates only row_0 and row_1 (not row_2)
+        handle_field_focus(view, MagicMock(control=row_1.name_field))
+        view.primer_input.primers_list.update.assert_not_called()
+        mock_page.update.assert_not_called()
+        row_0.update.assert_called_once()
+        row_1.update.assert_called_once()
+        row_2.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_called_once()
+
+
 def test_handle_row_click_preserves_active_field_focus() -> None:
     """Test row click does not deselect or steal focus when field is active."""
     mock_page = MagicMock(spec=ft.Page)
