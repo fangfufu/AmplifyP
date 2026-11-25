@@ -404,11 +404,11 @@ def test_general_tile_all_branches() -> None:
     assert tile.set_colour_scheme is not None
     assert tile.set_colour_deficient is not None
     assert tile.set_sequence_separator is not None
-    settings["sequence_separator"] = "Dash ('-')"
+    settings["sequence_separator"] = "Space (' ')"
     settings["dark_mode"] = True
     settings["colour_deficient"] = False
     tile.update_ui()
-    assert tile.set_sequence_separator.value == "Dash ('-')"
+    assert tile.set_sequence_separator.value == "Space (' ')"
     assert tile.set_colour_scheme.value == "Dark"
 
     from amplifyp.gui.colours import GUIColours

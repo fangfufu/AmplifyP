@@ -56,7 +56,7 @@ def test_gui_state_save_load() -> None:
     settings_view.set_tm_dna_conc.value = "100.0"
     settings_view.set_tm_method.value = "Lander / Amplify 4"
     settings_view.set_font_family.value = "Courier New"
-    settings_view.set_sequence_separator.value = "Dash ('-')"
+    settings_view.set_sequence_separator.value = "Space (' ')"
     settings_view.input_tile.set_primer_info_panel_position.value = "bottom"
     settings_view.set_primer_info_panel_fixed_height.value = True
     settings_view.general_tile.set_colour_scheme.value = (
@@ -133,7 +133,7 @@ def test_gui_state_save_load() -> None:
     assert new_settings_view.set_tm_dna_conc.value == "100.0"
     assert new_settings_view.set_tm_method.value == "Lander / Amplify 4"
     assert new_settings_view.set_font_family.value == "Courier New"
-    assert new_settings_view.set_sequence_separator.value == "Dash ('-')"
+    assert new_settings_view.set_sequence_separator.value == "Space (' ')"
     assert (
         new_settings_view.input_tile.set_primer_info_panel_position.value
         == "bottom"

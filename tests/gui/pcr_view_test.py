@@ -442,7 +442,7 @@ def test_format_context_lines_alignment_long_label() -> None:
     assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
 
     # The mid line should be:
-    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' CCC...C 5'"
+    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-CCC...C-5'"
     # The bonds line in bottom line is the first line of bottom_line.
     # The bonds line starts with:
     # 12 + 20 + extra_spaces = 32 + (44 - 29) = 47 spaces.
@@ -454,8 +454,8 @@ def test_format_context_lines_alignment_long_label() -> None:
     # then 20 bp upstream = 47 spaces before binding sequence.
     assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")
 
-    # Test dash separator option
-    _top_d, mid_d, bot_d = format_context_lines(
+    # Test space separator option
+    _top_s_opt, mid_s_opt, bot_s_opt = format_context_lines(
         primer_name=long_name,
         padded_idx=50,
         conf=conf,
@@ -463,11 +463,13 @@ def test_format_context_lines_alignment_long_label() -> None:
         L=20,
         N=100,
         direction=DNADirection.REV,
-        separator="Dash ('-')",
+        separator="Space (' ')",
     )
-    assert mid_d.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
-    lines_bot_d = bot_d.split("\n")
-    assert lines_bot_d[1].startswith("Context  " + " " * 15 + "5'-")
+    assert mid_s_opt.startswith(
+        "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' "
+    )
+    lines_bot_s_opt = bot_s_opt.split("\n")
+    assert lines_bot_s_opt[1].startswith("Context  " + " " * 15 + "5' ")
 
     # Test reading separator from settings when separator is None
     from amplifyp.gui.settings import GUISettings
@@ -480,9 +482,9 @@ def test_format_context_lines_alignment_long_label() -> None:
         L=20,
         N=100,
         direction=DNADirection.REV,
-        settings=GUISettings({"sequence_separator": "Dash ('-')"}),
+        settings=GUISettings({"sequence_separator": "Space (' ')"}),
     )
-    assert mid_s.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+    assert mid_s.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' ")
 
 
 def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
@@ -774,24 +776,24 @@ def test_pcr_view_all_remaining_branches() -> None:
     assert "5'-" in spans_text
     assert "-3'" in spans_text
 
-    dash_settings = GUISettings()
-    dash_settings["sequence_separator"] = "Dash ('-')"
-    ctx_card_dash = ReplicationContextCard(
+    space_settings = GUISettings()
+    space_settings["sequence_separator"] = "Space (' ')"
+    ctx_card_space = ReplicationContextCard(
         primer_name="P1",
         padded_idx=0,
         conf=mock_conf,
         var=DirIdx(direction=DNADirection.FWD, index=0),
-        settings=dash_settings,
+        settings=space_settings,
         dismiss_callback=MagicMock(),
     )
-    spans_text_dash = "".join(
+    spans_text_space = "".join(
         span.text
-        for span in ctx_card_dash.content.content.controls[1]
+        for span in ctx_card_space.content.content.controls[1]
         .content.controls[0]
         .spans
     )
-    assert "5'-" in spans_text_dash
-    assert "-3'" in spans_text_dash
+    assert "5' " in spans_text_space
+    assert " 3'" in spans_text_space
 
     # 12. PCRLayoutSolver: clusters hitting boundaries and missing confs
     # Left boundary cluster
@@ -1323,7 +1325,7 @@ def test_pcr_divider_autoresize_viewport_fractions() -> None:
     view = PCRView(mock_page, input_data, settings)
     view.run_pcr()
 
-    # Single amplicon canvas is smaller than 1/3 of 900 (300),
+    # Single amplicon canvas is smaller than 3/4 of 900 (675),
     # clamped to >= 150.0 and <= 300.0.
     assert view.diagram_container.height is not None
     assert 150.0 <= view.diagram_container.height <= 300.0
