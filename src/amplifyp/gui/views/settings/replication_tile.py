@@ -99,6 +99,12 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
             text_size=font_size_default,
             border_color=GUIColours.OUTLINE,
         )
+        self.set_relative_q_score = BorderedCheckbox(
+            label="Relative Q score",
+            value=bool(self.settings.get("pcr_relative_q_score", False)),
+            on_change=on_change_handler,
+        )
+        self.set_relative_q_score.expand = True
         self.set_primer_label_orientation = ft.Dropdown(
             label="Primer label orientation",
             value=self.settings.get(
@@ -154,6 +160,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
         settings_map["amp4_compat"] = self.set_amp4_compat
         settings_map["improved_visualisation"] = self.set_improved_visualisation
         settings_map["pcr_amplicon_ranking"] = self.set_amplicon_ranking
+        settings_map["pcr_relative_q_score"] = self.set_relative_q_score
         settings_map["pcr_primer_label_orientation"] = (
             self.set_primer_label_orientation
         )
@@ -308,7 +315,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ft.Row(
                                             [
                                                 self.set_amplicon_ranking,
-                                                ft.Container(expand=True),
+                                                self.set_relative_q_score,
                                             ],
                                             spacing=15,
                                         ),

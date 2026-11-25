@@ -1730,3 +1730,77 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
         assert len(pcr_view.result_list.controls) > 0
     finally:
         GUIColours.dark_mode = prev_dark
+
+
+def test_relative_q_score_display_and_scaling() -> None:
+    """Test Relative Q score scaling, 3-decimal formatting, and tiering."""
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.amplicon_drawing import (
+        AmpliconDetailCard,
+        DrawnAmplicon,
+    )
+
+    settings = GUISettings()
+    settings["pcr_relative_q_score"] = True
+
+    amp = MagicMock(spec=Amplicon)
+    amp.start.index = 0
+    amp.end.index = 50
+    amp.product = MagicMock()
+    amp.product.seq = "ACGT" * 15
+    amp.product.__len__.return_value = 60
+    amp.fwd_origin = MagicMock()
+    amp.fwd_origin.name = "F1"
+    amp.fwd_origin.seq = "ACGT"
+    amp.rev_origin = MagicMock()
+    amp.rev_origin.name = "R1"
+    amp.rev_origin.seq = "TGCA"
+    amp.circular = False
+    # Raw Q = 1200 (moderate), min_q = 2.0 -> scaled Q = 600.000 (okay)
+    amp.q_score = 1200.0
+
+    drawn_scaled = DrawnAmplicon(
+        amp=amp,
+        idx=0,
+        target_length=100,
+        t_width=500.0,
+        h_margin=20.0,
+        v_target=100.0,
+        c_width=540.0,
+        settings=settings,
+        on_click=lambda: None,
+        min_q_score=2.0,
+    )
+    # 600.0 falls in OKAY tier (height 5.5) rather than MODERATE (3.5)
+    assert drawn_scaled.bar_height == 5.5
+
+    card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=2.0,
+    )
+    info_row = card.content.content.controls[1]
+    full_text = "".join(span.text for span in info_row.spans)
+    assert "Q = 600.000 (okay amplification" in full_text
+
+    # Toggling setting off and rebuilding restores raw Q score & tier
+    settings["pcr_relative_q_score"] = False
+    rebuilt = card.rebuild(settings)
+    rebuilt_info = rebuilt.content.content.controls[1]
+    rebuilt_text = "".join(span.text for span in rebuilt_info.spans)
+    assert "Q = 1200 (moderate amplification" in rebuilt_text
+
+    # Infinite Q score remains ∞ even when relative scaling is enabled
+    settings["pcr_relative_q_score"] = True
+    amp.q_score = float("inf")
+    inf_card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=2.0,
+    )
+    inf_info = inf_card.content.content.controls[1]
+    inf_text = "".join(span.text for span in inf_info.spans)
+    assert "Q = ∞ (very weak amplification" in inf_text

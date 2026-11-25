@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 
 import flet as ft
 
+from amplifyp.amplicon import min_positive_q_score
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -271,10 +272,16 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 self._update_cards_header_visibility()
                 self.app_page.update()
 
+        min_q_score = (
+            min_positive_q_score(self._cached_pcr.amplicons)
+            if self._cached_pcr is not None
+            else None
+        )
         amplicon_card = AmpliconDetailCard(
             amp=amp,
             settings=self.settings,
             dismiss_callback=dismiss,
+            min_q_score=min_q_score,
         )
         self.result_list.controls.insert(0, amplicon_card)
         self._update_cards_header_visibility()

@@ -15,6 +15,7 @@
 
 """Amplicon-related classes for AmplifyP."""
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
@@ -154,6 +155,21 @@ class Amplicon:
             len(self.rev_origin.seq),
         )
 
+    @staticmethod
+    def quality_report_str_for_score(
+        q_score: float,
+        circular: bool = False,
+        verbose: bool = False,
+    ) -> str:
+        """Generate textual report for a given numeric q-score."""
+        for limit, tier, verbose_suffix in Amplicon._Q_SCORE_THRESHOLDS:
+            if q_score < limit or limit == float("inf"):
+                suffix = verbose_suffix if verbose else ""
+                circ = " (Circular)" if circular else ""
+                return f"{tier.value}{suffix}{circ}"
+
+        return ""  # pragma: no cover
+
     def q_score_report_str(self, verbose: bool = False) -> str:
         """Generate textual report based on the amplicon q-score.
 
@@ -167,13 +183,19 @@ class Amplicon:
         Returns:
             str: The textual report describing the amplification quality.
         """
-        for limit, tier, verbose_suffix in self._Q_SCORE_THRESHOLDS:
-            if self.q_score < limit or limit == float("inf"):
-                suffix = verbose_suffix if verbose else ""
-                circ = " (Circular)" if self.circular else ""
-                return f"{tier.value}{suffix}{circ}"
+        return self.quality_report_str_for_score(
+            self.q_score, circular=self.circular, verbose=verbose
+        )
 
-        return ""  # pragma: no cover
+
+def min_positive_q_score(amplicons: Sequence[Amplicon]) -> float | None:
+    """Return the smallest positive finite q_score among amplicons, or None."""
+    positive_scores = [
+        amp.q_score
+        for amp in amplicons
+        if math.isfinite(amp.q_score) and amp.q_score > 0
+    ]
+    return min(positive_scores) if positive_scores else None
 
 
 def sort_amplicons(

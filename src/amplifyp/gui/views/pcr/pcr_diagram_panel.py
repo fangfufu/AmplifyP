@@ -23,7 +23,11 @@ from typing import TYPE_CHECKING
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.amplicon import AmpliconRanking, sort_amplicons
+from amplifyp.amplicon import (
+    AmpliconRanking,
+    min_positive_q_score,
+    sort_amplicons,
+)
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
@@ -196,6 +200,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_container.visible = False
         self.divider.visible = False
         self._sorted_amplicons: list[Amplicon] = []
+        self._min_q_score: float | None = None
 
     def render_diagram(self, pcr: PCR) -> None:
         """Perform coordinates calculations and render diagram elements.
@@ -209,6 +214,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 template data.
         """
         amplicons = pcr.amplicons
+        self._min_q_score = min_positive_q_score(amplicons)
         num_amplicons = len(amplicons)
 
         if amplicons:
@@ -576,5 +582,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 settings=self.settings,
                 on_click=lambda a=amp: self.on_amplicon_click(a),  # type: ignore[misc]
                 v_frag_start=v_frag_start,
+                min_q_score=self._min_q_score,
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)
