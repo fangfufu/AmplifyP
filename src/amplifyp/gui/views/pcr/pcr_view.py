@@ -272,11 +272,9 @@ class PCRView(ft.Column):  # type: ignore[misc]
                 self._update_cards_header_visibility()
                 self.app_page.update()
 
-        min_q_score = (
-            min_positive_q_score(self._cached_pcr.amplicons)
-            if self._cached_pcr is not None
-            else None
-        )
+        min_q_score = getattr(self.diagram_panel, "_min_q_score", None)
+        if min_q_score is None and self._cached_pcr is not None:
+            min_q_score = min_positive_q_score(self._cached_pcr.amplicons)
         amplicon_card = AmpliconDetailCard(
             amp=amp,
             settings=self.settings,

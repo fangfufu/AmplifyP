@@ -43,7 +43,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=on_save,
-            tooltip="Save primers to CSV",
+            tooltip="Save primers to TSV",
             height=32,
         )
         self.load_button = ft.OutlinedButton(

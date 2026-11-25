@@ -185,6 +185,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
 
         # Title row
+        self.title_divider = ft.Divider(
+            height=1, thickness=1, color=GUIColours.OUTLINE
+        )
         self.primer_title_row = ft.Column(
             [
                 ft.ResponsiveRow(
@@ -203,10 +206,9 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
                             wrap=True,
                         ),
                     ],
-                    run_spacing=0,
                 ),
-                ft.Divider(height=1, thickness=1),
-                ft.ResponsiveRow([self.primer_toolbar], run_spacing=0),
+                self.title_divider,
+                ft.ResponsiveRow([self.primer_toolbar]),
             ],
             spacing=5,
         )
@@ -304,6 +306,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primers_header = self.primer_header.header_row
         self.primers_header_container = self.primer_header
 
+        self.title_divider.color = GUIColours.OUTLINE
         self.primer_list_container.border = ft.Border.all(1, GUIColours.OUTLINE)
         if isinstance(self.primer_info_divider.content, ft.Container):
             self.primer_info_divider.content.bgcolor = GUIColours.DIVIDER_GREY
