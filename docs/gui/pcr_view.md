@@ -38,7 +38,8 @@ PCR amplicons on an interactive canvas.
     predicted PCR products.
   - **Bar Thickness**: Scaled dynamically according to quality score $Q$: 8.0 px
     for $Q < 300$, 5.5 px for $Q < 700$, 3.5 px for $Q < 1500$, 2.0 px for $Q \<
-    4000$, and 1.0 px for $Q \\ge 4000$.
+    4000$, and 1.0 px for $Q \\ge 4000$. When **Relative Q score** is enabled,
+    the thresholds are divided by `300` (with inclusive $\\le$ upper bounds).
   - **Length Label**: Displays amplicon fragment length in base pairs (including
     primers) centred under each bar.
   - **Circular Template Support**: Wraparound amplicons crossing origin
