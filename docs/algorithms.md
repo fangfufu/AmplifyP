@@ -472,11 +472,12 @@ Key properties of `Q`:
 | `Q ≥ 4000`         | `very weak`              | `very weak amplification — probably not visible on an agarose gel` |
 
 When **Relative `Q`** display is enabled, `min_positive_q_score(amplicons)`
-finds `Q_min = min { Q > 0 : Q finite }` and computes
+finds `Q_min = min { Q > 0 : Q finite }`; if such a `Q_min` exists, it computes
 `Q_eff = (Q / Q_min) · 100` (normalising the best product in the reaction to
-`100.000`); otherwise `Q_eff = Q`. Qualitative tier labels evaluate `Q_eff`
-against the standard `Q` thresholds above, and amplicon bar heights in the PCR
-diagram scale smoothly over `[1.0, 8.0]` px via an exponential decay curve:
+`100.000`). Otherwise (when **Relative `Q`** is disabled or no positive finite
+`Q` exists), `Q_eff = Q`. Qualitative tier labels evaluate `Q_eff` against the
+standard `Q` thresholds above, and amplicon bar heights in the PCR diagram scale
+smoothly over `[1.0, 8.0]` px via an exponential decay curve:
 
 ```math
 h(Q_{\text{eff}}) = \begin{cases}

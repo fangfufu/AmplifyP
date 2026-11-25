@@ -38,8 +38,8 @@ PCR amplicons on an interactive canvas.
     predicted PCR products.
   - **Bar Thickness**: Scaled smoothly between 1.0 px and 8.0 px via an
     exponential decay curve ($1.0 + 7.0 e^{-Q / 800}$) according to quality
-    score $Q$ (or **Relative Q** when enabled in Settings), clamping $Q ≤ 0$ to
-    8.0 px and non-finite scores to 1.0 px.
+    score $Q$ (or **Relative Q** when enabled in Settings), clamping $Q \\le 0$
+    to 8.0 px and non-finite scores to 1.0 px.
   - **Length Label**: Displays amplicon fragment length in base pairs (including
     primers) centred under each bar.
   - **Circular Template Support**: Wraparound amplicons crossing origin
