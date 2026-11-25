@@ -267,6 +267,12 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             height=32,
         )
 
+        self.action_group = ft.Row(
+            [self.clear_template_button, self.copy_template_button],
+            spacing=10,
+            tight=True,
+        )
+
         self.template_box_container = ft.Container(
             content=ft.Column(
                 [
@@ -325,8 +331,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                     [
                         ft.Row(
                             [
-                                self.clear_template_button,
-                                self.copy_template_button,
+                                self.action_group,
                                 self.casing_group,
                             ],
                             spacing=10,

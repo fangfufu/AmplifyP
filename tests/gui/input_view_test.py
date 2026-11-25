@@ -1755,3 +1755,30 @@ def test_handle_field_focus_detached_page() -> None:
         handle_field_focus(view, mock_event)
 
     assert input_data.primers[0]["seq_touched"] is True
+
+
+def test_template_toolbar_button_groups() -> None:
+    """Test template toolbar groups Clear+Copy and Upper+Lower for reflow."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = InputView(mock_page, input_data)
+    template_input = view.template_input
+
+    assert template_input.action_group.controls == [
+        template_input.clear_template_button,
+        template_input.copy_template_button,
+    ]
+    assert template_input.casing_group.controls == [
+        template_input.upper_case_button,
+        template_input.lower_case_button,
+    ]
+
+    toolbar_responsive_row = template_input.template_title_row.controls[2]
+    assert isinstance(toolbar_responsive_row, ft.ResponsiveRow)
+    wrapping_row = toolbar_responsive_row.controls[0]
+    assert isinstance(wrapping_row, ft.Row)
+    assert wrapping_row.wrap is True
+    assert wrapping_row.controls == [
+        template_input.action_group,
+        template_input.casing_group,
+    ]
