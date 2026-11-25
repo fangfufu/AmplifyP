@@ -622,8 +622,7 @@ def test_pcr_view_all_remaining_branches() -> None:
         target_length=6000,
     )
 
-    # 6. DrawnAmplicon q_score thresholds (<700, <1500, <4000, >=4000)
-
+    # 6. DrawnAmplicon smooth exponential bar height scaling
     p1 = Primer("A" * 20, name="P1")
     p2 = Primer("T" * 20, name="P2")
     canvas = ft.canvas.Canvas()
@@ -647,6 +646,7 @@ def test_pcr_view_all_remaining_branches() -> None:
             settings=settings,
             on_click=MagicMock(),
         )
+        assert da.bar_height == pytest.approx(1.0 + 7.0 * math.exp(-q / 800.0))
         da.draw(canvas, stack)
 
     # 7. DrawnAmplicon circular: w_right >= w_left and w_right < w_left
@@ -1837,8 +1837,29 @@ def test_relative_q_score_display_and_scaling() -> None:
     rebuilt_text = "".join(span.text for span in rebuilt_info.spans)
     assert "Q = 1200 (moderate amplification" in rebuilt_text
 
-    # Infinite Q score remains ∞ even when relative scaling is enabled
+    # Non-finite Q scores clamp bar height to 1.0 px; non-positive to 8.0 px
     settings["pcr_relative_q_score"] = True
+    for bad_q, expected_h in [
+        (float("inf"), 1.0),
+        (float("nan"), 1.0),
+        (0.0, 8.0),
+        (-5.0, 8.0),
+    ]:
+        amp.q_score = bad_q
+        drawn_edge = DrawnAmplicon(
+            amp=amp,
+            idx=0,
+            target_length=100,
+            t_width=500.0,
+            h_margin=20.0,
+            v_target=100.0,
+            c_width=540.0,
+            settings=settings,
+            on_click=lambda: None,
+            min_q_score=2.0,
+        )
+        assert drawn_edge.bar_height == expected_h
+
     amp.q_score = float("inf")
     inf_card = AmpliconDetailCard(
         amp=amp,
