@@ -285,9 +285,7 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             border_radius=5,
             padding=0,
         )
-        self.title_divider = ft.Divider(
-            height=1, thickness=1, color=GUIColours.OUTLINE
-        )
+        self.title_divider = ft.Divider(height=1, thickness=1)
         self.template_title_row = ft.Column(
             [
                 ft.ResponsiveRow(
@@ -533,7 +531,6 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
         self.bases_per_line_value_container.border = ft.Border.all(
             1, GUIColours.OUTLINE
         )
-        self.title_divider.color = GUIColours.OUTLINE
         self.circular_container.border = ft.Border.all(1, GUIColours.OUTLINE)
         self.template_box_container.border = ft.Border.all(
             1, GUIColours.OUTLINE

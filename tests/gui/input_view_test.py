@@ -588,6 +588,8 @@ def test_input_view_primer_reordering() -> None:
         tm_header.tm_header,
     ]
     assert tm_header.tm_header.width == 50
+    assert view.template_input.title_divider.color is None
+    assert view.primer_input.title_divider.color is None
 
 
 def test_input_view_block_invalid_primer() -> None:
