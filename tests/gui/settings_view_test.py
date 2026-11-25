@@ -71,10 +71,9 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_pd_threshold is not None
     assert view.set_font_family is not None
     assert view.set_colour_scheme is not None
-    assert view.set_dimer_sequence_separator is not None
     assert view.set_sequence_separator is not None
-    assert view.set_dimer_sequence_separator.value == "Space (' ')"
-    assert [opt.key for opt in view.set_dimer_sequence_separator.options] == [
+    assert view.set_sequence_separator.value == "Dash ('-')"
+    assert [opt.key for opt in view.set_sequence_separator.options] == [
         "Space (' ')",
         "Dash ('-')",
     ]
@@ -85,6 +84,8 @@ def test_settings_view_properties_and_methods() -> None:
     assert view.set_designer_2d_colour_scheme is not None
     assert view.set_designer_2d_show_rev_fwd is not None
     assert view.set_version_checking_frequency is not None
+    assert view.set_version_checking_frequency.value == "Once per Day"
+    assert settings["version_checking_frequency"] == "Once per Day"
     assert view.set_auto_reload_on_startup is not None
     assert view.set_primer_info_panel_position is not None
     assert view.set_primer_info_panel_fixed_height is not None
@@ -106,16 +107,19 @@ def test_settings_view_properties_and_methods() -> None:
     settings["designer_1d_show_tm"] = False
     settings["designer_1d_show_pct_at"] = True
     settings["pcr_amplicon_ranking"] = "Quality score"
+    settings["pcr_relative_q_score"] = True
     settings["pcr_primer_label_orientation"] = "Vertical"
     view._on_reset_handler(mock_event)
     assert mock_on_reset.called
     assert settings["designer_1d_show_tm"] is True
     assert settings["designer_1d_show_pct_at"] is False
     assert settings["pcr_amplicon_ranking"] == "Position, then length"
+    assert settings["pcr_relative_q_score"] is False
     assert settings["pcr_primer_label_orientation"] == "Horizontal"
     assert view.set_designer_1d_show_tm.value is True
     assert view.set_designer_1d_show_pct_at.value is False
     assert view.set_pcr_amplicon_ranking.value == "Position, then length"
+    assert view.set_pcr_relative_q_score.value is False
     assert view.set_pcr_primer_label_orientation.value == "Horizontal"
 
     # 5. get_replication_settings, get_state, set_state
@@ -227,8 +231,8 @@ def test_general_tile_all_branches() -> None:
     # 1. Properties
     assert tile.set_colour_deficient is not None
     assert tile.set_auto_reload_on_startup is not None
-    assert tile.set_dimer_sequence_separator is not None
-    assert tile.set_dimer_sequence_separator.value == "Space (' ')"
+    assert tile.set_sequence_separator is not None
+    assert tile.set_sequence_separator.value == "Dash ('-')"
 
     # 2. _on_manual_check_click
     captured_task = None
@@ -399,13 +403,12 @@ def test_general_tile_all_branches() -> None:
     assert tile.set_font_family is not None
     assert tile.set_colour_scheme is not None
     assert tile.set_colour_deficient is not None
-    assert tile.set_dimer_sequence_separator is not None
     assert tile.set_sequence_separator is not None
-    settings["sequence_separator"] = "Dash ('-')"
+    settings["sequence_separator"] = "Space (' ')"
     settings["dark_mode"] = True
     settings["colour_deficient"] = False
     tile.update_ui()
-    assert tile.set_dimer_sequence_separator.value == "Dash ('-')"
+    assert tile.set_sequence_separator.value == "Space (' ')"
     assert tile.set_colour_scheme.value == "Dark"
 
     from amplifyp.gui.colours import GUIColours
@@ -479,6 +482,19 @@ def test_pcr_amplicon_ranking_settings() -> None:
     assert settings["pcr_amplicon_ranking"] == "Quality score"
 
 
+def test_pcr_relative_q_score_settings() -> None:
+    """Test Relative Q score checkbox in SettingsView."""
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    view = SettingsView(mock_page, settings)
+
+    assert view.set_pcr_relative_q_score.value is False
+    assert view.set_pcr_relative_q_score.label == "Relative Q score"
+    view.set_pcr_relative_q_score.value = True
+    view.sync_to_state()
+    assert settings["pcr_relative_q_score"] is True
+
+
 def test_pcr_primer_label_orientation_settings() -> None:
     """Test origin map primer label orientation dropdown in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
@@ -503,12 +519,13 @@ def test_pcr_divider_behaviour_settings() -> None:
     settings = GUISettings()
     view = SettingsView(mock_page, settings)
 
-    assert view.set_pcr_divider_behaviour.value == "autoresize"
+    assert view.set_pcr_divider_behaviour.value == "autoresize_3_4"
     assert [opt.key for opt in view.set_pcr_divider_behaviour.options] == [
         "autoresize_1_4",
         "autoresize",
         "autoresize_1_2",
         "autoresize_2_3",
+        "autoresize_3_4",
         "save_proportionality",
     ]
     view.set_pcr_divider_behaviour.value = "save_proportionality"

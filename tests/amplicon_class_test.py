@@ -22,6 +22,7 @@ from amplifyp.amplicon import (
     AmpliconGenerator,
     AmpliconQuality,
     AmpliconRanking,
+    min_positive_q_score,
     sort_amplicons,
 )
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
@@ -338,3 +339,46 @@ def test_amplicon_quality_tier_parts_and_sorting() -> None:
         Amplicon.split_sequence("ACGT", -1, 1)
     with pytest.raises(ValueError, match="non-negative"):
         Amplicon.split_sequence("ACGT", 1, -1)
+
+
+def test_min_positive_q_score() -> None:
+    """Test min_positive_q_score ignores non-positive and non-finite values."""
+    assert min_positive_q_score([]) is None
+    assert (
+        min_positive_q_score(
+            [
+                create_dummy_amplicon(0.0),
+                create_dummy_amplicon(-5.0),
+                create_dummy_amplicon(float("inf")),
+            ]
+        )
+        is None
+    )
+    assert min_positive_q_score(
+        [
+            create_dummy_amplicon(0.0),
+            create_dummy_amplicon(50.0),
+            create_dummy_amplicon(12.5),
+            create_dummy_amplicon(float("inf")),
+        ]
+    ) == pytest.approx(12.5)
+
+
+def test_quality_report_str_for_score() -> None:
+    """Test static quality_report_str_for_score helper."""
+    assert (
+        Amplicon.quality_report_str_for_score(1.0, circular=True, verbose=False)
+        == "good (Circular)"
+    )
+    assert (
+        Amplicon.quality_report_str_for_score(
+            500.0, circular=False, verbose=True
+        )
+        == "okay amplification"
+    )
+    assert (
+        Amplicon.quality_report_str_for_score(
+            5000.0, circular=False, verbose=True
+        )
+        == "very weak amplification — probably not visible on an agarose gel"
+    )

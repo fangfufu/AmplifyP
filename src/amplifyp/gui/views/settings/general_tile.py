@@ -101,32 +101,23 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             on_select=self._on_colour_scheme_change,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
-        self.set_dimer_sequence_separator = ft.Dropdown(
+        self.set_sequence_separator = ft.Dropdown(
             label="5'/3' Sequence Separator",
             options=[
                 ft.dropdown.Option("Space (' ')"),
                 ft.dropdown.Option("Dash ('-')"),
             ],
-            value=self.settings.get(
-                "sequence_separator",
-                self.settings.get("dimer_sequence_separator", "Space (' ')"),
-            ),
+            value=self.settings.get("sequence_separator", "Dash ('-')"),
             expand=True,
             on_select=self.on_change_handler,  # pyright: ignore[reportArgumentType, reportAttributeAccessIssue]
             border_color=GUIColours.OUTLINE,
         )
-        self.set_sequence_separator = self.set_dimer_sequence_separator
 
         self._dummy_colour_deficient = ft.Checkbox(visible=False)
 
         self.settings_map["font_family"] = self.set_font_family
         self.settings_map["colour_deficient"] = self._dummy_colour_deficient
-        self.settings_map["dimer_sequence_separator"] = (
-            self.set_dimer_sequence_separator
-        )
-        self.settings_map["sequence_separator"] = (
-            self.set_dimer_sequence_separator
-        )
+        self.settings_map["sequence_separator"] = self.set_sequence_separator
 
         # --- General settings ---
         self.auto_reload_checkbox = BorderedCheckbox(
@@ -215,7 +206,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ),
                                         ft.Row(
                                             [
-                                                self.set_dimer_sequence_separator,
+                                                self.set_sequence_separator,
                                                 ft.Container(expand=True),
                                             ],
                                             spacing=15,
@@ -501,11 +492,10 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
     def update_ui(self) -> None:
         """Sync component with settings state."""
         self.set_version_checking_frequency.value = self.settings.get(
-            "version_checking_frequency", "Once per Month"
+            "version_checking_frequency", "Once per Day"
         )
-        self.set_dimer_sequence_separator.value = self.settings.get(
-            "sequence_separator",
-            self.settings.get("dimer_sequence_separator", "Space (' ')"),
+        self.set_sequence_separator.value = self.settings.get(
+            "sequence_separator", "Dash ('-')"
         )
         self.set_colour_scheme.border_color = GUIColours.OUTLINE
         if self._status_state == "error":

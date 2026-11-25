@@ -35,8 +35,6 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         on_divider_pan: Callable[[ft.DragUpdateEvent], None],
         on_divider_pan_end: Callable[[ft.DragEndEvent], None],
         name_column_width: float,
-        on_add_primer: Callable[[ft.Event | None], None],
-        on_delete_primer: Callable[[ft.Event | None], None],
         on_move_primer_up: Callable[[ft.Event | None], None],
         on_move_primer_down: Callable[[ft.Event | None], None],
     ) -> None:
@@ -48,26 +46,6 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             on_change=on_toggle_all,
         )
         show_temp = self.settings.get("show_primer_temperature", False)
-        self.add_button = ft.IconButton(
-            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Add Primer Below",
-            disabled=True,
-            on_click=on_add_primer,
-        )
-        self.delete_button = ft.IconButton(
-            icon=ft.Icons.DELETE_OUTLINE,
-            icon_size=16,
-            width=24,
-            height=24,
-            padding=0,
-            tooltip="Delete Primer",
-            disabled=True,
-            on_click=on_delete_primer,
-        )
         self.up_button = ft.IconButton(
             icon=ft.Icons.ARROW_UPWARD,
             icon_size=16,
@@ -90,8 +68,6 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         )
         self.reorder_controls = ft.Row(
             [
-                self.add_button,
-                self.delete_button,
                 self.up_button,
                 self.down_button,
             ],
@@ -109,8 +85,8 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
         if show_temp:
             self.tm_header = ft.Container(
                 content=self.reorder_controls,
-                width=108,
-                padding=ft.Padding(5, 0, 5, 0),
+                width=50,
+                padding=0,
                 alignment=ft.Alignment(0, 0),
                 visible=True,
             )
@@ -190,7 +166,7 @@ class PrimerHeader(ft.Container):  # type: ignore[misc]
             self.sequence_header,
         ]
         if show_temp:
-            controls.append(self.tm_header)
+            controls.extend([self.tm_divider, self.tm_header])
         self.header_row = ft.Row(
             controls,
             alignment=ft.MainAxisAlignment.START,

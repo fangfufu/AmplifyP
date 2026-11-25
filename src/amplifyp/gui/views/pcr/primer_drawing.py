@@ -448,15 +448,12 @@ def format_context_lines(
     if separator is not None:
         sep = "-" if (separator == "Dash ('-')" or separator == "-") else " "
     elif settings is not None and hasattr(settings, "get"):
-        sep_setting = settings.get(
-            "sequence_separator",
-            settings.get("dimer_sequence_separator", "Space (' ')"),
-        )
+        sep_setting = settings.get("sequence_separator", "Dash ('-')")
         sep = (
             "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
         )
     else:
-        sep = " "
+        sep = "-"
 
     alignment = Repliconf.format_context_alignment(
         conf,
@@ -511,10 +508,7 @@ class ReplicationContextCard(DismissibleDetailCard):
             create_overlapped_sequence_view,
         )
 
-        sep_setting = settings.get(
-            "sequence_separator",
-            settings.get("dimer_sequence_separator", "Space (' ')"),
-        )
+        sep_setting = settings.get("sequence_separator", "Dash ('-')")
         sep = (
             "-" if (sep_setting == "Dash ('-')" or sep_setting == "-") else " "
         )

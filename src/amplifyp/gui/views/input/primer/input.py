@@ -99,8 +99,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_divider_pan=self.layout_manager.on_primer_divider_pan,
             on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
-            on_add_primer=self.action_controller.header_add_click,
-            on_delete_primer=self.action_controller.header_delete_click,
             on_move_primer_up=self.action_controller.header_up_click,
             on_move_primer_down=self.action_controller.header_down_click,
         )
@@ -121,12 +119,14 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         self.primer_toolbar = PrimerToolbar(
             on_save=self._save_primers_click,
             on_load=self._load_primers_click,
+            on_add=self.action_controller.add_primer_click,
             on_clear=self.clear_primers_callback,
             on_delete_selected=self.delete_selected_callback,
             on_copy=self._copy_primers_click,
             on_paste=self._paste_primers_click,
             on_reverse_complement=self._reverse_complement_selected_click,
         )
+        self.add_primer_button = self.primer_toolbar.add_button
         self.clear_primers_button = self.primer_toolbar.clear_button
         self.delete_selected_button = self.primer_toolbar.delete_selected_button
         self.reverse_complement_button = (
@@ -185,23 +185,30 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         )
 
         # Title row
-        self.primer_title_row = ft.ResponsiveRow(
+        self.title_divider = ft.Divider(height=1, thickness=1)
+        self.primer_title_row = ft.Column(
             [
-                ft.Row(
+                ft.ResponsiveRow(
                     [
-                        ft.Text(
-                            "Primers",
-                            weight=ft.FontWeight.BOLD,
-                            no_wrap=True,
+                        ft.Row(
+                            [
+                                ft.Text(
+                                    "Primers",
+                                    weight=ft.FontWeight.BOLD,
+                                    no_wrap=True,
+                                ),
+                                self.primer_toolbar.file_group,
+                            ],
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            wrap=True,
                         ),
-                        self.primer_toolbar,
                     ],
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    wrap=True,
                 ),
+                self.title_divider,
+                ft.ResponsiveRow([self.primer_toolbar]),
             ],
-            run_spacing=0,
+            spacing=5,
         )
 
         self.content = ft.Column(
@@ -290,8 +297,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
             on_divider_pan=self.layout_manager.on_primer_divider_pan,
             on_divider_pan_end=self.layout_manager.on_primer_divider_pan_end,
             name_column_width=self.name_column_width,
-            on_add_primer=self.action_controller.header_add_click,
-            on_delete_primer=self.action_controller.header_delete_click,
             on_move_primer_up=self.action_controller.header_up_click,
             on_move_primer_down=self.action_controller.header_down_click,
         )
@@ -470,7 +475,7 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
         await self.file_manager.load_primers_click(e)
 
     async def _save_primers_click(self, e: ft.Event | None) -> None:
-        """Save active primers to a CSV file."""
+        """Save primers to a TSV file."""
         await self.file_manager.save_primers_click(e)
 
     def _show_notification(self, message: str) -> None:
@@ -498,15 +503,6 @@ class PrimerInput(ft.Container):  # type: ignore[misc]
 
         num_primers = len(self.input_data.primers)
         has_sel = bool(self.selected_indices)
-        has_valid_focus = (
-            self.focused_primer_index is not None
-            and 0 <= self.focused_primer_index < num_primers
-        )
-
-        self.primer_header.add_button.disabled = False
-        self.primer_header.delete_button.disabled = not (
-            has_sel or has_valid_focus
-        )
 
         if has_sel:
             min_idx = min(self.selected_indices)

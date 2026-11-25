@@ -23,7 +23,11 @@ from typing import TYPE_CHECKING
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.amplicon import AmpliconRanking, sort_amplicons
+from amplifyp.amplicon import (
+    AmpliconRanking,
+    min_positive_q_score,
+    sort_amplicons,
+)
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import MAX_AMPLICONS_RENDER, GUISettings
 from amplifyp.pcr import PCR
@@ -43,6 +47,7 @@ _AUTORESIZE_VIEWPORT_FRACTIONS: dict[str, float] = {
     "autoresize": 1.0 / 3.0,
     "autoresize_1_2": 1.0 / 2.0,
     "autoresize_2_3": 2.0 / 3.0,
+    "autoresize_3_4": 3.0 / 4.0,
 }
 _NAV_BAR_HEIGHT = 100.0
 
@@ -113,6 +118,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             self.diagram_container,
             self.divider,
         ]
+        self._sorted_amplicons: list[Amplicon] = []
+        self._min_q_score: float | None = None
 
     def _get_viewport_height(self) -> float:
         """Return available viewport height excluding the top navigation bar."""
@@ -125,7 +132,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Size the diagram container according to the divider behaviour."""
         viewport_height = self._get_viewport_height()
         behaviour = str(
-            self.settings.get("pcr_divider_behaviour", "autoresize")
+            self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
         )
         if behaviour == "save_proportionality":
             ratio = self.settings._safe_float("pcr_map_height_ratio", 0.375)
@@ -136,7 +143,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             return
 
         # Default: autoresize to fit content, capped at viewport fraction.
-        fraction = _AUTORESIZE_VIEWPORT_FRACTIONS.get(behaviour, 1.0 / 3.0)
+        fraction = _AUTORESIZE_VIEWPORT_FRACTIONS.get(behaviour, 3.0 / 4.0)
         content_height = float(self.diagram_canvas.height or 300.0) + 22.0
         max_auto_height = max(150.0, viewport_height * fraction)
         self.diagram_container.height = max(
@@ -161,7 +168,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         self.diagram_container.height = new_height
         if (
-            self.settings.get("pcr_divider_behaviour", "autoresize")
+            self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
             == "save_proportionality"
             and viewport_height > 0
         ):
@@ -176,7 +183,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         """Persist map height proportionality when drag finishes."""
         if (
             self.app_page
-            and self.settings.get("pcr_divider_behaviour", "autoresize")
+            and self.settings.get("pcr_divider_behaviour", "autoresize_3_4")
             == "save_proportionality"
         ):
             self.settings.save_to_local(
@@ -194,7 +201,8 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         self.diagram_stack.controls.append(self.diagram_canvas)
         self.diagram_container.visible = False
         self.divider.visible = False
-        self._sorted_amplicons: list[Amplicon] = []
+        self._sorted_amplicons = []
+        self._min_q_score = None
 
     def render_diagram(self, pcr: PCR) -> None:
         """Perform coordinates calculations and render diagram elements.
@@ -208,6 +216,7 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 template data.
         """
         amplicons = pcr.amplicons
+        self._min_q_score = min_positive_q_score(amplicons)
         num_amplicons = len(amplicons)
 
         if amplicons:
@@ -575,5 +584,6 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
                 settings=self.settings,
                 on_click=lambda a=amp: self.on_amplicon_click(a),  # type: ignore[misc]
                 v_frag_start=v_frag_start,
+                min_q_score=self._min_q_score,
             )
             drawn.draw(self.diagram_canvas, self.diagram_stack)

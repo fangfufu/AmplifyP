@@ -275,6 +275,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
             amp=amp,
             settings=self.settings,
             dismiss_callback=dismiss,
+            min_q_score=self.diagram_panel._min_q_score,
         )
         self.result_list.controls.insert(0, amplicon_card)
         self._update_cards_header_visibility()

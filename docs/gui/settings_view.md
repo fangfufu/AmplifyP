@@ -33,7 +33,7 @@ update checks, settings backup file operations, and factory reset.
     `System` [default], `System (Colour Deficient Friendly)`). Syncs dark mode
     and colour deficient mode settings.
   - **5'/3' Sequence Separator**: Sequence boundary spacing selector
-    (`Space (' ')` [default], `Dash ('-')`). Configures whether sequence ends in
+    (`Space (' ')`, `Dash ('-')` [default]). Configures whether sequence ends in
     dimer alignment cards and PCR context cards format with whitespace
     (`5' ... 3'`) or hyphens (`5'-...-3'`).
 - **Autosave**:
@@ -43,8 +43,8 @@ update checks, settings backup file operations, and factory reset.
     launching.
 - **Updates**:
   - **Version Checking Frequency**: Frequency for checking new release tags on
-    GitHub (`At Startup`, `Once per Day`, `Once per Week`, `Once per Month`
-    [default], `Disabled`).
+    GitHub (`At Startup`, `Once per Day` [default], `Once per Week`,
+    `Once per Month`, `Disabled`).
   - **Check for Updates Button**: Manually triggers an asynchronous version
     check against the current application version. Reports whether AmplifyP is
     up to date or displays a notification when a new release tag is available.
@@ -107,9 +107,11 @@ PCR replication calculations.
 
 - **Overview Map**:
   - **Horizontal divider behaviour**: Dropdown controlling how the PCR overview
-    map height is sized (`Auto-resize (max 1/4 of viewport)`,
-    `Auto-resize (max 1/3 of viewport)` [default],
-    `Auto-resize (max 1/2 of viewport)`, `Auto-resize (max 2/3 of viewport)`,
+    map height is sized (`Auto-resizing, max 1/4 of the viewport`,
+    `Auto-resizing, max 1/3 of the viewport`,
+    `Auto-resizing, max 1/2 of the viewport`,
+    `Auto-resizing, max 2/3 of the viewport`,
+    `Auto-resizing, max 3/4 of the viewport` [default],
     `Save proportionality across session`).
 - **Replication Origin**:
   - **Base Pair Weights**: A $15 \\times 5$ interactive table of pairwise
@@ -138,6 +140,9 @@ PCR replication calculations.
   - **Amplicon vertical ranking**: Dropdown controlling the vertical ordering of
     amplicon fragment bars in the PCR View diagram (`Position, then length`
     [default], `Quality score`, `Position, then quality`).
+  - **Relative Q score**: Bordered checkbox (default: unchecked). When enabled,
+    scales each amplicon's $Q$ score by the smallest positive finite $Q$ score
+    across all predicted amplicons.
 
 ## 4. Primer Dimers
 

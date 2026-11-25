@@ -221,11 +221,6 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         return self.general_tile.set_colour_scheme
 
     @property
-    def set_dimer_sequence_separator(self) -> ft.Dropdown:
-        """Get the dimer sequence separator dropdown."""
-        return self.general_tile.set_dimer_sequence_separator
-
-    @property
     def set_sequence_separator(self) -> ft.Dropdown:
         """Get the 5'/3' sequence separator dropdown."""
         return self.general_tile.set_sequence_separator
@@ -422,6 +417,11 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
     def set_pcr_amplicon_ranking(self) -> ft.Dropdown:
         """Get the amplicon vertical ranking dropdown."""
         return self.replication_tile.set_amplicon_ranking
+
+    @property
+    def set_pcr_relative_q_score(self) -> BorderedCheckbox:
+        """Get the relative Q score checkbox."""
+        return self.replication_tile.set_relative_q_score
 
     @property
     def set_pcr_primer_label_orientation(self) -> ft.Dropdown:

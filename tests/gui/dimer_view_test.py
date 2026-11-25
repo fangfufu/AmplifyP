@@ -107,8 +107,8 @@ def test_dimer_view_with_dimers() -> None:
 
     # Check that sequence indicators are present in the text spans
     text_values = "".join(span.text for span in diagram_text.spans)
-    assert "5' " in text_values
-    assert "3' " in text_values
+    assert "5'-" in text_values
+    assert "3'-" in text_values
     # Mid line should contain bond characters like '|' or ':'
     assert "|" in text_values or ":" in text_values
     # Check that the primer names are present as labels
@@ -265,9 +265,9 @@ def test_dimer_card_separator_setting() -> None:
         p1_pos=0,
     )
 
-    # Test default Space separator
+    # Test Space separator
     settings = GUISettings()
-    settings["dimer_sequence_separator"] = "Space (' ')"
+    settings["sequence_separator"] = "Space (' ')"
     card_space = DimerCard(d, settings)
     card_space_col = card_space.content.content
     diagram_text_space = card_space_col.controls[1].content.controls[0]
@@ -276,7 +276,7 @@ def test_dimer_card_separator_setting() -> None:
     assert "3' CGTACGTA 5'" in text_space
 
     # Test Dash separator
-    settings["dimer_sequence_separator"] = "Dash ('-')"
+    settings["sequence_separator"] = "Dash ('-')"
     card_dash = DimerCard(d, settings)
     card_dash_col = card_dash.content.content
     diagram_text_dash = card_dash_col.controls[1].content.controls[0]

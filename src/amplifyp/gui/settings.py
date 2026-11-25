@@ -82,8 +82,7 @@ class GUISettings:
             "pd_min_overlap": str(DEFAULT_PRIMER_DIMER_OVERLAP),
             "pd_threshold": str(DEFAULT_PRIMER_DIMER_THRESHOLD),
             "font_family": "Roboto Mono",
-            "dimer_sequence_separator": "Space (' ')",
-            "sequence_separator": "Space (' ')",
+            "sequence_separator": "Dash ('-')",
             "colour_deficient": False,
             "dark_mode": "system",
             "font_size_map_baseline": 16,
@@ -108,7 +107,7 @@ class GUISettings:
             "log_file_path": "(Default)",
             "log_rotation_enabled": True,
             "log_rotation_max_bytes": 5242880,
-            "version_checking_frequency": "Once per Month",
+            "version_checking_frequency": "Once per Day",
             "last_version_check_timestamp": 0.0,
             "auto_reload_on_startup": True,
             "template_fixed_width": False,
@@ -120,8 +119,9 @@ class GUISettings:
             "designer_1d_show_tm": True,
             "designer_1d_show_pct_at": False,
             "pcr_amplicon_ranking": "Position, then length",
+            "pcr_relative_q_score": False,
             "pcr_primer_label_orientation": "Horizontal",
-            "pcr_divider_behaviour": "autoresize",
+            "pcr_divider_behaviour": "autoresize_3_4",
             "pcr_map_height_ratio": 0.375,
         }
 
@@ -163,7 +163,11 @@ class GUISettings:
             for k, v in settings_dict.items():
                 if (
                     k not in self._settings
-                    and k != "amplify4_compatibility_mode"
+                    and k
+                    not in (
+                        "amplify4_compatibility_mode",
+                        "dimer_sequence_separator",
+                    )
                     and not k.startswith(("match_weight_", "run_weight_"))
                 ):
                     self._settings[k] = v
@@ -223,9 +227,6 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        if key in ("dimer_sequence_separator", "sequence_separator"):
-            self._settings["dimer_sequence_separator"] = str(value)
-            self._settings["sequence_separator"] = str(value)
         self._cached_tm_settings = None
         if key == "colour_deficient":
             val = value
@@ -479,14 +480,6 @@ class GUISettings:
                 ]:
                     del self._settings[existing_k]
                 self._settings.update(valid_entries)
-        if "sequence_separator" in settings_dict:
-            self._settings["dimer_sequence_separator"] = str(
-                settings_dict["sequence_separator"]
-            )
-        elif "dimer_sequence_separator" in settings_dict:
-            self._settings["sequence_separator"] = str(
-                settings_dict["dimer_sequence_separator"]
-            )
         if (
             "amplify4_compatibility_mode" in settings_dict
             and "amp4_compat" not in settings_dict
@@ -497,6 +490,13 @@ class GUISettings:
                 settings_dict["amplify4_compatibility_mode"],
                 bool(self._settings.get("amp4_compat", False)),
             )
+        if (
+            "dimer_sequence_separator" in settings_dict
+            and "sequence_separator" not in settings_dict
+        ):
+            legacy_sep = settings_dict["dimer_sequence_separator"]
+            if legacy_sep is not None:
+                self._settings["sequence_separator"] = str(legacy_sep)
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)
         )
@@ -630,8 +630,9 @@ class GUISettings:
                         existing_keys = await prefs.get_keys(storage_prefix)
                         for full_key in existing_keys:
                             k = full_key[len(storage_prefix) :]
-                            if k not in snapshot and k.startswith(
-                                ("match_weight_", "run_weight_")
+                            if k not in snapshot and (
+                                k.startswith(("match_weight_", "run_weight_"))
+                                or k == "dimer_sequence_separator"
                             ):
                                 await prefs.remove(full_key)
 

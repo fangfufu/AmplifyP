@@ -407,9 +407,9 @@ def test_pcr_view_click_context_map_improved_visualisation() -> None:
         and span.style.color == GUIColours.MUTED_GREY
     ]
     assert len(comp_spans) == 1
-    # Check that it contains "3' " and " 5'" and the translated comp sequence
-    assert "3' " in comp_spans[0].text
-    assert " 5'" in comp_spans[0].text
+    # Check that it contains "3'-" and "-5'" and the translated comp sequence
+    assert "3'-" in comp_spans[0].text
+    assert "-5'" in comp_spans[0].text
 
 
 def test_format_context_lines_alignment_long_label() -> None:
@@ -437,12 +437,12 @@ def test_format_context_lines_alignment_long_label() -> None:
     # which is "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)".
     # Let's count length: 34 + 10 = 44 characters.
     # The label is padded to 44. The sequence prefix is 44 + 3 = 47.
-    # Verify that primer sequence starts with '3\' ' at offset 44
-    # (default space)
-    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' ")
+    # Verify that primer sequence starts with '3\'-' at offset 44
+    # (default dash)
+    assert mid.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
 
     # The mid line should be:
-    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' CCC...C 5'"
+    # "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-CCC...C-5'"
     # The bonds line in bottom line is the first line of bottom_line.
     # The bonds line starts with:
     # 12 + 20 + extra_spaces = 32 + (44 - 29) = 47 spaces.
@@ -450,12 +450,12 @@ def test_format_context_lines_alignment_long_label() -> None:
     assert lines_bot[0].startswith(" " * 47 + "|")
 
     # The context line in bottom_line starts with:
-    # "Context  " (9 chars) + 15 spaces + "5' " (3 chars) = 27 spaces,
+    # "Context  " (9 chars) + 15 spaces + "5'-" (3 chars) = 27 spaces,
     # then 20 bp upstream = 47 spaces before binding sequence.
-    assert lines_bot[1].startswith("Context  " + " " * 15 + "5' ")
+    assert lines_bot[1].startswith("Context  " + " " * 15 + "5'-")
 
-    # Test dash separator option
-    _top_d, mid_d, bot_d = format_context_lines(
+    # Test space separator option
+    _top_s_opt, mid_s_opt, bot_s_opt = format_context_lines(
         primer_name=long_name,
         padded_idx=50,
         conf=conf,
@@ -463,11 +463,13 @@ def test_format_context_lines_alignment_long_label() -> None:
         L=20,
         N=100,
         direction=DNADirection.REV,
-        separator="Dash ('-')",
+        separator="Space (' ')",
     )
-    assert mid_d.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
-    lines_bot_d = bot_d.split("\n")
-    assert lines_bot_d[1].startswith("Context  " + " " * 15 + "5'-")
+    assert mid_s_opt.startswith(
+        "2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' "
+    )
+    lines_bot_s_opt = bot_s_opt.split("\n")
+    assert lines_bot_s_opt[1].startswith("Context  " + " " * 15 + "5' ")
 
     # Test reading separator from settings when separator is None
     from amplifyp.gui.settings import GUISettings
@@ -480,9 +482,9 @@ def test_format_context_lines_alignment_long_label() -> None:
         L=20,
         N=100,
         direction=DNADirection.REV,
-        settings=GUISettings({"sequence_separator": "Dash ('-')"}),
+        settings=GUISettings({"sequence_separator": "Space (' ')"}),
     )
-    assert mid_s.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3'-")
+    assert mid_s.startswith("2223 - 108 (a.k.a. 3312) (Reverse) (Reverse)3' ")
 
 
 def test_pcr_view_shows_binding_sites_when_no_amplicons_found() -> None:
@@ -771,27 +773,27 @@ def test_pcr_view_all_remaining_branches() -> None:
         .content.controls[0]
         .spans
     )
-    assert "5' " in spans_text
-    assert " 3'" in spans_text
+    assert "5'-" in spans_text
+    assert "-3'" in spans_text
 
-    dash_settings = GUISettings()
-    dash_settings["sequence_separator"] = "Dash ('-')"
-    ctx_card_dash = ReplicationContextCard(
+    space_settings = GUISettings()
+    space_settings["sequence_separator"] = "Space (' ')"
+    ctx_card_space = ReplicationContextCard(
         primer_name="P1",
         padded_idx=0,
         conf=mock_conf,
         var=DirIdx(direction=DNADirection.FWD, index=0),
-        settings=dash_settings,
+        settings=space_settings,
         dismiss_callback=MagicMock(),
     )
-    spans_text_dash = "".join(
+    spans_text_space = "".join(
         span.text
-        for span in ctx_card_dash.content.content.controls[1]
+        for span in ctx_card_space.content.content.controls[1]
         .content.controls[0]
         .spans
     )
-    assert "5'-" in spans_text_dash
-    assert "-3'" in spans_text_dash
+    assert "5' " in spans_text_space
+    assert " 3'" in spans_text_space
 
     # 12. PCRLayoutSolver: clusters hitting boundaries and missing confs
     # Left boundary cluster
@@ -1298,7 +1300,7 @@ def test_drawn_primer_triangle_and_label_same_line_when_stacked() -> None:
     assert label_ctrl.top == 67.0 - (13 + 3.0) / 2.0
 
 
-def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
+def test_pcr_divider_autoresize_viewport_fractions() -> None:
     """Test autoresize fits PCR map up to configured viewport fractions."""
     from amplifyp.gui.settings import GUISettings
 
@@ -1308,7 +1310,7 @@ def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
     mock_page.height = 1000
 
     settings = GUISettings()
-    assert settings["pcr_divider_behaviour"] == "autoresize"
+    assert settings["pcr_divider_behaviour"] == "autoresize_3_4"
 
     input_data = GUIInput()
     input_data.template = (
@@ -1323,25 +1325,30 @@ def test_pcr_divider_autoresize_capped_at_one_third_viewport() -> None:
     view = PCRView(mock_page, input_data, settings)
     view.run_pcr()
 
-    # Single amplicon canvas is smaller than 1/3 of 900 (300),
+    # Single amplicon canvas is smaller than 3/4 of 900 (675),
     # clamped to >= 150.0 and <= 300.0.
     assert view.diagram_container.height is not None
     assert 150.0 <= view.diagram_container.height <= 300.0
 
-    # Simulate a tall canvas (many amplicons): capped at 1/3 of viewport.
+    # Simulate a tall canvas (many amplicons): capped at 3/4 of 900 (675.0).
     view.diagram_panel.diagram_canvas.height = 1000.0
     view.diagram_panel._apply_container_height()
-    assert view.diagram_container.height == 300.0
+    assert view.diagram_container.height == 675.0
 
-    # Viewport grows to 1300 (1200 available) -> 1/3 cap becomes 400.0.
+    # Viewport grows to 1300 (1200 available) -> 3/4 cap becomes 900.0.
     mock_page.height = 1300
     view.diagram_panel._apply_container_height()
-    assert view.diagram_container.height == 400.0
+    assert view.diagram_container.height == 900.0
 
     # 1/4 viewport cap on 1200 available -> 300.0.
     settings["pcr_divider_behaviour"] = "autoresize_1_4"
     view.diagram_panel._apply_container_height()
     assert view.diagram_container.height == 300.0
+
+    # 1/3 viewport cap on 1200 available -> 400.0.
+    settings["pcr_divider_behaviour"] = "autoresize"
+    view.diagram_panel._apply_container_height()
+    assert view.diagram_container.height == 400.0
 
     # 1/2 viewport cap on 1200 available -> 600.0.
     settings["pcr_divider_behaviour"] = "autoresize_1_2"
@@ -1725,3 +1732,167 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
         assert len(pcr_view.result_list.controls) > 0
     finally:
         GUIColours.dark_mode = prev_dark
+
+
+def test_relative_q_score_display_and_scaling() -> None:
+    """Test Relative Q score scaling, 3-decimal formatting, and tiering."""
+    from amplifyp.amplicon import Amplicon
+    from amplifyp.gui.settings import GUISettings
+    from amplifyp.gui.views.pcr.amplicon_drawing import (
+        AmpliconDetailCard,
+        DrawnAmplicon,
+    )
+
+    settings = GUISettings()
+    settings["pcr_relative_q_score"] = True
+
+    amp = MagicMock(spec=Amplicon)
+    amp.start.index = 0
+    amp.end.index = 50
+    amp.product = MagicMock()
+    amp.product.seq = "ACGT" * 15
+    amp.product.__len__.return_value = 60
+    amp.fwd_origin = MagicMock()
+    amp.fwd_origin.name = "F1"
+    amp.fwd_origin.seq = "ACGT"
+    amp.rev_origin = MagicMock()
+    amp.rev_origin.name = "R1"
+    amp.rev_origin.seq = "TGCA"
+    amp.circular = False
+    # Raw Q = 2839 (weak), min_q = 2838.0 -> scaled Q = 1.000 (good)
+    amp.q_score = 2839.0
+
+    drawn_long = DrawnAmplicon(
+        amp=amp,
+        idx=0,
+        target_length=100,
+        t_width=500.0,
+        h_margin=20.0,
+        v_target=100.0,
+        c_width=540.0,
+        settings=settings,
+        on_click=lambda: None,
+        min_q_score=2838.0,
+    )
+    # Unscaled thresholds keep near-best long amplicons in GOOD tier (8.0)
+    assert drawn_long.bar_height == 8.0
+
+    long_card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=2838.0,
+    )
+    long_info = long_card.content.content.controls[1]
+    long_text = "".join(span.text for span in long_info.spans)
+    assert "Relative Q = 1.000 (good amplification" in long_text
+
+    # Raw Q = 1200 (moderate), min_q = 600.0 -> scaled Q = 2.000 (good)
+    amp.q_score = 1200.0
+
+    drawn_scaled = DrawnAmplicon(
+        amp=amp,
+        idx=0,
+        target_length=100,
+        t_width=500.0,
+        h_margin=20.0,
+        v_target=100.0,
+        c_width=540.0,
+        settings=settings,
+        on_click=lambda: None,
+        min_q_score=600.0,
+    )
+    # 2.0 falls in GOOD tier (< 300, height 8.0) rather than MODERATE (3.5)
+    assert drawn_scaled.bar_height == 8.0
+
+    card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=600.0,
+    )
+    info_row = card.content.content.controls[1]
+    full_text = "".join(span.text for span in info_row.spans)
+    assert "Relative Q = 2.000 (good amplification" in full_text
+
+    # Large relative Q (400.0) falls in OKAY tier (< 700, height 5.5)
+    drawn_okay = DrawnAmplicon(
+        amp=amp,
+        idx=0,
+        target_length=100,
+        t_width=500.0,
+        h_margin=20.0,
+        v_target=100.0,
+        c_width=540.0,
+        settings=settings,
+        on_click=lambda: None,
+        min_q_score=3.0,
+    )
+    assert drawn_okay.bar_height == 5.5
+
+    # Toggling setting off and rebuilding restores raw Q score & tier
+    settings["pcr_relative_q_score"] = False
+    rebuilt = card.rebuild(settings)
+    rebuilt_info = rebuilt.content.content.controls[1]
+    rebuilt_text = "".join(span.text for span in rebuilt_info.spans)
+    assert "Q = 1200 (moderate amplification" in rebuilt_text
+
+    # Infinite Q score remains ∞ even when relative scaling is enabled
+    settings["pcr_relative_q_score"] = True
+    amp.q_score = float("inf")
+    inf_card = AmpliconDetailCard(
+        amp=amp,
+        settings=settings,
+        dismiss_callback=lambda _: None,
+        min_q_score=2.0,
+    )
+    inf_info = inf_card.content.content.controls[1]
+    inf_text = "".join(span.text for span in inf_info.spans)
+    assert "Relative Q = ∞ (very weak amplification" in inf_text
+
+
+def test_pcr_view_relative_q_score_end_to_end() -> None:
+    """Test PCRView wires min_q_score through diagram and detail cards."""
+    from pathlib import Path
+
+    import yaml
+
+    from amplifyp.gui.settings import GUISettings
+
+    fixture_path = (
+        Path(__file__).resolve().parents[1]
+        / "examples"
+        / "save_states"
+        / "lots_of_amplicon.yaml"
+    )
+    with fixture_path.open(encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    input_data = GUIInput()
+    input_data.from_dict(data["input"])
+    settings = GUISettings()
+    settings["pcr_relative_q_score"] = True
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.width = 800
+    mock_page.height = 900
+
+    view = PCRView(mock_page, input_data, settings)
+    assert view.run_pcr() is True
+    assert view.diagram_panel._min_q_score == pytest.approx(146.0)
+
+    assert view._cached_pcr is not None
+    best_amp = min(view._cached_pcr.amplicons, key=lambda a: a.q_score)
+    view._show_amplicon_dialog(best_amp)
+
+    card = view.result_list.controls[0]
+    info_row = card.content.content.controls[1]
+    full_text = "".join(span.text for span in info_row.spans)
+    assert "Relative Q = 1.000 (good amplification" in full_text
+
+    settings["pcr_relative_q_score"] = False
+    assert view.run_pcr(keep_cards=True, refresh_cards=True) is True
+    refreshed_card = view.result_list.controls[0]
+    refreshed_info = refreshed_card.content.content.controls[1]
+    refreshed_text = "".join(span.text for span in refreshed_info.spans)
+    assert "Q = 146 (good amplification" in refreshed_text

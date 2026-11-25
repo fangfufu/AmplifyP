@@ -23,12 +23,13 @@ import flet as ft
 
 
 class PrimerToolbar(ft.Row):  # type: ignore[misc]
-    """Toolbar containing actions for managing primers (Save, Load, Clear)."""
+    """Toolbar containing actions for managing primers."""
 
     def __init__(
         self,
         on_save: Callable[[ft.Event | None], Awaitable[None] | None],
         on_load: Callable[[ft.Event | None], Awaitable[None] | None],
+        on_add: Callable[[ft.Event | None], Awaitable[None] | None],
         on_clear: Callable[[ft.Event | None], Awaitable[None] | None],
         on_delete_selected: Callable[[ft.Event | None], Awaitable[None] | None],
         on_copy: Callable[[ft.Event | None], Awaitable[None] | None],
@@ -38,28 +39,35 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
         ],
     ) -> None:
         """Initialise the PrimerToolbar."""
-        self.save_button = ft.FilledTonalButton(
+        self.save_button = ft.OutlinedButton(
             "Save",
             icon=ft.Icons.FILE_DOWNLOAD,
             on_click=on_save,
-            tooltip="Save primers to CSV",
+            tooltip="Save primers to TSV",
             height=32,
         )
-        self.load_button = ft.FilledTonalButton(
+        self.load_button = ft.OutlinedButton(
             "Load",
             icon=ft.Icons.FILE_OPEN,
             on_click=on_load,
             tooltip="Load primers from CSV/TSV",
             height=32,
         )
-        self.clear_button = ft.OutlinedButton(
+        self.add_button = ft.FilledTonalButton(
+            "Add",
+            icon=ft.Icons.ADD,
+            tooltip="Add Primer",
+            on_click=on_add,
+            height=32,
+        )
+        self.clear_button = ft.FilledTonalButton(
             "Clear",
             icon=ft.Icons.DELETE_OUTLINE,
             tooltip="Clear All Primers",
             on_click=on_clear,
             height=32,
         )
-        self.delete_selected_button = ft.OutlinedButton(
+        self.delete_selected_button = ft.FilledTonalButton(
             "Delete",
             icon=ft.Icons.DELETE_SWEEP,
             tooltip="Delete Highlighted Primers",
@@ -67,7 +75,7 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             height=32,
             disabled=True,
         )
-        self.reverse_complement_button = ft.OutlinedButton(
+        self.reverse_complement_button = ft.FilledTonalButton(
             "Rev Comp",
             icon=ft.Icons.SYNC_ALT,
             tooltip="Reverse Complement Highlighted Primers",
@@ -75,14 +83,14 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             height=32,
             disabled=True,
         )
-        self.copy_button = ft.OutlinedButton(
+        self.copy_button = ft.FilledTonalButton(
             "Copy",
             icon=ft.Icons.CONTENT_COPY,
             tooltip="Copy Highlighted Primers to Clipboard",
             on_click=on_copy,
             height=32,
         )
-        self.paste_button = ft.OutlinedButton(
+        self.paste_button = ft.FilledTonalButton(
             "Paste",
             icon=ft.Icons.CONTENT_PASTE,
             tooltip="Paste Primers from Clipboard",
@@ -94,23 +102,24 @@ class PrimerToolbar(ft.Row):  # type: ignore[misc]
             spacing=10,
             tight=True,
         )
+        self.sequence_group = ft.Row(
+            [self.reverse_complement_button, self.clear_button],
+            spacing=10,
+            tight=True,
+        )
         self.clipboard_group = ft.Row(
             [self.copy_button, self.paste_button],
             spacing=10,
             tight=True,
         )
         self.edit_group = ft.Row(
-            [
-                self.reverse_complement_button,
-                self.delete_selected_button,
-                self.clear_button,
-            ],
+            [self.add_button, self.delete_selected_button],
             spacing=10,
             tight=True,
         )
         super().__init__(
             [
-                self.file_group,
+                self.sequence_group,
                 self.clipboard_group,
                 self.edit_group,
             ],

@@ -36,6 +36,22 @@ _BAR_HEIGHT_BY_TIER: dict[AmpliconQuality, float] = {
 }
 
 
+def _resolve_q_score(
+    q_score: float,
+    settings: GUISettings,
+    min_q_score: float | None,
+) -> tuple[float, bool]:
+    """Return `(effective_q_score, is_scaled)` according to settings."""
+    if (
+        bool(settings.get("pcr_relative_q_score", False))
+        and min_q_score is not None
+        and math.isfinite(min_q_score)
+        and min_q_score > 0
+    ):
+        return q_score / min_q_score, True
+    return q_score, False
+
+
 class DrawnAmplicon:
     """Amplicon bar drawn on the PCR diagram canvas."""
 
@@ -51,6 +67,7 @@ class DrawnAmplicon:
         settings: GUISettings,
         on_click: Callable[[], None],
         v_frag_start: float | None = None,
+        min_q_score: float | None = None,
     ) -> None:
         """Initialise the DrawnAmplicon.
 
@@ -66,6 +83,8 @@ class DrawnAmplicon:
             on_click: Callback invoked when the amplicon is clicked.
             v_frag_start: Vertical start position for fragment rows, or
                 None to use a default.
+            min_q_score: Smallest positive finite q_score across all predicted
+                amplicons, used for relative Q score scaling.
         """
         self.amp = amp
         self.idx = idx
@@ -98,8 +117,9 @@ class DrawnAmplicon:
         self.y_pos = v_frag_start + (idx * v_frag_step)
 
         # Dynamic thickness based on the quality tier
+        effective_q, _ = _resolve_q_score(amp.q_score, settings, min_q_score)
         self.bar_height = _BAR_HEIGHT_BY_TIER[
-            Amplicon.quality_tier_for_score(amp.q_score)
+            Amplicon.quality_tier_for_score(effective_q)
         ]
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
@@ -254,6 +274,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
         amp: "Amplicon",
         settings: GUISettings,
         dismiss_callback: Callable[[ft.Card], None],
+        min_q_score: float | None = None,
     ) -> None:
         """Initialise the AmpliconDetailCard.
 
@@ -265,9 +286,12 @@ class AmpliconDetailCard(DismissibleDetailCard):
                 and q_score attributes.
             settings: Application GUI settings instance.
             dismiss_callback: Callback invoked when the card is dismissed.
+            min_q_score: Smallest positive finite q_score across all predicted
+                amplicons, used for relative Q score scaling.
         """
         self._amp = amp
         self._dismiss_callback = dismiss_callback
+        self._min_q_score = min_q_score
 
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
@@ -313,9 +337,21 @@ class AmpliconDetailCard(DismissibleDetailCard):
             selectable=True,
         )
 
-        q_display = (
-            str(round(amp.q_score)) if math.isfinite(amp.q_score) else "∞"
+        effective_q, is_scaled = _resolve_q_score(
+            amp.q_score, settings, min_q_score
         )
+        if not math.isfinite(effective_q):
+            q_display = "∞"
+        elif is_scaled:
+            q_display = f"{effective_q:.3f}"
+        else:
+            q_display = str(round(effective_q))
+        q_report = Amplicon.quality_report_str_for_score(
+            effective_q,
+            circular=amp.circular,
+            verbose=True,
+        )
+        q_label = "Relative Q" if is_scaled else "Q"
         body_controls = [
             ft.Text(
                 spans=[
@@ -336,8 +372,7 @@ class AmpliconDetailCard(DismissibleDetailCard):
                         ),
                     ),
                     ft.TextSpan(
-                        f")◀      Q = {q_display} "
-                        f"({amp.q_score_report_str(verbose=True)})"
+                        f")◀      {q_label} = {q_display} ({q_report})"
                     ),
                 ],
                 selectable=True,
@@ -370,4 +405,5 @@ class AmpliconDetailCard(DismissibleDetailCard):
             amp=self._amp,
             settings=settings,
             dismiss_callback=self._dismiss_callback,
+            min_q_score=self._min_q_score,
         )

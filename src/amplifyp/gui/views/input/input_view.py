@@ -123,17 +123,17 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.template_input.template_circular
 
     @property
-    def clear_template_button(self) -> ft.OutlinedButton:
+    def clear_template_button(self) -> ft.FilledTonalButton:
         """Get the clear template button."""
         return self.template_input.clear_template_button
 
     @property
-    def upper_case_button(self) -> ft.OutlinedButton:
+    def upper_case_button(self) -> ft.FilledTonalButton:
         """Get the upper case button."""
         return self.template_input.upper_case_button
 
     @property
-    def lower_case_button(self) -> ft.OutlinedButton:
+    def lower_case_button(self) -> ft.FilledTonalButton:
         """Get the lower case button."""
         return self.template_input.lower_case_button
 
@@ -143,17 +143,17 @@ class InputView(ft.Row):  # type: ignore[misc]
         return self.primer_input.primers_list
 
     @property
-    def clear_primers_button(self) -> ft.OutlinedButton:
+    def clear_primers_button(self) -> ft.FilledTonalButton:
         """Get the clear primers button."""
         return self.primer_input.clear_primers_button
 
     @property
-    def delete_selected_button(self) -> ft.OutlinedButton:
+    def delete_selected_button(self) -> ft.FilledTonalButton:
         """Get the delete selected primers button."""
         return self.primer_input.delete_selected_button
 
     @property
-    def reverse_complement_button(self) -> ft.OutlinedButton:
+    def reverse_complement_button(self) -> ft.FilledTonalButton:
         """Get the reverse complement primers button."""
         return self.primer_input.reverse_complement_button
 

@@ -337,8 +337,7 @@ def test_primer_action_controller_mutations() -> None:
     act.handle_drag_end(0, MagicMock())
 
     # 8. Header action clicks
-    act.header_add_click(None)
-    act.header_delete_click(None)
+    act.add_primer_click(None)
     act.header_up_click(None)
     act.header_down_click(None)
 
@@ -1118,26 +1117,15 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     act.handle_drag_start(0, MagicMock())
     assert act.drag_block == [0]
 
-    # header_add_click when focused_primer_index is set vs neither
+    # add_primer_click when focused_primer_index is set vs neither
     view.primer_input.selected_indices = set()
     view.primer_input.focused_primer_index = 0
-    act.header_add_click(None)
+    act.add_primer_click(None)
 
     view.primer_input.focused_primer_index = None
-    act.header_add_click(None)
+    act.add_primer_click(None)
 
-    # header_delete_click when selected_indices set vs focused vs neither
-    view.primer_input.selected_indices = {0}
-    act.header_delete_click(None)
-
-    view.primer_input.selected_indices = set()
-    view.primer_input.focused_primer_index = 0
-    act.header_delete_click(None)
-
-    view.primer_input.focused_primer_index = None
-    act.header_delete_click(None)
-
-    # _update_delete_button_disabled_state updates header buttons
+    # _update_delete_button_disabled_state updates toolbar delete button
     view.primer_input.selected_indices = {0}
     view.primer_input._update_delete_button_disabled_state()
     assert not view.primer_input.delete_selected_button.disabled
@@ -1145,22 +1133,6 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     view.primer_input.selected_indices = set()
     view.primer_input._update_delete_button_disabled_state()
     assert view.primer_input.delete_selected_button.disabled
-
-    # Header delete button enabled when focused_primer_index is valid even
-    # without selection
-    view.primer_input.selected_indices = set()
-    view.primer_input.focused_primer_index = 0
-    view.primer_input._update_header_buttons_state()
-    assert not view.primer_input.primer_header.delete_button.disabled
-
-    # Header delete button disabled when focused_primer_index is invalid or None
-    view.primer_input.focused_primer_index = 99999
-    view.primer_input._update_header_buttons_state()
-    assert view.primer_input.primer_header.delete_button.disabled
-
-    view.primer_input.focused_primer_index = None
-    view.primer_input._update_header_buttons_state()
-    assert view.primer_input.primer_header.delete_button.disabled
 
     # primer_input content reset
     view.primer_input.content = None
@@ -1405,7 +1377,7 @@ async def test_all_remaining_input_branches_to_100_percent() -> None:
     # Header add click with no selection / focus
     view.primer_input.selected_indices = set()
     view.primer_input.focused_primer_index = None
-    act.header_add_click(None)
+    act.add_primer_click(None)
 
     # Template input sync dark mode non-system branch
     settings["dark_mode"] = "true"

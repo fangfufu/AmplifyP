@@ -4,13 +4,13 @@ The **Input View** is the main configuration interface in AmplifyP. It allows
 you to specify the target DNA template sequence, configure DNA topology, and
 manage the list of primers used for PCR simulation and primer dimer analysis.
 
-The window is split horizontally into a **Template Sequence Panel** on the left
-and a **Primer List Panel** on the right, separated by an interactive, draggable
+The window is split horizontally into a **Template Panel** on the left and a
+**Primer List Panel** on the right, separated by an interactive, draggable
 vertical divider.
 
 ![Input View](images/input_view.png)
 
-## Template Sequence Panel (Left Panel)
+## Template Panel (Left Panel)
 
 The left panel provides controls for entering, formatting, and manipulating the
 target DNA template sequence.
@@ -108,10 +108,6 @@ The table comprises the following columns:
 - **Live Drag-and-Drop**: Click and drag the drag handle to move single rows or
   contiguous highlighted blocks up or down in real time.
 - **Header Reordering Controls**:
-  - **Add Primer** (add-circle icon, tooltip *"Add Primer Below"*): Inserts a
-    new empty primer row below the currently selected or focused row.
-  - **Delete Primer** (trash icon, tooltip *"Delete Primer"*): Deletes all
-    currently highlighted primer rows.
   - **Move Up** (up-arrow icon) / **Move Down** (down-arrow icon): Moves
     selected primer row(s) up or down by one position.
 - **Auto-Append Row**: Once the final row has both a non-empty name and a valid
@@ -128,20 +124,23 @@ The table comprises the following columns:
 
 ### Toolbar Actions
 
-Located at the top of the Primer List Panel:
+Located at the top of the Primer List Panel, split into file actions beside the
+**Primers** title and editing actions on the row below:
 
 - **Load**: Imports primers from CSV (`.csv`), TSV (`.tsv`), or text (`.txt`)
   files.
 - **Save**: Exports all filled primers to a TSV file (`.tsv`).
+- **Rev Comp**: Calculates and replaces the sequence of all highlighted primers
+  with their reverse complement sequence.
+- **Clear**: Resets the primer list to a single empty row.
 - **Copy**: Copies highlighted (or currently focused) primers to the system
   clipboard in TSV format (`Name\tSequence`).
 - **Paste**: Pastes primers from the system clipboard starting at the selected
   row position or end of the list. Supports TSV, CSV, or raw sequence lines.
   Pasted and imported primers are inserted as **inactive**.
-- **Rev Comp**: Calculates and replaces the sequence of all highlighted primers
-  with their reverse complement sequence.
+- **Add**: Inserts a new empty primer row below the currently selected or
+  focused row (or at the end if none is selected).
 - **Delete**: Deletes highlighted primers.
-- **Clear**: Resets the primer list to a single empty row.
 
 ### Primer Information & Analysis Panel
 

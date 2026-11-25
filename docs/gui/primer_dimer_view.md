@@ -70,11 +70,11 @@ summary header and an antiparallel sequence alignment diagram:
     text is selectable, and the binding interface line is colour-coded in the
     forward-primer colour.
   - The 5'/3' end labels follow the **5'/3' Sequence Separator** setting
-    (default `5' ... 3'`, or `5'-...-3'` when set to dash).
+    (default `5'-...-3'`, or `5' ... 3'` when set to space).
   - Displays a 5-line visually aligned stack:
     1. **Top Primer Name**: Name of the longer primer rendered in bold purple.
     2. **Top Sequence ($5' \\to 3'$)**: Sequence of the longer primer displayed
-       in standard $5' \\to 3'$ direction (`5' ... 3'`).
+       in standard $5' \\to 3'$ direction (`5'-...-3'`).
     3. **Binding Interface Line**: Visual bond symbols indicating interaction
        strength at each overlapping base position:
        - `|` (Vertical bar): Strong base pair match (pairwise score $\\ge
@@ -83,7 +83,7 @@ summary header and an antiparallel sequence alignment diagram:
          < 10.0$).
        - ` ` (Space): Mismatch or repulsive interaction ($\\text{score} < 0.0$).
     4. **Bottom Sequence ($3' \\to 5'$)**: Sequence of the shorter primer
-       displayed in antiparallel $3' \\to 5'$ orientation (`3' ... 5'`),
+       displayed in antiparallel $3' \\to 5'$ orientation (`3'-...-5'`),
        horizontally indented to match its alignment position.
     5. **Bottom Primer Name**: Name of the shorter primer rendered in bold
        purple, right-padded under its 5' end.

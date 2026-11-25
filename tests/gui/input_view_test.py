@@ -488,10 +488,47 @@ def test_input_view_primer_reordering() -> None:
 
     # Initially focused_primer_index is None. Reorder controls on header.
     header = view.primer_input.primer_header
-    assert header.add_button.disabled is False
-    assert header.delete_button.disabled is True
+    assert not hasattr(header, "add_button")
+    assert not hasattr(header, "delete_button")
     assert header.up_button.disabled is True
     assert header.down_button.disabled is True
+
+    # Toolbar order: (Load, Save) on title row, then (Rev Comp, Clear),
+    # (Copy, Paste), (Add, Delete) on the line below
+    toolbar = view.primer_input.primer_toolbar
+    assert toolbar.controls == [
+        toolbar.sequence_group,
+        toolbar.clipboard_group,
+        toolbar.edit_group,
+    ]
+    assert toolbar.file_group.controls == [
+        toolbar.load_button,
+        toolbar.save_button,
+    ]
+    assert toolbar.sequence_group.controls == [
+        toolbar.reverse_complement_button,
+        toolbar.clear_button,
+    ]
+    assert toolbar.clipboard_group.controls == [
+        toolbar.copy_button,
+        toolbar.paste_button,
+    ]
+    assert toolbar.edit_group.controls == [
+        toolbar.add_button,
+        toolbar.delete_selected_button,
+    ]
+    toolbar_buttons = [
+        toolbar.load_button,
+        toolbar.save_button,
+        toolbar.clear_button,
+        toolbar.reverse_complement_button,
+        toolbar.copy_button,
+        toolbar.paste_button,
+        toolbar.add_button,
+        toolbar.delete_selected_button,
+    ]
+    assert {btn.width for btn in toolbar_buttons} == {None}
+    assert toolbar.add_button.disabled is False
 
     # Select/focus Row 1 (P2)
     view.focused_primer_index = 1
@@ -499,8 +536,6 @@ def test_input_view_primer_reordering() -> None:
     view.primer_input._update_header_buttons_state()
 
     # Now header reorder controls should be enabled for Row 1
-    assert header.add_button.disabled is False
-    assert header.delete_button.disabled is False
     assert header.up_button.disabled is False  # Up enabled
     assert header.down_button.disabled is False  # Down enabled
 
@@ -516,8 +551,6 @@ def test_input_view_primer_reordering() -> None:
     assert view.focused_primer_index == 0
 
     # In the updated UI, header buttons should update for index 0 (first row)
-    assert header.add_button.disabled is False
-    assert header.delete_button.disabled is False
     assert header.up_button.disabled is True  # Up is disabled on the first row
     assert header.down_button.disabled is False  # Down is enabled
 
@@ -545,6 +578,18 @@ def test_input_view_primer_reordering() -> None:
     assert (
         header.down_button.disabled is True
     )  # Down is disabled on the last row
+
+    # Enabling primer temperature keeps the Tm divider aligned with rows
+    view.settings["show_primer_temperature"] = True
+    view.update_ui()
+    tm_header = view.primer_input.primer_header
+    assert tm_header.header_row.controls[-2:] == [
+        tm_header.tm_divider,
+        tm_header.tm_header,
+    ]
+    assert tm_header.tm_header.width == 50
+    assert view.template_input.title_divider.color is None
+    assert view.primer_input.title_divider.color is None
 
 
 def test_input_view_block_invalid_primer() -> None:
