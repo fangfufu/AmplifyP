@@ -21,19 +21,26 @@ from collections.abc import Callable
 import flet as ft
 import flet.canvas as cv
 
-from amplifyp.amplicon import Amplicon, AmpliconQuality
+from amplifyp.amplicon import Amplicon
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 
 from .dismissible_detail_card import DismissibleDetailCard
 
-_BAR_HEIGHT_BY_TIER: dict[AmpliconQuality, float] = {
-    AmpliconQuality.GOOD: 8.0,
-    AmpliconQuality.OKAY: 5.5,
-    AmpliconQuality.MODERATE: 3.5,
-    AmpliconQuality.WEAK: 2.0,
-    AmpliconQuality.VERY_WEAK: 1.0,
-}
+_MIN_BAR_HEIGHT = 1.0
+_MAX_BAR_HEIGHT = 8.0
+_BAR_HEIGHT_DECAY_SCALE = 800.0
+
+
+def _bar_height_for_score(effective_q: float) -> float:
+    """Return a smoothly scaled bar height in ``[1.0, 8.0]``."""
+    if not math.isfinite(effective_q):
+        return _MIN_BAR_HEIGHT
+    if effective_q <= 0.0:
+        return _MAX_BAR_HEIGHT
+    return _MIN_BAR_HEIGHT + (_MAX_BAR_HEIGHT - _MIN_BAR_HEIGHT) * math.exp(
+        -effective_q / _BAR_HEIGHT_DECAY_SCALE
+    )
 
 
 def _resolve_q_score(
@@ -43,12 +50,12 @@ def _resolve_q_score(
 ) -> tuple[float, bool]:
     """Return `(effective_q_score, is_scaled)` according to settings."""
     if (
-        bool(settings.get("pcr_relative_q_score", False))
+        bool(settings.get("pcr_relative_q_score", True))
         and min_q_score is not None
         and math.isfinite(min_q_score)
         and min_q_score > 0
     ):
-        return q_score / min_q_score, True
+        return (q_score / min_q_score) * 100.0, True
     return q_score, False
 
 
@@ -116,11 +123,9 @@ class DrawnAmplicon:
         v_frag_step = 35
         self.y_pos = v_frag_start + (idx * v_frag_step)
 
-        # Dynamic thickness based on the quality tier
+        # Smooth exponential decay thickness based on effective quality score
         effective_q, _ = _resolve_q_score(amp.q_score, settings, min_q_score)
-        self.bar_height = _BAR_HEIGHT_BY_TIER[
-            Amplicon.quality_tier_for_score(effective_q)
-        ]
+        self.bar_height = _bar_height_for_score(effective_q)
 
     def draw(self, canvas: cv.Canvas, stack: ft.Stack) -> None:
         """Draw the amplicon bar, text label, and gesture detector overlay.

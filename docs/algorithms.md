@@ -472,9 +472,20 @@ Key properties of `Q`:
 | `Q ≥ 4000`         | `very weak`              | `very weak amplification — probably not visible on an agarose gel` |
 
 When **Relative `Q`** display is enabled, `min_positive_q_score(amplicons)`
-finds `Q_min = min { Q > 0 : Q finite }` and displays `Q / Q_min` (normalising
-the best product in the reaction to `1.000`), whilst qualitative tier labels and
-visual bar thicknesses continue to use the unscaled `Q` thresholds above.
+finds `Q_min = min { Q > 0 : Q finite }`; if such a `Q_min` exists, it computes
+`Q_eff = (Q / Q_min) · 100` (normalising the best product in the reaction to
+`100.000`). Otherwise (when **Relative `Q`** is disabled or no positive finite
+`Q` exists), `Q_eff = Q`. Qualitative tier labels evaluate `Q_eff` against the
+standard `Q` thresholds above, and amplicon bar heights in the PCR diagram scale
+smoothly over `[1.0, 8.0]` px via an exponential decay curve:
+
+```math
+h(Q_{\text{eff}}) = \begin{cases}
+8.0 & \text{if } Q_{\text{eff}} \le 0, \\[4pt]
+1.0 + 7.0 \exp\!\left(-\dfrac{Q_{\text{eff}}}{800}\right) & \text{if } 0 < Q_{\text{eff}} < +\infty, \\[8pt]
+1.0 & \text{if } Q_{\text{eff}} \text{ is non-finite}.
+\end{cases}
+```
 
 Predicted amplicons can be ordered via `sort_amplicons` under three
 lexicographic `AmpliconRanking` modes:

@@ -36,10 +36,10 @@ PCR amplicons on an interactive canvas.
 - **Predicted Amplicon Bars**:
   - Horizontal bars (theme surface colour) below the template baseline represent
     predicted PCR products.
-  - **Bar Thickness**: Scaled dynamically according to quality score $Q$ (or
-    **Relative Q** when enabled in Settings): 8.0 px for $Q < 300$, 5.5 px for
-    $Q < 700$, 3.5 px for $Q < 1500$, 2.0 px for $Q < 4000$, and 1.0 px for $Q
-    \\ge 4000$.
+  - **Bar Thickness**: Scaled smoothly between 1.0 px and 8.0 px via an
+    exponential decay curve ($1.0 + 7.0 e^{-Q / 800}$) according to quality
+    score $Q$ (or **Relative Q** when enabled in Settings), clamping $Q \\le 0$
+    to 8.0 px and non-finite scores to 1.0 px.
   - **Length Label**: Displays amplicon fragment length in base pairs (including
     primers) centred under each bar.
   - **Circular Template Support**: Wraparound amplicons crossing origin
@@ -91,7 +91,7 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
   - **Product Summary**: Displays the forward primer name (blue), internal
     fragment length, reverse primer name (red/pink), and Amplicon Quality Score
     ($Q$), e.g. `Q = 42 (good amplification)` (or
-    `Relative Q = 1.000 (good amplification)` when **Relative Q score** is
+    `Relative Q = 100.000 (good amplification)` when **Relative Q score** is
     enabled in Settings). The quality report classifies the fragment as *good*,
     *okay*, *moderate*, *weak* (*"might be visible on an agarose gel"*), or
     *very weak* (*"probably not visible on an agarose gel"*), with a
@@ -103,7 +103,8 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
     primer matches with quality 1.0, $Q$ equals the internal fragment length.
     Larger $Q$ values indicate lower amplification efficiency).* When **Relative
     Q score** is enabled in Settings, each amplicon's $Q$ score is divided by
-    the smallest positive finite $Q$ score across all predicted amplicons.
+    the smallest positive finite $Q$ score across all predicted amplicons and
+    multiplied by 100.
   - **Amplified Sequence**: A labelled, monospace, selectable sequence box
     highlighting the forward primer region in **blue** (with a `▶` marker),
     internal product sequence in standard text, and reverse primer region in

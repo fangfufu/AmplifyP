@@ -622,8 +622,7 @@ def test_pcr_view_all_remaining_branches() -> None:
         target_length=6000,
     )
 
-    # 6. DrawnAmplicon q_score thresholds (<700, <1500, <4000, >=4000)
-
+    # 6. DrawnAmplicon smooth exponential bar height scaling
     p1 = Primer("A" * 20, name="P1")
     p2 = Primer("T" * 20, name="P2")
     canvas = ft.canvas.Canvas()
@@ -647,6 +646,7 @@ def test_pcr_view_all_remaining_branches() -> None:
             settings=settings,
             on_click=MagicMock(),
         )
+        assert da.bar_height == pytest.approx(1.0 + 7.0 * math.exp(-q / 800.0))
         da.draw(canvas, stack)
 
     # 7. DrawnAmplicon circular: w_right >= w_left and w_right < w_left
@@ -1759,7 +1759,7 @@ def test_relative_q_score_display_and_scaling() -> None:
     amp.rev_origin.name = "R1"
     amp.rev_origin.seq = "TGCA"
     amp.circular = False
-    # Raw Q = 2839 (weak), min_q = 2838.0 -> scaled Q = 1.000 (good)
+    # Raw Q = 2839 (weak), min_q = 2838.0 -> scaled Q = 100.035 (good)
     amp.q_score = 2839.0
 
     drawn_long = DrawnAmplicon(
@@ -1774,8 +1774,8 @@ def test_relative_q_score_display_and_scaling() -> None:
         on_click=lambda: None,
         min_q_score=2838.0,
     )
-    # Unscaled thresholds keep near-best long amplicons in GOOD tier (8.0)
-    assert drawn_long.bar_height == 8.0
+    # Relative Q = 100.035 scales smoothly via 1 + 7 * exp(-100.035 / 800)
+    assert 7.0 < drawn_long.bar_height < 7.5
 
     long_card = AmpliconDetailCard(
         amp=amp,
@@ -1785,9 +1785,9 @@ def test_relative_q_score_display_and_scaling() -> None:
     )
     long_info = long_card.content.content.controls[1]
     long_text = "".join(span.text for span in long_info.spans)
-    assert "Relative Q = 1.000 (good amplification" in long_text
+    assert "Relative Q = 100.035 (good amplification" in long_text
 
-    # Raw Q = 1200 (moderate), min_q = 600.0 -> scaled Q = 2.000 (good)
+    # Raw Q = 1200 (moderate), min_q = 600.0 -> scaled Q = 200.000 (good)
     amp.q_score = 1200.0
 
     drawn_scaled = DrawnAmplicon(
@@ -1802,8 +1802,8 @@ def test_relative_q_score_display_and_scaling() -> None:
         on_click=lambda: None,
         min_q_score=600.0,
     )
-    # 2.0 falls in GOOD tier (< 300, height 8.0) rather than MODERATE (3.5)
-    assert drawn_scaled.bar_height == 8.0
+    # Relative Q = 200.000 is thinner than 100.035 (~6.45 px)
+    assert 6.0 < drawn_scaled.bar_height < drawn_long.bar_height
 
     card = AmpliconDetailCard(
         amp=amp,
@@ -1813,9 +1813,9 @@ def test_relative_q_score_display_and_scaling() -> None:
     )
     info_row = card.content.content.controls[1]
     full_text = "".join(span.text for span in info_row.spans)
-    assert "Relative Q = 2.000 (good amplification" in full_text
+    assert "Relative Q = 200.000 (good amplification" in full_text
 
-    # Large relative Q (400.0) falls in OKAY tier (< 700, height 5.5)
+    # Large relative Q (400.000) scales smoothly down between 1.0 and 8.0
     drawn_okay = DrawnAmplicon(
         amp=amp,
         idx=0,
@@ -1826,9 +1826,9 @@ def test_relative_q_score_display_and_scaling() -> None:
         c_width=540.0,
         settings=settings,
         on_click=lambda: None,
-        min_q_score=3.0,
+        min_q_score=300.0,
     )
-    assert drawn_okay.bar_height == 5.5
+    assert 1.0 < drawn_okay.bar_height < drawn_scaled.bar_height
 
     # Toggling setting off and rebuilding restores raw Q score & tier
     settings["pcr_relative_q_score"] = False
@@ -1837,8 +1837,29 @@ def test_relative_q_score_display_and_scaling() -> None:
     rebuilt_text = "".join(span.text for span in rebuilt_info.spans)
     assert "Q = 1200 (moderate amplification" in rebuilt_text
 
-    # Infinite Q score remains ∞ even when relative scaling is enabled
+    # Non-finite Q scores clamp bar height to 1.0 px; non-positive to 8.0 px
     settings["pcr_relative_q_score"] = True
+    for bad_q, expected_h in [
+        (float("inf"), 1.0),
+        (float("nan"), 1.0),
+        (0.0, 8.0),
+        (-5.0, 8.0),
+    ]:
+        amp.q_score = bad_q
+        drawn_edge = DrawnAmplicon(
+            amp=amp,
+            idx=0,
+            target_length=100,
+            t_width=500.0,
+            h_margin=20.0,
+            v_target=100.0,
+            c_width=540.0,
+            settings=settings,
+            on_click=lambda: None,
+            min_q_score=2.0,
+        )
+        assert drawn_edge.bar_height == expected_h
+
     amp.q_score = float("inf")
     inf_card = AmpliconDetailCard(
         amp=amp,
@@ -1888,7 +1909,7 @@ def test_pcr_view_relative_q_score_end_to_end() -> None:
     card = view.result_list.controls[0]
     info_row = card.content.content.controls[1]
     full_text = "".join(span.text for span in info_row.spans)
-    assert "Relative Q = 1.000 (good amplification" in full_text
+    assert "Relative Q = 100.000 (good amplification" in full_text
 
     settings["pcr_relative_q_score"] = False
     assert view.run_pcr(keep_cards=True, refresh_cards=True) is True
