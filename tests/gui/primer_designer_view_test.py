@@ -1428,3 +1428,40 @@ def test_on_primer_selected_ignores_stale_origin_counts_during_new_run() -> (
     assert isinstance(card, DismissibleSelfDimerCard)
     assert card.origin_count is not None
     assert card.origin_count > 0
+
+    # Stale numeric-count case: run A stores a numeric count for template A;
+    # while run B (template B) is in progress with _cached_designer updated,
+    # selecting the primer must compute run B's count rather than run A's.
+    from amplifyp.repliconf import Repliconf
+
+    input_data.template = "ATGCGTACGT"
+    view.form.filter_dna_checkbox.value = True
+    assert view.run_designer() is True
+    assert view._cached_designer is not None
+    dimer_numeric = view._cached_designer.all_dimers[0]
+    count_a = view._origin_counts_by_seq[dimer_numeric.primer_1.seq]
+    assert count_a is not None
+
+    input_data.template = "ATGCGTACGTTTTTATGCGTACGT"
+    template_b_dna = input_data.to_template_dna()
+    expected_rep = Repliconf(
+        template_b_dna, dimer_numeric.primer_1, settings=rep_settings
+    )
+    expected_rep.search()
+    count_b = len(expected_rep.origin_db.fwd) + len(expected_rep.origin_db.rev)
+    assert count_b != count_a
+
+    view._cached_designer = PrimerDesigner1D(
+        dna=DNA("ATGCGTACGT"),
+        min_length=9,
+        template=template_b_dna,
+        max_origin_count=10,
+        replication_settings=ReplicationSettings(
+            primability_cutoff=rep_settings.primability_cutoff,
+            stability_cutoff=rep_settings.stability_cutoff,
+        ),
+    )
+    view._on_primer_selected(dimer_numeric, 99)
+    top_card = view._active_cards[0]
+    assert isinstance(top_card, DismissibleSelfDimerCard)
+    assert top_card.origin_count == count_b

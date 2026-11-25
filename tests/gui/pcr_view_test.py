@@ -1720,7 +1720,7 @@ def test_pcr_edge_primer_labels_45_and_horizontal() -> None:
         # Invalid pcr_amplicon_ranking falls back to QUALITY_SCORE when drawing
         pcr_view.settings["primability_cutoff"] = 0.8
         pcr_view.settings._settings["pcr_amplicon_ranking"] = "InvalidRanking"
-        pcr_view.run_pcr()
+        assert pcr_view.run_pcr() is True
         pcr_view.open_all_cards()
         assert len(pcr_view.result_list.controls) > 0
     finally:
