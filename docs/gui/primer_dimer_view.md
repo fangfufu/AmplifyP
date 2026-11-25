@@ -70,7 +70,7 @@ summary header and an antiparallel sequence alignment diagram:
     text is selectable, and the binding interface line is colour-coded in the
     forward-primer colour.
   - The 5'/3' end labels follow the **5'/3' Sequence Separator** setting
-    (default `5' ... 3'`, or `5'-...-3'` when set to dash).
+    (default `5'-...-3'`, or `5' ... 3'` when set to space).
   - Displays a 5-line visually aligned stack:
     1. **Top Primer Name**: Name of the longer primer rendered in bold purple.
     2. **Top Sequence ($5' \\to 3'$)**: Sequence of the longer primer displayed

@@ -23,7 +23,7 @@ import flet as ft
 
 
 class PrimerToolbar(ft.Row):  # type: ignore[misc]
-    """Toolbar containing actions for managing primers (Save, Load, Clear)."""
+    """Toolbar containing actions for managing primers."""
 
     def __init__(
         self,

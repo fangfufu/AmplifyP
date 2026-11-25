@@ -108,10 +108,6 @@ The table comprises the following columns:
 - **Live Drag-and-Drop**: Click and drag the drag handle to move single rows or
   contiguous highlighted blocks up or down in real time.
 - **Header Reordering Controls**:
-  - **Add Primer** (add-circle icon, tooltip *"Add Primer Below"*): Inserts a
-    new empty primer row below the currently selected or focused row.
-  - **Delete Primer** (trash icon, tooltip *"Delete Primer"*): Deletes all
-    currently highlighted primer rows.
   - **Move Up** (up-arrow icon) / **Move Down** (down-arrow icon): Moves
     selected primer row(s) up or down by one position.
 - **Auto-Append Row**: Once the final row has both a non-empty name and a valid
@@ -140,6 +136,8 @@ Located at the top of the Primer List Panel:
   Pasted and imported primers are inserted as **inactive**.
 - **Rev Comp**: Calculates and replaces the sequence of all highlighted primers
   with their reverse complement sequence.
+- **Add**: Inserts a new empty primer row below the currently selected or
+  focused row (or at the end if none is selected).
 - **Delete**: Deletes highlighted primers.
 - **Clear**: Resets the primer list to a single empty row.
 

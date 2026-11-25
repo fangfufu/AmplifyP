@@ -47,9 +47,9 @@ PCR amplicons on an interactive canvas.
 - **Resizable Container**: A drag handle (divider bar) below the canvas allows
   dragging vertically to resize the overview map container (minimum height 150
   px). Its sizing behaviour can be configured in the **PCR** settings tile:
-  either auto-resizing to fit the map up to 1/4, 1/3 (default), 1/2, or 2/3 of
-  the viewport height, or saving the viewport height proportionality across the
-  session.
+  either auto-resizing to fit the map up to 1/4, 1/3, 1/2, 2/3, or 3/4 (default)
+  of the viewport height, or saving the viewport height proportionality across
+  the session.
 - **Safe Rendering Limits**: If more than 100 amplicons are predicted, amplicons
   are sorted according to the active **Amplicon vertical ranking** mode and only
   the top 100 are rendered on the map to prevent UI freezing. A red warning
@@ -89,10 +89,12 @@ inserts a detailed, dismissible analysis card into the scrollable list below.
 - **Amplicon Detail Card**:
   - **Product Summary**: Displays the forward primer name (blue), internal
     fragment length, reverse primer name (red/pink), and Amplicon Quality Score
-    ($Q$), e.g. `Q = 42 (good amplification)`. The quality report classifies the
-    fragment as *good*, *okay*, *moderate*, *weak* (*"might be visible on an
-    agarose gel"*), or *very weak* (*"probably not visible on an agarose gel"*),
-    with a *(Circular)* suffix for wraparound products.
+    ($Q$), e.g. `Q = 42 (good amplification)` (or
+    `Relative Q = 1.000 (good amplification)` when **Relative Q score** is
+    enabled in Settings). The quality report classifies the fragment as *good*,
+    *okay*, *moderate*, *weak* (*"might be visible on an agarose gel"*), or
+    *very weak* (*"probably not visible on an agarose gel"*), with a
+    *(Circular)* suffix for wraparound products.
   - **Amplicon Quality ($Q$)**: Reflects fragment amplification efficiency based
     on the internal fragment length (excluding both primers) and primer match
     quality: $$Q = \\frac{\\text{Internal fragment length in bp}}{(\\text{Left
