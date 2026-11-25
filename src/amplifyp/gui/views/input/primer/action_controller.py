@@ -486,8 +486,8 @@ class PrimerActionController:
         elif self.owner.app_page:
             self.owner.app_page.update()
 
-    def header_add_click(self, _e: ft.Event | None) -> None:
-        """Handle header Add button click."""
+    def add_primer_click(self, _e: ft.Event | None) -> None:
+        """Handle Add primer button click."""
         num_primers = len(self.owner.input_data.primers)
         if self.owner.selected_indices:
             idx = min(max(self.owner.selected_indices), num_primers - 1)
@@ -499,23 +499,6 @@ class PrimerActionController:
         self.owner.selected_indices = {idx + 1}
         self.owner.focused_primer_index = idx + 1
         self.on_add_primer_row(idx)
-
-    def header_delete_click(self, _e: ft.Event | None) -> None:
-        """Handle header Delete button click."""
-        target_indices: set[int] = set()
-        if self.owner.selected_indices:
-            target_indices = self.owner.selected_indices.copy()
-        elif (
-            self.owner.focused_primer_index is not None
-            and 0
-            <= self.owner.focused_primer_index
-            < len(self.owner.input_data.primers)
-        ):
-            target_indices = {self.owner.focused_primer_index}
-
-        if target_indices:
-            self.delete_primers(target_indices)
-            self.owner._update_header_buttons_state()
 
     def header_up_click(self, _e: ft.Event | None) -> None:
         """Handle header Move Up button click."""
