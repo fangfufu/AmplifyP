@@ -681,3 +681,34 @@ def test_primer_designer_2d_parity_with_amplicon_generator() -> None:
         threshold=-100.0,
     )
     assert strict_designer.all_steps == ()
+
+
+def test_primer_designer_2d_mixed_case_identical_primers() -> None:
+    """Identical forward/reverse primers differing only in case deduplicate."""
+    upper_primer = DNA("ACGTACGTACGT")
+    lower_primer = DNA("acgtacgtacgt")
+    # Template contains both forward and reverse binding sites for ACGTACGTACGT
+    linear_tpl = DNA("AAAACGTACGTACGTGGGGGGACGTACGTACGTTTT", DNAType.LINEAR)
+    circular_tpl = DNA("AAAACGTACGTACGTGGGGGGACGTACGTACGTTTT", DNAType.CIRCULAR)
+
+    for tpl in (linear_tpl, circular_tpl):
+        same_case = PrimerDesigner2D(
+            fwd_dna=upper_primer,
+            fwd_min_length=len(upper_primer),
+            rev_dna=upper_primer,
+            rev_min_length=len(upper_primer),
+            template=tpl,
+        )
+        mixed_case = PrimerDesigner2D(
+            fwd_dna=upper_primer,
+            fwd_min_length=len(upper_primer),
+            rev_dna=lower_primer,
+            rev_min_length=len(lower_primer),
+            template=tpl,
+        )
+        assert len(same_case.all_steps) == 1
+        assert len(mixed_case.all_steps) == 1
+        assert (
+            mixed_case.all_steps[0].amplicon_count
+            == same_case.all_steps[0].amplicon_count
+        )

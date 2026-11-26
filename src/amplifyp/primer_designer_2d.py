@@ -408,13 +408,13 @@ class PrimerDesigner2D:
     def _get_origin_indices(
         self,
         template: DNA,
-        seq: str,
         primer: Primer,
         cache: dict[str, tuple[list[int], list[int], int]],
         is_circular: bool,
     ) -> tuple[list[int], list[int], int]:
         """Return sorted fwd indices, rev indices, and self-amplicon count."""
-        cached = cache.get(seq)
+        key = primer.seq_upper
+        cached = cache.get(key)
         if cached is not None:
             return cached
         conf = Repliconf(
@@ -431,17 +431,15 @@ class PrimerDesigner2D:
             else self._count_linear_amplicons(fwd_idx, rev_idx)
         )
         res = (fwd_idx, rev_idx, self_count)
-        cache[seq] = res
+        cache[key] = res
         return res
 
     def _evaluate_pair(
         self,
         template: DNA | None,
-        fwd_seq: str,
         fwd_p: Primer,
         d_ff: PrimerDimer,
         fwd_origins: tuple[list[int], list[int], int] | None,
-        rev_seq: str,
         rev_p: Primer,
         d_rr: PrimerDimer,
         origin_cache: dict[str, tuple[list[int], list[int], int]],
@@ -452,11 +450,11 @@ class PrimerDesigner2D:
         amplicon_count: int | None = None
         if template is not None and fwd_origins is not None:
             fwd_f, fwd_r, fwd_self = fwd_origins
-            if fwd_seq == rev_seq:
+            if fwd_p.seq_upper == rev_p.seq_upper:
                 amplicon_count = fwd_self
             else:
                 rev_f, rev_r, rev_self = self._get_origin_indices(
-                    template, rev_seq, rev_p, origin_cache, is_circular
+                    template, rev_p, origin_cache, is_circular
                 )
                 if is_circular:
                     amplicon_count = (len(fwd_f) + len(rev_f)) * (
@@ -551,7 +549,7 @@ class PrimerDesigner2D:
             fwd_origins: tuple[list[int], list[int], int] | None = None
             if template is not None and not fwd_fails_max:
                 fwd_origins = self._get_origin_indices(
-                    template, fwd_seq, fwd_p, origin_cache, is_circular
+                    template, fwd_p, origin_cache, is_circular
                 )
 
             for r_idx, rev_seq in enumerate(rev_seqs):
@@ -578,11 +576,9 @@ class PrimerDesigner2D:
                     if not rev_fails_max:
                         step = self._evaluate_pair(
                             template,
-                            fwd_seq,
                             fwd_p,
                             d_ff,
                             fwd_origins,
-                            rev_seq,
                             rev_p,
                             d_rr,
                             origin_cache,
