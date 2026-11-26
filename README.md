@@ -105,7 +105,7 @@ binary generated should be a universal binary.
 The **web** version is for running AmplifyP on your local web server. AmplifyP
 web version runs purely on client-side, no computation is done on the server
 itself. However you do actually need to run a static web server and access
-AmplifyP via the web server. This is due to browser security restriction.
+AmplifyP via the web browser. This is due to browser security restriction.
 
 ## Graphical User Interface (GUI) Manual
 
