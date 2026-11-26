@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.1](https://github.com/fangfufu/AmplifyP/compare/v1.30.0...v1.30.1) (2026-11-26)
+
+
+### Bug Fixes
+
+* **gui:** avoid cursor jump on tab navigation ([d13a834](https://github.com/fangfufu/AmplifyP/commit/d13a8346b44c87eca9f3014bfc0431ca709a4cd6))
+* **gui:** preserve primer seq cursor on focus ([4cc87ef](https://github.com/fangfufu/AmplifyP/commit/4cc87ef1cf95a651881a287d25e2da280a32e62e))
+* **gui:** stop adding empty row on primer blur ([3c5bc7b](https://github.com/fangfufu/AmplifyP/commit/3c5bc7bff443f8df7f872f4a03f3610d6aee809c))
+* **gui:** stop arrow up/down caret jump in rows ([e5316ae](https://github.com/fangfufu/AmplifyP/commit/e5316aeb1458b5134cae703e96714fbf2b525e77))
+
+
+### Performance Improvements
+
+* **gui:** disable Flet auto-update on focus ([ea7cf6c](https://github.com/fangfufu/AmplifyP/commit/ea7cf6cdefd094931440405a117f3b0473e8f8e7))
+* **gui:** minimise primer focus UI updates ([4644680](https://github.com/fangfufu/AmplifyP/commit/4644680f17121e77cce6fb43ca79f97d024c820d))
+
 ## [1.30.0](https://github.com/fangfufu/AmplifyP/compare/v1.29.0...v1.30.0) (2026-11-25)
 
 
