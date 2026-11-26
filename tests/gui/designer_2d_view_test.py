@@ -25,6 +25,7 @@ import pytest
 import yaml
 
 from amplifyp.dna import DNA, DNADirection
+from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.views.designer_2d import (
@@ -1525,3 +1526,47 @@ def test_designer_2d_view_update_ui_refreshes_theme_and_cards() -> None:
         assert "5'-" in spans_text
     finally:
         GUIColours.dark_mode = prev_dark
+
+
+def test_grid_2d_results_cell_click_o1_selection_toggle() -> None:
+    """Verify O(1) cell selection restores prior cell borders accurately."""
+    from amplifyp.gui.views.designer_2d.grid_2d_results import Grid2DResultsView
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    designer = PrimerDesigner2D(
+        DNA("ATGCGTACGT"),
+        fwd_min_length=9,
+        rev_dna=DNA("CGTACGTACG"),
+        rev_min_length=9,
+    )
+    selected: list[Any] = []
+    grid = Grid2DResultsView(
+        settings=settings,
+        page=mock_page,
+        on_select_step_callback=selected.append,
+    )
+    grid.update_grid(designer)
+    keys = list(grid._cell_containers.keys())
+    assert len(keys) >= 2
+    key_a, key_b = keys[0], keys[1]
+    step_a, step_b = designer.all_steps[0], designer.all_steps[1]
+
+    grid._on_cell_click(step_a, key_a)
+    assert grid._selected_cell_key == key_a
+    assert grid._cell_containers[key_a].border == ft.Border.all(
+        3, GUIColours.PRIMARY
+    )
+
+    grid._on_cell_click(step_b, key_b)
+    assert grid._selected_cell_key == key_b
+    assert grid._cell_containers[key_b].border == ft.Border.all(
+        3, GUIColours.PRIMARY
+    )
+    expected_a_border = (
+        ft.Border.all(2, GUIColours.SUCCESS_GREEN)
+        if key_a in grid._best_cell_keys
+        else ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
+    )
+    assert grid._cell_containers[key_a].border == expected_a_border
+    assert len(selected) == 2

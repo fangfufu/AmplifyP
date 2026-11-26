@@ -21,6 +21,10 @@ from typing import TYPE_CHECKING
 
 from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
 
+_ASCII_WHITESPACE_TRANS = str.maketrans(
+    "", "", "".join(chr(i) for i in range(128) if chr(i).isspace())
+)
+
 if TYPE_CHECKING:
     from .input import TemplateInput
 
@@ -158,9 +162,15 @@ def update_line_numbers(
     lines = text.split("\n")
     line_indices = []
     current_idx = 0
-    for line in lines:
-        line_indices.append(str(current_idx))
-        current_idx += len(clean_sequence(line))
+    if "\\" not in text and text.isascii():
+        trans = _ASCII_WHITESPACE_TRANS
+        for line in lines:
+            line_indices.append(str(current_idx))
+            current_idx += len(line.translate(trans))
+    else:
+        for line in lines:
+            line_indices.append(str(current_idx))
+            current_idx += len(clean_sequence(line))
 
     template_input.line_numbers_text.value = "\n".join(line_indices)
 

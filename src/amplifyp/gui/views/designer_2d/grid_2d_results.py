@@ -58,6 +58,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         )
 
         self._selected_step: PrimerDimers2D | None = None
+        self._selected_cell_key: tuple[int, int] | None = None
         self._cell_containers: dict[tuple[int, int], ft.Container] = {}
         self._cell_bg_colours: dict[tuple[int, int], str | None] = {}
         self._best_cell_keys: set[tuple[int, int]] = set()
@@ -90,6 +91,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         """Reset grid to empty initial state."""
         self.progress_tracker.hide()
         self._selected_step = None
+        self._selected_cell_key = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
         self._best_cell_keys.clear()
@@ -128,6 +130,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 When 0 (unknown), an indeterminate ProgressBar is shown.
         """
         self._selected_step = None
+        self._selected_cell_key = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
         self._best_cell_keys.clear()
@@ -168,6 +171,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             designer: Computed PrimerDesigner2D analysis instance.
         """
         self._selected_step = None
+        self._selected_cell_key = None
         self._cell_containers.clear()
         self._cell_bg_colours.clear()
         self._best_cell_keys.clear()
@@ -451,6 +455,29 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
         except RuntimeError:
             pass
 
+    def _style_cell_container(
+        self,
+        cell_key: tuple[int, int],
+        container: ft.Container,
+        *,
+        selected: bool,
+    ) -> None:
+        """Apply selected or resting border/background styling to a cell."""
+        bg_col = self._cell_bg_colours.get(cell_key)
+        if selected:
+            container.border = ft.Border.all(3, GUIColours.PRIMARY)
+            container.bgcolor = (
+                bg_col if bg_col is not None else GUIColours.SELECTED_ROW_BG
+            )
+        else:
+            is_best = cell_key in self._best_cell_keys
+            container.border = (
+                ft.Border.all(2, GUIColours.SUCCESS_GREEN)
+                if is_best
+                else ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
+            )
+            container.bgcolor = bg_col
+
     def _on_cell_click(
         self, step: PrimerDimers2D, key: tuple[int, int]
     ) -> None:
@@ -460,22 +487,19 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
             step: Selected PrimerDimers2D instance.
             key: (fwd_len, rev_len) tuple key for the clicked cell container.
         """
-        # Highlight selected cell container
-        for cell_key, container in self._cell_containers.items():
-            bg_col = self._cell_bg_colours.get(cell_key)
-            is_best = cell_key in self._best_cell_keys
-            if cell_key == key:
-                container.border = ft.Border.all(3, GUIColours.PRIMARY)
-                container.bgcolor = (
-                    bg_col if bg_col is not None else GUIColours.SELECTED_ROW_BG
+        # Highlight selected cell container in O(1)
+        prev_key = self._selected_cell_key
+        if prev_key is not None and prev_key != key:
+            prev_container = self._cell_containers.get(prev_key)
+            if prev_container is not None:
+                self._style_cell_container(
+                    prev_key, prev_container, selected=False
                 )
-            else:
-                container.border = (
-                    ft.Border.all(2, GUIColours.SUCCESS_GREEN)
-                    if is_best
-                    else ft.Border.all(1, GUIColours.OUTLINE_VARIANT)
-                )
-                container.bgcolor = bg_col
+
+        curr_container = self._cell_containers.get(key)
+        if curr_container is not None:
+            self._style_cell_container(key, curr_container, selected=True)
+        self._selected_cell_key = key
 
         self._selected_step = step
         self.on_select_step_callback(step)

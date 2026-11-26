@@ -50,6 +50,9 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         self.font_size_table_header = font_size_table_header
         self.on_change_handler = on_change_handler
         self.table_container: ft.Container | None = None
+        self._cell_text_style = ft.TextStyle(
+            color=GUIColours.DIAGRAM_BLACK, size=self.font_size_default
+        )
 
     def _wrap_centred(self, control: ft.Control, width: int) -> ft.Container:
         """Wrap a control in a fixed-width, centred Container."""
@@ -79,9 +82,7 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         field.dense = True
         field.text_align = ft.TextAlign.CENTER
         field.text_vertical_align = ft.VerticalAlignment.CENTER
-        field.text_style = ft.TextStyle(
-            color=GUIColours.DIAGRAM_BLACK, size=self.font_size_default
-        )
+        field.text_style = self._cell_text_style
         return field
 
     def _create_cell_field(self, value: str, width: int) -> ft.TextField:

@@ -323,23 +323,26 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
         """Update Flet UI controls to match the central settings."""
         from amplifyp.gui.utils.gui_helpers import BorderedCheckbox
 
+        outline_border = ft.Border.all(1, GUIColours.OUTLINE)
+        cell_text_style = ft.TextStyle(
+            color=GUIColours.DIAGRAM_BLACK,
+            size=self.settings.get("font_size_default", 14),
+        )
+
         for k, v in self.settings.items():
             if k in self.settings_map:
                 ctrl = self.settings_map[k]
                 if isinstance(ctrl, (ft.Checkbox, BorderedCheckbox)):
                     ctrl.value = bool(v)
                     if isinstance(ctrl, BorderedCheckbox):
-                        ctrl.border = ft.Border.all(1, GUIColours.OUTLINE)
+                        ctrl.border = outline_border
                 else:
                     ctrl.value = str(v)
                     if isinstance(ctrl, ft.Dropdown):
                         ctrl.border_color = GUIColours.OUTLINE
                     elif isinstance(ctrl, ft.TextField):
                         if isinstance(ctrl.border, ft.NoInputBorder):
-                            ctrl.text_style = ft.TextStyle(
-                                color=GUIColours.DIAGRAM_BLACK,
-                                size=self.settings.get("font_size_default", 14),
-                            )
+                            ctrl.text_style = cell_text_style
                         else:
                             ctrl.border_color = GUIColours.OUTLINE
         for tile_ctrl in self.controls:
