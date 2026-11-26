@@ -50,14 +50,15 @@ Key characteristics:
 
 ### `io` Suite
 
-| Workload                                          | Description                                                                        |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `yaml.safe_dump (SafeDumper, 30 kb + 50 primers)` | Pure-Python YAML serialisation baseline for a 30 kb template and 50 primers        |
-| `ProjectState.to_yaml() (30 kb + 50 primers)`     | Production state serialisation using `_StateDumper` (`CSafeDumper` when available) |
-| `yaml.safe_load (SafeLoader, 30 kb + 50 primers)` | Pure-Python YAML load baseline followed by `ProjectState.from_dict()`              |
-| `parse_state_yaml() (30 kb + 50 primers)`         | Production YAML load using `CSafeLoader` when available                            |
-| `GUISettings.get_replication_settings() (100x)`   | Cached retrieval of `ReplicationSettings` from `GUISettings` (100 calls)           |
-| `GUISettings.get_primer_dimer_settings() (100x)`  | Cached retrieval of `PrimerDimerSettings` from `GUISettings` (100 calls)           |
+| Workload                                              | Description                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| `yaml.safe_dump (SafeDumper, 30 kb + 50 primers)`     | Pure-Python YAML serialisation baseline for a 30 kb template and 50 primers |
+| `serialise_state() (CSafeDumper, 30 kb + 50 primers)` | Direct `_StateDumper` YAML serialisation on the pre-built state dictionary  |
+| `ProjectState.to_yaml() (30 kb + 50 primers)`         | End-to-end `ProjectState.to_dict()` + `_StateDumper` serialisation          |
+| `yaml.safe_load (SafeLoader, 30 kb + 50 primers)`     | Pure-Python YAML load baseline followed by `ProjectState.from_dict()`       |
+| `parse_state_yaml() (30 kb + 50 primers)`             | Production YAML load using `CSafeLoader` when available                     |
+| `GUISettings.get_replication_settings() (100x)`       | Cached retrieval of `ReplicationSettings` from `GUISettings` (100 calls)    |
+| `GUISettings.get_primer_dimer_settings() (100x)`      | Cached retrieval of `PrimerDimerSettings` from `GUISettings` (100 calls)    |
 
 ### `gui` Suite
 

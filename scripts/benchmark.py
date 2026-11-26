@@ -66,6 +66,7 @@ from amplifyp.io import (  # noqa: E402
     ProjectState,
     ReactionInput,
     parse_state_yaml,
+    serialise_state,
 )
 from amplifyp.melting import calculate_tm  # noqa: E402
 from amplifyp.pcr import PCR  # noqa: E402
@@ -372,6 +373,12 @@ def _run_io_benchmarks(repeats: int) -> list[BenchmarkResult]:
             "io",
             "yaml.safe_dump (SafeDumper, 30 kb + 50 primers)",
             lambda: yaml.safe_dump(state_dict, sort_keys=False),
+            repeats,
+        ),
+        _measure(
+            "io",
+            "serialise_state() (CSafeDumper, 30 kb + 50 primers)",
+            lambda: serialise_state(state_dict),
             repeats,
         ),
         _measure(
