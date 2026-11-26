@@ -38,7 +38,10 @@ if str(_SRC_DIR) not in sys.path:
 import flet as ft  # noqa: E402
 import yaml  # noqa: E402
 
-from amplifyp.dimer import PrimerDimerGenerator  # noqa: E402
+from amplifyp.dimer import (  # noqa: E402
+    PrimerDimerGenerator,
+    calculate_dimer_stats,
+)
 from amplifyp.dna import (  # noqa: E402
     DNA,
     GLOBAL_COMPLEMENT_TABLE,
@@ -68,8 +71,10 @@ from amplifyp.melting import calculate_tm  # noqa: E402
 from amplifyp.pcr import PCR  # noqa: E402
 from amplifyp.primer_designer_1d import PrimerDesigner1D  # noqa: E402
 from amplifyp.primer_designer_2d import PrimerDesigner2D  # noqa: E402
+from amplifyp.repliconf import Repliconf  # noqa: E402
 
 _BASES = "ACGT"
+_DEGEN_ALPHABET = "A" * 20 + "C" * 20 + "G" * 20 + "T" * 20 + "MRWSYKN"
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,15 +88,15 @@ class BenchmarkResult:
     repeats: int
 
 
-def _make_dna(length: int, seed: int = 42) -> str:
+def _make_dna(length: int, seed: int = 42, alphabet: str = _BASES) -> str:
     """Generate a deterministic synthetic DNA sequence via a linear LCG."""
     state = seed & 0xFFFFFFFF
     chars: list[str] = []
     append = chars.append
-    bases = _BASES
+    alpha_len = len(alphabet)
     for _ in range(length):
         state = (state * 1664525 + 1013904223) & 0xFFFFFFFF
-        append(bases[(state >> 16) & 3])
+        append(alphabet[(state >> 16) % alpha_len])
     return "".join(chars)
 
 
@@ -125,6 +130,7 @@ def _run_core_benchmarks(
 
     seq_5kb = _make_dna(5_000, seed=1)
     seq_30kb = _make_dna(30_000, seed=2)
+    tpl_5kb_lin = DNA(seq_5kb, DNAType.LINEAR, "pTest5kbLin")
     tpl_5kb_circ = DNA(seq_5kb, DNAType.CIRCULAR, "pTest5kb")
     tpl_30kb_lin = DNA(seq_30kb, DNAType.LINEAR, "Lambda30kb")
 
@@ -166,6 +172,21 @@ def _run_core_benchmarks(
             "core",
             "PCR: 20 multiplex primers on 30 kb linear",
             run_pcr_30kb_multiplex,
+            repeats,
+        )
+    )
+
+    primers_21 = [*primers_20, Primer("ACGTMRWSYKVHDBNACGT", name="Degen1")]
+
+    def run_repliconf_21() -> None:
+        for primer in primers_21:
+            Repliconf(tpl_30kb_lin, primer).search()
+
+    results.append(
+        _measure(
+            "core",
+            "Repliconf.search: 21 primers on 30 kb linear",
+            run_repliconf_21,
             repeats,
         )
     )
@@ -220,6 +241,16 @@ def _run_core_benchmarks(
     results.append(
         _measure(
             "core",
+            "Designer 2D: 23x23 pairs + 5 kb linear",
+            lambda: PrimerDesigner2D(
+                fwd_40, 18, rev_40, 18, template=tpl_5kb_lin
+            ),
+            repeats,
+        )
+    )
+    results.append(
+        _measure(
+            "core",
             "Designer 2D: 23x23 pairs + 5 kb circular",
             lambda: PrimerDesigner2D(
                 fwd_40, 18, rev_40, 18, template=tpl_5kb_circ
@@ -243,6 +274,19 @@ def _run_core_benchmarks(
         Primer(_make_dna(25, seed=100 + idx), name=f"P{idx}")
         for idx in range(100)
     ]
+    degen_pool_100 = [
+        Primer(
+            _make_dna(25, seed=300 + idx, alphabet=_DEGEN_ALPHABET),
+            name=f"D{idx}",
+        )
+        for idx in range(100)
+    ]
+
+    def run_dimer_stats_10k() -> None:
+        seqs = [(p.seq_upper, len(p)) for p in degen_pool_100]
+        for s1, n1 in seqs:
+            for s2, n2 in seqs:
+                calculate_dimer_stats(s1, s2, n1, n2)
 
     def run_dimer_pool() -> None:
         gen = PrimerDimerGenerator()
@@ -250,6 +294,14 @@ def _run_core_benchmarks(
             gen.add_primer(primer)
         gen.analyse_primers()
 
+    results.append(
+        _measure(
+            "core",
+            "calculate_dimer_stats: 10,000 pairs",
+            run_dimer_stats_10k,
+            repeats,
+        )
+    )
     results.append(
         _measure(
             "core",
@@ -280,6 +332,20 @@ def _run_core_benchmarks(
         )
     )
 
+    def run_dna_ops_500() -> None:
+        for _ in range(500):
+            mid = tpl_30kb_lin[100:600]
+            _ = fwd_40 + mid + rev_40.reverse_complement()
+
+    results.append(
+        _measure(
+            "core",
+            "DNA ops: slice, add, reverse_complement (500x)",
+            run_dna_ops_500,
+            max(repeats, 5),
+        )
+    )
+
     return results, profiles
 
 
@@ -297,14 +363,27 @@ def _run_io_benchmarks(repeats: int) -> list[BenchmarkResult]:
             primers=primers,
         )
     )
+    state_dict = state.to_dict()
     yaml_str = state.to_yaml()
     gui_settings = GUISettings()
 
     return [
         _measure(
             "io",
+            "yaml.safe_dump (SafeDumper, 30 kb + 50 primers)",
+            lambda: yaml.safe_dump(state_dict, sort_keys=False),
+            repeats,
+        ),
+        _measure(
+            "io",
             "ProjectState.to_yaml() (30 kb + 50 primers)",
             lambda: state.to_yaml(),
+            repeats,
+        ),
+        _measure(
+            "io",
+            "yaml.safe_load (SafeLoader, 30 kb + 50 primers)",
+            lambda: ProjectState.from_dict(yaml.safe_load(yaml_str)),
             repeats,
         ),
         _measure(
@@ -413,6 +492,41 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
                 pcr_view.run_pcr(keep_cards=True, refresh_cards=False)
                 for _ in range(20)
             ],
+            repeats,
+        )
+    )
+
+    multi_primers: list[dict[str, Any]] = []
+    for idx in range(5):
+        f_start = 1000 + idx * 4000
+        r_start = f_start + 500
+        f_seq = seq_30kb[f_start : f_start + 20]
+        r_seq = seq_30kb[r_start : r_start + 20][::-1].translate(
+            GLOBAL_COMPLEMENT_TABLE
+        )
+        multi_primers.append({"name": f"MF{idx}", "seq": f_seq, "active": True})
+        multi_primers.append({"name": f"MR{idx}", "seq": r_seq, "active": True})
+    cards_input = GUIInput(
+        template=seq_30kb,
+        template_circular=False,
+        primers=multi_primers,
+    )
+    cards_view = PCRView(page, cards_input, settings)
+    cards_view.run_pcr()
+
+    def run_open_all_cards() -> None:
+        cards_view.result_list.controls = [
+            c
+            for c in cards_view.result_list.controls
+            if not isinstance(c, ft.Card)
+        ]
+        cards_view.open_all_cards()
+
+    results.append(
+        _measure(
+            "gui",
+            "PCRView.open_all_cards (multiple amplicons)",
+            run_open_all_cards,
             repeats,
         )
     )
