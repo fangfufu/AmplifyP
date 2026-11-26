@@ -113,6 +113,8 @@ PCR replication calculations.
     `Auto-resizing, max 2/3 of the viewport`,
     `Auto-resizing, max 3/4 of the viewport` [default],
     `Save proportionality across session`).
+  - **Primer label orientation**: Dropdown controlling primer name orientation
+    on the PCR overview map (`Horizontal` [default], `45°`, `Vertical`).
 - **Replication Origin**:
   - **Base Pair Weights**: A $15 \\times 5$ interactive table of pairwise
     weights for primer nucleotides (`G`, `A`, `T`, `C`, IUPAC degenerate codes
@@ -134,8 +136,6 @@ PCR replication calculations.
   - **Improved Replication Origin Visualisation**: Bordered checkbox (default:
     checked). Enables enhanced visual match diagrams and complementary strand
     display in PCR view cards.
-  - **Primer label orientation**: Dropdown controlling primer name orientation
-    on the PCR overview map (`Horizontal` [default], `45°`, `Vertical`).
 - **Amplicon**:
   - **Amplicon vertical ranking**: Dropdown controlling the vertical ordering of
     amplicon fragment bars in the PCR View diagram (`Position, then length`

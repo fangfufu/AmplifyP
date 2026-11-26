@@ -496,10 +496,19 @@ def test_pcr_relative_q_score_settings() -> None:
 
 
 def test_pcr_primer_label_orientation_settings() -> None:
-    """Test origin map primer label orientation dropdown in SettingsView."""
+    """Test overview map primer label orientation dropdown in SettingsView."""
     mock_page = MagicMock(spec=ft.Page)
     settings = GUISettings()
     view = SettingsView(mock_page, settings)
+
+    overview_section = (
+        view.replication_tile.controls[0].content.controls[0].content
+    )
+    assert overview_section.controls[0].value == "Overview Map"
+    assert overview_section.controls[1].controls == [
+        view.set_pcr_divider_behaviour,
+        view.set_pcr_primer_label_orientation,
+    ]
 
     assert view.set_pcr_primer_label_orientation.value == "Horizontal"
     assert [
