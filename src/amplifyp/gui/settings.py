@@ -342,6 +342,11 @@ class GUISettings:
         settings values for primability/stability cutoffs, base-pair
         weights, and Amplify4 compatibility mode.
 
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
+
         Returns:
             A ReplicationSettings instance configured from GUI settings.
         """
@@ -366,6 +371,11 @@ class GUISettings:
         settings values for minimum overlap, threshold, and base-pair
         weights.
 
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
+
         Returns:
             A PrimerDimerSettings instance configured from GUI settings.
         """
@@ -385,6 +395,11 @@ class GUISettings:
         Constructs a TMSettings object using the current GUI settings
         values for DNA concentration, salt concentrations, and dNTP
         concentration used in melting temperature calculations.
+
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
 
         Returns:
             A TMSettings instance configured from GUI settings.

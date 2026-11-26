@@ -55,6 +55,8 @@ __all__ = [
     "parse_primer_clipboard_text",
     "parse_primers_from_text",
     "parse_state_yaml",
+    "safe_dump_yaml",
+    "safe_load_yaml",
     "serialise_primers_to_tsv",
     "serialise_state",
     "validate_primer",

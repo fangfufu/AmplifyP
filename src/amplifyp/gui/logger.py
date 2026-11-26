@@ -28,6 +28,10 @@ from amplifyp.os_paths import get_app_config_dir, get_settings_yaml_path
 logger = logging.getLogger(__name__)
 
 
+_ORIG_SAFE_LOAD = yaml.safe_load
+_YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
 def _get_log_dir() -> Path:
     """Get the OS-specific directory for log storage."""
     return get_app_config_dir()
@@ -125,7 +129,11 @@ def _apply_stored_settings() -> None:
     if settings_path.exists():
         try:
             with open(settings_path, encoding="utf-8") as f:
-                data = yaml.safe_load(f)
+                data = (
+                    yaml.load(f, Loader=_YAML_SAFE_LOADER)  # noqa: S506
+                    if yaml.safe_load is _ORIG_SAFE_LOAD
+                    else yaml.safe_load(f)
+                )
             if isinstance(data, dict):
                 stored_settings = data
         except (OSError, yaml.YAMLError, ValueError):
