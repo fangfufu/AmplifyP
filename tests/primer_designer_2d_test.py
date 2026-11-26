@@ -21,13 +21,15 @@ import threading
 
 import pytest
 
+from amplifyp.amplicon import AmpliconGenerator
 from amplifyp.dimer import PrimerDimer
-from amplifyp.dna import DNA
+from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.primer_designer_2d import (
     FilterMetric,
     PrimerDesigner2D,
     PrimerDimers2D,
 )
+from amplifyp.repliconf import Repliconf
 
 
 def test_primer_designer_2d_basic_truncation() -> None:
@@ -600,3 +602,42 @@ def test_primer_designer_2d_identical_fwd_rev_with_template() -> None:
     )
     assert len(designer.all_steps) == 1
     assert designer.all_steps[0].amplicon_count == 1
+
+
+def test_primer_designer_2d_parity_with_amplicon_generator() -> None:
+    """Verify fast 2D amplicon counting matches AmpliconGenerator exactly."""
+    fwd = DNA("ATGCATGCATGCATGC")
+    rev = DNA("GCATGCATGCATGCAT")
+    linear_tpl = DNA(
+        "AAAATGCATGCATGCATGCGGGGGGGGATGCATGCATGCATGCAAAA", DNAType.LINEAR
+    )
+    circular_tpl = DNA("CATGCATGCAAAAATGCATGCATGCATGC", DNAType.CIRCULAR)
+
+    for tpl in (linear_tpl, circular_tpl):
+        for metric in (FilterMetric.MAX, FilterMetric.MEAN):
+            designer = PrimerDesigner2D(
+                fwd_dna=fwd,
+                fwd_min_length=12,
+                rev_dna=rev,
+                rev_min_length=12,
+                template=tpl,
+                filter_metric=metric,
+                threshold=15.0,
+                max_amplicon_count=10,
+            )
+            step_by_lens = {
+                (len(s.fwd_fwd.primer_1), len(s.rev_rev.primer_1)): s
+                for s in designer.all_steps
+            }
+            for f_seq in fwd.generate_truncations(12, DNADirection.FWD):
+                for r_seq in rev.generate_truncations(12, DNADirection.REV):
+                    amp_gen = AmpliconGenerator(tpl)
+                    amp_gen.add_repliconf(Repliconf(tpl, Primer(f_seq)))
+                    if f_seq != r_seq:
+                        amp_gen.add_repliconf(Repliconf(tpl, Primer(r_seq)))
+                    expected_count = len(amp_gen.get_amplicons())
+                    if (len(f_seq), len(r_seq)) in step_by_lens:
+                        assert (
+                            step_by_lens[len(f_seq), len(r_seq)].amplicon_count
+                            == expected_count
+                        )

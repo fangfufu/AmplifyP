@@ -15,7 +15,11 @@
 
 import pytest
 
-from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
+from amplifyp.dimer import (
+    PrimerDimer,
+    PrimerDimerGenerator,
+    calculate_dimer_stats,
+)
 from amplifyp.dna import Primer
 from amplifyp.settings import PrimerDimerSettings
 from tests.examples.amplify4_examples import (
@@ -409,3 +413,16 @@ def test_primer_dimer_self_and_format_alignment() -> None:
 
     with pytest.raises(ValueError, match="separator"):
         cross_dimer.format_alignment(separator="Dash ('-')")
+
+
+def test_calculate_dimer_stats_edge_cases() -> None:
+    """Test calculate_dimer_stats ASCII fast path and non-ASCII fallback."""
+    assert calculate_dimer_stats("", "ACGT", 0, 4)[0] == pytest.approx(0.0)
+    assert calculate_dimer_stats("ACGT", "", 4, 0) == (float("-inf"), 0, 0)
+
+    upper = calculate_dimer_stats("AAAZAAA", "TTTTTTT", 7, 7)
+    lower = calculate_dimer_stats("aaazaaa", "ttttttt", 7, 7)
+    assert upper == lower
+
+    non_ascii = calculate_dimer_stats("AAA\u00c0AAA", "TTTTTTT", 7, 7)
+    assert non_ascii == upper

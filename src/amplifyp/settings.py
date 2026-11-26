@@ -263,6 +263,7 @@ class BasePairWeightsTbl:
         ]
         self._row_map: list[int] = [-1] * 256
         self._col_map: list[int] = [-1] * 256
+        self._ascii_lut: tuple[tuple[float, ...], ...] | None = None
 
         # Populate row map
         for i, char in enumerate(self._row):
@@ -383,6 +384,47 @@ class BasePairWeightsTbl:
             if r != -1 and c != -1:
                 self._matrix[r][c] = value
                 self._row_max[i_upper] = max(self._matrix[r])
+        self._ascii_lut = None
+
+    @property
+    def ascii_lut(self) -> tuple[tuple[float, ...], ...]:
+        """Return a 256x256 ASCII lookup table defaulting unknown entries."""
+        if self._ascii_lut is None:
+            zero_row: tuple[float, ...] = (0.0,) * 256
+            rows_mut: list[list[float] | None] = [None] * 256
+            for (r_char, c_char), val in self._weight.items():
+                if len(r_char) != 1 or len(c_char) != 1:
+                    continue
+                cr_u = ord(r_char)
+                cc_u = ord(c_char)
+                if not (0 <= cr_u < 256 and 0 <= cc_u < 256):
+                    continue
+                fval = float(val)
+                r_low = r_char.lower()
+                c_low = c_char.lower()
+                cr_l = ord(r_low) if len(r_low) == 1 else -1
+                cc_l = ord(c_low) if len(c_low) == 1 else -1
+                r_codes = (
+                    (cr_u, cr_l)
+                    if 0 <= cr_l < 256 and cr_l != cr_u
+                    else (cr_u,)
+                )
+                c_codes = (
+                    (cc_u, cc_l)
+                    if 0 <= cc_l < 256 and cc_l != cc_u
+                    else (cc_u,)
+                )
+                for cr in r_codes:
+                    row_arr = rows_mut[cr]
+                    if row_arr is None:
+                        row_arr = [0.0] * 256
+                        rows_mut[cr] = row_arr
+                    for cc in c_codes:
+                        row_arr[cc] = fval
+            self._ascii_lut = tuple(
+                tuple(r) if r is not None else zero_row for r in rows_mut
+            )
+        return self._ascii_lut
 
     def __len__(self) -> int:
         """Return the total number of entries in the weight table.
@@ -429,6 +471,7 @@ class BasePairWeightsTbl:
         new_tbl._matrix = [list(r) for r in self._matrix]
         new_tbl._row_map = list(self._row_map)
         new_tbl._col_map = list(self._col_map)
+        new_tbl._ascii_lut = self._ascii_lut
         return new_tbl
 
     def copy(self) -> BasePairWeightsTbl:
