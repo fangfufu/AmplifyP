@@ -628,7 +628,11 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
                 bases_before = self._count_bases(raw_text[: sel.start])
                 if sel.end == sel.start:
                     bases_total = bases_before
-                elif sel.end > sel.start and "\\" not in raw_text:
+                elif (
+                    sel.start >= 0
+                    and sel.end > sel.start
+                    and "\\" not in raw_text
+                ):
                     bases_total = bases_before + self._count_bases(
                         raw_text[sel.start : sel.end]
                     )

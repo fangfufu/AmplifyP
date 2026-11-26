@@ -2168,6 +2168,13 @@ def test_template_input_status_bar_selection_branches() -> None:
     ti._update_status_bar(mock_reverse_sel, False)
     assert ti.status_text.value == "Insertion Point After Base: 5"
 
+    mock_neg_start_sel = cast(
+        "Any",
+        type("_NegSel", (), {"start": -1, "end": 2, "is_valid": True})(),
+    )
+    ti._update_status_bar(mock_neg_start_sel, False)
+    assert ti.status_text.value == "Insertion Point After Base: 7"
+
     ti.template_sequence.value = "AC\\nGT"
     ti._update_status_bar(
         ft.TextSelection(base_offset=1, extent_offset=5), False
