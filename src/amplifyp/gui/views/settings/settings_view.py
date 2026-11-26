@@ -425,7 +425,7 @@ class SettingsView(ft.ListView):  # type: ignore[misc]
 
     @property
     def set_pcr_primer_label_orientation(self) -> ft.Dropdown:
-        """Get the origin map primer label orientation dropdown."""
+        """Get the overview map primer label orientation dropdown."""
         return self.replication_tile.set_primer_label_orientation
 
     @property

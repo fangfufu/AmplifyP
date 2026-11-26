@@ -250,7 +250,7 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                         ft.Row(
                                             [
                                                 self.set_pcr_divider_behaviour,
-                                                ft.Container(expand=True),
+                                                self.set_primer_label_orientation,
                                             ],
                                             spacing=15,
                                         ),
@@ -296,13 +296,6 @@ class ReplicationTile(ft.ExpansionTile):  # type: ignore[misc]
                                             [
                                                 self.set_amp4_compat,
                                                 self.set_improved_visualisation,
-                                            ],
-                                            spacing=15,
-                                        ),
-                                        ft.Row(
-                                            [
-                                                self.set_primer_label_orientation,
-                                                ft.Container(expand=True),
                                             ],
                                             spacing=15,
                                         ),
