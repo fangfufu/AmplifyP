@@ -410,7 +410,7 @@ class Repliconf:
             return
 
         has_any_good_k0 = k0_mask is not None and b"\x01" in k0_mask
-        use_mask = k0_mask is not None and 0 < good_acgt_count <= 2
+        use_mask = has_any_good_k0 and good_acgt_count <= 2
 
         for direction in (DNADirection.FWD, DNADirection.REV):
             # FWD direction:

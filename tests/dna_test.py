@@ -330,13 +330,27 @@ def test_dna_fast_ops_and_clean_sequence_edge_cases() -> None:
     assert comp.seq == "TgCa"
     assert rc.seq == "aCgT"
     assert rc.type == DNAType.CIRCULAR
-    assert rc.direction == DNADirection.REV
+    assert rc.direction == DNADirection.FWD
+    assert rc == mixed.reverse().complement()
     assert rc.seq_upper_bytes == b"ACGT"
     assert rc.comp_upper_bytes == b"TGCA"
     assert mixed[1:3].seq == "cG"
     assert (mixed[:2] + mixed[2:]).seq == "AcGt"
     assert mixed.lower().seq == "acgt"
     assert mixed.upper().seq == "ACGT"
+
+    concat_lin = DNA.concat_slices(
+        DNA("Ac", name="p"), mixed, 1, 3, DNA("gT"), wrap=False
+    )
+    assert concat_lin.seq == "AccGgT"
+    assert concat_lin.seq_upper == "ACCGGT"
+    assert concat_lin.type == DNAType.LINEAR
+    assert concat_lin.name == "p"
+    concat_circ = DNA.concat_slices(
+        DNA("AA"), DNA("ACGT", DNAType.CIRCULAR), 3, 1, DNA("TT"), wrap=True
+    )
+    assert concat_circ.seq == "AATATT"
+    assert concat_circ.seq_upper is concat_circ.seq
 
     primer = Primer("ATGC", name="p1")
     p_rc = primer.reverse_complement()

@@ -19,11 +19,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from amplifyp.dna import ASCII_WHITESPACE_TRANS
 from amplifyp.gui.utils.data_helpers import clean_sequence, format_sequence
-
-_ASCII_WHITESPACE_TRANS = str.maketrans(
-    "", "", "".join(chr(i) for i in range(128) if chr(i).isspace())
-)
 
 if TYPE_CHECKING:
     from .input import TemplateInput
@@ -163,7 +160,7 @@ def update_line_numbers(
     line_indices = []
     current_idx = 0
     if "\\" not in text and text.isascii():
-        trans = _ASCII_WHITESPACE_TRANS
+        trans = ASCII_WHITESPACE_TRANS
         for line in lines:
             line_indices.append(str(current_idx))
             current_idx += len(line.translate(trans))

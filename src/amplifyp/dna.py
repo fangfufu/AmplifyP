@@ -25,7 +25,7 @@ from .errors import InvalidDNASequenceError, InvalidDNATypeError
 GLOBAL_COMPLEMENT_TABLE = str.maketrans(
     "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
 )
-_ASCII_WHITESPACE_TRANS = str.maketrans(
+ASCII_WHITESPACE_TRANS = str.maketrans(
     "", "", "".join(chr(i) for i in range(128) if chr(i).isspace())
 )
 
@@ -46,7 +46,7 @@ def clean_sequence(seq: str) -> str:
     if "\\" in clean:
         clean = clean.replace("\\n", "").replace("\\t", "").replace("\\r", "")
     if clean.isascii():
-        return clean.translate(_ASCII_WHITESPACE_TRANS)
+        return clean.translate(ASCII_WHITESPACE_TRANS)
     return "".join(clean.split())
 
 
@@ -251,6 +251,63 @@ class DNA:
         obj._direction = direction
         return obj
 
+    @classmethod
+    def concat_slices(
+        cls,
+        prefix: DNA,
+        template: DNA,
+        start: int,
+        end: int,
+        suffix: DNA,
+        *,
+        wrap: bool = False,
+    ) -> DNA:
+        """Assemble a linear DNA from validated prefix, template slice, suffix.
+
+        Avoids intermediate ``DNA`` slice allocations and re-validation when
+        all inputs are already validated ``DNA`` instances.
+        """
+        same_case = (
+            prefix._seq_upper is prefix._seq
+            and template._seq_upper is template._seq
+            and suffix._seq_upper is suffix._seq
+        )
+        if wrap:
+            seq = (
+                prefix._seq
+                + template._seq[start:]
+                + template._seq[:end]
+                + suffix._seq
+            )
+            seq_upper = (
+                seq
+                if same_case
+                else (
+                    prefix._seq_upper
+                    + template._seq_upper[start:]
+                    + template._seq_upper[:end]
+                    + suffix._seq_upper
+                )
+            )
+        else:
+            seq = prefix._seq + template._seq[start:end] + suffix._seq
+            seq_upper = (
+                seq
+                if same_case
+                else (
+                    prefix._seq_upper
+                    + template._seq_upper[start:end]
+                    + suffix._seq_upper
+                )
+            )
+        return DNA._from_validated(
+            seq,
+            seq_upper,
+            DNAType.LINEAR,
+            prefix._name,
+            prefix._direction,
+        )
+
     @property
     def seq_upper_bytes(self) -> bytes:
         """Return the ASCII-encoded uppercase DNA sequence bytes."""
@@ -385,9 +442,9 @@ class DNA:
     def reverse_complement(self) -> DNA:
         """Return the reverse complement of the DNA sequence.
 
-        This is equivalent to calling `.reverse().complement()`.
-        The direction of the returned DNA object is inverted relative to the
-        original.
+        This is equivalent to calling ``.reverse().complement()``.
+        The direction of the returned DNA object matches the original
+        (5' -> 3' orientation is preserved).
 
         Returns:
             DNA: A new DNA object representing the reverse complement sequence.
@@ -403,7 +460,7 @@ class DNA:
             seq_rc_upper,
             self._dna_type,
             self._name,
-            self._direction.invert(),
+            self._direction,
         )
 
     def generate_truncations(

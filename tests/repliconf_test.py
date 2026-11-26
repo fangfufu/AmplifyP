@@ -17,10 +17,12 @@
 
 import pytest
 
-from amplifyp.dna import DNA, DNADirection, DNAType, Primer
+from amplifyp.dna import DNA, DNADirection, DNAType, Nucleotides, Primer
+from amplifyp.origin import ReplicationOrigin
 from amplifyp.repliconf import DirIdx, Repliconf
 from amplifyp.settings import (
     GLOBAL_REPLICATION_SETTINGS,
+    BasePairWeightsTbl,
     LengthWiseWeightTbl,
     ReplicationSettings,
 )
@@ -286,3 +288,64 @@ def test_repliconf_pruning_fallback_and_lazy_properties() -> None:
     tiny_circ = Repliconf(DNA("ACGT", DNAType.CIRCULAR), Primer("ACGTACGTACGT"))
     tiny_circ.search()
     assert len(tiny_circ.origin_db.fwd) == 0
+
+
+def test_repliconf_search_pruning_parity_with_origin_bruteforce() -> None:
+    """Verify masked/pruned search matches brute-force ReplicationOrigin."""
+    # Custom weights where only 'N' passes at 3' end (good_acgt_count == 0
+    # while has_any_good_k0 is True).
+    only_n_matrix = [[0.0, 0.0, 0.0, 0.0, 100.0] for _ in Nucleotides.PRIMER]
+    only_n_settings = ReplicationSettings(
+        base_pair_scores=BasePairWeightsTbl(
+            Nucleotides.PRIMER, Nucleotides.TEMPLATE, only_n_matrix
+        ),
+        primability_cutoff=0.8,
+        stability_cutoff=0.4,
+    )
+
+    cases: list[tuple[DNA, Primer, ReplicationSettings]] = [
+        (
+            DNA("GGACGTACGTACGTNNACGTACGTACGTCC", DNAType.LINEAR),
+            Primer("ACGTACGT"),
+            GLOBAL_REPLICATION_SETTINGS,
+        ),
+        (
+            DNA("ACGTACGTNNTTGGCCAA", DNAType.CIRCULAR),
+            Primer("ACGTMRWS"),
+            GLOBAL_REPLICATION_SETTINGS,
+        ),
+        (
+            DNA("ACGTTTTNACGT", DNAType.LINEAR),
+            Primer("ACGT"),
+            ReplicationSettings(primability_cutoff=0.5, stability_cutoff=0.2),
+        ),
+        (
+            DNA("ACGTNNNNCGTA", DNAType.LINEAR),
+            Primer("ACGT"),
+            only_n_settings,
+        ),
+    ]
+
+    for tpl, primer, settings in cases:
+        conf = Repliconf(tpl, primer, settings)
+        conf.search()
+        for direction in (DNADirection.FWD, DNADirection.REV):
+            expected: list[tuple[int, float, float]] = []
+            for i in conf.range():
+                orig = conf.origin(DirIdx(direction, i))
+                ref = ReplicationOrigin(orig.target, orig.primer, settings)
+                if (
+                    ref.primability > settings.primability_cutoff
+                    and ref.stability > settings.stability_cutoff
+                ):
+                    expected.append((i, ref.primability, ref.stability))
+
+            actual = (
+                conf.origin_db.fwd
+                if direction == DNADirection.FWD
+                else conf.origin_db.rev
+            )
+            assert [o.index for o in actual] == [idx for idx, _, _ in expected]
+            for obs, (_, exp_p, exp_s) in zip(actual, expected, strict=True):
+                assert obs.primability == pytest.approx(exp_p)
+                assert obs.stability == pytest.approx(exp_s)
