@@ -1570,3 +1570,15 @@ def test_grid_2d_results_cell_click_o1_selection_toggle() -> None:
     )
     assert grid._cell_containers[key_a].border == expected_a_border
     assert len(selected) == 2
+
+    # Re-clicking the already-selected cell keeps its selected border intact
+    grid._on_cell_click(step_b, key_b)
+    assert grid._selected_cell_key == key_b
+    assert grid._cell_containers[key_b].border == ft.Border.all(
+        3, GUIColours.PRIMARY
+    )
+    assert len(selected) == 3
+
+    # Clearing resets tracked selection key cleanly
+    grid.clear_grid()
+    assert grid._selected_cell_key is None

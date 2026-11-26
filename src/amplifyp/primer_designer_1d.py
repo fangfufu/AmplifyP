@@ -49,7 +49,6 @@ class PrimerDesigner1D:
         "_dimers",
         "_dna",
         "_generator",
-        "_initial_truncations",
         "_max_origin_count",
         "_max_overlap",
         "_min_length",
@@ -138,9 +137,8 @@ class PrimerDesigner1D:
         self._aborted: bool = False
         self._dimers: list[PrimerDimer] = []
         self._origin_counts: list[int | None] = []
-        self._initial_truncations: list[str] | None = truncated_seqs
 
-        self._analyse()
+        self._analyse(truncated_seqs)
 
     @property
     def dna(self) -> DNA:
@@ -290,7 +288,7 @@ class PrimerDesigner1D:
         """
         return self[index]
 
-    def _analyse(self) -> None:
+    def _analyse(self, initial_truncations: list[str] | None = None) -> None:
         """Perform the 1D truncation analysis on the sequence.
 
         This method generates self-dimers for each truncated sequence down to
@@ -298,9 +296,8 @@ class PrimerDesigner1D:
         """
         self._dimers.clear()
         self._origin_counts.clear()
-        if self._initial_truncations is not None:
-            truncated_seqs = self._initial_truncations
-            self._initial_truncations = None
+        if initial_truncations is not None:
+            truncated_seqs = initial_truncations
         else:
             truncated_seqs = self._dna.generate_truncations(
                 self._min_length, self._mode

@@ -126,7 +126,6 @@ class PrimerDesigner2D:
         "_fwd_dna",
         "_fwd_min_length",
         "_generator",
-        "_initial_truncations",
         "_max_amplicon_count",
         "_max_overlap",
         "_on_progress",
@@ -227,12 +226,8 @@ class PrimerDesigner2D:
         self._replication_settings: ReplicationSettings = replication_settings
         self._aborted: bool = False
         self._steps: list[PrimerDimers2D] = []
-        self._initial_truncations: tuple[list[str], list[str]] | None = (
-            fwd_seqs,
-            rev_seqs,
-        )
 
-        self._analyse()
+        self._analyse((fwd_seqs, rev_seqs))
 
     @property
     def fwd_dna(self) -> DNA:
@@ -513,16 +508,18 @@ class PrimerDesigner2D:
 
         return step
 
-    def _analyse(self) -> None:
+    def _analyse(
+        self,
+        initial_truncations: tuple[list[str], list[str]] | None = None,
+    ) -> None:
         """Perform 2D truncation analysis on forward and reverse sequences.
 
         Forward sequence is truncated from 3' end, while reverse sequence is
         truncated from 5' end.
         """
         self._steps.clear()
-        if self._initial_truncations is not None:
-            fwd_seqs, rev_seqs = self._initial_truncations
-            self._initial_truncations = None
+        if initial_truncations is not None:
+            fwd_seqs, rev_seqs = initial_truncations
         else:
             fwd_seqs = self._fwd_dna.generate_truncations(
                 self._fwd_min_length, DNADirection.FWD
@@ -565,34 +562,35 @@ class PrimerDesigner2D:
                     self._aborted = True
                     break
 
-                rev_entry = rev_dimer_cache[r_idx]
-                if rev_entry is None:
-                    rev_p = Primer(rev_seq)
-                    d_rr = gen(rev_p, rev_p, reorder=False)
-                    rev_fails_max = is_max_metric and self._fails_max_dimer(
-                        d_rr
-                    )
-                    rev_entry = (rev_p, d_rr, rev_fails_max)
-                    rev_dimer_cache[r_idx] = rev_entry
-                else:
-                    rev_p, d_rr, rev_fails_max = rev_entry
+                if not fwd_fails_max:
+                    rev_entry = rev_dimer_cache[r_idx]
+                    if rev_entry is None:
+                        rev_p = Primer(rev_seq)
+                        d_rr = gen(rev_p, rev_p, reorder=False)
+                        rev_fails_max = is_max_metric and self._fails_max_dimer(
+                            d_rr
+                        )
+                        rev_entry = (rev_p, d_rr, rev_fails_max)
+                        rev_dimer_cache[r_idx] = rev_entry
+                    else:
+                        rev_p, d_rr, rev_fails_max = rev_entry
 
-                if not (fwd_fails_max or rev_fails_max):
-                    step = self._evaluate_pair(
-                        template,
-                        fwd_seq,
-                        fwd_p,
-                        d_ff,
-                        fwd_origins,
-                        rev_seq,
-                        rev_p,
-                        d_rr,
-                        origin_cache,
-                        is_max_metric,
-                        is_circular,
-                    )
-                    if step is not None:
-                        self._steps.append(step)
+                    if not rev_fails_max:
+                        step = self._evaluate_pair(
+                            template,
+                            fwd_seq,
+                            fwd_p,
+                            d_ff,
+                            fwd_origins,
+                            rev_seq,
+                            rev_p,
+                            d_rr,
+                            origin_cache,
+                            is_max_metric,
+                            is_circular,
+                        )
+                        if step is not None:
+                            self._steps.append(step)
 
                 done += 1
                 if self._on_progress is not None:

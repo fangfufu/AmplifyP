@@ -22,7 +22,7 @@ import threading
 import pytest
 
 from amplifyp.amplicon import AmpliconGenerator
-from amplifyp.dimer import PrimerDimer
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.primer_designer_2d import (
     FilterMetric,
@@ -605,16 +605,19 @@ def test_primer_designer_2d_identical_fwd_rev_with_template() -> None:
 
 
 def test_primer_designer_2d_parity_with_amplicon_generator() -> None:
-    """Verify fast 2D amplicon counting matches AmpliconGenerator exactly."""
+    """Verify fast 2D filtering and amplicon counts match reference exactly."""
     fwd = DNA("ATGCATGCATGCATGC")
     rev = DNA("GCATGCATGCATGCAT")
     linear_tpl = DNA(
         "AAAATGCATGCATGCATGCGGGGGGGGATGCATGCATGCATGCAAAA", DNAType.LINEAR
     )
     circular_tpl = DNA("CATGCATGCAAAAATGCATGCATGCATGC", DNAType.CIRCULAR)
+    dimer_gen = PrimerDimerGenerator()
 
     for tpl in (linear_tpl, circular_tpl):
         for metric in (FilterMetric.MAX, FilterMetric.MEAN):
+            threshold = 15.0
+            max_amplicons = 10
             designer = PrimerDesigner2D(
                 fwd_dna=fwd,
                 fwd_min_length=12,
@@ -622,22 +625,59 @@ def test_primer_designer_2d_parity_with_amplicon_generator() -> None:
                 rev_min_length=12,
                 template=tpl,
                 filter_metric=metric,
-                threshold=15.0,
-                max_amplicon_count=10,
+                threshold=threshold,
+                max_amplicon_count=max_amplicons,
             )
             step_by_lens = {
                 (len(s.fwd_fwd.primer_1), len(s.rev_rev.primer_1)): s
                 for s in designer.all_steps
             }
+            expected_counts: dict[tuple[int, int], int] = {}
             for f_seq in fwd.generate_truncations(12, DNADirection.FWD):
                 for r_seq in rev.generate_truncations(12, DNADirection.REV):
+                    f_p = Primer(f_seq)
+                    r_p = Primer(r_seq)
                     amp_gen = AmpliconGenerator(tpl)
-                    amp_gen.add_repliconf(Repliconf(tpl, Primer(f_seq)))
+                    amp_gen.add_repliconf(Repliconf(tpl, f_p))
                     if f_seq != r_seq:
-                        amp_gen.add_repliconf(Repliconf(tpl, Primer(r_seq)))
-                    expected_count = len(amp_gen.get_amplicons())
-                    if (len(f_seq), len(r_seq)) in step_by_lens:
-                        assert (
-                            step_by_lens[len(f_seq), len(r_seq)].amplicon_count
-                            == expected_count
-                        )
+                        amp_gen.add_repliconf(Repliconf(tpl, r_p))
+                    amp_count = len(amp_gen.get_amplicons())
+                    if amp_count < 1 or amp_count > max_amplicons:
+                        continue
+                    ref_step = PrimerDimers2D(
+                        fwd_fwd=dimer_gen.generate_primer_dimer(
+                            f_p, f_p, reorder=False
+                        ),
+                        rev_rev=dimer_gen.generate_primer_dimer(
+                            r_p, r_p, reorder=False
+                        ),
+                        fwd_rev=dimer_gen.generate_primer_dimer(
+                            f_p, r_p, reorder=False
+                        ),
+                        rev_fwd=dimer_gen.generate_primer_dimer(
+                            r_p, f_p, reorder=False
+                        ),
+                        amplicon_count=amp_count,
+                    )
+                    q_val = (
+                        ref_step.max_quality
+                        if metric == FilterMetric.MAX
+                        else ref_step.mean_quality
+                    )
+                    if q_val <= threshold:
+                        expected_counts[len(f_seq), len(r_seq)] = amp_count
+
+            assert set(step_by_lens.keys()) == set(expected_counts.keys())
+            for key, expected_count in expected_counts.items():
+                assert step_by_lens[key].amplicon_count == expected_count
+
+    # Strict MAX threshold where all forward self-dimers fail immediately
+    strict_designer = PrimerDesigner2D(
+        fwd_dna=fwd,
+        fwd_min_length=12,
+        rev_dna=rev,
+        rev_min_length=12,
+        filter_metric=FilterMetric.MAX,
+        threshold=-100.0,
+    )
+    assert strict_designer.all_steps == ()
