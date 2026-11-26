@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.2](https://github.com/fangfufu/AmplifyP/compare/v1.30.1...v1.30.2) (2026-11-26)
+
+
+### chore
+
+* force release ([e4e921a](https://github.com/fangfufu/AmplifyP/commit/e4e921a9716da43e55fb2738bc8f56d175052f57))
+
 ## [1.30.1](https://github.com/fangfufu/AmplifyP/compare/v1.30.0...v1.30.1) (2026-11-26)
 
 

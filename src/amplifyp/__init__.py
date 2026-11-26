@@ -21,7 +21,7 @@ replication configurations, and calculating binding statistics such as
 primability and stability.
 """
 
-__version__ = "1.30.1"
+__version__ = "1.30.2"
 
 from .amplicon import Amplicon
 from .dna import DNA, DNAType, Primer
