@@ -23,9 +23,9 @@ Key characteristics:
   `ft.Page` (`width=1200`, `height=800`, `web=False`), isolating Python widget
   construction, state-key evaluation, layout solving, and editor updates.
 - **Side-by-side baselines**: The `io` suite compares pure-Python
-  `yaml.safe_load` / `yaml.safe_dump` directly against `parse_state_yaml()` and
-  `ProjectState.to_yaml()` (which use PyYAML `CSafeLoader` / `CSafeDumper` when
-  available).
+  `yaml.safe_load` / `yaml.safe_dump` directly against `parse_state_yaml()`,
+  `serialise_state()`, and `ProjectState.to_yaml()` (which use PyYAML
+  `CSafeLoader` / `CSafeDumper` when available).
 
 ## Benchmark Suites
 

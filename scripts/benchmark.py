@@ -664,18 +664,18 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     print(f"PyYAML CSafeLoader available: {hasattr(yaml, 'CSafeLoader')}")
-    print("=" * 78)
-    print(f"{'Workload':<52} {'Best (ms)':>10} {'Mean (ms)':>10}")
-    print("-" * 78)
+    print("=" * 80)
+    print(f"{'Workload':<54} {'Best (ms)':>10} {'Mean (ms)':>10}")
+    print("-" * 80)
     current_suite = ""
     for res in all_results:
         if res.suite != current_suite:
             current_suite = res.suite
             print(f"[{current_suite.upper()}]")
-        print(f"  {res.name:<50} {res.best_ms:10.2f} {res.mean_ms:10.2f}")
+        print(f"  {res.name:<52} {res.best_ms:10.2f} {res.mean_ms:10.2f}")
 
     for title, stats_text in profiles:
-        print("\n" + "=" * 78)
+        print("\n" + "=" * 80)
         print(f"cProfile top hotspots: {title}")
         print(stats_text.rstrip())
 
