@@ -314,3 +314,33 @@ def test_dna_padded_slice() -> None:
 
     empty_circ = DNA("", DNAType.CIRCULAR)
     assert empty_circ.padded_slice(0, 3) == "---"
+
+
+def test_dna_fast_ops_and_clean_sequence_edge_cases() -> None:
+    """Test validated constructors, byte caches, and ASCII/Unicode cleaning."""
+    # Unicode non-breaking space uses split(); ASCII uses translate
+    assert clean_sequence("  A\u00a0C\t\\nG\\tT\\r ") == "ACGT"
+
+    mixed = DNA("AcGt", DNAType.CIRCULAR, name="mixed")
+    rev = mixed.reverse()
+    comp = mixed.complement()
+    rc = mixed.reverse_complement()
+    assert rev.seq == "tGcA"
+    assert rev.seq_upper == "TGCA"
+    assert comp.seq == "TgCa"
+    assert rc.seq == "aCgT"
+    assert rc.type == DNAType.CIRCULAR
+    assert rc.direction == DNADirection.REV
+    assert rc.seq_upper_bytes == b"ACGT"
+    assert rc.comp_upper_bytes == b"TGCA"
+    assert mixed[1:3].seq == "cG"
+    assert (mixed[:2] + mixed[2:]).seq == "AcGt"
+    assert mixed.lower().seq == "acgt"
+    assert mixed.upper().seq == "ACGT"
+
+    primer = Primer("ATGC", name="p1")
+    p_rc = primer.reverse_complement()
+    assert isinstance(p_rc, Primer)
+    assert p_rc.seq == "GCAT"
+    assert p_rc.type == DNAType.PRIMER
+    assert p_rc.direction == DNADirection.FWD

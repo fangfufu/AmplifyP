@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cached_property, lru_cache
 
 from .dir_idx import DirIdx as DirIdx
 from .dir_idx import DirIdxDb as DirIdxDb
@@ -126,17 +127,26 @@ class _SettingsWrapper:
 @lru_cache(maxsize=128)
 def _get_scoring_tables(
     primer_rev_seq: str, settings_wrapper: _SettingsWrapper
-) -> tuple[float, float, tuple[tuple[tuple[float, float], ...], ...]]:
-    """Calculate scoring tables and denominators.
+) -> tuple[
+    float,
+    float,
+    tuple[tuple[tuple[tuple[float, float], ...], float], ...],
+    tuple[float, ...],
+    float,
+    bytes | None,
+    int,
+]:
+    """Calculate scoring tables, denominators, and pruning metadata.
 
     This function caches the expensive table construction for primer scoring.
 
     Args:
-        primer_rev_seq (str): The reversed primer sequence.
+        primer_rev_seq (str): The reversed primer sequence (uppercase).
         settings_wrapper (_SettingsWrapper): Wrapped replication settings.
 
     Returns:
-        tuple: (prim_denom, stab_denom, score_lookup)
+        tuple: (prim_denom, stab_denom, score_pairs, run_weights, prim_req,
+            k0_mask, good_acgt_count).
     """
     settings = settings_wrapper.settings
     m = settings.match_weight
@@ -147,10 +157,11 @@ def _get_scoring_tables(
     stab_denom_base = 0.0
 
     lookup_list: list[tuple[tuple[float, float], ...]] = []
+    step_max_list: list[float] = []
 
     # Prepare set of characters for lookup keys
     lookup_keys = set(Nucleotides.TEMPLATE)
-    lookup_keys.update(c.lower() for c in set(lookup_keys))
+    lookup_keys.update(c.lower() for c in tuple(lookup_keys))
 
     for k, base_p in enumerate(primer_rev_seq):
         row_max = S.row_max(base_p)
@@ -162,12 +173,49 @@ def _get_scoring_tables(
             score = S[base_p, base_t]
             k_lookup[ord(base_t)] = (m[k] * score, score)
 
-        lookup_list.append(tuple(k_lookup))
+        k_tuple = tuple(k_lookup)
+        lookup_list.append(k_tuple)
+        step_max_list.append(max(pv for pv, _ in k_tuple))
 
-    score_lookup = tuple(lookup_list)
-    stab_denom = stab_denom_base * r[int(max(0, len(primer_rev_seq) - 1))]
+    length = len(primer_rev_seq)
+    rem_max_list = [0.0] * length
+    acc = 0.0
+    for k in range(length - 1, -1, -1):
+        rem_max_list[k] = acc
+        acc += step_max_list[k]
 
-    return prim_denom, stab_denom, score_lookup
+    score_pairs = tuple(zip(lookup_list, rem_max_list, strict=True))
+    run_weights = tuple(r[k] for k in range(length))
+    stab_denom = stab_denom_base * (
+        run_weights[length - 1] if length > 0 else r[0]
+    )
+
+    prim_cutoff = settings.primability_cutoff
+    if length > 0 and prim_denom > 0:
+        raw_req = prim_cutoff * prim_denom
+        prim_req = raw_req - 1e-12 * abs(raw_req) - 1e-12
+        rem0 = rem_max_list[0]
+        k0_table = lookup_list[0]
+        mask_arr = bytearray(256)
+        for b in range(256):
+            if k0_table[b][0] + rem0 >= prim_req:
+                mask_arr[b] = 1
+        k0_mask: bytes | None = bytes(mask_arr)
+        good_acgt_count = sum(mask_arr[c] for c in (65, 67, 71, 84))
+    else:
+        prim_req = float("-inf")
+        k0_mask = None
+        good_acgt_count = 4
+
+    return (
+        prim_denom,
+        stab_denom,
+        score_pairs,
+        run_weights,
+        prim_req,
+        k0_mask,
+        good_acgt_count,
+    )
 
 
 class Repliconf:
@@ -211,12 +259,9 @@ class Repliconf:
         self.template_seq: dict[DNADirection, str] = {}
         # Add padding the 5' end of the template
         if template.type == DNAType.LINEAR or template.type == DNAType.PRIMER:
-            self.template_seq[DNADirection.FWD] = (
-                Nucleotides.GAP * self.padding_len + template.seq
-            )
-            self.template_seq[DNADirection.REV] = (
-                template.seq + Nucleotides.GAP * self.padding_len
-            ).translate(GLOBAL_COMPLEMENT_TABLE)
+            gap = Nucleotides.GAP * self.padding_len
+            self.template_seq[DNADirection.FWD] = gap + template.seq
+            self.template_seq[DNADirection.REV] = template.complement_seq + gap
         elif template.type == DNAType.CIRCULAR:
             # Matches existing behaviour including 0 case where padding is empty
             padding = (
@@ -224,10 +269,11 @@ class Repliconf:
                 if self.padding_len > 0
                 else ""
             )
+            comp = template.complement_seq
             self.template_seq[DNADirection.FWD] = padding + template.seq
             self.template_seq[DNADirection.REV] = (
-                template.seq + template.seq[: self.padding_len]
-            ).translate(GLOBAL_COMPLEMENT_TABLE)
+                comp + comp[: self.padding_len]
+            )
 
         self.settings = settings
         self.origin_db = DirIdxDb([], [], False)
@@ -235,8 +281,10 @@ class Repliconf:
         # Pre-calculate reversed primer sequence
         self._rev_primer_seq = self.primer.seq[::-1]
 
-        # Pre-calculate reverse complement primer for amplicon generation
-        self.rev_comp_primer = self.primer.reverse_complement()
+    @cached_property
+    def rev_comp_primer(self) -> DNA:
+        """Return the reverse complement primer for amplicon generation."""
+        return self.primer.reverse_complement()
 
     def range(self) -> range:
         """Return the range of valid starting indices for search.
@@ -312,6 +360,24 @@ class Repliconf:
         """
         return self.origin(self.origin_db[direction, i])
 
+    def _get_template_bytes(self, direction: DNADirection) -> bytes:
+        """Return uppercase ASCII template bytes for the given direction."""
+        tpl = self.template
+        pad_len = self.padding_len
+        if tpl.type in (DNAType.LINEAR, DNAType.PRIMER):
+            gap_bytes = b"-" * pad_len
+            if direction == DNADirection.FWD:
+                return gap_bytes + tpl.seq_upper_bytes
+            return tpl.comp_upper_bytes + gap_bytes
+        if tpl.type == DNAType.CIRCULAR:
+            if direction == DNADirection.FWD:
+                tpl_bytes = tpl.seq_upper_bytes
+                padding = tpl_bytes[-pad_len:] if pad_len > 0 else b""
+                return padding + tpl_bytes
+            comp_bytes = tpl.comp_upper_bytes
+            return comp_bytes + comp_bytes[:pad_len]
+        return self.template_seq[direction].encode("ascii")
+
     def search(self) -> None:
         """Perform a search for valid replication origins.
 
@@ -321,26 +387,32 @@ class Repliconf:
         """
         self.origin_db.clear()
 
-        # Optimization: Pre-calculate constants and lookup tables
-        # m = self.settings.match_weight  # Not used directly in loop
-        # S = self.settings.base_pair_scores  # Not used directly in loop
-        r = self.settings.run_weights
-        L = len(self.primer)
-
-        primer_rev = self.primer.seq[::-1]
+        primer_len = len(self.primer)
+        primer_rev = self.primer.seq_upper[::-1]
 
         (
             prim_denom,
             stab_denom,
-            score_lookup,
+            score_pairs,
+            run_weights,
+            prim_req,
+            k0_mask,
+            good_acgt_count,
         ) = _get_scoring_tables(primer_rev, _SettingsWrapper(self.settings))
 
         prim_cutoff = self.settings.primability_cutoff
         stab_cutoff = self.settings.stability_cutoff
 
         search_range = self.range()
+        n_positions = len(search_range)
+        if n_positions <= 0:
+            self.origin_db.searched = True
+            return
 
-        for direction in [DNADirection.FWD, DNADirection.REV]:
+        has_any_good_k0 = k0_mask is not None and b"\x01" in k0_mask
+        use_mask = k0_mask is not None and 0 < good_acgt_count <= 2
+
+        for direction in (DNADirection.FWD, DNADirection.REV):
             # FWD direction:
             # - Searches `template_seq[FWD]`, which is the Sense strand (5'-3').
             # - Matches the primer sequence against the Sense strand (reversed).
@@ -355,9 +427,10 @@ class Repliconf:
             # - Effectively finds binding sites for Reverse Primers (which are
             #   complementary to the Sense strand) by checking for identity
             #   against the Antisense strand.
+            if k0_mask is not None and not has_any_good_k0:
+                continue
 
-            seq = self.template_seq[direction]
-            seq_bytes = seq.encode("ascii")
+            seq_bytes = self._get_template_bytes(direction)
             origin_list = (
                 self.origin_db.fwd
                 if direction == DNADirection.FWD
@@ -365,53 +438,64 @@ class Repliconf:
             )
 
             if direction == DNADirection.FWD:
-                start_offset = L - 1
+                start_offset = primer_len - 1
                 step = -1
+                k0_offset = primer_len - 1
             else:
                 start_offset = 0
                 step = 1
+                k0_offset = 0
 
-            k_range = range(L)
+            candidate_indices: Iterable[int]
+            if use_mask and k0_mask is not None:
+                anchored = seq_bytes[
+                    k0_offset : k0_offset + n_positions
+                ].translate(k0_mask)
+                hits: list[int] = []
+                append_hit = hits.append
+                pos = anchored.find(b"\x01")
+                while pos != -1:
+                    append_hit(pos)
+                    pos = anchored.find(b"\x01", pos + 1)
+                candidate_indices = hits
+            else:
+                candidate_indices = search_range
 
-            for i in search_range:
+            for i in candidate_indices:
                 prim_num = 0.0
                 stab_num = 0.0
                 run_len = 0
                 run_score = 0.0
-
                 seq_idx = i + start_offset
 
-                for k in k_range:
-                    k_lookup = score_lookup[k]
-                    base_t = seq_bytes[seq_idx]
-
-                    # Primability and Stability lookup
-                    prim_val, val = k_lookup[base_t]
+                for k_lookup, r_max in score_pairs:
+                    prim_val, val = k_lookup[seq_bytes[seq_idx]]
                     prim_num += prim_val
+                    if prim_num + r_max < prim_req:
+                        break
                     if val > 0:
                         run_len += 1
                         run_score += val
-                    else:
-                        if run_len > 0:
-                            idx = run_len - 1
-                            stab_num += r[idx] * run_score
-                            run_len = 0
-                            run_score = 0.0
-
+                    elif run_len > 0:
+                        stab_num += run_weights[run_len - 1] * run_score
+                        run_len = 0
+                        run_score = 0.0
                     seq_idx += step
+                else:
+                    if run_len > 0:
+                        stab_num += run_weights[run_len - 1] * run_score
 
-                # Finish stability run
-                if run_len > 0:
-                    idx = run_len - 1
-                    stab_num += r[idx] * run_score
-
-                primability = prim_num / prim_denom if prim_denom != 0 else 0.0
-                stability = stab_num / stab_denom if stab_denom != 0 else 0.0
-
-                if primability > prim_cutoff and stability > stab_cutoff:
-                    origin_list.append(
-                        DirIdx(direction, i, primability, stability)
+                    primability = (
+                        prim_num / prim_denom if prim_denom != 0 else 0.0
                     )
+                    stability = (
+                        stab_num / stab_denom if stab_denom != 0 else 0.0
+                    )
+
+                    if primability > prim_cutoff and stability > stab_cutoff:
+                        origin_list.append(
+                            DirIdx(direction, i, primability, stability)
+                        )
 
         self.origin_db.searched = True
 

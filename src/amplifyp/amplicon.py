@@ -33,6 +33,22 @@ from .errors import (
 from .repliconf import DirIdx, Repliconf
 
 
+def _origin_quality(idx: DirIdx, conf: Repliconf) -> float:
+    """Compute origin quality from cached DirIdx scores when available."""
+    if idx.primability is None or idx.stability is None:
+        return conf.origin(idx).quality
+    settings = conf.settings
+    cutoffs = settings.primability_cutoff + settings.stability_cutoff
+    denom = 2 - cutoffs
+    if denom == 0:
+        return 0.0
+    if not settings.amplify4_compatibility_mode:
+        return (idx.primability + idx.stability - cutoffs) / denom
+    primability = math.trunc(idx.primability * 100) / 100
+    stability = math.trunc(idx.stability * 100) / 100
+    return (primability + stability - cutoffs) / denom
+
+
 class AmpliconQuality(StrEnum):
     """Quality tier classifications for an amplicon based on q_score."""
 
@@ -320,8 +336,8 @@ class AmpliconGenerator:
         Returns:
             float: The calculated quality score.
         """
-        fwd_quality = fwd_conf.origin(start).quality
-        rev_quality = rev_conf.origin(end).quality
+        fwd_quality = _origin_quality(start, fwd_conf)
+        rev_quality = _origin_quality(end, rev_conf)
         denom = (fwd_quality * rev_quality) ** 2
         if denom == 0:
             return float("inf")
@@ -355,26 +371,66 @@ class AmpliconGenerator:
             InvalidAmpliconRangeError: If the start index equals the end
                 index on a linear DNA template.
         """
+        tpl = self.template
+        fwd_p = fwd_conf.primer
+        rev_rc = rev_conf.rev_comp_primer
+        same_case = (
+            fwd_p.seq_upper is fwd_p.seq
+            and tpl.seq_upper is tpl.seq
+            and rev_rc.seq_upper is rev_rc.seq
+        )
+        s_idx = start.index
+        e_idx = end.index
+
         if start < end:
             # Linear DNA template branch
-            seq = (
-                fwd_conf.primer
-                + self.template[start:end]
-                + rev_conf.rev_comp_primer
+            seq = fwd_p.seq + tpl.seq[s_idx:e_idx] + rev_rc.seq
+            seq_upper = (
+                seq
+                if same_case
+                else (
+                    fwd_p.seq_upper
+                    + tpl.seq_upper[s_idx:e_idx]
+                    + rev_rc.seq_upper
+                )
             )
-            return seq, False
+            return (
+                DNA._from_validated(  # pyright: ignore[reportPrivateUsage]
+                    seq,
+                    seq_upper,
+                    DNAType.LINEAR,
+                    fwd_p.name,
+                    fwd_p.direction,
+                ),
+                False,
+            )
 
-        if self.template.type == DNAType.CIRCULAR:
+        if tpl.type == DNAType.CIRCULAR:
             # Circular DNA handling
-            seq = (
-                fwd_conf.primer
-                + self.template[start:]
-                + self.template[:end]
-                + rev_conf.rev_comp_primer
+            seq = tpl.seq[s_idx:] + tpl.seq[:e_idx]
+            full_seq = fwd_p.seq + seq + rev_rc.seq
+            seq_upper = (
+                full_seq
+                if same_case
+                else (
+                    fwd_p.seq_upper
+                    + tpl.seq_upper[s_idx:]
+                    + tpl.seq_upper[:e_idx]
+                    + rev_rc.seq_upper
+                )
             )
-            return seq, True
+            return (
+                DNA._from_validated(  # pyright: ignore[reportPrivateUsage]
+                    full_seq,
+                    seq_upper,
+                    DNAType.LINEAR,
+                    fwd_p.name,
+                    fwd_p.direction,
+                ),
+                True,
+            )
 
-        if (start > end) and (self.template.type == DNAType.LINEAR):
+        if (start > end) and (tpl.type == DNAType.LINEAR):
             # Not possible on linear DNA
             return None, False
 

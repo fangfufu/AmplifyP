@@ -19,7 +19,11 @@ import pytest
 
 from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.repliconf import DirIdx, Repliconf
-from amplifyp.settings import GLOBAL_REPLICATION_SETTINGS
+from amplifyp.settings import (
+    GLOBAL_REPLICATION_SETTINGS,
+    LengthWiseWeightTbl,
+    ReplicationSettings,
+)
 
 
 def test_repliconf_linear_search() -> None:
@@ -248,3 +252,37 @@ def test_repliconf_format_context_alignment() -> None:
         DirIdx(DNADirection.FWD, 102), context_bases=0
     )
     assert "100 102" in short_align.coordinates_line
+
+
+def test_repliconf_pruning_fallback_and_lazy_properties() -> None:
+    """Test pruning fallback paths, degenerate bases, and lazy reverse comp."""
+    # Long 35-mer primer where a 3'-end mismatch still exceeds prim_cutoff=0.8
+    # (good_acgt_count > 2 -> triggers non-masked full search_range scan).
+    long_primer = Primer("A" * 35)
+    tpl = DNA("TTTT" + ("A" * 34) + "CTTTT", DNAType.LINEAR)
+    conf = Repliconf(tpl, long_primer)
+    conf.search()
+    assert len(conf.origin_db.fwd) >= 1
+    assert conf.rev_comp_primer == long_primer.reverse_complement()
+
+    # Non-positive primability cutoff / lower cutoff exercises rem_max & low cut
+    permissive = ReplicationSettings(
+        primability_cutoff=-0.2,
+        stability_cutoff=0.1,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(100.0),
+    )
+    perm_conf = Repliconf(
+        DNA("acgtACGT", DNAType.LINEAR), Primer("ncgt"), permissive
+    )
+    perm_conf.search()
+    assert len(perm_conf.origin_db.fwd) > 0
+
+    # Empty and shorter-than-primer circular templates must not crash
+    empty_conf = Repliconf(DNA("", DNAType.LINEAR), Primer("ACGT"))
+    empty_conf.search()
+    assert len(empty_conf.origin_db.fwd) == 0
+
+    tiny_circ = Repliconf(DNA("ACGT", DNAType.CIRCULAR), Primer("ACGTACGTACGT"))
+    tiny_circ.search()
+    assert len(tiny_circ.origin_db.fwd) == 0

@@ -24,7 +24,7 @@ from enum import StrEnum
 from itertools import pairwise
 from typing import Final
 
-from .dna import Primer
+from .dna import GLOBAL_COMPLEMENT_TABLE, Primer
 from .errors import InsufficientThermodynamicDataError
 from .settings import (
     GLOBAL_TM_SETTINGS,
@@ -90,7 +90,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
     Returns:
         The melting temperature in degrees Celsius.
     """
-    seq = primer.seq.upper()
+    seq = primer.seq_upper
     n = len(seq)
     if n < 2:
         return 0.0
@@ -135,7 +135,7 @@ def calculate_tm_santalucia_1998_owczarzy_2008(
         ds += 4.1
 
     # Symmetry correction for self-complementary sequences (SantaLucia 1998)
-    is_self_comp = seq == primer.reverse_complement().seq_upper
+    is_self_comp = seq == seq[::-1].translate(GLOBAL_COMPLEMENT_TABLE)
     if is_self_comp:
         ds += -1.4
     conc_factor = 1.0 if is_self_comp else 4.0
@@ -295,7 +295,7 @@ def calculate_tm_lander_amplify4(
         The melting temperature in degrees Celsius. Returns 0.0 if the
         sequence length is less than 1.
     """
-    seq = primer.seq.upper()
+    seq = primer.seq_upper
     seq_len = len(seq)
     if seq_len < 1:
         return 0.0
