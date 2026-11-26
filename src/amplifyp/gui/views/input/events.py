@@ -24,6 +24,7 @@ from amplifyp.gui.views.input.primer.row import PrimerRow
 
 def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
     """Handle focus on input fields."""
+    ft.context.disable_auto_update()
     curr_ctrl = input_view._currently_focused_control
     curr_data = getattr(curr_ctrl, "data", None) if curr_ctrl else None
     new_data = getattr(getattr(e, "control", None), "data", None)
@@ -80,11 +81,14 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
             else None
         )
 
-        if idx not in input_view.primer_input.selected_indices:
-            input_view.primer_input.selected_indices = {idx}
-            input_view.primer_input._update_delete_button_disabled_state()
-        input_view.primer_input.focused_primer_index = idx
-        input_view.primer_input._update_header_buttons_state()
+        primer_input = input_view.primer_input
+        selection_changed = idx not in primer_input.selected_indices
+        focus_changed = primer_input.focused_primer_index != idx
+
+        if selection_changed:
+            primer_input.selected_indices = {idx}
+            primer_input._update_delete_button_disabled_state()
+        primer_input.focused_primer_index = idx
 
         # Set touched status in state
         if 0 <= idx < len(input_view.input_data.primers):
@@ -92,31 +96,11 @@ def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 input_view.input_data.primers[idx]["name_touched"] = True
             elif field == "seq":
                 input_view.input_data.primers[idx]["seq_touched"] = True
-                try:
-                    page = e.page or input_view.page
-                except RuntimeError:
-                    page = None
-                if page and not getattr(
-                    input_view, "_skip_seq_focus_reset", False
-                ):
 
-                    async def set_seq_cursor() -> None:
-                        """Reset cursor to start of the text field."""
-                        try:
-                            e.control.selection = ft.TextSelection(
-                                base_offset=0, extent_offset=0
-                            )
-                            e.control.update()
-                        except Exception:  # noqa: S110
-                            pass
-
-                    page.run_task(set_seq_cursor)  # pyright: ignore[reportAttributeAccessIssue]
-                input_view._skip_seq_focus_reset = False
-
-        input_view.primer_input._update_row_highlights()
-        input_view.primer_input._update_primer_info_panel()
-        if input_view.app_page:
-            input_view.app_page.update()
+        if selection_changed:
+            primer_input._update_row_highlights(only_changed=True)
+        if focus_changed:
+            primer_input._update_primer_info_panel()
 
 
 def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
@@ -148,9 +132,6 @@ def handle_field_blur(input_view: Any, e: ft.Event[ft.TextField]) -> None:
                 if isinstance(row, PrimerRow) and row.idx == idx:
                     row.set_error(err)
                     break
-            input_view._auto_add_empty_row_if_needed(
-                cast(ft.Control, e.control)
-            )
             input_view.app_page.update()
 
     if input_view.on_stop_editing_callback:

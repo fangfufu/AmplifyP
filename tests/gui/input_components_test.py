@@ -503,6 +503,33 @@ def test_input_events_coordination() -> None:
     auto_add_empty_row_if_needed(view, row.seq_field)
 
 
+def test_blur_last_row_does_not_auto_add_empty_row() -> None:
+    """Blurring the last row's seq field should not append a new empty row."""
+    view, _, input_data, _ = _setup_test_view()
+    input_data.primers = [{"name": "P1", "seq": "ATGC", "active": True}]
+    view.update_ui()
+
+    last_row = view.primer_input.primers_list.controls[-1]
+    assert isinstance(last_row, PrimerRow)
+
+    ev_focus = MagicMock()
+    ev_focus.control = last_row.seq_field
+    handle_field_focus(view, ev_focus)
+
+    ev_blur = MagicMock()
+    ev_blur.control = last_row.seq_field
+    handle_field_blur(view, ev_blur)
+
+    assert len(input_data.primers) == 1
+
+    ev_submit = MagicMock()
+    ev_submit.control = last_row.seq_field
+    handle_field_submit(view, ev_submit)
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[1] == {"name": "", "seq": "", "active": False}
+
+
 def test_primer_info_panel_details() -> None:
     """Test PrimerInfoPanel for zero, single, and multiple selected primers."""
     view, _, _input_data, _ = _setup_test_view()
@@ -1693,9 +1720,8 @@ def test_primer_list_update_highlights_non_int_idx() -> None:
     invalid_row.update_highlight_and_reorder.assert_not_called()
 
 
-@pytest.mark.asyncio  # type: ignore[untyped-decorator]
-async def test_handle_field_focus_no_echo_loop() -> None:
-    """Test sequence focus cursor reset avoids redundant focus call and loop."""
+def test_handle_field_focus_no_echo_loop() -> None:
+    """Test sequence focus preserves cursor position and drops echo events."""
     mock_page = MagicMock(spec=ft.Page)
     tasks: list[Any] = []
     mock_page.run_task = lambda t: tasks.append(t())
@@ -1706,25 +1732,132 @@ async def test_handle_field_focus_no_echo_loop() -> None:
     view.update_ui()
 
     txt_fld = view.primers_list.controls[0].seq_field
+    txt_fld.selection = ft.TextSelection(base_offset=2, extent_offset=2)
     txt_fld.focus = MagicMock()
     txt_fld.update = MagicMock()
 
     ev = MagicMock(control=txt_fld, page=mock_page)
 
-    # First focus event schedules cursor reset task
+    # First focus event should not reset cursor or call focus()
     handle_field_focus(view, ev)
-    assert len(tasks) == 1
-    await tasks[0]
-
-    # Verify focus() was NOT called inside set_seq_cursor (prevents loop)
+    assert len(tasks) == 0
     txt_fld.focus.assert_not_called()
-    assert txt_fld.selection.base_offset == 0
-    assert txt_fld.selection.extent_offset == 0
-    txt_fld.update.assert_called_once()
+    assert txt_fld.selection.base_offset == 2
+    assert txt_fld.selection.extent_offset == 2
 
     # Second identical focus event (echo) is dropped immediately
+    mock_page.update.reset_mock()
     handle_field_focus(view, ev)
-    assert len(tasks) == 1  # No new task scheduled
+    assert len(tasks) == 0
+    mock_page.update.assert_not_called()
+
+
+def test_handle_field_focus_minimal_updates() -> None:
+    """Test focus skips same-row updates and only updates changed rows."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    input_data.primers = [
+        {"name": "P0", "seq": "ATGC", "active": True},
+        {"name": "P1", "seq": "CGTA", "active": True},
+        {"name": "P2", "seq": "GGGG", "active": True},
+    ]
+    view = InputView(mock_page, input_data)
+    view.update_ui()
+
+    row_0 = view.primers_list.controls[0]
+    row_1 = view.primers_list.controls[1]
+    row_2 = view.primers_list.controls[2]
+    assert isinstance(row_0, PrimerRow)
+    assert isinstance(row_1, PrimerRow)
+    assert isinstance(row_2, PrimerRow)
+
+    view.primer_input.primers_list.update = MagicMock()
+    view.primer_input.primer_header.update = MagicMock()
+    view.primer_input.primer_info_panel.update = MagicMock()
+    view.primer_input.primer_info_divider.update = MagicMock()
+    view.primer_input.delete_selected_button.update = MagicMock()
+    view.primer_input.reverse_complement_button.update = MagicMock()
+    row_0.update = MagicMock()
+    row_1.update = MagicMock()
+    row_2.update = MagicMock()
+
+    with (
+        patch.object(
+            type(view.primer_input.primers_list),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            PrimerRow,
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            type(view.primer_input.primer_header),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+        patch.object(
+            type(view.primer_input.delete_selected_button),
+            "page",
+            new=property(lambda _self: mock_page),
+        ),
+    ):
+        mock_page.update.reset_mock()
+
+        # 1. Focus row 0 name_field: updates only row_0, not list or page
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
+        assert ft.context.auto_update_enabled() is True
+        handle_field_focus(view, MagicMock(control=row_0.name_field))
+        assert ft.context.auto_update_enabled() is False
+        view.primer_input.primers_list.update.assert_not_called()
+        mock_page.update.assert_not_called()
+        row_0.update.assert_called_once()
+        row_1.update.assert_not_called()
+        row_2.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_called_once()
+        view.primer_input.delete_selected_button.update.assert_called_once()
+        view.primer_input.reverse_complement_button.update.assert_called_once()
+
+        # 2. Focus row 0 seq_field (same row): zero UI updates, no auto-update
+        row_0.update.reset_mock()
+        view.primer_input.primer_header.update.reset_mock()
+        view.primer_input.primer_info_panel.update = MagicMock()
+        view.primer_input.delete_selected_button.update.reset_mock()
+        view.primer_input.reverse_complement_button.update.reset_mock()
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
+        assert ft.context.auto_update_enabled() is True
+        handle_field_focus(view, MagicMock(control=row_0.seq_field))
+        assert ft.context.auto_update_enabled() is False
+        row_0.update.assert_not_called()
+        view.primer_input.primers_list.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_not_called()
+        view.primer_input.primer_info_panel.update.assert_not_called()
+        view.primer_input.delete_selected_button.update.assert_not_called()
+        view.primer_input.reverse_complement_button.update.assert_not_called()
+        mock_page.update.assert_not_called()
+
+        # 3. Focus row 1 name_field: updates only row_0 and row_1 (not row_2)
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
+        handle_field_focus(view, MagicMock(control=row_1.name_field))
+        assert ft.context.auto_update_enabled() is False
+        view.primer_input.primers_list.update.assert_not_called()
+        mock_page.update.assert_not_called()
+        row_0.update.assert_called_once()
+        row_1.update.assert_called_once()
+        row_2.update.assert_not_called()
+        view.primer_input.primer_header.update.assert_called_once()
+
+
+def test_primer_row_ignores_up_down_keys() -> None:
+    """Primer name and seq fields must intercept Arrow Up/Down in Flutter."""
+    _, _, _, settings = _setup_test_view()
+    row = _make_primer_row(0, "P0", "ATGC", settings)
+    assert row.name_field.ignore_up_down_keys is True
+    assert row.seq_field.ignore_up_down_keys is True
 
 
 def test_handle_row_click_preserves_active_field_focus() -> None:

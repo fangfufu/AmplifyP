@@ -237,8 +237,6 @@ def _dispatch_field_focus(controller: Any, target_field: ft.TextField) -> None:
     """
     controller._is_navigating_focus = True
     try:
-        if hasattr(controller, "input_view") and controller.input_view:
-            controller.input_view._skip_seq_focus_reset = True
         res = target_field.focus()
         if asyncio.iscoroutine(res):
             controller.page.run_task(focus_async, res, controller)
@@ -316,13 +314,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                 for row in controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         target_field = row.name_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                         break
                 else:
                     return
@@ -335,13 +326,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                             break
                     if prev_row:
                         target_field = prev_row.seq_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                     else:
                         return
                 else:
@@ -353,13 +337,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                 for row in controls:
                     if isinstance(row, PrimerRow) and row.idx == idx:
                         target_field = row.seq_field
-                        target_field.selection = ft.TextSelection(
-                            base_offset=0, extent_offset=0
-                        )
-                        try:
-                            target_field.update()
-                        except RuntimeError:
-                            pass
                         break
                 else:
                     return
@@ -371,13 +348,6 @@ def handle_keyboard_event(controller: Any, e: ft.KeyboardEvent) -> None:
                         break
                 if next_row:
                     target_field = next_row.name_field
-                    target_field.selection = ft.TextSelection(
-                        base_offset=0, extent_offset=0
-                    )
-                    try:
-                        target_field.update()
-                    except RuntimeError:
-                        pass
                 else:
                     return
             else:

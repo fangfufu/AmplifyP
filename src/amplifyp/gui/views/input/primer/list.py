@@ -168,14 +168,19 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
         self.primer_input._update_primer_info_panel()
         self.primer_input._update_header_checkbox_state()
 
-    def update_row_highlights(self) -> None:
+    def update_row_highlights(self, only_changed: bool = False) -> None:
         """Update background colours of all row containers.
 
         Highlights rows based on selection (focused primer),
         duplicates (by name or sequence), and validation errors.
+
+        Args:
+            only_changed: When True, only update individual rows whose
+                background colour changed instead of updating the whole list.
         """
         dup_indices = self.primer_input._get_duplicate_indices()
         validation_errors = getattr(self.primer_input, "validation_errors", [])
+        changed_rows: list[PrimerRow] = []
         for row in self.controls:
             if isinstance(row, PrimerRow):
                 c_idx = (
@@ -195,11 +200,19 @@ class PrimerList(ft.ListView):  # type: ignore[misc]
                     if err and (err.get("name") or err.get("seq")):
                         is_error = True
 
+                prev_bgcolor = row.bgcolor
                 row.update_highlight_and_reorder(
                     is_focused=is_focused, is_dup=is_dup, is_error=is_error
                 )
+                if row.bgcolor != prev_bgcolor:
+                    changed_rows.append(row)
         try:
             if self.page:
-                self.update()
+                if only_changed:
+                    for row in changed_rows:
+                        if row.page:
+                            row.update()
+                else:
+                    self.update()
         except RuntimeError:
             logger.debug("Page detached, skipping list update")

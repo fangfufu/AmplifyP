@@ -2,9 +2,20 @@
 from collections.abc import Generator
 from typing import Any
 
+import flet as ft
 import pytest
 
 from amplifyp.gui.colours import GUIColours
+
+
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def reset_flet_auto_update() -> Generator[None, None, None]:
+    """Isolate Flet per-handler auto-update context across tests."""
+    ft.context.enable_auto_update()
+    ft.context.reset_auto_update()
+    yield
+    ft.context.enable_auto_update()
+    ft.context.reset_auto_update()
 
 
 @pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
