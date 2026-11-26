@@ -21,5 +21,7 @@ This is the documentation directory for **AmplifyP**.
    matrices, melting temperature thermodynamics, and algorithmic optimisations.
 5. [Windows Development Environment Setup Guide](windows_setup.md) — For setting
    up the development, testing, and packaging environment on Windows.
-6. [Developers' and Contributors' Guide](../src/README.md) — Core developer
+6. [Benchmark Suite](benchmark.md) — Automated performance benchmarks and
+   profiling guide for core algorithms, YAML IO, and GUI views.
+7. [Developers' and Contributors' Guide](../src/README.md) — Core developer
    documentation covering repository setup, architecture, and testing.
