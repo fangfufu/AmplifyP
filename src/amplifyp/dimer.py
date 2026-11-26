@@ -329,7 +329,7 @@ def calculate_dimer_stats(
     best_pos: int = 0
     weights = settings.weights
 
-    if s1.isascii() and s2.isascii():
+    if s1.isascii() and s2.isascii() and n1 <= len(s1) and n2 <= len(s2):
         lut = weights.ascii_lut
         b1_rev = s1[:n1].encode("ascii")[::-1]
         b2 = s2[:n2].encode("ascii")

@@ -251,9 +251,8 @@ class DNA:
         obj._direction = direction
         return obj
 
-    @classmethod
+    @staticmethod
     def concat_slices(
-        cls,
         prefix: DNA,
         template: DNA,
         start: int,

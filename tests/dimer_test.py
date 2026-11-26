@@ -426,3 +426,8 @@ def test_calculate_dimer_stats_edge_cases() -> None:
 
     non_ascii = calculate_dimer_stats("AAA\u00c0AAA", "TTTTTTT", 7, 7)
     assert non_ascii == upper
+
+    with pytest.raises(IndexError):
+        calculate_dimer_stats("ACGT", "TGCA", 5, 4)
+    with pytest.raises(IndexError):
+        calculate_dimer_stats("ACGT", "TGCA", 4, 5)

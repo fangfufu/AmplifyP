@@ -289,6 +289,13 @@ def test_repliconf_pruning_fallback_and_lazy_properties() -> None:
     tiny_circ.search()
     assert len(tiny_circ.origin_db.fwd) == 0
 
+    # search() does not eagerly materialise template_seq
+    lazy_conf = Repliconf(DNA("ACGTACGT", DNAType.LINEAR), Primer("ACGT"))
+    lazy_conf.search()
+    assert "template_seq" not in lazy_conf.__dict__
+    assert len(lazy_conf.origin_db.fwd) >= 1
+    assert lazy_conf.template_seq[DNADirection.FWD] == "----ACGTACGT"
+
 
 def test_repliconf_search_pruning_parity_with_origin_bruteforce() -> None:
     """Verify masked/pruned search matches brute-force ReplicationOrigin."""

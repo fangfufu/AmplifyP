@@ -37,6 +37,8 @@ from .settings import (
     ReplicationSettings,
 )
 
+_GAP_BYTE = Nucleotides.GAP.encode("ascii")
+
 
 @dataclass(slots=True, frozen=True)
 class OriginContextAlignment:
@@ -256,12 +258,22 @@ class Repliconf:
         self.primer = primer
         self.template = template
 
-        self.template_seq: dict[DNADirection, str] = {}
-        # Add padding the 5' end of the template
-        if template.type == DNAType.LINEAR or template.type == DNAType.PRIMER:
+        self.settings = settings
+        self.origin_db = DirIdxDb([], [], False)
+
+        # Pre-calculate reversed primer sequence
+        self._rev_primer_seq = self.primer.seq[::-1]
+
+    @cached_property
+    def template_seq(self) -> dict[DNADirection, str]:
+        """Return padded template strings indexed by direction."""
+        seqs: dict[DNADirection, str] = {}
+        template = self.template
+        # Add padding to the 5' end of the template
+        if template.type in (DNAType.LINEAR, DNAType.PRIMER):
             gap = Nucleotides.GAP * self.padding_len
-            self.template_seq[DNADirection.FWD] = gap + template.seq
-            self.template_seq[DNADirection.REV] = template.complement_seq + gap
+            seqs[DNADirection.FWD] = gap + template.seq
+            seqs[DNADirection.REV] = template.complement_seq + gap
         elif template.type == DNAType.CIRCULAR:
             # Matches existing behaviour including 0 case where padding is empty
             padding = (
@@ -270,16 +282,9 @@ class Repliconf:
                 else ""
             )
             comp = template.complement_seq
-            self.template_seq[DNADirection.FWD] = padding + template.seq
-            self.template_seq[DNADirection.REV] = (
-                comp + comp[: self.padding_len]
-            )
-
-        self.settings = settings
-        self.origin_db = DirIdxDb([], [], False)
-
-        # Pre-calculate reversed primer sequence
-        self._rev_primer_seq = self.primer.seq[::-1]
+            seqs[DNADirection.FWD] = padding + template.seq
+            seqs[DNADirection.REV] = comp + comp[: self.padding_len]
+        return seqs
 
     @cached_property
     def rev_comp_primer(self) -> DNA:
@@ -293,9 +298,17 @@ class Repliconf:
             range: A range object covering all valid start positions in the
                 padded template.
         """
-        return range(
-            len(self.template_seq[DNADirection.FWD]) - len(self.primer) + 1
-        )
+        if "template_seq" in self.__dict__:
+            padded_len = len(self.template_seq[DNADirection.FWD])
+        else:
+            tpl = self.template
+            if tpl.type in (DNAType.LINEAR, DNAType.PRIMER):
+                padded_len = self.padding_len + len(tpl)
+            elif tpl.type == DNAType.CIRCULAR:
+                padded_len = min(self.padding_len, len(tpl)) + len(tpl)
+            else:
+                padded_len = len(self.template_seq[DNADirection.FWD])
+        return range(padded_len - len(self.primer) + 1)
 
     def slice(self, i: int) -> slice:
         """Create a slice object for extracting a target segment.
@@ -362,10 +375,12 @@ class Repliconf:
 
     def _get_template_bytes(self, direction: DNADirection) -> bytes:
         """Return uppercase ASCII template bytes for the given direction."""
+        if "template_seq" in self.__dict__:
+            return self.template_seq[direction].encode("ascii")
         tpl = self.template
         pad_len = self.padding_len
         if tpl.type in (DNAType.LINEAR, DNAType.PRIMER):
-            gap_bytes = b"-" * pad_len
+            gap_bytes = _GAP_BYTE * pad_len
             if direction == DNADirection.FWD:
                 return gap_bytes + tpl.seq_upper_bytes
             return tpl.comp_upper_bytes + gap_bytes
