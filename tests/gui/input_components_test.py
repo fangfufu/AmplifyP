@@ -1806,7 +1806,11 @@ def test_handle_field_focus_minimal_updates() -> None:
         mock_page.update.reset_mock()
 
         # 1. Focus row 0 name_field: updates only row_0, not list or page
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
+        assert ft.context.auto_update_enabled() is True
         handle_field_focus(view, MagicMock(control=row_0.name_field))
+        assert ft.context.auto_update_enabled() is False
         view.primer_input.primers_list.update.assert_not_called()
         mock_page.update.assert_not_called()
         row_0.update.assert_called_once()
@@ -1816,13 +1820,17 @@ def test_handle_field_focus_minimal_updates() -> None:
         view.primer_input.delete_selected_button.update.assert_called_once()
         view.primer_input.reverse_complement_button.update.assert_called_once()
 
-        # 2. Focus row 0 seq_field (same row): zero UI updates
+        # 2. Focus row 0 seq_field (same row): zero UI updates, no auto-update
         row_0.update.reset_mock()
         view.primer_input.primer_header.update.reset_mock()
         view.primer_input.primer_info_panel.update = MagicMock()
         view.primer_input.delete_selected_button.update.reset_mock()
         view.primer_input.reverse_complement_button.update.reset_mock()
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
+        assert ft.context.auto_update_enabled() is True
         handle_field_focus(view, MagicMock(control=row_0.seq_field))
+        assert ft.context.auto_update_enabled() is False
         row_0.update.assert_not_called()
         view.primer_input.primers_list.update.assert_not_called()
         view.primer_input.primer_header.update.assert_not_called()
@@ -1832,7 +1840,10 @@ def test_handle_field_focus_minimal_updates() -> None:
         mock_page.update.assert_not_called()
 
         # 3. Focus row 1 name_field: updates only row_0 and row_1 (not row_2)
+        ft.context.enable_auto_update()
+        ft.context.reset_auto_update()
         handle_field_focus(view, MagicMock(control=row_1.name_field))
+        assert ft.context.auto_update_enabled() is False
         view.primer_input.primers_list.update.assert_not_called()
         mock_page.update.assert_not_called()
         row_0.update.assert_called_once()

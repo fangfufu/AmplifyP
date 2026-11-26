@@ -24,6 +24,7 @@ from amplifyp.gui.views.input.primer.row import PrimerRow
 
 def handle_field_focus(input_view: Any, e: ft.Event[ft.TextField]) -> None:
     """Handle focus on input fields."""
+    ft.context.disable_auto_update()
     curr_ctrl = input_view._currently_focused_control
     curr_data = getattr(curr_ctrl, "data", None) if curr_ctrl else None
     new_data = getattr(getattr(e, "control", None), "data", None)
