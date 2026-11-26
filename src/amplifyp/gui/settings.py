@@ -28,6 +28,7 @@ import yaml
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.os_paths import get_settings_yaml_path
+from amplifyp.io import safe_dump_yaml, safe_load_yaml
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -69,6 +70,8 @@ class GUISettings:
         from amplifyp.dna import Nucleotides
 
         self._cached_tm_settings: TMSettings | None = None
+        self._cached_replication_settings: ReplicationSettings | None = None
+        self._cached_primer_dimer_settings: PrimerDimerSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -186,10 +189,16 @@ class GUISettings:
         """
         return self._settings[key]
 
+    def _invalidate_caches(self) -> None:
+        """Invalidate cached core settings objects after mutations."""
+        self._cached_tm_settings = None
+        self._cached_replication_settings = None
+        self._cached_primer_dimer_settings = None
+
     def __delitem__(self, key: str) -> None:
         """Delete a setting key."""
         del self._settings[key]
-        self._cached_tm_settings = None
+        self._invalidate_caches()
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key with type coercion.
@@ -227,7 +236,7 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        self._cached_tm_settings = None
+        self._invalidate_caches()
         if key == "colour_deficient":
             val = value
             if isinstance(val, str):
@@ -336,13 +345,19 @@ class GUISettings:
         Returns:
             A ReplicationSettings instance configured from GUI settings.
         """
+        if self._cached_replication_settings is not None:
+            return self._cached_replication_settings
+
         from amplifyp.settings import ReplicationSettings
 
         normalised = dict(self._settings)
         normalised["amplify4_compatibility_mode"] = normalised.get(
             "amp4_compat", False
         )
-        return ReplicationSettings.from_dict(normalised)
+        self._cached_replication_settings = ReplicationSettings.from_dict(
+            normalised
+        )
+        return self._cached_replication_settings
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:
         """Get PrimerDimerSettings from the central settings.
@@ -354,9 +369,15 @@ class GUISettings:
         Returns:
             A PrimerDimerSettings instance configured from GUI settings.
         """
+        if self._cached_primer_dimer_settings is not None:
+            return self._cached_primer_dimer_settings
+
         from amplifyp.settings import PrimerDimerSettings
 
-        return PrimerDimerSettings.from_dict(self._settings)
+        self._cached_primer_dimer_settings = PrimerDimerSettings.from_dict(
+            self._settings
+        )
+        return self._cached_primer_dimer_settings
 
     def get_tm_settings(self) -> TMSettings:
         """Get TMSettings from the central settings.
@@ -503,13 +524,13 @@ class GUISettings:
         dark_mode_val = self._settings.get("dark_mode", False)
         if str(dark_mode_val).lower() != "system":
             GUIColours.dark_mode = bool(dark_mode_val)
-        self._cached_tm_settings = None
+        self._invalidate_caches()
 
     def reset_to_defaults(self) -> None:
         """Reset all settings to their factory default values."""
         defaults = GUISettings()
         self._settings = dict(defaults._settings)
-        self._cached_tm_settings = None
+        self._invalidate_caches()
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)
         )
@@ -577,7 +598,7 @@ class GUISettings:
         if config_path.exists():
             try:
                 with open(config_path, encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
+                    data = safe_load_yaml(f)
                 if isinstance(data, dict):
                     self.from_dict(data)
             except (OSError, yaml.YAMLError, ValueError) as e:
@@ -646,6 +667,6 @@ class GUISettings:
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
+                safe_dump_yaml(self.to_dict(), f, default_flow_style=False)
         except (OSError, yaml.YAMLError, ValueError) as e:
             logger.exception("Error saving settings to %s: %s", config_path, e)

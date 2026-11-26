@@ -1917,3 +1917,34 @@ def test_pcr_view_relative_q_score_end_to_end() -> None:
     refreshed_info = refreshed_card.content.content.controls[1]
     refreshed_text = "".join(span.text for span in refreshed_info.spans)
     assert "Q = 146 (good amplification" in refreshed_text
+
+
+def test_open_all_cards_batches_single_page_update() -> None:
+    """Verify open_all_cards updates the page once for multiple amplicons."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+    input_data = GUIInput()
+    input_data.template = (
+        "ACGTACGTACGTACGTACGT"
+        + "TTTTGGGGCCCC"
+        + "ACGTACGTACGTACGTACGT"
+        + "AAAATTTTCCCCGGGG"
+        + "TGCATGCATGCATGCATGCA"
+    )
+    input_data.template_circular = False
+    input_data.primers = [
+        {"name": "fwd", "seq": "ACGTACGTACGTACGTACGT", "active": True},
+        {"name": "rev", "seq": "TGCATGCATGCATGCATGCA", "active": True},
+    ]
+    view = PCRView(mock_page, input_data)
+    assert view.run_pcr() is True
+    assert view._cached_pcr is not None
+    expected_cards = len(view.diagram_panel._sorted_amplicons)
+    assert expected_cards >= 2
+
+    mock_page.update.reset_mock()
+    view.open_all_cards()
+    assert mock_page.update.call_count == 1
+    card_count = sum(isinstance(c, ft.Card) for c in view.result_list.controls)
+    assert card_count == expected_cards

@@ -23,7 +23,7 @@ import io
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, cast
+from typing import IO, TYPE_CHECKING, Any, cast, overload
 
 import yaml
 
@@ -367,6 +367,23 @@ class ReactionInput:
             ],
         }
 
+    def state_key(
+        self,
+    ) -> tuple[str, bool, tuple[tuple[str, str, bool], ...]]:
+        """Return a lightweight comparable snapshot without formatting."""
+        return (
+            self.template,
+            self.template_circular,
+            tuple(
+                (
+                    str(p.get("name", "")),
+                    str(p.get("seq", "")),
+                    bool(p.get("active", True)),
+                )
+                for p in self.primers
+            ),
+        )
+
     def from_dict(self, state_dict: Mapping[str, Any]) -> None:
         """Update input data from a dictionary."""
         state_obj = cast("object", state_dict)
@@ -458,6 +475,88 @@ class ReactionInput:
         return generator
 
 
+_ORIG_SAFE_LOAD = yaml.safe_load
+_ORIG_SAFE_DUMP = yaml.safe_dump
+_YAML_SAFE_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+_YAML_SAFE_DUMPER = getattr(yaml, "CSafeDumper", yaml.SafeDumper)
+
+if TYPE_CHECKING:
+    _YAML_BASE_DUMPER = yaml.SafeDumper
+else:
+    _YAML_BASE_DUMPER = _YAML_SAFE_DUMPER
+
+
+def safe_load_yaml(stream: Any) -> Any:
+    """Load YAML using CSafeLoader when available and safe_load is unpatched."""
+    if yaml.safe_load is _ORIG_SAFE_LOAD:
+        return yaml.load(stream, Loader=_YAML_SAFE_LOADER)  # noqa: S506
+    return yaml.safe_load(stream)
+
+
+@overload
+def safe_dump_yaml(
+    data: Any,
+    stream: None = None,
+    *,
+    sort_keys: bool = True,
+    default_flow_style: bool | None = None,
+) -> str: ...
+
+
+@overload
+def safe_dump_yaml(
+    data: Any,
+    stream: IO[str],
+    *,
+    sort_keys: bool = True,
+    default_flow_style: bool | None = None,
+) -> None: ...
+
+
+def safe_dump_yaml(
+    data: Any,
+    stream: IO[str] | None = None,
+    *,
+    sort_keys: bool = True,
+    default_flow_style: bool | None = None,
+) -> str | None:
+    """Dump YAML using CSafeDumper when available and safe_dump is unpatched."""
+    if yaml.safe_dump is _ORIG_SAFE_DUMP:
+        return yaml.dump(
+            data,
+            stream=stream,
+            Dumper=_YAML_SAFE_DUMPER,
+            sort_keys=sort_keys,
+            default_flow_style=default_flow_style,
+        )
+    return yaml.safe_dump(
+        data,
+        stream=stream,
+        sort_keys=sort_keys,
+        default_flow_style=default_flow_style,
+    )
+
+
+def _multiline_presenter(dumper: yaml.SafeDumper, data: str) -> yaml.ScalarNode:
+    """Represent multiline strings using the '|' block style in YAML."""
+    represent = cast(
+        "Callable[..., yaml.ScalarNode]",
+        dumper.represent_scalar,  # pyright: ignore[reportUnknownMemberType]
+    )
+    text = str(data)
+    if "\n" in text:
+        return represent("tag:yaml.org,2002:str", text, style="|")
+    return represent("tag:yaml.org,2002:str", text)
+
+
+class _StateDumper(_YAML_BASE_DUMPER):
+    """Custom SafeDumper using multiline representer for str/StrEnum."""
+
+
+_StateDumper.add_representer(str, _multiline_presenter)
+_StateDumper.add_multi_representer(str, _multiline_presenter)
+
+
 def serialise_state(state: Mapping[str, object]) -> str:
     """Serialise state dict to YAML string, handling multiline strings.
 
@@ -470,25 +569,6 @@ def serialise_state(state: Mapping[str, object]) -> str:
     Returns:
         A YAML string representation of the state.
     """
-
-    def multiline_presenter(
-        dumper: yaml.SafeDumper, data: str
-    ) -> yaml.ScalarNode:
-        """Represent multiline strings using the '|' block style in YAML."""
-        represent = cast(
-            "Callable[..., yaml.ScalarNode]",
-            dumper.represent_scalar,  # pyright: ignore[reportUnknownMemberType]
-        )
-        text = str(data)
-        if "\n" in text:
-            return represent("tag:yaml.org,2002:str", text, style="|")
-        return represent("tag:yaml.org,2002:str", text)
-
-    class _StateDumper(yaml.SafeDumper):
-        """Custom SafeDumper using multiline representer for str/StrEnum."""
-
-    _StateDumper.add_representer(str, multiline_presenter)
-    _StateDumper.add_multi_representer(str, multiline_presenter)
     return yaml.dump(dict(state), Dumper=_StateDumper, sort_keys=False)
 
 
@@ -598,7 +678,7 @@ def parse_state_yaml(content: str) -> ProjectState:
         ValueError: If the root value is empty/comment-only, not a mapping,
             or contains malformed ``input`` / ``settings`` fields.
     """
-    parsed = yaml.safe_load(content)
+    parsed = safe_load_yaml(content)
     if not isinstance(parsed, dict):
         raise ValueError("Invalid state YAML format: expected a mapping.")
     return ProjectState.from_dict(cast("dict[str, Any]", parsed))

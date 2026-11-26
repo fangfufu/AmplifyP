@@ -23,13 +23,13 @@ from collections.abc import Callable, Coroutine
 from typing import Any
 
 import flet as ft
-import yaml
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils import data_helpers
 from amplifyp.gui.utils.gui_helpers import NotificationHelper
+from amplifyp.io import safe_dump_yaml, safe_load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
             file_name: Default file name.
             params: Dictionary of parameters to serialize.
         """
-        yaml_str = yaml.safe_dump(params, sort_keys=False)
+        yaml_str = safe_dump_yaml(params, sort_keys=False)
         await data_helpers.save_and_write_file(
             page=self.app_page,
             dialog_title=dialog_title,
@@ -338,7 +338,7 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
             return None
 
         try:
-            params = yaml.safe_load(content)
+            params = safe_load_yaml(content)
             if not isinstance(params, dict):
                 self._show_notification("Error: Invalid parameter file format.")
                 return None

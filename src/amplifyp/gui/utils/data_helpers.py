@@ -31,6 +31,7 @@ import yaml
 
 from amplifyp.dna import clean_sequence, format_sequence
 from amplifyp.gui.colours import GUIColours
+from amplifyp.io import safe_load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -331,7 +332,7 @@ def _parse_web_last_state(raw_state: Any) -> dict[str, Any] | None:
         return loaded if isinstance(loaded, dict) else None
     except json.JSONDecodeError:
         try:
-            loaded = yaml.safe_load(raw_state)
+            loaded = safe_load_yaml(raw_state)
             return loaded if isinstance(loaded, dict) else None
         except yaml.YAMLError:
             return None
@@ -481,7 +482,7 @@ def load_last_state(controller: Any) -> None:
         try:
             with open(path, encoding="utf-8") as f:
                 content = f.read()
-            state_dict = yaml.safe_load(content)
+            state_dict = safe_load_yaml(content)
         except Exception as e:
             logger.exception("Error loading last state from %s: %s", path, e)
 
@@ -500,7 +501,7 @@ def restore_state_from_file(controller: Any, path: str) -> None:
         with open(path, encoding="utf-8") as f:
             content = f.read()
 
-        parsed_state = yaml.safe_load(content)
+        parsed_state = safe_load_yaml(content)
 
         if not isinstance(parsed_state, dict):
             logger.warning("Invalid state file format, ignoring.")
@@ -604,7 +605,7 @@ async def load_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
         if content is None:
             return
 
-        parsed_state = yaml.safe_load(content)
+        parsed_state = safe_load_yaml(content)
 
         if not isinstance(parsed_state, dict):
             controller.notification_helper.show_message(

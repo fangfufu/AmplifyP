@@ -15,9 +15,12 @@
 
 """Tests for amplifyp.io."""
 
+from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import pytest
+import yaml
 
 from amplifyp.dna import DNAType
 from amplifyp.io import (
@@ -28,6 +31,8 @@ from amplifyp.io import (
     parse_primer_clipboard_text,
     parse_primers_from_text,
     parse_state_yaml,
+    safe_dump_yaml,
+    safe_load_yaml,
     serialise_primers_to_tsv,
     serialise_state,
     validate_primer,
@@ -328,3 +333,46 @@ def test_tsv_empty_columns_atomic_input_and_stale_settings_pruning() -> None:
         == PrimerDimerSettings().weights
     )
     assert reloaded.tm_settings == TMSettings()
+
+
+def test_yaml_helpers_fallback_and_state_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify YAML fast helpers respect monkeypatching and state_key works."""
+
+    class _DemoStr(StrEnum):
+        VAL = "circular_val"
+
+    sample = {"key": "line1\nline2", "enum": _DemoStr.VAL}
+    dumped = serialise_state(sample)
+    assert "key: |-" in dumped
+    assert "enum: circular_val" in dumped
+    assert safe_load_yaml(dumped)["key"] == "line1\nline2"
+    assert safe_load_yaml(safe_dump_yaml({"a": 1})) == {"a": 1}
+
+    called = {"load": 0, "dump": 0}
+    orig_load = yaml.safe_load
+    orig_dump = yaml.safe_dump
+
+    def patched_load(stream: Any) -> Any:
+        called["load"] += 1
+        return orig_load(stream)
+
+    def patched_dump(data: Any, stream: Any = None, **kw: Any) -> Any:
+        called["dump"] += 1
+        return orig_dump(data, stream, **kw)
+
+    monkeypatch.setattr(yaml, "safe_load", patched_load)
+    monkeypatch.setattr(yaml, "safe_dump", patched_dump)
+    assert safe_load_yaml("a: 1") == {"a": 1}
+    assert "a: 1" in safe_dump_yaml({"a": 1})
+    assert called == {"load": 1, "dump": 1}
+
+    rxn = ReactionInput(
+        template="ATGC",
+        template_circular=False,
+        primers=[{"name": "p1", "seq": "ATGC", "active": True}],
+    )
+    key1 = rxn.state_key()
+    rxn.primers[0]["active"] = False
+    assert rxn.state_key() != key1
