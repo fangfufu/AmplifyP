@@ -1841,6 +1841,14 @@ def test_handle_field_focus_minimal_updates() -> None:
         view.primer_input.primer_header.update.assert_called_once()
 
 
+def test_primer_row_ignores_up_down_keys() -> None:
+    """Primer name and seq fields must intercept Arrow Up/Down in Flutter."""
+    _, _, _, settings = _setup_test_view()
+    row = _make_primer_row(0, "P0", "ATGC", settings)
+    assert row.name_field.ignore_up_down_keys is True
+    assert row.seq_field.ignore_up_down_keys is True
+
+
 def test_handle_row_click_preserves_active_field_focus() -> None:
     """Test row click does not deselect or steal focus when field is active."""
     mock_page = MagicMock(spec=ft.Page)
