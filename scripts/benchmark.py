@@ -418,6 +418,13 @@ def _run_io_benchmarks(repeats: int) -> list[BenchmarkResult]:
     ]
 
 
+def _require_gui_success(ok: bool, label: str) -> None:
+    """Raise if a GUI analysis benchmark call reports failure."""
+    if not ok:
+        msg = f"GUI benchmark analysis failed: {label}"
+        raise RuntimeError(msg)
+
+
 def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
     """Benchmark GUI views using a mocked headless Flet page."""
     results: list[BenchmarkResult] = []
@@ -482,11 +489,18 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
     )
 
     pcr_view = PCRView(page, input_data, settings)
-    pcr_view.run_pcr()
+    _require_gui_success(pcr_view.run_pcr(), "PCRView.run_pcr (setup)")
 
     def run_pcr_cold() -> None:
         pcr_view._cached_state_key = None
-        pcr_view.run_pcr()
+        _require_gui_success(pcr_view.run_pcr(), "PCRView.run_pcr (cold 30 kb)")
+
+    def run_pcr_cache_hit() -> None:
+        for _ in range(20):
+            _require_gui_success(
+                pcr_view.run_pcr(keep_cards=True, refresh_cards=False),
+                "PCRView.run_pcr (20x resize cache hit)",
+            )
 
     results.append(
         _measure("gui", "PCRView.run_pcr (cold 30 kb)", run_pcr_cold, repeats)
@@ -495,10 +509,7 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
         _measure(
             "gui",
             "PCRView.run_pcr (20x resize cache hit)",
-            lambda: [
-                pcr_view.run_pcr(keep_cards=True, refresh_cards=False)
-                for _ in range(20)
-            ],
+            run_pcr_cache_hit,
             repeats,
         )
     )
@@ -519,7 +530,7 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
         primers=multi_primers,
     )
     cards_view = PCRView(page, cards_input, settings)
-    cards_view.run_pcr()
+    _require_gui_success(cards_view.run_pcr(), "PCRView.run_pcr (cards setup)")
 
     def run_open_all_cards() -> None:
         cards_view.result_list.controls = [
@@ -539,11 +550,22 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
     )
 
     dimer_view = DimerView(page, input_data, settings)
-    dimer_view.run_analysis()
+    _require_gui_success(
+        dimer_view.run_analysis(), "DimerView.run_analysis (setup)"
+    )
 
     def run_dimer_cold() -> None:
         dimer_view._cached_state_key = None
-        dimer_view.run_analysis()
+        _require_gui_success(
+            dimer_view.run_analysis(), "DimerView.run_analysis (cold)"
+        )
+
+    def run_dimer_cache_hit() -> None:
+        for _ in range(20):
+            _require_gui_success(
+                dimer_view.run_analysis(),
+                "DimerView.run_analysis (20x cache hit)",
+            )
 
     results.append(
         _measure(
@@ -554,7 +576,7 @@ def _run_gui_benchmarks(repeats: int) -> list[BenchmarkResult]:
         _measure(
             "gui",
             "DimerView.run_analysis (20x cache hit)",
-            lambda: [dimer_view.run_analysis() for _ in range(20)],
+            run_dimer_cache_hit,
             repeats,
         )
     )
