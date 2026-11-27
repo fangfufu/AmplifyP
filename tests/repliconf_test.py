@@ -404,3 +404,30 @@ def test_repliconf_search_reflects_in_place_table_mutations() -> None:
     bp_settings.base_pair_scores["A", "A"] = 0.0
     bp_conf.search()
     assert not any(o.index == 2 for o in bp_conf.origin_db.fwd)
+
+
+def test_repliconf_template_seq_access_does_not_alter_search() -> None:
+    """Verify materialising template_seq keeps non-ASCII search consistent."""
+    for dna_type in (DNAType.LINEAR, DNAType.CIRCULAR):
+        tpl = DNA("A\u017f", dna_type)
+        primer = Primer("A")
+
+        cold_conf = Repliconf(tpl, primer)
+        cold_conf.search()
+
+        warm_conf = Repliconf(tpl, primer)
+        _ = warm_conf.template_seq
+        warm_conf.search()
+
+        assert warm_conf.origin_db.fwd == cold_conf.origin_db.fwd
+        assert warm_conf.origin_db.rev == cold_conf.origin_db.rev
+        assert len(warm_conf.origin_db.fwd) == 1
+
+    # Preserves explicit cached template_seq overrides with uppercase encoding
+    override_conf = Repliconf(DNA("TT", DNAType.LINEAR), Primer("A"))
+    override_conf.template_seq = {
+        DNADirection.FWD: "-a\u017f",
+        DNADirection.REV: "t\u017f-",
+    }
+    override_conf.search()
+    assert [o.index for o in override_conf.origin_db.fwd] == [1]

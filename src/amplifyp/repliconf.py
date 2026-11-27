@@ -374,7 +374,7 @@ class Repliconf:
     def _get_template_bytes(self, direction: DNADirection) -> bytes:
         """Return uppercase ASCII template bytes for the given direction."""
         if "template_seq" in self.__dict__:
-            return self.template_seq[direction].encode("ascii")
+            return self.template_seq[direction].upper().encode("ascii")
         tpl = self.template
         pad_len = self.padding_len
         if tpl.type in (DNAType.LINEAR, DNAType.PRIMER):
@@ -389,7 +389,7 @@ class Repliconf:
                 return padding + tpl_bytes
             comp_bytes = tpl.comp_upper_bytes
             return comp_bytes + comp_bytes[:pad_len]
-        return self.template_seq[direction].encode("ascii")
+        return self.template_seq[direction].upper().encode("ascii")
 
     def search(self) -> None:
         """Perform a search for valid replication origins.
