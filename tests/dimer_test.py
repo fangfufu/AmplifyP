@@ -431,3 +431,33 @@ def test_calculate_dimer_stats_edge_cases() -> None:
         calculate_dimer_stats("ACGT", "TGCA", 5, 4)
     with pytest.raises(IndexError):
         calculate_dimer_stats("ACGT", "TGCA", 4, 5)
+
+
+def test_primer_dimer_binding_strength_non_ascii_fallback() -> None:
+    """Test binding_strength_str fallback path for non-ASCII sequences."""
+    from amplifyp.dna import DNADirection, DNAType
+    from amplifyp.settings import BasePairWeightsTbl
+
+    tbl = BasePairWeightsTbl("ACGT", "ACGT", [[0.0] * 4 for _ in range(4)])
+    tbl["\u00c0", "A"] = -5.0  # < 0 -> ' '
+    tbl["\u00c0", "C"] = 5.0  # < threshold (10) -> ':'
+    tbl["\u00c0", "G"] = 20.0  # >= threshold (10) -> '|'
+    # ('\u00c0', 'T') intentionally omitted -> KeyError -> 0.0 -> ':'
+    settings = PrimerDimerSettings(weights=tbl, symbol_threshold=10.0)
+
+    non_ascii_p = Primer._from_validated(
+        "\u00c0\u00c0\u00c0\u00c0",
+        "\u00c0\u00c0\u00c0\u00c0",
+        DNAType.PRIMER,
+        "non_ascii",
+        DNADirection.FWD,
+    )
+    dimer = PrimerDimer(
+        primer_1=non_ascii_p,
+        primer_2=Primer("ACGT"),
+        quality=20.0,
+        overlap=4,
+        p1_pos=0,
+        settings=settings,
+    )
+    assert dimer.binding_strength_str == " :|:"

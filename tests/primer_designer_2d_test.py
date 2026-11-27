@@ -712,3 +712,48 @@ def test_primer_designer_2d_mixed_case_identical_primers() -> None:
             mixed_case.all_steps[0].amplicon_count
             == same_case.all_steps[0].amplicon_count
         )
+
+
+def test_primer_designer_2d_max_heterodimer_rejection_and_reanalyse() -> None:
+    """Test MAX early rejection on d_fr/d_rf and standalone _analyse()."""
+    from amplifyp.dimer import PrimerDimerGenerator
+    from amplifyp.settings import PrimerDimerSettings
+
+    # 1. Self-dimers pass while forward-vs-reverse hetero-dimer (d_fr) fails
+    d_fr_reject = PrimerDesigner2D(
+        fwd_dna=DNA("AAAAAAAAAA"),
+        fwd_min_length=10,
+        rev_dna=DNA("TTTTTTTTTT"),
+        rev_min_length=10,
+        filter_metric=FilterMetric.MAX,
+        threshold=50.0,
+    )
+    assert d_fr_reject.all_steps == ()
+
+    # 2. d_ff, d_rr, and d_fr pass while asymmetric d_rf fails MAX threshold
+    asym_settings = PrimerDimerSettings()
+    asym_settings.weights["A", "T"] = -10.0
+    asym_settings.weights["T", "A"] = 30.0
+    asym_gen = PrimerDimerGenerator(settings=asym_settings)
+
+    d_rf_reject = PrimerDesigner2D(
+        fwd_dna=DNA("AAAAA"),
+        fwd_min_length=5,
+        rev_dna=DNA("TTTTT"),
+        rev_min_length=5,
+        generator=asym_gen,
+        filter_metric=FilterMetric.MAX,
+        threshold=50.0,
+    )
+    assert d_rf_reject.all_steps == ()
+
+    # 3. Direct _analyse() call with initial_truncations=None reproduces steps
+    designer = PrimerDesigner2D(
+        fwd_dna=DNA("ACGTACGT"),
+        fwd_min_length=7,
+        rev_dna=DNA("TGCATGCA"),
+        rev_min_length=7,
+    )
+    expected = designer.all_steps
+    designer._analyse()
+    assert designer.all_steps == expected

@@ -460,3 +460,26 @@ def test_repliconf_rejects_length_changing_primer_normalisation() -> None:
     assert not conf.searched
     assert len(conf.origin_db.fwd) == 0
     assert len(conf.origin_db.rev) == 0
+
+
+def test_repliconf_zero_denom_and_impossible_cutoff_paths() -> None:
+    """Cover zero prim_denom and all-zero k0_mask early-skip branches."""
+    # Zero match weights -> prim_denom == 0 -> unmasked fallback with 0 hits
+    zero_settings = ReplicationSettings(
+        match_weight=LengthWiseWeightTbl(0.0),
+    )
+    zero_conf = Repliconf(DNA("ACGTACGT"), Primer("ACGT"), zero_settings)
+    zero_conf.search()
+    assert zero_conf.searched
+    assert len(zero_conf.origin_db.fwd) == 0
+    assert len(zero_conf.origin_db.rev) == 0
+
+    # Cutoff > 1.0 -> no k0 base can reach prim_req -> skips both strands
+    impossible_settings = ReplicationSettings(primability_cutoff=1.5)
+    impossible_conf = Repliconf(
+        DNA("ACGTACGT"), Primer("ACGT"), impossible_settings
+    )
+    impossible_conf.search()
+    assert impossible_conf.searched
+    assert len(impossible_conf.origin_db.fwd) == 0
+    assert len(impossible_conf.origin_db.rev) == 0
