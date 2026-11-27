@@ -258,13 +258,18 @@ def test_repliconf_format_context_alignment() -> None:
 
 def test_repliconf_pruning_fallback_and_lazy_properties() -> None:
     """Test pruning fallback paths, degenerate bases, and lazy reverse comp."""
-    # Long 35-mer primer where a 3'-end mismatch still exceeds prim_cutoff=0.8
+    # Long 37-mer primer where a 3'-end mismatch still scores 121/151 > 0.8
     # (good_acgt_count > 2 -> triggers non-masked full search_range scan).
-    long_primer = Primer("A" * 35)
-    tpl = DNA("TTTT" + ("A" * 34) + "CTTTT", DNAType.LINEAR)
+    long_primer = Primer("A" * 37)
+    tpl = DNA("TTTT" + ("A" * 36) + "CTTTT", DNAType.LINEAR)
     conf = Repliconf(tpl, long_primer)
     conf.search()
-    assert len(conf.origin_db.fwd) >= 1
+    mismatch_idx = len(long_primer) + 4  # 37 gap bases + "TTTT" -> "A"*36 + "C"
+    mismatch_origins = [
+        o for o in conf.origin_db.fwd if o.index == mismatch_idx
+    ]
+    assert len(mismatch_origins) == 1
+    assert mismatch_origins[0].primability == pytest.approx(121 / 151)
     assert conf.rev_comp_primer == long_primer.reverse_complement()
 
     # Non-positive primability cutoff / lower cutoff exercises rem_max & low cut
