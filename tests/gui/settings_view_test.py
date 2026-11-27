@@ -486,6 +486,10 @@ def test_general_tile_all_branches() -> None:
     tile.update_ui()
     assert tile.status_text.color == GUIColours.ERROR_RED
 
+    tile._status_state = "success"
+    tile.update_ui()
+    assert tile.status_text.color == GUIColours.SUCCESS_GREEN
+
     tile._status_state = "checking"
     tile.update_ui()
     assert tile.status_text.color == GUIColours.MUTED_GREY
