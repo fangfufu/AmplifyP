@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import copy
 import inspect
 import json
@@ -31,6 +30,7 @@ import yaml
 
 from amplifyp.dna import clean_sequence, format_sequence
 from amplifyp.gui.colours import GUIColours
+from amplifyp.gui.utils.system import run_in_background_thread
 from amplifyp.io import safe_load_yaml
 
 logger = logging.getLogger(__name__)
@@ -223,13 +223,13 @@ def create_overlapped_sequence_view(
 
 
 def _read_file(path: str) -> str:
-    """Synchronous file read helper for use with asyncio.to_thread."""
+    """Synchronous file read helper for background thread execution."""
     with open(path, encoding="utf-8") as f:
         return f.read()
 
 
 def _write_file(path: str, content: str) -> None:
-    """Synchronous file write helper for use with asyncio.to_thread."""
+    """Synchronous file write helper for background thread execution."""
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
 
@@ -262,7 +262,7 @@ async def pick_and_read_file(
             if not file.path:
                 show_notification("Error: Could not read file content.")
                 return None
-            content = await asyncio.to_thread(_read_file, file.path)
+            content = await run_in_background_thread(_read_file, file.path)
             return content
     except (OSError, ValueError) as ex:
         show_notification(f"Error loading file: {ex}")
@@ -301,7 +301,7 @@ async def save_and_write_file(
         else:
             if file_path is None:
                 return False
-            await asyncio.to_thread(_write_file, file_path, content)
+            await run_in_background_thread(_write_file, file_path, content)
             show_notification(success_message_desktop)
             return True
     except OSError as ex:

@@ -17,7 +17,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from collections.abc import Callable
@@ -362,7 +361,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         """Asynchronously run update check and update UI."""
         from amplifyp import __version__ as current_version
         from amplifyp.gui.utils.system import (
-            fetch_latest_release_version,
+            fetch_latest_release_version_async,
             is_newer_version,
         )
 
@@ -372,10 +371,30 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
         self.status_text.color = GUIColours.MUTED_GREY
         self.app_page.update()
 
-        loop = asyncio.get_running_loop()
-        latest_tag = await loop.run_in_executor(
-            None, fetch_latest_release_version
-        )
+        try:
+            latest_tag = await fetch_latest_release_version_async()
+        except Exception:
+            self.check_button.disabled = False
+            self.status_text.value = (
+                "Could not check for updates. "
+                "Please check your network connection."
+            )
+            self._status_state = "error"
+            self.status_text.color = GUIColours.ERROR_RED
+            try:
+                self.app_page.update()
+            except RuntimeError:
+                pass
+            raise
+        except BaseException:
+            self.check_button.disabled = False
+            self.status_text.value = ""
+            self._status_state = None
+            try:
+                self.app_page.update()
+            except RuntimeError:
+                pass
+            raise
 
         self.check_button.disabled = False
 

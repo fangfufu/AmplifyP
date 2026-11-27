@@ -15,6 +15,7 @@
 
 """Tests for GUI utility functions."""
 
+import asyncio
 import subprocess
 import sys
 from typing import Any, cast
@@ -1837,6 +1838,32 @@ async def test_pick_and_read_file_branches(tmp_path: Any) -> None:
         assert res is None
         assert "Error loading file: Read error" in notifications[-1]
 
+    # 5. Path fallback works without executor in threadless (Pyodide) runtime
+    loop = asyncio.get_running_loop()
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            loop,
+            "run_in_executor",
+            side_effect=AssertionError("executor should not be called"),
+        ),
+        patch(
+            "amplifyp.gui.utils.data_helpers.ft.FilePicker"
+        ) as mock_picker_cls,
+    ):
+        instance = MagicMock()
+        mock_file = MagicMock()
+        mock_file.bytes = None
+        mock_file.path = str(sample_file)
+        instance.pick_files = AsyncMock(return_value=[mock_file])
+        mock_picker_cls.return_value = instance
+
+        res = await pick_and_read_file(mock_page, "Pick", ["txt"], notify)
+        assert res == "file content from path"
+
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
 async def test_save_and_write_file_branches(tmp_path: Any) -> None:
@@ -1893,6 +1920,33 @@ async def test_save_and_write_file_branches(tmp_path: Any) -> None:
         )
         assert ok is False
         assert "Error saving file:" in notifications[-1]
+
+    # 4. Write works without executor in threadless (Pyodide) runtime
+    threadless_path = tmp_path / "saved_threadless.txt"
+    loop = asyncio.get_running_loop()
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            loop,
+            "run_in_executor",
+            side_effect=AssertionError("executor should not be called"),
+        ),
+        patch(
+            "amplifyp.gui.utils.data_helpers.ft.FilePicker"
+        ) as mock_picker_cls,
+    ):
+        instance = MagicMock()
+        instance.save_file = AsyncMock(return_value=str(threadless_path))
+        mock_picker_cls.return_value = instance
+
+        ok = await save_and_write_file(
+            mock_page, "Save", "out.txt", ["txt"], "threadless data", notify
+        )
+        assert ok is True
+        assert threadless_path.read_text(encoding="utf-8") == "threadless data"
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -2323,3 +2377,293 @@ async def test_data_helpers_web_and_desktop_last_state_edge_cases() -> None:
         await load_last_state_async(ctrl)
     assert ctrl.input_data.template == "GGGG"
     assert ctrl.input_data.template_circular is True
+
+
+def test_can_use_background_threads_detection() -> None:
+    """Test Pyodide detection, background thread helper, and async updater."""
+    from amplifyp.gui.utils import system as system_utils
+    from amplifyp.gui.utils.system import (
+        can_use_background_threads,
+        fetch_latest_release_version_async,
+        is_pyodide_runtime,
+        run_in_background_thread,
+    )
+
+    # New public helpers must be exported in __all__.
+    for name in (
+        "can_use_background_threads",
+        "fetch_latest_release_version_async",
+        "is_pyodide_runtime",
+        "run_in_background_thread",
+    ):
+        assert name in system_utils.__all__
+
+    with (
+        patch("amplifyp.gui.utils.system.sys.platform", "linux"),
+        patch.dict("sys.modules"),
+    ):
+        sys.modules.pop("pyodide", None)
+        assert is_pyodide_runtime() is False
+        assert can_use_background_threads() is True
+
+    with patch("amplifyp.gui.utils.system.sys.platform", "emscripten"):
+        assert is_pyodide_runtime() is True
+        assert can_use_background_threads() is False
+
+    with (
+        patch("amplifyp.gui.utils.system.sys.platform", "linux"),
+        patch.dict("sys.modules", {"pyodide": MagicMock()}, clear=False),
+    ):
+        assert is_pyodide_runtime() is True
+        assert can_use_background_threads() is False
+
+    # Verify run_in_background_thread skips executor in threadless mode,
+    # falls back safely on thread-start RuntimeError without double-running,
+    # and propagates non-thread-creation RuntimeError.
+    async def _verify_run_in_background_thread() -> None:
+        loop = asyncio.get_running_loop()
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch.object(
+                loop,
+                "run_in_executor",
+                side_effect=AssertionError("executor should not be called"),
+            ),
+        ):
+            assert await run_in_background_thread(lambda: "ok") == "ok"
+
+        def _add(a: int, b: int = 2) -> int:
+            return a + b
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(
+                loop,
+                "run_in_executor",
+                side_effect=RuntimeError("can't start new thread"),
+            ),
+        ):
+            assert await run_in_background_thread(_add, 3, b=4) == 7
+
+        # Non-thread-start RuntimeError (e.g. executor shutdown) must propagate.
+        shutdown_calls = 0
+
+        def _should_not_run() -> str:
+            nonlocal shutdown_calls
+            shutdown_calls += 1
+            return "ran"
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(
+                loop,
+                "run_in_executor",
+                side_effect=RuntimeError(
+                    "cannot schedule new futures after shutdown"
+                ),
+            ),
+            pytest.raises(
+                RuntimeError, match="cannot schedule new futures after shutdown"
+            ),
+        ):
+            await run_in_background_thread(_should_not_run)
+        assert shutdown_calls == 0
+
+        # If submit() enqueued _run before raising "can't start new thread",
+        # executing the orphaned _run later must be a no-op (no double run).
+        orphaned_callbacks: list[Any] = []
+        once_calls = 0
+
+        def _once_func() -> str:
+            nonlocal once_calls
+            once_calls += 1
+            return "single"
+
+        def _enqueue_then_fail(_executor: Any, fn: Any) -> Any:
+            orphaned_callbacks.append(fn)
+            raise RuntimeError("can't start new thread")
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(
+                loop, "run_in_executor", side_effect=_enqueue_then_fail
+            ),
+        ):
+            assert await run_in_background_thread(_once_func) == "single"
+        assert once_calls == 1
+        assert len(orphaned_callbacks) == 1
+        orphaned_callbacks[0]()
+        assert once_calls == 1
+
+        # If an existing worker already dequeued and ran _run before submit()
+        # raised "can't start new thread", await that outcome without re-running
+        # (both success and exception paths).
+        worker_calls = 0
+
+        def _worker_first() -> str:
+            nonlocal worker_calls
+            worker_calls += 1
+            return "from-worker"
+
+        def _run_then_fail(_executor: Any, fn: Any) -> Any:
+            fn()
+            raise RuntimeError("can't start new thread")
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(loop, "run_in_executor", side_effect=_run_then_fail),
+        ):
+            assert await run_in_background_thread(_worker_first) == (
+                "from-worker"
+            )
+        assert worker_calls == 1
+
+        worker_err_calls = 0
+
+        def _worker_first_error() -> None:
+            nonlocal worker_err_calls
+            worker_err_calls += 1
+            raise ValueError("worker boom")
+
+        def _run_err_then_fail(_executor: Any, fn: Any) -> Any:
+            try:
+                fn()
+            except ValueError:
+                pass
+            raise RuntimeError("can't start new thread")
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(
+                loop, "run_in_executor", side_effect=_run_err_then_fail
+            ),
+            pytest.raises(ValueError, match="worker boom"),
+        ):
+            await run_in_background_thread(_worker_first_error)
+        assert worker_err_calls == 1
+
+        # _signal_done ignores RuntimeError if loop.call_soon_threadsafe fails
+        # for done_event.set while still letting the executor future resolve.
+        orig_call_soon_threadsafe = loop.call_soon_threadsafe
+
+        def _fail_on_event_set(cb: Any, *cb_args: Any, **cb_kw: Any) -> Any:
+            if (
+                isinstance(getattr(cb, "__self__", None), asyncio.Event)
+                and getattr(cb, "__name__", "") == "set"
+            ):
+                raise RuntimeError("Event loop is closed")
+            return orig_call_soon_threadsafe(cb, *cb_args, **cb_kw)
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            patch.object(
+                loop,
+                "call_soon_threadsafe",
+                side_effect=_fail_on_event_set,
+            ),
+        ):
+            assert await run_in_background_thread(lambda: "closed-loop") == (
+                "closed-loop"
+            )
+
+        # RuntimeError raised inside func in a worker thread must propagate
+        # without re-invoking func on the event loop.
+        calls = 0
+
+        def _failing_func() -> None:
+            nonlocal calls
+            calls += 1
+            raise RuntimeError("domain error")
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=True,
+            ),
+            pytest.raises(RuntimeError, match="domain error"),
+        ):
+            await run_in_background_thread(_failing_func)
+        assert calls == 1
+
+        # Verify fetch_latest_release_version_async uses pyodide.http.pyfetch
+        # asynchronously on Pyodide without touching urllib or threads.
+        mock_resp = MagicMock()
+        mock_resp.ok = True
+        mock_resp.json = AsyncMock(return_value={"tag_name": " v2.3.4 "})
+        mock_pyodide_http = MagicMock()
+        mock_pyodide_http.pyfetch = AsyncMock(return_value=mock_resp)
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch.dict(
+                "sys.modules",
+                {"pyodide": MagicMock(), "pyodide.http": mock_pyodide_http},
+            ),
+            patch(
+                "urllib.request.urlopen",
+                side_effect=AssertionError("urllib should not be called"),
+            ),
+        ):
+            assert await fetch_latest_release_version_async() == "v2.3.4"
+
+            mock_blank_resp = MagicMock()
+            mock_blank_resp.ok = True
+            mock_blank_resp.json = AsyncMock(return_value={"tag_name": "   "})
+            mock_pyodide_http.pyfetch = AsyncMock(return_value=mock_blank_resp)
+            assert await fetch_latest_release_version_async() is None
+
+            mock_pyodide_http.pyfetch = AsyncMock(
+                side_effect=OSError("offline")
+            )
+            assert await fetch_latest_release_version_async() is None
+
+            mock_bad_resp = MagicMock()
+            mock_bad_resp.ok = False
+            mock_bad_resp.status = 403
+            mock_pyodide_http.pyfetch = AsyncMock(return_value=mock_bad_resp)
+            with patch("amplifyp.gui.utils.system.logger.warning") as mock_warn:
+                assert await fetch_latest_release_version_async() is None
+                mock_warn.assert_called_once_with(
+                    "Failed to check for updates: HTTP %s", 403
+                )
+
+        # Missing pyodide.http module falls back cleanly to core fetch helper.
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch.dict("sys.modules", {"pyodide.http": None}),
+            patch(
+                "amplifyp.gui.utils.system.run_in_background_thread",
+                new=AsyncMock(return_value="v9.9.9"),
+            ) as mock_bg,
+        ):
+            assert await fetch_latest_release_version_async() == "v9.9.9"
+            mock_bg.assert_awaited_once()
+
+    asyncio.run(_verify_run_in_background_thread())
