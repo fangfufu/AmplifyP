@@ -2180,3 +2180,22 @@ def test_template_input_status_bar_selection_branches() -> None:
         ft.TextSelection(base_offset=1, extent_offset=5), False
     )
     assert ti.status_text.value == "Selected Bases: 2 - 3"
+
+
+def test_update_line_numbers_escaped_and_non_ascii_fallback() -> None:
+    """Test update_line_numbers fallback branch for escaped/non-ASCII text."""
+    from amplifyp.gui.views.input.template.formatter import update_line_numbers
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings["show_line_numbers"] = True
+    view = InputView(mock_page, GUIInput(template="ACGT"), settings)
+    ti = view.template_input
+
+    ti.template_sequence.value = "AC\\nGT\nTG\\tCA"
+    update_line_numbers(ti, update=False)
+    assert ti.line_numbers_text.value == "0\n4"
+
+    ti.template_sequence.value = "AC\u00a0GT\nTGCA"
+    update_line_numbers(ti, update=False)
+    assert ti.line_numbers_text.value == "0\n4"

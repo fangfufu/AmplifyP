@@ -1948,3 +1948,46 @@ def test_open_all_cards_batches_single_page_update() -> None:
     assert mock_page.update.call_count == 1
     card_count = sum(isinstance(c, ft.Card) for c in view.result_list.controls)
     assert card_count == expected_cards
+
+
+def test_open_all_cards_empty_and_draw_primers_horizontal_fallback() -> None:
+    """Cover open_all_cards zero-amplicon return and horizontal layout."""
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.dialog = None
+    mock_page.width = 800
+
+    # 1. Zero-amplicon PCR: open_all_cards() returns early without updating page
+    no_amp_input = GUIInput(
+        template="A" * 60,
+        template_circular=False,
+        primers=[{"name": "p1", "seq": "CCCCCCCCCCCCCCCCCCCC", "active": True}],
+    )
+    empty_view = PCRView(mock_page, no_amp_input)
+    assert empty_view.run_pcr() is True
+    assert empty_view._cached_pcr is not None
+    mock_page.update.reset_mock()
+    empty_view.open_all_cards()
+    assert mock_page.update.call_count == 0
+
+    # 2. _draw_primers() computes horizontal label layouts when omitted
+    tpl = DNA("ACGTACGTACGTACGTACGTTTTTGGGGCCCCTGCATGCATGCATGCATGCA")
+    fwd_conf = Repliconf(tpl, Primer("ACGTACGTACGTACGTACGT", name="fwd"))
+    fwd_conf.search()
+    rev_conf = Repliconf(tpl, Primer("TGCATGCATGCATGCATGCA", name="rev"))
+    rev_conf.search()
+    fwd_var = fwd_conf.origin_db.fwd[0]
+    rev_var = rev_conf.origin_db.rev[0]
+
+    panel = empty_view.diagram_panel
+    panel.reset_ui()
+    panel._draw_primers(
+        fwd_bindings={(fwd_var.index, "fwd"): ("fwd", 1.0, fwd_conf, fwd_var)},
+        rev_bindings={(rev_var.index, "rev"): ("rev", 1.0, rev_conf, rev_var)},
+        target_length=len(tpl),
+        t_width=600.0,
+        h_margin=50.0,
+        v_target=120.0,
+        c_width=700.0,
+        label_orientation="Horizontal",
+    )
+    assert len(panel.diagram_stack.controls) >= 2
