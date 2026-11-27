@@ -27,6 +27,7 @@ import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import DNA, DNADirection
+from amplifyp.errors import InvalidDNASequenceError
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -496,24 +497,38 @@ class PrimerDesignerView(BaseDesignerView):
         ) = params
         self.primer_list.controls.clear()
 
-        template_dna: DNA | None = None
-        if filter_dna_enabled:
-            clean_tpl = clean_sequence(self.input_data.template)
-            if not clean_tpl:
-                self.form.show_error(
-                    "Template DNA sequence is required when check against "
-                    "template is enabled. Please enter a template in the "
-                    "Input view."
-                )
-                try:
-                    if self.app_page:
-                        self.app_page.update()
-                except RuntimeError:
-                    pass
-                return
-            template_dna = self.input_data.to_template_dna()
+        try:
+            template_dna: DNA | None = None
+            if filter_dna_enabled:
+                clean_tpl = clean_sequence(self.input_data.template)
+                if not clean_tpl:
+                    self.form.show_error(
+                        "Template DNA sequence is required when check against "
+                        "template is enabled. Please enter a template in the "
+                        "Input view."
+                    )
+                    try:
+                        if self.app_page:
+                            self.app_page.update()
+                    except RuntimeError:
+                        pass
+                    return
+                template_dna = self.input_data.to_template_dna()
 
-        dna_obj = DNA(clean_seq)
+            dna_obj = DNA(clean_seq)
+        except InvalidDNASequenceError as ex:
+            self.form.show_error(f"Error: {ex}")
+            show_error_dialog(
+                self.app_page,
+                "Error running Primer Designer",
+                str(ex),
+            )
+            try:
+                if self.app_page:
+                    self.app_page.update()
+            except RuntimeError:
+                pass
+            return
         # Total truncation steps is deterministic before launching analysis.
         total_steps = len(dna_obj.seq) - min_length + 1
 
@@ -880,7 +895,10 @@ class PrimerDesignerView(BaseDesignerView):
         )
 
         self.form.clear_errors()
+        validated = self.form.validate_and_get_params()
         self.app_page.update()
+        if validated is None:
+            return
 
         self._show_notification("Parameters loaded successfully.")
         self._start_designer()

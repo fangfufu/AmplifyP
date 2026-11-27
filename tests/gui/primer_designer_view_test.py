@@ -1929,3 +1929,60 @@ def test_designer_1d_clear_all_guard_and_stale_callbacks() -> None:
     ):
         detached_view._start_designer()
     assert detached_view._analysis_running is False
+
+
+def test_designer_1d_invalid_dna_on_load_and_analyse() -> None:
+    """Test invalid DNA sequences fail cleanly on load and Analyse paths."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = PrimerDesignerView(mock_page, input_data, GUISettings())
+
+    # 1. Loading a YAML file with invalid DNA characters does not announce
+    # success, does not start analysis, marks the field error, and leaves the
+    # loaded fields editable.
+    bad_yaml = "dna: 'ATG?'\nmin_length: '3'\n"
+    with (
+        patch(
+            "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+            new=AsyncMock(return_value=bad_yaml),
+        ),
+        patch.object(view, "_show_notification") as mock_notify,
+        patch.object(view, "_start_designer") as mock_start,
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+        mock_notify.assert_not_called()
+        mock_start.assert_not_called()
+
+    assert view.form.dna_input.value == "ATG?"
+    assert view.form.min_len_input.value == "3"
+    assert view.form.dna_input.disabled is not True
+    assert view.form.dna_input.read_only is not True
+    assert view.form.dna_input.error is not None
+    assert "invalid characters" in view.form.dna_input.error
+
+    # 2. Clicking Analyse (_start_designer) with invalid candidate sequence
+    # fails form validation without raising or launching a worker.
+    with patch.object(view, "_start_analysis_worker") as mock_worker:
+        view._start_designer()
+        mock_worker.assert_not_called()
+    assert view._analysis_running is False
+    assert view.form.dna_input.error is not None
+
+    # 3. Invalid template DNA in _start_designer shows error dialog without
+    # raising or launching a worker, even when app_page.update() raises.
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+    view.form.filter_dna_checkbox.value = True
+    input_data.template = "ATG?CGTACGT"
+    mock_page.update.side_effect = RuntimeError("update failed")
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_dialog,
+        patch.object(view, "_start_analysis_worker") as mock_worker,
+    ):
+        view._start_designer()
+        mock_dialog.assert_called_once()
+        mock_worker.assert_not_called()
+    assert view._analysis_running is False
+    assert "invalid characters" in (view.form.error_text.value or "")
