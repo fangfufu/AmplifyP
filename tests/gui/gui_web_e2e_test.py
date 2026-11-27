@@ -50,6 +50,7 @@ PRIMER_INPUT_SEL = (
     'flt-semantics[aria-label="Add Primer"] ~ flt-semantics '
     "textarea:not([disabled])"
 )
+TEMPLATE_INPUT_SEL = 'textarea[aria-label="Enter DNA sequence here..."]'
 
 
 # Check entire module for dependencies
@@ -146,22 +147,15 @@ def fill_field_reliably(
     use_last: bool = False,
     index: int | None = None,
 ) -> None:
-    """Focus and type text into a Flutter Web text field.
+    """Focus and fill text into a Flutter Web text field.
 
-    Two key Flutter Web quirks must be handled here:
-
-    1. **Opacity filter**: Flutter Web's ``flt-semantics-host`` has
-       ``filter: opacity(0%)`` applied.  Playwright's default ``click()``
-       refuses to interact with elements whose ancestor has zero opacity.
-       ``force=True`` bypasses this check.  The inner semantic nodes still
-       carry ``pointer-events: all`` so interaction succeeds.
-
-    2. **DOM value is always empty**: Flutter renders text via WebGL /
-       CanvasKit and *never* writes typed characters back to the native
-       textarea/input ``value`` property.  Reading ``element.value`` via
-       ``page.evaluate()`` or ``input_value()`` always returns ``''``.
-       Verification is therefore left to downstream test assertions (e.g.
-       checking the downloaded file contains the expected sequence).
+    Uses DOM ``focus()`` without a follow-up ``click(force=True)`` because
+    clicking a focused primer row field triggers the enclosing
+    ``GestureDetector.on_tap`` handler while ``on_focus`` is still in flight,
+    causing rapid focus/blur bounces and async ``scroll_target.update()``
+    calls that can race with ``fill()`` and drop the entered text.  A forced
+    click can also hit stale or off-viewport coordinates if the
+    ``PrimerInfoPanel`` resizes the primer list.
     """
     if index is not None:
         field = page.locator(selector).nth(index)
@@ -169,10 +163,7 @@ def fill_field_reliably(
         field = page.locator(selector).last
     else:
         field = page.locator(selector).first
-    # force=True bypasses the visibility check from filter:opacity(0%) on the
-    # flt-semantics-host parent.
     field.focus()
-    field.click(force=True)
     time.sleep(0.5)
     field.press("Control+a")
     field.press("Delete")
@@ -486,8 +477,7 @@ def test_e2e_primer_lifecycle_and_state(
 
     # 8. Save the state
     print("Saving the full state...")
-    TEMPLATE_SEL = "textarea:not([readonly])"
-    fill_field_reliably(page, TEMPLATE_SEL, "ATGCATGC")
+    fill_field_reliably(page, TEMPLATE_INPUT_SEL, "ATGCATGC")
     page.keyboard.press("Tab")
     time.sleep(1)
 
@@ -1062,7 +1052,7 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
 
     # Blur the sequence field by focusing the template sequence field to trigger
     # on_blur → timer → sync_to_state
-    page.locator('textarea:not([aria-label*="Add Primer"])').first.focus()
+    page.locator(TEMPLATE_INPUT_SEL).first.focus()
     time.sleep(1.0)
 
     # Wait for the count to increase by 2 (indicating a new
@@ -1079,9 +1069,10 @@ def add_primer_to_trailing_row(page: Any, name: str, seq: str) -> None:
         if page.locator(PRIMER_INPUT_SEL).count() >= initial_count + 2:
             return
 
-        # It was not auto-added (because it was invalid). Re-focus the last
-        # non-file input before using the toolbar Add button.
-        page.locator(PRIMER_INPUT_SEL).last.click(force=True)
+        # It was not auto-added. Re-focus the last primer input via DOM
+        # focus() (avoiding a forced click that can land on stale coordinates
+        # when PrimerInfoPanel shrinks the list) before clicking Add Primer.
+        page.locator(PRIMER_INPUT_SEL).last.focus()
         time.sleep(0.5)
 
         # Check again after focusing/sleeping
