@@ -272,33 +272,36 @@ class DNA:
             and suffix._seq_upper is suffix._seq
         )
         if wrap:
-            seq = (
-                prefix._seq
-                + template._seq[start:]
-                + template._seq[:end]
-                + suffix._seq
-            )
-            seq_upper = (
-                seq
-                if same_case
-                else (
+            tpl_slice = template._seq[start:] + template._seq[:end]
+            seq = prefix._seq + tpl_slice + suffix._seq
+            if same_case:
+                seq_upper = seq
+            elif template._seq.isascii():
+                seq_upper = (
                     prefix._seq_upper
                     + template._seq_upper[start:]
                     + template._seq_upper[:end]
                     + suffix._seq_upper
                 )
-            )
+            else:
+                seq_upper = (
+                    prefix._seq_upper + tpl_slice.upper() + suffix._seq_upper
+                )
         else:
-            seq = prefix._seq + template._seq[start:end] + suffix._seq
-            seq_upper = (
-                seq
-                if same_case
-                else (
+            tpl_slice = template._seq[start:end]
+            seq = prefix._seq + tpl_slice + suffix._seq
+            if same_case:
+                seq_upper = seq
+            elif template._seq.isascii():
+                seq_upper = (
                     prefix._seq_upper
                     + template._seq_upper[start:end]
                     + suffix._seq_upper
                 )
-            )
+            else:
+                seq_upper = (
+                    prefix._seq_upper + tpl_slice.upper() + suffix._seq_upper
+                )
         return DNA._from_validated(
             seq,
             seq_upper,
@@ -558,9 +561,13 @@ class DNA:
             DNA: A new DNA object representing the subsequence.
         """
         sub_seq = self._seq[key]
-        sub_upper = (
-            sub_seq if self._seq_upper is self._seq else self._seq_upper[key]
-        )
+        if self._seq_upper is self._seq:
+            sub_upper = sub_seq
+        elif self._seq.isascii():
+            sub_upper = self._seq_upper[key]
+        else:
+            upper = sub_seq.upper()
+            sub_upper = sub_seq if upper == sub_seq else upper
         return type(self)._from_validated(
             sub_seq,
             sub_upper,

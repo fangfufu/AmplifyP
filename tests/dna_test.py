@@ -358,3 +358,30 @@ def test_dna_fast_ops_and_clean_sequence_edge_cases() -> None:
     assert p_rc.seq == "GCAT"
     assert p_rc.type == DNAType.PRIMER
     assert p_rc.direction == DNADirection.FWD
+
+
+def test_dna_non_ascii_slicing_and_concat_slices() -> None:
+    """Ensure non-ASCII case expansion stays aligned on slicing and concat."""
+    dna = DNA("ßA")
+    assert dna[1].seq == "A"
+    assert dna[1].seq_upper == "A"
+    assert dna[1].count_at() == 1
+    assert dna[0].seq == "ß"
+    assert dna[0].seq_upper == "SS"
+    assert dna[0].count_cg() == 2
+    assert dna[1:2].seq_upper == "A"
+
+    non_ascii_tpl = DNA("ßAC", DNAType.CIRCULAR)
+    concat_lin = DNA.concat_slices(
+        DNA("G"), non_ascii_tpl, 1, 3, DNA("T"), wrap=False
+    )
+    assert concat_lin.seq == "GACT"
+    assert concat_lin.seq_upper == "GACT"
+    assert concat_lin.count_at() == 2
+
+    concat_wrap = DNA.concat_slices(
+        DNA("G"), non_ascii_tpl, 2, 1, DNA("T"), wrap=True
+    )
+    assert concat_wrap.seq == "GCßT"
+    assert concat_wrap.seq_upper == "GCSST"
+    assert concat_wrap.count_cg() == 4
