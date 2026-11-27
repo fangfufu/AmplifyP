@@ -431,3 +431,27 @@ def test_repliconf_template_seq_access_does_not_alter_search() -> None:
     }
     override_conf.search()
     assert [o.index for o in override_conf.origin_db.fwd] == [1]
+
+
+def test_repliconf_rejects_length_changing_primer_normalisation() -> None:
+    """Reject primers whose uppercase form changes coordinate length."""
+    permissive = ReplicationSettings(
+        primability_cutoff=-0.2,
+        stability_cutoff=-0.2,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(1.0),
+    )
+    tpl = DNA("GGCC", DNAType.LINEAR)
+    expanding_primer = Primer("ß")
+
+    with pytest.raises(ValueError, match="uppercase normalisation"):
+        Repliconf(tpl, expanding_primer, permissive)
+
+    # Also reject if primer is swapped after construction before search()
+    conf = Repliconf(tpl, Primer("G"), permissive)
+    conf.primer = expanding_primer
+    with pytest.raises(ValueError, match="uppercase normalisation"):
+        conf.search()
+    assert not conf.searched
+    assert len(conf.origin_db.fwd) == 0
+    assert len(conf.origin_db.rev) == 0

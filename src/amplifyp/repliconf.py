@@ -250,7 +250,17 @@ class Repliconf:
             template (DNA): The template DNA sequence to be searched.
             primer (Primer): The primer sequence to search for.
             settings (Settings): The settings used for evaluating origins.
+
+        Raises:
+            ValueError: If uppercase normalisation changes the primer length.
         """
+        if len(primer.seq_upper) != len(primer):
+            msg = (
+                "Primer sequence length must be preserved under uppercase "
+                "normalisation."
+            )
+            raise ValueError(msg)
+
         self.padding_len = len(primer)
 
         self.primer = primer
@@ -397,11 +407,20 @@ class Repliconf:
         Scans the entire template in both forward and reverse directions.
         Locations where the primability and stability scores exceed the
         configured cutoffs are stored in `origin_db`.
-        """
-        self.origin_db.clear()
 
+        Raises:
+            ValueError: If uppercase normalisation changes the primer length.
+        """
         primer_len = len(self.primer)
         primer_rev = self.primer.seq_upper[::-1]
+        if len(primer_rev) != primer_len:
+            msg = (
+                "Primer sequence length must be preserved under uppercase "
+                "normalisation."
+            )
+            raise ValueError(msg)
+
+        self.origin_db.clear()
 
         (
             prim_denom,
