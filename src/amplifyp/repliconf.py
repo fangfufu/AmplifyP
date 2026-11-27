@@ -417,6 +417,8 @@ class Repliconf:
         Raises:
             ValueError: If uppercase normalisation changes the primer length.
         """
+        self.origin_db.clear()
+
         primer_len = len(self.primer)
         primer_rev = self.primer.seq_upper[::-1]
         if len(primer_rev) != primer_len:
@@ -425,8 +427,6 @@ class Repliconf:
                 "normalisation."
             )
             raise ValueError(msg)
-
-        self.origin_db.clear()
 
         (
             prim_denom,

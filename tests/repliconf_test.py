@@ -486,8 +486,13 @@ def test_repliconf_rejects_length_changing_primer_normalisation() -> None:
     with pytest.raises(ValueError, match="uppercase normalisation"):
         Repliconf(tpl, expanding_primer, permissive)
 
-    # Also reject if primer is swapped after construction before search()
+    # Also reject if primer is swapped after a prior search and clear stale hits
     conf = Repliconf(tpl, Primer("G"), permissive)
+    conf.search()
+    assert conf.searched
+    assert len(conf.origin_db.fwd) > 0
+    assert len(conf.origin_db.rev) > 0
+
     conf.primer = expanding_primer
     with pytest.raises(ValueError, match="uppercase normalisation"):
         conf.search()
