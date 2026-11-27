@@ -37,6 +37,7 @@ from amplifyp.gui.utils.gui_helpers import (
     BorderedCheckbox,
     NotificationHelper,
 )
+from amplifyp.io import safe_load_yaml
 
 logger = logging.getLogger(__name__)
 
@@ -448,7 +449,7 @@ class GeneralTile(ft.ExpansionTile):  # type: ignore[misc]
             if content is None:
                 return
 
-            parsed_state = yaml.safe_load(content)
+            parsed_state = safe_load_yaml(content)
             if not isinstance(parsed_state, dict):
                 self.notification_helper.show_message(
                     "Error: Invalid settings file format."

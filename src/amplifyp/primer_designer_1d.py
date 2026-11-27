@@ -112,7 +112,7 @@ class PrimerDesigner1D:
                 sequence length, if max_origin_count is specified without
                 template, or if max_origin_count is negative.
         """
-        dna.generate_truncations(min_length, mode)
+        truncated_seqs = dna.generate_truncations(min_length, mode)
         if max_origin_count is not None:
             if template is None:
                 msg = (
@@ -138,7 +138,7 @@ class PrimerDesigner1D:
         self._dimers: list[PrimerDimer] = []
         self._origin_counts: list[int | None] = []
 
-        self._analyse()
+        self._analyse(truncated_seqs)
 
     @property
     def dna(self) -> DNA:
@@ -288,7 +288,7 @@ class PrimerDesigner1D:
         """
         return self[index]
 
-    def _analyse(self) -> None:
+    def _analyse(self, initial_truncations: list[str] | None = None) -> None:
         """Perform the 1D truncation analysis on the sequence.
 
         This method generates self-dimers for each truncated sequence down to
@@ -296,9 +296,12 @@ class PrimerDesigner1D:
         """
         self._dimers.clear()
         self._origin_counts.clear()
-        truncated_seqs = self._dna.generate_truncations(
-            self._min_length, self._mode
-        )
+        if initial_truncations is not None:
+            truncated_seqs = initial_truncations
+        else:
+            truncated_seqs = self._dna.generate_truncations(
+                self._min_length, self._mode
+            )
 
         total = len(truncated_seqs)
         done = 0
@@ -309,34 +312,32 @@ class PrimerDesigner1D:
                 break
             primer = Primer(current_seq)
             dimer = self._generator.generate_primer_dimer(primer, primer)
-            origin_count: int | None = None
-            if self._template is not None:
-                repliconf = Repliconf(
-                    self._template,
-                    primer,
-                    settings=self._replication_settings,
-                )
-                repliconf.search()
-                origin_count = len(repliconf.origin_db.fwd) + len(
-                    repliconf.origin_db.rev
-                )
 
-            if (
-                (self._threshold is None or dimer.quality <= self._threshold)
-                and (
-                    self._max_overlap is None
-                    or dimer.overlap <= self._max_overlap
-                )
-                and (
-                    self._max_origin_count is None
-                    or (
-                        origin_count is not None
-                        and origin_count <= self._max_origin_count
+            passes_dimer = (
+                self._threshold is None or dimer.quality <= self._threshold
+            ) and (
+                self._max_overlap is None or dimer.overlap <= self._max_overlap
+            )
+
+            if passes_dimer:
+                origin_count: int | None = None
+                if self._template is not None:
+                    repliconf = Repliconf(
+                        self._template,
+                        primer,
+                        settings=self._replication_settings,
                     )
-                )
-            ):
-                self._dimers.append(dimer)
-                self._origin_counts.append(origin_count)
+                    repliconf.search()
+                    origin_count = len(repliconf.origin_db.fwd) + len(
+                        repliconf.origin_db.rev
+                    )
+
+                if self._max_origin_count is None or (
+                    origin_count is not None
+                    and origin_count <= self._max_origin_count
+                ):
+                    self._dimers.append(dimer)
+                    self._origin_counts.append(origin_count)
 
             done += 1
             if self._on_progress is not None:

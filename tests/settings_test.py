@@ -404,3 +404,20 @@ def test_overflow_coercion_and_gui_compat_normalisation() -> None:
     # Float conversion in GUISettings.from_dict handles OverflowError safely.
     gui_settings.from_dict({"last_version_check_timestamp": 10**400})
     assert gui_settings["last_version_check_timestamp"] == pytest.approx(0.0)
+
+
+def test_base_pair_weights_tbl_ascii_lut_invalidation_and_copy() -> None:
+    """Verify ascii_lut caches correctly and invalidates on write or copy."""
+    tbl = BasePairWeightsTbl("AT", "AT", [[1.0, -2.0], [-2.0, 1.0]])
+    assert tbl.ascii_lut[ord("a")][ord("A")] == pytest.approx(1.0)
+    assert tbl.ascii_lut[ord("Z")][ord("A")] == pytest.approx(0.0)
+
+    tbl_copy = tbl.copy()
+    tbl["A", "A"] = 3.5
+    tbl["Z", "T"] = 4.25
+    # Multi-character uppercased key ('ß' -> 'SS') and >255 code point skipped
+    tbl["ß", "A"] = 9.0
+    tbl["\u0100", "A"] = 9.0
+    assert tbl.ascii_lut[ord("a")][ord("A")] == pytest.approx(3.5)
+    assert tbl.ascii_lut[ord("Z")][ord("t")] == pytest.approx(4.25)
+    assert tbl_copy.ascii_lut[ord("A")][ord("A")] == pytest.approx(1.0)

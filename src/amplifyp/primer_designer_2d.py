@@ -21,9 +21,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from .amplicon import AmpliconGenerator
 from .dimer import PrimerDimer, PrimerDimerGenerator
-from .dna import DNA, DNADirection, Primer
+from .dna import DNA, DNADirection, DNAType, Primer
 from .repliconf import Repliconf
 from .settings import GLOBAL_REPLICATION_SETTINGS, ReplicationSettings
 
@@ -191,12 +190,12 @@ class PrimerDesigner2D:
                 lengths, if max_amplicon_count is specified without template, or
                 if max_amplicon_count is negative.
         """
-        fwd_dna.generate_truncations(
+        fwd_seqs = fwd_dna.generate_truncations(
             fwd_min_length,
             DNADirection.FWD,
             prefix="Forward target length n",
         )
-        rev_dna.generate_truncations(
+        rev_seqs = rev_dna.generate_truncations(
             rev_min_length,
             DNADirection.REV,
             prefix="Reverse target length n",
@@ -228,7 +227,7 @@ class PrimerDesigner2D:
         self._aborted: bool = False
         self._steps: list[PrimerDimers2D] = []
 
-        self._analyse()
+        self._analyse((fwd_seqs, rev_seqs))
 
     @property
     def fwd_dna(self) -> DNA:
@@ -382,108 +381,213 @@ class PrimerDesigner2D:
         """
         return self[index]
 
-    def _analyse(self) -> None:
+    @staticmethod
+    def _count_linear_amplicons(starts: list[int], ends: list[int]) -> int:
+        """Count ordered (start, end) pairs with start < end."""
+        n_ends = len(ends)
+        if not starts or not n_ends:
+            return 0
+        count = 0
+        j = 0
+        for s in starts:
+            while j < n_ends and ends[j] <= s:
+                j += 1
+            if j == n_ends:
+                break
+            count += n_ends - j
+        return count
+
+    def _fails_max_dimer(self, dimer: PrimerDimer) -> bool:
+        """Return True if a dimer alone exceeds threshold or max_overlap."""
+        return (
+            self._threshold is not None and dimer.quality > self._threshold
+        ) or (
+            self._max_overlap is not None and dimer.overlap > self._max_overlap
+        )
+
+    def _get_origin_indices(
+        self,
+        template: DNA,
+        primer: Primer,
+        cache: dict[str, tuple[list[int], list[int], int]],
+        is_circular: bool,
+    ) -> tuple[list[int], list[int], int]:
+        """Return sorted fwd indices, rev indices, and self-amplicon count."""
+        key = primer.seq_upper
+        cached = cache.get(key)
+        if cached is not None:
+            return cached
+        conf = Repliconf(
+            template,
+            primer,
+            settings=self._replication_settings,
+        )
+        conf.search()
+        fwd_idx = [o.index for o in conf.origin_db.fwd]
+        rev_idx = [o.index for o in conf.origin_db.rev]
+        self_count = (
+            len(fwd_idx) * len(rev_idx)
+            if is_circular
+            else self._count_linear_amplicons(fwd_idx, rev_idx)
+        )
+        res = (fwd_idx, rev_idx, self_count)
+        cache[key] = res
+        return res
+
+    def _evaluate_pair(
+        self,
+        template: DNA | None,
+        fwd_p: Primer,
+        d_ff: PrimerDimer,
+        fwd_origins: tuple[list[int], list[int], int] | None,
+        rev_p: Primer,
+        d_rr: PrimerDimer,
+        origin_cache: dict[str, tuple[list[int], list[int], int]],
+        is_max_metric: bool,
+        is_circular: bool,
+    ) -> PrimerDimers2D | None:
+        """Evaluate one (fwd, rev) truncation pair against all filters."""
+        amplicon_count: int | None = None
+        if template is not None and fwd_origins is not None:
+            fwd_f, fwd_r, fwd_self = fwd_origins
+            if fwd_p.seq_upper == rev_p.seq_upper:
+                amplicon_count = fwd_self
+            else:
+                rev_f, rev_r, rev_self = self._get_origin_indices(
+                    template, rev_p, origin_cache, is_circular
+                )
+                if is_circular:
+                    amplicon_count = (len(fwd_f) + len(rev_f)) * (
+                        len(fwd_r) + len(rev_r)
+                    )
+                else:
+                    amplicon_count = (
+                        fwd_self
+                        + rev_self
+                        + self._count_linear_amplicons(fwd_f, rev_r)
+                        + self._count_linear_amplicons(rev_f, fwd_r)
+                    )
+            if amplicon_count < 1:
+                return None
+            if (
+                self._max_amplicon_count is not None
+                and amplicon_count > self._max_amplicon_count
+            ):
+                return None
+
+        gen = self._generator.generate_primer_dimer
+        d_fr = gen(fwd_p, rev_p, reorder=False)
+        if is_max_metric and self._fails_max_dimer(d_fr):
+            return None
+
+        d_rf = gen(rev_p, fwd_p, reorder=False)
+        if is_max_metric and self._fails_max_dimer(d_rf):
+            return None
+
+        step = PrimerDimers2D(
+            fwd_fwd=d_ff,
+            rev_rev=d_rr,
+            fwd_rev=d_fr,
+            rev_fwd=d_rf,
+            amplicon_count=amplicon_count,
+        )
+
+        if not is_max_metric and (
+            (
+                self._threshold is not None
+                and step.mean_quality > self._threshold
+            )
+            or (
+                self._max_overlap is not None
+                and step.mean_overlap > self._max_overlap
+            )
+        ):
+            return None
+
+        return step
+
+    def _analyse(
+        self,
+        initial_truncations: tuple[list[str], list[str]] | None = None,
+    ) -> None:
         """Perform 2D truncation analysis on forward and reverse sequences.
 
         Forward sequence is truncated from 3' end, while reverse sequence is
         truncated from 5' end.
         """
         self._steps.clear()
-        fwd_seqs = self._fwd_dna.generate_truncations(
-            self._fwd_min_length, DNADirection.FWD
-        )
-        rev_seqs = self._rev_dna.generate_truncations(
-            self._rev_min_length, DNADirection.REV
-        )
+        if initial_truncations is not None:
+            fwd_seqs, rev_seqs = initial_truncations
+        else:
+            fwd_seqs = self._fwd_dna.generate_truncations(
+                self._fwd_min_length, DNADirection.FWD
+            )
+            rev_seqs = self._rev_dna.generate_truncations(
+                self._rev_min_length, DNADirection.REV
+            )
 
         total = len(fwd_seqs) * len(rev_seqs)
         done = 0
+
+        is_max_metric = self._filter_metric == FilterMetric.MAX
+        template = self._template
+        is_circular = template is not None and template.type == DNAType.CIRCULAR
+        gen = self._generator.generate_primer_dimer
+        origin_cache: dict[str, tuple[list[int], list[int], int]] = {}
+        rev_dimer_cache: list[tuple[Primer, PrimerDimer, bool] | None] = [
+            None
+        ] * len(rev_seqs)
 
         for fwd_seq in fwd_seqs:
             if self._cancel_event is not None and self._cancel_event.is_set():
                 self._aborted = True
                 break
             fwd_p = Primer(fwd_seq)
-            for rev_seq in rev_seqs:
+            d_ff = gen(fwd_p, fwd_p, reorder=False)
+            fwd_fails_max = is_max_metric and self._fails_max_dimer(d_ff)
+
+            fwd_origins: tuple[list[int], list[int], int] | None = None
+            if template is not None and not fwd_fails_max:
+                fwd_origins = self._get_origin_indices(
+                    template, fwd_p, origin_cache, is_circular
+                )
+
+            for r_idx, rev_seq in enumerate(rev_seqs):
                 if (
                     self._cancel_event is not None
                     and self._cancel_event.is_set()
                 ):
                     self._aborted = True
                     break
-                rev_p = Primer(rev_seq)
 
-                amplicon_count: int | None = None
-                if self._template is not None:
-                    amp_gen = AmpliconGenerator(self._template)
-                    fwd_conf = Repliconf(
-                        self._template,
-                        fwd_p,
-                        settings=self._replication_settings,
-                    )
-                    amp_gen.add_repliconf(fwd_conf)
-                    if fwd_seq != rev_seq:
-                        rev_conf = Repliconf(
-                            self._template,
-                            rev_p,
-                            settings=self._replication_settings,
+                if not fwd_fails_max:
+                    rev_entry = rev_dimer_cache[r_idx]
+                    if rev_entry is None:
+                        rev_p = Primer(rev_seq)
+                        d_rr = gen(rev_p, rev_p, reorder=False)
+                        rev_fails_max = is_max_metric and self._fails_max_dimer(
+                            d_rr
                         )
-                        amp_gen.add_repliconf(rev_conf)
-                    amplicon_count = len(amp_gen.get_amplicons())
-                    if amplicon_count < 1:
-                        done += 1
-                        if self._on_progress is not None:
-                            self._on_progress(done, total)
-                        continue
-                    if (
-                        self._max_amplicon_count is not None
-                        and amplicon_count > self._max_amplicon_count
-                    ):
-                        done += 1
-                        if self._on_progress is not None:
-                            self._on_progress(done, total)
-                        continue
+                        rev_entry = (rev_p, d_rr, rev_fails_max)
+                        rev_dimer_cache[r_idx] = rev_entry
+                    else:
+                        rev_p, d_rr, rev_fails_max = rev_entry
 
-                d_ff = self._generator.generate_primer_dimer(
-                    fwd_p, fwd_p, reorder=False
-                )
-                d_rr = self._generator.generate_primer_dimer(
-                    rev_p, rev_p, reorder=False
-                )
-                d_fr = self._generator.generate_primer_dimer(
-                    fwd_p, rev_p, reorder=False
-                )
-                d_rf = self._generator.generate_primer_dimer(
-                    rev_p, fwd_p, reorder=False
-                )
+                    if not rev_fails_max:
+                        step = self._evaluate_pair(
+                            template,
+                            fwd_p,
+                            d_ff,
+                            fwd_origins,
+                            rev_p,
+                            d_rr,
+                            origin_cache,
+                            is_max_metric,
+                            is_circular,
+                        )
+                        if step is not None:
+                            self._steps.append(step)
 
-                step = PrimerDimers2D(
-                    fwd_fwd=d_ff,
-                    rev_rev=d_rr,
-                    fwd_rev=d_fr,
-                    rev_fwd=d_rf,
-                    amplicon_count=amplicon_count,
-                )
-
-                if self._filter_metric == FilterMetric.MAX:
-                    q_val = step.max_quality
-                    o_val = float(step.max_overlap)
-                else:
-                    q_val = step.mean_quality
-                    o_val = step.mean_overlap
-
-                if self._threshold is not None and q_val > self._threshold:
-                    done += 1
-                    if self._on_progress is not None:
-                        self._on_progress(done, total)
-                    continue
-                if self._max_overlap is not None and o_val > self._max_overlap:
-                    done += 1
-                    if self._on_progress is not None:
-                        self._on_progress(done, total)
-                    continue
-
-                self._steps.append(step)
                 done += 1
                 if self._on_progress is not None:
                     self._on_progress(done, total)

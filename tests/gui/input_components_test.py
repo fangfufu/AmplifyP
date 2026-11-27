@@ -2133,3 +2133,69 @@ def test_primer_info_panel_persistent_fixed_height() -> None:
         assert reused_row.tm_text.color != light_colour
     finally:
         GUIColours.dark_mode = prev_dark
+
+
+def test_template_input_status_bar_selection_branches() -> None:
+    """Test collapsed caret, forward slice, backward, and escaped status."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput(template="ACGTACGT")
+    settings = GUISettings()
+    view = InputView(mock_page, input_data, settings)
+    ti = view.template_input
+    ti.template_sequence.value = "ACGT ACGT"
+    ti._cleaned_len = 8
+    ti._is_focused = True
+
+    ti._update_status_bar(
+        ft.TextSelection(base_offset=4, extent_offset=4), False
+    )
+    assert ti.status_text.value == "Insertion Point After Base: 4"
+
+    ti._update_status_bar(
+        ft.TextSelection(base_offset=1, extent_offset=6), False
+    )
+    assert ti.status_text.value == "Selected Bases: 2 - 5"
+
+    ti._update_status_bar(
+        ft.TextSelection(base_offset=6, extent_offset=2), False
+    )
+    assert ti.status_text.value == "Selected Bases: 3 - 5"
+
+    mock_reverse_sel = cast(
+        "Any",
+        type("_RevSel", (), {"start": 6, "end": 2, "is_valid": True})(),
+    )
+    ti._update_status_bar(mock_reverse_sel, False)
+    assert ti.status_text.value == "Insertion Point After Base: 5"
+
+    mock_neg_start_sel = cast(
+        "Any",
+        type("_NegSel", (), {"start": -1, "end": 2, "is_valid": True})(),
+    )
+    ti._update_status_bar(mock_neg_start_sel, False)
+    assert ti.status_text.value == "Insertion Point After Base: 7"
+
+    ti.template_sequence.value = "AC\\nGT"
+    ti._update_status_bar(
+        ft.TextSelection(base_offset=1, extent_offset=5), False
+    )
+    assert ti.status_text.value == "Selected Bases: 2 - 3"
+
+
+def test_update_line_numbers_escaped_and_non_ascii_fallback() -> None:
+    """Test update_line_numbers fallback branch for escaped/non-ASCII text."""
+    from amplifyp.gui.views.input.template.formatter import update_line_numbers
+
+    mock_page = MagicMock(spec=ft.Page)
+    settings = GUISettings()
+    settings["show_line_numbers"] = True
+    view = InputView(mock_page, GUIInput(template="ACGT"), settings)
+    ti = view.template_input
+
+    ti.template_sequence.value = "AC\\nGT\nTG\\tCA"
+    update_line_numbers(ti, update=False)
+    assert ti.line_numbers_text.value == "0\n4"
+
+    ti.template_sequence.value = "AC\u00a0GT\nTGCA"
+    update_line_numbers(ti, update=False)
+    assert ti.line_numbers_text.value == "0\n4"

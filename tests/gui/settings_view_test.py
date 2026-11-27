@@ -1029,3 +1029,66 @@ def test_gui_settings_invalid_tm_method_falls_back() -> None:
     assert settings.calculate_primer_tm(primer) == pytest.approx(
         GUISettings().calculate_primer_tm(primer)
     )
+
+
+def test_weight_table_cell_text_style_refreshes_on_theme_change() -> None:
+    """New/reset/synced weight cells adopt updated theme colour and size."""
+    from amplifyp.gui.colours import GUIColours
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.web = False
+    settings = GUISettings()
+    view = SettingsView(
+        page=mock_page,
+        settings=settings,
+        on_change=MagicMock(),
+    )
+    match_tbl = view.replication_tile.match_weight_table
+    assert (
+        view.settings_map["match_weight_0"].text_style.color
+        == GUIColours.DIAGRAM_BLACK
+    )
+
+    custom_colour = GUIColours.PRIMARY
+    assert custom_colour != GUIColours.DIAGRAM_BLACK
+
+    with patch.object(
+        type(GUIColours),
+        "DIAGRAM_BLACK",
+        new_callable=lambda: property(lambda _cls: custom_colour),
+    ):
+        # update_colours refreshes the cached TextStyle
+        match_tbl.update_colours(match_tbl.table)
+        assert match_tbl._cell_text_style.color == custom_colour
+
+        # Newly added cell uses refreshed text colour
+        with patch.object(
+            type(match_tbl),
+            "page",
+            new_callable=lambda: property(lambda _s: None),
+        ):
+            match_tbl._on_add_click(None)
+        added_key = f"match_weight_{match_tbl.indices[-1]}"
+        assert view.settings_map[added_key].text_style.color == custom_colour
+
+        # Reset cells use refreshed text colour
+        with patch.object(
+            type(match_tbl),
+            "page",
+            new_callable=lambda: property(lambda _s: None),
+        ):
+            match_tbl._on_reset_click(None)
+        assert (
+            view.settings_map["match_weight_0"].text_style.color
+            == custom_colour
+        )
+
+    # Rebuilt cells via sync_from_settings pick up restored colour and new size
+    match_tbl.font_size_default = 18
+    alt_settings = GUISettings(
+        {"match_weight_0": "10", "match_weight_default": "1"}
+    )
+    match_tbl.sync_from_settings(alt_settings)
+    rebuilt_style = view.settings_map["match_weight_0"].text_style
+    assert rebuilt_style.color == GUIColours.DIAGRAM_BLACK
+    assert rebuilt_style.size == 18

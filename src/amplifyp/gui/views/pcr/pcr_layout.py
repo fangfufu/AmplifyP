@@ -16,6 +16,7 @@
 """Coordinate transformation and layout solver helper for the PCRView."""
 
 import math
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from amplifyp.pcr import PCR
@@ -23,6 +24,25 @@ from amplifyp.pcr import PCR
 if TYPE_CHECKING:
     from amplifyp.amplicon import Amplicon
     from amplifyp.repliconf import DirIdx, Repliconf
+
+
+@dataclass(frozen=True, slots=True)
+class PCRCanvasLayout:
+    """Computed canvas dimensions and horizontal primer layout data."""
+
+    v_target: float
+    h_margin: float
+    c_width: float
+    t_width: float
+    v_frag_start: float
+    fwd_shifted: dict[tuple[int, str], float] | None = None
+    rev_shifted: dict[tuple[int, str], float] | None = None
+    fwd_label_layout: dict[tuple[int, str], tuple[float, int, float]] | None = (
+        None
+    )
+    rev_label_layout: dict[tuple[int, str], tuple[float, int, float]] | None = (
+        None
+    )
 
 
 class PCRLayoutSolver:
@@ -238,7 +258,7 @@ class PCRLayoutSolver:
         return layout_map, len(row_intervals)
 
     @staticmethod
-    def calculate_canvas_dimensions(
+    def solve_canvas_layout(
         target_length: int,
         num_amplicons: int,
         fwd_bindings: dict[
@@ -250,26 +270,18 @@ class PCRLayoutSolver:
         page_width: float | None,
         label_orientation: str = "Horizontal",
         font_size_primer: int = 13,
-    ) -> tuple[float, float, float, float, float]:
-        """Calculate drawing coordinates and baseline positions.
-
-        Args:
-            target_length: Total length of the template in base pairs.
-            num_amplicons: Number of amplicons to render.
-            fwd_bindings: Forward primer binding data dict.
-            rev_bindings: Reverse primer binding data dict.
-            page_width: Current page width in pixels, or None.
-            label_orientation: Primer label orientation ('Horizontal', '45°',
-                or 'Vertical').
-            font_size_primer: Font size in pixels for primer labels.
-
-        Returns:
-            A tuple of (v_target, h_margin, c_width, t_width, v_frag_start)
-            representing vertical target position, horizontal margin, canvas
-            width, template width, and fragment start vertical position.
-        """
+    ) -> PCRCanvasLayout:
+        """Compute canvas dimensions and reuse intermediate label layouts."""
         h_margin = 20.0
         c_width = max(600.0, page_width - 80.0) if page_width else 800.0
+        fwd_shifted: dict[tuple[int, str], float] | None = None
+        rev_shifted: dict[tuple[int, str], float] | None = None
+        fwd_label_layout: (
+            dict[tuple[int, str], tuple[float, int, float]] | None
+        ) = None
+        rev_label_layout: (
+            dict[tuple[int, str], tuple[float, int, float]] | None
+        ) = None
 
         if label_orientation in ("Vertical", "45°"):
             char_advance = font_size_primer * 0.72
@@ -326,19 +338,23 @@ class PCRLayoutSolver:
             rev_shifted = PCRLayoutSolver.calculate_shifted_x(
                 rev_bindings, target_length, t_width, h_margin
             )
-            _, num_fwd_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
-                fwd_bindings,
-                fwd_shifted,
-                c_width,
-                font_size_primer,
-                is_fwd=True,
+            fwd_label_layout, num_fwd_rows = (
+                PCRLayoutSolver.calculate_horizontal_label_layout(
+                    fwd_bindings,
+                    fwd_shifted,
+                    c_width,
+                    font_size_primer,
+                    is_fwd=True,
+                )
             )
-            _, num_rev_rows = PCRLayoutSolver.calculate_horizontal_label_layout(
-                rev_bindings,
-                rev_shifted,
-                c_width,
-                font_size_primer,
-                is_fwd=False,
+            rev_label_layout, num_rev_rows = (
+                PCRLayoutSolver.calculate_horizontal_label_layout(
+                    rev_bindings,
+                    rev_shifted,
+                    c_width,
+                    font_size_primer,
+                    is_fwd=False,
+                )
             )
             row_height = font_size_primer + 5.0
             v_target = max(100.0, 100.0 + max(0, num_fwd_rows - 1) * row_height)
@@ -346,4 +362,62 @@ class PCRLayoutSolver:
                 v_target + 52.0 + max(0, num_rev_rows - 1) * row_height
             )
 
-        return v_target, h_margin, c_width, t_width, v_frag_start
+        return PCRCanvasLayout(
+            v_target=v_target,
+            h_margin=h_margin,
+            c_width=c_width,
+            t_width=t_width,
+            v_frag_start=v_frag_start,
+            fwd_shifted=fwd_shifted,
+            rev_shifted=rev_shifted,
+            fwd_label_layout=fwd_label_layout,
+            rev_label_layout=rev_label_layout,
+        )
+
+    @staticmethod
+    def calculate_canvas_dimensions(
+        target_length: int,
+        num_amplicons: int,
+        fwd_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
+        rev_bindings: dict[
+            tuple[int, str], tuple[str, float, "Repliconf", "DirIdx"]
+        ],
+        page_width: float | None,
+        label_orientation: str = "Horizontal",
+        font_size_primer: int = 13,
+    ) -> tuple[float, float, float, float, float]:
+        """Calculate drawing coordinates and baseline positions.
+
+        Args:
+            target_length: Total length of the template in base pairs.
+            num_amplicons: Number of amplicons to render.
+            fwd_bindings: Forward primer binding data dict.
+            rev_bindings: Reverse primer binding data dict.
+            page_width: Current page width in pixels, or None.
+            label_orientation: Primer label orientation ('Horizontal', '45°',
+                or 'Vertical').
+            font_size_primer: Font size in pixels for primer labels.
+
+        Returns:
+            A tuple of (v_target, h_margin, c_width, t_width, v_frag_start)
+            representing vertical target position, horizontal margin, canvas
+            width, template width, and fragment start vertical position.
+        """
+        layout = PCRLayoutSolver.solve_canvas_layout(
+            target_length,
+            num_amplicons,
+            fwd_bindings,
+            rev_bindings,
+            page_width,
+            label_orientation=label_orientation,
+            font_size_primer=font_size_primer,
+        )
+        return (
+            layout.v_target,
+            layout.h_margin,
+            layout.c_width,
+            layout.t_width,
+            layout.v_frag_start,
+        )

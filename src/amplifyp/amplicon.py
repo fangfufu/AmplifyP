@@ -30,7 +30,17 @@ from .errors import (
     InvalidStartDirectionError,
     TemplateMismatchError,
 )
+from .origin import calculate_origin_quality
 from .repliconf import DirIdx, Repliconf
+
+
+def _origin_quality(idx: DirIdx, conf: Repliconf) -> float:
+    """Compute origin quality from cached DirIdx scores when available."""
+    if idx.primability is None or idx.stability is None:
+        return conf.origin(idx).quality
+    return calculate_origin_quality(
+        idx.primability, idx.stability, conf.settings
+    )
 
 
 class AmpliconQuality(StrEnum):
@@ -320,8 +330,8 @@ class AmpliconGenerator:
         Returns:
             float: The calculated quality score.
         """
-        fwd_quality = fwd_conf.origin(start).quality
-        rev_quality = rev_conf.origin(end).quality
+        fwd_quality = _origin_quality(start, fwd_conf)
+        rev_quality = _origin_quality(end, rev_conf)
         denom = (fwd_quality * rev_quality) ** 2
         if denom == 0:
             return float("inf")
@@ -355,26 +365,27 @@ class AmpliconGenerator:
             InvalidAmpliconRangeError: If the start index equals the end
                 index on a linear DNA template.
         """
+        tpl = self.template
+        fwd_p = fwd_conf.primer
+        rev_rc = rev_conf.rev_comp_primer
+        s_idx = start.index
+        e_idx = end.index
+
         if start < end:
             # Linear DNA template branch
-            seq = (
-                fwd_conf.primer
-                + self.template[start:end]
-                + rev_conf.rev_comp_primer
+            return (
+                DNA.concat_slices(fwd_p, tpl, s_idx, e_idx, rev_rc, wrap=False),
+                False,
             )
-            return seq, False
 
-        if self.template.type == DNAType.CIRCULAR:
+        if tpl.type == DNAType.CIRCULAR:
             # Circular DNA handling
-            seq = (
-                fwd_conf.primer
-                + self.template[start:]
-                + self.template[:end]
-                + rev_conf.rev_comp_primer
+            return (
+                DNA.concat_slices(fwd_p, tpl, s_idx, e_idx, rev_rc, wrap=True),
+                True,
             )
-            return seq, True
 
-        if (start > end) and (self.template.type == DNAType.LINEAR):
+        if (start > end) and (tpl.type == DNAType.LINEAR):
             # Not possible on linear DNA
             return None, False
 

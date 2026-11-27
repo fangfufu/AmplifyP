@@ -341,3 +341,8 @@ def test_primer_designer_1d_get_origin_count() -> None:
         dna_obj, min_length=9, template=tpl, max_origin_count=5
     )
     assert designer.get_origin_count(0) == designer.origin_counts[0]
+
+    # Re-running _analyse() directly with default initial_truncations=None
+    expected = designer.all_dimers
+    designer._analyse()
+    assert designer.all_dimers == expected

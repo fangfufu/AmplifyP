@@ -50,6 +50,9 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         self.font_size_table_header = font_size_table_header
         self.on_change_handler = on_change_handler
         self.table_container: ft.Container | None = None
+        self._cell_text_style = ft.TextStyle(
+            color=GUIColours.DIAGRAM_BLACK, size=self.font_size_default
+        )
 
     def _wrap_centred(self, control: ft.Control, width: int) -> ft.Container:
         """Wrap a control in a fixed-width, centred Container."""
@@ -70,6 +73,18 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
             width=width,
         )
 
+    def _get_cell_text_style(self) -> ft.TextStyle:
+        """Return a shared TextStyle synced with the active colour and size."""
+        colour = GUIColours.DIAGRAM_BLACK
+        if (
+            self._cell_text_style.color != colour
+            or self._cell_text_style.size != self.font_size_default
+        ):
+            self._cell_text_style = ft.TextStyle(
+                color=colour, size=self.font_size_default
+            )
+        return self._cell_text_style
+
     def _style_field(self, field: ft.TextField, width: int) -> ft.TextField:
         """Apply borderless, centred styling to a table cell TextField."""
         field.border = ft.NoInputBorder()
@@ -79,9 +94,7 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
         field.dense = True
         field.text_align = ft.TextAlign.CENTER
         field.text_vertical_align = ft.VerticalAlignment.CENTER
-        field.text_style = ft.TextStyle(
-            color=GUIColours.DIAGRAM_BLACK, size=self.font_size_default
-        )
+        field.text_style = self._get_cell_text_style()
         return field
 
     def _create_cell_field(self, value: str, width: int) -> ft.TextField:
@@ -130,6 +143,7 @@ class WeightTableBase(ft.Column):  # type: ignore[misc]
 
     def update_colours(self, table: ft.DataTable) -> None:
         """Refresh dynamic GUIColours on the DataTable and its container."""
+        self._get_cell_text_style()
         table.heading_row_color = GUIColours.INFO_HEADER_BG
         table.vertical_lines = ft.BorderSide(1, GUIColours.DIVIDER_GREY)
         table.horizontal_lines = ft.BorderSide(1, GUIColours.DIVIDER_GREY)

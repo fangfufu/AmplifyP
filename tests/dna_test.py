@@ -314,3 +314,93 @@ def test_dna_padded_slice() -> None:
 
     empty_circ = DNA("", DNAType.CIRCULAR)
     assert empty_circ.padded_slice(0, 3) == "---"
+
+
+def test_dna_fast_ops_and_clean_sequence_edge_cases() -> None:
+    """Test validated constructors, byte caches, and ASCII/Unicode cleaning."""
+    # Unicode non-breaking space uses split(); ASCII uses translate
+    assert clean_sequence("  A\u00a0C\t\\nG\\tT\\r ") == "ACGT"
+
+    mixed = DNA("AcGt", DNAType.CIRCULAR, name="mixed")
+    rev = mixed.reverse()
+    comp = mixed.complement()
+    rc = mixed.reverse_complement()
+    assert rev.seq == "tGcA"
+    assert rev.seq_upper == "TGCA"
+    assert comp.seq == "TgCa"
+    assert rc.seq == "aCgT"
+    assert rc.type == DNAType.CIRCULAR
+    assert rc.direction == DNADirection.FWD
+    assert rc == mixed.reverse().complement()
+    assert rc.seq_upper_bytes == b"ACGT"
+    assert rc.comp_upper_bytes == b"TGCA"
+    assert mixed[1:3].seq == "cG"
+    assert (mixed[:2] + mixed[2:]).seq == "AcGt"
+    assert mixed.lower().seq == "acgt"
+    assert mixed.upper().seq == "ACGT"
+
+    concat_lin = DNA.concat_slices(
+        DNA("Ac", name="p"), mixed, 1, 3, DNA("gT"), wrap=False
+    )
+    assert concat_lin.seq == "AccGgT"
+    assert concat_lin.seq_upper == "ACCGGT"
+    assert concat_lin.type == DNAType.LINEAR
+    assert concat_lin.name == "p"
+    concat_circ = DNA.concat_slices(
+        DNA("AA"), DNA("ACGT", DNAType.CIRCULAR), 3, 1, DNA("TT"), wrap=True
+    )
+    assert concat_circ.seq == "AATATT"
+    assert concat_circ.seq_upper is concat_circ.seq
+
+    primer = Primer("ATGC", name="p1")
+    p_rc = primer.reverse_complement()
+    assert isinstance(p_rc, Primer)
+    assert p_rc.seq == "GCAT"
+    assert p_rc.type == DNAType.PRIMER
+    assert p_rc.direction == DNADirection.FWD
+
+
+def test_dna_non_ascii_slicing_and_concat_slices() -> None:
+    """Ensure non-ASCII case expansion stays aligned on slicing and concat."""
+    dna = DNA("ßA")
+    assert dna[1].seq == "A"
+    assert dna[1].seq_upper == "A"
+    assert dna[1].count_at() == 1
+    assert dna[0].seq == "ß"
+    assert dna[0].seq_upper == "SS"
+    assert dna[0].count_cg() == 2
+    assert dna[1:2].seq_upper == "A"
+
+    non_ascii_tpl = DNA("ßAC", DNAType.CIRCULAR)
+    concat_lin = DNA.concat_slices(
+        DNA("G"), non_ascii_tpl, 1, 3, DNA("T"), wrap=False
+    )
+    assert concat_lin.seq == "GACT"
+    assert concat_lin.seq_upper == "GACT"
+    assert concat_lin.count_at() == 2
+
+    concat_wrap = DNA.concat_slices(
+        DNA("G"), non_ascii_tpl, 2, 1, DNA("T"), wrap=True
+    )
+    assert concat_wrap.seq == "GCßT"
+    assert concat_wrap.seq_upper == "GCSST"
+    assert concat_wrap.count_cg() == 4
+
+
+def test_dna_non_ascii_transformations() -> None:
+    """Recalculate uppercase values when transforming non-ASCII DNA."""
+    dna = DNA("A\ufb05")
+
+    rev = dna.reverse()
+    assert rev.seq == "\ufb05A"
+    assert rev.seq_upper == "STA"
+
+    comp = dna.complement()
+    assert comp.seq == "T\ufb05"
+    assert comp.seq_upper == "TST"
+    assert dna.comp_upper_bytes == b"TST"
+
+    rc = dna.reverse_complement()
+    assert rc.seq == "\ufb05T"
+    assert rc.seq_upper == "STT"
+    assert rc == dna.reverse().complement()

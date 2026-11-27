@@ -21,13 +21,15 @@ import threading
 
 import pytest
 
-from amplifyp.dimer import PrimerDimer
-from amplifyp.dna import DNA
+from amplifyp.amplicon import AmpliconGenerator
+from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
+from amplifyp.dna import DNA, DNADirection, DNAType, Primer
 from amplifyp.primer_designer_2d import (
     FilterMetric,
     PrimerDesigner2D,
     PrimerDimers2D,
 )
+from amplifyp.repliconf import Repliconf
 
 
 def test_primer_designer_2d_basic_truncation() -> None:
@@ -600,3 +602,158 @@ def test_primer_designer_2d_identical_fwd_rev_with_template() -> None:
     )
     assert len(designer.all_steps) == 1
     assert designer.all_steps[0].amplicon_count == 1
+
+
+def test_primer_designer_2d_parity_with_amplicon_generator() -> None:
+    """Verify fast 2D filtering and amplicon counts match reference exactly."""
+    fwd = DNA("ATGCATGCATGCATGC")
+    rev = DNA("GCATGCATGCATGCAT")
+    linear_tpl = DNA(
+        "AAAATGCATGCATGCATGCGGGGGGGGATGCATGCATGCATGCAAAA", DNAType.LINEAR
+    )
+    circular_tpl = DNA("CATGCATGCAAAAATGCATGCATGCATGC", DNAType.CIRCULAR)
+    dimer_gen = PrimerDimerGenerator()
+
+    for tpl in (linear_tpl, circular_tpl):
+        for metric in (FilterMetric.MAX, FilterMetric.MEAN):
+            threshold = 15.0
+            max_amplicons = 10
+            designer = PrimerDesigner2D(
+                fwd_dna=fwd,
+                fwd_min_length=12,
+                rev_dna=rev,
+                rev_min_length=12,
+                template=tpl,
+                filter_metric=metric,
+                threshold=threshold,
+                max_amplicon_count=max_amplicons,
+            )
+            step_by_lens = {
+                (len(s.fwd_fwd.primer_1), len(s.rev_rev.primer_1)): s
+                for s in designer.all_steps
+            }
+            expected_counts: dict[tuple[int, int], int] = {}
+            for f_seq in fwd.generate_truncations(12, DNADirection.FWD):
+                for r_seq in rev.generate_truncations(12, DNADirection.REV):
+                    f_p = Primer(f_seq)
+                    r_p = Primer(r_seq)
+                    amp_gen = AmpliconGenerator(tpl)
+                    amp_gen.add_repliconf(Repliconf(tpl, f_p))
+                    if f_seq != r_seq:
+                        amp_gen.add_repliconf(Repliconf(tpl, r_p))
+                    amp_count = len(amp_gen.get_amplicons())
+                    if amp_count < 1 or amp_count > max_amplicons:
+                        continue
+                    ref_step = PrimerDimers2D(
+                        fwd_fwd=dimer_gen.generate_primer_dimer(
+                            f_p, f_p, reorder=False
+                        ),
+                        rev_rev=dimer_gen.generate_primer_dimer(
+                            r_p, r_p, reorder=False
+                        ),
+                        fwd_rev=dimer_gen.generate_primer_dimer(
+                            f_p, r_p, reorder=False
+                        ),
+                        rev_fwd=dimer_gen.generate_primer_dimer(
+                            r_p, f_p, reorder=False
+                        ),
+                        amplicon_count=amp_count,
+                    )
+                    q_val = (
+                        ref_step.max_quality
+                        if metric == FilterMetric.MAX
+                        else ref_step.mean_quality
+                    )
+                    if q_val <= threshold:
+                        expected_counts[len(f_seq), len(r_seq)] = amp_count
+
+            assert set(step_by_lens.keys()) == set(expected_counts.keys())
+            for key, expected_count in expected_counts.items():
+                assert step_by_lens[key].amplicon_count == expected_count
+
+    # Strict MAX threshold where all forward self-dimers fail immediately
+    strict_designer = PrimerDesigner2D(
+        fwd_dna=fwd,
+        fwd_min_length=12,
+        rev_dna=rev,
+        rev_min_length=12,
+        filter_metric=FilterMetric.MAX,
+        threshold=-100.0,
+    )
+    assert strict_designer.all_steps == ()
+
+
+def test_primer_designer_2d_mixed_case_identical_primers() -> None:
+    """Identical forward/reverse primers differing only in case deduplicate."""
+    upper_primer = DNA("ACGTACGTACGT")
+    lower_primer = DNA("acgtacgtacgt")
+    # Template contains both forward and reverse binding sites for ACGTACGTACGT
+    linear_tpl = DNA("AAAACGTACGTACGTGGGGGGACGTACGTACGTTTT", DNAType.LINEAR)
+    circular_tpl = DNA("AAAACGTACGTACGTGGGGGGACGTACGTACGTTTT", DNAType.CIRCULAR)
+
+    for tpl in (linear_tpl, circular_tpl):
+        same_case = PrimerDesigner2D(
+            fwd_dna=upper_primer,
+            fwd_min_length=len(upper_primer),
+            rev_dna=upper_primer,
+            rev_min_length=len(upper_primer),
+            template=tpl,
+        )
+        mixed_case = PrimerDesigner2D(
+            fwd_dna=upper_primer,
+            fwd_min_length=len(upper_primer),
+            rev_dna=lower_primer,
+            rev_min_length=len(lower_primer),
+            template=tpl,
+        )
+        assert len(same_case.all_steps) == 1
+        assert len(mixed_case.all_steps) == 1
+        assert (
+            mixed_case.all_steps[0].amplicon_count
+            == same_case.all_steps[0].amplicon_count
+        )
+
+
+def test_primer_designer_2d_max_heterodimer_rejection_and_reanalyse() -> None:
+    """Test MAX early rejection on d_fr/d_rf and standalone _analyse()."""
+    from amplifyp.dimer import PrimerDimerGenerator
+    from amplifyp.settings import PrimerDimerSettings
+
+    # 1. Self-dimers pass while forward-vs-reverse hetero-dimer (d_fr) fails
+    d_fr_reject = PrimerDesigner2D(
+        fwd_dna=DNA("AAAAAAAAAA"),
+        fwd_min_length=10,
+        rev_dna=DNA("TTTTTTTTTT"),
+        rev_min_length=10,
+        filter_metric=FilterMetric.MAX,
+        threshold=50.0,
+    )
+    assert d_fr_reject.all_steps == ()
+
+    # 2. d_ff, d_rr, and d_fr pass while asymmetric d_rf fails MAX threshold
+    asym_settings = PrimerDimerSettings()
+    asym_settings.weights["A", "T"] = -10.0
+    asym_settings.weights["T", "A"] = 30.0
+    asym_gen = PrimerDimerGenerator(settings=asym_settings)
+
+    d_rf_reject = PrimerDesigner2D(
+        fwd_dna=DNA("AAAAA"),
+        fwd_min_length=5,
+        rev_dna=DNA("TTTTT"),
+        rev_min_length=5,
+        generator=asym_gen,
+        filter_metric=FilterMetric.MAX,
+        threshold=50.0,
+    )
+    assert d_rf_reject.all_steps == ()
+
+    # 3. Direct _analyse() call with initial_truncations=None reproduces steps
+    designer = PrimerDesigner2D(
+        fwd_dna=DNA("ACGTACGT"),
+        fwd_min_length=7,
+        rev_dna=DNA("TGCATGCA"),
+        rev_min_length=7,
+    )
+    expected = designer.all_steps
+    designer._analyse()
+    assert designer.all_steps == expected

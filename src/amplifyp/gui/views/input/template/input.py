@@ -626,7 +626,18 @@ class TemplateInput(ft.Container):  # type: ignore[misc]
             if sel is not None and sel.is_valid:
                 raw_text = self.template_sequence.value or ""
                 bases_before = self._count_bases(raw_text[: sel.start])
-                bases_total = self._count_bases(raw_text[: sel.end])
+                if sel.end == sel.start:
+                    bases_total = bases_before
+                elif (
+                    sel.start >= 0
+                    and sel.end > sel.start
+                    and "\\" not in raw_text
+                ):
+                    bases_total = bases_before + self._count_bases(
+                        raw_text[sel.start : sel.end]
+                    )
+                else:
+                    bases_total = self._count_bases(raw_text[: sel.end])
 
                 if bases_total > bases_before:
                     self.status_text.value = (

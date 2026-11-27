@@ -94,6 +94,22 @@ class PrimerDimer:
         threshold = self.settings.symbol_threshold
 
         bonds: list[str] = []
+        if seq1.isascii() and seq2.isascii():
+            lut = weights.ascii_lut
+            b1 = seq1.encode("ascii")
+            b2 = seq2.encode("ascii")
+            p1_pos = self.p1_pos
+            for offset in range(self.overlap):
+                score = lut[b1[n1 - 1 - offset]][b2[p1_pos + offset]]
+                if score < 0:
+                    symbol = " "
+                elif score < threshold:
+                    symbol = ":"
+                else:
+                    symbol = "|"
+                bonds.append(symbol)
+            return "".join(bonds)
+
         for offset in range(self.overlap):
             c1 = seq1[n1 - 1 - offset]
             c2 = seq2[self.p1_pos + offset]
@@ -313,21 +329,35 @@ def calculate_dimer_stats(
     best_pos: int = 0
     weights = settings.weights
 
-    for left_end in range(n2):
-        q: float = 0.0
-        current_overlap = min(n1, n2 - left_end)
+    if s1.isascii() and s2.isascii() and n1 <= len(s1) and n2 <= len(s2):
+        lut = weights.ascii_lut
+        b1_rev = s1[:n1].encode("ascii")[::-1]
+        b2 = s2[:n2].encode("ascii")
+        for left_end in range(n2):
+            q = 0.0
+            for c1_b, c2_b in zip(
+                b1_rev, b2[left_end : left_end + n1], strict=False
+            ):
+                q += lut[c1_b][c2_b]
+            if q >= best_quality:
+                best_quality = q
+                best_pos = left_end
+    else:
+        for left_end in range(n2):
+            q = 0.0
+            current_overlap = min(n1, n2 - left_end)
 
-        for offset in range(current_overlap):
-            c1 = s1[n1 - 1 - offset]
-            c2 = s2[left_end + offset]
-            try:
-                q += weights[c1, c2]
-            except KeyError:
-                pass
+            for offset in range(current_overlap):
+                c1 = s1[n1 - 1 - offset]
+                c2 = s2[left_end + offset]
+                try:
+                    q += weights[c1, c2]
+                except KeyError:
+                    pass
 
-        if q >= best_quality:
-            best_quality = q
-            best_pos = left_end
+            if q >= best_quality:
+                best_quality = q
+                best_pos = left_end
 
     overlap_len = min(n1, n2 - best_pos)
     return best_quality, best_pos, overlap_len

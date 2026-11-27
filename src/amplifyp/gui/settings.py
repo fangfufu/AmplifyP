@@ -28,6 +28,7 @@ import yaml
 
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.os_paths import get_settings_yaml_path
+from amplifyp.io import safe_dump_yaml, safe_load_yaml
 from amplifyp.settings import (
     DEFAULT_BASE_PAIR_WEIGHTS,
     DEFAULT_PRIMABILITY_CUTOFF,
@@ -69,6 +70,8 @@ class GUISettings:
         from amplifyp.dna import Nucleotides
 
         self._cached_tm_settings: TMSettings | None = None
+        self._cached_replication_settings: ReplicationSettings | None = None
+        self._cached_primer_dimer_settings: PrimerDimerSettings | None = None
         self._settings: dict[str, Any] = {
             "primability_cutoff": str(DEFAULT_PRIMABILITY_CUTOFF),
             "stability_cutoff": str(DEFAULT_STABILITY_CUTOFF),
@@ -186,10 +189,16 @@ class GUISettings:
         """
         return self._settings[key]
 
+    def _invalidate_caches(self) -> None:
+        """Invalidate cached core settings objects after mutations."""
+        self._cached_tm_settings = None
+        self._cached_replication_settings = None
+        self._cached_primer_dimer_settings = None
+
     def __delitem__(self, key: str) -> None:
         """Delete a setting key."""
         del self._settings[key]
-        self._cached_tm_settings = None
+        self._invalidate_caches()
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Set a setting value by key with type coercion.
@@ -227,7 +236,7 @@ class GUISettings:
                 except (ValueError, TypeError):
                     pass
         self._settings[key] = value
-        self._cached_tm_settings = None
+        self._invalidate_caches()
         if key == "colour_deficient":
             val = value
             if isinstance(val, str):
@@ -333,16 +342,27 @@ class GUISettings:
         settings values for primability/stability cutoffs, base-pair
         weights, and Amplify4 compatibility mode.
 
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
+
         Returns:
             A ReplicationSettings instance configured from GUI settings.
         """
+        if self._cached_replication_settings is not None:
+            return self._cached_replication_settings
+
         from amplifyp.settings import ReplicationSettings
 
         normalised = dict(self._settings)
         normalised["amplify4_compatibility_mode"] = normalised.get(
             "amp4_compat", False
         )
-        return ReplicationSettings.from_dict(normalised)
+        self._cached_replication_settings = ReplicationSettings.from_dict(
+            normalised
+        )
+        return self._cached_replication_settings
 
     def get_primer_dimer_settings(self) -> PrimerDimerSettings:
         """Get PrimerDimerSettings from the central settings.
@@ -351,12 +371,23 @@ class GUISettings:
         settings values for minimum overlap, threshold, and base-pair
         weights.
 
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
+
         Returns:
             A PrimerDimerSettings instance configured from GUI settings.
         """
+        if self._cached_primer_dimer_settings is not None:
+            return self._cached_primer_dimer_settings
+
         from amplifyp.settings import PrimerDimerSettings
 
-        return PrimerDimerSettings.from_dict(self._settings)
+        self._cached_primer_dimer_settings = PrimerDimerSettings.from_dict(
+            self._settings
+        )
+        return self._cached_primer_dimer_settings
 
     def get_tm_settings(self) -> TMSettings:
         """Get TMSettings from the central settings.
@@ -364,6 +395,11 @@ class GUISettings:
         Constructs a TMSettings object using the current GUI settings
         values for DNA concentration, salt concentrations, and dNTP
         concentration used in melting temperature calculations.
+
+        Note:
+            The returned instance is cached and shared until this
+            ``GUISettings`` object is modified. Callers must treat it as
+            read-only.
 
         Returns:
             A TMSettings instance configured from GUI settings.
@@ -423,13 +459,23 @@ class GUISettings:
         Args:
             settings_dict: Dictionary of setting key-value pairs to apply.
         """
-        for k in self._settings:
-            if k in settings_dict:
-                v = settings_dict[k]
-                if k == "dark_mode":
-                    if str(v).lower() == "system":
-                        self._settings[k] = "system"
-                    else:
+        try:
+            for k in self._settings:
+                if k in settings_dict:
+                    v = settings_dict[k]
+                    if k == "dark_mode":
+                        if str(v).lower() == "system":
+                            self._settings[k] = "system"
+                        else:
+                            if isinstance(v, str):
+                                self._settings[k] = v.lower() in (
+                                    "true",
+                                    "1",
+                                    "yes",
+                                )
+                            else:
+                                self._settings[k] = bool(v)
+                    elif isinstance(self._settings[k], bool):
                         if isinstance(v, str):
                             self._settings[k] = v.lower() in (
                                 "true",
@@ -438,78 +484,70 @@ class GUISettings:
                             )
                         else:
                             self._settings[k] = bool(v)
-                elif isinstance(self._settings[k], bool):
-                    if isinstance(v, str):
-                        self._settings[k] = v.lower() in (
-                            "true",
-                            "1",
-                            "yes",
-                        )
+                    elif isinstance(self._settings[k], int):
+                        try:
+                            self._settings[k] = int(v)
+                        except (ValueError, TypeError, OverflowError):
+                            pass
+                    elif isinstance(self._settings[k], float):
+                        try:
+                            self._settings[k] = float(v)
+                        except (ValueError, TypeError, OverflowError):
+                            pass
                     else:
-                        self._settings[k] = bool(v)
-                elif isinstance(self._settings[k], int):
-                    try:
-                        self._settings[k] = int(v)
-                    except (ValueError, TypeError, OverflowError):
-                        pass
-                elif isinstance(self._settings[k], float):
-                    try:
-                        self._settings[k] = float(v)
-                    except (ValueError, TypeError, OverflowError):
-                        pass
-                else:
-                    self._settings[k] = str(v)
-        for prefix in ("match_weight_", "run_weight_"):
-            valid_entries: dict[str, str] = {}
-            for incoming_k, incoming_v in settings_dict.items():
-                if not incoming_k.startswith(prefix):
-                    continue
-                suffix = incoming_k[len(prefix) :]
-                if suffix == "default":
-                    valid_entries[incoming_k] = str(incoming_v)
-                elif suffix.isascii() and suffix.isdigit():
-                    canonical_k = f"{prefix}{int(suffix)}"
-                    if (
-                        canonical_k not in valid_entries
-                        or incoming_k == canonical_k
-                    ):
-                        valid_entries[canonical_k] = str(incoming_v)
-            if valid_entries:
-                for existing_k in [
-                    k for k in self._settings if k.startswith(prefix)
-                ]:
-                    del self._settings[existing_k]
-                self._settings.update(valid_entries)
-        if (
-            "amplify4_compatibility_mode" in settings_dict
-            and "amp4_compat" not in settings_dict
-        ):
-            from amplifyp.settings import coerce_bool
+                        self._settings[k] = str(v)
+            for prefix in ("match_weight_", "run_weight_"):
+                valid_entries: dict[str, str] = {}
+                for incoming_k, incoming_v in settings_dict.items():
+                    if not incoming_k.startswith(prefix):
+                        continue
+                    suffix = incoming_k[len(prefix) :]
+                    if suffix == "default":
+                        valid_entries[incoming_k] = str(incoming_v)
+                    elif suffix.isascii() and suffix.isdigit():
+                        canonical_k = f"{prefix}{int(suffix)}"
+                        if (
+                            canonical_k not in valid_entries
+                            or incoming_k == canonical_k
+                        ):
+                            valid_entries[canonical_k] = str(incoming_v)
+                if valid_entries:
+                    for existing_k in [
+                        k for k in self._settings if k.startswith(prefix)
+                    ]:
+                        del self._settings[existing_k]
+                    self._settings.update(valid_entries)
+            if (
+                "amplify4_compatibility_mode" in settings_dict
+                and "amp4_compat" not in settings_dict
+            ):
+                from amplifyp.settings import coerce_bool
 
-            self._settings["amp4_compat"] = coerce_bool(
-                settings_dict["amplify4_compatibility_mode"],
-                bool(self._settings.get("amp4_compat", False)),
+                self._settings["amp4_compat"] = coerce_bool(
+                    settings_dict["amplify4_compatibility_mode"],
+                    bool(self._settings.get("amp4_compat", False)),
+                )
+            if (
+                "dimer_sequence_separator" in settings_dict
+                and "sequence_separator" not in settings_dict
+            ):
+                legacy_sep = settings_dict["dimer_sequence_separator"]
+                if legacy_sep is not None:
+                    self._settings["sequence_separator"] = str(legacy_sep)
+            GUIColours.colour_deficient_mode = bool(
+                self._settings.get("colour_deficient", False)
             )
-        if (
-            "dimer_sequence_separator" in settings_dict
-            and "sequence_separator" not in settings_dict
-        ):
-            legacy_sep = settings_dict["dimer_sequence_separator"]
-            if legacy_sep is not None:
-                self._settings["sequence_separator"] = str(legacy_sep)
-        GUIColours.colour_deficient_mode = bool(
-            self._settings.get("colour_deficient", False)
-        )
-        dark_mode_val = self._settings.get("dark_mode", False)
-        if str(dark_mode_val).lower() != "system":
-            GUIColours.dark_mode = bool(dark_mode_val)
-        self._cached_tm_settings = None
+            dark_mode_val = self._settings.get("dark_mode", False)
+            if str(dark_mode_val).lower() != "system":
+                GUIColours.dark_mode = bool(dark_mode_val)
+        finally:
+            self._invalidate_caches()
 
     def reset_to_defaults(self) -> None:
         """Reset all settings to their factory default values."""
         defaults = GUISettings()
         self._settings = dict(defaults._settings)
-        self._cached_tm_settings = None
+        self._invalidate_caches()
         GUIColours.colour_deficient_mode = bool(
             self._settings.get("colour_deficient", False)
         )
@@ -577,7 +615,7 @@ class GUISettings:
         if config_path.exists():
             try:
                 with open(config_path, encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
+                    data = safe_load_yaml(f)
                 if isinstance(data, dict):
                     self.from_dict(data)
             except (OSError, yaml.YAMLError, ValueError) as e:
@@ -646,6 +684,6 @@ class GUISettings:
         try:
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.to_dict(), f, default_flow_style=False)
+                safe_dump_yaml(self.to_dict(), f, default_flow_style=False)
         except (OSError, yaml.YAMLError, ValueError) as e:
             logger.exception("Error saving settings to %s: %s", config_path, e)

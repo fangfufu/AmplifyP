@@ -46,9 +46,7 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
         self._cached_dimers: list[PrimerDimer] | None = None
-        self._cached_state_key: tuple[dict[str, Any], dict[str, Any]] | None = (
-            None
-        )
+        self._cached_state_key: tuple[Any, Any] | None = None
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -62,9 +60,10 @@ class DimerView(ft.Column):  # type: ignore[misc]
         self.result_list.controls.clear()
         success = True
         try:
+            pd_settings = self.settings.get_primer_dimer_settings()
             current_state_key = (
-                self.input_data.to_dict(),
-                self.settings.to_dict(),
+                self.input_data.state_key(),
+                pd_settings,
             )
             if (
                 self._cached_state_key == current_state_key
@@ -72,7 +71,6 @@ class DimerView(ft.Column):  # type: ignore[misc]
             ):
                 dimers = self._cached_dimers
             else:
-                pd_settings = self.settings.get_primer_dimer_settings()
                 generator = self.input_data.to_dimer_generator(
                     settings=pd_settings
                 )

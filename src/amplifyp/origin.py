@@ -28,6 +28,32 @@ from .settings import (
 )
 
 
+def calculate_origin_quality(
+    primability: float,
+    stability: float,
+    settings: ReplicationSettings,
+) -> float:
+    """Calculate overall origin quality from primability and stability scores.
+
+    Args:
+        primability: Primability score for the origin.
+        stability: Stability score for the origin.
+        settings: Replication settings providing cutoffs and compatibility mode.
+
+    Returns:
+        float: The combined origin quality score.
+    """
+    cutoffs = settings.primability_cutoff + settings.stability_cutoff
+    denom = 2 - cutoffs
+    if denom == 0:
+        return 0.0
+    if not settings.amplify4_compatibility_mode:
+        return (primability + stability - cutoffs) / denom
+    trunc_prim = trunc(primability * 100) / 100
+    trunc_stab = trunc(stability * 100) / 100
+    return (trunc_prim + trunc_stab - cutoffs) / denom
+
+
 def _new_amplify4_settings() -> ReplicationSettings:
     """Create replication settings in Amplify 4 mode.
 
@@ -160,18 +186,9 @@ class ReplicationOrigin:
             float: The quality score. Can be negative if scores are below
                 cutoffs.
         """
-        cutoffs = (
-            self.settings.primability_cutoff + self.settings.stability_cutoff
+        return calculate_origin_quality(
+            self.primability, self.stability, self.settings
         )
-        denom = 2 - cutoffs
-        if denom == 0:
-            return 0.0
-        if not self.settings.amplify4_compatibility_mode:
-            return (self.primability + self.stability - cutoffs) / denom
-        else:
-            primability = trunc(self.primability * 100) / 100
-            stability = trunc(self.stability * 100) / 100
-            return (primability + stability - cutoffs) / denom
 
     @property
     def binding_strength_str(self) -> str:

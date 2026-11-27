@@ -18,11 +18,15 @@
 from __future__ import annotations
 
 from enum import Flag, IntEnum, StrEnum
+from typing import Self, cast
 
 from .errors import InvalidDNASequenceError, InvalidDNATypeError
 
 GLOBAL_COMPLEMENT_TABLE = str.maketrans(
     "ACGTMKRYBDHVacgtmkrybdhv", "TGCAKMYRVHDBtgcakmyrvhdb"
+)
+ASCII_WHITESPACE_TRANS = str.maketrans(
+    "", "", "".join(chr(i) for i in range(128) if chr(i).isspace())
 )
 
 
@@ -37,7 +41,12 @@ def clean_sequence(seq: str) -> str:
     """
     if not seq:
         return ""
-    clean = str(seq).replace("\\n", "").replace("\\t", "").replace("\\r", "")
+    seq_obj = cast("object", seq)
+    clean = seq_obj if isinstance(seq_obj, str) else str(seq_obj)
+    if "\\" in clean:
+        clean = clean.replace("\\n", "").replace("\\t", "").replace("\\r", "")
+    if clean.isascii():
+        return clean.translate(ASCII_WHITESPACE_TRANS)
     return "".join(clean.split())
 
 
@@ -216,6 +225,120 @@ class DNA:
         else:
             self._name = name.strip()
         self._direction: DNADirection = DNADirection(direction)
+        self._seq_upper_bytes: bytes | None = None
+        self._comp_seq: str | None = None
+        self._comp_upper_bytes: bytes | None = None
+
+    @classmethod
+    def _from_validated(
+        cls,
+        seq: str,
+        seq_upper: str,
+        dna_type: DNAType,
+        name: str,
+        direction: DNADirection,
+    ) -> Self:
+        """Construct a DNA instance from already cleaned and validated data."""
+        obj = cls.__new__(cls)
+        obj._seq = seq
+        obj._seq_upper = seq_upper
+        obj._seq_upper_bytes = None
+        obj._comp_seq = None
+        obj._comp_upper_bytes = None
+        obj._dna_type = dna_type
+        stripped_name = name.strip()
+        obj._name = stripped_name if stripped_name else seq
+        obj._direction = direction
+        return obj
+
+    @staticmethod
+    def concat_slices(
+        prefix: DNA,
+        template: DNA,
+        start: int,
+        end: int,
+        suffix: DNA,
+        *,
+        wrap: bool = False,
+    ) -> DNA:
+        """Assemble a linear DNA from validated prefix, template slice, suffix.
+
+        Avoids intermediate ``DNA`` slice allocations and re-validation when
+        all inputs are already validated ``DNA`` instances.
+        """
+        same_case = (
+            prefix._seq_upper is prefix._seq
+            and template._seq_upper is template._seq
+            and suffix._seq_upper is suffix._seq
+        )
+        if wrap:
+            tpl_slice = template._seq[start:] + template._seq[:end]
+            seq = prefix._seq + tpl_slice + suffix._seq
+            if same_case:
+                seq_upper = seq
+            elif template._seq.isascii():
+                seq_upper = (
+                    prefix._seq_upper
+                    + template._seq_upper[start:]
+                    + template._seq_upper[:end]
+                    + suffix._seq_upper
+                )
+            else:
+                seq_upper = (
+                    prefix._seq_upper + tpl_slice.upper() + suffix._seq_upper
+                )
+        else:
+            tpl_slice = template._seq[start:end]
+            seq = prefix._seq + tpl_slice + suffix._seq
+            if same_case:
+                seq_upper = seq
+            elif template._seq.isascii():
+                seq_upper = (
+                    prefix._seq_upper
+                    + template._seq_upper[start:end]
+                    + suffix._seq_upper
+                )
+            else:
+                seq_upper = (
+                    prefix._seq_upper + tpl_slice.upper() + suffix._seq_upper
+                )
+        return DNA._from_validated(
+            seq,
+            seq_upper,
+            DNAType.LINEAR,
+            prefix._name,
+            prefix._direction,
+        )
+
+    @property
+    def seq_upper_bytes(self) -> bytes:
+        """Return the ASCII-encoded uppercase DNA sequence bytes."""
+        if self._seq_upper_bytes is None:
+            self._seq_upper_bytes = self._seq_upper.encode("ascii")
+        return self._seq_upper_bytes
+
+    @property
+    def complement_seq(self) -> str:
+        """Return the raw complement sequence string."""
+        if self._comp_seq is None:
+            self._comp_seq = self._seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        return self._comp_seq
+
+    @property
+    def comp_upper_bytes(self) -> bytes:
+        """Return the ASCII-encoded uppercase complement bytes."""
+        if self._comp_upper_bytes is None:
+            if self._seq_upper is self._seq:
+                self._comp_upper_bytes = self.complement_seq.encode("ascii")
+            elif self._seq.isascii():
+                self._comp_upper_bytes = self._seq_upper.translate(
+                    GLOBAL_COMPLEMENT_TABLE
+                ).encode("ascii")
+            else:
+                self._comp_upper_bytes = self.complement_seq.upper().encode(
+                    "ascii"
+                )
+        return self._comp_upper_bytes
 
     @property
     def seq(self) -> str:
@@ -257,8 +380,10 @@ class DNA:
         Returns:
             DNA: A new DNA object with the lowercase sequence.
         """
-        return type(self)(
-            self.seq.lower(), self.type, self.name, self.direction
+        seq_low = self._seq.lower()
+        seq_upper = seq_low if not seq_low else self._seq_upper
+        return type(self)._from_validated(
+            seq_low, seq_upper, self._dna_type, self._name, self._direction
         )
 
     def upper(self) -> DNA:
@@ -267,8 +392,12 @@ class DNA:
         Returns:
             DNA: A new DNA object with the uppercase sequence.
         """
-        return type(self)(
-            self.seq.upper(), self.type, self.name, self.direction
+        return type(self)._from_validated(
+            self._seq_upper,
+            self._seq_upper,
+            self._dna_type,
+            self._name,
+            self._direction,
         )
 
     def complement(self) -> DNA:
@@ -281,11 +410,19 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the complement sequence.
         """
-        return type(self)(
-            self.seq.translate(GLOBAL_COMPLEMENT_TABLE),
-            self.type,
-            self.name,
-            self.direction.invert(),
+        seq_comp = self._seq.translate(GLOBAL_COMPLEMENT_TABLE)
+        if self._seq_upper is self._seq:
+            seq_comp_upper = seq_comp
+        elif self._seq.isascii():
+            seq_comp_upper = self._seq_upper.translate(GLOBAL_COMPLEMENT_TABLE)
+        else:
+            seq_comp_upper = seq_comp.upper()
+        return type(self)._from_validated(
+            seq_comp,
+            seq_comp_upper,
+            self._dna_type,
+            self._name,
+            self._direction.invert(),
         )
 
     def reverse(self) -> DNA:
@@ -297,21 +434,47 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the reversed sequence.
         """
-        return type(self)(
-            self.seq[::-1], self.type, self.name, self.direction.invert()
+        seq_rev = self._seq[::-1]
+        if self._seq_upper is self._seq:
+            seq_rev_upper = seq_rev
+        elif self._seq.isascii():
+            seq_rev_upper = self._seq_upper[::-1]
+        else:
+            seq_rev_upper = seq_rev.upper()
+        return type(self)._from_validated(
+            seq_rev,
+            seq_rev_upper,
+            self._dna_type,
+            self._name,
+            self._direction.invert(),
         )
 
     def reverse_complement(self) -> DNA:
         """Return the reverse complement of the DNA sequence.
 
-        This is equivalent to calling `.reverse().complement()`.
-        The direction of the returned DNA object is inverted relative to the
-        original.
+        This is equivalent to calling ``.reverse().complement()``.
+        The direction of the returned DNA object matches the original
+        (5' -> 3' orientation is preserved).
 
         Returns:
             DNA: A new DNA object representing the reverse complement sequence.
         """
-        return self.reverse().complement()
+        seq_rc = self._seq[::-1].translate(GLOBAL_COMPLEMENT_TABLE)
+        if self._seq_upper is self._seq:
+            seq_rc_upper = seq_rc
+        elif self._seq.isascii():
+            seq_rc_upper = self._seq_upper[::-1].translate(
+                GLOBAL_COMPLEMENT_TABLE
+            )
+        else:
+            seq_rc_upper = seq_rc.upper()
+        return type(self)._from_validated(
+            seq_rc,
+            seq_rc_upper,
+            self._dna_type,
+            self._name,
+            self._direction,
+        )
 
     def generate_truncations(
         self,
@@ -408,7 +571,21 @@ class DNA:
         Returns:
             DNA: A new DNA object representing the subsequence.
         """
-        return type(self)(self.seq[key], self.type, self.name, self.direction)
+        sub_seq = self._seq[key]
+        if self._seq_upper is self._seq:
+            sub_upper = sub_seq
+        elif self._seq.isascii():
+            sub_upper = self._seq_upper[key]
+        else:
+            upper = sub_seq.upper()
+            sub_upper = sub_seq if upper == sub_seq else upper
+        return type(self)._from_validated(
+            sub_seq,
+            sub_upper,
+            self._dna_type,
+            self._name,
+            self._direction,
+        )
 
     def __str__(self) -> str:
         """Return a string representation of the DNA object.
@@ -430,8 +607,18 @@ class DNA:
         """
         if not isinstance(other, DNA):
             return NotImplemented
-        return DNA(
-            self.seq + other.seq, DNAType.LINEAR, self.name, self.direction
+        combined = self._seq + other._seq
+        combined_upper = (
+            combined
+            if self._seq_upper is self._seq and other._seq_upper is other._seq
+            else self._seq_upper + other._seq_upper
+        )
+        return DNA._from_validated(
+            combined,
+            combined_upper,
+            DNAType.LINEAR,
+            self._name,
+            self._direction,
         )
 
     def _count_bases(self, bases: str) -> int:
@@ -548,6 +735,20 @@ class Primer(DNA):
                 sequence. Defaults to DNADirection.FWD.
         """
         super().__init__(sequence, DNAType.PRIMER, name, DNADirection.FWD)
+
+    @classmethod
+    def _from_validated(
+        cls,
+        seq: str,
+        seq_upper: str,
+        dna_type: DNAType,
+        name: str,
+        direction: DNADirection,
+    ) -> Self:
+        """Construct a Primer enforcing primer type and forward direction."""
+        return super()._from_validated(
+            seq, seq_upper, DNAType.PRIMER, name, DNADirection.FWD
+        )
 
     @property
     def redundancy_fold(self) -> int:

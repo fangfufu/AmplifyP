@@ -259,17 +259,20 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         )
         font_size_primer = self.settings._safe_int("font_size_map_primer", 13)
 
-        v_target, h_margin, c_width, t_width, v_frag_start = (
-            PCRLayoutSolver.calculate_canvas_dimensions(
-                target_length,
-                num_amplicons,
-                fwd_bindings,
-                rev_bindings,
-                self.app_page.width,
-                label_orientation=label_orientation,
-                font_size_primer=font_size_primer,
-            )
+        layout = PCRLayoutSolver.solve_canvas_layout(
+            target_length,
+            num_amplicons,
+            fwd_bindings,
+            rev_bindings,
+            self.app_page.width,
+            label_orientation=label_orientation,
+            font_size_primer=font_size_primer,
         )
+        v_target = layout.v_target
+        h_margin = layout.h_margin
+        c_width = layout.c_width
+        t_width = layout.t_width
+        v_frag_start = layout.v_frag_start
 
         # Apply dimensions directly to UI controls
         self.diagram_canvas.width = c_width
@@ -292,6 +295,10 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             c_width=c_width,
             label_orientation=label_orientation,
             font_size_primer=font_size_primer,
+            fwd_shifted=layout.fwd_shifted,
+            rev_shifted=layout.rev_shifted,
+            fwd_label_layout=layout.fwd_label_layout,
+            rev_label_layout=layout.rev_label_layout,
         )
 
         self._draw_amplicons(
@@ -436,6 +443,14 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
         c_width: float = 800.0,
         label_orientation: str = "Horizontal",
         font_size_primer: int = 13,
+        fwd_shifted: dict[tuple[int, str], float] | None = None,
+        rev_shifted: dict[tuple[int, str], float] | None = None,
+        fwd_label_layout: (
+            dict[tuple[int, str], tuple[float, int, float]] | None
+        ) = None,
+        rev_label_layout: (
+            dict[tuple[int, str], tuple[float, int, float]] | None
+        ) = None,
     ) -> None:
         """Draw forward and reverse primers using DrawnPrimer instances.
 
@@ -453,35 +468,50 @@ class PCRDrawingPanel(ft.Column):  # type: ignore[misc]
             label_orientation: Primer label orientation ('Horizontal', '45°',
                 or 'Vertical').
             font_size_primer: Font size in pixels for primer labels.
+            fwd_shifted: Optional precomputed shifted x coordinates for forward
+                primers.
+            rev_shifted: Optional precomputed shifted x coordinates for reverse
+                primers.
+            fwd_label_layout: Optional precomputed horizontal label layout for
+                forward primers.
+            rev_label_layout: Optional precomputed horizontal label layout for
+                reverse primers.
         """
-        fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
-            fwd_bindings, target_length, t_width, h_margin
-        )
-        rev_shifted = PCRLayoutSolver.calculate_shifted_x(
-            rev_bindings, target_length, t_width, h_margin
-        )
+        if fwd_shifted is None:
+            fwd_shifted = PCRLayoutSolver.calculate_shifted_x(
+                fwd_bindings, target_length, t_width, h_margin
+            )
+        if rev_shifted is None:
+            rev_shifted = PCRLayoutSolver.calculate_shifted_x(
+                rev_bindings, target_length, t_width, h_margin
+            )
 
-        fwd_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
-        rev_label_layout: dict[tuple[int, str], tuple[float, int, float]] = {}
-        if label_orientation == "Horizontal":
-            fwd_label_layout, _ = (
-                PCRLayoutSolver.calculate_horizontal_label_layout(
-                    fwd_bindings,
-                    fwd_shifted,
-                    c_width,
-                    font_size_primer,
-                    is_fwd=True,
+        if fwd_label_layout is None:
+            if label_orientation == "Horizontal":
+                fwd_label_layout, _ = (
+                    PCRLayoutSolver.calculate_horizontal_label_layout(
+                        fwd_bindings,
+                        fwd_shifted,
+                        c_width,
+                        font_size_primer,
+                        is_fwd=True,
+                    )
                 )
-            )
-            rev_label_layout, _ = (
-                PCRLayoutSolver.calculate_horizontal_label_layout(
-                    rev_bindings,
-                    rev_shifted,
-                    c_width,
-                    font_size_primer,
-                    is_fwd=False,
+            else:
+                fwd_label_layout = {}
+        if rev_label_layout is None:
+            if label_orientation == "Horizontal":
+                rev_label_layout, _ = (
+                    PCRLayoutSolver.calculate_horizontal_label_layout(
+                        rev_bindings,
+                        rev_shifted,
+                        c_width,
+                        font_size_primer,
+                        is_fwd=False,
+                    )
                 )
-            )
+            else:
+                rev_label_layout = {}
 
         def make_click(
             n_val: str, idx_val: int, c_val: Repliconf, v_val: DirIdx

@@ -53,7 +53,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
         self._cached_pcr: PCR | None = None
-        self._cached_state_key: tuple[dict[str, Any], Any] | None = None
+        self._cached_state_key: tuple[Any, Any] | None = None
 
         self.result_list = ft.ListView(
             expand=True, spacing=10, scroll=ft.ScrollMode.ALWAYS
@@ -121,7 +121,7 @@ class PCRView(ft.Column):  # type: ignore[misc]
         cache_hit = False
         try:
             current_state_key = (
-                self.input_data.to_dict(),
+                self.input_data.state_key(),
                 self.settings.get_replication_settings(),
             )
             if (
@@ -250,7 +250,9 @@ class PCRView(ft.Column):  # type: ignore[misc]
         self._update_cards_header_visibility()
         self.app_page.update()
 
-    def _show_amplicon_dialog(self, amp: "Amplicon") -> None:
+    def _show_amplicon_dialog(
+        self, amp: "Amplicon", *, update: bool = True
+    ) -> None:
         """Show details card of the selected amplicon."""
         card_id = (
             f"amplicon_{amp.fwd_origin.name}_{amp.rev_origin.name}_"
@@ -260,8 +262,9 @@ class PCRView(ft.Column):  # type: ignore[misc]
             if getattr(ctrl, "_card_id", None) == card_id:
                 self.result_list.controls.remove(ctrl)
                 self.result_list.controls.insert(0, ctrl)
-                self._update_cards_header_visibility()
-                self.app_page.update()
+                if update:
+                    self._update_cards_header_visibility()
+                    self.app_page.update()
                 return
 
         def dismiss(card: ft.Card) -> None:
@@ -278,8 +281,9 @@ class PCRView(ft.Column):  # type: ignore[misc]
             min_q_score=self.diagram_panel._min_q_score,
         )
         self.result_list.controls.insert(0, amplicon_card)
-        self._update_cards_header_visibility()
-        self.app_page.update()
+        if update:
+            self._update_cards_header_visibility()
+            self.app_page.update()
 
     def _update_cards_header_visibility(self) -> None:
         """Toggle header visibility based on detail card presence."""
@@ -306,5 +310,9 @@ class PCRView(ft.Column):  # type: ignore[misc]
             "_sorted_amplicons",
             self._cached_pcr.amplicons[:MAX_AMPLICONS_RENDER],
         )
+        if not amplicons_to_show:
+            return
         for amp in reversed(amplicons_to_show):
-            self._show_amplicon_dialog(amp)
+            self._show_amplicon_dialog(amp, update=False)
+        self._update_cards_header_visibility()
+        self.app_page.update()

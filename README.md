@@ -248,6 +248,8 @@ For more documentation, please refer to:
   temperature thermodynamics, and truncation-based primer design.
 - **[Development Guide](src/README.md)**: Information on setting up development
   dependencies, linters, hot-reload, and Pyodide web builds.
+- **[Benchmark Suite](docs/benchmark.md)**: Guide to running automated core,
+  YAML IO, and headless GUI performance benchmarks.
 - **[Windows Setup Guide](docs/windows_setup.md)**: A step-by-step developer
   guide for setting up the environment, running tests, and compiling installers
   on Windows.

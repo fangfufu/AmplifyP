@@ -659,3 +659,49 @@ def test_from_dict_validates_and_canonicalizes_weight_keys() -> None:
     settings.from_dict({"match_weight_default": "12"})
     assert settings["match_weight_default"] == "12"
     assert "match_weight_0" not in settings._settings
+
+
+def test_gui_settings_caches_core_objects_and_invalidates() -> None:
+    """Verify GUISettings caches core settings and invalidates on writes."""
+    settings = GUISettings()
+    rep1 = settings.get_replication_settings()
+    pd1 = settings.get_primer_dimer_settings()
+    assert settings.get_replication_settings() is rep1
+    assert settings.get_primer_dimer_settings() is pd1
+
+    settings["primability_cutoff"] = "0.75"
+    rep2 = settings.get_replication_settings()
+    assert rep2 is not rep1
+    assert rep2.primability_cutoff == pytest.approx(0.75)
+
+    settings["pd_threshold"] = "12.0"
+    pd2 = settings.get_primer_dimer_settings()
+    assert pd2 is not pd1
+    assert pd2.threshold == pytest.approx(12.0)
+
+    del settings["match_weight_0"]
+    assert settings.get_replication_settings() is not rep2
+
+    cached_rep = settings.get_replication_settings()
+    settings.from_dict({"amp4_compat": True})
+    assert settings.get_replication_settings() is not cached_rep
+
+    cached_pd = settings.get_primer_dimer_settings()
+    settings.reset_to_defaults()
+    assert settings.get_primer_dimer_settings() is not cached_pd
+
+
+def test_from_dict_invalidates_caches_on_partial_failure() -> None:
+    """Verify caches are invalidated when from_dict fails after mutation."""
+    settings = GUISettings()
+    cached_rep = settings.get_replication_settings()
+    assert cached_rep.primability_cutoff == pytest.approx(0.8)
+
+    huge_key = f"match_weight_{'1' * 5000}"
+    with pytest.raises(ValueError):
+        settings.from_dict({"primability_cutoff": "0.75", huge_key: "10"})
+
+    assert settings["primability_cutoff"] == "0.75"
+    updated_rep = settings.get_replication_settings()
+    assert updated_rep is not cached_rep
+    assert updated_rep.primability_cutoff == pytest.approx(0.75)
