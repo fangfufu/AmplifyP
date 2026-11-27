@@ -689,3 +689,19 @@ def test_gui_settings_caches_core_objects_and_invalidates() -> None:
     cached_pd = settings.get_primer_dimer_settings()
     settings.reset_to_defaults()
     assert settings.get_primer_dimer_settings() is not cached_pd
+
+
+def test_from_dict_invalidates_caches_on_partial_failure() -> None:
+    """Verify caches are invalidated when from_dict fails after mutation."""
+    settings = GUISettings()
+    cached_rep = settings.get_replication_settings()
+    assert cached_rep.primability_cutoff == pytest.approx(0.8)
+
+    huge_key = f"match_weight_{'1' * 5000}"
+    with pytest.raises(ValueError):
+        settings.from_dict({"primability_cutoff": "0.75", huge_key: "10"})
+
+    assert settings["primability_cutoff"] == "0.75"
+    updated_rep = settings.get_replication_settings()
+    assert updated_rep is not cached_rep
+    assert updated_rep.primability_cutoff == pytest.approx(0.75)

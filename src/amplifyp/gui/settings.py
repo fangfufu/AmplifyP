@@ -459,13 +459,23 @@ class GUISettings:
         Args:
             settings_dict: Dictionary of setting key-value pairs to apply.
         """
-        for k in self._settings:
-            if k in settings_dict:
-                v = settings_dict[k]
-                if k == "dark_mode":
-                    if str(v).lower() == "system":
-                        self._settings[k] = "system"
-                    else:
+        try:
+            for k in self._settings:
+                if k in settings_dict:
+                    v = settings_dict[k]
+                    if k == "dark_mode":
+                        if str(v).lower() == "system":
+                            self._settings[k] = "system"
+                        else:
+                            if isinstance(v, str):
+                                self._settings[k] = v.lower() in (
+                                    "true",
+                                    "1",
+                                    "yes",
+                                )
+                            else:
+                                self._settings[k] = bool(v)
+                    elif isinstance(self._settings[k], bool):
                         if isinstance(v, str):
                             self._settings[k] = v.lower() in (
                                 "true",
@@ -474,72 +484,64 @@ class GUISettings:
                             )
                         else:
                             self._settings[k] = bool(v)
-                elif isinstance(self._settings[k], bool):
-                    if isinstance(v, str):
-                        self._settings[k] = v.lower() in (
-                            "true",
-                            "1",
-                            "yes",
-                        )
+                    elif isinstance(self._settings[k], int):
+                        try:
+                            self._settings[k] = int(v)
+                        except (ValueError, TypeError, OverflowError):
+                            pass
+                    elif isinstance(self._settings[k], float):
+                        try:
+                            self._settings[k] = float(v)
+                        except (ValueError, TypeError, OverflowError):
+                            pass
                     else:
-                        self._settings[k] = bool(v)
-                elif isinstance(self._settings[k], int):
-                    try:
-                        self._settings[k] = int(v)
-                    except (ValueError, TypeError, OverflowError):
-                        pass
-                elif isinstance(self._settings[k], float):
-                    try:
-                        self._settings[k] = float(v)
-                    except (ValueError, TypeError, OverflowError):
-                        pass
-                else:
-                    self._settings[k] = str(v)
-        for prefix in ("match_weight_", "run_weight_"):
-            valid_entries: dict[str, str] = {}
-            for incoming_k, incoming_v in settings_dict.items():
-                if not incoming_k.startswith(prefix):
-                    continue
-                suffix = incoming_k[len(prefix) :]
-                if suffix == "default":
-                    valid_entries[incoming_k] = str(incoming_v)
-                elif suffix.isascii() and suffix.isdigit():
-                    canonical_k = f"{prefix}{int(suffix)}"
-                    if (
-                        canonical_k not in valid_entries
-                        or incoming_k == canonical_k
-                    ):
-                        valid_entries[canonical_k] = str(incoming_v)
-            if valid_entries:
-                for existing_k in [
-                    k for k in self._settings if k.startswith(prefix)
-                ]:
-                    del self._settings[existing_k]
-                self._settings.update(valid_entries)
-        if (
-            "amplify4_compatibility_mode" in settings_dict
-            and "amp4_compat" not in settings_dict
-        ):
-            from amplifyp.settings import coerce_bool
+                        self._settings[k] = str(v)
+            for prefix in ("match_weight_", "run_weight_"):
+                valid_entries: dict[str, str] = {}
+                for incoming_k, incoming_v in settings_dict.items():
+                    if not incoming_k.startswith(prefix):
+                        continue
+                    suffix = incoming_k[len(prefix) :]
+                    if suffix == "default":
+                        valid_entries[incoming_k] = str(incoming_v)
+                    elif suffix.isascii() and suffix.isdigit():
+                        canonical_k = f"{prefix}{int(suffix)}"
+                        if (
+                            canonical_k not in valid_entries
+                            or incoming_k == canonical_k
+                        ):
+                            valid_entries[canonical_k] = str(incoming_v)
+                if valid_entries:
+                    for existing_k in [
+                        k for k in self._settings if k.startswith(prefix)
+                    ]:
+                        del self._settings[existing_k]
+                    self._settings.update(valid_entries)
+            if (
+                "amplify4_compatibility_mode" in settings_dict
+                and "amp4_compat" not in settings_dict
+            ):
+                from amplifyp.settings import coerce_bool
 
-            self._settings["amp4_compat"] = coerce_bool(
-                settings_dict["amplify4_compatibility_mode"],
-                bool(self._settings.get("amp4_compat", False)),
+                self._settings["amp4_compat"] = coerce_bool(
+                    settings_dict["amplify4_compatibility_mode"],
+                    bool(self._settings.get("amp4_compat", False)),
+                )
+            if (
+                "dimer_sequence_separator" in settings_dict
+                and "sequence_separator" not in settings_dict
+            ):
+                legacy_sep = settings_dict["dimer_sequence_separator"]
+                if legacy_sep is not None:
+                    self._settings["sequence_separator"] = str(legacy_sep)
+            GUIColours.colour_deficient_mode = bool(
+                self._settings.get("colour_deficient", False)
             )
-        if (
-            "dimer_sequence_separator" in settings_dict
-            and "sequence_separator" not in settings_dict
-        ):
-            legacy_sep = settings_dict["dimer_sequence_separator"]
-            if legacy_sep is not None:
-                self._settings["sequence_separator"] = str(legacy_sep)
-        GUIColours.colour_deficient_mode = bool(
-            self._settings.get("colour_deficient", False)
-        )
-        dark_mode_val = self._settings.get("dark_mode", False)
-        if str(dark_mode_val).lower() != "system":
-            GUIColours.dark_mode = bool(dark_mode_val)
-        self._invalidate_caches()
+            dark_mode_val = self._settings.get("dark_mode", False)
+            if str(dark_mode_val).lower() != "system":
+                GUIColours.dark_mode = bool(dark_mode_val)
+        finally:
+            self._invalidate_caches()
 
     def reset_to_defaults(self) -> None:
         """Reset all settings to their factory default values."""
