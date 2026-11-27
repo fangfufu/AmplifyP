@@ -312,10 +312,8 @@ class Repliconf:
             tpl = self.template
             if tpl.type in (DNAType.LINEAR, DNAType.PRIMER):
                 padded_len = self.padding_len + len(tpl)
-            elif tpl.type == DNAType.CIRCULAR:
-                padded_len = min(self.padding_len, len(tpl)) + len(tpl)
             else:
-                padded_len = len(self.template_seq[DNADirection.FWD])
+                padded_len = min(self.padding_len, len(tpl)) + len(tpl)
         return range(padded_len - len(self.primer) + 1)
 
     def slice(self, i: int) -> slice:
@@ -392,14 +390,12 @@ class Repliconf:
             if direction == DNADirection.FWD:
                 return gap_bytes + tpl.seq_upper_bytes
             return tpl.comp_upper_bytes + gap_bytes
-        if tpl.type == DNAType.CIRCULAR:
-            if direction == DNADirection.FWD:
-                tpl_bytes = tpl.seq_upper_bytes
-                padding = tpl_bytes[-pad_len:] if pad_len > 0 else b""
-                return padding + tpl_bytes
-            comp_bytes = tpl.comp_upper_bytes
-            return comp_bytes + comp_bytes[:pad_len]
-        return self.template_seq[direction].upper().encode("ascii")
+        if direction == DNADirection.FWD:
+            tpl_bytes = tpl.seq_upper_bytes
+            padding = tpl_bytes[-pad_len:] if pad_len > 0 else b""
+            return padding + tpl_bytes
+        comp_bytes = tpl.comp_upper_bytes
+        return comp_bytes + comp_bytes[:pad_len]
 
     def search(self) -> None:
         """Perform a search for valid replication origins.
