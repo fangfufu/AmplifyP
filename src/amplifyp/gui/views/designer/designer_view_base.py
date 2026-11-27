@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 from collections.abc import Callable, Coroutine
 from typing import Any
 
@@ -28,6 +29,7 @@ from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils import data_helpers
+from amplifyp.gui.utils import system as system_utils
 from amplifyp.gui.utils.gui_helpers import NotificationHelper
 from amplifyp.io import safe_dump_yaml, safe_load_yaml
 
@@ -55,6 +57,9 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
         self._active_cards: list[ft.Card] = []
+        self._background_tasks: set[asyncio.Task[Any]] = set()
+        self._analysis_running: bool = False
+        self._cancel_event: threading.Event | None = None
 
         # Left panel horizontal and vertical divider resizers
         self.main_h_divider = ft.GestureDetector(
@@ -177,9 +182,22 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
 
+    def _on_background_task_done(self, task: asyncio.Task[Any]) -> None:
+        """Discard a completed fallback task and log any unhandled error."""
+        self._background_tasks.discard(task)
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            logger.error(
+                "Unhandled exception in background task %s",
+                task.get_name(),
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+
     def _schedule_on_event_loop(
         self, func: Callable[..., Coroutine[Any, Any, Any]], *args: Any
-    ) -> None:
+    ) -> bool:
         """Schedule an async function on the Flet page event loop.
 
         Marshals UI mutations made by background analysis threads onto the
@@ -193,23 +211,125 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         Args:
             func: The async function to execute on the event loop.
             *args: Positional arguments passed to ``func``.
+
+        Returns:
+            True if the callback was scheduled, False if it was discarded.
         """
         page = self.app_page
         if page:
             try:
                 page.run_task(func, *args)
-                return
+                return True
             except (RuntimeError, TypeError, AttributeError):
                 pass
-        coro = func(*args)
         try:
-            asyncio.get_running_loop().create_task(coro)
+            loop = asyncio.get_running_loop()
         except RuntimeError:
-            coro.close()
             logger.warning(
                 "Discarded %s: no page event loop available",
                 getattr(func, "__qualname__", repr(func)),
             )
+            return False
+        task = loop.create_task(func(*args))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._on_background_task_done)
+        return True
+
+    def _start_analysis_worker(
+        self,
+        sync_worker: Callable[[], None],
+        async_worker: Callable[[], Coroutine[Any, Any, None]],
+        on_discarded: Callable[[], None] | None = None,
+    ) -> None:
+        """Run analysis in a background thread or cooperatively on the loop.
+
+        Uses a daemon thread on desktop/server runtimes. On single-threaded
+        WebAssembly/Pyodide runtimes (or if starting a thread fails with
+        ``RuntimeError``), schedules ``async_worker`` on the Flet event loop.
+
+        Args:
+            sync_worker: Synchronous callable executed in a background thread.
+            async_worker: Coroutine factory scheduled on the Flet event loop
+                when threads are unavailable.
+            on_discarded: Optional cleanup callback invoked if scheduling
+                ``async_worker`` fails because no event loop is available.
+        """
+        if system_utils.can_use_background_threads():
+            try:
+                threading.Thread(target=sync_worker, daemon=True).start()
+                return
+            except RuntimeError as ex:
+                logger.info(
+                    "Background thread unavailable (%s); running analysis on "
+                    "event loop",
+                    ex,
+                )
+        scheduled = self._schedule_on_event_loop(async_worker)
+        if scheduled is False and on_discarded is not None:
+            on_discarded()
+
+    def _get_analyse_button(self) -> Any:
+        """Return the subclass form's analyse button control, if present."""
+        form = getattr(self, "form", None)
+        return getattr(form, "analyse_button", None)
+
+    def _is_stale_run(self, cancel_event: threading.Event | None) -> bool:
+        """Return True if ``cancel_event`` no longer matches the active run."""
+        return (
+            cancel_event is not None and self._cancel_event is not cancel_event
+        )
+
+    def _guard_not_running(self, action_message: str) -> bool:
+        """Notify and return True if an analysis is currently running."""
+        if self._analysis_running:
+            self._show_notification(action_message)
+            return True
+        return False
+
+    def _set_button_abort_mode(self, abort_mode: bool) -> None:
+        """Toggle the analyse button between Analyse and Abort appearance."""
+        button = self._get_analyse_button()
+        if button is None:
+            return
+        if abort_mode:
+            button.content = "Abort"
+            button.icon = ft.Icons.STOP
+            button.tooltip = "Stop analysis and keep results so far"
+        else:
+            button.content = "Analyse"
+            button.icon = ft.Icons.PLAY_ARROW
+            button.tooltip = "Run Primer Truncation Analysis"
+
+    def _restore_loading_ui_if_active(self) -> None:
+        """Restore the results panel if a loading progress bar is still shown.
+
+        Subclasses override this to tear down their specific loading indicator.
+        """
+
+    def _finish_analysis_ui(
+        self, cancel_event: threading.Event | None = None
+    ) -> None:
+        """Restore loading UI, button mode, and page state after analysis."""
+        if self._is_stale_run(cancel_event):
+            return
+        self._restore_loading_ui_if_active()
+        self._analysis_running = False
+        button = self._get_analyse_button()
+        if button is not None:
+            button.disabled = False
+        self._set_button_abort_mode(False)
+        self._cancel_event = None
+        try:
+            if self.app_page:
+                self.app_page.update()
+        except RuntimeError:
+            pass
+
+    async def _on_analysis_finished(
+        self, cancel_event: threading.Event | None = None
+    ) -> None:
+        """Restore the analyse button and flush the page after analysis."""
+        self._finish_analysis_ui(cancel_event)
 
     def _bring_card_to_top_or_add(
         self, card_id: str, create_card_fn: Callable[[], ft.Card]

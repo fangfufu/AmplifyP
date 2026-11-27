@@ -15,6 +15,7 @@
 
 """Tests for GUI controllers and app lifecycle."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -394,6 +395,28 @@ async def test_update_manager_async() -> None:
     ):
         await update_manager.check_updates_async()
         mock_ctrl.header.set_update_available.assert_called_with("v99.0.0")
+
+    # check_updates_async runs without executor when threads are unavailable
+    mock_ctrl.settings["last_version_check_timestamp"] = 0.0
+    mock_ctrl.header.set_update_available.reset_mock()
+    loop = asyncio.get_running_loop()
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            loop,
+            "run_in_executor",
+            side_effect=AssertionError("executor should not be called"),
+        ),
+        patch(
+            "amplifyp.gui.utils.system.fetch_latest_release_version",
+            return_value="v100.0.0",
+        ),
+    ):
+        await update_manager.check_updates_async()
+        mock_ctrl.header.set_update_available.assert_called_with("v100.0.0")
 
 
 def test_flet_session_patch_and_edge_cases() -> None:

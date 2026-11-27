@@ -18,13 +18,19 @@
 from __future__ import annotations
 
 import asyncio
+import contextvars
+import importlib
 import logging
+import sys
+import threading
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import flet as ft
 
 from amplifyp.version import (
+    LATEST_RELEASE_API_URL,
     _get_sha,
     _parse_to_tuple,
     fetch_latest_release_version,
@@ -34,10 +40,140 @@ from amplifyp.version import (
     should_check_for_updates,
 )
 from amplifyp.version import (
+    fetch_latest_release_version as _core_fetch_latest_release_version,
+)
+from amplifyp.version import (
     get_version as _core_get_version,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def is_pyodide_runtime() -> bool:
+    """Return True when running under Pyodide / WebAssembly (Emscripten)."""
+    return sys.platform == "emscripten" or "pyodide" in sys.modules
+
+
+def can_use_background_threads() -> bool:
+    """Return True when the runtime supports spawning OS threads.
+
+    Pyodide / WebAssembly environments run single-threaded and raise
+    ``RuntimeError("can't start new thread")`` if a thread is started.
+    """
+    return not is_pyodide_runtime()
+
+
+async def run_in_background_thread[**P, T](
+    func: Callable[P, T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
+    """Run ``func`` in the default executor when threads are available.
+
+    Falls back to calling ``func(*args, **kwargs)`` directly on
+    single-threaded runtimes (such as Pyodide / WebAssembly) or if starting
+    an executor thread fails with ``RuntimeError("can't start new thread")``.
+    """
+    if can_use_background_threads():
+        loop = asyncio.get_running_loop()
+        ctx = contextvars.copy_context()
+        claim_lock = threading.Lock()
+        claimed = False
+        done_event = asyncio.Event()
+        result_box: list[T] = []
+        exc_box: list[BaseException] = []
+
+        def _signal_done() -> None:
+            try:
+                loop.call_soon_threadsafe(done_event.set)
+            except RuntimeError:
+                pass
+
+        def _run() -> T:
+            nonlocal claimed
+            with claim_lock:
+                if claimed:
+                    return cast("T", None)
+                claimed = True
+            try:
+                res = ctx.run(func, *args, **kwargs)
+            except BaseException as err:
+                exc_box.append(err)
+                _signal_done()
+                raise
+            result_box.append(res)
+            _signal_done()
+            return res
+
+        try:
+            future = loop.run_in_executor(None, _run)
+        except RuntimeError as ex:
+            if "can't start new thread" not in str(ex).lower():
+                raise
+            # ThreadPoolExecutor.submit() enqueues the work item before
+            # spawning a new thread; coordinate with any existing worker that
+            # may already have dequeued _run so func never executes twice.
+            with claim_lock:
+                already_claimed = claimed
+                claimed = True
+            if already_claimed:
+                await done_event.wait()
+                if exc_box:
+                    raise exc_box[0] from None
+                return result_box[0]
+            logger.info(
+                "Background thread unavailable (%s); running callable "
+                "directly on event loop",
+                ex,
+            )
+        else:
+            return await future
+    return func(*args, **kwargs)
+
+
+async def fetch_latest_release_version_async() -> str | None:
+    """Fetch the latest release version tag without blocking the event loop.
+
+    Uses ``run_in_background_thread`` on desktop/server runtimes. On Pyodide /
+    WebAssembly runtimes, uses ``pyodide.http.pyfetch`` asynchronously so
+    network I/O never blocks the Python worker event loop or spawns threads.
+    """
+    # Check identity against the core function so tests or callers patching
+    # ``amplifyp.gui.utils.system.fetch_latest_release_version`` are honoured
+    # rather than silently bypassed by ``pyodide.http.pyfetch``.
+    if (
+        not can_use_background_threads()
+        and fetch_latest_release_version is _core_fetch_latest_release_version
+    ):
+        try:
+            pyodide_http = importlib.import_module("pyodide.http")
+            pyfetch = getattr(pyodide_http, "pyfetch", None)
+        except ImportError:
+            pyfetch = None
+
+        if callable(pyfetch):
+            pyfetch_fn = cast("Callable[[str], Awaitable[Any]]", pyfetch)
+            try:
+                async with asyncio.timeout(5.0):
+                    response = await pyfetch_fn(LATEST_RELEASE_API_URL)
+                    if getattr(response, "ok", True):
+                        data = await response.json()
+                        if isinstance(data, dict):
+                            tag_name = data.get("tag_name")
+                            if isinstance(tag_name, str):
+                                stripped = tag_name.strip()
+                                if stripped:
+                                    return stripped
+                    else:
+                        logger.warning(
+                            "Failed to check for updates: HTTP %s",
+                            getattr(response, "status", "unknown"),
+                        )
+            except Exception as ex:
+                logger.warning("Failed to check for updates: %s", ex)
+            return None
+
+    return await run_in_background_thread(fetch_latest_release_version)
 
 
 # ==============================================================================
@@ -240,17 +376,21 @@ __all__ = [
     "_get_sha",
     "_parse_to_tuple",
     "auto_close_and_quit_delayed",
+    "can_use_background_threads",
     "capture_all_views_async",
     "capture_view_screenshot_async",
     "confirm_dismiss",
     "confirm_exit",
     "confirm_exit_async",
     "fetch_latest_release_version",
+    "fetch_latest_release_version_async",
     "get_full_sha",
     "get_git_sha",
     "get_version",
     "is_newer_version",
+    "is_pyodide_runtime",
     "on_window_event",
     "restore_state_and_auto_close_async",
+    "run_in_background_thread",
     "should_check_for_updates",
 ]

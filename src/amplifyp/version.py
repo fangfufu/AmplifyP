@@ -31,6 +31,7 @@ from typing import Any, cast
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "LATEST_RELEASE_API_URL",
     "_get_sha",
     "_parse_to_tuple",
     "fetch_latest_release_version",
@@ -40,6 +41,10 @@ __all__ = [
     "is_newer_version",
     "should_check_for_updates",
 ]
+
+LATEST_RELEASE_API_URL = (
+    "https://api.github.com/repos/fangfufu/AmplifyP/releases/latest"
+)
 
 
 def _get_sha(full: bool = False) -> str:
@@ -84,7 +89,7 @@ def _get_sha(full: bool = False) -> str:
             )
             if result.returncode == 0 and result.stdout.strip():
                 return result.stdout.strip()
-        except (OSError, subprocess.SubprocessError):
+        except (OSError, RuntimeError, subprocess.SubprocessError):
             pass
 
     try:
@@ -167,9 +172,8 @@ def get_version(git_sha_fn: Callable[[], str] | None = None) -> str:
 
 def fetch_latest_release_version() -> str | None:
     """Fetch the latest release version tag from GitHub API."""
-    url = "https://api.github.com/repos/fangfufu/AmplifyP/releases/latest"
     req = urllib.request.Request(
-        url,
+        LATEST_RELEASE_API_URL,
         headers={"User-Agent": "AmplifyP-Updater"},
     )
 
@@ -180,7 +184,9 @@ def fetch_latest_release_version() -> str | None:
                 payload = cast("dict[str, Any]", data)
                 tag_name = payload.get("tag_name")
                 if isinstance(tag_name, str):
-                    return tag_name.strip()
+                    stripped = tag_name.strip()
+                    if stripped:
+                        return stripped
     except Exception as e:
         logger.warning("Failed to check for updates: %s", e)
     return None

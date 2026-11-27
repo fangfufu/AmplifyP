@@ -21,6 +21,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 import yaml
 
 from amplifyp.gui.settings import GUISettings
@@ -276,6 +277,74 @@ def test_general_tile_all_branches() -> None:
         asyncio.run(tile.perform_manual_check())
         assert "AmplifyP is up to date." in tile.status_text.value
 
+    # 5b. perform_manual_check: works without executor in threadless runtime
+    async def _run_manual_check_threadless() -> None:
+        loop = asyncio.get_running_loop()
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch.object(
+                loop,
+                "run_in_executor",
+                side_effect=AssertionError("executor should not be called"),
+            ),
+            patch(
+                "amplifyp.gui.utils.system.fetch_latest_release_version",
+                return_value="v0.1.0",
+            ),
+            patch(
+                "amplifyp.gui.utils.system.is_newer_version",
+                return_value=False,
+            ),
+        ):
+            await tile.perform_manual_check()
+
+    asyncio.run(_run_manual_check_threadless())
+    assert "AmplifyP is up to date." in tile.status_text.value
+
+    # 5c. perform_manual_check: re-enables button and updates/clears status on
+    # CancelledError and Exception
+    mock_page.update.side_effect = None
+    with (
+        patch(
+            "amplifyp.gui.utils.system.fetch_latest_release_version_async",
+            new=AsyncMock(side_effect=asyncio.CancelledError()),
+        ),
+        pytest.raises(asyncio.CancelledError),
+    ):
+        asyncio.run(tile.perform_manual_check())
+    assert tile.check_button.disabled is False
+    assert tile.status_text.value == ""
+    assert tile._status_state is None
+
+    with (
+        patch(
+            "amplifyp.gui.utils.system.fetch_latest_release_version_async",
+            new=AsyncMock(side_effect=RuntimeError("executor shut down")),
+        ),
+        pytest.raises(RuntimeError, match="executor shut down"),
+    ):
+        asyncio.run(tile.perform_manual_check())
+    assert tile.check_button.disabled is False
+    assert "Could not check for updates." in (tile.status_text.value or "")
+    assert tile._status_state == "error"
+
+    # Also tolerates RuntimeError from app_page.update() during cleanup
+    for exc in (RuntimeError("boom"), asyncio.CancelledError()):
+        mock_page.update.side_effect = [None, RuntimeError("detached")]
+        with (
+            patch(
+                "amplifyp.gui.utils.system.fetch_latest_release_version_async",
+                new=AsyncMock(side_effect=exc),
+            ),
+            pytest.raises(type(exc)),
+        ):
+            asyncio.run(tile.perform_manual_check())
+        assert tile.check_button.disabled is False
+    mock_page.update.side_effect = None
+
     # 6. _save_settings_async: filepicker open, success, and error handling
     tile.filepicker_open = True
     asyncio.run(tile._save_settings_async(MagicMock()))
@@ -416,6 +485,10 @@ def test_general_tile_all_branches() -> None:
     tile._status_state = "error"
     tile.update_ui()
     assert tile.status_text.color == GUIColours.ERROR_RED
+
+    tile._status_state = "success"
+    tile.update_ui()
+    assert tile.status_text.color == GUIColours.SUCCESS_GREEN
 
     tile._status_state = "checking"
     tile.update_ui()

@@ -21,11 +21,13 @@ import logging
 import threading
 import traceback
 from collections.abc import Callable
+from typing import TypedDict
 
 import flet as ft
 
 from amplifyp.dimer import PrimerDimer, PrimerDimerGenerator
 from amplifyp.dna import DNA, DNADirection
+from amplifyp.errors import InvalidDNASequenceError
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -46,6 +48,22 @@ from amplifyp.settings import ReplicationSettings
 logger = logging.getLogger(__name__)
 
 
+class _Designer1DKwargs(TypedDict):
+    """Shared keyword arguments for sync and async 1D designer runs."""
+
+    dna: DNA
+    min_length: int
+    mode: DNADirection
+    generator: PrimerDimerGenerator
+    threshold: float | None
+    max_overlap: int | None
+    template: DNA | None
+    max_origin_count: int | None
+    on_progress: Callable[[int, int], None]
+    cancel_event: threading.Event
+    replication_settings: ReplicationSettings
+
+
 class PrimerDesignerView(BaseDesignerView):
     """1D Primer Designer view with resizable panels and cards."""
 
@@ -62,8 +80,6 @@ class PrimerDesignerView(BaseDesignerView):
         self._cached_designer: PrimerDesigner1D | None = None
         self._origin_counts_by_seq: dict[str, int | None] = {}
         self._origin_counts_designer: PrimerDesigner1D | None = None
-        self._analysis_running = False
-        self._cancel_event: threading.Event | None = None
 
         # Form component for input controls and parameters
         self.form = Designer1DForm(
@@ -299,22 +315,16 @@ class PrimerDesignerView(BaseDesignerView):
         While an analysis is running, the button acts as an abort button and
         the click requests a stop instead of starting a new run.
         """
-        if self._analysis_running and self._cancel_event is not None:
-            self._cancel_event.set()
+        if self._analysis_running:
+            if self._cancel_event is not None:
+                self._cancel_event.set()
             return
         self._start_designer()
 
-    def _set_button_abort_mode(self, abort_mode: bool) -> None:
-        """Toggle the analyse button between Analyse and Abort appearance."""
-        button = self.form.analyse_button
-        if abort_mode:
-            button.content = "Abort"
-            button.icon = ft.Icons.STOP
-            button.tooltip = "Stop analysis and keep results so far"
-        else:
-            button.content = "Analyse"
-            button.icon = ft.Icons.PLAY_ARROW
-            button.tooltip = "Run Primer Truncation Analysis"
+    def _restore_loading_ui_if_active(self) -> None:
+        """Restore the primer list if the progress bar is still visible."""
+        if self.progress_tracker.loading_body is not None:
+            self._restore_primer_list()
 
     def show_loading(self, total: int = 0) -> None:
         """Replace primer list with a progress bar while analysis runs.
@@ -438,8 +448,12 @@ class PrimerDesignerView(BaseDesignerView):
         designer: PrimerDesigner1D,
         origin_counts: list[int | None],
         mode: DNADirection,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         """Populate the results UI on the event loop after analysis."""
+        if self._is_stale_run(cancel_event):
+            return
+        self._cached_designer = designer
         self._restore_primer_list()
         self._update_chart_and_primer_list(designer, origin_counts, mode)
         if designer.aborted:
@@ -447,8 +461,15 @@ class PrimerDesignerView(BaseDesignerView):
                 "Analysis aborted — showing primers analysed so far."
             )
 
-    async def _on_analysis_error(self, ex: Exception, tb: str) -> None:
+    async def _on_analysis_error(
+        self,
+        ex: Exception,
+        tb: str,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
         """Show the analysis failure UI on the event loop."""
+        if self._is_stale_run(cancel_event):
+            return
         self.form.show_error(f"Error: {ex}")
         show_error_dialog(
             self.app_page,
@@ -457,23 +478,8 @@ class PrimerDesignerView(BaseDesignerView):
         )
         self._restore_primer_list()
 
-    async def _on_analysis_finished(
-        self, cancel_event: threading.Event | None = None
-    ) -> None:
-        """Restore the analyse button and flush the page after analysis."""
-        if cancel_event is not None and self._cancel_event is not cancel_event:
-            return
-        self.form.analyse_button.disabled = False
-        self._set_button_abort_mode(False)
-        self._cancel_event = None
-        try:
-            if self.app_page:
-                self.app_page.update()
-        except RuntimeError:
-            pass
-
     def _start_designer(self) -> None:
-        """Validate inputs, show progress bar, and run analysis in a thread."""
+        """Validate inputs, show progress bar, and launch 1D analysis."""
         if self._analysis_running:
             return
         params = self.form.validate_and_get_params()
@@ -491,25 +497,39 @@ class PrimerDesignerView(BaseDesignerView):
         ) = params
         self.primer_list.controls.clear()
 
-        template_dna: DNA | None = None
-        if filter_dna_enabled:
-            clean_tpl = clean_sequence(self.input_data.template)
-            if not clean_tpl:
-                self.form.show_error(
-                    "Template DNA sequence is required when check against "
-                    "template is enabled. Please enter a template in the "
-                    "Input view."
-                )
-                try:
-                    if self.app_page:
-                        self.app_page.update()
-                except RuntimeError:
-                    pass
-                return
-            template_dna = self.input_data.to_template_dna()
+        try:
+            template_dna: DNA | None = None
+            if filter_dna_enabled:
+                clean_tpl = clean_sequence(self.input_data.template)
+                if not clean_tpl:
+                    self.form.show_error(
+                        "Template DNA sequence is required when check against "
+                        "template is enabled. Please enter a template in the "
+                        "Input view."
+                    )
+                    try:
+                        if self.app_page:
+                            self.app_page.update()
+                    except RuntimeError:
+                        pass
+                    return
+                template_dna = self.input_data.to_template_dna()
 
-        dna_obj = DNA(clean_seq)
-        # Total truncation steps is deterministic before threading.
+            dna_obj = DNA(clean_seq)
+        except InvalidDNASequenceError as ex:
+            self.form.show_error(f"Error: {ex}")
+            show_error_dialog(
+                self.app_page,
+                "Error running Primer Designer",
+                str(ex),
+            )
+            try:
+                if self.app_page:
+                    self.app_page.update()
+            except RuntimeError:
+                pass
+            return
+        # Total truncation steps is deterministic before launching analysis.
         total_steps = len(dna_obj.seq) - min_length + 1
 
         self.show_loading(total=total_steps)
@@ -531,6 +551,20 @@ class PrimerDesignerView(BaseDesignerView):
             """Forward every progress tick to the progress bar."""
             self.update_progress(done, total)
 
+        designer_kwargs: _Designer1DKwargs = {
+            "dna": dna_obj,
+            "min_length": min_length,
+            "mode": mode,
+            "generator": generator,
+            "threshold": threshold,
+            "max_overlap": max_overlap,
+            "template": template_dna,
+            "max_origin_count": max_binding_sites,
+            "on_progress": _on_progress,
+            "cancel_event": cancel_event,
+            "replication_settings": rep_settings,
+        }
+
         def _run_analysis() -> None:
             """Execute 1D analysis in a background thread.
 
@@ -539,38 +573,59 @@ class PrimerDesignerView(BaseDesignerView):
             the Flet event loop.
             """
             try:
-                designer = PrimerDesigner1D(
-                    dna=dna_obj,
-                    min_length=min_length,
-                    mode=mode,
-                    generator=generator,
-                    threshold=threshold,
-                    max_overlap=max_overlap,
-                    template=template_dna,
-                    max_origin_count=max_binding_sites,
-                    on_progress=_on_progress,
-                    cancel_event=cancel_event,
-                    replication_settings=rep_settings,
-                )
-                self._cached_designer = designer
+                designer = PrimerDesigner1D(**designer_kwargs)
                 origin_counts = self._compute_origin_counts(
                     designer, template_dna, rep_settings
                 )
                 self._schedule_on_event_loop(
-                    self._on_analysis_success, designer, origin_counts, mode
+                    self._on_analysis_success,
+                    designer,
+                    origin_counts,
+                    mode,
+                    cancel_event,
                 )
-            except (ValueError, RuntimeError, OSError) as ex:
+            except Exception as ex:
                 logger.exception("1D Primer Design failed: %s", ex)
                 self._schedule_on_event_loop(
-                    self._on_analysis_error, ex, traceback.format_exc()
+                    self._on_analysis_error,
+                    ex,
+                    traceback.format_exc(),
+                    cancel_event,
                 )
             finally:
-                self._analysis_running = False
-                self._schedule_on_event_loop(
+                if self._schedule_on_event_loop(
                     self._on_analysis_finished, cancel_event
-                )
+                ) is False and not self._is_stale_run(cancel_event):
+                    self._analysis_running = False
 
-        threading.Thread(target=_run_analysis, daemon=True).start()
+        async def _run_analysis_async() -> None:
+            """Execute 1D analysis cooperatively on the Flet event loop."""
+            try:
+                designer = await PrimerDesigner1D.create_async(
+                    **designer_kwargs
+                )
+                origin_counts = self._compute_origin_counts(
+                    designer, template_dna, rep_settings
+                )
+            except Exception as ex:
+                logger.exception("1D Primer Design failed: %s", ex)
+                await self._on_analysis_error(
+                    ex, traceback.format_exc(), cancel_event
+                )
+            else:
+                await self._on_analysis_success(
+                    designer, origin_counts, mode, cancel_event
+                )
+            finally:
+                await self._on_analysis_finished(cancel_event)
+
+        def _on_discarded() -> None:
+            """Reset running state if no event loop could schedule analysis."""
+            self._finish_analysis_ui(cancel_event)
+
+        self._start_analysis_worker(
+            _run_analysis, _run_analysis_async, on_discarded=_on_discarded
+        )
 
     def run_designer(self) -> bool:
         """Validate inputs, run 1D primer design analysis, and update UI.
@@ -751,6 +806,10 @@ class PrimerDesignerView(BaseDesignerView):
 
     def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
         """Clear all inputs, parameters, error messages, and results."""
+        if self._guard_not_running(
+            "Cannot clear parameters while an analysis is running."
+        ):
+            return
         self.form.dna_input.value = ""
         self.form.length_display.value = "0"
         self.form.min_len_input.value = ""
@@ -792,10 +851,18 @@ class PrimerDesignerView(BaseDesignerView):
 
     async def _load_designer_1d_click(self, e: ft.ControlEvent) -> None:
         """Load Designer 1D parameters from a YAML file."""
+        if self._guard_not_running(
+            "Cannot load parameters while an analysis is running."
+        ):
+            return
         params = await self._load_parameters_yaml(
             dialog_title="Load Designer 1D Parameters"
         )
         if params is None:
+            return
+        if self._guard_not_running(
+            "Cannot load parameters while an analysis is running."
+        ):
             return
 
         dna_val = params.get("dna")
@@ -828,7 +895,10 @@ class PrimerDesignerView(BaseDesignerView):
         )
 
         self.form.clear_errors()
+        validated = self.form.validate_and_get_params()
         self.app_page.update()
+        if validated is None:
+            return
 
         self._show_notification("Parameters loaded successfully.")
-        self.run_designer()
+        self._start_designer()

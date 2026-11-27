@@ -182,11 +182,13 @@ class ProgressTracker:
             done: Number of steps completed so far.
             total: Total number of steps.
         """
-        if self._bar is None or self._label is None:
+        bar = self._bar
+        label = self._label
+        if bar is None or label is None:
             return
         fraction = done / total if total > 0 else 0.0
-        self._bar.value = fraction
-        self._label.value = f"{done} / {total} ({round(fraction * 100)}%)"
+        bar.value = fraction
+        label.value = f"{done} / {total} ({round(fraction * 100)}%)"
         if done == total:
             self._stop.set()
 

@@ -22,7 +22,8 @@ from typing import Any
 
 import flet as ft
 
-from amplifyp.dna import DNADirection
+from amplifyp.dna import DNA, DNADirection
+from amplifyp.errors import InvalidDNASequenceError
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.utils.data_helpers import clean_sequence
@@ -171,6 +172,12 @@ class Designer1DForm(BaseDesignerForm):
             self.show_field_error(
                 self.dna_input, "DNA sequence contains no valid nucleotides."
             )
+            return None
+
+        try:
+            DNA(clean_seq)
+        except InvalidDNASequenceError as ex:
+            self.show_field_error(self.dna_input, str(ex))
             return None
 
         min_len_raw = (self.min_len_input.value or "").strip()

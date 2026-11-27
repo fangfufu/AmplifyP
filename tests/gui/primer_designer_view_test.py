@@ -21,6 +21,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
+import pytest
 import yaml
 
 from amplifyp.gui.settings import GUISettings
@@ -452,11 +453,44 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
     ) -> str:
         return saved_content
 
-    with patch(
-        "amplifyp.gui.utils.data_helpers.pick_and_read_file",
-        new=AsyncMock(side_effect=mock_pick_and_read_file),
-    ):
-        asyncio.run(view._load_designer_1d_click(MagicMock()))
+    async def _load_and_drain(*, threadless: bool) -> None:
+        loop = asyncio.get_running_loop()
+        tasks: list[asyncio.Task[Any]] = []
+
+        def _loop_run_task(func: Any, *args: Any) -> asyncio.Task[Any]:
+            task = loop.create_task(func(*args))
+            tasks.append(task)
+            return task
+
+        mock_page.run_task = _loop_run_task
+        thread_patch = (
+            patch(
+                "amplifyp.gui.views.designer.designer_view_base."
+                "threading.Thread",
+                side_effect=AssertionError("Thread should not be created"),
+            )
+            if threadless
+            else patch(
+                "amplifyp.gui.views.designer.designer_view_base."
+                "threading.Thread",
+                side_effect=lambda target, daemon: MagicMock(start=target),
+            )
+        )
+        with (
+            patch(
+                "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+                new=AsyncMock(side_effect=mock_pick_and_read_file),
+            ),
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=not threadless,
+            ),
+            thread_patch,
+        ):
+            await view._load_designer_1d_click(MagicMock())
+            await asyncio.gather(*tasks)
+
+    asyncio.run(_load_and_drain(threadless=False))
 
     # Verify loaded values in the form
     assert view.form.dna_input.value == "ATGCGTACGT"
@@ -470,6 +504,57 @@ def test_primer_designer_view_save_and_load_parameters() -> None:
 
     # Verify that the analysis automatically ran (3 steps produced)
     assert len(view.primer_list.controls) == 3
+
+    # Loading in threadless (Pyodide) mode uses cooperative worker, not threads.
+    view.primer_list.controls.clear()
+    asyncio.run(_load_and_drain(threadless=True))
+    assert len(view.primer_list.controls) == 3
+
+    # Loading while an analysis is already running must notify, skip file
+    # picking and form mutation, and not abort the active run.
+    active_cancel = threading.Event()
+    view._analysis_running = True
+    view._cancel_event = active_cancel
+    view.form.dna_input.value = "TTTTTTTTTT"
+    with (
+        patch(
+            "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+            new=AsyncMock(side_effect=mock_pick_and_read_file),
+        ) as mock_pick,
+        patch.object(view, "_show_notification") as mock_notify,
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+        mock_pick.assert_not_awaited()
+        mock_notify.assert_called_once_with(
+            "Cannot load parameters while an analysis is running."
+        )
+    assert active_cancel.is_set() is False
+    assert view.form.dna_input.value == "TTTTTTTTTT"
+
+    # Starting an analysis while the file picker is open must also prevent
+    # overwriting the form or aborting the newly started run.
+    async def _pick_starts_analysis(*args: Any, **kwargs: Any) -> str:
+        view._analysis_running = True
+        view._cancel_event = active_cancel
+        return saved_content
+
+    view._analysis_running = False
+    view._cancel_event = None
+    with (
+        patch(
+            "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+            new=AsyncMock(side_effect=_pick_starts_analysis),
+        ),
+        patch.object(view, "_show_notification") as mock_notify,
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+        mock_notify.assert_called_once_with(
+            "Cannot load parameters while an analysis is running."
+        )
+    assert active_cancel.is_set() is False
+    assert view.form.dna_input.value == "TTTTTTTTTT"
+    view._analysis_running = False
+    view._cancel_event = None
 
 
 def test_designer_1d_remaining_branches() -> None:
@@ -1465,3 +1550,453 @@ def test_on_primer_selected_ignores_stale_origin_counts_during_new_run() -> (
     top_card = view._active_cards[0]
     assert isinstance(top_card, DismissibleSelfDimerCard)
     assert top_card.origin_count == count_b
+
+
+def test_designer_1d_runs_cooperatively_when_threads_unavailable() -> None:
+    """Test 1D designer runs on the event loop in Pyodide / threadless mode."""
+    mock_page = MagicMock(spec=ft.Page)
+
+    def _sync_run_task(func: Any, *args: Any) -> None:
+        if getattr(func, "__name__", "") == "_flush_task":
+            return
+        asyncio.run(func(*args))
+
+    mock_page.run_task = _sync_run_task
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+
+    # 1. Pyodide/Emscripten runtime skips threading.Thread completely.
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch(
+            "amplifyp.gui.views.designer.designer_view_base.threading.Thread",
+            side_effect=AssertionError("Thread should not be created"),
+        ),
+    ):
+        view._start_designer()
+
+    assert view._cached_designer is not None
+    assert len(view.primer_list.controls) == 3
+    assert view._analysis_running is False
+    assert view._cancel_event is None
+    assert view.form.analyse_button.content == "Analyse"
+
+    # 2. Fallback when Thread.start() raises "can't start new thread"
+    view.primer_list.controls.clear()
+    view._cached_designer = None
+
+    def _failing_thread(*_args: Any, **_kwargs: Any) -> Any:
+        def _raise() -> None:
+            raise RuntimeError("can't start new thread")
+
+        return type("FailingThread", (), {"start": staticmethod(_raise)})()
+
+    with patch(
+        "amplifyp.gui.views.designer.designer_view_base.threading.Thread",
+        side_effect=_failing_thread,
+    ):
+        view._start_designer()
+
+    assert view._cached_designer is not None
+    assert len(view.primer_list.controls) == 3
+    assert view._analysis_running is False
+
+    # 3. Error handling path in cooperative async worker (including unexpected
+    # Exception subclasses such as KeyError, matching Designer2DView)
+    from amplifyp.primer_designer_1d import PrimerDesigner1D
+
+    for err in (ValueError("Async 1D failure"), KeyError("unexpected key")):
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch.object(
+                PrimerDesigner1D,
+                "create_async",
+                new=AsyncMock(side_effect=err),
+            ),
+            patch(
+                "amplifyp.gui.views.designer_1d.designer_1d_view."
+                "show_error_dialog"
+            ) as mock_err,
+        ):
+            view._start_designer()
+            mock_err.assert_called_once()
+            assert f"Error: {err}" in (view.form.error_text.value or "")
+            assert view._analysis_running is False
+            assert view._cancel_event is None
+
+    # 4. Mid-run abort via Abort button click during cooperative async run
+    orig_create_async = PrimerDesigner1D.create_async
+
+    async def _aborting_create_async(*args: Any, **kwargs: Any) -> Any:
+        orig_progress = kwargs.get("on_progress")
+
+        def _progress(done: int, total: int) -> None:
+            if orig_progress is not None:
+                orig_progress(done, total)
+            if done == 1:
+                view._run_designer_event(None)
+
+        kwargs["on_progress"] = _progress
+        kwargs["yield_interval"] = 0.0
+        return await orig_create_async(*args, **kwargs)
+
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            PrimerDesigner1D,
+            "create_async",
+            side_effect=_aborting_create_async,
+        ),
+    ):
+        view._start_designer()
+
+    assert view._cached_designer is not None
+    assert view._cached_designer.aborted is True
+    assert len(view._cached_designer.all_dimers) == 1
+    assert view.progress_tracker.is_active is False
+    assert view.progress_tracker.loading_body is None
+    assert view._analysis_running is False
+    assert view._cancel_event is None
+
+    # 5. asyncio.CancelledError cleans up ProgressTracker even after 100% tick
+    async def _cancel_after_final_tick(*_args: Any, **kwargs: Any) -> Any:
+        on_progress = kwargs.get("on_progress")
+        if on_progress is not None:
+            on_progress(3, 3)
+        raise asyncio.CancelledError()
+
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            PrimerDesigner1D,
+            "create_async",
+            side_effect=_cancel_after_final_tick,
+        ),
+    ):
+        with pytest.raises(asyncio.CancelledError):
+            view._start_designer()
+
+    assert view.progress_tracker.is_active is False
+    assert view.progress_tracker.loading_body is None
+    assert view._analysis_running is False
+    assert view._cancel_event is None
+    assert view.form.analyse_button.content == "Analyse"
+
+    # 5b. Re-entry guard when running without a cancel event
+    view._analysis_running = True
+    view._cancel_event = None
+    with patch.object(view, "_start_designer") as mock_start:
+        view._run_designer_event(None)
+        mock_start.assert_not_called()
+    view._analysis_running = False
+
+    # 6. Detached page + no running loop discards async task and resets view
+    detached_page = MagicMock(spec=ft.Page)
+    detached_page.run_task.side_effect = RuntimeError("detached")
+    detached_view = PrimerDesignerView(detached_page, GUIInput(), GUISettings())
+    detached_view.form.dna_input.value = "ATGCGTACGT"
+    detached_view.form.min_len_input.value = "8"
+    with patch(
+        "amplifyp.gui.utils.system.can_use_background_threads",
+        return_value=False,
+    ):
+        detached_view._start_designer()
+
+    assert detached_view._analysis_running is False
+    assert detached_view._cancel_event is None
+    assert detached_view.progress_tracker.is_active is False
+    assert detached_view.progress_tracker.loading_body is None
+    assert detached_view.form.analyse_button.content == "Analyse"
+
+    # 7. Error in _on_analysis_success does not trigger _on_analysis_error
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            view,
+            "_on_analysis_success",
+            new=AsyncMock(side_effect=ValueError("UI render failure")),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_err,
+    ):
+        with pytest.raises(ValueError, match="UI render failure"):
+            view._start_designer()
+        mock_err.assert_not_called()
+        assert view._analysis_running is False
+        assert view._cancel_event is None
+        assert view.progress_tracker.loading_body is None
+        assert view.form.analyse_button.content == "Analyse"
+
+    # 8. Shared event loop interleaves _flush_task and concurrent Abort click
+    async def _run_shared_loop() -> None:
+        loop = asyncio.get_running_loop()
+        scheduled_tasks: list[asyncio.Task[Any]] = []
+        flush_updates = 0
+        started = False
+        abort_ready = asyncio.Event()
+
+        loop_page = MagicMock(spec=ft.Page)
+
+        def _loop_run_task(func: Any, *args: Any) -> asyncio.Task[Any]:
+            task = loop.create_task(func(*args))
+            scheduled_tasks.append(task)
+            return task
+
+        loop_page.run_task = _loop_run_task
+
+        loop_view = PrimerDesignerView(loop_page, GUIInput(), GUISettings())
+        loop_view.form.dna_input.value = "ATGCGTACGTATGC"
+        loop_view.form.min_len_input.value = "8"
+
+        def _count_flush_update() -> None:
+            nonlocal flush_updates
+            if (
+                started
+                and loop_view._analysis_running
+                and loop_view.progress_tracker.loading_body is not None
+            ):
+                flush_updates += 1
+
+        loop_page.update.side_effect = _count_flush_update
+
+        async def _yielding_create_async(*args: Any, **kwargs: Any) -> Any:
+            orig_progress = kwargs.get("on_progress")
+
+            def _progress(done: int, total: int) -> None:
+                if orig_progress is not None:
+                    orig_progress(done, total)
+                if done == 2:
+                    abort_ready.set()
+
+            kwargs["on_progress"] = _progress
+            kwargs["yield_interval"] = 0.0
+            return await orig_create_async(*args, **kwargs)
+
+        async def _concurrent_abort() -> None:
+            await abort_ready.wait()
+            loop_view._run_designer_event(None)
+
+        with (
+            patch(
+                "amplifyp.gui.utils.system.can_use_background_threads",
+                return_value=False,
+            ),
+            patch(
+                "amplifyp.gui.views.designer.progress_tracker."
+                "_FLUSH_INTERVAL_SECONDS",
+                0.001,
+            ),
+            patch.object(
+                PrimerDesigner1D,
+                "create_async",
+                side_effect=_yielding_create_async,
+            ),
+        ):
+            abort_task = loop.create_task(_concurrent_abort())
+            loop_view._start_designer()
+            started = True
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(abort_task, *scheduled_tasks),
+                    timeout=30,
+                )
+            except TimeoutError:
+                abort_task.cancel()
+                for task in scheduled_tasks:
+                    task.cancel()
+                await asyncio.gather(
+                    abort_task, *scheduled_tasks, return_exceptions=True
+                )
+                pytest.fail(
+                    "1D worker did not report done == 2 before the timeout"
+                )
+
+        assert loop_view._cached_designer is not None
+        assert loop_view._cached_designer.aborted is True
+        assert 2 <= len(loop_view._cached_designer.all_dimers) < 7
+        assert flush_updates >= 1
+        assert loop_view._analysis_running is False
+        assert loop_view._cancel_event is None
+        assert loop_view.progress_tracker.loading_body is None
+
+    asyncio.run(_run_shared_loop())
+
+
+def test_designer_1d_clear_all_guard_and_stale_callbacks() -> None:
+    """Test Clear All guard, stale callbacks, and origin-count safety."""
+    from amplifyp.dna import DNADirection
+
+    mock_page = MagicMock(spec=ft.Page)
+
+    def _sync_run_task(func: Any, *args: Any) -> None:
+        if getattr(func, "__name__", "") == "_flush_task":
+            return
+        asyncio.run(func(*args))
+
+    mock_page.run_task = _sync_run_task
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+
+    # 1. _clear_all while analysis is running notifies and does not clear form.
+    view._analysis_running = True
+    with patch.object(view, "_show_notification") as mock_notify:
+        view._clear_all()
+        mock_notify.assert_called_once_with(
+            "Cannot clear parameters while an analysis is running."
+        )
+    assert view.form.dna_input.value == "ATGCGTACGT"
+    view._analysis_running = False
+
+    # 2. Stale cancel_event callbacks in _on_analysis_success / _error are
+    # ignored without mutating _cached_designer or showing error dialogues.
+    active_event = threading.Event()
+    stale_event = threading.Event()
+    view._cancel_event = active_event
+    view._cached_designer = None
+    with patch(
+        "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+    ) as mock_err:
+        asyncio.run(
+            view._on_analysis_success(
+                MagicMock(), [], DNADirection.FWD, stale_event
+            )
+        )
+        asyncio.run(
+            view._on_analysis_error(RuntimeError("stale"), "tb", stale_event)
+        )
+        mock_err.assert_not_called()
+    assert view._cached_designer is None
+    view._cancel_event = None
+
+    # 3. Failing _compute_origin_counts does not overwrite _cached_designer.
+    sentinel_designer: Any = MagicMock()
+    view._cached_designer = sentinel_designer
+    with (
+        patch(
+            "amplifyp.gui.utils.system.can_use_background_threads",
+            return_value=False,
+        ),
+        patch.object(
+            view,
+            "_compute_origin_counts",
+            side_effect=RuntimeError("origin failure"),
+        ),
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_err,
+    ):
+        view._start_designer()
+        mock_err.assert_called_once()
+    assert view._cached_designer is sentinel_designer
+    assert view._analysis_running is False
+
+    # 4. Threaded worker keeps _analysis_running True until
+    # _on_analysis_finished executes on the event loop, and clears it if
+    # scheduling fails (detached).
+    queued: list[tuple[Any, tuple[Any, ...]]] = []
+
+    def _queue_task(func: Any, *args: Any) -> None:
+        if getattr(func, "__name__", "") == "_flush_task":
+            return
+        queued.append((func, args))
+
+    mock_page.run_task = _queue_task
+    view._cached_designer = None
+    with patch(
+        "amplifyp.gui.views.designer.designer_view_base.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._start_designer()
+    assert view._analysis_running is True
+    assert view._cached_designer is None
+    for fn, args in queued:
+        asyncio.run(fn(*args))
+    assert view._analysis_running is False
+    assert view._cached_designer is not None
+
+    detached_page = MagicMock(spec=ft.Page)
+    detached_page.run_task.side_effect = RuntimeError("detached")
+    detached_view = PrimerDesignerView(detached_page, GUIInput(), GUISettings())
+    detached_view.form.dna_input.value = "ATGCGTACGT"
+    detached_view.form.min_len_input.value = "8"
+    with patch(
+        "amplifyp.gui.views.designer.designer_view_base.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        detached_view._start_designer()
+    assert detached_view._analysis_running is False
+
+
+def test_designer_1d_invalid_dna_on_load_and_analyse() -> None:
+    """Test invalid DNA sequences fail cleanly on load and Analyse paths."""
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput()
+    view = PrimerDesignerView(mock_page, input_data, GUISettings())
+
+    # 1. Loading a YAML file with invalid DNA characters does not announce
+    # success, does not start analysis, marks the field error, and leaves the
+    # loaded fields editable.
+    bad_yaml = "dna: 'ATG?'\nmin_length: '3'\n"
+    with (
+        patch(
+            "amplifyp.gui.utils.data_helpers.pick_and_read_file",
+            new=AsyncMock(return_value=bad_yaml),
+        ),
+        patch.object(view, "_show_notification") as mock_notify,
+        patch.object(view, "_start_designer") as mock_start,
+    ):
+        asyncio.run(view._load_designer_1d_click(MagicMock()))
+        mock_notify.assert_not_called()
+        mock_start.assert_not_called()
+
+    assert view.form.dna_input.value == "ATG?"
+    assert view.form.min_len_input.value == "3"
+    assert view.form.dna_input.disabled is not True
+    assert view.form.dna_input.read_only is not True
+    assert view.form.dna_input.error is not None
+    assert "invalid characters" in view.form.dna_input.error
+
+    # 2. Clicking Analyse (_start_designer) with invalid candidate sequence
+    # fails form validation without raising or launching a worker.
+    with patch.object(view, "_start_analysis_worker") as mock_worker:
+        view._start_designer()
+        mock_worker.assert_not_called()
+    assert view._analysis_running is False
+    assert view.form.dna_input.error is not None
+
+    # 3. Invalid template DNA in _start_designer shows error dialog without
+    # raising or launching a worker, even when app_page.update() raises.
+    view.form.dna_input.value = "ATGCGTACGT"
+    view.form.min_len_input.value = "8"
+    view.form.filter_dna_checkbox.value = True
+    input_data.template = "ATG?CGTACGT"
+    mock_page.update.side_effect = RuntimeError("update failed")
+    with (
+        patch(
+            "amplifyp.gui.views.designer_1d.designer_1d_view.show_error_dialog"
+        ) as mock_dialog,
+        patch.object(view, "_start_analysis_worker") as mock_worker,
+    ):
+        view._start_designer()
+        mock_dialog.assert_called_once()
+        mock_worker.assert_not_called()
+    assert view._analysis_running is False
+    assert "invalid characters" in (view.form.error_text.value or "")

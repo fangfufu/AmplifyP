@@ -25,6 +25,7 @@ from typing import Any
 import flet as ft
 
 from amplifyp.gui import main as app_main
+from amplifyp.gui.utils.system import is_pyodide_runtime
 from amplifyp.version import get_version
 
 
@@ -167,7 +168,7 @@ def cli(args_list: list[str] | None = None) -> None:
 
     assets_dir = get_assets_dir()
 
-    if sys.platform == "emscripten" or "pyodide" in sys.modules:
+    if is_pyodide_runtime():
         view_mode = None
         port_number = 0
     else:

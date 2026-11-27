@@ -92,6 +92,43 @@ def test_get_sha_js_git_and_fallbacks() -> None:
     ):
         assert _get_sha(full=False) == "unknown"
 
+    # RuntimeError from subprocess.run (e.g. Pyodide/Emscripten) falls back
+    # cleanly to reading .git/HEAD rather than propagating.
+    files = {
+        "HEAD": "ref: refs/heads/dev\n",
+        "dev": "fedcba9876543210fedcba9876543210fedcba98\n",
+    }
+
+    def open_runtime_fallback(file: Any, *args: Any, **kwargs: Any) -> Any:
+        filename = str(file).replace("\\", "/")
+        for suffix, data in files.items():
+            if filename.endswith(suffix):
+                return mock_open(read_data=data).return_value
+        raise FileNotFoundError(filename)
+
+    def git_exists_runtime_fallback(path: str) -> bool:
+        norm = str(path).replace("\\", "/")
+        return norm.endswith((".git", ".git/HEAD", ".git/refs/heads/dev"))
+
+    with (
+        patch.dict(
+            sys.modules,
+            {
+                "amplifyp.git_sha": None,
+                "amplifyp.gui.git_sha": None,
+                "js": None,
+            },
+        ),
+        patch(
+            "subprocess.run",
+            side_effect=RuntimeError("can't start new thread"),
+        ),
+        patch("os.path.exists", side_effect=git_exists_runtime_fallback),
+        patch("builtins.open", side_effect=open_runtime_fallback),
+    ):
+        assert _get_sha(full=False) == "fedcba9"
+        assert _get_sha(full=True) == "fedcba9876543210fedcba9876543210fedcba98"
+
 
 def test_get_sha_dot_git_and_dist_sha() -> None:
     files = {
@@ -243,6 +280,12 @@ def test_fetch_latest_release_version() -> None:
 
     with patch("urllib.request.urlopen", return_value=mock_cm):
         assert fetch_latest_release_version() == "v2.0.0"
+
+    mock_resp.read.return_value = json.dumps({"tag_name": "   "}).encode(
+        "utf-8"
+    )
+    with patch("urllib.request.urlopen", return_value=mock_cm):
+        assert fetch_latest_release_version() is None
 
     with patch("urllib.request.urlopen", side_effect=OSError("offline")):
         assert fetch_latest_release_version() is None

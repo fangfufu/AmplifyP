@@ -15,7 +15,6 @@
 
 """Update controller for background version checking."""
 
-import asyncio
 import logging
 import time
 from typing import Any
@@ -40,7 +39,7 @@ class UpdateManager:
         """Run update checking asynchronously without blocking main thread."""
         from amplifyp import __version__ as current_version
         from amplifyp.gui.utils.system import (
-            fetch_latest_release_version,
+            fetch_latest_release_version_async,
             is_newer_version,
             should_check_for_updates,
         )
@@ -60,10 +59,7 @@ class UpdateManager:
         if not should_check_for_updates(frequency, last_check, current_time):
             return
 
-        loop = asyncio.get_running_loop()
-        latest_tag = await loop.run_in_executor(
-            None, fetch_latest_release_version
-        )
+        latest_tag = await fetch_latest_release_version_async()
 
         if latest_tag is not None:
             # Update last check timestamp

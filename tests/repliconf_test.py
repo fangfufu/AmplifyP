@@ -522,3 +522,39 @@ def test_repliconf_zero_denom_and_impossible_cutoff_paths() -> None:
     assert impossible_conf.searched
     assert len(impossible_conf.origin_db.fwd) == 0
     assert len(impossible_conf.origin_db.rev) == 0
+
+
+def test_repliconf_iter_search_chunking_and_validation() -> None:
+    """Test iter_search matches search across chunk sizes and validates."""
+    tpl = DNA("ATGCGTACGT" * 20)
+    primer = Primer("ATGCGTACGT")
+
+    ref_conf = Repliconf(tpl, primer)
+    ref_conf.search()
+
+    chunked_conf = Repliconf(tpl, primer)
+    chunks = list(chunked_conf.iter_search(chunk_size=17))
+    assert len(chunks) > 2
+    assert chunked_conf.searched is True
+    assert chunked_conf.origin_db.fwd == ref_conf.origin_db.fwd
+    assert chunked_conf.origin_db.rev == ref_conf.origin_db.rev
+
+    # Unmasked fallback path with small chunks
+    unmasked_settings = ReplicationSettings(primability_cutoff=0.0)
+    ref_unmasked = Repliconf(tpl, primer, unmasked_settings)
+    ref_unmasked.search()
+    chunked_unmasked = Repliconf(tpl, primer, unmasked_settings)
+    list(chunked_unmasked.iter_search(chunk_size=17))
+    assert chunked_unmasked.origin_db.fwd == ref_unmasked.origin_db.fwd
+    assert chunked_unmasked.origin_db.rev == ref_unmasked.origin_db.rev
+
+    # Early exit leaves searched False
+    partial_conf = Repliconf(tpl, primer)
+    it = partial_conf.iter_search(chunk_size=17)
+    next(it)
+    assert partial_conf.searched is False
+
+    # Invalid chunk sizes raise ValueError
+    for bad_size in (0, -5, True, False):
+        with pytest.raises(ValueError, match="chunk_size must be a positive"):
+            next(partial_conf.iter_search(chunk_size=bad_size))
