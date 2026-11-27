@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 
@@ -38,6 +38,7 @@ from .settings import (
 )
 
 _GAP_BYTE = Nucleotides.GAP.encode("ascii")
+DEFAULT_SEARCH_CHUNK_SIZE = 4096
 
 
 @dataclass(slots=True, frozen=True)
@@ -407,16 +408,31 @@ class Repliconf:
         )
         return comp_bytes + padding
 
-    def search(self) -> None:
-        """Perform a search for valid replication origins.
+    def iter_search(
+        self, chunk_size: int = DEFAULT_SEARCH_CHUNK_SIZE
+    ) -> Iterator[None]:
+        """Search for replication origins incrementally, yielding per chunk.
 
-        Scans the entire template in both forward and reverse directions.
-        Locations where the primability and stability scores exceed the
-        configured cutoffs are stored in `origin_db`.
+        Scans the template in both forward and reverse directions in slices of
+        at most ``chunk_size`` positions, yielding after each chunk so callers
+        running on a single-threaded event loop can flush UI updates and
+        process cancellation requests without waiting for an entire template
+        scan to complete.
+
+        Args:
+            chunk_size: Maximum number of template positions evaluated before
+                yielding control. Must be a positive integer.
+
+        Yields:
+            None: After each completed chunk of candidate positions.
 
         Raises:
-            ValueError: If uppercase normalisation changes the primer length.
+            ValueError: If ``chunk_size`` is not positive, or if uppercase
+                normalisation changes the primer length.
         """
+        if isinstance(chunk_size, bool) or chunk_size <= 0:
+            raise ValueError("chunk_size must be a positive integer.")
+
         self.origin_db.clear()
 
         primer_len = len(self.primer)
@@ -484,58 +500,78 @@ class Repliconf:
                 step = 1
                 k0_offset = 0
 
-            candidate_indices: Iterable[int]
-            if use_mask and k0_mask is not None:
-                anchored = seq_bytes[
-                    k0_offset : k0_offset + n_positions
-                ].translate(k0_mask)
-                hits: list[int] = []
-                append_hit = hits.append
-                pos = anchored.find(b"\x01")
-                while pos != -1:
-                    append_hit(pos)
-                    pos = anchored.find(b"\x01", pos + 1)
-                candidate_indices = hits
-            else:
-                candidate_indices = search_range
-
-            for i in candidate_indices:
-                prim_num = 0.0
-                stab_num = 0.0
-                run_len = 0
-                run_score = 0.0
-                seq_idx = i + start_offset
-
-                for k_lookup, r_max in score_pairs:
-                    prim_val, val = k_lookup[seq_bytes[seq_idx]]
-                    prim_num += prim_val
-                    if prim_num + r_max < prim_req:
-                        break
-                    if val > 0:
-                        run_len += 1
-                        run_score += val
-                    elif run_len > 0:
-                        stab_num += run_weights[run_len - 1] * run_score
-                        run_len = 0
-                        run_score = 0.0
-                    seq_idx += step
+            for chunk_start in range(0, n_positions, chunk_size):
+                chunk_end = min(chunk_start + chunk_size, n_positions)
+                candidate_indices: Iterable[int]
+                if use_mask and k0_mask is not None:
+                    anchored = seq_bytes[
+                        k0_offset + chunk_start : k0_offset + chunk_end
+                    ].translate(k0_mask)
+                    hits: list[int] = []
+                    append_hit = hits.append
+                    pos = anchored.find(b"\x01")
+                    while pos != -1:
+                        append_hit(chunk_start + pos)
+                        pos = anchored.find(b"\x01", pos + 1)
+                    candidate_indices = hits
                 else:
-                    if run_len > 0:
-                        stab_num += run_weights[run_len - 1] * run_score
+                    candidate_indices = range(chunk_start, chunk_end)
 
-                    primability = (
-                        prim_num / prim_denom if prim_denom != 0 else 0.0
-                    )
-                    stability = (
-                        stab_num / stab_denom if stab_denom != 0 else 0.0
-                    )
+                for i in candidate_indices:
+                    prim_num = 0.0
+                    stab_num = 0.0
+                    run_len = 0
+                    run_score = 0.0
+                    seq_idx = i + start_offset
 
-                    if primability > prim_cutoff and stability > stab_cutoff:
-                        origin_list.append(
-                            DirIdx(direction, i, primability, stability)
+                    for k_lookup, r_max in score_pairs:
+                        prim_val, val = k_lookup[seq_bytes[seq_idx]]
+                        prim_num += prim_val
+                        if prim_num + r_max < prim_req:
+                            break
+                        if val > 0:
+                            run_len += 1
+                            run_score += val
+                        elif run_len > 0:
+                            stab_num += run_weights[run_len - 1] * run_score
+                            run_len = 0
+                            run_score = 0.0
+                        seq_idx += step
+                    else:
+                        if run_len > 0:
+                            stab_num += run_weights[run_len - 1] * run_score
+
+                        primability = (
+                            prim_num / prim_denom if prim_denom != 0 else 0.0
+                        )
+                        stability = (
+                            stab_num / stab_denom if stab_denom != 0 else 0.0
                         )
 
+                        if (
+                            primability > prim_cutoff
+                            and stability > stab_cutoff
+                        ):
+                            origin_list.append(
+                                DirIdx(direction, i, primability, stability)
+                            )
+
+                yield
+
         self.origin_db.searched = True
+
+    def search(self) -> None:
+        """Perform a search for valid replication origins.
+
+        Scans the entire template in both forward and reverse directions.
+        Locations where the primability and stability scores exceed the
+        configured cutoffs are stored in `origin_db`.
+
+        Raises:
+            ValueError: If uppercase normalisation changes the primer length.
+        """
+        for _ in self.iter_search():
+            pass
 
     @property
     def searched(self) -> bool:

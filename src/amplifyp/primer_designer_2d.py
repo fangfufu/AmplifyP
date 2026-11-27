@@ -514,24 +514,29 @@ class PrimerDesigner2D:
             self._max_overlap is not None and dimer.overlap > self._max_overlap
         )
 
-    def _get_origin_indices(
+    def _iter_populate_origin_cache(
         self,
         template: DNA,
         primer: Primer,
         cache: dict[str, tuple[list[int], list[int], int]],
         is_circular: bool,
-    ) -> tuple[list[int], list[int], int]:
-        """Return sorted fwd indices, rev indices, and self-amplicon count."""
+        done: int,
+        total: int,
+    ) -> Iterator[tuple[int, int]]:
+        """Populate ``cache`` for ``primer``, yielding after each chunk."""
         key = primer.seq_upper
-        cached = cache.get(key)
-        if cached is not None:
-            return cached
+        if key in cache:
+            return
         conf = Repliconf(
             template,
             primer,
             settings=self._replication_settings,
         )
-        conf.search()
+        for _ in conf.iter_search():
+            yield done, total
+            if self._cancel_event is not None and self._cancel_event.is_set():
+                self._aborted = True
+                return
         fwd_idx = [o.index for o in conf.origin_db.fwd]
         rev_idx = [o.index for o in conf.origin_db.rev]
         self_count = (
@@ -539,9 +544,7 @@ class PrimerDesigner2D:
             if is_circular
             else self._count_linear_amplicons(fwd_idx, rev_idx)
         )
-        res = (fwd_idx, rev_idx, self_count)
-        cache[key] = res
-        return res
+        cache[key] = (fwd_idx, rev_idx, self_count)
 
     def _evaluate_pair(
         self,
@@ -551,20 +554,22 @@ class PrimerDesigner2D:
         fwd_origins: tuple[list[int], list[int], int] | None,
         rev_p: Primer,
         d_rr: PrimerDimer,
-        origin_cache: dict[str, tuple[list[int], list[int], int]],
+        rev_origins: tuple[list[int], list[int], int] | None,
         is_max_metric: bool,
         is_circular: bool,
     ) -> PrimerDimers2D | None:
         """Evaluate one (fwd, rev) truncation pair against all filters."""
         amplicon_count: int | None = None
-        if template is not None and fwd_origins is not None:
+        if (
+            template is not None
+            and fwd_origins is not None
+            and rev_origins is not None
+        ):
             fwd_f, fwd_r, fwd_self = fwd_origins
             if fwd_p.seq_upper == rev_p.seq_upper:
                 amplicon_count = fwd_self
             else:
-                rev_f, rev_r, rev_self = self._get_origin_indices(
-                    template, rev_p, origin_cache, is_circular
-                )
+                rev_f, rev_r, rev_self = rev_origins
                 if is_circular:
                     amplicon_count = (len(fwd_f) + len(rev_f)) * (
                         len(fwd_r) + len(rev_r)
@@ -654,9 +659,12 @@ class PrimerDesigner2D:
 
             fwd_origins: tuple[list[int], list[int], int] | None = None
             if template is not None and not fwd_fails_max:
-                fwd_origins = self._get_origin_indices(
-                    template, fwd_p, origin_cache, is_circular
+                yield from self._iter_populate_origin_cache(
+                    template, fwd_p, origin_cache, is_circular, done, total
                 )
+                if self._aborted:
+                    return
+                fwd_origins = origin_cache[fwd_p.seq_upper]
 
             for r_idx, rev_seq in enumerate(rev_seqs):
                 if (
@@ -680,6 +688,24 @@ class PrimerDesigner2D:
                         rev_p, d_rr, rev_fails_max = rev_entry
 
                     if not rev_fails_max:
+                        rev_origins: tuple[list[int], list[int], int] | None = (
+                            None
+                        )
+                        if template is not None and fwd_origins is not None:
+                            if fwd_p.seq_upper == rev_p.seq_upper:
+                                rev_origins = fwd_origins
+                            else:
+                                yield from self._iter_populate_origin_cache(
+                                    template,
+                                    rev_p,
+                                    origin_cache,
+                                    is_circular,
+                                    done,
+                                    total,
+                                )
+                                if self._aborted:
+                                    return
+                                rev_origins = origin_cache[rev_p.seq_upper]
                         step = self._evaluate_pair(
                             template,
                             fwd_p,
@@ -687,7 +713,7 @@ class PrimerDesigner2D:
                             fwd_origins,
                             rev_p,
                             d_rr,
-                            origin_cache,
+                            rev_origins,
                             is_max_metric,
                             is_circular,
                         )

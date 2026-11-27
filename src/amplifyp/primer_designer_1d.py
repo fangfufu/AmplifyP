@@ -426,7 +426,14 @@ class PrimerDesigner1D:
                         primer,
                         settings=self._replication_settings,
                     )
-                    repliconf.search()
+                    for _ in repliconf.iter_search():
+                        yield done, total
+                        if (
+                            self._cancel_event is not None
+                            and self._cancel_event.is_set()
+                        ):
+                            self._aborted = True
+                            return
                     origin_count = len(repliconf.origin_db.fwd) + len(
                         repliconf.origin_db.rev
                     )

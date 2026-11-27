@@ -49,8 +49,9 @@ async def run_cooperative_analysis(
     """Consume a ``(done, total)`` step iterator, yielding periodically.
 
     Yields once before starting work (unless already cancelled) and again
-    between steps whenever ``yield_interval`` seconds have elapsed so
-    single-threaded runtimes (such as Pyodide / WebAssembly) can flush UI
+    whenever ``yield_interval`` seconds have elapsed between yielded
+    checkpoints (including chunked template searches while ``done < total``)
+    so single-threaded runtimes (such as Pyodide / WebAssembly) can flush UI
     updates and handle abort events without spawning OS threads.
     """
     if cancel_event is None or not cancel_event.is_set():

@@ -871,3 +871,109 @@ def test_primer_designer_2d_create_async_and_abort() -> None:
     assert pre_aborted.aborted is True
     assert len(pre_aborted) == 0
     assert sleep_calls == 0
+
+
+def test_primer_designer_2d_create_async_chunked_template_search() -> None:
+    """Test 2D create_async yields and aborts mid-search for fwd and rev."""
+    from collections.abc import Iterator
+    from unittest.mock import patch
+
+    from amplifyp.repliconf import Repliconf
+
+    fwd_dna = DNA("ATGCGTACGT")
+    rev_dna = DNA("CGTACGTACG")
+    tpl = DNA("ATGCGTACGT" * 10 + "CGTACGTACG" * 10)
+    sync_designer = PrimerDesigner2D(
+        fwd_dna=fwd_dna,
+        fwd_min_length=9,
+        rev_dna=rev_dna,
+        rev_min_length=9,
+        template=tpl,
+    )
+
+    orig_iter_search = Repliconf.iter_search
+
+    def _small_chunks(self: Repliconf, chunk_size: int = 32) -> Iterator[None]:
+        return orig_iter_search(self, chunk_size=32)
+
+    sleep_calls = 0
+
+    async def _counting_sleep(_delay: float) -> None:
+        nonlocal sleep_calls
+        sleep_calls += 1
+
+    with (
+        patch("asyncio.sleep", _counting_sleep),
+        patch.object(Repliconf, "iter_search", _small_chunks),
+    ):
+        async_designer = asyncio.run(
+            PrimerDesigner2D.create_async(
+                fwd_dna=fwd_dna,
+                fwd_min_length=9,
+                rev_dna=rev_dna,
+                rev_min_length=9,
+                template=tpl,
+                yield_interval=0.0,
+            )
+        )
+    assert async_designer.aborted is False
+    assert async_designer.all_steps == sync_designer.all_steps
+    assert sleep_calls > 4
+
+    # 1. Abort mid-search during forward primer origin lookup.
+    cancel_fwd = threading.Event()
+    sleeps = 0
+
+    async def _abort_during_fwd(_delay: float) -> None:
+        nonlocal sleeps
+        sleeps += 1
+        if sleeps == 2:
+            cancel_fwd.set()
+
+    with (
+        patch("asyncio.sleep", _abort_during_fwd),
+        patch.object(Repliconf, "iter_search", _small_chunks),
+    ):
+        aborted_fwd = asyncio.run(
+            PrimerDesigner2D.create_async(
+                fwd_dna=fwd_dna,
+                fwd_min_length=9,
+                rev_dna=rev_dna,
+                rev_min_length=9,
+                template=tpl,
+                cancel_event=cancel_fwd,
+                yield_interval=0.0,
+            )
+        )
+    assert aborted_fwd.aborted is True
+    assert len(aborted_fwd) == 0
+
+    # 2. Abort mid-search during reverse primer origin lookup (after fwd done).
+    cancel_rev = threading.Event()
+    search_calls = 0
+
+    def _abort_in_second_search(
+        self: Repliconf, chunk_size: int = 32
+    ) -> Iterator[None]:
+        nonlocal search_calls
+        search_calls += 1
+        current_search = search_calls
+        for idx, _ in enumerate(orig_iter_search(self, chunk_size=32)):
+            if current_search == 2 and idx == 1:
+                cancel_rev.set()
+            yield
+
+    with patch.object(Repliconf, "iter_search", _abort_in_second_search):
+        aborted_rev = asyncio.run(
+            PrimerDesigner2D.create_async(
+                fwd_dna=fwd_dna,
+                fwd_min_length=9,
+                rev_dna=rev_dna,
+                rev_min_length=9,
+                template=tpl,
+                cancel_event=cancel_rev,
+                yield_interval=0.0,
+            )
+        )
+    assert aborted_rev.aborted is True
+    assert len(aborted_rev) == 0
