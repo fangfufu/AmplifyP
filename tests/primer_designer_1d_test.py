@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import threading
 
 import pytest
@@ -346,3 +347,96 @@ def test_primer_designer_1d_get_origin_count() -> None:
     expected = designer.all_dimers
     designer._analyse()
     assert designer.all_dimers == expected
+
+
+def test_primer_designer_1d_create_async_and_abort() -> None:
+    """Test create_async matches sync results, yields, and supports abort."""
+    dna_obj = DNA("ATGCGTACGT")
+    sync_designer = PrimerDesigner1D(dna_obj, min_length=7)
+    progress_calls: list[tuple[int, int]] = []
+
+    async_designer = asyncio.run(
+        PrimerDesigner1D.create_async(
+            dna=dna_obj,
+            min_length=7,
+            on_progress=lambda done, total: progress_calls.append(
+                (done, total)
+            ),
+            yield_interval=0.0,
+        )
+    )
+    assert async_designer.aborted is False
+    assert async_designer.all_dimers == sync_designer.all_dimers
+    assert progress_calls == [(1, 4), (2, 4), (3, 4), (4, 4)]
+
+    # Verify abort during cooperative async execution retains partial results.
+    cancel = threading.Event()
+
+    def _abort_on_second(done: int, _total: int) -> None:
+        if done == 2:
+            cancel.set()
+
+    aborted = asyncio.run(
+        PrimerDesigner1D.create_async(
+            dna=dna_obj,
+            min_length=7,
+            on_progress=_abort_on_second,
+            cancel_event=cancel,
+            yield_interval=0.0,
+        )
+    )
+    assert aborted.aborted is True
+    assert len(aborted) == 2
+
+    # Re-analysing after clearing cancel_event must reset aborted to False.
+    cancel.clear()
+    aborted._on_progress = None
+    aborted._analyse()
+    assert aborted.aborted is False
+    assert len(aborted) == 4
+
+    # Negative, boolean, and non-finite yield_interval values must raise.
+    for bad_interval in (-0.1, float("nan"), float("inf"), True, False):
+        with pytest.raises(
+            ValueError, match="yield_interval must be finite and non-negative"
+        ):
+            asyncio.run(
+                PrimerDesigner1D.create_async(
+                    dna=dna_obj, min_length=7, yield_interval=bad_interval
+                )
+            )
+
+    # Verify no redundant trailing sleep occurs after the final step,
+    # and no initial sleep occurs when cancel_event is already set.
+    from unittest.mock import patch
+
+    sleep_calls = 0
+
+    async def _counting_sleep(_delay: float) -> None:
+        nonlocal sleep_calls
+        sleep_calls += 1
+
+    with patch("asyncio.sleep", _counting_sleep):
+        asyncio.run(
+            PrimerDesigner1D.create_async(
+                dna=dna_obj, min_length=7, yield_interval=0.0
+            )
+        )
+    # 1 initial yield + 3 inter-step yields for 4 steps (no trailing sleep).
+    assert sleep_calls == 4
+
+    sleep_calls = 0
+    pre_cancelled = threading.Event()
+    pre_cancelled.set()
+    with patch("asyncio.sleep", _counting_sleep):
+        pre_aborted = asyncio.run(
+            PrimerDesigner1D.create_async(
+                dna=dna_obj,
+                min_length=7,
+                cancel_event=pre_cancelled,
+                yield_interval=0.0,
+            )
+        )
+    assert pre_aborted.aborted is True
+    assert len(pre_aborted) == 0
+    assert sleep_calls == 0

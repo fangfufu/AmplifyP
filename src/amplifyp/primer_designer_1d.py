@@ -17,8 +17,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
+from ._async_helpers import (
+    DEFAULT_ASYNC_YIELD_INTERVAL,
+    run_cooperative_analysis,
+    validate_yield_interval,
+)
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, DNADirection, Primer
 from .repliconf import Repliconf
@@ -112,6 +117,36 @@ class PrimerDesigner1D:
                 sequence length, if max_origin_count is specified without
                 template, or if max_origin_count is negative.
         """
+        truncated_seqs = self._initialise(
+            dna=dna,
+            min_length=min_length,
+            mode=mode,
+            generator=generator,
+            threshold=threshold,
+            max_overlap=max_overlap,
+            template=template,
+            max_origin_count=max_origin_count,
+            on_progress=on_progress,
+            cancel_event=cancel_event,
+            replication_settings=replication_settings,
+        )
+        self._analyse(truncated_seqs)
+
+    def _initialise(
+        self,
+        dna: DNA,
+        min_length: int,
+        mode: DNADirection = DNADirection.FWD,
+        generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
+        template: DNA | None = None,
+        max_origin_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
+    ) -> list[str]:
+        """Validate inputs, initialise slots, and return truncated sequences."""
         truncated_seqs = dna.generate_truncations(min_length, mode)
         if max_origin_count is not None:
             if template is None:
@@ -137,8 +172,73 @@ class PrimerDesigner1D:
         self._aborted: bool = False
         self._dimers: list[PrimerDimer] = []
         self._origin_counts: list[int | None] = []
+        return truncated_seqs
 
-        self._analyse(truncated_seqs)
+    @classmethod
+    async def create_async(
+        cls,
+        dna: DNA,
+        min_length: int,
+        mode: DNADirection = DNADirection.FWD,
+        generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
+        template: DNA | None = None,
+        max_origin_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
+        yield_interval: float = DEFAULT_ASYNC_YIELD_INTERVAL,
+    ) -> Self:
+        """Create a PrimerDesigner1D cooperatively on an asyncio event loop.
+
+        Yields periodically so single-threaded environments (such as Pyodide /
+        WebAssembly) can flush progress updates and handle abort events without
+        spawning OS threads.
+
+        Args:
+            dna: The input DNA object.
+            min_length: The minimum primer sequence length to reach via
+                truncation.
+            mode: The truncation mode (`DNADirection.FWD` or `REV`).
+            generator: Custom primer dimer generator to use.
+            threshold: Upper bound for quality score filter.
+            max_overlap: Upper bound for overlap length filter.
+            template: Optional template DNA for replication origin searches.
+            max_origin_count: Upper bound for replication origin count filter.
+            on_progress: Optional ``(done, total)`` progress callback.
+            cancel_event: Optional event checked between truncation steps.
+            replication_settings: Settings used for template origin searches.
+            yield_interval: Minimum elapsed seconds between event-loop yields.
+
+        Returns:
+            Completed (or aborted) PrimerDesigner1D instance.
+
+        Raises:
+            ValueError: If ``yield_interval`` is negative or non-finite, or
+                any input parameter fails validation.
+        """
+        validate_yield_interval(yield_interval)
+        instance = cls.__new__(cls)
+        truncated_seqs = instance._initialise(
+            dna=dna,
+            min_length=min_length,
+            mode=mode,
+            generator=generator,
+            threshold=threshold,
+            max_overlap=max_overlap,
+            template=template,
+            max_origin_count=max_origin_count,
+            on_progress=on_progress,
+            cancel_event=cancel_event,
+            replication_settings=replication_settings,
+        )
+        await run_cooperative_analysis(
+            instance._iter_analyse(truncated_seqs),
+            cancel_event=cancel_event,
+            yield_interval=yield_interval,
+        )
+        return instance
 
     @property
     def dna(self) -> DNA:
@@ -288,12 +388,11 @@ class PrimerDesigner1D:
         """
         return self[index]
 
-    def _analyse(self, initial_truncations: list[str] | None = None) -> None:
-        """Perform the 1D truncation analysis on the sequence.
-
-        This method generates self-dimers for each truncated sequence down to
-        the minimum length.
-        """
+    def _iter_analyse(
+        self, initial_truncations: list[str] | None = None
+    ) -> Iterator[tuple[int, int]]:
+        """Yield ``(done, total)`` after each 1D truncation step."""
+        self._aborted = False
         self._dimers.clear()
         self._origin_counts.clear()
         if initial_truncations is not None:
@@ -342,3 +441,13 @@ class PrimerDesigner1D:
             done += 1
             if self._on_progress is not None:
                 self._on_progress(done, total)
+            yield done, total
+
+    def _analyse(self, initial_truncations: list[str] | None = None) -> None:
+        """Perform the 1D truncation analysis on the sequence.
+
+        This method generates self-dimers for each truncated sequence down to
+        the minimum length.
+        """
+        for _ in self._iter_analyse(initial_truncations):
+            pass

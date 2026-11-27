@@ -19,8 +19,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
+from ._async_helpers import (
+    DEFAULT_ASYNC_YIELD_INTERVAL,
+    run_cooperative_analysis,
+    validate_yield_interval,
+)
 from .dimer import PrimerDimer, PrimerDimerGenerator
 from .dna import DNA, DNADirection, DNAType, Primer
 from .repliconf import Repliconf
@@ -190,6 +195,40 @@ class PrimerDesigner2D:
                 lengths, if max_amplicon_count is specified without template, or
                 if max_amplicon_count is negative.
         """
+        truncations = self._initialise(
+            fwd_dna=fwd_dna,
+            fwd_min_length=fwd_min_length,
+            rev_dna=rev_dna,
+            rev_min_length=rev_min_length,
+            generator=generator,
+            threshold=threshold,
+            max_overlap=max_overlap,
+            filter_metric=filter_metric,
+            template=template,
+            max_amplicon_count=max_amplicon_count,
+            on_progress=on_progress,
+            cancel_event=cancel_event,
+            replication_settings=replication_settings,
+        )
+        self._analyse(truncations)
+
+    def _initialise(
+        self,
+        fwd_dna: DNA,
+        fwd_min_length: int,
+        rev_dna: DNA,
+        rev_min_length: int,
+        generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
+        filter_metric: FilterMetric = FilterMetric.MAX,
+        template: DNA | None = None,
+        max_amplicon_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
+    ) -> tuple[list[str], list[str]]:
+        """Validate inputs, initialise slots, and return truncation lists."""
         fwd_seqs = fwd_dna.generate_truncations(
             fwd_min_length,
             DNADirection.FWD,
@@ -226,8 +265,78 @@ class PrimerDesigner2D:
         self._replication_settings: ReplicationSettings = replication_settings
         self._aborted: bool = False
         self._steps: list[PrimerDimers2D] = []
+        return fwd_seqs, rev_seqs
 
-        self._analyse((fwd_seqs, rev_seqs))
+    @classmethod
+    async def create_async(
+        cls,
+        fwd_dna: DNA,
+        fwd_min_length: int,
+        rev_dna: DNA,
+        rev_min_length: int,
+        generator: PrimerDimerGenerator = DEFAULT_PRIMER_DIMER_GENERATOR,
+        threshold: float | None = None,
+        max_overlap: int | None = None,
+        filter_metric: FilterMetric = FilterMetric.MAX,
+        template: DNA | None = None,
+        max_amplicon_count: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
+        cancel_event: threading.Event | None = None,
+        replication_settings: ReplicationSettings = GLOBAL_REPLICATION_SETTINGS,
+        yield_interval: float = DEFAULT_ASYNC_YIELD_INTERVAL,
+    ) -> Self:
+        """Create a PrimerDesigner2D cooperatively on an asyncio event loop.
+
+        Yields periodically so single-threaded environments (such as Pyodide /
+        WebAssembly) can flush progress updates and handle abort events without
+        spawning OS threads.
+
+        Args:
+            fwd_dna: The input forward DNA object.
+            fwd_min_length: Minimum sequence length for forward primer.
+            rev_dna: The input reverse DNA object.
+            rev_min_length: Minimum sequence length for reverse primer.
+            generator: Custom primer dimer generator to use.
+            threshold: Upper bound for quality score filter.
+            max_overlap: Upper bound for overlap length filter.
+            filter_metric: Metric to use for filtering (MAX or MEAN).
+            template: Optional template DNA for amplicon prediction.
+            max_amplicon_count: Upper bound for predicted amplicon count.
+            on_progress: Optional ``(done, total)`` progress callback.
+            cancel_event: Optional event checked between pair evaluations.
+            replication_settings: Settings used for template amplicon searches.
+            yield_interval: Minimum elapsed seconds between event-loop yields.
+
+        Returns:
+            Completed (or aborted) PrimerDesigner2D instance.
+
+        Raises:
+            ValueError: If ``yield_interval`` is negative or non-finite, or
+                any input parameter fails validation.
+        """
+        validate_yield_interval(yield_interval)
+        instance = cls.__new__(cls)
+        truncations = instance._initialise(
+            fwd_dna=fwd_dna,
+            fwd_min_length=fwd_min_length,
+            rev_dna=rev_dna,
+            rev_min_length=rev_min_length,
+            generator=generator,
+            threshold=threshold,
+            max_overlap=max_overlap,
+            filter_metric=filter_metric,
+            template=template,
+            max_amplicon_count=max_amplicon_count,
+            on_progress=on_progress,
+            cancel_event=cancel_event,
+            replication_settings=replication_settings,
+        )
+        await run_cooperative_analysis(
+            instance._iter_analyse(truncations),
+            cancel_event=cancel_event,
+            yield_interval=yield_interval,
+        )
+        return instance
 
     @property
     def fwd_dna(self) -> DNA:
@@ -506,15 +615,12 @@ class PrimerDesigner2D:
 
         return step
 
-    def _analyse(
+    def _iter_analyse(
         self,
         initial_truncations: tuple[list[str], list[str]] | None = None,
-    ) -> None:
-        """Perform 2D truncation analysis on forward and reverse sequences.
-
-        Forward sequence is truncated from 3' end, while reverse sequence is
-        truncated from 5' end.
-        """
+    ) -> Iterator[tuple[int, int]]:
+        """Yield ``(done, total)`` after each 2D pair evaluation."""
+        self._aborted = False
         self._steps.clear()
         if initial_truncations is not None:
             fwd_seqs, rev_seqs = initial_truncations
@@ -591,3 +697,16 @@ class PrimerDesigner2D:
                 done += 1
                 if self._on_progress is not None:
                     self._on_progress(done, total)
+                yield done, total
+
+    def _analyse(
+        self,
+        initial_truncations: tuple[list[str], list[str]] | None = None,
+    ) -> None:
+        """Perform 2D truncation analysis on forward and reverse sequences.
+
+        Forward sequence is truncated from 3' end, while reverse sequence is
+        truncated from 5' end.
+        """
+        for _ in self._iter_analyse(initial_truncations):
+            pass
