@@ -1812,7 +1812,21 @@ def test_designer_1d_runs_cooperatively_when_threads_unavailable() -> None:
             abort_task = loop.create_task(_concurrent_abort())
             loop_view._start_designer()
             started = True
-            await asyncio.gather(abort_task, *scheduled_tasks)
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(abort_task, *scheduled_tasks),
+                    timeout=30,
+                )
+            except TimeoutError:
+                abort_task.cancel()
+                for task in scheduled_tasks:
+                    task.cancel()
+                await asyncio.gather(
+                    abort_task, *scheduled_tasks, return_exceptions=True
+                )
+                pytest.fail(
+                    "1D worker did not report done == 2 before the timeout"
+                )
 
         assert loop_view._cached_designer is not None
         assert loop_view._cached_designer.aborted is True

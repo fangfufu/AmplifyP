@@ -750,7 +750,7 @@ def test_e2e_designers_1d_and_2d(
     print("Running 1D Designer analysis...")
     page.get_by_role("button", name="Analyse").first.click(force=True)
     # Wait for generated primer cards (18 nt, 19 nt, 20 nt) to render.
-    page.locator('input[aria-label*="20 nt"]').first.wait_for(
+    page.locator("flt-semantics", has_text="20 nt").first.wait_for(
         state="attached", timeout=30000
     )
     expect(page.get_by_role("button", name="Analyse").first).to_be_attached(

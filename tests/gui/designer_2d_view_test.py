@@ -1952,7 +1952,12 @@ def test_designer_2d_runs_cooperatively_when_threads_unavailable() -> None:
             return await orig_create_async(*args, **kwargs)
 
         async def _concurrent_abort() -> None:
-            await abort_ready.wait()
+            try:
+                await asyncio.wait_for(abort_ready.wait(), timeout=5)
+            except TimeoutError as exc:
+                raise AssertionError(
+                    "progress tick done == 2 was not reported"
+                ) from exc
             loop_view._run_designer_event()
 
         with (
@@ -1974,7 +1979,19 @@ def test_designer_2d_runs_cooperatively_when_threads_unavailable() -> None:
             abort_task = loop.create_task(_concurrent_abort())
             loop_view._run_designer_event()
             started = True
-            await asyncio.gather(abort_task, *scheduled_tasks)
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(abort_task, *scheduled_tasks),
+                    timeout=30,
+                )
+            except BaseException:
+                abort_task.cancel()
+                for task in scheduled_tasks:
+                    task.cancel()
+                await asyncio.gather(
+                    abort_task, *scheduled_tasks, return_exceptions=True
+                )
+                raise
 
         assert loop_view._cached_designer is not None
         assert loop_view._cached_designer.aborted is True
