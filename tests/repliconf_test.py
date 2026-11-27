@@ -437,6 +437,40 @@ def test_repliconf_template_seq_access_does_not_alter_search() -> None:
     override_conf.search()
     assert [o.index for o in override_conf.origin_db.fwd] == [1]
 
+    # Circular non-ASCII padding uses raw coordinates before uppercase expansion
+    unit_settings = ReplicationSettings(
+        primability_cutoff=0.4,
+        stability_cutoff=0.4,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(1.0),
+    )
+    for seq_str, primer_str, exp_fwd_bytes, exp_rev_bytes in (
+        ("Aß", "A", b"SSASS", b"TSST"),
+        ("ßA", "A", b"ASSA", b"SSTSS"),
+        ("A\ufb05", "T", b"STAST", b"TSTT"),
+    ):
+        circ_tpl = DNA(seq_str, DNAType.CIRCULAR)
+        circ_primer = Primer(primer_str)
+        cold_circ = Repliconf(circ_tpl, circ_primer, unit_settings)
+        assert cold_circ._get_template_bytes(DNADirection.FWD) == exp_fwd_bytes
+        assert cold_circ._get_template_bytes(DNADirection.REV) == exp_rev_bytes
+        cold_circ.search()
+
+        warm_circ = Repliconf(circ_tpl, circ_primer, unit_settings)
+        _ = warm_circ.template_seq
+        warm_circ.search()
+
+        assert cold_circ.origin_db.fwd == warm_circ.origin_db.fwd
+        assert cold_circ.origin_db.rev == warm_circ.origin_db.rev
+        if seq_str == "Aß":
+            assert [o.index for o in cold_circ.origin_db.fwd] == [2]
+
+    # Circular template with empty primer exercises zero-length padding path
+    zero_pad_circ = Repliconf(DNA("ACGT", DNAType.CIRCULAR), Primer(""))
+    zero_pad_circ.search()
+    assert zero_pad_circ.searched
+    assert len(zero_pad_circ.origin_db.fwd) == 0
+
 
 def test_repliconf_rejects_length_changing_primer_normalisation() -> None:
     """Reject primers whose uppercase form changes coordinate length."""

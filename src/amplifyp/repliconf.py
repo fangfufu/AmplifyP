@@ -392,10 +392,20 @@ class Repliconf:
             return tpl.comp_upper_bytes + gap_bytes
         if direction == DNADirection.FWD:
             tpl_bytes = tpl.seq_upper_bytes
-            padding = tpl_bytes[-pad_len:] if pad_len > 0 else b""
+            if pad_len <= 0:
+                padding = b""
+            elif tpl.seq.isascii():
+                padding = tpl_bytes[-pad_len:]
+            else:
+                padding = tpl.seq[-pad_len:].upper().encode("ascii")
             return padding + tpl_bytes
         comp_bytes = tpl.comp_upper_bytes
-        return comp_bytes + comp_bytes[:pad_len]
+        padding = (
+            comp_bytes[:pad_len]
+            if tpl.seq.isascii()
+            else tpl.complement_seq[:pad_len].upper().encode("ascii")
+        )
+        return comp_bytes + padding
 
     def search(self) -> None:
         """Perform a search for valid replication origins.
