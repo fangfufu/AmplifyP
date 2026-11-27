@@ -703,6 +703,109 @@ def test_e2e_settings_backup(
     print("test_e2e_settings_backup PASSED.")
 
 
+@pytest.mark.e2e  # type: ignore[untyped-decorator]
+@pytest.mark.skipif(
+    sys.platform != "linux", reason="E2E tests only run on Linux"
+)  # type: ignore[untyped-decorator]
+def test_e2e_designers_1d_and_2d(
+    page: Any, serve_app: str, e2e_timeout: None
+) -> None:
+    """Test 1D and 2D primer designers run in browser without thread errors."""
+    page.set_default_timeout(30000)
+    console_errors: list[str] = []
+
+    def _on_console(msg: Any) -> None:
+        text = msg.text
+        print(f"Browser console: {text}")
+        if (
+            "can't start new thread" in text.lower()
+            or "the application encountered an error" in text.lower()
+            or "traceback" in text.lower()
+        ):
+            console_errors.append(text)
+
+    page.on("console", _on_console)
+    page.on("pageerror", lambda err: console_errors.append(str(err)))
+
+    # 1. Navigate to app with semantics enabled
+    page.goto(f"{serve_app}/?enable-semantics=true")
+    try:
+        page.wait_for_load_state("networkidle", timeout=5000)
+    except Exception:  # noqa: S110
+        pass
+    expect(page).to_have_title("AmplifyP", timeout=120000)
+    wait_for_semantics(page)
+
+    # 2. Switch to Designer 1D and run analysis
+    print("Navigating to Designer 1D...")
+    page.get_by_role("button", name="Designer 1D").filter(
+        visible=True
+    ).first.click(force=True)
+    seq_1d_sel = 'input[aria-label="e.g. ATGCGTACGT..."]'
+    min_len_sel = 'input[aria-label="e.g. 18"]'
+    page.locator(seq_1d_sel).first.wait_for(state="attached", timeout=15000)
+    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
+    fill_field_reliably(page, min_len_sel, "18")
+
+    print("Running 1D Designer analysis...")
+    page.get_by_role("button", name="Analyse").first.click(force=True)
+    # Wait for generated primer cards (18 nt, 19 nt, 20 nt) to render.
+    page.locator('input[aria-label*="20 nt"]').first.wait_for(
+        state="attached", timeout=30000
+    )
+    expect(page.get_by_role("button", name="Analyse").first).to_be_attached(
+        timeout=15000
+    )
+    assert not console_errors, f"Unexpected browser errors: {console_errors}"
+    assert (
+        page.locator("flt-semantics", has_text="can't start new thread").count()
+        == 0
+    )
+    assert (
+        page.locator(
+            "flt-semantics", has_text="The application encountered an error"
+        ).count()
+        == 0
+    )
+
+    # 3. Switch to Designer 2D and run analysis
+    print("Navigating to Designer 2D...")
+    page.get_by_role("button", name="Designer 2D").filter(
+        visible=True
+    ).first.click(force=True)
+    rev_2d_sel = 'input[aria-label="e.g. CGTACGATGC..."]'
+    page.locator(rev_2d_sel).first.wait_for(state="attached", timeout=15000)
+    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
+    # Once the first "e.g. 18" field is filled its hint aria-label clears, so
+    # the remaining reverse min-length input becomes the first match.
+    fill_field_reliably(page, min_len_sel, "18", index=0)
+    expect(page.locator(min_len_sel)).to_have_count(1, timeout=5000)
+    fill_field_reliably(page, rev_2d_sel, "CGTACGATGCCGTACGATGC")
+    fill_field_reliably(page, min_len_sel, "18", index=0)
+
+    print("Running 2D Designer analysis...")
+    page.get_by_role("button", name="Analyse").first.click(force=True)
+    # Wait for 2D grid header to replace the empty-state prompt.
+    page.locator("flt-semantics", has_text="Rev \\ Fwd").first.wait_for(
+        state="attached", timeout=30000
+    )
+    expect(page.get_by_role("button", name="Analyse").first).to_be_attached(
+        timeout=15000
+    )
+    assert not console_errors, f"Unexpected browser errors: {console_errors}"
+    assert (
+        page.locator("flt-semantics", has_text="can't start new thread").count()
+        == 0
+    )
+    assert (
+        page.locator(
+            "flt-semantics", has_text="The application encountered an error"
+        ).count()
+        == 0
+    )
+    print("test_e2e_designers_1d_and_2d PASSED.")
+
+
 def _preprocess_for_ocr(image: Any) -> Any:
     """Boost image contrast for better OCR on CanvasKit-rendered text.
 
