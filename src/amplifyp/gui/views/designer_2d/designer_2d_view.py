@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import threading
 from collections.abc import Callable
+from typing import TypedDict
 
 import flet as ft
 
@@ -34,9 +35,32 @@ from amplifyp.gui.views.designer.designer_view_base import BaseDesignerView
 from amplifyp.gui.views.designer_2d.designer_2d_form import Designer2DForm
 from amplifyp.gui.views.designer_2d.dismissible_2d_card import Dismissible2DCard
 from amplifyp.gui.views.designer_2d.grid_2d_results import Grid2DResultsView
-from amplifyp.primer_designer_2d import PrimerDesigner2D, PrimerDimers2D
+from amplifyp.primer_designer_2d import (
+    FilterMetric,
+    PrimerDesigner2D,
+    PrimerDimers2D,
+)
+from amplifyp.settings import ReplicationSettings
 
 logger = logging.getLogger(__name__)
+
+
+class _Designer2DKwargs(TypedDict):
+    """Shared keyword arguments for sync and async 2D designer runs."""
+
+    fwd_dna: DNA
+    fwd_min_length: int
+    rev_dna: DNA
+    rev_min_length: int
+    generator: PrimerDimerGenerator
+    threshold: float | None
+    max_overlap: int | None
+    filter_metric: FilterMetric
+    template: DNA | None
+    max_amplicon_count: int | None
+    on_progress: Callable[[int, int], None]
+    cancel_event: threading.Event
+    replication_settings: ReplicationSettings
 
 
 class Designer2DView(BaseDesignerView):
@@ -53,8 +77,6 @@ class Designer2DView(BaseDesignerView):
         super().__init__(page=page, input_data=input_data, settings=settings)
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner2D | None = None
-        self._analysis_running = False
-        self._cancel_event: threading.Event | None = None
 
         # Form component for 2D input controls and parameters
         self.form = Designer2DForm(
@@ -135,8 +157,9 @@ class Designer2DView(BaseDesignerView):
         While an analysis is running, the button acts as an abort button and
         the click requests a stop instead of starting a new run.
         """
-        if self._analysis_running and self._cancel_event is not None:
-            self._cancel_event.set()
+        if self._analysis_running:
+            if self._cancel_event is not None:
+                self._cancel_event.set()
             return
         try:
             (
@@ -170,7 +193,7 @@ class Designer2DView(BaseDesignerView):
                 return
             template_dna = self.input_data.to_template_dna()
 
-        # Compute total (fwd x rev) combination count before threading so we
+        # Compute total (fwd x rev) combination count before launching so we
         # can display a determinate progress bar from the first frame.
         fwd_count = len(fwd_dna.seq) - fwd_min_len + 1
         rev_count = len(rev_dna.seq) - rev_min_len + 1
@@ -197,6 +220,22 @@ class Designer2DView(BaseDesignerView):
             """Forward every progress tick to the results grid."""
             self.results_grid.update_progress(done, total)
 
+        designer_kwargs: _Designer2DKwargs = {
+            "fwd_dna": fwd_dna,
+            "fwd_min_length": fwd_min_len,
+            "rev_dna": rev_dna,
+            "rev_min_length": rev_min_len,
+            "generator": generator,
+            "threshold": threshold,
+            "max_overlap": max_overlap,
+            "filter_metric": filter_metric,
+            "template": template_dna,
+            "max_amplicon_count": max_amplicons,
+            "on_progress": _on_progress,
+            "cancel_event": cancel_event,
+            "replication_settings": rep_settings,
+        }
+
         def _run_analysis() -> None:
             """Execute analysis in a background thread.
 
@@ -205,38 +244,57 @@ class Designer2DView(BaseDesignerView):
             Flet event loop.
             """
             try:
-                designer = PrimerDesigner2D(
-                    fwd_dna=fwd_dna,
-                    fwd_min_length=fwd_min_len,
-                    rev_dna=rev_dna,
-                    rev_min_length=rev_min_len,
-                    generator=generator,
-                    threshold=threshold,
-                    max_overlap=max_overlap,
-                    filter_metric=filter_metric,
-                    template=template_dna,
-                    max_amplicon_count=max_amplicons,
-                    on_progress=_on_progress,
-                    cancel_event=cancel_event,
-                    replication_settings=rep_settings,
-                )
-                self._cached_designer = designer
+                designer = PrimerDesigner2D(**designer_kwargs)
                 self._schedule_on_event_loop(
-                    self._on_analysis_success, designer
+                    self._on_analysis_success, designer, cancel_event
                 )
             except Exception as ex:
                 logger.exception("Failed to run 2D primer designer")
-                self._schedule_on_event_loop(self._on_analysis_error, ex)
-            finally:
-                self._analysis_running = False
                 self._schedule_on_event_loop(
-                    self._on_analysis_finished, cancel_event
+                    self._on_analysis_error, ex, cancel_event
                 )
+            finally:
+                if self._schedule_on_event_loop(
+                    self._on_analysis_finished, cancel_event
+                ) is False and not self._is_stale_run(cancel_event):
+                    self._analysis_running = False
 
-        threading.Thread(target=_run_analysis, daemon=True).start()
+        async def _run_analysis_async() -> None:
+            """Execute 2D analysis cooperatively on the Flet event loop."""
+            try:
+                designer = await PrimerDesigner2D.create_async(
+                    **designer_kwargs
+                )
+            except Exception as ex:
+                logger.exception("Failed to run 2D primer designer")
+                await self._on_analysis_error(ex, cancel_event)
+            else:
+                await self._on_analysis_success(designer, cancel_event)
+            finally:
+                await self._on_analysis_finished(cancel_event)
 
-    async def _on_analysis_success(self, designer: PrimerDesigner2D) -> None:
+        def _on_discarded() -> None:
+            """Reset running state if no event loop could schedule analysis."""
+            self._finish_analysis_ui(cancel_event)
+
+        self._start_analysis_worker(
+            _run_analysis, _run_analysis_async, on_discarded=_on_discarded
+        )
+
+    def _restore_loading_ui_if_active(self) -> None:
+        """Reset the results grid if the progress bar is still visible."""
+        if self.results_grid.progress_tracker.loading_body is not None:
+            self.results_grid.clear_grid()
+
+    async def _on_analysis_success(
+        self,
+        designer: PrimerDesigner2D,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
         """Populate the results grid on the event loop after analysis."""
+        if self._is_stale_run(cancel_event):
+            return
+        self._cached_designer = designer
         self.results_grid.update_grid(designer)
         self._clear_all_cards()
         if designer.aborted:
@@ -244,41 +302,20 @@ class Designer2DView(BaseDesignerView):
                 "Analysis aborted — showing results analysed so far."
             )
 
-    async def _on_analysis_error(self, ex: Exception) -> None:
+    async def _on_analysis_error(
+        self,
+        ex: Exception,
+        cancel_event: threading.Event | None = None,
+    ) -> None:
         """Show the analysis failure UI on the event loop."""
+        if self._is_stale_run(cancel_event):
+            return
         show_error_dialog(
             self.app_page,
             "Analysis Error",
             f"Error performing 2D primer design: {ex}",
         )
         self.results_grid.clear_grid()
-
-    def _set_button_abort_mode(self, abort_mode: bool) -> None:
-        """Toggle the analyse button between Analyse and Abort appearance."""
-        button = self.form.analyse_button
-        if abort_mode:
-            button.content = "Abort"
-            button.icon = ft.Icons.STOP
-            button.tooltip = "Stop analysis and keep results so far"
-        else:
-            button.content = "Analyse"
-            button.icon = ft.Icons.PLAY_ARROW
-            button.tooltip = "Run Primer Truncation Analysis"
-
-    async def _on_analysis_finished(
-        self, cancel_event: threading.Event | None = None
-    ) -> None:
-        """Restore the analyse button and flush the page after analysis."""
-        if cancel_event is not None and self._cancel_event is not cancel_event:
-            return
-        self.form.analyse_button.disabled = False
-        self._set_button_abort_mode(False)
-        self._cancel_event = None
-        try:
-            if self.app_page:
-                self.app_page.update()
-        except RuntimeError:
-            pass
 
     def _handle_run_pcr(
         self, fwd_seq: str, fwd_name: str, rev_seq: str, rev_name: str
@@ -345,6 +382,10 @@ class Designer2DView(BaseDesignerView):
 
     def _clear_all(self, e: ft.ControlEvent | None = None) -> None:
         """Clear inputs, parameters, error messages, grid, and cards."""
+        if self._guard_not_running(
+            "Cannot clear parameters while an analysis is running."
+        ):
+            return
         self.form.fwd_dna_input.value = ""
         self.form.fwd_length_display.value = "0"
         self.form.fwd_min_len_input.value = ""
@@ -386,10 +427,18 @@ class Designer2DView(BaseDesignerView):
 
     async def _load_designer_2d_click(self, e: ft.ControlEvent) -> None:
         """Load Designer 2D parameters from a YAML file."""
+        if self._guard_not_running(
+            "Cannot load parameters while an analysis is running."
+        ):
+            return
         params = await self._load_parameters_yaml(
             dialog_title="Load Designer 2D Parameters"
         )
         if params is None:
+            return
+        if self._guard_not_running(
+            "Cannot load parameters while an analysis is running."
+        ):
             return
 
         fwd_val = params.get("fwd_dna")

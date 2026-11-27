@@ -178,6 +178,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
 
         steps = designer.all_steps
         if not steps:
+            self.progress_tracker.hide()
             self.content_column.controls = [
                 ft.Text(
                     "2D Truncation Results Grid",
@@ -411,6 +412,7 @@ class Grid2DResultsView(ft.Container):  # type: ignore[misc]
                 )
             )
 
+        self.progress_tracker.hide()
         self.content_column.controls = [
             ft.Row(
                 [
