@@ -385,3 +385,22 @@ def test_dna_non_ascii_slicing_and_concat_slices() -> None:
     assert concat_wrap.seq == "GCßT"
     assert concat_wrap.seq_upper == "GCSST"
     assert concat_wrap.count_cg() == 4
+
+
+def test_dna_non_ascii_transformations() -> None:
+    """Recalculate uppercase values when transforming non-ASCII DNA."""
+    dna = DNA("A\ufb05")
+
+    rev = dna.reverse()
+    assert rev.seq == "\ufb05A"
+    assert rev.seq_upper == "STA"
+
+    comp = dna.complement()
+    assert comp.seq == "T\ufb05"
+    assert comp.seq_upper == "TST"
+    assert dna.comp_upper_bytes == b"TST"
+
+    rc = dna.reverse_complement()
+    assert rc.seq == "\ufb05T"
+    assert rc.seq_upper == "STT"
+    assert rc == dna.reverse().complement()

@@ -330,10 +330,14 @@ class DNA:
         if self._comp_upper_bytes is None:
             if self._seq_upper is self._seq:
                 self._comp_upper_bytes = self.complement_seq.encode("ascii")
-            else:
+            elif self._seq.isascii():
                 self._comp_upper_bytes = self._seq_upper.translate(
                     GLOBAL_COMPLEMENT_TABLE
                 ).encode("ascii")
+            else:
+                self._comp_upper_bytes = self.complement_seq.upper().encode(
+                    "ascii"
+                )
         return self._comp_upper_bytes
 
     @property
@@ -407,11 +411,12 @@ class DNA:
             DNA: A new DNA object representing the complement sequence.
         """
         seq_comp = self._seq.translate(GLOBAL_COMPLEMENT_TABLE)
-        seq_comp_upper = (
-            seq_comp
-            if self._seq_upper is self._seq
-            else self._seq_upper.translate(GLOBAL_COMPLEMENT_TABLE)
-        )
+        if self._seq_upper is self._seq:
+            seq_comp_upper = seq_comp
+        elif self._seq.isascii():
+            seq_comp_upper = self._seq_upper.translate(GLOBAL_COMPLEMENT_TABLE)
+        else:
+            seq_comp_upper = seq_comp.upper()
         return type(self)._from_validated(
             seq_comp,
             seq_comp_upper,
@@ -430,9 +435,12 @@ class DNA:
             DNA: A new DNA object representing the reversed sequence.
         """
         seq_rev = self._seq[::-1]
-        seq_rev_upper = (
-            seq_rev if self._seq_upper is self._seq else self._seq_upper[::-1]
-        )
+        if self._seq_upper is self._seq:
+            seq_rev_upper = seq_rev
+        elif self._seq.isascii():
+            seq_rev_upper = self._seq_upper[::-1]
+        else:
+            seq_rev_upper = seq_rev.upper()
         return type(self)._from_validated(
             seq_rev,
             seq_rev_upper,
@@ -452,11 +460,14 @@ class DNA:
             DNA: A new DNA object representing the reverse complement sequence.
         """
         seq_rc = self._seq[::-1].translate(GLOBAL_COMPLEMENT_TABLE)
-        seq_rc_upper = (
-            seq_rc
-            if self._seq_upper is self._seq
-            else self._seq_upper[::-1].translate(GLOBAL_COMPLEMENT_TABLE)
-        )
+        if self._seq_upper is self._seq:
+            seq_rc_upper = seq_rc
+        elif self._seq.isascii():
+            seq_rc_upper = self._seq_upper[::-1].translate(
+                GLOBAL_COMPLEMENT_TABLE
+            )
+        else:
+            seq_rc_upper = seq_rc.upper()
         return type(self)._from_validated(
             seq_rc,
             seq_rc_upper,
