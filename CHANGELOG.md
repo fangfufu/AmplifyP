@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.3](https://github.com/fangfufu/AmplifyP/compare/v1.30.2...v1.30.3) (2026-11-27)
+
+
+### Bug Fixes
+
+* **benchmark:** fail on unsuccessful GUI runs ([bc6a1e5](https://github.com/fangfufu/AmplifyP/commit/bc6a1e55478481d80c950391e67002d39b7b5029))
+* **core:** fix reverse_complement and core helpers ([2fc4ca0](https://github.com/fangfufu/AmplifyP/commit/2fc4ca00d8aa9a9982b4846fa43619bd6d4e38d7))
+* **designer:** deduplicate mixed-case 2D primers ([7372e28](https://github.com/fangfufu/AmplifyP/commit/7372e284651692091b30aa1f8fb4ae2a3ed59c0c))
+* **dna:** handle non-ASCII uppercase in slices ([90ac1d9](https://github.com/fangfufu/AmplifyP/commit/90ac1d99e2de528a4eb6903186bc5d26a36dfce5))
+* **dna:** recompute non-ASCII transform uppercase ([f166dd9](https://github.com/fangfufu/AmplifyP/commit/f166dd9eb3f33eda969252ebe623f6e9747c9ae1))
+* **gui:** always invalidate cache in from_dict ([805cad5](https://github.com/fangfufu/AmplifyP/commit/805cad5e72c75ad04faa6e9043152d06d8d360b2))
+* **gui:** guard negative selection start slice ([252ce94](https://github.com/fangfufu/AmplifyP/commit/252ce94dea25acd7741251cf57ba0f334c23b7a4))
+* **gui:** sync cached weight cell text style ([3b781d9](https://github.com/fangfufu/AmplifyP/commit/3b781d94205da2aea152602bdd7d91a33bf98b76))
+* **repliconf:** clear origins before validation ([f13e001](https://github.com/fangfufu/AmplifyP/commit/f13e001db47e3616bf8799787c41776e5804965e))
+* **repliconf:** key scoring cache by table values ([c460530](https://github.com/fangfufu/AmplifyP/commit/c46053049fad729584bf125b85be53ddfe0bae04))
+* **repliconf:** normalise cached template bytes ([d1b8785](https://github.com/fangfufu/AmplifyP/commit/d1b878526ec3fa2e1104f6385301a7900fd4b1ef))
+* **repliconf:** pad circular raw sequences ([52f5362](https://github.com/fangfufu/AmplifyP/commit/52f536212c3f22bb73bf695f25f24e2f7afb65fe))
+* **repliconf:** reject length-changing primers ([1052b97](https://github.com/fangfufu/AmplifyP/commit/1052b97b69ba6d795ee9f0d0ee259867b20e3862))
+
+
+### Code Refactoring
+
+* **core:** refine repliconf, dna, and dimer ([c4612b5](https://github.com/fangfufu/AmplifyP/commit/c4612b5f599b0fb85d147f5015c63d7f5223a910))
+* **designer:** tidy 1D/2D search and tests ([85fec7b](https://github.com/fangfufu/AmplifyP/commit/85fec7b66abedb7af4d4e5989ac1b5831c0d9370))
+* **gui:** reuse safe_load_yaml in logger ([24b13ac](https://github.com/fangfufu/AmplifyP/commit/24b13acf76a88ce60a69cc4027dd4670caded149))
+* **repliconf:** drop unreachable DNAType else ([92a6fce](https://github.com/fangfufu/AmplifyP/commit/92a6fce17b2569fcf8528470e2e867863a82ace8))
+
+
+### Performance Improvements
+
+* **core:** speed up sequence, melting, and PCR ([00ac972](https://github.com/fangfufu/AmplifyP/commit/00ac9726d3b498bee01331cd6cbd286e14acb601))
+* **designer:** speed up dimer and 2D/1D search ([87060c4](https://github.com/fangfufu/AmplifyP/commit/87060c4223156e75377b936cee84db1a6867cdf8))
+* **gui:** reduce layout and UI widget overhead ([8158a06](https://github.com/fangfufu/AmplifyP/commit/8158a0605d5f52959ef388c14ace96fcc53bc1a3))
+* **state:** finish YAML fast-path and cache docs ([7cd0eea](https://github.com/fangfufu/AmplifyP/commit/7cd0eea82ea7b1ebd4c1513a72812a3f67b59642))
+* **state:** speed up YAML and GUI state caching ([f02ad08](https://github.com/fangfufu/AmplifyP/commit/f02ad08000d14fae134ef3bf2cf3d940ea746b44))
+
 ## [1.30.2](https://github.com/fangfufu/AmplifyP/compare/v1.30.1...v1.30.2) (2026-11-26)
 
 
