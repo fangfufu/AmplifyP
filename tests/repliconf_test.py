@@ -356,3 +356,51 @@ def test_repliconf_search_pruning_parity_with_origin_bruteforce() -> None:
             for obs, (_, exp_p, exp_s) in zip(actual, expected, strict=True):
                 assert obs.primability == pytest.approx(exp_p)
                 assert obs.stability == pytest.approx(exp_s)
+
+
+def test_repliconf_search_reflects_in_place_table_mutations() -> None:
+    """Verify in-place edits to weight tables invalidate cached scoring."""
+    # 1. In-place mutation of run_weights
+    rw_settings = ReplicationSettings(
+        primability_cutoff=0.4,
+        stability_cutoff=0.4,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(1.0),
+    )
+    rw_conf = Repliconf(DNA("AC", DNAType.LINEAR), Primer("AT"), rw_settings)
+    rw_conf.search()
+    assert any(o.index == 2 for o in rw_conf.origin_db.fwd)
+
+    rw_settings.run_weights[0] = 0.0
+    rw_conf.search()
+    assert not any(o.index == 2 for o in rw_conf.origin_db.fwd)
+
+    # 2. In-place mutation of match_weight
+    mw_settings = ReplicationSettings(
+        primability_cutoff=0.4,
+        stability_cutoff=0.4,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(1.0),
+    )
+    mw_conf = Repliconf(DNA("AC", DNAType.LINEAR), Primer("AT"), mw_settings)
+    mw_conf.search()
+    assert any(o.index == 2 for o in mw_conf.origin_db.fwd)
+
+    mw_settings.match_weight[1] = 0.0
+    mw_conf.search()
+    assert not any(o.index == 2 for o in mw_conf.origin_db.fwd)
+
+    # 3. In-place mutation of base_pair_scores
+    bp_settings = ReplicationSettings(
+        primability_cutoff=0.4,
+        stability_cutoff=0.4,
+        match_weight=LengthWiseWeightTbl(1.0),
+        run_weights=LengthWiseWeightTbl(1.0),
+    )
+    bp_conf = Repliconf(DNA("AC", DNAType.LINEAR), Primer("AT"), bp_settings)
+    bp_conf.search()
+    assert any(o.index == 2 for o in bp_conf.origin_db.fwd)
+
+    bp_settings.base_pair_scores["A", "A"] = 0.0
+    bp_conf.search()
+    assert not any(o.index == 2 for o in bp_conf.origin_db.fwd)

@@ -89,19 +89,17 @@ class _SettingsWrapper:
     __slots__ = ("_key", "settings")
 
     def __init__(self, settings: ReplicationSettings) -> None:
-        """Initialise the wrapper with settings.
+        """Initialise the wrapper with an immutable snapshot of scoring tables.
 
         Args:
             settings (ReplicationSettings): The settings object to wrap.
         """
         self.settings = settings
         self._key = (
-            id(settings.base_pair_scores),
-            id(settings.match_weight),
-            id(settings.run_weights),
+            settings.base_pair_scores.cache_key(),
+            settings.match_weight.cache_key(),
+            settings.run_weights.cache_key(),
             settings.primability_cutoff,
-            settings.stability_cutoff,
-            settings.amplify4_compatibility_mode,
         )
 
     def __hash__(self) -> int:
@@ -113,16 +111,16 @@ class _SettingsWrapper:
         return hash(self._key)
 
     def __eq__(self, other: object) -> bool:
-        """Check equality based on settings key.
+        """Check equality based on the immutable settings snapshot.
 
         Args:
             other (object): The object to compare with.
 
         Returns:
-            bool: True if the wrapped settings have identical parameters.
+            bool: True if the wrapped settings have identical scoring values.
         """
         if isinstance(other, _SettingsWrapper):
-            return self._key == other._key and self.settings == other.settings
+            return self._key == other._key
         return NotImplemented
 
 

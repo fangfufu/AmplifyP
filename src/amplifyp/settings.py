@@ -179,6 +179,10 @@ class LengthWiseWeightTbl:
             result[f"{prefix}_{idx}"] = self._overrides[idx]
         return result
 
+    def cache_key(self) -> tuple[float, tuple[tuple[int, float], ...]]:
+        """Return an immutable snapshot of this weight table for caching."""
+        return (self._default_weight, tuple(sorted(self._overrides.items())))
+
     @classmethod
     def from_dict(
         cls,
@@ -489,6 +493,12 @@ class BasePairWeightsTbl:
             for c_char in self.column():
                 result[f"{prefix}_{r_char}_{c_char}"] = self[r_char, c_char]
         return result
+
+    def cache_key(
+        self,
+    ) -> tuple[str, str, tuple[tuple[tuple[str, str], float], ...]]:
+        """Return an immutable snapshot of this weight table for caching."""
+        return (self._row, self._col, tuple(sorted(self._weight.items())))
 
     @classmethod
     def from_dict(
