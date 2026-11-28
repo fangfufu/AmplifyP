@@ -353,7 +353,8 @@ def save_last_state(controller: Any) -> None:
     if not controller.settings.get("auto_reload_on_startup", True):
         return
 
-    controller.input_view.sync_to_state()
+    if getattr(controller, "input_view_dirty", False) is not True:
+        controller.input_view.sync_to_state()
     state_dict = {
         "input": controller.input_data.to_dict(),
     }
@@ -566,7 +567,8 @@ async def save_state(controller: Any, _e: ft.Event[ft.Control]) -> None:
         return
     controller.filepicker_open = True
     try:
-        controller.input_view.sync_to_state()
+        if getattr(controller, "input_view_dirty", False) is not True:
+            controller.input_view.sync_to_state()
         combined: dict[str, object] = {
             "input": controller.input_data.to_dict(),
         }
