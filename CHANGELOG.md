@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.0](https://github.com/fangfufu/AmplifyP/compare/v1.30.3...v1.31.0) (2026-11-27)
+
+
+### Features
+
+* **designer:** add cooperative async analysis ([cea0cac](https://github.com/fangfufu/AmplifyP/commit/cea0cac00180b6f1cdd3d97315163f1ab3bb785f))
+
+
+### Bug Fixes
+
+* **designer:** yield during template searches ([baf7403](https://github.com/fangfufu/AmplifyP/commit/baf7403940d1afb94ba0a74d63540ca863112058))
+* **gui:** avoid OS threads on Pyodide runtimes ([dd0e0e1](https://github.com/fangfufu/AmplifyP/commit/dd0e0e1d9ff47e2f9bf78ade5424b3e39cddde13))
+* **gui:** read progress controls once on update ([9d6bda5](https://github.com/fangfufu/AmplifyP/commit/9d6bda55e0ea20982dc68e60151c53612e97d8ee))
+* **gui:** run primer designers without threads ([e55ffcd](https://github.com/fangfufu/AmplifyP/commit/e55ffcd6fdf54ec8696d259ac27ab952fc43881c))
+* **gui:** validate 1D DNA before starting run ([129f95f](https://github.com/fangfufu/AmplifyP/commit/129f95f73c9f3eccf312b7fa9ba1fbb4bcb4f5ea))
+
 ## [1.30.3](https://github.com/fangfufu/AmplifyP/compare/v1.30.2...v1.30.3) (2026-11-27)
 
 
