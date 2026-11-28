@@ -731,3 +731,37 @@ def test_gui_controller_run_pcr_methods() -> None:
     assert len(controller.input_data.primers) == 2
     assert controller.input_data.primers[0]["name"] == "FwdPair"
     assert controller.input_data.primers[1]["name"] == "RevPair"
+
+    # 9. add_primer_to_input adds without overwriting existing, marks dirty,
+    # and respects web state persistence
+    controller.input_view_dirty = False
+    page.web = False
+    with patch.object(controller, "save_last_state") as mock_save:
+        assert controller.add_primer_to_input("Blank", "   ") == (False, "")
+        assert controller.input_view_dirty is False
+        mock_save.assert_not_called()
+
+        page.web = True
+        added, added_name = controller.add_primer_to_input(
+            "2D Fwd (4 nt)", "GGGG"
+        )
+        assert (added, added_name) == (True, "2D Fwd (4 nt)")
+        assert controller.input_view_dirty is True
+        mock_save.assert_called_once()
+        assert len(controller.input_data.primers) == 3
+        assert controller.input_data.primers[2] == {
+            "name": "2D Fwd (4 nt)",
+            "seq": "GGGG",
+            "active": True,
+        }
+
+    # Verify save_last_state does not overwrite input_data from stale UI
+    from amplifyp.gui.utils.data_helpers import save_last_state
+
+    controller.input_view_dirty = True
+    controller.input_view = MagicMock()
+    page.web = False
+    with patch("amplifyp.gui.utils.data_helpers.get_last_state_path") as m_path:
+        m_path.return_value = MagicMock()
+        save_last_state(controller)
+    controller.input_view.sync_to_state.assert_not_called()

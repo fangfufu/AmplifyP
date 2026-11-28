@@ -179,6 +179,7 @@ class GUIController:
             self.input_data,
             self.settings,
             on_run_pcr=self.run_pcr_with_primer_pair,
+            on_add_primer=self.add_primer_to_input,
         )
         self.about_view = AboutView(self.page, self.settings)
 
@@ -346,6 +347,18 @@ class GUIController:
             self._nav_manager.switch_view(
                 cast(Any, None), self.designer_2d_view
             )
+
+    def add_primer_to_input(self, name: str, seq: str) -> tuple[bool, str]:
+        """Add or activate a primer in the Input tab's primer list."""
+        added, final_name = self.input_data.add_primer(name, seq)
+        if not final_name:
+            return False, ""
+
+        self.input_view_dirty = True
+        self.update_pcr_button_state(sync=False, update_page=False)
+        if self.page.web:
+            self.save_last_state()
+        return added, final_name
 
     def update_pcr_button_state(
         self, sync: bool = True, update_page: bool = True

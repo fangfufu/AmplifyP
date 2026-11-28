@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import flet as ft
@@ -96,6 +97,7 @@ def build_primer_summary_row(
     primer: Primer,
     settings: GUISettings,
     font_size_small: int = 12,
+    on_send_to_input: Callable[[], None] | None = None,
 ) -> ft.Column:
     """Build a primer sequence display row with copy button and property badges.
 
@@ -104,10 +106,12 @@ def build_primer_summary_row(
         primer: Primer instance.
         settings: Application GUI settings.
         font_size_small: Font size for small text and badges.
+        on_send_to_input: Optional callback to send this primer to the Input
+            primer list.
 
     Returns:
         Flet Column containing property badges, read-only sequence field, and
-        copy button.
+        copy button (plus optional send-to-input button).
     """
     tm_text, pct_at_text = format_primer_properties(primer, settings)
     font_family = str(settings.get("font_family", "Roboto Mono"))
@@ -131,6 +135,20 @@ def build_primer_summary_row(
         tooltip=f"Copy {label} sequence",
         on_click=_copy_seq,
     )
+
+    action_row_controls: list[ft.Control] = [seq_field, copy_btn]
+    if on_send_to_input is not None:
+
+        def _send_to_input(_e: ft.ControlEvent) -> None:
+            on_send_to_input()
+
+        send_btn = ft.IconButton(
+            icon=ft.Icons.PLAYLIST_ADD,
+            icon_size=16,
+            tooltip=f"Send {label} to Input primer list",
+            on_click=_send_to_input,
+        )
+        action_row_controls.append(send_btn)
 
     return ft.Column(
         [
@@ -160,10 +178,7 @@ def build_primer_summary_row(
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
             ft.Row(
-                [
-                    seq_field,
-                    copy_btn,
-                ],
+                action_row_controls,
                 spacing=4,
             ),
         ],

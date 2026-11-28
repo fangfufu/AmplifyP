@@ -1072,6 +1072,94 @@ def test_designer_2d_view_run_pcr_callback() -> None:
     assert args[2] == step.rev_rev.primer_1.seq
 
 
+def test_designer_2d_send_primer_to_input_buttons() -> None:
+    """Test send-to-input buttons sit right of copy buttons and update input."""
+    from amplifyp.dna import Primer
+    from amplifyp.gui.views.designer.designer_card_helpers import (
+        build_primer_summary_row,
+    )
+
+    mock_page = MagicMock(spec=ft.Page)
+    mock_page.run_task = _sync_run_task
+    input_data = GUIInput(primers=[{"name": "", "seq": "", "active": False}])
+    settings = GUISettings()
+
+    # 1. Helper puts send button right of copy button when callback provided
+    sent: list[str] = []
+    row_col = build_primer_summary_row(
+        "Forward Primer",
+        Primer("ATGCGTAC"),
+        settings,
+        on_send_to_input=lambda: sent.append("clicked"),
+    )
+    action_row = cast(ft.Row, row_col.controls[1])
+    assert len(action_row.controls) == 3
+    copy_btn = cast(ft.IconButton, action_row.controls[1])
+    send_btn = cast(ft.IconButton, action_row.controls[2])
+    assert copy_btn.icon == ft.Icons.COPY
+    assert send_btn.icon == ft.Icons.PLAYLIST_ADD
+    assert send_btn.on_click is not None
+    send_btn.on_click(MagicMock())
+    assert sent == ["clicked"]
+
+    # 2. Designer2DView wires both Fwd and Rev send buttons cleanly
+    view = Designer2DView(mock_page, input_data, settings)
+    view.form.fwd_dna_input.value = "ATGCGTACGT"
+    view.form.fwd_min_len_input.value = "8"
+    view.form.rev_dna_input.value = "ACGTACGCAT"
+    view.form.rev_min_len_input.value = "8"
+
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.threading.Thread",
+        side_effect=lambda target, daemon: MagicMock(start=target),
+    ):
+        view._run_designer_event()
+    assert view._cached_designer is not None
+
+    step = view._cached_designer.all_steps[0]
+    view._on_grid_step_selected(step)
+    card = cast(Dismissible2DCard, view._active_cards[0])
+
+    # Trigger settings change and ensure send buttons remain intact
+    card.on_settings_change()
+
+    details_col = cast(ft.Column, card.primer_info_section.content)
+    fwd_summary_col = cast(ft.Column, details_col.controls[0])
+    rev_summary_col = cast(ft.Column, details_col.controls[1])
+    fwd_actions = cast(ft.Row, fwd_summary_col.controls[1])
+    rev_actions = cast(ft.Row, rev_summary_col.controls[1])
+    assert len(fwd_actions.controls) == 3
+    assert len(rev_actions.controls) == 3
+
+    fwd_send_btn = cast(ft.IconButton, fwd_actions.controls[2])
+    rev_send_btn = cast(ft.IconButton, rev_actions.controls[2])
+    assert fwd_send_btn.icon == ft.Icons.PLAYLIST_ADD
+    assert rev_send_btn.icon == ft.Icons.PLAYLIST_ADD
+    assert fwd_send_btn.on_click is not None
+    assert rev_send_btn.on_click is not None
+
+    with patch.object(view, "_show_notification") as mock_notify:
+        fwd_send_btn.on_click(MagicMock())
+        rev_send_btn.on_click(MagicMock())
+        # Re-clicking existing primer notifies without duplicating
+        fwd_send_btn.on_click(MagicMock())
+        assert mock_notify.call_count == 3
+        assert "Added" in mock_notify.call_args_list[0][0][0]
+        assert "already in the Input primer list" in mock_notify.call_args[0][0]
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["seq"] == step.fwd_fwd.primer_1.seq
+    assert input_data.primers[1]["seq"] == step.rev_rev.primer_1.seq
+    assert all(p["active"] is True for p in input_data.primers)
+
+    # Empty sequence shows error dialog
+    with patch(
+        "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
+    ) as mock_err:
+        view._handle_add_primer("Empty", "   ")
+        mock_err.assert_called_once()
+
+
 def test_controller_run_pcr_with_primer_pair() -> None:
     """Test GUIController run_pcr_with_primer_pair sets primers and runs PCR."""
     from amplifyp.gui.controller import GUIController

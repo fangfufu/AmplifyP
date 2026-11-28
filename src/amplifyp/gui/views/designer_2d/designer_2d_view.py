@@ -72,10 +72,12 @@ class Designer2DView(BaseDesignerView):
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
         on_run_pcr: Callable[[str, str, str, str], None] | None = None,
+        on_add_primer: Callable[[str, str], tuple[bool, str]] | None = None,
     ) -> None:
         """Initialise the Designer2DView."""
         super().__init__(page=page, input_data=input_data, settings=settings)
         self.on_run_pcr = on_run_pcr
+        self.on_add_primer = on_add_primer
         self._cached_designer: PrimerDesigner2D | None = None
 
         # Form component for 2D input controls and parameters
@@ -333,6 +335,32 @@ class Designer2DView(BaseDesignerView):
                     "running PCR.",
                 )
 
+    def _handle_add_primer(self, name: str, seq: str) -> None:
+        """Add a primer from a 2D card to the Input tab's primer list."""
+        if not clean_sequence(seq):
+            show_error_dialog(
+                self.app_page,
+                "Invalid Primer",
+                "The primer sequence contains no valid nucleotides.",
+            )
+            return
+
+        if self.on_add_primer:
+            added, final_name = self.on_add_primer(name, seq)
+        else:
+            added, final_name = self.input_data.add_primer(name, seq)
+
+        if final_name:
+            if added:
+                self._show_notification(
+                    f"Added '{final_name}' to Input primer list."
+                )
+            else:
+                self._show_notification(
+                    f"Primer '{final_name}' is already in the Input primer "
+                    "list."
+                )
+
     def _on_grid_step_selected(self, step: PrimerDimers2D) -> None:
         """Handle selection of a step from the 2D grid results.
 
@@ -351,6 +379,7 @@ class Designer2DView(BaseDesignerView):
                 dismiss_callback=self._dismiss_card,
                 font_family=self.settings.get("font_family", "Roboto Mono"),
                 on_run_pcr_callback=self._handle_run_pcr,
+                on_add_primer_callback=self._handle_add_primer,
             )
 
         self._bring_card_to_top_or_add(card_id, _factory)
