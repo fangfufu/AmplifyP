@@ -26,6 +26,7 @@ import time
 from collections.abc import Generator
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 
@@ -204,6 +205,55 @@ def cleanup_debug_checkboxes() -> Generator[None, None, None]:
             os.remove("debug_checkboxes.png")
         except OSError:
             pass
+
+
+_ALLOWED_EXTERNAL_SILENT_HOSTS = frozenset({"api.github.com"})
+
+
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def enforce_airgapped_mode(page: Any) -> Generator[None, None, None]:
+    """Block all external network requests to verify the air-gapped build."""
+    blocked_external_urls: list[str] = []
+    worker_errors: list[str] = []
+
+    def _route_handler(route: Any) -> None:
+        url = str(route.request.url)
+        parsed = urlparse(url)
+        if parsed.scheme in {"data", "blob"} or parsed.hostname in {
+            "localhost",
+            "127.0.0.1",
+        }:
+            route.continue_()
+            return
+        if parsed.hostname not in _ALLOWED_EXTERNAL_SILENT_HOSTS:
+            blocked_external_urls.append(url)
+            print(f"BLOCKED external request: {url}")
+        route.abort("internetdisconnected")
+
+    def _console_watcher(msg: Any) -> None:
+        text = str(msg.text)
+        if (
+            "Python worker init error:" in text
+            or "Terminating Python worker:" in text
+        ):
+            worker_errors.append(text)
+
+    context = page.context
+    context.route("**/*", _route_handler)
+    page.on("console", _console_watcher)
+    try:
+        yield
+    finally:
+        context.unroute("**/*", _route_handler)
+        if worker_errors:
+            pytest.fail(
+                "Pyodide Python worker failed to initialise:\n"
+                + "\n".join(worker_errors)
+            )
+        assert not blocked_external_urls, (
+            "Air-gapped web build attempted unexpected external requests:\n"
+            + "\n".join(blocked_external_urls)
+        )
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
