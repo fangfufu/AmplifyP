@@ -37,6 +37,7 @@ AmplifyP/
 ├── README.md                   # Repository overview and quick start guide
 ├── scripts/                    # Development and maintenance scripts
 │   ├── benchmark.py            # Core, YAML IO, and headless GUI benchmark suite
+│   ├── bundle_web_deps.py      # Bundles Python dependencies for air-gapped web builds
 │   ├── gen_git_sha.py          # Generates the git SHA module for frozen builds
 │   ├── setup_linux.sh          # Linux virtual environment and system dependency setup
 │   └── update_screenshots.py   # Regenerates the GUI manual screenshots
