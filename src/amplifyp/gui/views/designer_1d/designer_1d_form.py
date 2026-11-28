@@ -124,22 +124,15 @@ class Designer1DForm(BaseDesignerForm):
 
     def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
         """Handle enabling/disabling check against template filter."""
-        is_checked = bool(self.filter_dna_checkbox.value)
-        self.max_binding_sites_input.disabled = not is_checked
-        if not is_checked:
-            self.max_binding_sites_input.error = None
-        try:
-            if self.page:
-                self.page.update()
-        except RuntimeError:
-            pass
-        self._clear_field_error(e)
+        self._handle_filter_dna_change(e, self.max_binding_sites_input)
 
     def _on_dna_change(self, e: ft.ControlEvent) -> None:
         """Update length counter and clear error when DNA input changes."""
         dna_raw = self.dna_input.value or ""
         cleaned = clean_sequence(dna_raw)
         self.length_display.value = str(len(cleaned))
+        if self._clear_stale_min_len_error(cleaned, self.min_len_input):
+            self._update_page()
         self._clear_field_error(e)
 
     def clear_errors(self) -> None:

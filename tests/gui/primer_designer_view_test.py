@@ -2000,3 +2000,51 @@ def test_designer_1d_invalid_dna_on_load_and_analyse() -> None:
         mock_worker.assert_not_called()
     assert view._analysis_running is False
     assert "invalid characters" in (view.form.error_text.value or "")
+
+
+def test_designer_1d_scroll_and_error_clearing() -> None:
+    """Test 1D form scrollability and stale error clearing."""
+    mock_page = MagicMock(spec=ft.Page)
+    view = PrimerDesignerView(mock_page, GUIInput(), GUISettings())
+    form = view.form
+
+    assert form.scroll == ft.ScrollMode.AUTO
+
+    form.dna_input.value = "ATGC"
+    form.min_len_input.value = "10"
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        assert form.validate_and_get_params() is None
+        assert "cannot exceed sequence length" in (
+            form.min_len_input.error or ""
+        )
+
+        form.dna_input.value = "ATGCGTACGTAT"
+        form._on_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.dna_input)
+        )
+        assert form.min_len_input.error is None
+
+        # Non-positive min length error must not be cleared on DNA edit
+        form.min_len_input.value = "0"
+        form.min_len_input.error = "Minimum length must be greater than 0."
+        form.dna_input.value = "ATGCGTACGTATGC"
+        form._on_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.dna_input)
+        )
+        assert (
+            form.min_len_input.error == "Minimum length must be greater than 0."
+        )
+
+        # Unchecking template filter clears general error banner
+        form.filter_dna_checkbox.value = True
+        form.max_binding_sites_input.error = (
+            "Max binding sites must be a positive integer."
+        )
+        form.show_error("Template DNA sequence is required.")
+        form.filter_dna_checkbox.value = False
+        form._on_filter_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.filter_dna_checkbox)
+        )
+        assert form.max_binding_sites_input.error is None
+        assert form.error_text.visible is False
+        assert form.error_text.value == ""

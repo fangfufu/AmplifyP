@@ -87,10 +87,10 @@ class Designer2DView(BaseDesignerView):
             on_clear_all_callback=self._clear_all,
         )
 
-        # Top-left container (height sized to fit 2D parameter rows)
+        # Top-left container (height sized to fit 2D parameter rows + errors)
         self.top_left_container = ft.Container(
             content=self.form,
-            height=380,
+            height=425,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,

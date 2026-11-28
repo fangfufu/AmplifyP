@@ -2094,3 +2094,75 @@ def test_designer_2d_clear_all_guard_and_stale_callbacks() -> None:
     bare._set_button_abort_mode(True)
     bare._finish_analysis_ui()
     assert bare._analysis_running is False
+
+
+def test_designer_2d_scroll_and_error_clearing() -> None:
+    """Test form scrollability and stale error clearing."""
+    mock_page = MagicMock(spec=ft.Page)
+    view = Designer2DView(mock_page, GUIInput(), GUISettings())
+    form = view.form
+
+    assert view.top_left_container.height == 425
+    assert form.scroll == ft.ScrollMode.AUTO
+
+    # 1. Lengthening forward/reverse DNA clears stale min-length overflow errors
+    form.fwd_dna_input.value = "ATGC"
+    form.fwd_min_len_input.value = "10"
+    form.rev_dna_input.value = "CGTA"
+    form.rev_min_len_input.value = "10"
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        with pytest.raises(ValueError):
+            form.validate_and_get_params()
+        assert "Exceeds sequence length" in (form.fwd_min_len_input.error or "")
+        assert "Exceeds sequence length" in (form.rev_min_len_input.error or "")
+
+        form.fwd_dna_input.value = "ATGCGTACGTAT"
+        form._on_fwd_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.fwd_dna_input)
+        )
+        assert form.fwd_min_len_input.error is None
+
+        # Rev Comp also clears rev_min_len_input error if updated seq covers it
+        form.rev_dna_input.value = "ATGCGTACGTAT"
+        form._on_reverse_complement_click(None)
+        assert form.rev_min_len_input.error is None
+
+        # 2. Unrelated min-length errors (empty / non-positive / invalid) remain
+        form.fwd_min_len_input.value = "0"
+        form.fwd_min_len_input.error = "Must be > 0"
+        form.fwd_dna_input.value = "ATGCGTACGTATGC"
+        form._on_fwd_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.fwd_dna_input)
+        )
+        assert form.fwd_min_len_input.error == "Must be > 0"
+
+        form.rev_min_len_input.value = "abc"
+        form.rev_min_len_input.error = "Must be > 0"
+        form.rev_dna_input.value = "ATGCGTACGTATGC"
+        form._on_rev_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.rev_dna_input)
+        )
+        assert form.rev_min_len_input.error == "Must be > 0"
+
+        # 3. Unchecking template filter clears error banner and max field error
+        form.filter_dna_checkbox.value = True
+        form.max_amplicons_input.error = "Must be > 0"
+        form.show_error("No template sequence available for amplicon check.")
+        form.filter_dna_checkbox.value = False
+        form._on_filter_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.filter_dna_checkbox)
+        )
+        assert form.max_amplicons_input.error is None
+        assert form.error_text.visible is False
+        assert form.error_text.value == ""
+
+    # 4. Detached page RuntimeError in _update_page is ignored cleanly
+    mock_page.update.side_effect = RuntimeError("detached")
+    with patch.object(ft.Control, "page", new=property(lambda self: mock_page)):
+        form.fwd_min_len_input.value = "8"
+        form.fwd_min_len_input.error = "Exceeds sequence length (4)"
+        form.fwd_dna_input.value = "ATGCGTACGT"
+        form._on_fwd_dna_change(
+            MagicMock(spec=ft.ControlEvent, control=form.fwd_dna_input)
+        )
+        assert form.fwd_min_len_input.error is None
