@@ -753,6 +753,31 @@ def test_e2e_settings_backup(
     print("test_e2e_settings_backup PASSED.")
 
 
+def _fill_hinted_field_reliably(
+    page: Any,
+    selector: str,
+    text: str,
+    expected_remaining: int = 0,
+    attempts: int = 3,
+) -> None:
+    """Fill a Flutter Web hinted input and retry until its hint clears."""
+    for attempt in range(attempts):
+        fill_field_reliably(page, selector, text, index=0)
+        try:
+            expect(page.locator(selector)).to_have_count(
+                expected_remaining, timeout=3000
+            )
+            return
+        except AssertionError:
+            if attempt == attempts - 1:
+                raise
+            print(
+                f"  hint still present for {selector}, retrying "
+                f"({attempt + 1}/{attempts})..."
+            )
+            time.sleep(0.5)
+
+
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     sys.platform != "linux", reason="E2E tests only run on Linux"
@@ -794,8 +819,9 @@ def test_e2e_designers_1d_and_2d(
     seq_1d_sel = 'input[aria-label="e.g. ATGCGTACGT..."]'
     min_len_sel = 'input[aria-label="e.g. 18"]'
     page.locator(seq_1d_sel).first.wait_for(state="attached", timeout=15000)
-    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
-    fill_field_reliably(page, min_len_sel, "18")
+    _fill_hinted_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT", 0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 0)
+    time.sleep(0.5)
 
     print("Running 1D Designer analysis...")
     page.get_by_role("button", name="Analyse").first.click(force=True)
@@ -825,13 +851,13 @@ def test_e2e_designers_1d_and_2d(
     ).first.click(force=True)
     rev_2d_sel = 'input[aria-label="e.g. CGTACGATGC..."]'
     page.locator(rev_2d_sel).first.wait_for(state="attached", timeout=15000)
-    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
+    _fill_hinted_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT", 0)
     # Once the first "e.g. 18" field is filled its hint aria-label clears, so
     # the remaining reverse min-length input becomes the first match.
-    fill_field_reliably(page, min_len_sel, "18", index=0)
-    expect(page.locator(min_len_sel)).to_have_count(1, timeout=5000)
-    fill_field_reliably(page, rev_2d_sel, "CGTACGATGCCGTACGATGC")
-    fill_field_reliably(page, min_len_sel, "18", index=0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 1)
+    _fill_hinted_field_reliably(page, rev_2d_sel, "CGTACGATGCCGTACGATGC", 0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 0)
+    time.sleep(0.5)
 
     print("Running 2D Designer analysis...")
     page.get_by_role("button", name="Analyse").first.click(force=True)
