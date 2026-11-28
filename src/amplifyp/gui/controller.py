@@ -111,6 +111,8 @@ class GUIController:
             NotificationHelper, None
         )
         self.input_view_dirty = False
+        self.designer_view_dirty = False
+        self.designer_2d_view_dirty = False
 
         # Sub-controllers
         self._theme_manager = ThemeManager(self)
@@ -406,8 +408,15 @@ class GUIController:
         self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
-        self.designer_view.update_ui()
-        self.designer_2d_view.update_ui()
+        if active_view == self.designer_view:
+            self.designer_view.update_ui()
+        else:
+            self.designer_view_dirty = True
+
+        if active_view == self.designer_2d_view:
+            self.designer_2d_view.update_ui()
+        else:
+            self.designer_2d_view_dirty = True
 
         # Only redraw/re-simulate active views
         if active_view == self.pcr_view:

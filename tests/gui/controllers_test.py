@@ -49,6 +49,8 @@ def test_navigation_manager_flow() -> None:
     mock_ctrl.dimers_view = MagicMock()
     mock_ctrl.view_container = MagicMock()
     mock_ctrl.input_view_dirty = True
+    mock_ctrl.designer_view_dirty = True
+    mock_ctrl.designer_2d_view_dirty = True
 
     nav_manager = NavigationManager(mock_ctrl)
     nav_manager.setup_navigation_controls()
@@ -76,6 +78,35 @@ def test_navigation_manager_flow() -> None:
     nav_manager.switch_view(MagicMock(), mock_ctrl.settings_view)
     assert mock_ctrl.page.on_resize is None
     assert mock_ctrl.header.active_button == mock_ctrl.header.settings_button
+
+    # Switch to dirty designer_view: page.update() mounts view before update_ui
+    mock_ctrl.page.reset_mock()
+    mock_ctrl.designer_view.reset_mock()
+    call_order: list[str] = []
+    mock_ctrl.page.update.side_effect = lambda: call_order.append("page_update")
+    mock_ctrl.designer_view.update_ui.side_effect = lambda: call_order.append(
+        "designer_update_ui"
+    )
+    nav_manager.switch_view(MagicMock(), mock_ctrl.designer_view)
+    assert mock_ctrl.designer_view_dirty is False
+    assert call_order == ["page_update", "designer_update_ui"]
+
+    # Switch to dirty designer_2d_view
+    mock_ctrl.page.reset_mock()
+    mock_ctrl.designer_2d_view.reset_mock()
+    call_order_2d: list[str] = []
+    mock_ctrl.page.update.side_effect = lambda: call_order_2d.append(
+        "page_update"
+    )
+    mock_ctrl.designer_2d_view.update_ui.side_effect = lambda: (
+        call_order_2d.append("designer_2d_update_ui")
+    )
+    nav_manager.switch_view(MagicMock(), mock_ctrl.designer_2d_view)
+    assert mock_ctrl.designer_2d_view_dirty is False
+    assert call_order_2d == ["page_update", "designer_2d_update_ui"]
+    mock_ctrl.page.update.side_effect = None
+    mock_ctrl.designer_view.update_ui.side_effect = None
+    mock_ctrl.designer_2d_view.update_ui.side_effect = None
 
     mock_ctrl.input_data = GUIInput()
     mock_ctrl.input_data.template = "ATGCATGC"
@@ -360,12 +391,20 @@ def test_theme_manager_and_brightness_changes() -> None:
     mock_ctrl.dimers_view.run_analysis.assert_called()
 
     mock_ctrl.view_container.content = mock_ctrl.designer_view
+    mock_ctrl.designer_view_dirty = False
+    mock_ctrl.designer_2d_view_dirty = False
     theme_manager.on_platform_brightness_change()
     mock_ctrl.designer_view.update_ui.assert_called()
+    assert mock_ctrl.designer_view_dirty is False
+    assert mock_ctrl.designer_2d_view_dirty is True
 
     mock_ctrl.view_container.content = mock_ctrl.designer_2d_view
+    mock_ctrl.designer_view_dirty = False
+    mock_ctrl.designer_2d_view_dirty = False
     theme_manager.on_platform_brightness_change()
     mock_ctrl.designer_2d_view.update_ui.assert_called()
+    assert mock_ctrl.designer_view_dirty is True
+    assert mock_ctrl.designer_2d_view_dirty is False
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -544,7 +583,25 @@ async def test_gui_controller_methods_and_delegations() -> None:
     controller.on_settings_change()
 
     controller.view_container.content = controller.settings_view
+    controller.designer_view_dirty = False
+    controller.designer_2d_view_dirty = False
     controller.on_settings_change()
+    assert controller.designer_view_dirty is True
+    assert controller.designer_2d_view_dirty is True
+
+    controller.view_container.content = controller.designer_view
+    controller.designer_view_dirty = False
+    with patch.object(controller.designer_view, "update_ui") as mock_1d_up:
+        controller.on_settings_change()
+        mock_1d_up.assert_called_once()
+        assert controller.designer_view_dirty is False
+
+    controller.view_container.content = controller.designer_2d_view
+    controller.designer_2d_view_dirty = False
+    with patch.object(controller.designer_2d_view, "update_ui") as mock_2d_up:
+        controller.on_settings_change()
+        mock_2d_up.assert_called_once()
+        assert controller.designer_2d_view_dirty is False
 
     controller.view_container.content = controller.pcr_view
     controller.on_settings_change()

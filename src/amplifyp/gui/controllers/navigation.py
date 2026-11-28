@@ -145,6 +145,19 @@ class NavigationManager:
 
         ctrl.page.update()
 
+        if (
+            view == ctrl.designer_view
+            and getattr(ctrl, "designer_view_dirty", False) is True
+        ):
+            ctrl.designer_view_dirty = False
+            ctrl.designer_view.update_ui()
+        elif (
+            view == ctrl.designer_2d_view
+            and getattr(ctrl, "designer_2d_view_dirty", False) is True
+        ):
+            ctrl.designer_2d_view_dirty = False
+            ctrl.designer_2d_view.update_ui()
+
     def _validate_primers_for_action(
         self, action_name: str
     ) -> tuple[str, str] | None:
