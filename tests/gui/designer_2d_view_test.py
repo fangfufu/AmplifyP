@@ -800,7 +800,13 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         res = asyncio.run(view._load_parameters_yaml("Test"))
         assert res is None
 
-    # 8. Card helpers: format_primer_properties exception and copy button
+    # 8. Card helpers: format_primer_properties range, exception, and copy
+    tm_deg, _ = format_primer_properties(Primer("ACGTNNACGT"), settings)
+    assert tm_deg.startswith("Tm: ")
+    assert "(" in tm_deg and " to " in tm_deg
+    tm_approx, _ = format_primer_properties(Primer("N" * 10), settings)
+    assert "(~" in tm_approx
+
     p_bad = Primer("N" * 10, name="Bad")
     with patch.object(
         settings, "calculate_primer_tm", side_effect=RuntimeError("Tm err")

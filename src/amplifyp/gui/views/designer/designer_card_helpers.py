@@ -77,6 +77,14 @@ def format_primer_properties(
     try:
         tm_val = settings.calculate_primer_tm(primer)
         tm_text = f"Tm: {tm_val:.1f}°C"
+        if primer.redundant_base_count > 0 and len(primer) >= 2:
+            tm_range = settings.calculate_primer_tm_range(primer)
+            if tm_range.variant_count > 1:
+                prefix = "~" if tm_range.is_approximate else ""
+                tm_text = (
+                    f"Tm: {tm_val:.1f}°C ({prefix}{tm_range.min_tm:.1f} to "
+                    f"{tm_range.max_tm:.1f}°C)"
+                )
     except (KeyError, ValueError, RuntimeError):
         tm_text = "Tm: N/A"
 
