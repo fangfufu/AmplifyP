@@ -93,6 +93,7 @@ cp build/AmplifyP/io.github.fangfufu.amplifyp.desktop build/AmplifyP/usr/share/a
 
 echo "==> Creating AppStream metadata..."
 APP_VERSION="${VERSION:-$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")}"
+APP_VERSION="${APP_VERSION#v}"
 RELEASE_DATE="$(date -u +%Y-%m-%d)"
 mkdir -p build/AmplifyP/usr/share/metainfo
 cat << EOF > build/AmplifyP/usr/share/metainfo/io.github.fangfufu.amplifyp.appdata.xml
@@ -140,26 +141,37 @@ exec "${HERE}/AmplifyP" "$@"
 EOF
 chmod +x build/AmplifyP/AppRun
 
+ARCH="$(uname -m)"
+case "${ARCH}" in
+  x86_64 | aarch64) ;;
+  *)
+    echo "Error: Unsupported Linux architecture: ${ARCH}" >&2
+    exit 1
+    ;;
+esac
+export ARCH
+TARBALL_NAME="amplifyp-${APP_VERSION}-linux-${ARCH}.tar.gz"
+APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp-${APP_VERSION}-${ARCH}.AppImage}"
+
 echo "==> Packaging tarball..."
-tar -czf amplifyp-linux.tar.gz -C build AmplifyP
+tar -czf "${TARBALL_NAME}" -C build AmplifyP
 
 echo "==> Packaging as AppImage..."
-if [[ ! -f appimagetool-x86_64.AppImage ]]; then
-  wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage.tmp
-  mv appimagetool-x86_64.AppImage.tmp appimagetool-x86_64.AppImage
-  chmod +x appimagetool-x86_64.AppImage
+APPIMAGETOOL="appimagetool-${ARCH}.AppImage"
+if [[ ! -f "${APPIMAGETOOL}" ]]; then
+  wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/${APPIMAGETOOL}" -O "${APPIMAGETOOL}.tmp"
+  mv "${APPIMAGETOOL}.tmp" "${APPIMAGETOOL}"
+  chmod +x "${APPIMAGETOOL}"
 fi
 
 # Ensure squashfs-root is clean before extraction
 rm -rf squashfs-root
-./appimagetool-x86_64.AppImage --appimage-extract
+"./${APPIMAGETOOL}" --appimage-extract
 
-export ARCH=x86_64
 APPIMAGE_ARGS=()
 if [[ -n "${UPDATE_INFORMATION:-}" ]]; then
   APPIMAGE_ARGS+=("-u" "${UPDATE_INFORMATION}")
 fi
-APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp${VERSION:+-${VERSION}}-x86_64.AppImage}"
 ./squashfs-root/AppRun "${APPIMAGE_ARGS[@]}" build/AmplifyP "${APPIMAGE_NAME}"
 
 # Clean up extracted appimagetool dir and temporary flet build directories
@@ -167,4 +179,4 @@ rm -rf squashfs-root
 rm -rf src/build src/dist
 rm -f src/amplifyp/git_sha.py
 
-echo "==> Build complete: amplifyp-linux.tar.gz and ${APPIMAGE_NAME}"
+echo "==> Build complete: ${TARBALL_NAME} and ${APPIMAGE_NAME}"

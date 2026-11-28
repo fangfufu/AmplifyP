@@ -31,8 +31,8 @@ jobs:
     steps:
       - uses: googleapis/release-please-action@v5
         id: release
-  build:
-    name: Build artifacts (${{ matrix.os }})
+  build-web:
+    name: Build web app
     needs: [release-please]
     if: |-
       always() &&
@@ -40,12 +40,8 @@ jobs:
       (github.event_name == 'workflow_dispatch' &&
       inputs.build_binaries == true))
     permissions:
-      contents: read
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, macos-latest, windows-latest]
+      contents: write
+    runs-on: ubuntu-latest
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
@@ -55,7 +51,78 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
+      - name: Set version environment variable
+        env:
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        shell: python
+        run: |
+          import os
+          import tomllib
+
+          tag_name = os.getenv("TAG_NAME", "")
+          if tag_name:
+              version = tag_name.lstrip("v")
+          else:
+              with open("pyproject.toml", "rb") as f:
+                  version = tomllib.load(f)["project"]["version"]
+
+          github_env = os.getenv("GITHUB_ENV")
+          if github_env:
+              with open(github_env, "a") as f:
+                  f.write(f"VERSION={version}\n")
+      - name: Install dependencies
+        run: |
+          pip install .[dev]
+      - name: Build Flet web app
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          bash ./build_web.sh \
+            --base-url "/${REPO_NAME}/"
+      - name: Archive web release
+        run: |
+          tar -czf "amplifyp-${VERSION}-web.tar.gz" -C dist .
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: amplifyp-web
+          path: amplifyp-*-web.tar.gz
+          overwrite: true
+      - name: Upload web asset to release
+        if: needs.release-please.outputs.release_created == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          gh release upload --clobber "${TAG_NAME}" \
+            "amplifyp-${VERSION}-web.tar.gz"
+  build:
+    name: Build artifacts (${{ matrix.os }})
+    needs: [release-please]
+    if: |-
+      always() &&
+      (needs.release-please.outputs.release_created == 'true' ||
+      (github.event_name == 'workflow_dispatch' &&
+      inputs.build_binaries == true))
+    permissions:
+      contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-latest, windows-latest]
+    env:
+      PYTHONUTF8: 1
+      FLET_CLI_NO_RICH_OUTPUT: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
       - name: Set version environment variable
         env:
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
@@ -78,42 +145,19 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .[dev,e2e] prek
-      - name: Build Flet web app (Linux only)
-        if: runner.os == 'Linux'
-        env:
-          REPO_NAME: ${{ github.event.repository.name }}
-        run: |
-          bash ./build_web.sh \
-            --base-url "/${REPO_NAME}/"
-      - name: Archive and Upload Web Release (Linux only)
-        if: runner.os == 'Linux'
-        run: |
-          tar -czf amplifyp-web.tar.gz -C dist .
-      - name: Upload Web Artifact (Linux only)
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v7
-        with:
-          name: amplifyp-web
-          path: amplifyp-web.tar.gz
       - name: Build Flet Linux binary
         if: runner.os == 'Linux'
         env:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          PATTERN="amplifyp-*-x86_64.AppImage.zsync"
+          ARCH="$(uname -m)"
+          PATTERN="amplifyp-*-${ARCH}.AppImage.zsync"
           UPDATE_INFO="gh-releases-zsync|${REPO_OWNER}|${REPO_NAME}|latest"
           export UPDATE_INFORMATION="${UPDATE_INFO}|${PATTERN}"
           ./build_linux.sh --install-deps
-          APPIMAGE="amplifyp-${VERSION}-x86_64.AppImage"
+          APPIMAGE="amplifyp-${VERSION}-${ARCH}.AppImage"
           APPIMAGE_ZSYNC="${APPIMAGE}.zsync"
-          mv amplifyp-linux.tar.gz "amplifyp-linux-${VERSION}.tar.gz"
-          if [[ -f amplifyp-x86_64.AppImage ]]; then
-            mv amplifyp-x86_64.AppImage "${APPIMAGE}"
-          fi
-          if [[ -f amplifyp-x86_64.AppImage.zsync ]]; then
-            mv amplifyp-x86_64.AppImage.zsync "${APPIMAGE_ZSYNC}"
-          fi
           if [[ -f "${APPIMAGE_ZSYNC}" ]]; then
             sed -i "s|^Filename: .*|Filename: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
             sed -i "s|^URL: .*|URL: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
@@ -131,7 +175,7 @@ jobs:
             -srcfolder build/AmplifyP \
             -ov \
             -format UDZO \
-            amplifyp-macos-${VERSION}.dmg
+            "amplifyp-${VERSION}-macos.dmg"
       - name: Install Inno Setup
         if: runner.os == 'Windows'
         run: choco install innosetup -y
@@ -143,15 +187,54 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: amplifyp-${{ runner.os }}
+          name: amplifyp-${{ runner.os }}-${{ runner.arch }}
           path: |
-            amplifyp-linux-*.tar.gz
-            amplifyp-*-x86_64.AppImage
-            amplifyp-*-x86_64.AppImage.zsync
-            amplifyp-macos-*.dmg
-            amplifyp-windows-*.zip
-            amplifyp-windows-setup-*.exe
+            amplifyp-*-linux-*.tar.gz
+            amplifyp-*.AppImage
+            amplifyp-*.AppImage.zsync
+            amplifyp-*-macos.dmg
+            amplifyp-*-windows-*.zip
+            amplifyp-*-windows-*-setup.exe
           if-no-files-found: ignore
+          overwrite: true
+      - name: Upload Linux assets to release
+        if: |-
+          needs.release-please.outputs.release_created == 'true' &&
+          runner.os == 'Linux'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          ARCH="$(uname -m)"
+          gh release upload --clobber "${TAG_NAME}" \
+            "amplifyp-${VERSION}-linux-${ARCH}.tar.gz" \
+            "amplifyp-${VERSION}-${ARCH}.AppImage" \
+            "amplifyp-${VERSION}-${ARCH}.AppImage.zsync"
+      - name: Upload macOS assets to release
+        if: |-
+          needs.release-please.outputs.release_created == 'true' &&
+          runner.os == 'macOS'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          gh release upload --clobber "${TAG_NAME}" \
+            "amplifyp-${VERSION}-macos.dmg"
+      - name: Upload Windows assets to release
+        if: |-
+          needs.release-please.outputs.release_created == 'true' &&
+          runner.os == 'Windows'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          gh release upload --clobber "$env:TAG_NAME" `
+            "amplifyp-$env:VERSION-windows-x86_64.zip" `
+            "amplifyp-$env:VERSION-windows-x86_64-setup.exe"
   build-pypi-dist:
     name: Build PyPI distribution
     needs: [release-please]
@@ -162,7 +245,7 @@ jobs:
       inputs.publish_target != 'skip'))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -171,7 +254,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: Install build
         run: pip install build
       - name: Generate Git SHA
@@ -183,36 +266,18 @@ jobs:
         with:
           name: amplifyp-dist
           path: dist/
-  upload-assets:
-    name: Upload Assets to GitHub Release
-    needs: [release-please, build, build-pypi-dist]
-    if: ${{ needs.release-please.outputs.release_created }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all workflow artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: amplifyp-*
-          merge-multiple: true
-      - name: Upload assets to release
+          overwrite: true
+      - name: Upload wheel to release
+        if: needs.release-please.outputs.release_created == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
-          gh release upload ${{ needs.release-please.outputs.tag_name }} \
-            amplifyp-linux-*.tar.gz \
-            amplifyp-*-x86_64.AppImage \
-            amplifyp-*-x86_64.AppImage.zsync \
-            amplifyp-macos-*.dmg \
-            amplifyp-windows-*.zip \
-            amplifyp-windows-setup-*.exe \
-            amplifyp-web.tar.gz \
-            amplifyp-*.whl
+          gh release upload --clobber "${TAG_NAME}" dist/amplifyp-*.whl
   deploy:
     name: Deploy to GitHub Pages
-    needs: [release-please, build]
+    needs: [release-please, build-web]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
     permissions:
@@ -232,7 +297,7 @@ jobs:
       - name: Extract archive
         run: |
           mkdir dist
-          tar -xzf amplifyp-web.tar.gz -C dist
+          tar -xzf amplifyp-*-web.tar.gz -C dist
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload Pages Artifact
