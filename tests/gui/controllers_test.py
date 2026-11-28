@@ -22,7 +22,6 @@ import flet as ft
 import pytest
 from flet.messaging.session import Session
 
-from amplifyp.gui.app import _patch_flet_session
 from amplifyp.gui.app import main as app_main
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.controller import GUIController
@@ -419,47 +418,60 @@ async def test_update_manager_async() -> None:
         mock_ctrl.header.set_update_available.assert_called_with("v100.0.0")
 
 
-def test_flet_session_patch_and_edge_cases() -> None:
-    """Test _patch_flet_session idempotency and message handling behavior."""
-    # Ensure patched once
-    _patch_flet_session()
+@pytest.mark.asyncio  # type: ignore[untyped-decorator]
+async def test_flet_session_invoke_method_results_edge_cases() -> None:
+    """Verify Flet Session handles invoke results for unregistered controls."""
+    assert not hasattr(Session, "_amplifyp_patched")
 
-    # Create mock session simulating Flet internal state
+    loop = asyncio.get_running_loop()
     session = MagicMock(spec=Session)
     setattr(session, f"_{Session.__name__}__index", {10: "control_10"})
-    evt_registered = MagicMock()
-    evt_unregistered = MagicMock()
-    method_calls = {"call_1": evt_registered, "call_2": evt_unregistered}
+
+    fut_registered: asyncio.Future[object] = loop.create_future()
+    fut_unregistered: asyncio.Future[object] = loop.create_future()
+    fut_error: asyncio.Future[object] = loop.create_future()
+    fut_done: asyncio.Future[object] = loop.create_future()
+    fut_done.set_result("already_done")
+
+    method_calls = {
+        "call_1": fut_registered,
+        "call_2": fut_unregistered,
+        "call_3": fut_error,
+        "call_4": fut_done,
+    }
     setattr(session, f"_{Session.__name__}__method_calls", method_calls)
-    setattr(session, f"_{Session.__name__}__method_call_results", {})
 
     # 1. Invoke method result for registered control
-    Session.handle_invoke_method_results(  # pyright: ignore[reportAttributeAccessIssue]
+    Session.handle_invoke_method_results(
         session, 10, "call_1", "result_ok", None
     )
-    evt_registered.set.assert_called_once()
+    assert fut_registered.done()
+    assert fut_registered.result() == "result_ok"
 
-    # 2. Invoke method result for unregistered control
-    Session.handle_invoke_method_results(  # pyright: ignore[reportAttributeAccessIssue]
+    # 2. Invoke method result for unregistered control resolves its future
+    Session.handle_invoke_method_results(
         session, 999, "call_2", "result_orphan", None
     )
-    evt_unregistered.set.assert_called_once()
+    assert fut_unregistered.done()
+    assert fut_unregistered.result() == "result_orphan"
 
-    # 3. Missing call_id returns safely without error
-    Session.handle_invoke_method_results(  # pyright: ignore[reportAttributeAccessIssue]
+    # 3. Error result for unregistered control fails the future
+    Session.handle_invoke_method_results(
+        session, 999, "call_3", None, "client error"
+    )
+    assert fut_error.done()
+    with pytest.raises(RuntimeError, match="client error"):
+        fut_error.result()
+
+    # 4. Already-done future and missing call_id return safely without error
+    Session.handle_invoke_method_results(session, 10, "call_4", "late", None)
+    assert fut_done.result() == "already_done"
+    Session.handle_invoke_method_results(
         session, 10, "unknown_call", None, None
     )
-    Session.handle_invoke_method_results(  # pyright: ignore[reportAttributeAccessIssue]
+    Session.handle_invoke_method_results(
         session, 999, "unknown_call", None, None
     )
-
-    # 4. Exception in _patch_flet_session gracefully handled
-    Session._amplifyp_patched = False
-    with patch(
-        "amplifyp.gui.app.getattr",
-        side_effect=Exception("Failed to patch"),
-    ):
-        _patch_flet_session()
 
 
 def test_app_main_options() -> None:
