@@ -374,25 +374,45 @@ For visual alignment rendering (`ReplicationOrigin.binding_strength_str`), let
 
 Because `Repliconf.search()` executes `2(N + 1)` window evaluations of length
 `L`—and is invoked thousands of times during 1D/2D primer truncation sweeps—it
-includes three key optimisations:
+includes five key optimisations:
 
 1. **Precomputed ASCII Lookup Tables (`_get_scoring_tables`)**: An
-   `@lru_cache(maxsize=128)` helper keyed on `(primer_rev_seq, settings)`
-   precomputes both denominators (`prim_denom`, `stab_denom`) and a tuple of `L`
-   256-entry lookup tables
+   `@lru_cache(maxsize=128)` helper keyed on the reversed primer sequence and an
+   immutable content snapshot of the replication settings (the scoring table
+   `cache_key()` values plus `primability_cutoff`) precomputes both denominators
+   (`prim_denom`, `stab_denom`) and a tuple of `L` 256-entry lookup tables
    `score_lookup[k][ascii_code] = (m_k * S(p_k, b), S(p_k, b))` populated for
-   both uppercase and lowercase ASCII codes of `Nucleotides.TEMPLATE`.
+   both uppercase and lowercase ASCII codes of `Nucleotides.TEMPLATE`. Keying
+   the settings by content rather than object identity lets separately
+   constructed but equal settings share cached tables.
 2. **Zero-Allocation Inner Byte Scan**: Each strand `template_seq[direction]` is
    encoded once to an ASCII `bytes` buffer (`seq.encode("ascii")`), allowing the
    inner loop to index `k_lookup[seq_bytes[seq_idx]]` directly by integer byte
    value with `step = -1` (`FWD`) or `step = +1` (`REV`), avoiding per-window
    string slicing, reversal allocations, case conversion, and dictionary
    hashing.
-3. **Inline Score Caching on `DirIdx`**: Accepted origins store their computed
+3. **First-Position Pre-Filter and Remaining-Weight Pruning**: The cached tables
+   also derive a 256-entry byte mask (`k0_mask`) of template bases whose
+   first-position (3') primability contribution `m_0 · S(p_0, b)` plus the
+   maximum obtainable remainder can still reach the primability requirement
+   `prim_req = primability_cutoff · prim_denom`. Candidate positions whose first
+   template base is masked out are skipped without running the full `L`-step
+   inner loop, and each window's accumulation aborts as soon as
+   `prim_num + rem_max[k] < prim_req` guarantees the cutoff cannot be met. The
+   mask is only applied when at most two of `A`, `C`, `G`, `T` are "good" at the
+   first position (so filtering stays selective), and a strand is skipped
+   entirely when no base can pass.
+4. **Inline Score Caching on `DirIdx`**: Accepted origins store their computed
    `primability` and `stability` directly inside frozen `@dataclass(slots=True)`
    `DirIdx` instances (with `compare=False` so coordinate equality and hashing
    remain purely positional), avoiding redundant rescoring during amplicon
    generation.
+5. **Chunked Cooperative Execution (`iter_search`)**: The scan is exposed as
+   `iter_search(chunk_size=4096)`, which evaluates at most `chunk_size`
+   candidate positions per strand before yielding, so single-threaded callers
+   (such as a Flet event loop running in WebAssembly) can flush progress and
+   process cancellation requests between chunks. `search()` simply consumes the
+   iterator to completion.
 
 ______________________________________________________________________
 
@@ -898,6 +918,23 @@ pairs:
    `aborted = True` if cancelled—and invoke `on_progress(done, total)` after
    each candidate or pair.
 
+### 7.4 Cooperative Async Execution (`create_async`)
+
+Both designers additionally expose an async classmethod `create_async(...)`
+accepting the same arguments as the synchronous constructor plus
+`yield_interval` (default `0.02` s). It builds the instance, then drives the
+identical `_iter_analyse(...)` step generator through the shared
+`amplifyp._async_helpers.run_cooperative_analysis` loop, which yields control
+back to the running asyncio event loop (via a minimal `0.001` s sleep) at least
+every `yield_interval` seconds—also during chunked template origin searches—so
+single-threaded runtimes such as Pyodide/WebAssembly can flush UI progress and
+service `cancel_event` without spawning an OS thread. The returned instance is a
+fully completed (or aborted) designer, indistinguishable from a synchronously
+constructed one. `yield_interval` must be finite and non-negative, otherwise a
+`ValueError` is raised. The GUI runs designer analyses in a worker thread on
+desktop/server runtimes and via `create_async` on the Flet event loop in the
+(single-threaded) web build.
+
 ______________________________________________________________________
 
 ## 8. Algorithmic Complexity Summary
@@ -908,15 +945,15 @@ all primers (`O_tot = F + R` for a single primer), `A` the number of predicted
 amplicons of mean length `L_amp`, `D` the number of retained primer dimers, and
 `K_f`, `K_r` the number of 1D/2D truncation steps:
 
-| Operation                                 | Time Complexity                                          | Auxiliary Space Complexity | Key Optimisation                                                |
-| :---------------------------------------- | :------------------------------------------------------- | :------------------------- | :-------------------------------------------------------------- |
-| `Repliconf.search()` (1 primer)           | `O(N · L)`                                               | `O(N + L + O_tot)`         | `lru_cache` `L × 256` lookup table + ASCII `bytes` inner scan   |
-| `PCR.predict_amplicons()` (`M` primers)   | `O(M · N · L + F · R · L_amp)`                           | `O(M · N + A · L_amp)`     | Cached `primability` / `stability` scores on `DirIdx` slots     |
-| `calculate_dimer_stats()` (1 primer pair) | `O(L²)`                                                  | `O(1)`                     | `O(1)` ASCII matrix indexing in `BasePairWeightsTbl`            |
-| `PrimerDimerGenerator.analyse_primers()`  | `O(M² · L² + D log D)`                                   | `O(M² + D)`                | Memoisation by `(s_1, s_2)` uppercase sequence pairs            |
-| `calculate_tm()` (either model)           | `O(L)`                                                   | `O(1)`                     | Pre-keyed dinucleotide tuple table `_NN_THERMO_DATA_TUPLE`      |
-| `PrimerDesigner1D` (`K_f` steps)          | `O(K_f · L²)` (or `O(K_f · (L² + N · L))` with template) | `O(K_f)`                   | Reuses `lru_cache` tables and supports cooperative cancellation |
-| `PrimerDesigner2D` (`K_f × K_r` grid)     | `O(K_f · K_r · L²)` (plus template search when enabled)  | `O(K_f · K_r)`             | Early pruning skips 4 dimer scans when `amplicon_count == 0`    |
+| Operation                                 | Time Complexity                                          | Auxiliary Space Complexity | Key Optimisation                                                                                       |
+| :---------------------------------------- | :------------------------------------------------------- | :------------------------- | :----------------------------------------------------------------------------------------------------- |
+| `Repliconf.search()` (1 primer)           | `O(N · L)`                                               | `O(N + L + O_tot)`         | `lru_cache` `L × 256` lookup table, ASCII `bytes` inner scan, 3' pre-filter + remaining-weight pruning |
+| `PCR.predict_amplicons()` (`M` primers)   | `O(M · N · L + F · R · L_amp)`                           | `O(M · N + A · L_amp)`     | Cached `primability` / `stability` scores on `DirIdx` slots                                            |
+| `calculate_dimer_stats()` (1 primer pair) | `O(L²)`                                                  | `O(1)`                     | `O(1)` ASCII matrix indexing in `BasePairWeightsTbl`                                                   |
+| `PrimerDimerGenerator.analyse_primers()`  | `O(M² · L² + D log D)`                                   | `O(M² + D)`                | Memoisation by `(s_1, s_2)` uppercase sequence pairs                                                   |
+| `calculate_tm()` (either model)           | `O(L)`                                                   | `O(1)`                     | Pre-keyed dinucleotide tuple table `_NN_THERMO_DATA_TUPLE`                                             |
+| `PrimerDesigner1D` (`K_f` steps)          | `O(K_f · L²)` (or `O(K_f · (L² + N · L))` with template) | `O(K_f)`                   | Reuses `lru_cache` tables and supports cooperative cancellation                                        |
+| `PrimerDesigner2D` (`K_f × K_r` grid)     | `O(K_f · K_r · L²)` (plus template search when enabled)  | `O(K_f · K_r)`             | Early pruning skips 4 dimer scans when `amplicon_count == 0`                                           |
 
 ______________________________________________________________________
 
