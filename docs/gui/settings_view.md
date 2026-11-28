@@ -46,8 +46,14 @@ update checks, settings backup file operations, and factory reset.
     GitHub (`At Startup`, `Once per Day` [default], `Once per Week`,
     `Once per Month`, `Disabled`).
   - **Check for Updates Button**: Manually triggers an asynchronous version
-    check against the current application version. Reports whether AmplifyP is
-    up to date or displays a notification when a new release tag is available.
+    check against the current application version. A status line next to the
+    button shows *"Checking for updates..."* while the check runs, then the
+    outcome in green (*"AmplifyP is up to date."* or *"New version {tag} is
+    available!"*) or in red (*"Could not check for updates. Please check your
+    network connection."*) when the check fails. When a newer release tag is
+    found, the version text in the application header also changes to
+    *"{version} (Update {tag} available!)"* and becomes a clickable link to the
+    GitHub releases page.
 - **Backup Settings**:
   - **Save Settings**: Opens a file dialogue to export all current settings into
     a YAML configuration file.
