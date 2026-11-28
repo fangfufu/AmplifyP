@@ -42,6 +42,7 @@ import importlib.metadata
 import io
 import json
 import os
+import re
 import shutil
 import tarfile
 import tempfile
@@ -56,6 +57,8 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 _CDN_WHEEL_URL = "https://cdn.jsdelivr.net/pyodide/v{version}/full/{filename}"
+_GSTATIC_FONT_URL = "https://fonts.gstatic.com/s/{rel_path}"
+_SYMBOL_FONT_RE = re.compile(r"notosanssymbols2?/v\d+/[A-Za-z0-9_.-]+\.woff2")
 _NATIVE_SUFFIXES = frozenset({".so", ".pyd", ".dll", ".dylib"})
 _SKIPPED_SUFFIXES = frozenset({".pyc", ".pyo", ".pyi"})
 # Flet's python-worker.js loads msgpack directly via pyodide_js.loadPackage().
@@ -354,6 +357,58 @@ def _repack_app_archive(
         raise
 
 
+def _bundle_fallback_symbol_fonts(dist_dir: Path, font_cache_dir: Path) -> int:
+    """Bundle Flutter's Noto Sans Symbols fallback fonts into dist/.
+
+    Flet's ``--no-cdn`` mode sets ``fontFallbackBaseUrl="assets/fonts/"`` so
+    Flutter looks up missing Roboto glyphs (such as ``★``, ``▶``, ``◀``) locally
+    instead of hitting ``fonts.gstatic.com``. Extracting the versioned
+    ``notosanssymbols*`` paths directly from ``dist/main.dart.js`` keeps the
+    bundled subset in sync with whichever Flutter build Flet ships.
+    """
+    main_dart_js = dist_dir / "main.dart.js"
+    if not main_dart_js.is_file():
+        return 0
+
+    js_text = main_dart_js.read_text("utf-8", errors="ignore")
+    rel_paths = sorted(set(_SYMBOL_FONT_RE.findall(js_text)))
+    if not rel_paths:
+        return 0
+
+    fonts_dir = dist_dir / "assets" / "fonts"
+    for rel_path in rel_paths:
+        rel_obj = Path(rel_path)
+        if rel_obj.is_absolute() or ".." in rel_obj.parts:
+            continue
+        dest_path = fonts_dir / rel_obj
+        if dest_path.is_file():
+            continue
+
+        cached_path = font_cache_dir / rel_obj
+        if not cached_path.is_file():
+            cached_path.parent.mkdir(parents=True, exist_ok=True)
+            url = _GSTATIC_FONT_URL.format(rel_path=rel_path)
+            if not url.startswith("https://"):
+                raise ValueError(f"Refusing non-HTTPS font URL: {url}")
+            print(f"    Downloading fallback symbol font {rel_path}...")
+            tmp_download = cached_path.with_suffix(".woff2.tmp")
+            try:
+                with (
+                    urllib.request.urlopen(url, timeout=60) as resp,  # noqa: S310
+                    tmp_download.open("wb") as out,
+                ):
+                    shutil.copyfileobj(resp, out)
+                os.replace(tmp_download, cached_path)
+            except Exception:
+                tmp_download.unlink(missing_ok=True)
+                raise
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(cached_path, dest_path)
+
+    return len(rel_paths)
+
+
 def _patch_local_pyodide_url(index_path: Path) -> None:
     """Ensure local pyodideUrl uses a valid relative ES module specifier.
 
@@ -481,9 +536,12 @@ def bundle_web_dependencies(
 
     _repack_app_archive(archive_path, pypackages_files, remaining_requirements)
     _patch_local_pyodide_url(dist_dir / "index.html")
+    font_cache_dir = (cache_root or _default_cache_root()).parent / "fonts"
+    font_count = _bundle_fallback_symbol_fonts(dist_dir, font_cache_dir)
     print(
         f"==> Air-gapped bundle complete: {len(pypackages_files)} files in "
         f"__pypackages__/, {len(downloaded_pyodide_pkgs)} Pyodide wheel(s), "
+        f"{font_count} fallback symbol font(s), "
         f"{len(remaining_requirements)} runtime requirement(s)."
     )
 

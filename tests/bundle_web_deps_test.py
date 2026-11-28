@@ -286,3 +286,50 @@ def test_ensure_pyodide_wheel_rejects_sha256_mismatch(tmp_path: Path) -> None:
         mod._ensure_pyodide_wheel(
             pkg_entry, _PYODIDE_VERSION, pyodide_dir, cache_dir
         )
+
+
+def test_bundle_fallback_symbol_fonts_extracts_and_caches(
+    tmp_path: Path,
+) -> None:
+    """Extract Noto Sans Symbols paths from main.dart.js and reuse cache."""
+    mod = _load_bundle_module()
+    dist_dir = tmp_path / "dist"
+    font_cache_dir = tmp_path / "font_cache"
+    dist_dir.mkdir()
+
+    rel_a = "notosanssymbols/v43/sample_a.woff2"
+    rel_b = "notosanssymbols2/v24/sample_b.woff2"
+    (dist_dir / "main.dart.js").write_text(
+        f'var fonts = ["{rel_a}", "{rel_b}", "{rel_a}", '
+        '"notosanssc/v37/ignored_cjk.woff2"];',
+        encoding="utf-8",
+    )
+
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=lambda url, timeout=60: io.BytesIO(f"bytes:{url}".encode()),
+    ) as mock_open:
+        count = mod._bundle_fallback_symbol_fonts(dist_dir, font_cache_dir)
+
+    assert count == 2
+    assert mock_open.call_count == 2
+    assert (dist_dir / "assets" / "fonts" / rel_a).read_bytes() == (
+        f"bytes:https://fonts.gstatic.com/s/{rel_a}".encode()
+    )
+    assert (dist_dir / "assets" / "fonts" / rel_b).read_bytes() == (
+        f"bytes:https://fonts.gstatic.com/s/{rel_b}".encode()
+    )
+    assert not (dist_dir / "assets" / "fonts" / "notosanssc" / "v37").exists()
+
+    # Second run into a fresh dist/ should reuse cached fonts with zero network
+    dist_dir_2 = tmp_path / "dist2"
+    dist_dir_2.mkdir()
+    (dist_dir_2 / "main.dart.js").write_text(f'"{rel_b}"', encoding="utf-8")
+    with patch(
+        "urllib.request.urlopen",
+        side_effect=AssertionError("should not download when cached"),
+    ):
+        assert (
+            mod._bundle_fallback_symbol_fonts(dist_dir_2, font_cache_dir) == 1
+        )
+    assert (dist_dir_2 / "assets" / "fonts" / rel_b).is_file()
