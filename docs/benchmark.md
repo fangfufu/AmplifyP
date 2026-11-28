@@ -129,3 +129,8 @@ python scripts/benchmark.py --suite gui --repeats 1 --json
   automatically fall back to pure-Python `SafeLoader` and `SafeDumper`.
 - Headless GUI timings reflect Python-side view, layout, and canvas generation
   work and do not include Flutter engine rasterisation or IPC latency.
+- **GUI suite failure semantics**: The GUI analysis benchmarks (`PCRView` and
+  `DimerView` workloads) assert that each analysis reports success. If any of
+  them fails, the script raises a `RuntimeError`
+  (`GUI benchmark analysis failed: {workload}`) and exits with a non-zero status
+  instead of reporting timings for that suite.

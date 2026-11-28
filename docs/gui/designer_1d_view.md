@@ -158,6 +158,19 @@ vertical scrollable list:
 - **Individual Dismissal**: Clicking the close button on an individual card
   removes it from the panel.
 
+## Error Handling
+
+- **Field Validation**: Missing or invalid input (empty sequence, non-numeric or
+  out-of-range minimum length, invalid numeric filters) shows a red error
+  message under the affected field and the analysis does not start.
+- **Invalid DNA**: If the candidate sequence (or the template, when "Check
+  against template" is enabled) contains characters rejected by the DNA parser,
+  a red *"Error: {message}"* text is shown in the form area, an **"Error running
+  Primer Designer"** dialogue opens, and the input fields remain editable for
+  correction.
+- **Analysis Failure**: If the 1D analysis itself fails, the same red error text
+  and **"Error running Primer Designer"** dialogue are shown.
+
 ______________________________________________________________________
 
 [Return to GUI Manual Index](README.md)
