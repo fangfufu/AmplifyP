@@ -1443,6 +1443,32 @@ def test_designer_1d_card_badges_settings() -> None:
         assert _contains_text(open_card, "Tm:")
         assert not _contains_text(open_card, "% AT:")
         assert _contains_text(open_card, "5'-")
+
+        # Toggling % AT back on keeps exactly one % AT badge and preserves
+        # fixed card/title row control lists while wrapping badges cleanly.
+        card_col = open_card.content.content
+        title_row = card_col.controls[0]
+        title_controls_before = list(title_row.controls)
+        card_controls_before = list(card_col.controls)
+        settings["designer_1d_show_pct_at"] = True
+        view.update_ui()
+        assert list(title_row.controls) == title_controls_before
+        assert list(card_col.controls) == card_controls_before
+        badges_row = open_card._badges_container.content
+        assert isinstance(badges_row, ft.Row)
+        assert badges_row.wrap is True
+        pct_at_badges = [
+            ctrl
+            for ctrl in badges_row.controls
+            if isinstance(ctrl, ft.Container)
+            and isinstance(ctrl.content, ft.Text)
+            and "% AT:" in (ctrl.content.value or "")
+        ]
+        assert len(pct_at_badges) == 1
+
+        settings["designer_1d_show_pct_at"] = False
+        view.update_ui()
+        assert not _contains_text(open_card, "% AT:")
         item_card = view.primer_list.controls[0]
         assert isinstance(item_card, PrimerItemCard)
         assert item_card._badge_containers[0].bgcolor == (

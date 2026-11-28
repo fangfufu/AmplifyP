@@ -81,15 +81,23 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             on_click=_on_pcr_click,
         )
 
+        self._badges_container = ft.Container(
+            content=self._build_badges_row(),
+        )
+        self._alignment_container = ft.Container(
+            content=self._build_alignment_diagram(),
+        )
+
         super().__init__(
             card_id=card_id,
             title=title,
             settings=settings,
             dismiss_callback=dismiss_callback,
             body_controls=[
-                self._build_alignment_diagram(),
+                self._badges_container,
+                self._alignment_container,
             ],
-            title_controls=self._build_title_controls(),
+            title_controls=[self.pcr_button],
         )
 
     @staticmethod
@@ -99,8 +107,8 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
             return val.lower() not in ("false", "0", "no", "")
         return bool(val)
 
-    def _build_title_controls(self) -> list[ft.Control]:
-        """Build header metric badges and Run PCR button from settings."""
+    def _build_badge_controls(self) -> list[ft.Control]:
+        """Build metric badges for the card from current settings."""
         dimer_card = DimerCard(
             d=self.dimer,
             settings=self.settings,
@@ -117,25 +125,34 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         tm_text, pct_at_text = format_primer_properties(
             self.dimer.primer_1, self.settings
         )
-        title_controls: list[ft.Control] = list(metric_controls.controls)
+        badge_controls: list[ft.Control] = list(metric_controls.controls)
         if self._is_enabled(self.settings.get("designer_1d_show_tm", True)):
-            title_controls.append(
+            badge_controls.append(
                 create_badge(tm_text, font_size=font_size_small)
             )
         if self._is_enabled(
             self.settings.get("designer_1d_show_pct_at", False)
         ):
-            title_controls.append(
+            badge_controls.append(
                 create_badge(pct_at_text, font_size=font_size_small)
             )
         if self.origin_count is not None:
-            title_controls.append(
+            badge_controls.append(
                 create_badge(
                     f"Sites: {self.origin_count}", font_size=font_size_small
                 )
             )
-        title_controls.append(self.pcr_button)
-        return title_controls
+        return badge_controls
+
+    def _build_badges_row(self) -> ft.Row:
+        """Build a wrapping row of property badges."""
+        return ft.Row(
+            self._build_badge_controls(),
+            wrap=True,
+            spacing=6,
+            run_spacing=4,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
 
     def _build_alignment_diagram(self) -> ft.Control:
         """Build self-dimer sequence alignment diagram from current settings."""
@@ -153,15 +170,8 @@ class DismissibleSelfDimerCard(DismissibleDetailCard):
         self.font_family = str(
             self.settings.get("font_family", self.font_family)
         )
-        container = cast(ft.Container, self.content)
-        card_col = cast(ft.Column, container.content)
-        title_row = cast(ft.Row, card_col.controls[0])
-        title_row.controls = [
-            title_row.controls[0],
-            *self._build_title_controls(),
-            title_row.controls[-1],
-        ]
-        card_col.controls[1] = self._build_alignment_diagram()
+        self._badges_container.content = self._build_badges_row()
+        self._alignment_container.content = self._build_alignment_diagram()
         try:
             if self.page:
                 self.page.update()
