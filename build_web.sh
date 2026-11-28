@@ -43,9 +43,10 @@ GIT_FULL_SHA=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
 echo "GIT_SHA = \"${GIT_SHA}\"" > "${SCRIPT_DIR}/src/amplifyp/git_sha.py"
 echo "GIT_FULL_SHA = \"${GIT_FULL_SHA}\"" >> "${SCRIPT_DIR}/src/amplifyp/git_sha.py"
 
-echo "==> Building static site..."
+echo "==> Building air-gapped static site..."
 "${FLET_BIN}" publish "${SCRIPT_DIR}" \
   --distpath "${DIST_DIR}" \
+  --no-cdn \
   --app-name "AmplifyP" \
   --app-short-name "AmplifyP" \
   --app-description "Simulate Polymerase Chain Reaction (PCR) and predict DNA amplification products." \
@@ -55,6 +56,9 @@ echo "==> Building static site..."
 
 # Clean up temporary git_sha.py
 rm -f "${SCRIPT_DIR}/src/amplifyp/git_sha.py" || true
+
+echo "==> Bundling Python dependencies for air-gapped web build..."
+python "${SCRIPT_DIR}/scripts/bundle_web_deps.py" "${DIST_DIR}"
 
 
 echo "==> Injecting browser unload warning script and git SHA..."

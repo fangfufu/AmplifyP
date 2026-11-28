@@ -36,6 +36,8 @@ AmplifyP/
 ├── pyproject.toml              # Project metadata, dependencies, and tools configuration
 ├── README.md                   # Repository overview and quick start guide
 ├── scripts/                    # Development and maintenance scripts
+│   ├── benchmark.py            # Core, YAML IO, and headless GUI benchmark suite
+│   ├── bundle_web_deps.py      # Bundles Python dependencies for air-gapped web builds
 │   ├── gen_git_sha.py          # Generates the git SHA module for frozen builds
 │   ├── setup_linux.sh          # Linux virtual environment and system dependency setup
 │   └── update_screenshots.py   # Regenerates the GUI manual screenshots
@@ -45,6 +47,7 @@ AmplifyP/
 │   └── amplifyp/               # Core Python library
 │       ├── __init__.py         # Package entry and version definition
 │       ├── __main__.py         # `python -m amplifyp` entry point
+│       ├── _async_helpers.py   # Shared cooperative asyncio helpers for primer designers
 │       ├── amplicon.py         # Amplicon prediction and product sequence generation
 │       ├── dimer.py            # Primer self-dimer and cross-dimer analysis
 │       ├── dir_idx.py          # Directional index calculation utilities

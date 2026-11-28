@@ -26,6 +26,7 @@ import time
 from collections.abc import Generator
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 
@@ -204,6 +205,55 @@ def cleanup_debug_checkboxes() -> Generator[None, None, None]:
             os.remove("debug_checkboxes.png")
         except OSError:
             pass
+
+
+_ALLOWED_EXTERNAL_SILENT_HOSTS = frozenset({"api.github.com"})
+
+
+@pytest.fixture(autouse=True)  # type: ignore[untyped-decorator]
+def enforce_airgapped_mode(page: Any) -> Generator[None, None, None]:
+    """Block all external network requests to verify the air-gapped build."""
+    blocked_external_urls: list[str] = []
+    worker_errors: list[str] = []
+
+    def _route_handler(route: Any) -> None:
+        url = str(route.request.url)
+        parsed = urlparse(url)
+        if parsed.scheme in {"data", "blob"} or parsed.hostname in {
+            "localhost",
+            "127.0.0.1",
+        }:
+            route.continue_()
+            return
+        if parsed.hostname not in _ALLOWED_EXTERNAL_SILENT_HOSTS:
+            blocked_external_urls.append(url)
+            print(f"BLOCKED external request: {url}")
+        route.abort("internetdisconnected")
+
+    def _console_watcher(msg: Any) -> None:
+        text = str(msg.text)
+        if (
+            "Python worker init error:" in text
+            or "Terminating Python worker:" in text
+        ):
+            worker_errors.append(text)
+
+    context = page.context
+    context.route("**/*", _route_handler)
+    page.on("console", _console_watcher)
+    try:
+        yield
+    finally:
+        context.unroute("**/*", _route_handler)
+        if worker_errors:
+            pytest.fail(
+                "Pyodide Python worker failed to initialise:\n"
+                + "\n".join(worker_errors)
+            )
+        assert not blocked_external_urls, (
+            "Air-gapped web build attempted unexpected external requests:\n"
+            + "\n".join(blocked_external_urls)
+        )
 
 
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
@@ -703,6 +753,31 @@ def test_e2e_settings_backup(
     print("test_e2e_settings_backup PASSED.")
 
 
+def _fill_hinted_field_reliably(
+    page: Any,
+    selector: str,
+    text: str,
+    expected_remaining: int = 0,
+    attempts: int = 3,
+) -> None:
+    """Fill a Flutter Web hinted input and retry until its hint clears."""
+    for attempt in range(attempts):
+        fill_field_reliably(page, selector, text, index=0)
+        try:
+            expect(page.locator(selector)).to_have_count(
+                expected_remaining, timeout=3000
+            )
+            return
+        except AssertionError:
+            if attempt == attempts - 1:
+                raise
+            print(
+                f"  hint still present for {selector}, retrying "
+                f"({attempt + 1}/{attempts})..."
+            )
+            time.sleep(0.5)
+
+
 @pytest.mark.e2e  # type: ignore[untyped-decorator]
 @pytest.mark.skipif(
     sys.platform != "linux", reason="E2E tests only run on Linux"
@@ -744,8 +819,9 @@ def test_e2e_designers_1d_and_2d(
     seq_1d_sel = 'input[aria-label="e.g. ATGCGTACGT..."]'
     min_len_sel = 'input[aria-label="e.g. 18"]'
     page.locator(seq_1d_sel).first.wait_for(state="attached", timeout=15000)
-    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
-    fill_field_reliably(page, min_len_sel, "18")
+    _fill_hinted_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT", 0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 0)
+    time.sleep(0.5)
 
     print("Running 1D Designer analysis...")
     page.get_by_role("button", name="Analyse").first.click(force=True)
@@ -775,13 +851,13 @@ def test_e2e_designers_1d_and_2d(
     ).first.click(force=True)
     rev_2d_sel = 'input[aria-label="e.g. CGTACGATGC..."]'
     page.locator(rev_2d_sel).first.wait_for(state="attached", timeout=15000)
-    fill_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT")
+    _fill_hinted_field_reliably(page, seq_1d_sel, "ATGCGTACGTATGCGTACGT", 0)
     # Once the first "e.g. 18" field is filled its hint aria-label clears, so
     # the remaining reverse min-length input becomes the first match.
-    fill_field_reliably(page, min_len_sel, "18", index=0)
-    expect(page.locator(min_len_sel)).to_have_count(1, timeout=5000)
-    fill_field_reliably(page, rev_2d_sel, "CGTACGATGCCGTACGATGC")
-    fill_field_reliably(page, min_len_sel, "18", index=0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 1)
+    _fill_hinted_field_reliably(page, rev_2d_sel, "CGTACGATGCCGTACGATGC", 0)
+    _fill_hinted_field_reliably(page, min_len_sel, "18", 0)
+    time.sleep(0.5)
 
     print("Running 2D Designer analysis...")
     page.get_by_role("button", name="Analyse").first.click(force=True)

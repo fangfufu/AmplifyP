@@ -146,9 +146,11 @@ The result types returned by the PCR engine live in dedicated modules:
   alignment string).
 - `amplifyp.repliconf` — `Repliconf`, a single primer/template search
   configuration. Call `search()` to populate `origin_db` with the found
-  replication origin positions (`DirIdx` objects), and
-  `format_context_alignment()` (`OriginContextAlignment`) to align the primer
-  against the surrounding template window.
+  replication origin positions (`DirIdx` objects), or iterate
+  `iter_search(chunk_size=4096)` to scan the template in chunks (yielding after
+  each chunk) so single-threaded callers can report progress and check
+  cancellation. `format_context_alignment()` (`OriginContextAlignment`) aligns
+  the primer against the surrounding template window.
 - `amplifyp.dir_idx` — `DirIdx`, a position on the template combining an integer
   `index` with a `DNADirection` (plus optional cached primability / stability
   scores), and `DirIdxDb`, the results database used by `Repliconf`.
@@ -378,6 +380,44 @@ print(
 print(f"Forward primer sequence: {best_step.fwd_fwd.primer_1.seq}")
 print(f"Reverse primer sequence: {best_step.rev_rev.primer_1.seq}")
 print(f"Cross-dimer quality (Fwd x Rev): {best_step.fwd_rev.quality:.2f}")
+```
+
+### Cooperative Async Execution (`create_async`)
+
+Both `PrimerDesigner1D` and `PrimerDesigner2D` expose an async classmethod
+`create_async(...)` with the same arguments as the synchronous constructor plus
+`yield_interval` (default `0.02` s). It performs the identical analysis while
+cooperatively yielding control back to the running asyncio event loop so it can
+be awaited from single-threaded runtimes such as Pyodide/WebAssembly without
+spawning an OS thread. `yield_interval` is the minimum elapsed time checked at
+each step boundary (while `done < total` and not cancelled) before yielding; a
+step taking longer than `yield_interval` delays the next yield, so callers must
+not treat `yield_interval` as an upper bound on event-loop responsiveness. The
+result is a fully completed (or aborted) designer instance, indistinguishable
+from a synchronously constructed one. `yield_interval` must be finite and
+non-negative, otherwise a `ValueError` is raised.
+
+```python
+import asyncio
+
+from amplifyp.dna import DNA
+from amplifyp.primer_designer_1d import PrimerDesigner1D
+
+dna_template = DNA("CGACTGGGCAAAGGAAATCCGTGA", name="CandidatePrimer")
+
+
+async def main() -> None:
+    designer_1d = await PrimerDesigner1D.create_async(
+        dna=dna_template,
+        min_length=18,
+        on_progress=lambda done, total: None,
+        yield_interval=0.02,
+    )
+    best_step_idx, best_quality = designer_1d.best_score
+    print(f"Optimal length: {len(designer_1d[best_step_idx].primer_1)} bp")
+
+
+asyncio.run(main())
 ```
 
 ## 8. Error Handling
