@@ -1,7 +1,3 @@
-#ifndef Arch
-#define Arch "x86_64"
-#endif
-
 [Setup]
 AppName=AmplifyP
 AppVersion={#Version}
@@ -15,7 +11,7 @@ SetupIconFile=src/assets/icon.ico
 UninstallDisplayIcon={app}\icon.ico
 LicenseFile=LICENSE
 SourceDir=.
-OutputBaseFilename=amplifyp-{#Version}-windows-{#Arch}-setup
+OutputBaseFilename=amplifyp-{#Version}-windows-x86_64-setup
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

@@ -32,11 +32,8 @@ try {
         $version = $version -replace '^v', ''
     }
 
-    # Determine the target architecture
-    $arch = $env:ARCH
-    if ([string]::IsNullOrEmpty($arch)) {
-        $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x86_64" }
-    }
+    # Flet's Windows Python runtime is x64-only (even on ARM64 hosts)
+    $arch = "x86_64"
 
     Write-Host "==> Generating Git SHA..."
     python scripts/gen_git_sha.py
@@ -84,7 +81,7 @@ try {
     if ($isccPath) {
         $installerFile = "amplifyp-$version-windows-$arch-setup.exe"
         Write-Host "==> Building Windows installer with $isccPath..."
-        & $isccPath amplifyp.iss /DVersion=$version /DArch=$arch /O.
+        & $isccPath amplifyp.iss /DVersion=$version /O.
         if ($LASTEXITCODE -ne 0) { throw "iscc compiler failed with exit code $LASTEXITCODE" }
         Write-Host "==> Build complete: $zipFile and $installerFile"
     } else {

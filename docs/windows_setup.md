@@ -225,8 +225,8 @@ After the script runs successfully, the following files and directories will be
 created:
 
 - **`build\AmplifyP`**: The compiled Flet Windows application folder.
-- **`amplifyp-<version>-windows-<arch>.zip`**: A ZIP archive of the application
-  directory (e.g. `amplifyp-1.31.1-windows-x86_64.zip`).
-- **`amplifyp-<version>-windows-<arch>-setup.exe`**: The standalone Windows
+- **`amplifyp-<version>-windows-x86_64.zip`**: A ZIP archive of the application
+  directory.
+- **`amplifyp-<version>-windows-x86_64-setup.exe`**: The standalone Windows
   installation wizard (only if Inno Setup's `iscc` compiler is available on the
   system PATH or found in a supported standard installation directory).
