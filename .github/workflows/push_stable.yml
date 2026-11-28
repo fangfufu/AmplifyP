@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-latest, windows-latest]
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
