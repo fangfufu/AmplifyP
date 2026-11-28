@@ -30,7 +30,7 @@ from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
 from amplifyp.gui.utils import data_helpers
 from amplifyp.gui.utils import system as system_utils
-from amplifyp.gui.utils.gui_helpers import NotificationHelper
+from amplifyp.gui.utils.gui_helpers import NotificationHelper, show_error_dialog
 from amplifyp.io import safe_dump_yaml, safe_load_yaml
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         page: ft.Page,
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
+        on_add_primer: Callable[[str, str], tuple[bool, str]] | None = None,
     ) -> None:
         """Initialise BaseDesignerView.
 
@@ -51,11 +52,13 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
             page: Flet page instance.
             input_data: Application GUIInput instance.
             settings: Application GUISettings instance.
+            on_add_primer: Optional callback to add a primer to Input view.
         """
         super().__init__(expand=True, spacing=0)
         self.app_page = page
         self.input_data = input_data if input_data is not None else GUIInput()
         self.settings = settings if settings is not None else GUISettings()
+        self.on_add_primer = on_add_primer
         self._active_cards: list[ft.Card] = []
         self._background_tasks: set[asyncio.Task[Any]] = set()
         self._analysis_running: bool = False
@@ -181,6 +184,32 @@ class BaseDesignerView(ft.Row):  # type: ignore[misc]
         if not hasattr(self, "_notification_helper"):
             self._notification_helper = NotificationHelper(self.app_page)
         self._notification_helper.show_message(message)
+
+    def _handle_add_primer(self, name: str, seq: str) -> None:
+        """Add a primer from a designer card to the Input tab's primer list."""
+        if not data_helpers.clean_sequence(seq):
+            show_error_dialog(
+                self.app_page,
+                "Invalid Primer",
+                "The primer sequence contains no valid nucleotides.",
+            )
+            return
+
+        if self.on_add_primer:
+            added, final_name = self.on_add_primer(name, seq)
+        else:
+            added, final_name = self.input_data.add_primer(name, seq)
+
+        if final_name:
+            if added:
+                self._show_notification(
+                    f"Added '{final_name}' to Input primer list."
+                )
+            else:
+                self._show_notification(
+                    f"Primer '{final_name}' is already in the Input primer "
+                    "list."
+                )
 
     def _on_background_task_done(self, task: asyncio.Task[Any]) -> None:
         """Discard a completed fallback task and log any unhandled error."""

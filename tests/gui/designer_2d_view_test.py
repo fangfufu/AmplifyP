@@ -1154,7 +1154,7 @@ def test_designer_2d_send_primer_to_input_buttons() -> None:
 
     # Empty sequence shows error dialog
     with patch(
-        "amplifyp.gui.views.designer_2d.designer_2d_view.show_error_dialog"
+        "amplifyp.gui.views.designer.designer_view_base.show_error_dialog"
     ) as mock_err:
         view._handle_add_primer("Empty", "   ")
         mock_err.assert_called_once()

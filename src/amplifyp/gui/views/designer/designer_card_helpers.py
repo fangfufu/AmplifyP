@@ -92,6 +92,66 @@ def format_primer_properties(
     return tm_text, pct_at_text
 
 
+def build_sequence_action_row(
+    seq_control: ft.Control,
+    seq: str,
+    label: str,
+    on_send_to_input: Callable[[], None] | None = None,
+    vertical_alignment: ft.CrossAxisAlignment | None = None,
+) -> tuple[ft.Row, ft.IconButton, ft.IconButton | None]:
+    """Build a row with a sequence control, copy button, and send button.
+
+    Args:
+        seq_control: Control displaying the primer sequence.
+        seq: Primer sequence string copied to clipboard when clicked.
+        label: Primer label used in button tooltips.
+        on_send_to_input: Optional callback to send this primer to the Input
+            primer list.
+        vertical_alignment: Optional vertical alignment for the row.
+
+    Returns:
+        Tuple of ``(row, copy_button, send_button)`` where ``send_button`` is
+        None when ``on_send_to_input`` is omitted.
+    """
+
+    def _copy_seq(e: ft.ControlEvent | None) -> None:
+        page = getattr(e, "page", None) if e is not None else None
+        copy_text_to_clipboard(page, seq)
+
+    copy_btn = ft.IconButton(
+        icon=ft.Icons.COPY,
+        icon_size=16,
+        tooltip=f"Copy {label} sequence",
+        on_click=_copy_seq,
+    )
+
+    action_row_controls: list[ft.Control] = [seq_control, copy_btn]
+    send_btn: ft.IconButton | None = None
+    if on_send_to_input is not None:
+
+        def _send_to_input(_e: ft.ControlEvent | None) -> None:
+            on_send_to_input()
+
+        send_btn = ft.IconButton(
+            icon=ft.Icons.PLAYLIST_ADD,
+            icon_size=16,
+            tooltip=f"Send {label} to Input primer list",
+            on_click=_send_to_input,
+        )
+        action_row_controls.append(send_btn)
+
+    row = (
+        ft.Row(
+            action_row_controls,
+            spacing=4,
+            vertical_alignment=vertical_alignment,
+        )
+        if vertical_alignment is not None
+        else ft.Row(action_row_controls, spacing=4)
+    )
+    return row, copy_btn, send_btn
+
+
 def build_primer_summary_row(
     label: str,
     primer: Primer,
@@ -126,29 +186,12 @@ def build_primer_summary_row(
         content_padding=ft.Padding(8, 4, 8, 4),
     )
 
-    def _copy_seq(e: ft.ControlEvent) -> None:
-        copy_text_to_clipboard(e.page, primer.seq)
-
-    copy_btn = ft.IconButton(
-        icon=ft.Icons.COPY,
-        icon_size=16,
-        tooltip=f"Copy {label} sequence",
-        on_click=_copy_seq,
+    action_row, _copy_btn, _send_btn = build_sequence_action_row(
+        seq_control=seq_field,
+        seq=primer.seq,
+        label=label,
+        on_send_to_input=on_send_to_input,
     )
-
-    action_row_controls: list[ft.Control] = [seq_field, copy_btn]
-    if on_send_to_input is not None:
-
-        def _send_to_input(_e: ft.ControlEvent) -> None:
-            on_send_to_input()
-
-        send_btn = ft.IconButton(
-            icon=ft.Icons.PLAYLIST_ADD,
-            icon_size=16,
-            tooltip=f"Send {label} to Input primer list",
-            on_click=_send_to_input,
-        )
-        action_row_controls.append(send_btn)
 
     return ft.Column(
         [
@@ -177,10 +220,7 @@ def build_primer_summary_row(
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
-            ft.Row(
-                action_row_controls,
-                spacing=4,
-            ),
+            action_row,
         ],
         spacing=4,
     )
