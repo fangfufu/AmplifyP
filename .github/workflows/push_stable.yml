@@ -51,7 +51,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: Set version environment variable
         env:
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
@@ -122,7 +122,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: Set version environment variable
         env:
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
@@ -254,7 +254,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: '3.14'
       - name: Install build
         run: pip install build
       - name: Generate Git SHA
