@@ -448,6 +448,64 @@ class ReactionInput:
                 )
                 claimed_indices.add(len(self.primers) - 1)
 
+    def add_primer(
+        self, name: str, seq: str, *, active: bool = True
+    ) -> tuple[bool, str]:
+        """Add or activate a primer entry in ``self.primers``.
+
+        Removes empty placeholder rows before inserting, activates an existing
+        entry if the cleaned sequence matches (case-insensitively), or appends a
+        new entry while deduplicating conflicting primer names.
+
+        Args:
+            name: Desired display name for the primer.
+            seq: Primer nucleotide sequence.
+            active: Whether the primer should be marked active.
+
+        Returns:
+            Tuple of ``(added, final_name)`` where ``added`` is ``True`` if a
+            new entry was appended, or ``False`` if an existing sequence was
+            matched (or the input sequence was empty).
+        """
+        clean_seq = clean_sequence(seq)
+        if not clean_seq:
+            return False, ""
+
+        base_name = name.strip() or clean_seq
+        clean_seq_upper = clean_seq.upper()
+
+        # Drop empty placeholder rows (e.g. initial blank row in PrimerList).
+        self.primers = [
+            p
+            for p in self.primers
+            if str(p.get("name") or "").strip()
+            or clean_sequence(str(p.get("seq") or ""))
+        ]
+
+        for p in self.primers:
+            if clean_sequence(str(p.get("seq", ""))).upper() == clean_seq_upper:
+                if active:
+                    p["active"] = True
+                existing_name = str(p.get("name") or "").strip()
+                if not existing_name:
+                    p["name"] = base_name
+                    existing_name = base_name
+                return False, existing_name
+
+        existing_names = {
+            str(p.get("name") or "").strip() for p in self.primers
+        }
+        final_name = base_name
+        suffix = 2
+        while final_name in existing_names:
+            final_name = f"{base_name} ({suffix})"
+            suffix += 1
+
+        self.primers.append(
+            {"name": final_name, "seq": clean_seq, "active": active}
+        )
+        return True, final_name
+
     def to_template_dna(self) -> DNA:
         """Construct a core ``DNA`` template from the stored sequence."""
         clean_tpl = clean_sequence(self.template)
