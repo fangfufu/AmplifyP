@@ -384,6 +384,8 @@ def test_primer_row_components_and_events() -> None:
     row.seq_field.value = "ATGCATGCATGCATGC"
     row.update_tm(settings)
     assert row._row_gesture_detector in row.content.controls
+    assert row._row_gesture_detector.expand is True
+    assert row._row_content.expand is True
     first_tm = row.tm_text.value
     assert first_tm.endswith("°C")
 

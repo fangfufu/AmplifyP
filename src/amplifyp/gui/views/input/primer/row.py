@@ -291,12 +291,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._row_content = ft.Row(
             row_body,
             spacing=0,
+            expand=True,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
 
         self._row_gesture_detector = ft.GestureDetector(
             on_tap=lambda e: on_row_click(self.idx, self.name_field),
             mouse_cursor=ft.MouseCursor.CLICK,
+            expand=True,
             content=self._row_content,
         )
 
@@ -588,6 +590,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self._row_content = ft.Row(
                 row_body,
                 spacing=0,
+                expand=True,
                 vertical_alignment=ft.CrossAxisAlignment.START,
             )
             self._row_gesture_detector.content = self._row_content
