@@ -60,6 +60,9 @@ _NATIVE_SUFFIXES = frozenset({".so", ".pyd", ".dll", ".dylib"})
 _SKIPPED_SUFFIXES = frozenset({".pyc", ".pyo", ".pyi"})
 # Flet's python-worker.js loads msgpack directly via pyodide_js.loadPackage().
 _AUTO_LOADED_PYODIDE_PACKAGES = frozenset({"msgpack"})
+# Packages with optional native extensions verified to run cleanly in
+# pure-Python mode when host binaries are omitted.
+_VERIFIED_PURE_PYTHON_FALLBACKS = frozenset({"pyyaml"})
 
 
 def _default_cache_root() -> Path:
@@ -124,22 +127,28 @@ def _make_emscripten_env(python_version: str) -> dict[str, str]:
     }
 
 
-def _read_requirements_from_archive(archive_path: Path) -> list[str]:
-    """Extract non-empty requirement lines from requirements.txt in archive."""
+def _inspect_app_archive(archive_path: Path) -> tuple[list[str], bool]:
+    """Read requirement lines and detect existing __pypackages__/ entries."""
+    requirements: list[str] = []
+    has_bundled_pypackages = False
     with tarfile.open(archive_path, "r:gz") as tar:
         for member in tar.getmembers():
-            if member.name.lstrip("./") == "requirements.txt":
+            normalised = member.name.lstrip("./")
+            if normalised == "__pypackages__" or normalised.startswith(
+                "__pypackages__/"
+            ):
+                has_bundled_pypackages = True
+            elif normalised == "requirements.txt":
                 extracted = tar.extractfile(member)
-                if extracted is None:
-                    return []
-                text = extracted.read().decode("utf-8")
-                return [
-                    stripped
-                    for line in text.splitlines()
-                    if (stripped := line.strip())
-                    and not stripped.startswith("#")
-                ]
-    return []
+                if extracted is not None:
+                    text = extracted.read().decode("utf-8")
+                    requirements = [
+                        stripped
+                        for line in text.splitlines()
+                        if (stripped := line.strip())
+                        and not stripped.startswith("#")
+                    ]
+    return requirements, has_bundled_pypackages
 
 
 def _resolve_emscripten_graph(
@@ -378,7 +387,15 @@ def bundle_web_dependencies(
     cache_dir = (cache_root or _default_cache_root()) / pyodide_version
     emscripten_env = _make_emscripten_env(python_version)
 
-    root_requirements = _read_requirements_from_archive(archive_path)
+    root_requirements, has_bundled_pypackages = _inspect_app_archive(
+        archive_path
+    )
+    if has_bundled_pypackages and not root_requirements:
+        raise RuntimeError(
+            f"{archive_path} is already bundled (__pypackages__/ is present "
+            "and requirements.txt is empty). Re-run 'flet publish --no-cdn' "
+            "before bundling again."
+        )
     resolved = _resolve_emscripten_graph(root_requirements, emscripten_env)
 
     pypackages_files: dict[str, Path] = {}
@@ -417,12 +434,26 @@ def bundle_web_dependencies(
             continue
 
         has_python_code = any(rel.endswith(".py") for _abs, rel in bundleable)
+        if has_native and (
+            pkg_name not in _VERIFIED_PURE_PYTHON_FALLBACKS
+            or not has_python_code
+        ):
+            raise RuntimeError(
+                f"Cannot bundle '{pkg_name}' ({spec}) for air-gapped web "
+                f"build: package has native binaries with no verified "
+                f"pure-Python fallback and no compatible wheel in Pyodide "
+                f"{pyodide_version}."
+            )
         if not has_python_code:
             raise RuntimeError(
                 f"Cannot bundle '{pkg_name}' ({spec}) for air-gapped web "
-                f"build: package has native binaries with no pure-Python "
-                f"fallback and no compatible wheel in Pyodide "
-                f"{pyodide_version}."
+                f"build: no Python files found in installed distribution."
+            )
+        if not spec.contains(Version(dist.version), prereleases=True):
+            raise RuntimeError(
+                f"Installed '{pkg_name}' version {dist.version} does not "
+                f"satisfy required specifier '{spec}'. Sync your virtual "
+                "environment with pyproject.toml before bundling."
             )
 
         mode = "pure-Python fallback" if has_native else "pure-Python"

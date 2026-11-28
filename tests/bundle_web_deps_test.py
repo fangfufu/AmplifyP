@@ -149,11 +149,20 @@ def test_bundle_web_dependencies_real_project_deps(tmp_path: Path) -> None:
         assert req_file is not None
         assert req_file.read().decode("utf-8").strip() == ""
 
+    # Second invocation must reject already-bundled archive without deleting it
+    with pytest.raises(RuntimeError, match="already bundled"):
+        mod.bundle_web_dependencies(dist_dir, cache_root=cache_root)
 
-def test_bundle_web_dependencies_rejects_unbundleable_native_pkg(
+    with tarfile.open(archive_path, "r:gz") as tar:
+        names_after = set(tar.getnames())
+        assert "__pypackages__/flet/__init__.py" in names_after
+        assert "__pypackages__/yaml/__init__.py" in names_after
+
+
+def test_bundle_web_dependencies_rejects_unverified_native_wrapper_pkg(
     tmp_path: Path,
 ) -> None:
-    """Fail loudly if a native-only package has no compatible Pyodide wheel."""
+    """Reject unverified native packages even when Python wrappers exist."""
     mod = _load_bundle_module()
 
     dist_dir = tmp_path / "dist"
@@ -168,22 +177,112 @@ def test_bundle_web_dependencies_rejects_unbundleable_native_pkg(
         encoding="utf-8",
     )
     archive_path = dist_dir / "app.tar.gz"
-    _create_app_archive(archive_path, ["fake-native==1.0.0"])
+    _create_app_archive(archive_path, ["fake-pillow==13.0.0"])
 
-    class _FakeDist:
+    wrapper_file = tmp_path / "PIL" / "Image.py"
+    wrapper_file.parent.mkdir(parents=True)
+    wrapper_file.write_text("# wrapper requiring _imaging\n", encoding="utf-8")
+
+    class _FakeNativeWrapperDist:
         def __init__(self) -> None:
-            self.version = "1.0.0"
+            self.version = "13.0.0"
             self.requires: list[str] = []
-            self.files = [Path("fake_native.so")]
+            self.files = [Path("PIL/Image.py"), Path("PIL/_imaging.so")]
 
         def locate_file(self, path: Path) -> Path:
             return tmp_path / path
 
     with (
-        patch("importlib.metadata.distribution", return_value=_FakeDist()),
-        pytest.raises(RuntimeError, match="no pure-Python fallback"),
+        patch(
+            "importlib.metadata.distribution",
+            return_value=_FakeNativeWrapperDist(),
+        ),
+        pytest.raises(RuntimeError, match="no verified pure-Python fallback"),
     ):
         mod.bundle_web_dependencies(dist_dir, cache_root=tmp_path / "cache")
+
+
+def test_bundle_web_dependencies_rejects_host_version_mismatch(
+    tmp_path: Path,
+) -> None:
+    """Reject copying host files when installed version violates archive pin."""
+    mod = _load_bundle_module()
+
+    dist_dir = tmp_path / "dist"
+    pyodide_dir = dist_dir / "pyodide"
+    pyodide_dir.mkdir(parents=True)
+
+    (pyodide_dir / "package.json").write_text(
+        json.dumps({"version": "314.0.7"}), encoding="utf-8"
+    )
+    (pyodide_dir / "pyodide-lock.json").write_text(
+        json.dumps({"info": {"python": "3.14.2"}, "packages": {}}),
+        encoding="utf-8",
+    )
+    archive_path = dist_dir / "app.tar.gz"
+    _create_app_archive(archive_path, ["pyyaml==9.9.9"])
+
+    with pytest.raises(RuntimeError, match="does not satisfy required"):
+        mod.bundle_web_dependencies(dist_dir, cache_root=tmp_path / "cache")
+
+
+def test_bundle_web_dependencies_pyodide_wheel_independent_of_host_version(
+    tmp_path: Path,
+) -> None:
+    """Select compatible Pyodide wheel regardless of host package version."""
+    mod = _load_bundle_module()
+
+    dist_dir = tmp_path / "dist"
+    pyodide_dir = dist_dir / "pyodide"
+    cache_root = tmp_path / "cache"
+    pyodide_dir.mkdir(parents=True)
+
+    wheel_bytes = b"fake-msgpack-wasm-wheel"
+    wheel_sha = hashlib.sha256(wheel_bytes).hexdigest()
+    wheel_name = "msgpack-1.1.2-cp314-cp314-pyemscripten_2026_0_wasm32.whl"
+    cached_wheel = cache_root / "314.0.7" / wheel_name
+    cached_wheel.parent.mkdir(parents=True)
+    cached_wheel.write_bytes(wheel_bytes)
+
+    (pyodide_dir / "package.json").write_text(
+        json.dumps({"version": "314.0.7"}), encoding="utf-8"
+    )
+    (pyodide_dir / "pyodide-lock.json").write_text(
+        json.dumps(
+            {
+                "info": {"python": "3.14.2"},
+                "packages": {
+                    "msgpack": {
+                        "name": "msgpack",
+                        "version": "1.1.2",
+                        "file_name": wheel_name,
+                        "sha256": wheel_sha,
+                        "depends": [],
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    archive_path = dist_dir / "app.tar.gz"
+    _create_app_archive(archive_path, ["msgpack==1.1.2"])
+
+    class _FakeStaleHostMsgpack:
+        def __init__(self) -> None:
+            self.version = "1.0.0"
+            self.requires: list[str] = []
+            self.files = [Path("msgpack/_cmsgpack.so")]
+
+        def locate_file(self, path: Path) -> Path:
+            return tmp_path / path
+
+    with patch(
+        "importlib.metadata.distribution",
+        return_value=_FakeStaleHostMsgpack(),
+    ):
+        mod.bundle_web_dependencies(dist_dir, cache_root=cache_root)
+
+    assert (pyodide_dir / wheel_name).read_bytes() == wheel_bytes
 
 
 def test_ensure_pyodide_wheel_rejects_sha256_mismatch(tmp_path: Path) -> None:
