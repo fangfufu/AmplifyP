@@ -16,6 +16,7 @@
 """Tests for GUI controllers and app lifecycle."""
 
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -694,7 +695,7 @@ async def test_gui_controller_methods_and_delegations() -> None:
         controller._on_keyboard_event(MagicMock())
 
 
-def test_gui_controller_run_pcr_methods() -> None:
+def test_gui_controller_run_pcr_methods(tmp_path: Path) -> None:
     """Test run_pcr_with_primer and run_pcr_with_primer_pair edge cases."""
     page = MagicMock(spec=ft.Page)
     controller = GUIController(page)
@@ -819,6 +820,6 @@ def test_gui_controller_run_pcr_methods() -> None:
     controller.input_view = MagicMock()
     page.web = False
     with patch("amplifyp.gui.utils.data_helpers.get_last_state_path") as m_path:
-        m_path.return_value = MagicMock()
+        m_path.return_value = tmp_path / "last_state.yaml"
         save_last_state(controller)
     controller.input_view.sync_to_state.assert_not_called()
