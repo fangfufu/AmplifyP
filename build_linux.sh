@@ -141,7 +141,15 @@ exec "${HERE}/AmplifyP" "$@"
 EOF
 chmod +x build/AmplifyP/AppRun
 
-export ARCH="${ARCH:-x86_64}"
+ARCH="$(uname -m)"
+case "${ARCH}" in
+  x86_64 | aarch64) ;;
+  *)
+    echo "Error: Unsupported Linux architecture: ${ARCH}" >&2
+    exit 1
+    ;;
+esac
+export ARCH
 TARBALL_NAME="amplifyp-${APP_VERSION}-linux-${ARCH}.tar.gz"
 APPIMAGE_NAME="${APPIMAGE_NAME:-amplifyp-${APP_VERSION}-${ARCH}.AppImage}"
 
@@ -149,15 +157,16 @@ echo "==> Packaging tarball..."
 tar -czf "${TARBALL_NAME}" -C build AmplifyP
 
 echo "==> Packaging as AppImage..."
-if [[ ! -f appimagetool-x86_64.AppImage ]]; then
-  wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool-x86_64.AppImage.tmp
-  mv appimagetool-x86_64.AppImage.tmp appimagetool-x86_64.AppImage
-  chmod +x appimagetool-x86_64.AppImage
+APPIMAGETOOL="appimagetool-${ARCH}.AppImage"
+if [[ ! -f "${APPIMAGETOOL}" ]]; then
+  wget -q "https://github.com/AppImage/appimagetool/releases/download/continuous/${APPIMAGETOOL}" -O "${APPIMAGETOOL}.tmp"
+  mv "${APPIMAGETOOL}.tmp" "${APPIMAGETOOL}"
+  chmod +x "${APPIMAGETOOL}"
 fi
 
 # Ensure squashfs-root is clean before extraction
 rm -rf squashfs-root
-./appimagetool-x86_64.AppImage --appimage-extract
+"./${APPIMAGETOOL}" --appimage-extract
 
 APPIMAGE_ARGS=()
 if [[ -n "${UPDATE_INFORMATION:-}" ]]; then

@@ -112,7 +112,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-latest, windows-latest]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-latest, windows-latest]
     env:
       PYTHONUTF8: 1
       FLET_CLI_NO_RICH_OUTPUT: 1
@@ -151,11 +151,12 @@ jobs:
           REPO_OWNER: ${{ github.repository_owner }}
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
-          PATTERN="amplifyp-*-x86_64.AppImage.zsync"
+          ARCH="$(uname -m)"
+          PATTERN="amplifyp-*-${ARCH}.AppImage.zsync"
           UPDATE_INFO="gh-releases-zsync|${REPO_OWNER}|${REPO_NAME}|latest"
           export UPDATE_INFORMATION="${UPDATE_INFO}|${PATTERN}"
           ./build_linux.sh --install-deps
-          APPIMAGE="amplifyp-${VERSION}-x86_64.AppImage"
+          APPIMAGE="amplifyp-${VERSION}-${ARCH}.AppImage"
           APPIMAGE_ZSYNC="${APPIMAGE}.zsync"
           if [[ -f "${APPIMAGE_ZSYNC}" ]]; then
             sed -i "s|^Filename: .*|Filename: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
@@ -186,11 +187,11 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: amplifyp-${{ runner.os }}
+          name: amplifyp-${{ runner.os }}-${{ runner.arch }}
           path: |
             amplifyp-*-linux-*.tar.gz
-            amplifyp-*-x86_64.AppImage
-            amplifyp-*-x86_64.AppImage.zsync
+            amplifyp-*.AppImage
+            amplifyp-*.AppImage.zsync
             amplifyp-*-macos.dmg
             amplifyp-*-windows-*.zip
             amplifyp-*-windows-*-setup.exe
@@ -205,10 +206,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: |
+          ARCH="$(uname -m)"
           gh release upload --clobber "${TAG_NAME}" \
-            "amplifyp-${VERSION}-linux-x86_64.tar.gz" \
-            "amplifyp-${VERSION}-x86_64.AppImage" \
-            "amplifyp-${VERSION}-x86_64.AppImage.zsync"
+            "amplifyp-${VERSION}-linux-${ARCH}.tar.gz" \
+            "amplifyp-${VERSION}-${ARCH}.AppImage" \
+            "amplifyp-${VERSION}-${ARCH}.AppImage.zsync"
       - name: Upload macOS assets to release
         if: |-
           needs.release-please.outputs.release_created == 'true' &&
