@@ -14,8 +14,8 @@ amplicon prediction, and primer dimer analysis\
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "flet==1.1.2",
-  "pyyaml==6.0.3",
+  "flet==1.1.3",
+  "pyyaml==6.0.4",
 ]
 
 classifiers = [
@@ -29,11 +29,11 @@ optional-dependencies.dev = [
   "pytest==9.2.0",
   "pytest-asyncio==1.5.0",
   "pytest-cov==7.1.0",
-  "pytest-testmon==2.3.0",
+  "pytest-testmon==2.3.1",
   "pytest-playwright==0.10.0",
   "pyright==1.1.414",
   "prek==0.5.11",
-  "flet-cli==1.1.2",
+  "flet-cli==1.1.3",
 ]
 optional-dependencies.e2e = [
   "pytest-playwright==0.10.0",
