@@ -126,9 +126,12 @@ def test_bundle_web_dependencies_real_project_deps(tmp_path: Path) -> None:
     assert bundled_msgpack.is_file()
     assert bundled_msgpack.read_bytes() == wheel_bytes
 
-    # Repacked archive should be world-readable (0o644)
+    # Repacked archive should be world-readable (0o644 on POSIX; 0o666 on NTFS)
     mode = stat.S_IMODE(archive_path.stat().st_mode)
-    assert mode == 0o644
+    if sys.platform != "win32":
+        assert mode == 0o644
+    else:
+        assert mode & 0o444 == 0o444
 
     with tarfile.open(archive_path, "r:gz") as tar:
         names = set(tar.getnames())
