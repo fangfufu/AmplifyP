@@ -387,12 +387,15 @@ print(f"Cross-dimer quality (Fwd x Rev): {best_step.fwd_rev.quality:.2f}")
 Both `PrimerDesigner1D` and `PrimerDesigner2D` expose an async classmethod
 `create_async(...)` with the same arguments as the synchronous constructor plus
 `yield_interval` (default `0.02` s). It performs the identical analysis while
-periodically yielding control back to the running asyncio event loop (at least
-every `yield_interval` seconds), so it can be awaited from single-threaded
-runtimes such as Pyodide/WebAssembly without spawning an OS thread. The result
-is a fully completed (or aborted) designer instance, indistinguishable from a
-synchronously constructed one. `yield_interval` must be finite and non-negative,
-otherwise a `ValueError` is raised.
+cooperatively yielding control back to the running asyncio event loop so it can
+be awaited from single-threaded runtimes such as Pyodide/WebAssembly without
+spawning an OS thread. `yield_interval` is the minimum elapsed time checked at
+each step boundary (while `done < total` and not cancelled) before yielding; a
+step taking longer than `yield_interval` delays the next yield, so callers must
+not treat `yield_interval` as an upper bound on event-loop responsiveness. The
+result is a fully completed (or aborted) designer instance, indistinguishable
+from a synchronously constructed one. `yield_interval` must be finite and
+non-negative, otherwise a `ValueError` is raised.
 
 ```python
 import asyncio

@@ -924,16 +924,23 @@ Both designers additionally expose an async classmethod `create_async(...)`
 accepting the same arguments as the synchronous constructor plus
 `yield_interval` (default `0.02` s). It builds the instance, then drives the
 identical `_iter_analyse(...)` step generator through the shared
-`amplifyp._async_helpers.run_cooperative_analysis` loop, which yields control
-back to the running asyncio event loop (via a minimal `0.001` s sleep) at least
-every `yield_interval` seconds—also during chunked template origin searches—so
-single-threaded runtimes such as Pyodide/WebAssembly can flush UI progress and
-service `cancel_event` without spawning an OS thread. The returned instance is a
-fully completed (or aborted) designer, indistinguishable from a synchronously
-constructed one. `yield_interval` must be finite and non-negative, otherwise a
-`ValueError` is raised. The GUI runs designer analyses in a worker thread on
-desktop/server runtimes and via `create_async` on the Flet event loop in the
-(single-threaded) web build.
+`amplifyp._async_helpers.run_cooperative_analysis` loop. After an initial yield
+before starting work (unless already cancelled), the helper checks elapsed time
+at each step boundary while `done < total`—including during chunked template
+origin searches—and yields control back to the running asyncio event loop (via a
+minimal `0.001` s sleep) only when at least `yield_interval` seconds have
+elapsed since the previous yield. Because yields occur only at step boundaries,
+a single step taking longer than `yield_interval` delays the next yield, so
+callers must not treat `yield_interval` as an upper bound on event-loop
+responsiveness; the final step (`done == total`) also does not yield. Even so,
+yielding at step boundaries lets single-threaded runtimes such as
+Pyodide/WebAssembly flush UI progress and service `cancel_event` without
+spawning an OS thread. The returned instance is a fully completed (or aborted)
+designer, indistinguishable from a synchronously constructed one.
+`yield_interval` must be finite and non-negative, otherwise a `ValueError` is
+raised. The GUI runs designer analyses in a worker thread on desktop/server
+runtimes and via `create_async` on the Flet event loop in the (single-threaded)
+web build.
 
 ______________________________________________________________________
 
