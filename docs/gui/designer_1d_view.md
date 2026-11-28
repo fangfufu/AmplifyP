@@ -141,11 +141,11 @@ vertical scrollable list:
     - **Overlap**: `Overlap: {overlap} bp`
     - **Binding Sites**: `Sites: {count}` (if "Check against template" is
       enabled)
-    - **Melting Temperature ($T_m$)**: `Tm: {value:.1f}°C` (plus min–max range
-      for degenerate IUPAC primers) calculated using configured thermodynamic
-      settings (shown as `Tm: N/A` when it cannot be calculated). Shown only
-      when the **Show melting temperature (Tm) on cards** setting is enabled
-      (default on).
+    - **Melting Temperature ($T_m$)**: `Tm: {value:.1f}°C` (displaying the
+      maximum variant $T_m$ and min–max range for degenerate IUPAC primers)
+      calculated using configured thermodynamic settings (shown as `Tm: N/A`
+      when it cannot be calculated). Shown only when the **Show melting
+      temperature (Tm) on cards** setting is enabled (default on).
     - **% AT Content**: `% AT: {percentage:.1f}%`. Shown only when the **Show %
       AT on cards** setting is enabled (default off).
   - **Antiparallel Alignment Diagram**: Rendered in a monospace font displaying
