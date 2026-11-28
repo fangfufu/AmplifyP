@@ -173,6 +173,7 @@ class GUIController:
             self.input_data,
             self.settings,
             on_run_pcr=self.run_pcr_with_primer,
+            on_add_primer=self.add_primer_to_input,
         )
         self.designer_2d_view = Designer2DView(
             self.page,

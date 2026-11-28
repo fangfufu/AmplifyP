@@ -772,7 +772,9 @@ def test_designer_1d_check_against_dna_empty_binding_sites() -> None:
 
     first_item = view.primer_list.controls[0]
     assert isinstance(first_item, PrimerItemCard)
-    assert hasattr(first_item, "pcr_button")
+    assert not hasattr(first_item, "pcr_button")
+    assert hasattr(first_item, "copy_button")
+    assert hasattr(first_item, "add_primer_button")
 
     # Binding sites count MUST be shown in card badge even when cutoff empty
     # first_item is the shortest primer (8 nt) which has 4 binding sites
@@ -833,8 +835,10 @@ def test_designer_1d_template_dna_filtering_success() -> None:
     assert len(view.primer_list.controls) > 0
     first_item = view.primer_list.controls[0]
     assert isinstance(first_item, PrimerItemCard)
-    # Check that PCR button is present
-    assert hasattr(first_item, "pcr_button")
+    # Check that PCR button is removed and copy/add buttons are present
+    assert not hasattr(first_item, "pcr_button")
+    assert hasattr(first_item, "copy_button")
+    assert hasattr(first_item, "add_primer_button")
 
     # When check against template is ticked, Sites: badge is present
     assert _contains_text(first_item, "Sites: 2")
@@ -868,8 +872,10 @@ def test_designer_1d_check_against_dna_unticked_skips_sites_badge() -> None:
 
     first_item = view.primer_list.controls[0]
     assert isinstance(first_item, PrimerItemCard)
-    # PCR button is still present even when check against template is unticked
-    assert hasattr(first_item, "pcr_button")
+    # PCR button is absent from PrimerItemCard; copy/add buttons are present
+    assert not hasattr(first_item, "pcr_button")
+    assert hasattr(first_item, "copy_button")
+    assert hasattr(first_item, "add_primer_button")
 
     # Sites badge is omitted because check against template is unticked
     assert not _contains_text(first_item, "Sites:")
@@ -879,13 +885,13 @@ def test_designer_1d_check_against_dna_unticked_skips_sites_badge() -> None:
     assert len(view.right_cards_list.controls) == 1
     dimer_card = view.right_cards_list.controls[0]
     assert isinstance(dimer_card, DismissibleSelfDimerCard)
-    # Detail card also retains PCR button and omits Sites: badge
+    # Detail card retains PCR button and omits Sites: badge
     assert hasattr(dimer_card, "pcr_button")
     assert not _contains_text(dimer_card, "Sites:")
 
 
 def test_designer_1d_card_pcr_buttons() -> None:
-    """Test PCR button clicks on PrimerItemCard and DismissibleSelfDimerCard."""
+    """Test PCR button on DismissibleSelfDimerCard and removal from list."""
     from amplifyp.gui.views.designer_1d import (
         DismissibleSelfDimerCard,
         PrimerItemCard,
@@ -908,14 +914,10 @@ def test_designer_1d_card_pcr_buttons() -> None:
     view.min_len_input.value = "8"
     assert view.run_designer() is True
 
-    # 1. Click PCR button on PrimerItemCard (first card is shortest: 8 nt)
+    # 1. PrimerItemCard in the list no longer has a PCR button
     first_card = view.primer_list.controls[0]
     assert isinstance(first_card, PrimerItemCard)
-    first_card.pcr_button.on_click(None)
-
-    assert len(run_pcr_calls) == 1
-    assert run_pcr_calls[0][0] == "ATGCGTAC"
-    assert "1D Primer (8 nt)" in run_pcr_calls[0][1]
+    assert not hasattr(first_card, "pcr_button")
 
     # 2. Click primer item to open DismissibleSelfDimerCard
     first_card.content.on_click(None)
@@ -926,16 +928,121 @@ def test_designer_1d_card_pcr_buttons() -> None:
 
     # Click Run PCR on the detail card
     dimer_card.pcr_button.on_click(None)
-    assert len(run_pcr_calls) == 2
-    assert run_pcr_calls[1][0] == "ATGCGTAC"
+    assert len(run_pcr_calls) == 1
+    assert run_pcr_calls[0][0] == "ATGCGTAC"
+    assert "1D Primer (8 nt)" in run_pcr_calls[0][1]
 
-    # 3. Test last card (longest: 10 nt)
+    # 3. Open last card (longest: 10 nt) and run PCR from detail card
     last_card = view.primer_list.controls[-1]
     assert isinstance(last_card, PrimerItemCard)
-    last_card.pcr_button.on_click(None)
-    assert len(run_pcr_calls) == 3
-    assert run_pcr_calls[2][0] == "ATGCGTACGT"
-    assert "1D Primer (10 nt)" in run_pcr_calls[2][1]
+    assert not hasattr(last_card, "pcr_button")
+    last_card.content.on_click(None)
+    top_dimer_card = view.right_cards_list.controls[0]
+    assert isinstance(top_dimer_card, DismissibleSelfDimerCard)
+    top_dimer_card.pcr_button.on_click(None)
+    assert len(run_pcr_calls) == 2
+    assert run_pcr_calls[1][0] == "ATGCGTACGT"
+    assert "1D Primer (10 nt)" in run_pcr_calls[1][1]
+
+
+def test_designer_1d_primer_list_copy_and_send_to_input_buttons() -> None:
+    """Test copy and send-to-input buttons sit right of 1D sequences."""
+    from typing import cast
+
+    from amplifyp.gui.views.designer_1d import PrimerItemCard
+
+    mock_page = MagicMock(spec=ft.Page)
+    input_data = GUIInput(primers=[{"name": "", "seq": "", "active": False}])
+    settings = GUISettings()
+
+    view = PrimerDesignerView(mock_page, input_data, settings)
+    view.dna_input.value = "ATGCGTACGT"
+    view.min_len_input.value = "8"
+    assert view.run_designer() is True
+
+    first_card = view.primer_list.controls[0]
+    assert isinstance(first_card, PrimerItemCard)
+
+    # Verify layout: copy and send buttons sit to the right of sequence field
+    card_row = cast(ft.Row, cast(ft.Container, first_card.content).content)
+    assert len(card_row.controls) == 2  # Left info/seq column + right badges
+    left_col = cast(ft.Column, card_row.controls[0])
+    action_row = cast(ft.Row, left_col.controls[1])
+    assert len(action_row.controls) == 3
+    seq_container = cast(ft.Container, action_row.controls[0])
+    assert seq_container.content is first_card._seq_field
+    copy_btn = cast(ft.IconButton, action_row.controls[1])
+    send_btn = cast(ft.IconButton, action_row.controls[2])
+    assert copy_btn is first_card.copy_button
+    assert first_card.add_primer_button is not None
+    assert send_btn is first_card.add_primer_button
+    assert copy_btn.icon == ft.Icons.COPY
+    assert send_btn.icon == ft.Icons.PLAYLIST_ADD
+
+    # Clicking copy copies the exact sequence to clipboard
+    with patch(
+        "amplifyp.gui.views.designer.designer_card_helpers."
+        "copy_text_to_clipboard"
+    ) as mock_copy:
+        copy_ev = MagicMock(spec=ft.ControlEvent)
+        copy_ev.page = mock_page
+        assert copy_btn.on_click is not None
+        copy_btn.on_click(copy_ev)
+        mock_copy.assert_called_once_with(mock_page, "ATGCGTAC")
+
+    # Clicking add-to-primer-list adds the primer and notifies
+    last_card = view.primer_list.controls[-1]
+    assert isinstance(last_card, PrimerItemCard)
+    assert last_card.add_primer_button is not None
+
+    with patch.object(view, "_show_notification") as mock_notify:
+        assert send_btn.on_click is not None
+        send_btn.on_click(MagicMock())
+        assert last_card.add_primer_button.on_click is not None
+        last_card.add_primer_button.on_click(MagicMock())
+        # Re-clicking existing primer notifies without duplicating
+        send_btn.on_click(MagicMock())
+        assert mock_notify.call_count == 3
+        assert "Added" in mock_notify.call_args_list[0][0][0]
+        assert "already in the Input primer list" in mock_notify.call_args[0][0]
+
+    assert len(input_data.primers) == 2
+    assert input_data.primers[0]["name"] == "1D Primer (8 nt)"
+    assert input_data.primers[0]["seq"] == "ATGCGTAC"
+    assert input_data.primers[1]["name"] == "1D Primer (10 nt)"
+    assert input_data.primers[1]["seq"] == "ATGCGTACGT"
+    assert all(p["active"] is True for p in input_data.primers)
+
+    # Custom on_add_primer callback (wired by GUIController) is respected
+    custom_calls: list[tuple[str, str]] = []
+
+    def _custom_add(name: str, seq: str) -> tuple[bool, str]:
+        custom_calls.append((name, seq))
+        return True, name
+
+    wired_view = PrimerDesignerView(
+        mock_page, GUIInput(), settings, on_add_primer=_custom_add
+    )
+    wired_view.dna_input.value = "ATGCGTACGT"
+    wired_view.min_len_input.value = "9"
+    assert wired_view.run_designer() is True
+    wired_card = wired_view.primer_list.controls[0]
+    assert isinstance(wired_card, PrimerItemCard)
+    assert wired_card.add_primer_button is not None
+    assert wired_card.add_primer_button.on_click is not None
+    with patch.object(wired_view, "_show_notification") as mock_notify:
+        wired_card.add_primer_button.on_click(MagicMock())
+        mock_notify.assert_called_once_with(
+            "Added '1D Primer (9 nt)' to Input primer list."
+        )
+    assert custom_calls == [("1D Primer (9 nt)", "ATGCGTACG")]
+
+    # Empty sequence shows error dialog
+    with patch(
+        "amplifyp.gui.views.designer.designer_view_base.show_error_dialog"
+    ) as mock_err:
+        view._handle_add_primer("Empty", "   ")
+        mock_err.assert_called_once()
 
 
 def test_controller_run_pcr_with_primer() -> None:
