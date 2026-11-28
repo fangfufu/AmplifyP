@@ -197,8 +197,9 @@ list:
 
 ## Error Handling
 
-If the 2D analysis fails, a red *"Error: {message}"* text is shown in the grid
-area and an *"Analysis Error"* dialogue opens.
+If the 2D analysis fails, an **"Analysis Error"** dialogue opens with the
+message *"Error performing 2D primer design: {message}"* and the results grid is
+reset to its empty placeholder state.
 
 ______________________________________________________________________
 
