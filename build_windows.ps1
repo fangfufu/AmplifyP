@@ -32,6 +32,12 @@ try {
         $version = $version -replace '^v', ''
     }
 
+    # Determine the target architecture
+    $arch = $env:ARCH
+    if ([string]::IsNullOrEmpty($arch)) {
+        $arch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "x86_64" }
+    }
+
     Write-Host "==> Generating Git SHA..."
     python scripts/gen_git_sha.py
     if ($LASTEXITCODE -ne 0) { throw "python scripts/gen_git_sha.py failed with exit code $LASTEXITCODE" }
@@ -51,9 +57,10 @@ try {
     if (Test-Path "src\dist") { Remove-Item -Recurse -Force "src\dist" }
 
     Write-Host "==> Packaging ZIP archive..."
-    $zipFile = "amplifyp-windows-$version.zip"
+    $zipBase = "amplifyp-$version-windows-$arch"
+    $zipFile = "$zipBase.zip"
     if (Test-Path $zipFile) { Remove-Item -Force $zipFile }
-    python -c "import shutil; shutil.make_archive('amplifyp-windows-$version', 'zip', 'build', 'AmplifyP')"
+    python -c "import shutil; shutil.make_archive('$zipBase', 'zip', 'build', 'AmplifyP')"
     if ($LASTEXITCODE -ne 0) { throw "ZIP packaging failed with exit code $LASTEXITCODE" }
 
     # Build the Inno Setup installer if iscc compiler is available
@@ -75,10 +82,11 @@ try {
     }
 
     if ($isccPath) {
+        $installerFile = "amplifyp-$version-windows-$arch-setup.exe"
         Write-Host "==> Building Windows installer with $isccPath..."
-        & $isccPath amplifyp.iss /DVersion=$version /O.
+        & $isccPath amplifyp.iss /DVersion=$version /DArch=$arch /O.
         if ($LASTEXITCODE -ne 0) { throw "iscc compiler failed with exit code $LASTEXITCODE" }
-        Write-Host "==> Build complete: $zipFile and amplifyp-windows-setup-$version.exe"
+        Write-Host "==> Build complete: $zipFile and $installerFile"
     } else {
         Write-Host "==> Inno Setup (iscc) not found in PATH or standard directories. Skipping installer build."
         Write-Host "    To install Inno Setup, run: winget install JRSoftware.InnoSetup"

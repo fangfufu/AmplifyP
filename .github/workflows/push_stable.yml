@@ -88,13 +88,13 @@ jobs:
       - name: Archive and Upload Web Release (Linux only)
         if: runner.os == 'Linux'
         run: |
-          tar -czf amplifyp-web.tar.gz -C dist .
+          tar -czf "amplifyp-${VERSION}-web.tar.gz" -C dist .
       - name: Upload Web Artifact (Linux only)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
           name: amplifyp-web
-          path: amplifyp-web.tar.gz
+          path: amplifyp-*-web.tar.gz
       - name: Build Flet Linux binary
         if: runner.os == 'Linux'
         env:
@@ -107,13 +107,6 @@ jobs:
           ./build_linux.sh --install-deps
           APPIMAGE="amplifyp-${VERSION}-x86_64.AppImage"
           APPIMAGE_ZSYNC="${APPIMAGE}.zsync"
-          mv amplifyp-linux.tar.gz "amplifyp-linux-${VERSION}.tar.gz"
-          if [[ -f amplifyp-x86_64.AppImage ]]; then
-            mv amplifyp-x86_64.AppImage "${APPIMAGE}"
-          fi
-          if [[ -f amplifyp-x86_64.AppImage.zsync ]]; then
-            mv amplifyp-x86_64.AppImage.zsync "${APPIMAGE_ZSYNC}"
-          fi
           if [[ -f "${APPIMAGE_ZSYNC}" ]]; then
             sed -i "s|^Filename: .*|Filename: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
             sed -i "s|^URL: .*|URL: ${APPIMAGE}|" "${APPIMAGE_ZSYNC}"
@@ -131,7 +124,7 @@ jobs:
             -srcfolder build/AmplifyP \
             -ov \
             -format UDZO \
-            amplifyp-macos-${VERSION}.dmg
+            "amplifyp-${VERSION}-macos.dmg"
       - name: Install Inno Setup
         if: runner.os == 'Windows'
         run: choco install innosetup -y
@@ -145,12 +138,12 @@ jobs:
         with:
           name: amplifyp-${{ runner.os }}
           path: |
-            amplifyp-linux-*.tar.gz
+            amplifyp-*-linux-*.tar.gz
             amplifyp-*-x86_64.AppImage
             amplifyp-*-x86_64.AppImage.zsync
-            amplifyp-macos-*.dmg
-            amplifyp-windows-*.zip
-            amplifyp-windows-setup-*.exe
+            amplifyp-*-macos.dmg
+            amplifyp-*-windows-*.zip
+            amplifyp-*-windows-*-setup.exe
           if-no-files-found: ignore
   build-pypi-dist:
     name: Build PyPI distribution
@@ -202,13 +195,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           gh release upload ${{ needs.release-please.outputs.tag_name }} \
-            amplifyp-linux-*.tar.gz \
+            amplifyp-*-linux-*.tar.gz \
             amplifyp-*-x86_64.AppImage \
             amplifyp-*-x86_64.AppImage.zsync \
-            amplifyp-macos-*.dmg \
-            amplifyp-windows-*.zip \
-            amplifyp-windows-setup-*.exe \
-            amplifyp-web.tar.gz \
+            amplifyp-*-macos.dmg \
+            amplifyp-*-windows-*.zip \
+            amplifyp-*-windows-*-setup.exe \
+            amplifyp-*-web.tar.gz \
             amplifyp-*.whl
   deploy:
     name: Deploy to GitHub Pages
@@ -232,7 +225,7 @@ jobs:
       - name: Extract archive
         run: |
           mkdir dist
-          tar -xzf amplifyp-web.tar.gz -C dist
+          tar -xzf amplifyp-*-web.tar.gz -C dist
       - name: Setup Pages
         uses: actions/configure-pages@v6
       - name: Upload Pages Artifact
