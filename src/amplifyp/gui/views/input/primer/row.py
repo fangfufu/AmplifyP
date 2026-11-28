@@ -470,31 +470,25 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     primer_obj = Primer(
                         sequence=cleaned_seq, name=name_val or ""
                     )
-                    tm = settings.calculate_primer_tm(primer_obj)
-                    tm_value = tm
-                    tm_val = f"{tm:.1f}°C"
-                    if (
-                        primer_obj.redundant_base_count > 0
-                        and len(primer_obj) >= 2
-                    ):
-                        tm_range = settings.calculate_primer_tm_range(
-                            primer_obj
+                    tm_value, tm_range = settings.resolve_primer_tm_display(
+                        primer_obj
+                    )
+                    tm_val = f"{tm_value:.1f}°C"
+                    if tm_range is not None:
+                        label = (
+                            "approx. range"
+                            if tm_range.is_approximate
+                            else "range"
                         )
-                        if tm_range.variant_count > 1:
-                            label = (
-                                "approx. range"
-                                if tm_range.is_approximate
-                                else "range"
-                            )
-                            count_str = _format_variant_count(
-                                tm_range.variant_count
-                            )
-                            tm_tooltip = (
-                                f"Tm: {tm:.1f}°C ({label}: "
-                                f"{tm_range.min_tm:.1f} to "
-                                f"{tm_range.max_tm:.1f}°C, "
-                                f"{count_str} variants)"
-                            )
+                        count_str = _format_variant_count(
+                            tm_range.variant_count
+                        )
+                        tm_tooltip = (
+                            f"Max Tm: {tm_value:.1f}°C ({label}: "
+                            f"{tm_range.min_tm:.1f} to "
+                            f"{tm_range.max_tm:.1f}°C, "
+                            f"{count_str} variants)"
+                        )
             except (
                 ValueError,
                 AttributeError,

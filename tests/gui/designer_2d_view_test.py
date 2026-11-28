@@ -801,11 +801,13 @@ def test_designer_2d_and_base_remaining_branches() -> None:
         assert res is None
 
     # 8. Card helpers: format_primer_properties range, exception, and copy
+    r_deg = settings.calculate_primer_tm_range(Primer("ACGTNNACGT"))
     tm_deg, _ = format_primer_properties(Primer("ACGTNNACGT"), settings)
-    assert tm_deg.startswith("Tm: ")
-    assert "(" in tm_deg and " to " in tm_deg
+    assert tm_deg.startswith(f"Tm: {r_deg.max_tm:.1f}°C (")
+    assert " to " in tm_deg
+    r_approx = settings.calculate_primer_tm_range(Primer("N" * 10))
     tm_approx, _ = format_primer_properties(Primer("N" * 10), settings)
-    assert "(~" in tm_approx
+    assert tm_approx.startswith(f"Tm: {r_approx.max_tm:.1f}°C (~")
 
     p_bad = Primer("N" * 10, name="Bad")
     with patch.object(

@@ -269,9 +269,17 @@ def test_input_view_primer_info_panel() -> None:
     assert view.focused_primer_index == 1
     assert view.primer_info_panel.visible is True
     assert view.info_header.content.value == "Primer: P2"
+    from amplifyp.dna import Primer
+    from amplifyp.gui.settings import GUISettings
+
+    p2_range = GUISettings().calculate_primer_tm_range(
+        Primer("RGGGGGGGGGGGGGGGGGGY")
+    )
     assert "2 redundant bases" in view.info_stats_text.value
     assert "redundancy fold = 4" in view.info_stats_text.value
-    assert "(range " in view.info_stats_text.value
+    assert f"Tm = {p2_range.max_tm:.2f}°C (max; range " in (
+        view.info_stats_text.value
+    )
     assert view.primer_info_panel.info_dimer_card_container.visible is False
 
     # Simulate focusing on third primer (index 2) which has a self-dimer

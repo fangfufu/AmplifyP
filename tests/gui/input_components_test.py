@@ -22,6 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import flet as ft
 import pytest
 
+from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -394,7 +395,10 @@ def test_primer_row_components_and_events() -> None:
     settings["tm_method"] = "SantaLucia 1998 / Owczarzy 2008 (Default)"
     row.seq_field.value = "ACGTNNACGT"
     row.update_tm(settings)
+    expected_range = settings.calculate_primer_tm_range(Primer("ACGTNNACGT"))
+    assert row.tm_text.value == f"{expected_range.max_tm:.1f}°C"
     assert row.tm_container.tooltip is not None
+    assert row.tm_container.tooltip.startswith("Max Tm: ")
     assert "range:" in row.tm_container.tooltip
     assert "16 variants)" in row.tm_container.tooltip
     assert row.tooltip is None

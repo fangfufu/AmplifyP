@@ -465,6 +465,25 @@ class GUISettings:
             fallback_to_amplify4=True,
         )
 
+    def resolve_primer_tm_display(
+        self, primer: Primer
+    ) -> tuple[float, TmRange | None]:
+        """Return headline display Tm (max for degenerate primers) and range.
+
+        Args:
+            primer: The primer object to evaluate.
+
+        Returns:
+            Tuple of ``(display_tm, tm_range)``, where ``tm_range`` is
+            populated only when multiple IUPAC variants were evaluated.
+        """
+        tm = self.calculate_primer_tm(primer)
+        if primer.redundant_base_count > 0 and len(primer) >= 2:
+            tm_range = self.calculate_primer_tm_range(primer)
+            if tm_range.variant_count > 1:
+                return tm_range.max_tm, tm_range
+        return tm, None
+
     def to_dict(self) -> dict[str, Any]:
         """Convert settings to a dictionary for serialisation.
 

@@ -480,9 +480,17 @@ def test_gui_settings_edge_cases_and_coercions() -> None:
     tm_range_n = s.calculate_primer_tm_range(Primer("ACGTACGR"))
     assert tm_range_n.variant_count == 2
     assert tm_range_n.min_tm < tm_range_n.max_tm
+    display_deg, resolved_range = s.resolve_primer_tm_display(
+        Primer("ACGTACGR")
+    )
+    assert display_deg == pytest.approx(tm_range_n.max_tm)
+    assert resolved_range == tm_range_n
     tm_range_std = s.calculate_primer_tm_range(Primer("ACGTACGT"))
     assert tm_range_std.variant_count == 1
     assert tm_range_std.min_tm == pytest.approx(tm_val_sl)
+    display_std, resolved_none = s.resolve_primer_tm_display(Primer("ACGTACGT"))
+    assert display_std == pytest.approx(tm_val_sl)
+    assert resolved_none is None
 
     # 7. from_dict type coercions
     s._settings["log_rotation_max_bytes"] = 100
