@@ -33,6 +33,19 @@ from amplifyp.gui.utils.data_helpers import clean_sequence
 logger = logging.getLogger(__name__)
 
 
+def _format_variant_count(variant_count: int) -> str:
+    """Format an arbitrary-size variant count without float overflow."""
+    if variant_count < 1_000_000:
+        return f"{variant_count:,}"
+    digits = str(variant_count)
+    exp = len(digits) - 1
+    mantissa = round(int(digits[:4]) / 1000.0, 2)
+    if mantissa >= 10.0:
+        mantissa /= 10.0
+        exp += 1
+    return f"{mantissa:.2f}e+{exp:02d}"
+
+
 class PrimerRow(ft.Container):  # type: ignore[misc]
     """A single row representing a primer in the list."""
 
@@ -109,7 +122,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         show_temp = self.settings.get("show_primer_temperature", False)
         scheme = self.settings.get("tm_colour_scheme", "None")
         self._last_show_temp = show_temp
-        self._tm_value, tm_val = self._compute_tm_display(
+        self._tm_value, tm_val, tm_tooltip = self._compute_tm_display(
             seq, name, show_temp, self.settings
         )
         self._last_tm_cache_key = self._tm_cache_key(
@@ -133,6 +146,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             padding=ft.Padding(0, 0, 5, 0),
             alignment=ft.Alignment(1, 0),
             visible=show_temp,
+            tooltip=tm_tooltip,
         )
         self.tm_divider = ft.Container(
             width=4,
@@ -277,12 +291,14 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         self._row_content = ft.Row(
             row_body,
             spacing=0,
+            expand=True,
             vertical_alignment=ft.CrossAxisAlignment.START,
         )
 
         self._row_gesture_detector = ft.GestureDetector(
             on_tap=lambda e: on_row_click(self.idx, self.name_field),
             mouse_cursor=ft.MouseCursor.CLICK,
+            expand=True,
             content=self._row_content,
         )
 
@@ -444,10 +460,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
         name_val: str | None,
         show_temp: bool,
         settings: GUISettings,
-    ) -> tuple[float | None, str]:
-        """Compute raw and formatted Tm display values for a primer."""
+    ) -> tuple[float | None, str, str | None]:
+        """Compute raw, formatted, and tooltip Tm display values."""
         tm_value: float | None = None
         tm_val = ""
+        tm_tooltip: str | None = None
         if show_temp and seq_val and seq_val.strip():
             try:
                 cleaned_seq = clean_sequence(seq_val)
@@ -455,9 +472,25 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     primer_obj = Primer(
                         sequence=cleaned_seq, name=name_val or ""
                     )
-                    tm = settings.calculate_primer_tm(primer_obj)
-                    tm_value = tm
-                    tm_val = f"{tm:.1f}°C"
+                    tm_value, tm_range = settings.resolve_primer_tm_display(
+                        primer_obj
+                    )
+                    tm_val = f"{tm_value:.1f}°C"
+                    if tm_range is not None:
+                        label = (
+                            "approx. range"
+                            if tm_range.is_approximate
+                            else "range"
+                        )
+                        count_str = _format_variant_count(
+                            tm_range.variant_count
+                        )
+                        tm_tooltip = (
+                            f"Max Tm: {tm_value:.1f}°C ({label}: "
+                            f"{tm_range.min_tm:.1f} to "
+                            f"{tm_range.max_tm:.1f}°C, "
+                            f"{count_str} variants)"
+                        )
             except (
                 ValueError,
                 AttributeError,
@@ -470,7 +503,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
                     exc_info=True,
                 )
                 tm_val = "-"
-        return tm_value, tm_val
+        return tm_value, tm_val, tm_tooltip
 
     @staticmethod
     def _tm_cache_key(
@@ -529,10 +562,11 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             return
 
         self._last_tm_cache_key = cache_key
-        self._tm_value, tm_val = self._compute_tm_display(
+        self._tm_value, tm_val, tm_tooltip = self._compute_tm_display(
             seq_val, name_val, show_temp, settings
         )
         self.tm_text.value = tm_val
+        self.tm_container.tooltip = tm_tooltip
 
         self.tm_text.color = (
             tm_colour(self._tm_value, scheme)
@@ -556,6 +590,7 @@ class PrimerRow(ft.Container):  # type: ignore[misc]
             self._row_content = ft.Row(
                 row_body,
                 spacing=0,
+                expand=True,
                 vertical_alignment=ft.CrossAxisAlignment.START,
             )
             self._row_gesture_detector.content = self._row_content

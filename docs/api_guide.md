@@ -234,22 +234,31 @@ from amplifyp.melting import (
     TmMethod,
     calculate_tm,
     calculate_tm_lander_amplify4,
+    calculate_tm_range,
     calculate_tm_santalucia_1998_owczarzy_2008,
 )
 
 primer = Primer("CGACTGGGCAAAGGAAATCC", name="FwdPrimer")
 
-# 1. Unified dispatcher (falls back to Amplify4 on degenerate bases by default)
+# 1. Unified dispatcher
 tm_dispatch = calculate_tm(
     primer, method=TmMethod.SANTALUCIA_1998_OWCZARZY_2008
 )
 print(f"Dispatched Tm: {tm_dispatch:.2f}°C")
 
-# 2. Calculate modern Tm directly (degrees Celsius)
+# 2. Calculate modern Tm directly (degrees Celsius; supports all 15 IUPAC codes)
 tm_modern = calculate_tm_santalucia_1998_owczarzy_2008(primer)
 print(f"Modern Tm: {tm_modern:.2f}°C")
 
-# 3. Calculate legacy Amplify4 Tm directly (degrees Celsius)
+# 3. Calculate min/mean/max Tm range for degenerate IUPAC primers
+deg_primer = Primer("CGACTGGGCAAAGGAAARCC", name="DegFwd")
+tm_range = calculate_tm_range(deg_primer)
+print(
+    f"Range: {tm_range.min_tm:.2f}–{tm_range.max_tm:.2f}°C "
+    f"(mean {tm_range.mean_tm:.2f}°C)"
+)
+
+# 4. Calculate legacy Amplify4 Tm directly (degrees Celsius)
 tm_legacy = calculate_tm_lander_amplify4(primer)
 print(f"Legacy Tm: {tm_legacy:.2f}°C")
 ```
@@ -442,10 +451,9 @@ Key exceptions:
   configurations built on a different template.
 - **`ReplicationOriginLengthError`** — raised by `ReplicationOrigin` when the
   target and primer lengths do not match.
-- **`InsufficientThermodynamicDataError`** — raised by
-  `calculate_tm_santalucia_1998_owczarzy_2008` when the sequence contains
-  non-standard or degenerate bases for which nearest-neighbour parameters are
-  not available.
+- **`InsufficientThermodynamicDataError`** — raised when thermodynamic
+  parameters are unavailable (for example, 2-fold or 3-fold IUPAC bases under
+  `calculate_tm_lander_amplify4`) or denominators are zero.
 
 ```python
 from amplifyp.dna import DNA, Primer, DNAType

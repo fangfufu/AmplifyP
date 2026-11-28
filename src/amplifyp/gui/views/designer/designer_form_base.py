@@ -84,7 +84,7 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
             on_clear_all_callback: Callback for clear all button.
             spacing: Vertical spacing between form rows.
         """
-        super().__init__(spacing=spacing)
+        super().__init__(spacing=spacing, scroll=ft.ScrollMode.AUTO)
         self.settings = settings
         self.on_submit_callback = on_submit_callback
         self.on_clear_error_callback = on_clear_error_callback
@@ -246,14 +246,14 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
                     alignment=ft.Alignment(-1, 0),
                     expand=True,
                     height=48,
-                    margin=ft.Margin.only(top=23),
+                    margin=ft.Margin.only(top=19),
                 ),
                 create_field_container(max_label, max_input, expand=True),
                 ft.Container(
                     content=self.analyse_button,
                     alignment=ft.Alignment(1, 0),
                     height=48,
-                    margin=ft.Margin.only(top=23, left=16),
+                    margin=ft.Margin.only(top=19, left=16),
                 ),
             ],
             spacing=8,
@@ -264,18 +264,68 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         """Handle submit/click events from form controls."""
         self.on_submit_callback()
 
+    def _update_page(self) -> None:
+        """Safely push pending form changes to the attached Flet page."""
+        try:
+            if self.page:
+                self.page.update()
+        except RuntimeError:
+            pass
+
     def _clear_field_error(self, e: Any) -> None:
         """Clear error highlight when user edits an input field."""
         ctrl = getattr(e, "control", None)
         if isinstance(ctrl, ft.TextField) and ctrl.error:
             ctrl.error = None
-            try:
-                if self.page:
-                    self.page.update()
-            except RuntimeError:
-                pass
+            self._update_page()
         if self.on_clear_error_callback:
             self.on_clear_error_callback(e)
+
+    def clear_error_text(self) -> None:
+        """Hide and clear the general form error banner."""
+        self.error_text.visible = False
+        self.error_text.value = ""
+
+    def _clear_stale_min_len_error(
+        self, cleaned_seq: str, min_len_input: ft.TextField
+    ) -> bool:
+        """Clear min-length error when updated DNA covers the entered length.
+
+        Args:
+            cleaned_seq: Cleaned candidate primer sequence.
+            min_len_input: Corresponding minimum-length TextField.
+
+        Returns:
+            True if an existing min-length error was cleared.
+        """
+        if not min_len_input.error:
+            return False
+        raw_min = (min_len_input.value or "").strip()
+        try:
+            min_len = int(raw_min)
+        except ValueError:
+            return False
+        if 0 < min_len <= len(cleaned_seq):
+            min_len_input.error = None
+            return True
+        return False
+
+    def _handle_filter_dna_change(
+        self, e: ft.ControlEvent, max_input: ft.TextField
+    ) -> None:
+        """Toggle template max-count field and clear stale template errors.
+
+        Args:
+            e: Control change event from ``filter_dna_checkbox``.
+            max_input: Template filter TextField paired with the checkbox.
+        """
+        is_checked = bool(self.filter_dna_checkbox.value)
+        max_input.disabled = not is_checked
+        if not is_checked:
+            max_input.error = None
+            self.clear_error_text()
+        self._update_page()
+        self._clear_field_error(e)
 
     def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
         """Handle the check-against-template toggle.
@@ -288,8 +338,7 @@ class BaseDesignerForm(ft.Column):  # type: ignore[misc]
         """Clear all field error indicators and general error message."""
         self.max_quality_input.error = None
         self.max_overlap_input.error = None
-        self.error_text.visible = False
-        self.error_text.value = ""
+        self.clear_error_text()
 
     def update_colours(self, *extra_fields: ft.TextField) -> None:
         """Refresh form borders, field labels, and error colour from theme."""

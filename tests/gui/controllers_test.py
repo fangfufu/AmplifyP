@@ -16,6 +16,7 @@
 """Tests for GUI controllers and app lifecycle."""
 
 import asyncio
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import flet as ft
@@ -49,6 +50,8 @@ def test_navigation_manager_flow() -> None:
     mock_ctrl.dimers_view = MagicMock()
     mock_ctrl.view_container = MagicMock()
     mock_ctrl.input_view_dirty = True
+    mock_ctrl.designer_view_dirty = True
+    mock_ctrl.designer_2d_view_dirty = True
 
     nav_manager = NavigationManager(mock_ctrl)
     nav_manager.setup_navigation_controls()
@@ -76,6 +79,35 @@ def test_navigation_manager_flow() -> None:
     nav_manager.switch_view(MagicMock(), mock_ctrl.settings_view)
     assert mock_ctrl.page.on_resize is None
     assert mock_ctrl.header.active_button == mock_ctrl.header.settings_button
+
+    # Switch to dirty designer_view: page.update() mounts view before update_ui
+    mock_ctrl.page.reset_mock()
+    mock_ctrl.designer_view.reset_mock()
+    call_order: list[str] = []
+    mock_ctrl.page.update.side_effect = lambda: call_order.append("page_update")
+    mock_ctrl.designer_view.update_ui.side_effect = lambda: call_order.append(
+        "designer_update_ui"
+    )
+    nav_manager.switch_view(MagicMock(), mock_ctrl.designer_view)
+    assert mock_ctrl.designer_view_dirty is False
+    assert call_order == ["page_update", "designer_update_ui"]
+
+    # Switch to dirty designer_2d_view
+    mock_ctrl.page.reset_mock()
+    mock_ctrl.designer_2d_view.reset_mock()
+    call_order_2d: list[str] = []
+    mock_ctrl.page.update.side_effect = lambda: call_order_2d.append(
+        "page_update"
+    )
+    mock_ctrl.designer_2d_view.update_ui.side_effect = lambda: (
+        call_order_2d.append("designer_2d_update_ui")
+    )
+    nav_manager.switch_view(MagicMock(), mock_ctrl.designer_2d_view)
+    assert mock_ctrl.designer_2d_view_dirty is False
+    assert call_order_2d == ["page_update", "designer_2d_update_ui"]
+    mock_ctrl.page.update.side_effect = None
+    mock_ctrl.designer_view.update_ui.side_effect = None
+    mock_ctrl.designer_2d_view.update_ui.side_effect = None
 
     mock_ctrl.input_data = GUIInput()
     mock_ctrl.input_data.template = "ATGCATGC"
@@ -360,12 +392,20 @@ def test_theme_manager_and_brightness_changes() -> None:
     mock_ctrl.dimers_view.run_analysis.assert_called()
 
     mock_ctrl.view_container.content = mock_ctrl.designer_view
+    mock_ctrl.designer_view_dirty = False
+    mock_ctrl.designer_2d_view_dirty = False
     theme_manager.on_platform_brightness_change()
     mock_ctrl.designer_view.update_ui.assert_called()
+    assert mock_ctrl.designer_view_dirty is False
+    assert mock_ctrl.designer_2d_view_dirty is True
 
     mock_ctrl.view_container.content = mock_ctrl.designer_2d_view
+    mock_ctrl.designer_view_dirty = False
+    mock_ctrl.designer_2d_view_dirty = False
     theme_manager.on_platform_brightness_change()
     mock_ctrl.designer_2d_view.update_ui.assert_called()
+    assert mock_ctrl.designer_view_dirty is True
+    assert mock_ctrl.designer_2d_view_dirty is False
 
 
 @pytest.mark.asyncio  # type: ignore[untyped-decorator]
@@ -544,7 +584,25 @@ async def test_gui_controller_methods_and_delegations() -> None:
     controller.on_settings_change()
 
     controller.view_container.content = controller.settings_view
+    controller.designer_view_dirty = False
+    controller.designer_2d_view_dirty = False
     controller.on_settings_change()
+    assert controller.designer_view_dirty is True
+    assert controller.designer_2d_view_dirty is True
+
+    controller.view_container.content = controller.designer_view
+    controller.designer_view_dirty = False
+    with patch.object(controller.designer_view, "update_ui") as mock_1d_up:
+        controller.on_settings_change()
+        mock_1d_up.assert_called_once()
+        assert controller.designer_view_dirty is False
+
+    controller.view_container.content = controller.designer_2d_view
+    controller.designer_2d_view_dirty = False
+    with patch.object(controller.designer_2d_view, "update_ui") as mock_2d_up:
+        controller.on_settings_change()
+        mock_2d_up.assert_called_once()
+        assert controller.designer_2d_view_dirty is False
 
     controller.view_container.content = controller.pcr_view
     controller.on_settings_change()
@@ -637,7 +695,7 @@ async def test_gui_controller_methods_and_delegations() -> None:
         controller._on_keyboard_event(MagicMock())
 
 
-def test_gui_controller_run_pcr_methods() -> None:
+def test_gui_controller_run_pcr_methods(tmp_path: Path) -> None:
     """Test run_pcr_with_primer and run_pcr_with_primer_pair edge cases."""
     page = MagicMock(spec=ft.Page)
     controller = GUIController(page)
@@ -731,3 +789,37 @@ def test_gui_controller_run_pcr_methods() -> None:
     assert len(controller.input_data.primers) == 2
     assert controller.input_data.primers[0]["name"] == "FwdPair"
     assert controller.input_data.primers[1]["name"] == "RevPair"
+
+    # 9. add_primer_to_input adds without overwriting existing, marks dirty,
+    # and respects web state persistence
+    controller.input_view_dirty = False
+    page.web = False
+    with patch.object(controller, "save_last_state") as mock_save:
+        assert controller.add_primer_to_input("Blank", "   ") == (False, "")
+        assert controller.input_view_dirty is False
+        mock_save.assert_not_called()
+
+        page.web = True
+        added, added_name = controller.add_primer_to_input(
+            "2D Fwd (4 nt)", "GGGG"
+        )
+        assert (added, added_name) == (True, "2D Fwd (4 nt)")
+        assert controller.input_view_dirty is True
+        mock_save.assert_called_once()
+        assert len(controller.input_data.primers) == 3
+        assert controller.input_data.primers[2] == {
+            "name": "2D Fwd (4 nt)",
+            "seq": "GGGG",
+            "active": True,
+        }
+
+    # Verify save_last_state does not overwrite input_data from stale UI
+    from amplifyp.gui.utils.data_helpers import save_last_state
+
+    controller.input_view_dirty = True
+    controller.input_view = MagicMock()
+    page.web = False
+    with patch("amplifyp.gui.utils.data_helpers.get_last_state_path") as m_path:
+        m_path.return_value = tmp_path / "last_state.yaml"
+        save_last_state(controller)
+    controller.input_view.sync_to_state.assert_not_called()

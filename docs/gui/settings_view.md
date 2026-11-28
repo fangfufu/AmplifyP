@@ -90,11 +90,13 @@ behaviour, and melting temperature ($T_m$) calculations within the
 - **Primer Melting Temperature (Tm)**:
   - **Tm Calculation Method**: Dropdown selector for the algorithm:
     - **SantaLucia 1998 / Owczarzy 2008 (Default)**: Nearest-neighbour
-      thermodynamics with salt corrections for monovalent and divalent cations.
+      thermodynamics with salt corrections for monovalent and divalent cations,
+      supporting all 15 IUPAC bases and min–max range estimation for degenerate
+      primers.
     - **Lander / Amplify 4**: Empirical formula from the original Amplify4
-      program.
-    - *(Note: If SantaLucia thermodynamics encounters unsupported non-standard
-      or degenerate bases, it automatically falls back to Lander / Amplify 4).*
+      program (supports `G`, `A`, `T`, `C`, and `N`).
+    - *(Note: If SantaLucia thermodynamics encounters unsupported non-IUPAC
+      bases, it automatically falls back to Lander / Amplify 4).*
   - **Reaction Concentrations**:
     - **DNA Conc (nM)**: Total primer strand concentration in nM (default:
       `50.0`).

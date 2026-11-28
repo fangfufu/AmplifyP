@@ -72,9 +72,15 @@ class Designer2DView(BaseDesignerView):
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
         on_run_pcr: Callable[[str, str, str, str], None] | None = None,
+        on_add_primer: Callable[[str, str], tuple[bool, str]] | None = None,
     ) -> None:
         """Initialise the Designer2DView."""
-        super().__init__(page=page, input_data=input_data, settings=settings)
+        super().__init__(
+            page=page,
+            input_data=input_data,
+            settings=settings,
+            on_add_primer=on_add_primer,
+        )
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner2D | None = None
 
@@ -87,10 +93,10 @@ class Designer2DView(BaseDesignerView):
             on_clear_all_callback=self._clear_all,
         )
 
-        # Top-left container (height sized to fit 2D parameter rows)
+        # Top-left container (height sized to fit 2D parameter rows + errors)
         self.top_left_container = ft.Container(
             content=self.form,
-            height=380,
+            height=425,
             padding=10,
             border=ft.Border.all(1, GUIColours.OUTLINE_VARIANT),
             border_radius=5,
@@ -351,6 +357,7 @@ class Designer2DView(BaseDesignerView):
                 dismiss_callback=self._dismiss_card,
                 font_family=self.settings.get("font_family", "Roboto Mono"),
                 on_run_pcr_callback=self._handle_run_pcr,
+                on_add_primer_callback=self._handle_add_primer,
             )
 
         self._bring_card_to_top_or_add(card_id, _factory)

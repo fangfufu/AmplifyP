@@ -23,6 +23,9 @@ from amplifyp.dimer import PrimerDimer
 from amplifyp.dna import DNADirection
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
+from amplifyp.gui.views.designer.designer_card_helpers import (
+    build_sequence_action_row,
+)
 
 
 class PrimerItemCard(ft.Card):  # type: ignore[misc]
@@ -35,7 +38,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         mode: DNADirection,
         settings: GUISettings,
         on_select_callback: Callable[[PrimerDimer, int], None],
-        on_run_pcr_callback: Callable[[str, str], None] | None = None,
+        on_add_primer_callback: Callable[[str, str], None] | None = None,
         origin_count: int | None = None,
     ) -> None:
         """Initialise PrimerItemCard."""
@@ -49,19 +52,8 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
         seq_align = ft.TextAlign.RIGHT if is_reverse else ft.TextAlign.LEFT
         seq = dimer.primer_1.seq
         length = len(seq)
+        primer_name = f"1D Primer ({length} nt)"
         overlap_str = f"Overlap: {dimer.overlap} bp"
-
-        def _on_pcr_click(e: ft.ControlEvent) -> None:
-            if on_run_pcr_callback:
-                on_run_pcr_callback(seq, f"1D Primer ({length} nt)")
-
-        self.pcr_button = ft.FilledTonalButton(
-            "PCR",
-            icon=ft.Icons.PLAY_ARROW,
-            tooltip=f"Run PCR using template with {length} nt primer",
-            height=32,
-            on_click=_on_pcr_click,
-        )
 
         self._badge_containers: list[ft.Container] = [
             ft.Container(
@@ -114,6 +106,30 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
             content_padding=ft.Padding(6, 4, 6, 4),
         )
 
+        seq_container = ft.Container(
+            content=self._seq_field,
+            expand=True,
+            alignment=(
+                ft.Alignment(1, 0) if is_reverse else ft.Alignment(-1, 0)
+            ),
+        )
+
+        def _send_to_input() -> None:
+            if on_add_primer_callback:
+                on_add_primer_callback(primer_name, seq)
+
+        action_row, self.copy_button, self.add_primer_button = (
+            build_sequence_action_row(
+                seq_control=seq_container,
+                seq=seq,
+                label=primer_name,
+                on_send_to_input=(
+                    _send_to_input if on_add_primer_callback else None
+                ),
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+        )
+
         card_container = ft.Container(
             content=ft.Row(
                 [
@@ -125,15 +141,7 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                                 size=font_size_header,
                                 text_align=ft.TextAlign.LEFT,
                             ),
-                            ft.Container(
-                                content=self._seq_field,
-                                expand=True,
-                                alignment=(
-                                    ft.Alignment(1, 0)
-                                    if is_reverse
-                                    else ft.Alignment(-1, 0)
-                                ),
-                            ),
+                            action_row,
                         ],
                         spacing=2,
                         expand=True,
@@ -144,10 +152,6 @@ class PrimerItemCard(ft.Card):  # type: ignore[misc]
                         spacing=4,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         alignment=ft.MainAxisAlignment.CENTER,
-                    ),
-                    ft.Container(
-                        content=self.pcr_button,
-                        margin=ft.Margin.only(left=6),
                     ),
                 ],
                 alignment=ft.MainAxisAlignment.SPACE_BETWEEN,

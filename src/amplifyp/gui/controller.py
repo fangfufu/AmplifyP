@@ -111,6 +111,8 @@ class GUIController:
             NotificationHelper, None
         )
         self.input_view_dirty = False
+        self.designer_view_dirty = False
+        self.designer_2d_view_dirty = False
 
         # Sub-controllers
         self._theme_manager = ThemeManager(self)
@@ -173,12 +175,14 @@ class GUIController:
             self.input_data,
             self.settings,
             on_run_pcr=self.run_pcr_with_primer,
+            on_add_primer=self.add_primer_to_input,
         )
         self.designer_2d_view = Designer2DView(
             self.page,
             self.input_data,
             self.settings,
             on_run_pcr=self.run_pcr_with_primer_pair,
+            on_add_primer=self.add_primer_to_input,
         )
         self.about_view = AboutView(self.page, self.settings)
 
@@ -347,6 +351,18 @@ class GUIController:
                 cast(Any, None), self.designer_2d_view
             )
 
+    def add_primer_to_input(self, name: str, seq: str) -> tuple[bool, str]:
+        """Add or activate a primer in the Input tab's primer list."""
+        added, final_name = self.input_data.add_primer(name, seq)
+        if not final_name:
+            return False, ""
+
+        self.input_view_dirty = True
+        self.update_pcr_button_state(sync=False, update_page=False)
+        if self.page.web:
+            self.save_last_state()
+        return added, final_name
+
     def update_pcr_button_state(
         self, sync: bool = True, update_page: bool = True
     ) -> None:
@@ -392,8 +408,15 @@ class GUIController:
         self.update_pcr_button_state(update_page=False)
         self.settings.save_to_local(self.page)
 
-        self.designer_view.update_ui()
-        self.designer_2d_view.update_ui()
+        if active_view == self.designer_view:
+            self.designer_view.update_ui()
+        else:
+            self.designer_view_dirty = True
+
+        if active_view == self.designer_2d_view:
+            self.designer_2d_view.update_ui()
+        else:
+            self.designer_2d_view_dirty = True
 
         # Only redraw/re-simulate active views
         if active_view == self.pcr_view:

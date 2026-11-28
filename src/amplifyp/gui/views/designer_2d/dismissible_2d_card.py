@@ -48,6 +48,7 @@ class Dismissible2DCard(DismissibleDetailCard):
         on_run_pcr_callback: (
             Callable[[str, str, str, str], None] | None
         ) = None,
+        on_add_primer_callback: Callable[[str, str], None] | None = None,
         amplicon_count: int | None = None,
     ) -> None:
         """Initialise the Dismissible2DCard.
@@ -60,12 +61,15 @@ class Dismissible2DCard(DismissibleDetailCard):
             font_family: Sequence alignment font family.
             on_run_pcr_callback: Optional callback to execute PCR with this
                 primer pair.
+            on_add_primer_callback: Optional callback to send a primer from
+                this card to the Input primer list.
             amplicon_count: Optional number of amplicons predicted on template.
         """
         self.step = step
         self.settings = settings
         self.font_family = font_family
         self.on_run_pcr_callback = on_run_pcr_callback
+        self.on_add_primer_callback = on_add_primer_callback
         self.amplicon_count = (
             amplicon_count
             if amplicon_count is not None
@@ -210,11 +214,30 @@ class Dismissible2DCard(DismissibleDetailCard):
         Returns:
             Container with formatted rows for forward and reverse primers.
         """
+        fwd_name = f"2D Fwd ({len(fwd_p.seq)} nt)"
+        rev_name = f"2D Rev ({len(rev_p.seq)} nt)"
+
+        def _send_fwd() -> None:
+            if self.on_add_primer_callback:
+                self.on_add_primer_callback(fwd_name, fwd_p.seq)
+
+        def _send_rev() -> None:
+            if self.on_add_primer_callback:
+                self.on_add_primer_callback(rev_name, rev_p.seq)
+
         fwd_col = build_primer_summary_row(
-            "Forward Primer", fwd_p, self.settings, font_size_small
+            "Forward Primer",
+            fwd_p,
+            self.settings,
+            font_size_small,
+            on_send_to_input=_send_fwd if self.on_add_primer_callback else None,
         )
         rev_col = build_primer_summary_row(
-            "Reverse Primer", rev_p, self.settings, font_size_small
+            "Reverse Primer",
+            rev_p,
+            self.settings,
+            font_size_small,
+            on_send_to_input=_send_rev if self.on_add_primer_callback else None,
         )
 
         return ft.Container(

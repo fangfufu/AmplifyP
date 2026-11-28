@@ -17,15 +17,19 @@
 
 from dataclasses import replace
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from amplifyp.dna import Primer
 from amplifyp.errors import InsufficientThermodynamicDataError
 from amplifyp.melting import (
+    IUPAC_BASES,
     TmMethod,
+    TmRange,
     calculate_tm,
     calculate_tm_lander_amplify4,
+    calculate_tm_range,
     calculate_tm_santalucia_1998_owczarzy_2008,
 )
 from amplifyp.settings import GLOBAL_TM_SETTINGS, TMSettings
@@ -129,21 +133,16 @@ def test_gc_content_contribution() -> None:
 
 
 def test_invalid_chars_handling() -> None:
-    """Test handling of invalid characters.
-
-    Can handle skipped/ignored characters without error.
-    """
+    """Test handling of IUPAC wildcard bases and non-IUPAC rejection."""
     settings = GLOBAL_TM_SETTINGS
-    # NN should only skip the invalid dinucleotide steps
-    # "ACGT" -> AC, CG, GT
-    # "ACNRT" -> AC, CN(skip), NR(skip), RT(skip)?
-    # Current implementation: if dinuc not in table, pass.
-    # So "ACNT" -> AC (valid), CN (invalid), NT(invalid). Only first step
-    # counts.
-
     seq_n = "ACNT"
+    tm_n = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
+    assert tm_n == pytest.approx(calculate_tm(Primer(seq_n), settings))
+
+    bad_primer = MagicMock(spec=Primer)
+    bad_primer.seq_upper = "AC-T"
     with pytest.raises(InsufficientThermodynamicDataError):
-        _ = calculate_tm_santalucia_1998_owczarzy_2008(Primer(seq_n), settings)
+        _ = calculate_tm_santalucia_1998_owczarzy_2008(bad_primer, settings)
 
 
 def test_amplify4_tm_calculation() -> None:
@@ -227,10 +226,17 @@ def test_calculate_tm_no_salts() -> None:
 
 
 def test_calculate_tm_invalid_sequences() -> None:
-    """Test that Tm calculation raises ValueError for invalid sequences."""
+    """Test that Tm calculation raises for non-IUPAC sequences and handles N."""
     settings = GLOBAL_TM_SETTINGS
-    with pytest.raises(InsufficientThermodynamicDataError):
+    assert (
         calculate_tm_santalucia_1998_owczarzy_2008(Primer("NNNN"), settings)
+        > -273.15
+    )
+
+    bad_primer = MagicMock(spec=Primer)
+    bad_primer.seq_upper = "XXXX"
+    with pytest.raises(InsufficientThermodynamicDataError):
+        calculate_tm_santalucia_1998_owczarzy_2008(bad_primer, settings)
 
 
 def test_dntp_chelation() -> None:
@@ -303,12 +309,12 @@ def test_positive_mg_negative_dntp() -> None:
 
 
 def test_ambiguous_base_gc_content() -> None:
-    """Test Tm calculation error for sequences with degenerate base 'S'."""
-    seq_s = Primer("ACGTS")
-    with pytest.raises(InsufficientThermodynamicDataError):
-        _ = calculate_tm_santalucia_1998_owczarzy_2008(
-            seq_s, GLOBAL_TM_SETTINGS
-        )
+    """Test expected GC contribution for IUPAC degenerate bases S and W."""
+    seq_s = Primer("ACGTACGTACS")
+    seq_w = Primer("ACGTACGTACW")
+    tm_s = calculate_tm_santalucia_1998_owczarzy_2008(seq_s, GLOBAL_TM_SETTINGS)
+    tm_w = calculate_tm_santalucia_1998_owczarzy_2008(seq_w, GLOBAL_TM_SETTINGS)
+    assert tm_s > tm_w
 
 
 def test_calculate_tm_zero_enthalpy_and_denominators() -> None:
@@ -438,22 +444,168 @@ def test_calculate_tm_dispatcher_and_fallback() -> None:
     )
 
     deg_primer = Primer("ACGTNNACGT")
+    expected_sl = calculate_tm_santalucia_1998_owczarzy_2008(
+        deg_primer, GLOBAL_TM_SETTINGS
+    )
     assert calculate_tm(deg_primer, fallback_to_amplify4=True) == pytest.approx(
+        expected_sl
+    )
+    assert calculate_tm(
+        deg_primer, fallback_to_amplify4=False
+    ) == pytest.approx(expected_sl)
+    assert calculate_tm(
+        deg_primer, method=TmMethod.LANDER_AMPLIFY4
+    ) == pytest.approx(
         calculate_tm_lander_amplify4(deg_primer, GLOBAL_TM_SETTINGS)
     )
-    with pytest.raises(InsufficientThermodynamicDataError):
-        calculate_tm(deg_primer, fallback_to_amplify4=False)
 
     with pytest.raises(ValueError):
         calculate_tm(std_primer, method="Unknown Method")
 
-    # Degenerate IUPAC bases other than N raise
-    # InsufficientThermodynamicDataError rather than leaking KeyError.
+    # Fallback path when SantaLucia/Owczarzy raises for unsupported bases
+    with patch(
+        "amplifyp.melting.calculate_tm_santalucia_1998_owczarzy_2008",
+        side_effect=InsufficientThermodynamicDataError("unsupported"),
+    ):
+        assert calculate_tm(
+            deg_primer, fallback_to_amplify4=True
+        ) == pytest.approx(
+            calculate_tm_lander_amplify4(deg_primer, GLOBAL_TM_SETTINGS)
+        )
+        with pytest.raises(InsufficientThermodynamicDataError):
+            calculate_tm(deg_primer, fallback_to_amplify4=False)
+
+    # Degenerate IUPAC bases other than N are supported by the default model
+    # while still raising InsufficientThermodynamicDataError in Amplify4.
     for deg_seq in ("ACGTRACGT", "ACGTYACGT", "ACGTMACGT", "ACGTVACGT"):
         iupac_primer = Primer(deg_seq)
+        assert calculate_tm(iupac_primer) == pytest.approx(
+            calculate_tm_santalucia_1998_owczarzy_2008(
+                iupac_primer, GLOBAL_TM_SETTINGS
+            )
+        )
         with pytest.raises(InsufficientThermodynamicDataError):
             calculate_tm_lander_amplify4(iupac_primer, GLOBAL_TM_SETTINGS)
         with pytest.raises(InsufficientThermodynamicDataError):
-            calculate_tm(iupac_primer, fallback_to_amplify4=True)
-        with pytest.raises(InsufficientThermodynamicDataError):
             calculate_tm(iupac_primer, method=TmMethod.LANDER_AMPLIFY4)
+
+
+def test_all_iupac_bases_and_equimolar_concentration() -> None:
+    """Test all 15 IUPAC codes and equimolar concentration division."""
+    all_iupac = Primer("".join(IUPAC_BASES.keys()))
+    tm_all = calculate_tm_santalucia_1998_owczarzy_2008(
+        all_iupac, GLOBAL_TM_SETTINGS
+    )
+    assert tm_all > -273.15
+
+    # Equimolar concentration check: ACGTNACGT (fold=4) has variants at
+    # dna_conc / 4, and S/W ordering holds for GC- vs AT-rich variants.
+    p_n = Primer("ACGTNACGTACGT")
+    per_species_settings = replace(
+        GLOBAL_TM_SETTINGS, dna_conc=GLOBAL_TM_SETTINGS.dna_conc / 4.0
+    )
+    variant_tms = [
+        calculate_tm_santalucia_1998_owczarzy_2008(
+            Primer(f"ACGT{base}ACGTACGT"), per_species_settings
+        )
+        for base in ("A", "C", "G", "T")
+    ]
+    tm_range = calculate_tm_range(p_n, GLOBAL_TM_SETTINGS)
+    assert tm_range.variant_count == 4
+    assert tm_range.is_approximate is False
+    assert tm_range.min_tm == pytest.approx(min(variant_tms))
+    assert tm_range.max_tm == pytest.approx(max(variant_tms))
+    assert tm_range.mean_tm == pytest.approx(
+        sum(variant_tms) / len(variant_tms)
+    )
+    mean_approx = calculate_tm_santalucia_1998_owczarzy_2008(
+        p_n, GLOBAL_TM_SETTINGS
+    )
+    assert abs(mean_approx - tm_range.mean_tm) < 0.5
+
+
+def test_calculate_tm_range_enumeration_cap_and_dp_bounds() -> None:
+    """Test exact enumeration up to cap and O(L) DP bounds above cap."""
+    # Exact at boundary (4**3 = 64 == max_variants)
+    p64 = Primer("ACGTNNNACGTA")
+    exact_at_cap = calculate_tm_range(p64, GLOBAL_TM_SETTINGS, max_variants=64)
+    assert exact_at_cap.variant_count == 64
+    assert exact_at_cap.is_approximate is False
+
+    # Approximate above boundary (64 > 16)
+    approx = calculate_tm_range(p64, GLOBAL_TM_SETTINGS, max_variants=16)
+    assert approx.variant_count == 64
+    assert approx.is_approximate is True
+    assert approx.min_tm <= approx.mean_tm <= approx.max_tm
+    assert approx.min_tm == pytest.approx(exact_at_cap.min_tm, abs=0.5)
+    assert approx.max_tm == pytest.approx(exact_at_cap.max_tm, abs=0.5)
+
+    # Very high redundancy avoids float overflow (4**600 > 1e361)
+    ultra = calculate_tm_range(Primer("N" * 600), GLOBAL_TM_SETTINGS)
+    assert isinstance(ultra, TmRange)
+    assert ultra.is_approximate is True
+    assert ultra.min_tm < ultra.mean_tm < ultra.max_tm
+
+
+def test_calculate_tm_range_edge_cases_and_methods() -> None:
+    """Test calculate_tm_range on short, canonical, Lander, and bad inputs."""
+    assert calculate_tm_range(Primer("")) == TmRange(
+        min_tm=0.0,
+        mean_tm=0.0,
+        max_tm=0.0,
+        is_approximate=False,
+        variant_count=1,
+    )
+    assert calculate_tm_range(Primer("N")) == TmRange(
+        min_tm=0.0,
+        mean_tm=0.0,
+        max_tm=0.0,
+        is_approximate=False,
+        variant_count=4,
+    )
+
+    std_tm = calculate_tm_santalucia_1998_owczarzy_2008(
+        primer_1701, GLOBAL_TM_SETTINGS
+    )
+    assert calculate_tm_range(primer_1701, GLOBAL_TM_SETTINGS) == TmRange(
+        min_tm=std_tm,
+        mean_tm=std_tm,
+        max_tm=std_tm,
+        is_approximate=False,
+        variant_count=1,
+    )
+
+    amp4_tm = calculate_tm_lander_amplify4(
+        Primer("ACGTNNACGT"), GLOBAL_TM_SETTINGS
+    )
+    assert calculate_tm_range(
+        Primer("ACGTNNACGT"),
+        GLOBAL_TM_SETTINGS,
+        method=TmMethod.LANDER_AMPLIFY4,
+    ) == TmRange(
+        min_tm=amp4_tm,
+        mean_tm=amp4_tm,
+        max_tm=amp4_tm,
+        is_approximate=False,
+        variant_count=1,
+    )
+
+    with pytest.raises(ValueError, match="max_variants must be at least 1"):
+        calculate_tm_range(primer_1701, max_variants=0)
+
+    bad_primer = MagicMock(spec=Primer)
+    bad_primer.seq_upper = "AC-T"
+    with pytest.raises(InsufficientThermodynamicDataError):
+        calculate_tm_range(bad_primer, fallback_to_amplify4=False)
+    with patch(
+        "amplifyp.melting.calculate_tm_lander_amplify4", return_value=42.0
+    ):
+        assert calculate_tm_range(
+            bad_primer, fallback_to_amplify4=True
+        ) == TmRange(
+            min_tm=42.0,
+            mean_tm=42.0,
+            max_tm=42.0,
+            is_approximate=False,
+            variant_count=1,
+        )

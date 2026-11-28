@@ -376,3 +376,47 @@ def test_yaml_helpers_fallback_and_state_key(
     key1 = rxn.state_key()
     rxn.primers[0]["active"] = False
     assert rxn.state_key() != key1
+
+
+def test_reaction_input_add_primer() -> None:
+    """Test ReactionInput.add_primer placeholder cleanup and deduplication."""
+    ri = ReactionInput(primers=[{"name": "", "seq": "", "active": False}])
+
+    # Empty sequence rejected cleanly
+    assert ri.add_primer("Empty", "   ") == (False, "")
+    assert ri.primers == [{"name": "", "seq": "", "active": False}]
+
+    # Drops empty placeholder and appends cleaned entry
+    assert ri.add_primer("2D Fwd (8 nt)", " atgc gcat ") == (
+        True,
+        "2D Fwd (8 nt)",
+    )
+    assert ri.primers == [
+        {"name": "2D Fwd (8 nt)", "seq": "atgcgcat", "active": True}
+    ]
+
+    # Duplicate sequence (case-insensitive) reactivates rather than duplicating
+    ri.primers[0]["active"] = False
+    assert ri.add_primer("Another Name", "ATGCGCAT") == (
+        False,
+        "2D Fwd (8 nt)",
+    )
+    assert len(ri.primers) == 1
+    assert ri.primers[0]["active"] is True
+
+    # Blank existing name gets filled when matched by sequence
+    ri.primers.append({"name": "", "seq": "TTTTGGGG", "active": False})
+    assert ri.add_primer("Filled Name", "TTTTGGGG") == (False, "Filled Name")
+    assert ri.primers[1]["name"] == "Filled Name"
+    assert ri.primers[1]["active"] is True
+
+    # Same name with a distinct sequence gets numbered suffix
+    assert ri.add_primer("2D Fwd (8 nt)", "CCCCAAAA") == (
+        True,
+        "2D Fwd (8 nt) (2)",
+    )
+    assert ri.primers[-1] == {
+        "name": "2D Fwd (8 nt) (2)",
+        "seq": "CCCCAAAA",
+        "active": True,
+    }

@@ -648,11 +648,11 @@ AmplifyP provides two oligonucleotide melting temperature models in
 flowchart TD
     Start["calculate_tm(primer, settings, method)"] --> CheckMethod{"method ==<br/>LANDER_AMPLIFY4?"}
     CheckMethod -- Yes --> Amp4["calculate_tm_lander_amplify4()<br/>5x5 Amplify 4 Matrix (G, A, T, C, N)"]
-    CheckMethod -- No --> CheckBases{"Length >= 2 and all<br/>bases in {A, C, G, T}?"}
+    CheckMethod -- No --> CheckBases{"Length >= 2 and all<br/>bases in 15 IUPAC codes?"}
     CheckBases -- No --> Fallback{"fallback_to_amplify4<br/>enabled?"}
     Fallback -- Yes --> Amp4
     Fallback -- No --> Err["Raise InsufficientThermodynamicDataError"]
-    CheckBases -- Yes --> SL["SantaLucia (1998) Nearest-Neighbour<br/>1 M Na+ Baseline Tm"]
+    CheckBases -- Yes --> SL["SantaLucia (1998) Nearest-Neighbour<br/>1 M Na+ Baseline Tm (IUPAC Averaged)"]
     SL --> Salt["Free [Mg2+] = max(0, [Mg2+] - [dNTP])<br/>R_salt = sqrt([Mg2+]_free) / [Mon+]"]
     Salt --> Regime{"[Mg2+]_free == 0<br/>or R_salt < 0.22?"}
     Regime -- Yes --> Mono["SantaLucia (1998)<br/>Monovalent Entropy Correction"]
@@ -664,15 +664,24 @@ flowchart TD
 `calculate_tm_santalucia_1998_owczarzy_2008()` computes duplex melting
 temperature using unified DNA nearest-neighbour parameters [3] combined with
 monovalent and divalent cation corrections [4]. For sequences of length `N < 2`,
-it returns `0.0`; if any base lies outside `{A, C, G, T}`, it raises
-`InsufficientThermodynamicDataError`.
+it returns `0.0`. It supports all 15 standard IUPAC primer codes (`A`, `C`, `G`,
+`T`, `M`, `R`, `W`, `S`, `Y`, `K`, `V`, `H`, `D`, `B`, `N`), raising
+`InsufficientThermodynamicDataError` only for non-IUPAC inputs or zero
+thermodynamic denominators.
+
+For degenerate primers, `calculate_tm_range()` additionally computes minimum,
+mean, and maximum `Tm` values (`TmRange`): concrete `ACGT` variants are
+enumerated exhaustively when the redundancy fold is at most `4,096`, and
+estimated above that cap using `O(L)` weakest/strongest-base dynamic-programming
+bounds (`ΔH° - T_ref ΔS°`).
 
 #### Step 1: Nearest-Neighbour Enthalpy (`ΔH°`) and Entropy (`ΔS°`) at `1 M Na⁺`
 
 Total standard-state enthalpy `ΔH°` (in `cal/mol`) and entropy `ΔS°` (in
 `cal/(K·mol)`) are accumulated from terminal initiation terms, an optional
 palindromic symmetry penalty, and the `N - 1` adjacent `5' → 3'` dinucleotide
-steps:
+steps (for degenerate IUPAC bases, terminal and dinucleotide values are averaged
+uniformly across the expanded `ACGT` possibilities):
 
 1. **Terminal Initiation Corrections** (applied independently to the `5'` base
    `s_0` and `3'` base `s_{N-1}`):
@@ -681,10 +690,10 @@ steps:
    - Terminal `A` or `T`: `+2300 cal/mol` (`+2.3 kcal/mol`) to `ΔH°` and
      `+4.1 cal/(K·mol)` to `ΔS°`.
 2. **Self-Complementarity Symmetry Correction**:
-   - If the primer equals its own reverse complement (`S == rev_comp(S)`),
-     `-1.4 cal/(K·mol)` is added to `ΔS°` and the strand concentration symmetry
-     divisor is set to `k_sym = 1`; otherwise `k_sym = 4` (standard two-state
-     heteroduplex assumption).
+   - For strictly canonical (`ACGT`) primers equal to their own reverse
+     complement (`S == rev_comp(S)`), `-1.4 cal/(K·mol)` is added to `ΔS°` and
+     the strand concentration symmetry divisor is set to `k_sym = 1`; otherwise
+     `k_sym = 4` (standard two-state heteroduplex assumption).
 3. **Nearest-Neighbour Dinucleotide Steps (`NN_THERMO_DATA`, SantaLucia 1998)**:
 
 | `5'→3'` Step | Complementary Step | `ΔH°` (`cal/mol`) | `ΔS°` (`cal/(K·mol)`) |
@@ -702,10 +711,11 @@ steps:
 
 #### Step 2: Baseline `1 M Na⁺` Melting Temperature
 
-With gas constant `R = 1.987 cal/(K·mol)` and total oligonucleotide strand
-concentration `C_T = dna_conc × 10⁻⁹ M` (default `50 nM`; non-positive inputs
-fall back to `50 nM`), the baseline melting temperature in Kelvin at `1 M Na⁺`
-is:
+With gas constant `R = 1.987 cal/(K·mol)` and equimolar per-species
+oligonucleotide strand concentration
+`C_T = (dna_conc / redundancy_fold) × 10⁻⁹ M` (default total `dna_conc = 50 nM`;
+non-positive inputs fall back to `50 nM`), the baseline melting temperature in
+Kelvin at `1 M Na⁺` is:
 
 ```math
 T_{m,\text{1M}} = \frac{\Delta H^\circ}{\Delta S^\circ + R \ln(C_T / k_{\text{sym}})}
@@ -748,7 +758,7 @@ T_m (\text{K}) = \frac{\Delta H^\circ}{\Delta S_{\text{corr}} + R \ln(C_T / k_{\
 
 - **Mixed or Magnesium-Dominant Regime (`[Mg²⁺]_free > 0` and
   `R_salt ≥ 0.22`)**: Applies Owczarzy et al. (2008) Equation 16 to the
-  reciprocal melting temperature using GC fraction `f_GC = primer.ratio_cg()`:
+  reciprocal melting temperature using expected IUPAC GC fraction `f_GC`:
 
 ```math
 \frac{1}{T_m (\text{K})} = \frac{1}{T_{m,\text{1M}}}
@@ -808,12 +818,11 @@ T_m (^\circ\text{C}) = \frac{1000 \cdot \Delta H_{\text{amp4}}}{\Delta S_{\text{
 
 > [!WARNING]
 > The Lander / Amplify 4 model ignores divalent `[Mg²⁺]` and `[dNTP]`
-> concentrations, and its `5 × 5` tables cover `{G, A, T, C, N}` only. Whilst
-> `calculate_tm(..., fallback_to_amplify4=True)` automatically falls back to
-> Amplify 4 for primers containing wildcard `N`, primers of length `N ≥ 2`
+> concentrations, and its `5 × 5` tables cover `{G, A, T, C, N}` only. Primers
 > containing 2-fold or 3-fold IUPAC degenerate codes (`M`, `R`, `W`, `S`, `Y`,
-> `K`, `V`, `H`, `D`, `B`) raise `InsufficientThermodynamicDataError` in both
-> models.
+> `K`, `V`, `H`, `D`, `B`) raise `InsufficientThermodynamicDataError` under
+> Lander / Amplify 4, whereas the default SantaLucia / Owczarzy model supports
+> all 15 standard IUPAC codes directly.
 
 ______________________________________________________________________
 

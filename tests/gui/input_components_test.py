@@ -22,6 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import flet as ft
 import pytest
 
+from amplifyp.dna import Primer
 from amplifyp.gui.colours import GUIColours
 from amplifyp.gui.settings import GUISettings
 from amplifyp.gui.user_data import GUIInput
@@ -383,6 +384,8 @@ def test_primer_row_components_and_events() -> None:
     row.seq_field.value = "ATGCATGCATGCATGC"
     row.update_tm(settings)
     assert row._row_gesture_detector in row.content.controls
+    assert row._row_gesture_detector.expand is True
+    assert row._row_content.expand is True
     first_tm = row.tm_text.value
     assert first_tm.endswith("°C")
 
@@ -391,12 +394,33 @@ def test_primer_row_components_and_events() -> None:
     assert row.tm_text.value != first_tm
     assert row._row_gesture_detector in row.content.controls
 
+    settings["tm_method"] = "SantaLucia 1998 / Owczarzy 2008 (Default)"
+    row.seq_field.value = "ACGTNNACGT"
+    row.update_tm(settings)
+    expected_range = settings.calculate_primer_tm_range(Primer("ACGTNNACGT"))
+    assert row.tm_text.value == f"{expected_range.max_tm:.1f}°C"
+    assert row.tm_container.tooltip is not None
+    assert row.tm_container.tooltip.startswith("Max Tm: ")
+    assert "range:" in row.tm_container.tooltip
+    assert "16 variants)" in row.tm_container.tooltip
+    assert row.tooltip is None
+
+    row.seq_field.value = "N" * 600
+    row.update_tm(settings)
+    assert row.tm_container.tooltip is not None
+    assert "approx. range:" in row.tm_container.tooltip
+
+    row.seq_field.value = "ATGCATGCATGCATGC"
+    row.update_tm(settings)
+    assert row.tm_container.tooltip is None
+
     row.seq_field.value = "NNNNNNNN"
     with patch.object(
         settings, "calculate_primer_tm", side_effect=KeyError("bad base")
     ):
         row.update_tm(settings)
     assert row.tm_text.value == "-"
+    assert row.tm_container.tooltip is None
 
     row.seq_field.value = "invalid sequence %%%"
     row.update_tm(settings)

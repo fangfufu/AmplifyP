@@ -160,8 +160,10 @@ Panel contents:
 
 - **Header & Sequence**: Displays primer name, length in nucleotides (`nt`), and
   full sequence ($5' \\to 3'$).
-- **Melting Temperature**: Displays $T_m$ as `Tm = {value:.2f}°C`, or `Tm = N/A`
-  when it cannot be calculated.
+- **Melting Temperature**: Displays $T_m$ as `Tm = {value:.2f}°C` (showing the
+  maximum variant $T_m$ and min–max range for degenerate IUPAC primers), or
+  `Tm = N/A` when it cannot be calculated. Hovering over the $T_m$ cell in the
+  primer table also shows a range tooltip for degenerate primers.
 - **Base Composition**: Displays the overall AT percentage (e.g. `45.0% AT`).
 - **Degeneracy & Redundancy**: Displays redundant IUPAC base count and
   calculated redundancy fold.

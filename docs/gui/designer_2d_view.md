@@ -178,9 +178,10 @@ list:
     badges:
     - **Forward Primer & Reverse Primer Sequence Fields**: Read-only text
       fields, each with a copy button (tooltip *"Copy {label} sequence"*).
-    - **Melting Temperature ($T_m$)**: `Tm: {value:.1f}°C` calculated using
-      configured thermodynamic settings (shown as `Tm: N/A` when it cannot be
-      calculated).
+    - **Melting Temperature ($T_m$)**: `Tm: {value:.1f}°C` (displaying the
+      maximum variant $T_m$ and min–max range for degenerate IUPAC primers)
+      calculated using configured thermodynamic settings (shown as `Tm: N/A`
+      when it cannot be calculated).
     - **% AT Content**: `% AT: {percentage:.1f}%`.
   - **Dimer Alignment Subcontainers**: Rendered in distinct bordered boxes for
     each evaluated dimer alignment:

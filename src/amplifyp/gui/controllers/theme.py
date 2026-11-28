@@ -90,4 +90,9 @@ class ThemeManager:
             self.controller.designer_view.update_ui()
         elif active_view == getattr(self.controller, "designer_2d_view", None):
             self.controller.designer_2d_view.update_ui()
+
+        if active_view != getattr(self.controller, "designer_view", None):
+            self.controller.designer_view_dirty = True
+        if active_view != getattr(self.controller, "designer_2d_view", None):
+            self.controller.designer_2d_view_dirty = True
         self.controller.page.update()

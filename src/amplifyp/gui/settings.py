@@ -41,6 +41,7 @@ from amplifyp.settings import (
 
 if TYPE_CHECKING:
     from amplifyp.dna import Primer
+    from amplifyp.melting import TmMethod, TmRange
     from amplifyp.settings import (
         PrimerDimerSettings,
         ReplicationSettings,
@@ -412,6 +413,18 @@ class GUISettings:
         self._cached_tm_settings = TMSettings.from_dict(self._settings)
         return self._cached_tm_settings
 
+    def _get_tm_method(self) -> TmMethod:
+        """Resolve the configured Tm calculation method."""
+        from amplifyp.melting import TmMethod
+
+        tm_method_raw = str(
+            self.get("tm_method", TmMethod.SANTALUCIA_1998_OWCZARZY_2008)
+        )
+        try:
+            return TmMethod(tm_method_raw)
+        except ValueError:
+            return TmMethod.SANTALUCIA_1998_OWCZARZY_2008
+
     def calculate_primer_tm(self, primer: Primer) -> float:
         """Calculate the melting temperature of a primer based on settings.
 
@@ -425,21 +438,51 @@ class GUISettings:
         Returns:
             The melting temperature as a float.
         """
-        from amplifyp.melting import TmMethod, calculate_tm
+        from amplifyp.melting import calculate_tm
 
-        tm_method_raw = str(
-            self.get("tm_method", TmMethod.SANTALUCIA_1998_OWCZARZY_2008)
-        )
-        try:
-            tm_method = TmMethod(tm_method_raw)
-        except ValueError:
-            tm_method = TmMethod.SANTALUCIA_1998_OWCZARZY_2008
         return calculate_tm(
             primer,
             settings=self.get_tm_settings(),
-            method=tm_method,
+            method=self._get_tm_method(),
             fallback_to_amplify4=True,
         )
+
+    def calculate_primer_tm_range(self, primer: Primer) -> TmRange:
+        """Calculate min/mean/max melting temperatures for a primer.
+
+        Args:
+            primer: The primer object to calculate Tm range for.
+
+        Returns:
+            A ``TmRange`` instance across IUPAC variants.
+        """
+        from amplifyp.melting import calculate_tm_range
+
+        return calculate_tm_range(
+            primer,
+            settings=self.get_tm_settings(),
+            method=self._get_tm_method(),
+            fallback_to_amplify4=True,
+        )
+
+    def resolve_primer_tm_display(
+        self, primer: Primer
+    ) -> tuple[float, TmRange | None]:
+        """Return headline display Tm (max for degenerate primers) and range.
+
+        Args:
+            primer: The primer object to evaluate.
+
+        Returns:
+            Tuple of ``(display_tm, tm_range)``, where ``tm_range`` is
+            populated only when multiple IUPAC variants were evaluated.
+        """
+        tm = self.calculate_primer_tm(primer)
+        if primer.redundant_base_count > 0 and len(primer) >= 2:
+            tm_range = self.calculate_primer_tm_range(primer)
+            if tm_range.variant_count > 1:
+                return tm_range.max_tm, tm_range
+        return tm, None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert settings to a dictionary for serialisation.

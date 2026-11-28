@@ -216,8 +216,19 @@ class PrimerInfoPanel(ft.Card):  # type: ignore[misc]
             )
 
             try:
-                tm = self.settings.calculate_primer_tm(primer_obj)
-                tm_str = f"Tm = {tm:.2f}°C"
+                tm, tm_range = self.settings.resolve_primer_tm_display(
+                    primer_obj
+                )
+                if tm_range is not None:
+                    label = (
+                        "approx. range" if tm_range.is_approximate else "range"
+                    )
+                    tm_str = (
+                        f"Tm = {tm:.2f}°C (max; {label} "
+                        f"{tm_range.min_tm:.2f} to {tm_range.max_tm:.2f}°C)"
+                    )
+                else:
+                    tm_str = f"Tm = {tm:.2f}°C"
             except (KeyError, ValueError):
                 tm_str = "Tm = N/A"
 

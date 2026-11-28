@@ -197,22 +197,15 @@ class Designer2DForm(BaseDesignerForm):
 
     def _on_filter_dna_change(self, e: ft.ControlEvent) -> None:
         """Handle enabling/disabling check against template filter."""
-        is_checked = bool(self.filter_dna_checkbox.value)
-        self.max_amplicons_input.disabled = not is_checked
-        if not is_checked:
-            self.max_amplicons_input.error = None
-        try:
-            if self.page:
-                self.page.update()
-        except RuntimeError:
-            pass
-        self._clear_field_error(e)
+        self._handle_filter_dna_change(e, self.max_amplicons_input)
 
     def _on_fwd_dna_change(self, e: ft.ControlEvent) -> None:
         """Update forward length counter and clear error when DNA changes."""
         dna_raw = self.fwd_dna_input.value or ""
         cleaned = clean_sequence(dna_raw)
         self.fwd_length_display.value = str(len(cleaned))
+        if self._clear_stale_min_len_error(cleaned, self.fwd_min_len_input):
+            self._update_page()
         self._clear_field_error(e)
 
     def _on_rev_dna_change(self, e: ft.ControlEvent) -> None:
@@ -220,6 +213,8 @@ class Designer2DForm(BaseDesignerForm):
         dna_raw = self.rev_dna_input.value or ""
         cleaned = clean_sequence(dna_raw)
         self.rev_length_display.value = str(len(cleaned))
+        if self._clear_stale_min_len_error(cleaned, self.rev_min_len_input):
+            self._update_page()
         self._clear_field_error(e)
 
     def _on_reverse_complement_click(self, _e: ft.ControlEvent | None) -> None:
@@ -234,20 +229,13 @@ class Designer2DForm(BaseDesignerForm):
             self.rev_dna_input.error = (
                 "Invalid DNA sequence: only A, T, C, G (and N) are allowed"
             )
-            try:
-                if self.page:
-                    self.page.update()
-            except RuntimeError:
-                pass
+            self._update_page()
             return
         self.rev_dna_input.value = rev_comp_seq
         self.rev_length_display.value = str(len(rev_comp_seq))
         self.rev_dna_input.error = None
-        try:
-            if self.page:
-                self.page.update()
-        except RuntimeError:
-            pass
+        self._clear_stale_min_len_error(rev_comp_seq, self.rev_min_len_input)
+        self._update_page()
 
     def clear_errors(self) -> None:
         """Clear all field error indicators and general error message."""

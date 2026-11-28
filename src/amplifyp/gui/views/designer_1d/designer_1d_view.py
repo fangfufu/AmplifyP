@@ -73,9 +73,15 @@ class PrimerDesignerView(BaseDesignerView):
         input_data: GUIInput | None = None,
         settings: GUISettings | None = None,
         on_run_pcr: Callable[[str, str], None] | None = None,
+        on_add_primer: Callable[[str, str], tuple[bool, str]] | None = None,
     ) -> None:
         """Initialise the PrimerDesignerView."""
-        super().__init__(page=page, input_data=input_data, settings=settings)
+        super().__init__(
+            page=page,
+            input_data=input_data,
+            settings=settings,
+            on_add_primer=on_add_primer,
+        )
         self.on_run_pcr = on_run_pcr
         self._cached_designer: PrimerDesigner1D | None = None
         self._origin_counts_by_seq: dict[str, int | None] = {}
@@ -438,7 +444,7 @@ class PrimerDesignerView(BaseDesignerView):
                 mode=mode,
                 settings=self.settings,
                 on_select_callback=self._on_primer_selected,
-                on_run_pcr_callback=self._handle_run_pcr,
+                on_add_primer_callback=self._handle_add_primer,
                 origin_count=origin_count,
             )
             self.primer_list.controls.append(item_card)
