@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.1](https://github.com/fangfufu/AmplifyP/compare/v1.31.0...v1.31.1) (2026-11-28)
+
+
+### Bug Fixes
+
+* **e2e:** retry designer inputs until hints clear ([0e8cb82](https://github.com/fangfufu/AmplifyP/commit/0e8cb822dbb2df0dfb6967a3c9e6919ede9221ff))
+* **gui:** remove obsolete Flet session patch ([3f696a6](https://github.com/fangfufu/AmplifyP/commit/3f696a6ca2d8538702ebac7ddc2a766ea5858acf))
+* **test:** handle NTFS file mode on Windows ([3c613ad](https://github.com/fangfufu/AmplifyP/commit/3c613add069a9ed5073dbe04d964a5171f2a5bcd))
+* **web:** harden air-gapped dependency bundler ([2b80bd7](https://github.com/fangfufu/AmplifyP/commit/2b80bd7906b3544a2a05e5ba1d52a7fe26f8fb66))
+
+
+### Code Refactoring
+
+* **test:** deduplicate web bundler test setup ([ece32c6](https://github.com/fangfufu/AmplifyP/commit/ece32c6d7ae027bf6b64be980913bd2aa4fc533a))
+
 ## [1.31.0](https://github.com/fangfufu/AmplifyP/compare/v1.30.3...v1.31.0) (2026-11-27)
 
 
