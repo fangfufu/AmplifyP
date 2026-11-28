@@ -710,8 +710,10 @@ def test_designer_1d_analyse_button_layout() -> None:
     assert last_row.controls[2].expand is not True
     assert last_row.controls[0].height == 48
     assert last_row.controls[0].alignment == ft.Alignment(-1, 0)
+    assert last_row.controls[0].margin == ft.Margin.only(top=19)
     assert last_row.controls[2].height == 48
     assert last_row.controls[2].alignment == ft.Alignment(1, 0)
+    assert last_row.controls[2].margin == ft.Margin.only(top=19, left=16)
     assert view.form.analyse_button.height == 48
 
 
